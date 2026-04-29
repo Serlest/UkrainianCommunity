@@ -68,17 +68,20 @@ final class HomeViewModel: ObservableObject {
 @MainActor
 final class NewsViewModel: ObservableObject {
     @Published var posts: [NewsPost]
+    @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     private let repository: NewsRepository
 
     init(repository: NewsRepository) {
         self.repository = repository
         posts = []
+        isLoading = false
         reload()
     }
 
     func reload() {
         Task {
+            isLoading = true
             do {
                 posts = try await repository.fetchNews()
                 error = nil
@@ -87,6 +90,7 @@ final class NewsViewModel: ObservableObject {
             } catch {
                 self.error = .unknown
             }
+            isLoading = false
         }
     }
 

@@ -3,11 +3,56 @@ import SwiftUI
 struct NewsListView: View {
     @ObservedObject var viewModel: NewsViewModel
 
+    private var errorText: String {
+        switch viewModel.error {
+        case .network:
+            "Unable to load news. Check your connection and try again."
+        case .permissionDenied:
+            "You do not have permission to view this news."
+        case .validationFailed:
+            "The news data could not be loaded."
+        case .notFound:
+            "No news available yet."
+        case .unknown:
+            "Something went wrong while loading news."
+        case nil:
+            ""
+        }
+    }
+
     var body: some View {
         ScrollView {
-            if viewModel.posts.isEmpty {
-                EmptyStateView(title: AppStrings.Common.noItems)
+            if viewModel.isLoading {
+                ProgressView()
                     .padding(.top, 60)
+            } else if viewModel.error != nil {
+                VStack(spacing: 16) {
+                    Text(errorText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    Button("Retry") {
+                        viewModel.reload()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.top, 60)
+                .padding(.horizontal, 24)
+            } else if viewModel.posts.isEmpty {
+                VStack(spacing: 16) {
+                    Text("No news available yet.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    Button("Retry") {
+                        viewModel.reload()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.top, 60)
+                .padding(.horizontal, 24)
             } else {
                 AdaptiveCardGrid(items: viewModel.posts) { post in
                     VStack(spacing: 10) {
