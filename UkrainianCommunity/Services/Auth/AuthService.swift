@@ -3,6 +3,8 @@ import FirebaseAuth
 final class AuthService {
     static let shared = AuthService()
 
+    let authState = AuthState()
+
     var currentUser: User? { Auth.auth().currentUser }
     var isAuthenticated: Bool { currentUser != nil }
 
@@ -37,6 +39,7 @@ final class AuthService {
     private func ensureUserProfileExists(for uid: String) async {
         print("Calling ensureUserDocumentExists")
         await UserProfileService.shared.ensureUserDocumentExists(for: uid)
+        await authState.loadUser(uid: uid)
         print("User profile ensured: \(uid)")
     }
 
