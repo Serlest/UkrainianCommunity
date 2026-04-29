@@ -8,7 +8,7 @@ struct AppContainer {
     let marketplaceRepository: MarketplaceRepository
     let infoRepository: InfoRepository
 
-    static let mock = AppContainer(
+    static let development = AppContainer(
         userRepository: MockUserRepository(),
         newsRepository: FirestoreNewsRepository(),
         eventRepository: MockEventRepository(),

@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct ModerationToolsView: View {
+    let newsRepository: NewsRepository
+
+    init(newsRepository: NewsRepository = AppContainer.development.newsRepository) {
+        self.newsRepository = newsRepository
+    }
+
     var body: some View {
         List {
             Section {
@@ -12,7 +18,7 @@ struct ModerationToolsView: View {
             Section {
                 Label("Review pending content", systemImage: "clock.badge.exclamationmark")
                 NavigationLink {
-                    NewsEditorView()
+                    NewsEditorView(repository: newsRepository)
                 } label: {
                     Label("Manage news", systemImage: "newspaper")
                 }
@@ -27,6 +33,6 @@ struct ModerationToolsView: View {
 
 #Preview {
     NavigationStack {
-        ModerationToolsView()
+        ModerationToolsView(newsRepository: MockNewsRepository())
     }
 }

@@ -30,7 +30,7 @@ struct UkrainianCommunityApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(container: .mock)
+            ContentView(container: .development)
                 .environmentObject(authState)
         }
     }

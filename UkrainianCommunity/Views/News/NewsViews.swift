@@ -3,6 +3,7 @@ import SwiftUI
 struct NewsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
+    let newsRepository: NewsRepository
 
     private var errorText: String {
         switch viewModel.error {
@@ -38,7 +39,9 @@ struct NewsListView: View {
                         .multilineTextAlignment(.center)
 
                     Button("Retry") {
-                        viewModel.reload()
+                        Task {
+                            await viewModel.refresh()
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -52,7 +55,9 @@ struct NewsListView: View {
                         .multilineTextAlignment(.center)
 
                     Button("Retry") {
-                        viewModel.reload()
+                        Task {
+                            await viewModel.refresh()
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -82,16 +87,16 @@ struct NewsListView: View {
         }
         .background(AppTheme.groupedBackground.ignoresSafeArea())
         .navigationTitle(AppStrings.News.title)
-        .onAppear {
-            viewModel.reload()
+        .task {
+            await viewModel.loadIfNeeded()
         }
         .refreshable {
-            viewModel.reload()
+            await viewModel.refresh()
         }
         .toolbar {
             if canCreateNews {
                 NavigationLink {
-                    NewsEditorView()
+                    NewsEditorView(repository: newsRepository)
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -277,7 +282,7 @@ struct NewsDetailView: View {
 
 #Preview("News List") {
     NavigationStack {
-        NewsListView(viewModel: NewsViewModel(repository: MockNewsRepository()))
+        NewsListView(viewModel: NewsViewModel(repository: MockNewsRepository()), newsRepository: MockNewsRepository())
     }
 }
 

@@ -6,7 +6,8 @@ final class ImageUploadService {
     static let shared = ImageUploadService()
 
     private let storage = Storage.storage()
-    private let maxImageWidth: CGFloat = 1600
+    private let preferredImageWidths: [CGFloat] = [1600, 1200, 900]
+    private let preferredCompressionQualities: [CGFloat] = [0.75, 0.65, 0.55, 0.45]
     private let maxUploadBytes = 1_000_000
 
     private init() {}
@@ -37,28 +38,35 @@ final class ImageUploadService {
             throw ImageUploadError.invalidImageData
         }
 
-        let resizedImage = resizedImageIfNeeded(image)
+        for width in preferredImageWidths {
+            let resizedImage = resizedImageIfNeeded(image, maxWidth: width)
 
-        guard let jpegData = resizedImage.jpegData(compressionQuality: 0.75) else {
-            throw ImageUploadError.invalidImageData
+            for quality in preferredCompressionQualities {
+                guard let jpegData = resizedImage.jpegData(compressionQuality: quality) else {
+                    throw ImageUploadError.invalidImageData
+                }
+
+                if jpegData.count < maxUploadBytes {
+                    print("Compression width used: \(Int(width))")
+                    print("Compression quality used: \(quality)")
+                    print("Compression final size: \(jpegData.count) bytes")
+                    return jpegData
+                }
+            }
         }
 
-        guard jpegData.count < maxUploadBytes else {
-            throw ImageUploadError.imageTooLarge
-        }
-
-        return jpegData
+        throw ImageUploadError.imageTooLarge
     }
 
-    private func resizedImageIfNeeded(_ image: UIImage) -> UIImage {
+    private func resizedImageIfNeeded(_ image: UIImage, maxWidth: CGFloat) -> UIImage {
         let originalSize = image.size
-        guard originalSize.width > maxImageWidth else {
+        guard originalSize.width > maxWidth else {
             return image
         }
 
-        let scale = maxImageWidth / originalSize.width
+        let scale = maxWidth / originalSize.width
         let targetSize = CGSize(
-            width: maxImageWidth,
+            width: maxWidth,
             height: originalSize.height * scale
         )
 

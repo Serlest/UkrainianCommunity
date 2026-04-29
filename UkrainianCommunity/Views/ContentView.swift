@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("selectedAppLanguage") private var selectedLanguageCode = AppLanguage.stored.rawValue
+    private let container: AppContainer
     @StateObject private var homeViewModel: HomeViewModel
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
@@ -12,6 +13,7 @@ struct ContentView: View {
     @StateObject private var profileViewModel: ProfileViewModel
 
     init(container: AppContainer) {
+        self.container = container
         _homeViewModel = StateObject(wrappedValue: HomeViewModel(
             userRepository: container.userRepository,
             newsRepository: container.newsRepository,
@@ -79,7 +81,7 @@ struct ContentView: View {
 
     private var newsTab: some View {
         NavigationStack {
-            NewsListView(viewModel: newsViewModel)
+            NewsListView(viewModel: newsViewModel, newsRepository: container.newsRepository)
         }
         .tabItem {
             Label(AppStrings.Tabs.news, systemImage: "newspaper.fill")
@@ -220,5 +222,5 @@ private struct CommunityHubView: View {
 }
 
 #Preview {
-    ContentView(container: .mock)
+    ContentView(container: .development)
 }

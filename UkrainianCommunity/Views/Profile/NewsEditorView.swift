@@ -6,8 +6,8 @@ struct NewsEditorView: View {
     @StateObject private var viewModel: NewsEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
 
-    init() {
-        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: FirestoreNewsRepository()))
+    init(repository: NewsRepository) {
+        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository))
     }
 
     var body: some View {
@@ -93,6 +93,6 @@ struct NewsEditorView: View {
 
 #Preview {
     NavigationStack {
-        NewsEditorView()
+        NewsEditorView(repository: MockNewsRepository())
     }
 }
