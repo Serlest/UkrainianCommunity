@@ -1,0 +1,164 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserData() {
+      return currentUserDoc().data;
+    }
+
+    function currentUserRole() {
+      return currentUserData().role;
+    }
+
+    function isBlocked() {
+      return signedIn() && currentUserData().isBlocked == true;
+    }
+
+    function isOwner() {
+      return signedIn() && currentUserRole() == 'owner';
+    }
+
+    function isAdmin() {
+      return signedIn() && (currentUserRole() == 'admin' || isOwner());
+    }
+
+    function isModerator() {
+      return signedIn() && (
+        currentUserRole() == 'moderator' ||
+        currentUserRole() == 'admin' ||
+        currentUserRole() == 'owner'
+      );
+    }
+
+    function canWriteContent() {
+      return signedIn() && !isBlocked() && isModerator();
+    }
+
+    function isPublished() {
+      return resource.data.moderationStatus == 'approved';
+    }
+
+    function isPublishedAfterWrite() {
+      return request.resource.data.moderationStatus == 'approved';
+    }
+
+    // Users collection:
+    // - authenticated users can read their own user doc
+    // - admins/owners can read all user docs
+    // - user can create only their own initial profile
+    // - user can update only safe fields on their own doc
+    // - user cannot change their own role or block status
+    // - admins can manage moderators and block users
+    // - owners can fully manage users
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.id == userId
+        && request.resource.data.role == 'user'
+        && request.resource.data.isBlocked == false;
+
+      allow update: if signedIn() && (
+        isOwner() ||
+        (
+          isAdmin()
+          && request.resource.data.id == resource.data.id
+          && (
+            request.resource.data.role in ['user', 'moderator', 'admin']
+          )
+        ) ||
+        (
+          request.auth.uid == userId
+          && !isBlocked()
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.isBlocked == resource.data.isBlocked
+        )
+      );
+
+      allow delete: if isOwner();
+    }
+
+    // Public content collections:
+    // - everyone can read approved content
+    // - moderator/admin/owner can create and edit
+    // - owner can delete
+    match /news/{documentId} {
+      allow read: if isPublished();
+      allow create, update: if canWriteContent();
+      allow delete: if isOwner();
+    }
+
+    match /events/{documentId} {
+      allow read: if isPublished();
+      allow create, update: if canWriteContent();
+      allow delete: if isOwner();
+    }
+
+    match /organizations/{documentId} {
+      allow read: if isPublished();
+      allow create, update: if canWriteContent();
+      allow delete: if isOwner();
+    }
+
+    match /marketplace/{documentId} {
+      allow read: if isPublished();
+      allow create, update: if canWriteContent();
+      allow delete: if isOwner();
+    }
+
+    // Comments:
+    // - readable when attached to public content
+    // - authenticated non-blocked users can create their own comments
+    // - moderators/admins/owners can edit/delete for moderation
+    // Assumption: top-level comments documents include:
+    // - authorId
+    // - parentCollection
+    // - parentStatus
+    match /comments/{commentId} {
+      allow read: if resource.data.parentStatus == 'approved';
+
+      allow create: if signedIn()
+        && !isBlocked()
+        && request.resource.data.authorId == request.auth.uid;
+
+      allow update, delete: if signedIn() && (
+        (!isBlocked() && resource.data.authorId == request.auth.uid) ||
+        isModerator()
+      );
+    }
+
+    // Registrations:
+    // - authenticated users can create and manage only their own registrations
+    // - moderators/admins/owners can read for event management
+    // Assumption: registration documents include userId
+    match /registrations/{registrationId} {
+      allow read: if signedIn() && (
+        resource.data.userId == request.auth.uid || isModerator()
+      );
+
+      allow create, update, delete: if signedIn()
+        && !isBlocked()
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Likes:
+    // - authenticated users can create and remove only their own likes
+    // Assumption: like documents include userId
+    match /likes/{likeId} {
+      allow read: if signedIn();
+
+      allow create, update, delete: if signedIn()
+        && !isBlocked()
+        && request.resource.data.userId == request.auth.uid;
+    }
+  }
+}
