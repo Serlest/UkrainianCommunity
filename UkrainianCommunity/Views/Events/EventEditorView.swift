@@ -41,8 +41,14 @@ struct EventEditorView: View {
             }
 
             Section {
-                DatePicker(AppStrings.Events.fieldStartDate, selection: $viewModel.startDate)
-                DatePicker(AppStrings.Events.fieldEndDate, selection: $viewModel.endDate)
+                EventDateFieldRow(
+                    title: AppStrings.Events.fieldStartDate,
+                    selection: $viewModel.startDate
+                )
+                EventDateFieldRow(
+                    title: AppStrings.Events.fieldEndDate,
+                    selection: $viewModel.endDate
+                )
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -66,9 +72,7 @@ struct EventEditorView: View {
                     Task {
                         let didPublish = await viewModel.publish()
                         guard didPublish else { return }
-                        print("Event onPublished callback start")
                         await onPublished()
-                        print("Event onPublished callback success")
                         dismiss()
                     }
                 } label: {
@@ -117,6 +121,37 @@ struct EventEditorView: View {
                 viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
             }
         }
+    }
+}
+
+private struct EventDateFieldRow: View {
+    let title: String
+    @Binding var selection: Date
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Text(LocalizationStore.dateString(from: selection, dateStyle: .medium, timeStyle: .short))
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 12)
+
+            DatePicker(
+                title,
+                selection: $selection,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            .labelsHidden()
+            .datePickerStyle(.compact)
+        }
+        .padding(.vertical, 4)
     }
 }
 

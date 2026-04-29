@@ -53,7 +53,6 @@ final class EventEditorViewModel: ObservableObject {
     func publish() async -> Bool {
         guard !isPublishing else { return false }
 
-        print("Event publish start")
         successMessage = nil
         errorMessage = nil
 
@@ -96,7 +95,6 @@ final class EventEditorViewModel: ObservableObject {
                 isUploadingImage = false
             }
 
-            print("Firestore create started")
             let eventToCreate = Event(
                 id: newEvent.id,
                 title: newEvent.title,
@@ -119,9 +117,7 @@ final class EventEditorViewModel: ObservableObject {
             )
 
             try await repository.createEvent(eventToCreate)
-            print("Firestore create finished")
             successMessage = AppStrings.Events.publishedSuccessfully
-            print("Event publish success")
             title = ""
             summary = ""
             details = ""
@@ -134,7 +130,6 @@ final class EventEditorViewModel: ObservableObject {
         } catch {
             isUploadingImage = false
             errorMessage = error.localizedDescription
-            print("Event publish failure: \(error)")
             return false
         }
     }

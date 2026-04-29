@@ -40,7 +40,9 @@ final class HomeViewModel: ObservableObject {
     }
 
     func reload() {
-        print("HomeViewModel.reload()")
+#if DEBUG
+        print("NewsViewModel.reload() start")
+#endif
         Task {
             await refresh()
         }
@@ -106,6 +108,7 @@ final class NewsViewModel: ObservableObject {
     @Published var posts: [NewsPost]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var contentVersion = 0
     private let repository: NewsRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -122,7 +125,9 @@ final class NewsViewModel: ObservableObject {
     }
 
     func reload() {
-        print("EventsViewModel.reload()")
+#if DEBUG
+        print("NewsViewModel.reload() start")
+#endif
         Task {
             await refresh()
         }
@@ -193,8 +198,13 @@ final class NewsViewModel: ObservableObject {
             let loadedPosts = try await repository.fetchNews()
             guard !Task.isCancelled else { return }
             posts = loadedPosts
+            contentVersion &+= 1
             error = nil
             hasLoaded = true
+#if DEBUG
+            let postsWithImages = loadedPosts.filter { $0.imageURL != nil }.count
+            print("NewsViewModel.reload() finish: count=\(loadedPosts.count), withImageURL=\(postsWithImages)")
+#endif
         } catch is CancellationError {
         } catch let appError as AppError {
             guard !Task.isCancelled else { return }
@@ -211,6 +221,7 @@ final class EventsViewModel: ObservableObject {
     @Published var events: [Event]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var contentVersion = 0
     private let repository: EventRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -227,6 +238,9 @@ final class EventsViewModel: ObservableObject {
     }
 
     func reload() {
+#if DEBUG
+        print("EventsViewModel.reload() start")
+#endif
         Task {
             await refresh()
         }
@@ -319,6 +333,7 @@ final class EventsViewModel: ObservableObject {
             let loadedEvents = try await repository.fetchEvents()
             guard !Task.isCancelled else { return }
             events = loadedEvents
+            contentVersion &+= 1
             error = nil
             hasLoaded = true
         } catch is CancellationError {

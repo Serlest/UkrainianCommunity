@@ -49,14 +49,14 @@ final class NewsEditorViewModel: ObservableObject {
         self.authState = authState
     }
 
-    func publish() async {
-        guard !isPublishing else { return }
+    func publish() async -> Bool {
+        guard !isPublishing else { return false }
 
         successMessage = nil
         errorMessage = nil
 
         guard validate() else {
-            return
+            return false
         }
 
         let now = Date()
@@ -79,17 +79,31 @@ final class NewsEditorViewModel: ObservableObject {
         )
 
         isPublishing = true
-        print("Publishing started")
+        defer { isPublishing = false }
 
         do {
             if let selectedImageData {
                 isUploadingImage = true
-                let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
-                resolvedImageURL = downloadURL.absoluteString
+#if DEBUG
+                print("News publish: before upload/downloadURL")
+#endif
+                do {
+                    let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
+                    resolvedImageURL = downloadURL.absoluteString
+#if DEBUG
+                    print("News publish: download URL received \(downloadURL.absoluteString)")
+#endif
+                } catch {
+                    isUploadingImage = false
+                    errorMessage = readableUploadErrorMessage(for: error)
+#if DEBUG
+                    print("News publish: upload/downloadURL failed: \(error)")
+#endif
+                    return false
+                }
                 isUploadingImage = false
             }
 
-            print("Firestore create started")
             let newsToCreate = NewsPost(
                 id: news.id,
                 title: news.title,
@@ -106,21 +120,27 @@ final class NewsEditorViewModel: ObservableObject {
                 likeState: news.likeState
             )
 
+#if DEBUG
+            print("News publish: before createNews id=\(newsToCreate.id), imageURL=\(newsToCreate.imageURL ?? "nil")")
+#endif
             try await repository.createNews(newsToCreate)
-            print("Firestore create finished")
+#if DEBUG
+            print("News publish: after createNews")
+#endif
             successMessage = AppStrings.NewsEditor.publishedSuccessfully
-            print("Publishing succeeded")
             title = ""
             summary = ""
             body = ""
             selectedImageData = nil
+            return true
         } catch {
             isUploadingImage = false
-            errorMessage = error.localizedDescription
-            print("Publishing failed: \(error)")
+            errorMessage = readablePublishErrorMessage(for: error)
+#if DEBUG
+            print("News publish: createNews failed: \(error)")
+#endif
+            return false
         }
-
-        isPublishing = false
     }
 
     private var trimmedTitle: String {
@@ -153,17 +173,25 @@ final class NewsEditorViewModel: ObservableObject {
         guard !trimmedTitle.isEmpty else {
             errorMessage = AppStrings.NewsEditor.titleRequired
             successMessage = nil
-            print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
             return false
         }
 
         guard !trimmedBody.isEmpty else {
             errorMessage = AppStrings.NewsEditor.bodyRequired
             successMessage = nil
-            print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
             return false
         }
 
         return true
+    }
+
+    private func readableUploadErrorMessage(for error: Error) -> String {
+        let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        return message.isEmpty ? AppStrings.NewsEditor.imageProcessingFailed : message
+    }
+
+    private func readablePublishErrorMessage(for error: Error) -> String {
+        let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        return message.isEmpty ? AppStrings.News.actionUnknownError : message
     }
 }

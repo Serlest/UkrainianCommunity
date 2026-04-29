@@ -4,11 +4,12 @@ import UIKit
 
 struct NewsEditorView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: NewsEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
-    private let onPublished: () -> Void
+    private let onPublished: @MainActor () async -> Void
 
-    init(repository: NewsRepository, onPublished: @escaping () -> Void = {}) {
+    init(repository: NewsRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository))
         self.onPublished = onPublished
     }
@@ -59,10 +60,17 @@ struct NewsEditorView: View {
 
                 Button(AppStrings.NewsEditor.publish) {
                     Task {
-                        await viewModel.publish()
-                        if viewModel.successMessage != nil {
-                            onPublished()
-                        }
+                        let didPublish = await viewModel.publish()
+                        guard didPublish else { return }
+#if DEBUG
+                        print("News publish: before onPublished callback")
+#endif
+                        await onPublished()
+#if DEBUG
+                        print("News publish: after onPublished callback")
+                        print("News publish: before dismiss")
+#endif
+                        dismiss()
                     }
                 }
                 .disabled(!viewModel.canPublish)

@@ -4,6 +4,7 @@ struct NewsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let newsRepository: NewsRepository
+    let onNewsPublished: @MainActor () async -> Void
     let onNewsChanged: () -> Void
     @State private var pendingDeletePostID: String?
     @State private var deleteErrorMessage: String?
@@ -36,14 +37,14 @@ struct NewsListView: View {
 
     var body: some View {
         ScrollView {
-            if viewModel.isLoading {
+            if viewModel.posts.isEmpty && viewModel.isLoading {
                 VStack {
                     Spacer(minLength: 0)
                     ProgressView()
                     Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, minHeight: 420)
-            } else if viewModel.error != nil {
+            } else if viewModel.posts.isEmpty && viewModel.error != nil {
                 NewsStateView(
                     systemImage: "newspaper",
                     title: AppStrings.News.title,
@@ -70,30 +71,49 @@ struct NewsListView: View {
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                AdaptiveCardGrid(items: viewModel.posts) { post in
-                    ZStack(alignment: .bottomTrailing) {
-                        NavigationLink {
-                            NewsDetailView(viewModel: viewModel, postID: post.id, onNewsDeleted: onNewsChanged)
-                        } label: {
-                            NewsCard(post: post)
-                        }
-                        .buttonStyle(.plain)
+                VStack(spacing: 16) {
+                    if viewModel.error != nil {
+                        VStack(spacing: 8) {
+                            Text(errorText)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
 
-                        LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
-                            viewModel.toggleLike(for: post.id)
+                            Button(AppStrings.News.retry) {
+                                Task {
+                                    await viewModel.refresh()
+                                }
+                            }
+                            .buttonStyle(.bordered)
                         }
-                        .padding(.trailing, 18)
-                        .padding(.bottom, 18)
+                        .padding(.horizontal, 16)
                     }
-                    .swipeActions(edge: .trailing) {
-                        if canDeleteNews {
-                            Button(AppStrings.News.delete, role: .destructive) {
-                                pendingDeletePostID = post.id
+
+                    AdaptiveCardGrid(items: viewModel.posts) { post in
+                        ZStack(alignment: .bottomTrailing) {
+                            NavigationLink {
+                                NewsDetailView(viewModel: viewModel, postID: post.id, onNewsDeleted: onNewsChanged)
+                            } label: {
+                                NewsCard(post: post)
+                            }
+                            .buttonStyle(.plain)
+
+                            LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
+                                viewModel.toggleLike(for: post.id)
+                            }
+                            .padding(.trailing, 18)
+                            .padding(.bottom, 18)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            if canDeleteNews {
+                                Button(AppStrings.News.delete, role: .destructive) {
+                                    pendingDeletePostID = post.id
+                                }
                             }
                         }
                     }
+                    .padding()
                 }
-                .padding()
             }
         }
         .background(AppTheme.groupedBackground.ignoresSafeArea())
@@ -145,10 +165,7 @@ struct NewsListView: View {
         .toolbar {
             if canCreateNews {
                 NavigationLink {
-                    NewsEditorView(repository: newsRepository) {
-                        viewModel.reload()
-                        onNewsChanged()
-                    }
+                    NewsEditorView(repository: newsRepository, onPublished: onNewsPublished)
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -172,6 +189,27 @@ private func readableNewsErrorText(_ error: AppError?) -> String {
     case nil:
         AppStrings.News.actionUnknownError
     }
+}
+
+private func sanitizedAuthorName(_ rawValue: String) -> String {
+    let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedValue.isEmpty else {
+        return AppStrings.NewsEditor.authorFallback
+    }
+
+    if looksLikeRawAuthorIdentifier(trimmedValue) {
+        return AppStrings.NewsEditor.authorFallback
+    }
+
+    return trimmedValue
+}
+
+private func looksLikeRawAuthorIdentifier(_ value: String) -> Bool {
+    guard value.count >= 20 else { return false }
+    guard value.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { return false }
+
+    let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+    return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
 }
 
 private struct NewsStateView<ActionContent: View>: View {
@@ -211,7 +249,7 @@ private struct NewsCard: View {
 
     var body: some View {
         CommunityCard {
-            RemoteCardImage(imageURL: post.imageURL, height: 220)
+            RemoteImageView(imageURL: post.imageURL, height: 220)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(post.title)
@@ -227,7 +265,7 @@ private struct NewsCard: View {
                 }
 
                 HStack(alignment: .center, spacing: 12) {
-                    Text(displayAuthorName)
+                    Text(sanitizedAuthorName(post.authorName))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -235,27 +273,6 @@ private struct NewsCard: View {
                 .padding(.trailing, 88)
             }
         }
-    }
-
-    private var displayAuthorName: String {
-        let trimmedName = post.authorName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
-            return AppStrings.NewsEditor.authorFallback
-        }
-
-        if looksLikeRawUID(trimmedName) {
-            return AppStrings.NewsEditor.authorFallback
-        }
-
-        return trimmedName
-    }
-
-    private func looksLikeRawUID(_ value: String) -> Bool {
-        guard value.count >= 20 else { return false }
-        guard value.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { return false }
-
-        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
-        return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
     }
 }
 
@@ -279,8 +296,9 @@ struct NewsDetailView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         GradientHeroCard(title: post.title, subtitle: post.subtitle) {
-                            Text(post.authorName)
+                            Text(sanitizedAuthorName(post.authorName))
                                 .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
                         }
 
                         if let imageURL = post.imageURL {
@@ -300,8 +318,9 @@ struct NewsDetailView: View {
                                 .font(.headline)
                             ForEach(post.comments) { comment in
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text(comment.authorName)
+                                    Text(sanitizedAuthorName(comment.authorName))
                                         .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.secondary)
                                     Text(comment.body)
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
@@ -367,6 +386,7 @@ struct NewsDetailView: View {
         NewsListView(
             viewModel: NewsViewModel(repository: MockNewsRepository()),
             newsRepository: MockNewsRepository(),
+            onNewsPublished: {},
             onNewsChanged: {}
         )
     }

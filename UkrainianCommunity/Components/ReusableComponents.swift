@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct GradientHeroCard<Content: View>: View {
     let title: String
@@ -61,10 +62,11 @@ struct CommunityCard<Content: View>: View {
     }
 }
 
-struct RemoteCardImage: View {
+struct RemoteImageView: View {
     let imageURL: String?
     let height: CGFloat
     let cornerRadius: CGFloat
+    @State private var loadedImage: UIImage?
 
     init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18) {
         self.imageURL = imageURL
@@ -74,51 +76,28 @@ struct RemoteCardImage: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(AppTheme.groupedBackground)
-
-            if let imageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        loadingPlaceholder
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        fallbackPlaceholder
-                    @unknown default:
-                        fallbackPlaceholder
-                    }
-                }
+            if let loadedImage {
+                Image(uiImage: loadedImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                fallbackPlaceholder
+                placeholder
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-
-    private var loadingPlaceholder: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    AppTheme.groupedBackground.opacity(0.9),
-                    AppTheme.cardBackground.opacity(0.95)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            ProgressView()
-                .tint(AppTheme.primaryBlue)
+        .task(id: imageURL) {
+            await loadImage()
         }
     }
 
-    private var fallbackPlaceholder: some View {
+    private var placeholder: some View {
         ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(AppTheme.groupedBackground)
             LinearGradient(
                 colors: [
                     AppTheme.groupedBackground,
@@ -131,6 +110,57 @@ struct RemoteCardImage: View {
                 .font(.title2)
                 .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @MainActor
+    private func loadImage() async {
+        loadedImage = nil
+
+        guard let imageURL, let url = URL(string: imageURL) else {
+            return
+        }
+
+#if DEBUG
+        print("RemoteImageView start loading URL: \(imageURL)")
+#endif
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+
+#if DEBUG
+            print("RemoteImageView success URL: \(imageURL), data size: \(data.count)")
+#endif
+
+            guard let image = UIImage(data: data) else {
+#if DEBUG
+                print("RemoteImageView decoded image nil: \(imageURL)")
+#endif
+                return
+            }
+
+            loadedImage = image
+        } catch {
+#if DEBUG
+            print("RemoteImageView failed URL: \(imageURL), error: \(error)")
+#endif
+        }
+    }
+}
+
+struct RemoteCardImage: View {
+    let imageURL: String?
+    let height: CGFloat
+    let cornerRadius: CGFloat
+
+    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18) {
+        self.imageURL = imageURL
+        self.height = height
+        self.cornerRadius = cornerRadius
+    }
+
+    var body: some View {
+        RemoteImageView(imageURL: imageURL, height: height, cornerRadius: cornerRadius)
     }
 }
 

@@ -4,7 +4,7 @@ struct EventsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
     let eventRepository: EventRepository
-    let onEventPublished: @MainActor () -> Void
+    let onEventPublished: @MainActor () async -> Void
     let onEventDeleted: @MainActor () -> Void
     @State private var pendingDeleteEventID: String?
     @State private var deleteErrorMessage: String?
@@ -163,10 +163,7 @@ struct EventsListView: View {
         .toolbar {
             if canCreateEvent {
                 NavigationLink {
-                    EventEditorView(repository: eventRepository) {
-                        await viewModel.refresh()
-                        onEventPublished()
-                    }
+                    EventEditorView(repository: eventRepository, onPublished: onEventPublished)
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -191,6 +188,27 @@ private func readableEventErrorText(_ error: AppError?) -> String {
     case nil:
         AppStrings.Events.actionUnknownError
     }
+}
+
+private func sanitizedEventCommentAuthorName(_ rawValue: String) -> String {
+    let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedValue.isEmpty else {
+        return AppStrings.NewsEditor.authorFallback
+    }
+
+    if looksLikeRawEventAuthorIdentifier(trimmedValue) {
+        return AppStrings.NewsEditor.authorFallback
+    }
+
+    return trimmedValue
+}
+
+private func looksLikeRawEventAuthorIdentifier(_ value: String) -> Bool {
+    guard value.count >= 20 else { return false }
+    guard value.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { return false }
+
+    let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+    return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
 }
 
 private struct EventsStateView<ActionContent: View>: View {
@@ -331,16 +349,32 @@ struct EventDetailView: View {
 
                         CommunityCard {
                             Text(event.details)
-                            MetadataRow(label: AppStrings.Events.fieldStartDate, value: eventDateTimeText(for: event), systemImage: "calendar")
-                            MetadataRow(label: AppStrings.Common.city, value: event.city, systemImage: "mappin")
-                            MetadataRow(label: AppStrings.Common.venue, value: event.venue, systemImage: "building")
+                            EventDetailMetadataBlock(
+                                label: AppStrings.Events.fieldStartDate,
+                                value: eventDateTimeText(for: event),
+                                systemImage: "calendar"
+                            )
+                            EventDetailMetadataBlock(
+                                label: AppStrings.Common.city,
+                                value: event.city,
+                                systemImage: "mappin"
+                            )
+                            EventDetailMetadataBlock(
+                                label: AppStrings.Common.venue,
+                                value: event.venue,
+                                systemImage: "building"
+                            )
+
+                            VStack(alignment: .leading, spacing: 12) {
                             Button(event.registrationState == .registered ? AppStrings.Events.registered : AppStrings.Events.register) {
                                 viewModel.toggleRegistration(for: event.id)
                             }
                             .buttonStyle(.borderedProminent)
                             .tint(AppTheme.primaryBlue)
-                            LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
-                                viewModel.toggleLike(for: event.id)
+
+                                LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
+                                    viewModel.toggleLike(for: event.id)
+                                }
                             }
                         }
 
@@ -352,8 +386,15 @@ struct EventDetailView: View {
                                     .foregroundStyle(.secondary)
                             } else {
                                 ForEach(event.comments) { comment in
-                                    Text(AppStrings.commentLine(author: comment.authorName, body: comment.body))
-                                        .font(.subheadline)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(sanitizedEventCommentAuthorName(comment.authorName))
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                        Text(comment.body)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(.vertical, 4)
                                 }
                             }
                         }
@@ -404,6 +445,32 @@ struct EventDetailView: View {
         } catch {
             deleteErrorMessage = readableEventErrorText(.unknown)
         }
+    }
+}
+
+private struct EventDetailMetadataBlock: View {
+    let label: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label {
+                Text(label)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } icon: {
+                Image(systemName: systemImage)
+                    .foregroundStyle(AppTheme.primaryBlue)
+            }
+
+            Text(value)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 2)
     }
 }
 

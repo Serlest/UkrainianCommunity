@@ -54,7 +54,7 @@ enum AppStrings {
         static var imageLoadFailed: String { text("news.editor.image_load_failed", "Failed to load the selected image.") }
         static var imageProcessingFailed: String { text("news.editor.image_processing_failed", "Failed to process the selected image.") }
         static var imageTooLarge: String { text("news.editor.image_too_large", "Image is too large. Please choose a smaller photo.") }
-        static var authorFallback: String { text("news.editor.author_fallback", "Unknown author") }
+        static var authorFallback: String { text("news.editor.author_fallback", "Anonymous") }
     }
 
     enum Events {

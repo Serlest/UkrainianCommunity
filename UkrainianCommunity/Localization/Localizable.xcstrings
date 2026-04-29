@@ -2253,13 +2253,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unbekannter Autor"
+            "value" : "Anonym"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Невідомий автор"
+            "value" : "Анонім"
           }
         }
       }

@@ -1,5 +1,27 @@
 import SwiftUI
 
+private func sanitizedHomeAuthorName(_ rawValue: String) -> String {
+    let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedValue.isEmpty else {
+        return AppStrings.NewsEditor.authorFallback
+    }
+
+    guard trimmedValue.count >= 20 else {
+        return trimmedValue
+    }
+
+    guard trimmedValue.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else {
+        return trimmedValue
+    }
+
+    let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+    if trimmedValue.rangeOfCharacter(from: allowedCharacters.inverted) == nil {
+        return AppStrings.NewsEditor.authorFallback
+    }
+
+    return trimmedValue
+}
+
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
 
@@ -93,9 +115,9 @@ struct HomeView: View {
                                 Text(post.subtitle)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                Text(post.authorName)
+                                Text(sanitizedHomeAuthorName(post.authorName))
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(AppTheme.primaryBlue)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }

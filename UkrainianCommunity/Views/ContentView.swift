@@ -90,6 +90,10 @@ struct ContentView: View {
             NewsListView(
                 viewModel: newsViewModel,
                 newsRepository: container.newsRepository,
+                onNewsPublished: {
+                    await newsViewModel.refresh()
+                    await homeViewModel.refresh()
+                },
                 onNewsChanged: {
                     homeViewModel.reload()
                 }
@@ -106,7 +110,8 @@ struct ContentView: View {
                 viewModel: eventsViewModel,
                 eventRepository: container.eventRepository,
                 onEventPublished: {
-                    homeViewModel.reload()
+                    await eventsViewModel.refresh()
+                    await homeViewModel.refresh()
                 },
                 onEventDeleted: {
                     homeViewModel.reload()
