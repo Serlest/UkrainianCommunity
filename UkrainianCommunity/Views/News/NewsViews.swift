@@ -77,6 +77,12 @@ struct NewsListView: View {
         }
         .background(AppTheme.groupedBackground.ignoresSafeArea())
         .navigationTitle(AppStrings.News.title)
+        .onAppear {
+            viewModel.reload()
+        }
+        .refreshable {
+            viewModel.reload()
+        }
     }
 }
 
