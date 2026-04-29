@@ -3,6 +3,8 @@ import SwiftUI
 
 @main
 struct UkrainianCommunityApp: App {
+    @StateObject private var authState = AuthService.shared.authState
+
     init() {
         FirebaseApp.configure()
         Task { @MainActor in
@@ -25,6 +27,7 @@ struct UkrainianCommunityApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(container: .mock)
+                .environmentObject(authState)
         }
     }
 }
