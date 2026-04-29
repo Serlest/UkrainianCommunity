@@ -56,7 +56,11 @@ struct ProfileView: View {
 
             if canShowModerationTools {
                 Section("Moderation tools") {
-                    Label("Review pending content", systemImage: "clock.badge.exclamationmark")
+                    NavigationLink {
+                        ModerationToolsView()
+                    } label: {
+                        Label("Review pending content", systemImage: "clock.badge.exclamationmark")
+                    }
                     Label("Manage news", systemImage: "newspaper")
                     Label("Manage events", systemImage: "calendar")
                     Label("Manage organizations", systemImage: "building.2")
