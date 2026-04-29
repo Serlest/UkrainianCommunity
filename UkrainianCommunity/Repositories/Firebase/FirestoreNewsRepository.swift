@@ -48,6 +48,7 @@ struct FirestoreNewsRepository: NewsRepository {
             id: data["id"] as? String ?? document.documentID,
             title: title,
             subtitle: subtitle,
+            imageURL: data["imageURL"] as? String,
             body: body,
             authorName: authorName,
             publishedAt: publishedAt,

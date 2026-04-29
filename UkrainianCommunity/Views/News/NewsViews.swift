@@ -85,6 +85,9 @@ private struct NewsCard: View {
 
     var body: some View {
         CommunityCard {
+            if let imageURL = post.imageURL {
+                NewsRemoteImage(imageURL: imageURL, height: 180)
+            }
             Text(post.title)
                 .font(.headline)
                 .foregroundStyle(.primary)
@@ -100,6 +103,41 @@ private struct NewsCard: View {
     }
 }
 
+private struct NewsRemoteImage: View {
+    let imageURL: String
+    let height: CGFloat
+
+    var body: some View {
+        AsyncImage(url: URL(string: imageURL)) { phase in
+            switch phase {
+            case .empty:
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(AppTheme.groupedBackground)
+                    ProgressView()
+                }
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+            case .failure:
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(AppTheme.groupedBackground)
+                    Image(systemName: "photo")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                }
+            @unknown default:
+                EmptyView()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
 struct NewsDetailView: View {
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
@@ -112,6 +150,10 @@ struct NewsDetailView: View {
                         GradientHeroCard(title: post.title, subtitle: post.subtitle) {
                             Text(post.authorName)
                                 .font(.subheadline.weight(.semibold))
+                        }
+
+                        if let imageURL = post.imageURL {
+                            NewsRemoteImage(imageURL: imageURL, height: 240)
                         }
 
                         CommunityCard {

@@ -23,6 +23,7 @@ struct NewsPost: Identifiable, Codable {
     let id: String
     let title: String
     let subtitle: String
+    let imageURL: String?
     let body: String
     let authorName: String
     let publishedAt: Date
@@ -32,6 +33,36 @@ struct NewsPost: Identifiable, Codable {
     var moderationStatus: ModerationStatus
     var likeCount: Int
     var likeState: LikeState
+
+    init(
+        id: String,
+        title: String,
+        subtitle: String,
+        imageURL: String? = nil,
+        body: String,
+        authorName: String,
+        publishedAt: Date,
+        createdAt: Date,
+        updatedAt: Date,
+        comments: [Comment],
+        moderationStatus: ModerationStatus,
+        likeCount: Int,
+        likeState: LikeState
+    ) {
+        self.id = id
+        self.title = title
+        self.subtitle = subtitle
+        self.imageURL = imageURL
+        self.body = body
+        self.authorName = authorName
+        self.publishedAt = publishedAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.comments = comments
+        self.moderationStatus = moderationStatus
+        self.likeCount = likeCount
+        self.likeState = likeState
+    }
 }
 
 enum EventRegistrationState: String, Codable {
