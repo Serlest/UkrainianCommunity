@@ -13,6 +13,18 @@ struct ProfileView: View {
         return permissions.canManageUsers || permissions.canAccessOwnerTools
     }
 
+    private var canShowModerationTools: Bool {
+        guard let role = authState.user?.role else {
+            return false
+        }
+
+        let permissions = role.permissions
+        return permissions.canCreateNews
+            || permissions.canEditNews
+            || permissions.canCreateEvent
+            || permissions.canEditEvent
+    }
+
     var body: some View {
         List {
             Section {
@@ -39,6 +51,16 @@ struct ProfileView: View {
                 ForEach(viewModel.capabilities, id: \.self) { capability in
                     Label(capability, systemImage: "checkmark.circle.fill")
                         .foregroundStyle(AppTheme.primaryBlue)
+                }
+            }
+
+            if canShowModerationTools {
+                Section("Moderation tools") {
+                    Label("Review pending content", systemImage: "clock.badge.exclamationmark")
+                    Label("Manage news", systemImage: "newspaper")
+                    Label("Manage events", systemImage: "calendar")
+                    Label("Manage organizations", systemImage: "building.2")
+                    Label("Manage marketplace", systemImage: "storefront")
                 }
             }
 
