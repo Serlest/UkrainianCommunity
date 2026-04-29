@@ -11,7 +11,11 @@ struct ModerationToolsView: View {
 
             Section {
                 Label("Review pending content", systemImage: "clock.badge.exclamationmark")
-                Label("Manage news", systemImage: "newspaper")
+                NavigationLink {
+                    NewsEditorPlaceholderView()
+                } label: {
+                    Label("Manage news", systemImage: "newspaper")
+                }
                 Label("Manage events", systemImage: "calendar")
                 Label("Manage organizations", systemImage: "building.2")
                 Label("Manage marketplace", systemImage: "storefront")
