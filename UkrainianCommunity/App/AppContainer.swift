@@ -11,7 +11,7 @@ struct AppContainer {
     static let development = AppContainer(
         userRepository: MockUserRepository(),
         newsRepository: FirestoreNewsRepository(),
-        eventRepository: MockEventRepository(),
+        eventRepository: FirestoreEventRepository(),
         organizationRepository: MockOrganizationRepository(),
         marketplaceRepository: MockMarketplaceRepository(),
         infoRepository: MockInfoRepository()

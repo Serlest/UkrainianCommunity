@@ -90,7 +90,7 @@ struct ContentView: View {
 
     private var eventsTab: some View {
         NavigationStack {
-            EventsListView(viewModel: eventsViewModel)
+            EventsListView(viewModel: eventsViewModel, eventRepository: container.eventRepository)
         }
         .tabItem {
             Label(AppStrings.Tabs.events, systemImage: "calendar")

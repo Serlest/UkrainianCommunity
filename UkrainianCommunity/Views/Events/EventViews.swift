@@ -1,32 +1,122 @@
 import SwiftUI
 
 struct EventsListView: View {
+    @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
+    let eventRepository: EventRepository
+
+    private var errorText: String {
+        switch viewModel.error {
+        case .network:
+            AppStrings.Events.loadNetworkError
+        case .permissionDenied:
+            AppStrings.Events.loadPermissionError
+        case .validationFailed:
+            AppStrings.Events.loadValidationError
+        case .notFound:
+            AppStrings.Events.empty
+        case .unknown:
+            AppStrings.Events.loadUnknownError
+        case nil:
+            ""
+        }
+    }
+
+    private var canCreateEvent: Bool {
+        authState.user?.role.permissions.canCreateEvent == true
+    }
 
     var body: some View {
         ScrollView {
-            AdaptiveCardGrid(items: viewModel.events) { event in
-                VStack(spacing: 10) {
-                    NavigationLink {
-                        EventDetailView(viewModel: viewModel, eventID: event.id)
-                    } label: {
-                        EventCard(event: event)
-                    }
-                    .buttonStyle(.plain)
+            if viewModel.events.isEmpty && viewModel.isLoading {
+                ProgressView()
+                    .padding(.top, 60)
+            } else if viewModel.events.isEmpty && viewModel.error != nil {
+                VStack(spacing: 16) {
+                    Text(errorText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
 
-                    HStack {
-                        Spacer()
-                        LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
-                            viewModel.toggleLike(for: event.id)
+                    Button(AppStrings.Events.retry) {
+                        viewModel.reload()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.top, 60)
+                .padding(.horizontal, 24)
+            } else if viewModel.events.isEmpty {
+                VStack(spacing: 16) {
+                    Text(AppStrings.Events.empty)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    Button(AppStrings.Events.retry) {
+                        viewModel.reload()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding(.top, 60)
+                .padding(.horizontal, 24)
+            } else {
+                VStack(spacing: 16) {
+                    if viewModel.error != nil {
+                        VStack(spacing: 8) {
+                            Text(errorText)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+
+                            Button(AppStrings.Events.retry) {
+                                viewModel.reload()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.horizontal, 16)
+                    }
+
+                    AdaptiveCardGrid(items: viewModel.events) { event in
+                        VStack(spacing: 10) {
+                            NavigationLink {
+                                EventDetailView(viewModel: viewModel, eventID: event.id)
+                            } label: {
+                                EventCard(event: event)
+                            }
+                            .buttonStyle(.plain)
+
+                            HStack {
+                                Spacer()
+                                LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
+                                    viewModel.toggleLike(for: event.id)
+                                }
+                            }
+                            .padding(.horizontal, 12)
                         }
                     }
-                    .padding(.horizontal, 12)
+                    .padding()
                 }
             }
-            .padding()
         }
         .background(AppTheme.groupedBackground.ignoresSafeArea())
         .navigationTitle(AppStrings.Events.title)
+        .task {
+            await viewModel.loadIfNeeded()
+        }
+        .refreshable {
+            await viewModel.refresh()
+        }
+        .toolbar {
+            if canCreateEvent {
+                NavigationLink {
+                    EventEditorView(repository: eventRepository) {
+                        viewModel.reload()
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
     }
 }
 
@@ -106,7 +196,8 @@ struct EventDetailView: View {
 
 #Preview("Events List") {
     NavigationStack {
-        EventsListView(viewModel: EventsViewModel(repository: MockEventRepository()))
+        EventsListView(viewModel: EventsViewModel(repository: MockEventRepository()), eventRepository: MockEventRepository())
+            .environmentObject(AuthState())
     }
 }
 

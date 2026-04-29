@@ -182,26 +182,31 @@ final class NewsViewModel: ObservableObject {
 @MainActor
 final class EventsViewModel: ObservableObject {
     @Published var events: [Event]
+    @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     private let repository: EventRepository
+    private var loadTask: Task<Void, Never>?
+    private var hasLoaded = false
 
     init(repository: EventRepository) {
         self.repository = repository
         events = []
-        reload()
+        isLoading = false
+    }
+
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await startLoad(force: false)
     }
 
     func reload() {
         Task {
-            do {
-                events = try await repository.fetchEvents()
-                error = nil
-            } catch let appError as AppError {
-                error = appError
-            } catch {
-                self.error = .unknown
-            }
+            await refresh()
         }
+    }
+
+    func refresh() async {
+        await startLoad(force: true)
     }
 
     func toggleLike(for eventID: String) {
@@ -251,6 +256,38 @@ final class EventsViewModel: ObservableObject {
 
     func event(for eventID: String) -> Event? {
         events.first(where: { $0.id == eventID })
+    }
+
+    private func startLoad(force: Bool) async {
+        guard force || !hasLoaded else { return }
+
+        loadTask?.cancel()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad()
+        }
+        loadTask = task
+        await task.value
+    }
+
+    private func performLoad() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let loadedEvents = try await repository.fetchEvents()
+            guard !Task.isCancelled else { return }
+            events = loadedEvents
+            error = nil
+            hasLoaded = true
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
     }
 }
 

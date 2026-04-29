@@ -36,6 +36,11 @@ private actor MockRepositoryStore {
         events[index].registrationState = isRegistered ? .registered : .notRegistered
     }
 
+    func createEvent(_ item: Event) {
+        events.append(item)
+        events.sort { $0.startDate < $1.startDate }
+    }
+
     func toggleOrganizationLike(id: String, isLiked: Bool) throws {
         guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         organizations[index].likeState = isLiked ? .liked : .notLiked
@@ -90,6 +95,10 @@ struct MockEventRepository: EventRepository {
 
     func fetchEvents() async throws -> [Event] {
         await store.events
+    }
+
+    func createEvent(_ event: Event) async throws {
+        await store.createEvent(event)
     }
 
     func likeEvent(id: String) async throws {

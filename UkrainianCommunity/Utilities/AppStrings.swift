@@ -62,6 +62,23 @@ enum AppStrings {
         static var register: String { text("events.register", "Register") }
         static var registered: String { text("events.registered", "Registered") }
         static var waitlisted: String { text("events.waitlisted", "Waitlisted") }
+        static var empty: String { text("events.empty", "No events available yet.") }
+        static var retry: String { text("events.retry", "Retry") }
+        static var loadNetworkError: String { text("events.error.load.network", "Unable to load events. Check your connection and try again.") }
+        static var loadPermissionError: String { text("events.error.load.permission", "You do not have permission to view these events.") }
+        static var loadValidationError: String { text("events.error.load.validation", "The event data could not be loaded.") }
+        static var loadUnknownError: String { text("events.error.load.unknown", "Something went wrong while loading events.") }
+        static var editorTitle: String { text("events.editor.title", "Create Event") }
+        static var fieldTitle: String { text("events.editor.field.title", "Title") }
+        static var fieldDescription: String { text("events.editor.field.description", "Description") }
+        static var fieldLocation: String { text("events.editor.field.location", "Location") }
+        static var fieldStartDate: String { text("events.editor.field.start_date", "Start Date") }
+        static var fieldEndDate: String { text("events.editor.field.end_date", "End Date") }
+        static var publish: String { text("events.editor.publish", "Publish") }
+        static var publishing: String { text("events.editor.publishing", "Publishing...") }
+        static var publishedSuccessfully: String { text("events.editor.success", "Event published successfully.") }
+        static var descriptionRequired: String { text("events.editor.validation.description_required", "Description is required.") }
+        static var invalidDateOrder: String { text("events.editor.validation.invalid_date_order", "End date must be after the start date.") }
     }
 
     enum Organizations {
