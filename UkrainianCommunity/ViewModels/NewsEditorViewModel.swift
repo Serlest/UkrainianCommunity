@@ -1,17 +1,20 @@
 import Combine
 import Foundation
+import UIKit
 
 @MainActor
 final class NewsEditorViewModel: ObservableObject {
     @Published var title = ""
     @Published var summary = ""
     @Published var body = ""
-    @Published var imageURL = ""
     @Published var isPublishing = false
+    @Published var isUploadingImage = false
     @Published var successMessage: String?
     @Published var errorMessage: String?
+    @Published var selectedImageData: Data?
 
     private let repository: NewsRepository
+    private let imageUploadService = ImageUploadService.shared
 
     init(repository: NewsRepository) {
         self.repository = repository
@@ -23,6 +26,24 @@ final class NewsEditorViewModel: ObservableObject {
             && !isPublishing
     }
 
+    func setSelectedImageData(_ data: Data?) {
+        guard let data else {
+            selectedImageData = nil
+            return
+        }
+
+        guard let image = UIImage(data: data),
+              let compressedData = image.jpegData(compressionQuality: 0.8)
+        else {
+            errorMessage = "Failed to load the selected image."
+            return
+        }
+
+        successMessage = nil
+        errorMessage = nil
+        selectedImageData = compressedData
+    }
+
     func publish() async {
         successMessage = nil
         errorMessage = nil
@@ -32,11 +53,13 @@ final class NewsEditorViewModel: ObservableObject {
         }
 
         let now = Date()
+        let newsID = UUID().uuidString
+        var resolvedImageURL: String?
         let news = NewsPost(
-            id: UUID().uuidString,
+            id: newsID,
             title: trimmedTitle,
             subtitle: trimmedSummary,
-            imageURL: trimmedImageURL,
+            imageURL: nil,
             body: trimmedBody,
             authorName: "Admin",
             publishedAt: now,
@@ -52,15 +75,39 @@ final class NewsEditorViewModel: ObservableObject {
         print("Publishing started")
 
         do {
-            try await repository.createNews(news)
+            if let selectedImageData {
+                isUploadingImage = true
+                let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
+                resolvedImageURL = downloadURL.absoluteString
+                isUploadingImage = false
+            }
+
+            let newsToCreate = NewsPost(
+                id: news.id,
+                title: news.title,
+                subtitle: news.subtitle,
+                imageURL: resolvedImageURL,
+                body: news.body,
+                authorName: news.authorName,
+                publishedAt: news.publishedAt,
+                createdAt: news.createdAt,
+                updatedAt: news.updatedAt,
+                comments: news.comments,
+                moderationStatus: news.moderationStatus,
+                likeCount: news.likeCount,
+                likeState: news.likeState
+            )
+
+            try await repository.createNews(newsToCreate)
             successMessage = "News published successfully."
             print("Publishing succeeded")
             title = ""
             summary = ""
             body = ""
-            imageURL = ""
+            selectedImageData = nil
         } catch {
-            errorMessage = "Failed to publish news."
+            isUploadingImage = false
+            errorMessage = error.localizedDescription
             print("Publishing failed: \(error)")
         }
 
@@ -79,14 +126,6 @@ final class NewsEditorViewModel: ObservableObject {
         body.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var trimmedImageURLString: String {
-        imageURL.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var trimmedImageURL: String? {
-        trimmedImageURLString.isEmpty ? nil : trimmedImageURLString
-    }
-
     private func validate() -> Bool {
         guard !trimmedTitle.isEmpty else {
             errorMessage = "Title is required."
@@ -100,18 +139,6 @@ final class NewsEditorViewModel: ObservableObject {
             successMessage = nil
             print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
             return false
-        }
-
-        if let trimmedImageURL {
-            guard let url = URL(string: trimmedImageURL),
-                  url.scheme != nil,
-                  url.host != nil
-            else {
-                errorMessage = "Image URL must be a valid absolute URL."
-                successMessage = nil
-                print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
-                return false
-            }
         }
 
         return true

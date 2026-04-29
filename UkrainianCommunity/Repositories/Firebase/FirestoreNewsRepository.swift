@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseStorage
 
 struct FirestoreNewsRepository: NewsRepository {
     private let collection = Firestore.firestore().collection("news")
@@ -37,6 +38,21 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func deleteNews(id: String) async throws {
+        let imageReference = Storage.storage().reference().child("news/\(id)/cover.jpg")
+
+        do {
+            try await imageReference.delete()
+        } catch let error as NSError {
+            if error.domain == StorageErrorDomain,
+               error.code == StorageErrorCode.objectNotFound.rawValue {
+                print("News image not found for deletion: \(id)")
+            } else {
+                print("Failed to delete news image for \(id): \(error)")
+            }
+        } catch {
+            print("Failed to delete news image for \(id): \(error)")
+        }
+
         try await collection.document(id).delete()
     }
 

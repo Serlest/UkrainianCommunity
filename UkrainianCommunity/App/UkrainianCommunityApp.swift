@@ -1,8 +1,12 @@
 import FirebaseCore
 import SwiftUI
+import UIKit
+
+final class AppDelegate: NSObject, UIApplicationDelegate {}
 
 @main
 struct UkrainianCommunityApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var authState = AuthService.shared.authState
 
     init() {

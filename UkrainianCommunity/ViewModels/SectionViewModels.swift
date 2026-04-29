@@ -120,6 +120,20 @@ final class NewsViewModel: ObservableObject {
     func post(for postID: String) -> NewsPost? {
         posts.first(where: { $0.id == postID })
     }
+
+    func deleteNews(id: String) async throws {
+        do {
+            try await repository.deleteNews(id: id)
+            error = nil
+            reload()
+        } catch let appError as AppError {
+            error = appError
+            throw appError
+        } catch {
+            self.error = .unknown
+            throw AppError.unknown
+        }
+    }
 }
 
 @MainActor

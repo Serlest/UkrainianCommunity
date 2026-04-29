@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NewsListView: View {
+    @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
 
     private var errorText: String {
@@ -18,6 +19,10 @@ struct NewsListView: View {
         case nil:
             ""
         }
+    }
+
+    private var canCreateNews: Bool {
+        authState.user?.role.permissions.canCreateNews == true
     }
 
     var body: some View {
@@ -83,6 +88,32 @@ struct NewsListView: View {
         .refreshable {
             viewModel.reload()
         }
+        .toolbar {
+            if canCreateNews {
+                NavigationLink {
+                    NewsEditorView()
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+    }
+}
+
+private func readableNewsErrorText(_ error: AppError?) -> String {
+    switch error {
+    case .network:
+        "Unable to load news. Check your connection and try again."
+    case .permissionDenied:
+        "You do not have permission to perform this action."
+    case .validationFailed:
+        "The news data could not be processed."
+    case .notFound:
+        "The selected news item could not be found."
+    case .unknown:
+        "Something went wrong while processing the news."
+    case nil:
+        "Something went wrong while processing the news."
     }
 }
 
@@ -145,8 +176,16 @@ private struct NewsRemoteImage: View {
 }
 
 struct NewsDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
+    @State private var showDeleteConfirmation = false
+    @State private var deleteErrorMessage: String?
+
+    private var canDeleteNews: Bool {
+        authState.user?.role.permissions.canDeleteNews == true
+    }
 
     var body: some View {
         Group {
@@ -196,6 +235,43 @@ struct NewsDetailView: View {
         }
         .navigationTitle(AppStrings.News.detailTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if canDeleteNews {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+            }
+        }
+        .confirmationDialog("Delete this news post?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    await deleteCurrentNews()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Delete Failed", isPresented: Binding(
+            get: { deleteErrorMessage != nil },
+            set: { if !$0 { deleteErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteErrorMessage ?? "")
+        }
+    }
+
+    @MainActor
+    private func deleteCurrentNews() async {
+        do {
+            try await viewModel.deleteNews(id: postID)
+            dismiss()
+        } catch let appError as AppError {
+            deleteErrorMessage = readableNewsErrorText(appError)
+        } catch {
+            deleteErrorMessage = readableNewsErrorText(.unknown)
+        }
     }
 }
 
