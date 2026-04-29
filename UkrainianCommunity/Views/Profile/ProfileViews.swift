@@ -66,7 +66,11 @@ struct ProfileView: View {
 
             if canShowAdminTools {
                 Section("Admin tools") {
-                    Label("User management", systemImage: "person.3")
+                    NavigationLink {
+                        UserManagementView()
+                    } label: {
+                        Label("User management", systemImage: "person.3")
+                    }
                     Label("Moderation tools", systemImage: "checkmark.shield")
                 }
             }
