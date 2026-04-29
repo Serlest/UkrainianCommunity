@@ -36,6 +36,10 @@ struct FirestoreNewsRepository: NewsRepository {
         ])
     }
 
+    func deleteNews(id: String) async throws {
+        try await collection.document(id).delete()
+    }
+
     func likeNews(id: String) async throws {
         throw AppError.unknown
     }

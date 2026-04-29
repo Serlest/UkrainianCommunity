@@ -12,7 +12,7 @@ struct ModerationToolsView: View {
             Section {
                 Label("Review pending content", systemImage: "clock.badge.exclamationmark")
                 NavigationLink {
-                    NewsEditorPlaceholderView()
+                    NewsEditorView()
                 } label: {
                     Label("Manage news", systemImage: "newspaper")
                 }

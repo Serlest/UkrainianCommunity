@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct NewsEditorPlaceholderView: View {
+struct NewsEditorView: View {
     @StateObject private var viewModel: NewsEditorViewModel
 
     init() {
@@ -48,6 +48,6 @@ struct NewsEditorPlaceholderView: View {
 
 #Preview {
     NavigationStack {
-        NewsEditorPlaceholderView()
+        NewsEditorView()
     }
 }

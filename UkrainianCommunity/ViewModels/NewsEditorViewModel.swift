@@ -18,21 +18,26 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     var canPublish: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !trimmedTitle.isEmpty
+            && !trimmedBody.isEmpty
             && !isPublishing
     }
 
     func publish() async {
+        successMessage = nil
+        errorMessage = nil
+
+        guard validate() else {
+            return
+        }
+
         let now = Date()
-        let trimmedImageURL = imageURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let news = NewsPost(
             id: UUID().uuidString,
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-            subtitle: summary.trimmingCharacters(in: .whitespacesAndNewlines),
-            imageURL: trimmedImageURL.isEmpty ? nil : trimmedImageURL,
-            body: body.trimmingCharacters(in: .whitespacesAndNewlines),
+            title: trimmedTitle,
+            subtitle: trimmedSummary,
+            imageURL: trimmedImageURL,
+            body: trimmedBody,
             authorName: "Admin",
             publishedAt: now,
             createdAt: now,
@@ -44,20 +49,71 @@ final class NewsEditorViewModel: ObservableObject {
         )
 
         isPublishing = true
-        successMessage = nil
-        errorMessage = nil
+        print("Publishing started")
 
         do {
             try await repository.createNews(news)
             successMessage = "News published successfully."
+            print("Publishing succeeded")
             title = ""
             summary = ""
             body = ""
             imageURL = ""
         } catch {
             errorMessage = "Failed to publish news."
+            print("Publishing failed: \(error)")
         }
 
         isPublishing = false
+    }
+
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedSummary: String {
+        summary.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedBody: String {
+        body.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedImageURLString: String {
+        imageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedImageURL: String? {
+        trimmedImageURLString.isEmpty ? nil : trimmedImageURLString
+    }
+
+    private func validate() -> Bool {
+        guard !trimmedTitle.isEmpty else {
+            errorMessage = "Title is required."
+            successMessage = nil
+            print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
+            return false
+        }
+
+        guard !trimmedBody.isEmpty else {
+            errorMessage = "Body is required."
+            successMessage = nil
+            print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
+            return false
+        }
+
+        if let trimmedImageURL {
+            guard let url = URL(string: trimmedImageURL),
+                  url.scheme != nil,
+                  url.host != nil
+            else {
+                errorMessage = "Image URL must be a valid absolute URL."
+                successMessage = nil
+                print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
+                return false
+            }
+        }
+
+        return true
     }
 }

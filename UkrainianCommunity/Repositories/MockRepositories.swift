@@ -20,6 +20,11 @@ private actor MockRepositoryStore {
         news.insert(item, at: 0)
     }
 
+    func deleteNews(id: String) throws {
+        guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        news.remove(at: index)
+    }
+
     func toggleEventLike(id: String, isLiked: Bool) throws {
         guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         events[index].likeState = isLiked ? .liked : .notLiked
@@ -65,6 +70,10 @@ struct MockNewsRepository: NewsRepository {
 
     func createNews(_ news: NewsPost) async throws {
         await store.createNews(news)
+    }
+
+    func deleteNews(id: String) async throws {
+        try await store.deleteNews(id: id)
     }
 
     func likeNews(id: String) async throws {
