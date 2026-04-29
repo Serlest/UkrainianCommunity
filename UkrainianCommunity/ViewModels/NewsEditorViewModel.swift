@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import UIKit
 
 @MainActor
 final class NewsEditorViewModel: ObservableObject {
@@ -9,6 +8,7 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var body = ""
     @Published var isPublishing = false
     @Published var isUploadingImage = false
+    @Published var isProcessingImage = false
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
@@ -25,6 +25,8 @@ final class NewsEditorViewModel: ObservableObject {
     var canPublish: Bool {
         !trimmedTitle.isEmpty
             && !trimmedBody.isEmpty
+            && !isProcessingImage
+            && !isUploadingImage
             && !isPublishing
     }
 
@@ -34,14 +36,13 @@ final class NewsEditorViewModel: ObservableObject {
             return
         }
 
-        guard UIImage(data: data) != nil else {
-            errorMessage = AppStrings.NewsEditor.imageLoadFailed
-            return
-        }
-
         successMessage = nil
         errorMessage = nil
         selectedImageData = data
+    }
+
+    func setImageProcessing(_ isProcessing: Bool) {
+        isProcessingImage = isProcessing
     }
 
     func setAuthState(_ authState: AuthState?) {
@@ -49,6 +50,8 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     func publish() async {
+        guard !isPublishing else { return }
+
         successMessage = nil
         errorMessage = nil
 
@@ -86,6 +89,7 @@ final class NewsEditorViewModel: ObservableObject {
                 isUploadingImage = false
             }
 
+            print("Firestore create started")
             let newsToCreate = NewsPost(
                 id: news.id,
                 title: news.title,
@@ -103,6 +107,7 @@ final class NewsEditorViewModel: ObservableObject {
             )
 
             try await repository.createNews(newsToCreate)
+            print("Firestore create finished")
             successMessage = AppStrings.NewsEditor.publishedSuccessfully
             print("Publishing succeeded")
             title = ""

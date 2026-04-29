@@ -1,11 +1,15 @@
+import PhotosUI
 import SwiftUI
+import UIKit
 
 struct EventEditorView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: EventEditorViewModel
+    @State private var selectedPhoto: PhotosPickerItem?
 
-    private let onPublished: @MainActor () -> Void
+    private let onPublished: @MainActor () async -> Void
 
-    init(repository: EventRepository, onPublished: @escaping @MainActor () -> Void = {}) {
+    init(repository: EventRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository))
         self.onPublished = onPublished
     }
@@ -14,12 +18,26 @@ struct EventEditorView: View {
         Form {
             Section {
                 TextField(AppStrings.Events.fieldTitle, text: $viewModel.title)
-                TextField(String(localized: "events.editor.field.summary", defaultValue: "Summary"), text: $viewModel.summary, axis: .vertical)
+                TextField(AppStrings.Events.fieldSummary, text: $viewModel.summary, axis: .vertical)
                     .lineLimit(2...4)
-                TextField(String(localized: "events.editor.field.details", defaultValue: "Details"), text: $viewModel.details, axis: .vertical)
+                TextField(AppStrings.Events.fieldDetails, text: $viewModel.details, axis: .vertical)
                     .lineLimit(4...8)
                 TextField(AppStrings.Common.city, text: $viewModel.city)
                 TextField(AppStrings.Common.venue, text: $viewModel.venue)
+
+                PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
+                    Label(AppStrings.NewsEditor.selectPhoto, systemImage: "photo.on.rectangle")
+                }
+
+                if let selectedImageData = viewModel.selectedImageData,
+                   let image = UIImage(data: selectedImageData) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 180)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                }
             }
 
             Section {
@@ -48,13 +66,16 @@ struct EventEditorView: View {
                     Task {
                         let didPublish = await viewModel.publish()
                         guard didPublish else { return }
-                        onPublished()
+                        print("Event onPublished callback start")
+                        await onPublished()
+                        print("Event onPublished callback success")
+                        dismiss()
                     }
                 } label: {
-                    if viewModel.isPublishing {
+                    if viewModel.isPublishing || viewModel.isProcessingImage {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text(AppStrings.Events.publishing)
+                            Text(viewModel.isUploadingImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Events.publishing)
                         }
                     } else {
                         Text(AppStrings.Events.publish)
@@ -64,6 +85,38 @@ struct EventEditorView: View {
             }
         }
         .navigationTitle(AppStrings.Events.editorTitle)
+        .onChange(of: selectedPhoto) { _, newItem in
+            Task {
+                await loadSelectedPhoto(item: newItem)
+            }
+        }
+    }
+
+    private func loadSelectedPhoto(item: PhotosPickerItem?) async {
+        guard let item else {
+            await MainActor.run {
+                viewModel.setImageProcessing(false)
+                viewModel.setSelectedImageData(nil)
+            }
+            return
+        }
+
+        await MainActor.run {
+            viewModel.setImageProcessing(true)
+        }
+
+        do {
+            let data = try await item.loadTransferable(type: Data.self)
+            await MainActor.run {
+                viewModel.setImageProcessing(false)
+                viewModel.setSelectedImageData(data)
+            }
+        } catch {
+            await MainActor.run {
+                viewModel.setImageProcessing(false)
+                viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
+            }
+        }
     }
 }
 

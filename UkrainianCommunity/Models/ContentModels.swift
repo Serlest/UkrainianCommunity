@@ -89,6 +89,7 @@ struct Event: Identifiable, Codable {
     let details: String
     let city: String
     let venue: String
+    let imageURL: String?
     let startDate: Date
     let endDate: Date
     let createdAt: Date
@@ -100,6 +101,46 @@ struct Event: Identifiable, Codable {
     var registrationState: EventRegistrationState
     var likeCount: Int
     var likeState: LikeState
+
+    nonisolated init(
+        id: String,
+        title: String,
+        summary: String,
+        details: String,
+        city: String,
+        venue: String,
+        imageURL: String? = nil,
+        startDate: Date,
+        endDate: Date,
+        createdAt: Date,
+        updatedAt: Date,
+        capacity: Int?,
+        registeredCount: Int,
+        comments: [Comment],
+        moderationStatus: ModerationStatus,
+        registrationState: EventRegistrationState,
+        likeCount: Int,
+        likeState: LikeState
+    ) {
+        self.id = id
+        self.title = title
+        self.summary = summary
+        self.details = details
+        self.city = city
+        self.venue = venue
+        self.imageURL = imageURL
+        self.startDate = startDate
+        self.endDate = endDate
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.capacity = capacity
+        self.registeredCount = registeredCount
+        self.comments = comments
+        self.moderationStatus = moderationStatus
+        self.registrationState = registrationState
+        self.likeCount = likeCount
+        self.likeState = likeState
+    }
 }
 
 struct Organization: Identifiable, Codable {

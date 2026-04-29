@@ -6,9 +6,11 @@ struct NewsEditorView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: NewsEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
+    private let onPublished: () -> Void
 
-    init(repository: NewsRepository) {
+    init(repository: NewsRepository, onPublished: @escaping () -> Void = {}) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository))
+        self.onPublished = onPublished
     }
 
     var body: some View {
@@ -58,6 +60,9 @@ struct NewsEditorView: View {
                 Button(AppStrings.NewsEditor.publish) {
                     Task {
                         await viewModel.publish()
+                        if viewModel.successMessage != nil {
+                            onPublished()
+                        }
                     }
                 }
                 .disabled(!viewModel.canPublish)
@@ -77,18 +82,25 @@ struct NewsEditorView: View {
     private func loadSelectedPhoto(item: PhotosPickerItem?) async {
         guard let item else {
             await MainActor.run {
+                viewModel.setImageProcessing(false)
                 viewModel.setSelectedImageData(nil)
             }
             return
         }
 
+        await MainActor.run {
+            viewModel.setImageProcessing(true)
+        }
+
         do {
             let data = try await item.loadTransferable(type: Data.self)
             await MainActor.run {
+                viewModel.setImageProcessing(false)
                 viewModel.setSelectedImageData(data)
             }
         } catch {
             await MainActor.run {
+                viewModel.setImageProcessing(false)
                 viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
             }
         }
@@ -97,7 +109,7 @@ struct NewsEditorView: View {
 
 #Preview {
     NavigationStack {
-        NewsEditorView(repository: MockNewsRepository())
+        NewsEditorView(repository: MockNewsRepository(), onPublished: {})
     }
     .environmentObject(AuthState())
 }

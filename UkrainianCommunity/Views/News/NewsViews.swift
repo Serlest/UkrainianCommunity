@@ -4,6 +4,10 @@ struct NewsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let newsRepository: NewsRepository
+    let onNewsChanged: () -> Void
+    @State private var pendingDeletePostID: String?
+    @State private var deleteErrorMessage: String?
+    @State private var isShowingDeleteError = false
 
     private var errorText: String {
         switch viewModel.error {
@@ -26,18 +30,25 @@ struct NewsListView: View {
         authState.user?.role.permissions.canCreateNews == true
     }
 
+    private var canDeleteNews: Bool {
+        authState.user?.role.permissions.canDeleteNews == true
+    }
+
     var body: some View {
         ScrollView {
             if viewModel.isLoading {
-                ProgressView()
-                    .padding(.top, 60)
+                VStack {
+                    Spacer(minLength: 0)
+                    ProgressView()
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, minHeight: 420)
             } else if viewModel.error != nil {
-                VStack(spacing: 16) {
-                    Text(errorText)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
+                NewsStateView(
+                    systemImage: "newspaper",
+                    title: AppStrings.News.title,
+                    subtitle: errorText
+                ) {
                     Button(AppStrings.News.retry) {
                         Task {
                             await viewModel.refresh()
@@ -45,15 +56,12 @@ struct NewsListView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-                .padding(.top, 60)
-                .padding(.horizontal, 24)
             } else if viewModel.posts.isEmpty {
-                VStack(spacing: 16) {
-                    Text(AppStrings.News.empty)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
+                NewsStateView(
+                    systemImage: "newspaper",
+                    title: AppStrings.News.title,
+                    subtitle: AppStrings.News.empty
+                ) {
                     Button(AppStrings.News.retry) {
                         Task {
                             await viewModel.refresh()
@@ -61,25 +69,28 @@ struct NewsListView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-                .padding(.top, 60)
-                .padding(.horizontal, 24)
             } else {
                 AdaptiveCardGrid(items: viewModel.posts) { post in
-                    VStack(spacing: 10) {
+                    ZStack(alignment: .bottomTrailing) {
                         NavigationLink {
-                            NewsDetailView(viewModel: viewModel, postID: post.id)
+                            NewsDetailView(viewModel: viewModel, postID: post.id, onNewsDeleted: onNewsChanged)
                         } label: {
                             NewsCard(post: post)
                         }
                         .buttonStyle(.plain)
 
-                        HStack {
-                            Spacer()
-                            LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
-                                viewModel.toggleLike(for: post.id)
+                        LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
+                            viewModel.toggleLike(for: post.id)
+                        }
+                        .padding(.trailing, 18)
+                        .padding(.bottom, 18)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        if canDeleteNews {
+                            Button(AppStrings.News.delete, role: .destructive) {
+                                pendingDeletePostID = post.id
                             }
                         }
-                        .padding(.horizontal, 12)
                     }
                 }
                 .padding()
@@ -93,10 +104,51 @@ struct NewsListView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        .confirmationDialog(
+            AppStrings.News.deleteConfirmation,
+            isPresented: Binding(
+                get: { pendingDeletePostID != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingDeletePostID = nil
+                    }
+                }
+            )
+        ) {
+            Button(AppStrings.News.delete, role: .destructive) {
+                guard let postID = pendingDeletePostID else { return }
+                Task {
+                    do {
+                        try await viewModel.deleteNews(id: postID)
+                        onNewsChanged()
+                    } catch let appError as AppError {
+                        deleteErrorMessage = readableNewsErrorText(appError)
+                        isShowingDeleteError = true
+                    } catch {
+                        deleteErrorMessage = readableNewsErrorText(.unknown)
+                        isShowingDeleteError = true
+                    }
+                    pendingDeletePostID = nil
+                }
+            }
+            Button(AppStrings.News.cancel, role: .cancel) {
+                pendingDeletePostID = nil
+            }
+        }
+        .alert(AppStrings.News.deleteFailed, isPresented: $isShowingDeleteError) {
+            Button(AppStrings.News.dismissError) {
+                deleteErrorMessage = nil
+            }
+        } message: {
+            Text(deleteErrorMessage ?? readableNewsErrorText(.unknown))
+        }
         .toolbar {
             if canCreateNews {
                 NavigationLink {
-                    NewsEditorView(repository: newsRepository)
+                    NewsEditorView(repository: newsRepository) {
+                        viewModel.reload()
+                        onNewsChanged()
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -122,61 +174,88 @@ private func readableNewsErrorText(_ error: AppError?) -> String {
     }
 }
 
+private struct NewsStateView<ActionContent: View>: View {
+    let systemImage: String
+    let title: String
+    let subtitle: String
+    @ViewBuilder let actionContent: ActionContent
+
+    var body: some View {
+        VStack {
+            Spacer(minLength: 0)
+            VStack(spacing: 16) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 44))
+                    .foregroundStyle(.secondary)
+
+                Text(title)
+                    .font(.title3.weight(.semibold))
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                actionContent
+            }
+            .frame(maxWidth: 320)
+            .padding(.horizontal, 24)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: 420)
+    }
+}
+
 private struct NewsCard: View {
     let post: NewsPost
 
     var body: some View {
         CommunityCard {
-            if let imageURL = post.imageURL {
-                NewsRemoteImage(imageURL: imageURL, height: 180)
-            }
-            Text(post.title)
-                .font(.headline)
-                .foregroundStyle(.primary)
-            Text(post.subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            HStack {
-                Text(post.authorName)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.primaryBlue)
+            RemoteCardImage(imageURL: post.imageURL, height: 220)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(post.title)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+
+                if !post.subtitle.isEmpty {
+                    Text(post.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+
+                HStack(alignment: .center, spacing: 12) {
+                    Text(displayAuthorName)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .padding(.trailing, 88)
             }
         }
     }
-}
 
-private struct NewsRemoteImage: View {
-    let imageURL: String
-    let height: CGFloat
-
-    var body: some View {
-        AsyncImage(url: URL(string: imageURL)) { phase in
-            switch phase {
-            case .empty:
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(AppTheme.groupedBackground)
-                    ProgressView()
-                }
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFill()
-            case .failure:
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(AppTheme.groupedBackground)
-                    Image(systemName: "photo")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                }
-            @unknown default:
-                EmptyView()
-            }
+    private var displayAuthorName: String {
+        let trimmedName = post.authorName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            return AppStrings.NewsEditor.authorFallback
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+
+        if looksLikeRawUID(trimmedName) {
+            return AppStrings.NewsEditor.authorFallback
+        }
+
+        return trimmedName
+    }
+
+    private func looksLikeRawUID(_ value: String) -> Bool {
+        guard value.count >= 20 else { return false }
+        guard value.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else { return false }
+
+        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
     }
 }
 
@@ -185,8 +264,10 @@ struct NewsDetailView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
+    let onNewsDeleted: () -> Void
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
+    private let detailImageHeight: CGFloat = 260
 
     private var canDeleteNews: Bool {
         authState.user?.role.permissions.canDeleteNews == true
@@ -203,7 +284,7 @@ struct NewsDetailView: View {
                         }
 
                         if let imageURL = post.imageURL {
-                            NewsRemoteImage(imageURL: imageURL, height: 240)
+                            RemoteCardImage(imageURL: imageURL, height: detailImageHeight, cornerRadius: 22)
                         }
 
                         CommunityCard {
@@ -271,6 +352,7 @@ struct NewsDetailView: View {
     private func deleteCurrentNews() async {
         do {
             try await viewModel.deleteNews(id: postID)
+            onNewsDeleted()
             dismiss()
         } catch let appError as AppError {
             deleteErrorMessage = readableNewsErrorText(appError)
@@ -282,12 +364,20 @@ struct NewsDetailView: View {
 
 #Preview("News List") {
     NavigationStack {
-        NewsListView(viewModel: NewsViewModel(repository: MockNewsRepository()), newsRepository: MockNewsRepository())
+        NewsListView(
+            viewModel: NewsViewModel(repository: MockNewsRepository()),
+            newsRepository: MockNewsRepository(),
+            onNewsChanged: {}
+        )
     }
 }
 
 #Preview("News Detail") {
     NavigationStack {
-        NewsDetailView(viewModel: NewsViewModel(repository: MockNewsRepository()), postID: MockContentBuilder.newsPosts().first!.id)
+        NewsDetailView(
+            viewModel: NewsViewModel(repository: MockNewsRepository()),
+            postID: MockContentBuilder.newsPosts().first!.id,
+            onNewsDeleted: {}
+        )
     }
 }

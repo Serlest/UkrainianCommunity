@@ -61,6 +61,79 @@ struct CommunityCard<Content: View>: View {
     }
 }
 
+struct RemoteCardImage: View {
+    let imageURL: String?
+    let height: CGFloat
+    let cornerRadius: CGFloat
+
+    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18) {
+        self.imageURL = imageURL
+        self.height = height
+        self.cornerRadius = cornerRadius
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(AppTheme.groupedBackground)
+
+            if let imageURL, let url = URL(string: imageURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        loadingPlaceholder
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        fallbackPlaceholder
+                    @unknown default:
+                        fallbackPlaceholder
+                    }
+                }
+            } else {
+                fallbackPlaceholder
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    private var loadingPlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    AppTheme.groupedBackground.opacity(0.9),
+                    AppTheme.cardBackground.opacity(0.95)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            ProgressView()
+                .tint(AppTheme.primaryBlue)
+        }
+    }
+
+    private var fallbackPlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    AppTheme.groupedBackground,
+                    AppTheme.cardBackground
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: "photo")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 struct LikeButton: View {
     let isLiked: Bool
     let count: Int

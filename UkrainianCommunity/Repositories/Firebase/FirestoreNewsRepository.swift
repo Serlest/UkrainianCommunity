@@ -57,6 +57,7 @@ struct FirestoreNewsRepository: NewsRepository {
             print("Failed to delete news image for \(id): \(error)")
         }
 
+        try await deleteRelatedLikes(newsID: id)
         try await collection.document(id).delete()
     }
 
@@ -186,6 +187,23 @@ struct FirestoreNewsRepository: NewsRepository {
         "\(newsID)_\(userID)"
     }
 
+    private func deleteRelatedLikes(newsID: String) async throws {
+        let snapshot = try await likesCollection
+            .whereField("newsId", isEqualTo: newsID)
+            .getDocuments()
+
+        guard !snapshot.documents.isEmpty else { return }
+
+        let firestore = Firestore.firestore()
+        for chunk in snapshot.documents.chunked(into: 500) {
+            let batch = firestore.batch()
+            for document in chunk {
+                batch.deleteDocument(document.reference)
+            }
+            try await batch.commit()
+        }
+    }
+
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {
         [
             "id": dto.id,
@@ -214,6 +232,23 @@ struct FirestoreNewsRepository: NewsRepository {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [ArraySlice<Element>] {
+        guard size > 0 else { return [self[...]] }
+
+        var chunks: [ArraySlice<Element>] = []
+        var currentIndex = startIndex
+
+        while currentIndex < endIndex {
+            let nextIndex = index(currentIndex, offsetBy: size, limitedBy: endIndex) ?? endIndex
+            chunks.append(self[currentIndex..<nextIndex])
+            currentIndex = nextIndex
+        }
+
+        return chunks
     }
 }
 

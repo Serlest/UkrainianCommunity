@@ -16,6 +16,7 @@ protocol NewsRepository {
 protocol EventRepository {
     func fetchEvents() async throws -> [Event]
     func createEvent(_ event: Event) async throws
+    func deleteEvent(id: String) async throws
     func likeEvent(id: String) async throws
     func unlikeEvent(id: String) async throws
     func registerForEvent(id: String) async throws

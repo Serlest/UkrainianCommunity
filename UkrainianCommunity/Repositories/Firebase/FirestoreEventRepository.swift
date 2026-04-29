@@ -1,8 +1,12 @@
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
+import FirebaseStorage
 
 struct FirestoreEventRepository: EventRepository {
     private let collection = Firestore.firestore().collection("events")
+    private let likesCollection = Firestore.firestore().collection("likes")
+    private let registrationsCollection = Firestore.firestore().collection("registrations")
 
     func fetchEvents() async throws -> [Event] {
         let snapshot = try await collection
@@ -10,8 +14,15 @@ struct FirestoreEventRepository: EventRepository {
             .order(by: "startDate", descending: false)
             .getDocuments()
 
+        let likedEventIDs = try await fetchLikedEventIDs()
+        let registeredEventIDs = try await fetchRegisteredEventIDs()
+
         return try snapshot.documents.map { document in
-            try Event(dto: makeEventDTO(from: document))
+            try Event(dto: makeEventDTO(
+                from: document,
+                likedEventIDs: likedEventIDs,
+                registeredEventIDs: registeredEventIDs
+            ))
         }
     }
 
@@ -24,6 +35,7 @@ struct FirestoreEventRepository: EventRepository {
             details: event.details,
             city: event.city,
             venue: event.venue,
+            imageURL: event.imageURL,
             startDate: event.startDate,
             endDate: event.endDate,
             createdAt: now,
@@ -44,6 +56,7 @@ struct FirestoreEventRepository: EventRepository {
             "details": dto.details,
             "city": dto.city,
             "venue": dto.venue,
+            "imageURL": dto.imageURL as Any,
             "startDate": dto.startDate,
             "endDate": dto.endDate,
             "createdAt": dto.createdAt,
@@ -71,23 +84,200 @@ struct FirestoreEventRepository: EventRepository {
         try await collection.document(dto.id).setData(data)
     }
 
+    func deleteEvent(id: String) async throws {
+        let imageReference = Storage.storage().reference().child("events/\(id)/cover.jpg")
+
+        do {
+            try await imageReference.delete()
+        } catch let error as NSError {
+            if error.domain == StorageErrorDomain,
+               error.code == StorageErrorCode.objectNotFound.rawValue {
+                print("Event image not found for deletion: \(id)")
+            } else {
+                print("Failed to delete event image for \(id): \(error)")
+            }
+        } catch {
+            print("Failed to delete event image for \(id): \(error)")
+        }
+
+        try await deleteRelatedLikes(eventID: id)
+        try await deleteRelatedRegistrations(eventID: id)
+        try await collection.document(id).delete()
+    }
+
     func likeEvent(id: String) async throws {
-        throw AppError.unknown
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let eventReference = collection.document(id)
+        let likeReference = likesCollection.document(likeDocumentID(eventID: id, userID: uid))
+
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let eventSnapshot = try transaction.getDocument(eventReference)
+                guard eventSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let likeSnapshot = try transaction.getDocument(likeReference)
+                if likeSnapshot.exists {
+                    return nil
+                }
+
+                transaction.setData([
+                    "id": likeReference.documentID,
+                    "eventId": id,
+                    "userId": uid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], forDocument: likeReference)
+                transaction.updateData([
+                    "likeCount": FieldValue.increment(Int64(1))
+                ], forDocument: eventReference)
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+
+            return nil
+        }
     }
 
     func unlikeEvent(id: String) async throws {
-        throw AppError.unknown
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let eventReference = collection.document(id)
+        let likeReference = likesCollection.document(likeDocumentID(eventID: id, userID: uid))
+
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let eventSnapshot = try transaction.getDocument(eventReference)
+                guard eventSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let likeSnapshot = try transaction.getDocument(likeReference)
+                guard likeSnapshot.exists else {
+                    return nil
+                }
+
+                let currentLikeCount = eventSnapshot.data()?["likeCount"] as? Int ?? 0
+                transaction.deleteDocument(likeReference)
+                transaction.updateData([
+                    "likeCount": max(0, currentLikeCount - 1)
+                ], forDocument: eventReference)
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+
+            return nil
+        }
     }
 
     func registerForEvent(id: String) async throws {
-        throw AppError.unknown
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let eventReference = collection.document(id)
+        let registrationReference = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid))
+
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let eventSnapshot = try transaction.getDocument(eventReference)
+                guard eventSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let registrationSnapshot = try transaction.getDocument(registrationReference)
+                if registrationSnapshot.exists {
+                    return nil
+                }
+
+                transaction.setData([
+                    "id": registrationReference.documentID,
+                    "eventId": id,
+                    "userId": uid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], forDocument: registrationReference)
+                transaction.updateData([
+                    "registeredCount": FieldValue.increment(Int64(1))
+                ], forDocument: eventReference)
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+
+            return nil
+        }
     }
 
     func cancelEventRegistration(id: String) async throws {
-        throw AppError.unknown
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let eventReference = collection.document(id)
+        let registrationReference = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid))
+
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let eventSnapshot = try transaction.getDocument(eventReference)
+                guard eventSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let registrationSnapshot = try transaction.getDocument(registrationReference)
+                guard registrationSnapshot.exists else {
+                    return nil
+                }
+
+                let currentRegisteredCount = eventSnapshot.data()?["registeredCount"] as? Int ?? 0
+                transaction.deleteDocument(registrationReference)
+                transaction.updateData([
+                    "registeredCount": max(0, currentRegisteredCount - 1)
+                ], forDocument: eventReference)
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+
+            return nil
+        }
     }
 
-    private func makeEventDTO(from document: QueryDocumentSnapshot) throws -> EventDTO {
+    private func fetchLikedEventIDs() async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return []
+        }
+
+        let snapshot = try await likesCollection
+            .whereField("userId", isEqualTo: uid)
+            .getDocuments()
+
+        return Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+    }
+
+    private func fetchRegisteredEventIDs() async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return []
+        }
+
+        let snapshot = try await registrationsCollection
+            .whereField("userId", isEqualTo: uid)
+            .getDocuments()
+
+        return Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+    }
+
+    private func makeEventDTO(
+        from document: QueryDocumentSnapshot,
+        likedEventIDs: Set<String>,
+        registeredEventIDs: Set<String>
+    ) throws -> EventDTO {
         let data = document.data()
 
         guard
@@ -114,6 +304,7 @@ struct FirestoreEventRepository: EventRepository {
             details: details,
             city: city,
             venue: venue,
+            imageURL: data["imageURL"] as? String,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,
@@ -122,10 +313,52 @@ struct FirestoreEventRepository: EventRepository {
             registeredCount: data["registeredCount"] as? Int ?? 0,
             comments: comments,
             moderationStatus: moderationStatus,
-            registrationState: data["registrationState"] as? String ?? EventRegistrationState.notRegistered.rawValue,
+            registrationState: registeredEventIDs.contains(document.documentID) ? EventRegistrationState.registered.rawValue : EventRegistrationState.notRegistered.rawValue,
             likeCount: data["likeCount"] as? Int ?? 0,
-            likeState: data["likeState"] as? String ?? LikeState.notLiked.rawValue
+            likeState: likedEventIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue
         )
+    }
+
+    private func likeDocumentID(eventID: String, userID: String) -> String {
+        "event_\(eventID)_\(userID)"
+    }
+
+    private func registrationDocumentID(eventID: String, userID: String) -> String {
+        "event_\(eventID)_\(userID)"
+    }
+
+    private func deleteRelatedLikes(eventID: String) async throws {
+        let snapshot = try await likesCollection
+            .whereField("eventId", isEqualTo: eventID)
+            .getDocuments()
+
+        guard !snapshot.documents.isEmpty else { return }
+
+        let firestore = Firestore.firestore()
+        for chunk in snapshot.documents.chunked(into: 500) {
+            let batch = firestore.batch()
+            for document in chunk {
+                batch.deleteDocument(document.reference)
+            }
+            try await batch.commit()
+        }
+    }
+
+    private func deleteRelatedRegistrations(eventID: String) async throws {
+        let snapshot = try await registrationsCollection
+            .whereField("eventId", isEqualTo: eventID)
+            .getDocuments()
+
+        guard !snapshot.documents.isEmpty else { return }
+
+        let firestore = Firestore.firestore()
+        for chunk in snapshot.documents.chunked(into: 500) {
+            let batch = firestore.batch()
+            for document in chunk {
+                batch.deleteDocument(document.reference)
+            }
+            try await batch.commit()
+        }
     }
 
     private func makeCommentDTO(from data: [String: Any]) -> CommentDTO? {
@@ -146,5 +379,43 @@ struct FirestoreEventRepository: EventRepository {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [ArraySlice<Element>] {
+        guard size > 0 else { return [self[...]] }
+
+        var chunks: [ArraySlice<Element>] = []
+        var currentIndex = startIndex
+
+        while currentIndex < endIndex {
+            let nextIndex = index(currentIndex, offsetBy: size, limitedBy: endIndex) ?? endIndex
+            chunks.append(self[currentIndex..<nextIndex])
+            currentIndex = nextIndex
+        }
+
+        return chunks
+    }
+}
+
+private extension AppError {
+    var asNSError: NSError {
+        NSError(domain: "AppError", code: code)
+    }
+
+    var code: Int {
+        switch self {
+        case .network:
+            1
+        case .permissionDenied:
+            2
+        case .validationFailed:
+            3
+        case .notFound:
+            4
+        case .unknown:
+            5
+        }
     }
 }

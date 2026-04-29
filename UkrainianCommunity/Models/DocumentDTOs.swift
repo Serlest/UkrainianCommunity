@@ -43,6 +43,7 @@ struct EventDTO: Codable, Identifiable {
     let details: String
     let city: String
     let venue: String
+    let imageURL: String?
     let startDate: Date
     let endDate: Date
     let createdAt: Date
@@ -199,6 +200,7 @@ extension Event {
             details: dto.details,
             city: dto.city,
             venue: dto.venue,
+            imageURL: dto.imageURL,
             startDate: dto.startDate,
             endDate: dto.endDate,
             createdAt: dto.createdAt,
@@ -229,6 +231,7 @@ extension Event {
             details: details,
             city: city,
             venue: venue,
+            imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,

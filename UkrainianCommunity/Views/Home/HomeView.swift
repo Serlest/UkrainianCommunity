@@ -60,11 +60,11 @@ struct HomeView: View {
                     Text(AppStrings.Home.latestNews)
                         .font(.title3.weight(.semibold))
 
-                    if viewModel.isLoading {
+                    if viewModel.isLoading && viewModel.latestNews.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 8)
-                    } else if viewModel.error != nil {
+                    } else if viewModel.error != nil && viewModel.latestNews.isEmpty {
                         CommunityCard {
                             Text(newsErrorText)
                                 .font(.subheadline)
@@ -77,6 +77,14 @@ struct HomeView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else {
+                        if viewModel.error != nil {
+                            CommunityCard {
+                                Text(newsErrorText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
                         ForEach(viewModel.latestNews) { post in
                             CommunityCard {
                                 Text(post.title)
@@ -97,6 +105,9 @@ struct HomeView: View {
         }
         .background(AppTheme.subtleGradient.ignoresSafeArea())
         .navigationTitle(AppStrings.Tabs.home)
+        .task {
+            await viewModel.loadIfNeeded()
+        }
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("selectedAppLanguage") private var selectedLanguageCode = AppLanguage.stored.rawValue
+    @AppStorage("selectedAppAppearance") private var selectedAppearanceCode = AppAppearance.stored.rawValue
     private let container: AppContainer
     @StateObject private var homeViewModel: HomeViewModel
     @StateObject private var newsViewModel: NewsViewModel
@@ -34,7 +35,7 @@ struct ContentView: View {
             rootTabs
         }
         .tint(AppTheme.primaryBlue)
-        .preferredColorScheme(profileViewModel.settings.appearance.colorScheme)
+        .preferredColorScheme(selectedAppearance.colorScheme)
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
         .onChange(of: profileViewModel.settings.language) { _, newLanguage in
             selectedLanguageCode = newLanguage.rawValue
@@ -48,9 +49,14 @@ struct ContentView: View {
             infoViewModel.reload()
             profileViewModel.reload()
         }
-        .onChange(of: profileViewModel.settings.appearance) { _, _ in
+        .onChange(of: profileViewModel.settings.appearance) { _, newAppearance in
+            selectedAppearanceCode = newAppearance.rawValue
             UserSettings.stored = profileViewModel.settings
         }
+    }
+
+    private var selectedAppearance: AppAppearance {
+        AppAppearance(rawValue: selectedAppearanceCode) ?? .system
     }
 
     @ViewBuilder
@@ -81,7 +87,13 @@ struct ContentView: View {
 
     private var newsTab: some View {
         NavigationStack {
-            NewsListView(viewModel: newsViewModel, newsRepository: container.newsRepository)
+            NewsListView(
+                viewModel: newsViewModel,
+                newsRepository: container.newsRepository,
+                onNewsChanged: {
+                    homeViewModel.reload()
+                }
+            )
         }
         .tabItem {
             Label(AppStrings.Tabs.news, systemImage: "newspaper.fill")
@@ -90,7 +102,16 @@ struct ContentView: View {
 
     private var eventsTab: some View {
         NavigationStack {
-            EventsListView(viewModel: eventsViewModel, eventRepository: container.eventRepository)
+            EventsListView(
+                viewModel: eventsViewModel,
+                eventRepository: container.eventRepository,
+                onEventPublished: {
+                    homeViewModel.reload()
+                },
+                onEventDeleted: {
+                    homeViewModel.reload()
+                }
+            )
         }
         .tabItem {
             Label(AppStrings.Tabs.events, systemImage: "calendar")

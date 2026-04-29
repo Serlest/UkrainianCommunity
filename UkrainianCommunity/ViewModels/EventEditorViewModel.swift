@@ -11,10 +11,14 @@ final class EventEditorViewModel: ObservableObject {
     @Published var startDate = Date()
     @Published var endDate = Date().addingTimeInterval(60 * 60)
     @Published var isPublishing = false
+    @Published var isUploadingImage = false
+    @Published var isProcessingImage = false
     @Published var successMessage: String?
     @Published var errorMessage: String?
+    @Published var selectedImageData: Data?
 
     private let repository: EventRepository
+    private let imageUploadService = ImageUploadService.shared
 
     init(repository: EventRepository) {
         self.repository = repository
@@ -26,10 +30,30 @@ final class EventEditorViewModel: ObservableObject {
             && !trimmedDetails.isEmpty
             && !trimmedCity.isEmpty
             && !trimmedVenue.isEmpty
+            && !isProcessingImage
+            && !isUploadingImage
             && !isPublishing
     }
 
+    func setSelectedImageData(_ data: Data?) {
+        guard let data else {
+            selectedImageData = nil
+            return
+        }
+
+        successMessage = nil
+        errorMessage = nil
+        selectedImageData = data
+    }
+
+    func setImageProcessing(_ isProcessing: Bool) {
+        isProcessingImage = isProcessing
+    }
+
     func publish() async -> Bool {
+        guard !isPublishing else { return false }
+
+        print("Event publish start")
         successMessage = nil
         errorMessage = nil
 
@@ -38,13 +62,16 @@ final class EventEditorViewModel: ObservableObject {
         }
 
         let now = Date()
+        let eventID = UUID().uuidString
+        var resolvedImageURL: String?
         let newEvent = Event(
-            id: UUID().uuidString,
+            id: eventID,
             title: trimmedTitle,
             summary: trimmedSummary,
             details: trimmedDetails,
             city: trimmedCity,
             venue: trimmedVenue,
+            imageURL: nil,
             startDate: startDate,
             endDate: endDate,
             createdAt: now,
@@ -62,18 +89,52 @@ final class EventEditorViewModel: ObservableObject {
         defer { isPublishing = false }
 
         do {
-            try await repository.createEvent(newEvent)
+            if let selectedImageData {
+                isUploadingImage = true
+                let downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                resolvedImageURL = downloadURL.absoluteString
+                isUploadingImage = false
+            }
+
+            print("Firestore create started")
+            let eventToCreate = Event(
+                id: newEvent.id,
+                title: newEvent.title,
+                summary: newEvent.summary,
+                details: newEvent.details,
+                city: newEvent.city,
+                venue: newEvent.venue,
+                imageURL: resolvedImageURL,
+                startDate: newEvent.startDate,
+                endDate: newEvent.endDate,
+                createdAt: newEvent.createdAt,
+                updatedAt: newEvent.updatedAt,
+                capacity: newEvent.capacity,
+                registeredCount: newEvent.registeredCount,
+                comments: newEvent.comments,
+                moderationStatus: newEvent.moderationStatus,
+                registrationState: newEvent.registrationState,
+                likeCount: newEvent.likeCount,
+                likeState: newEvent.likeState
+            )
+
+            try await repository.createEvent(eventToCreate)
+            print("Firestore create finished")
             successMessage = AppStrings.Events.publishedSuccessfully
+            print("Event publish success")
             title = ""
             summary = ""
             details = ""
             city = ""
             venue = ""
+            selectedImageData = nil
             startDate = now
             endDate = now.addingTimeInterval(60 * 60)
             return true
         } catch {
+            isUploadingImage = false
             errorMessage = error.localizedDescription
+            print("Event publish failure: \(error)")
             return false
         }
     }
@@ -105,12 +166,12 @@ final class EventEditorViewModel: ObservableObject {
         }
 
         guard !trimmedSummary.isEmpty else {
-            errorMessage = String(localized: "events.editor.validation.summary_required", defaultValue: "Summary is required.")
+            errorMessage = AppStrings.Events.summaryRequired
             return false
         }
 
         guard !trimmedDetails.isEmpty else {
-            errorMessage = String(localized: "events.editor.validation.details_required", defaultValue: "Details are required.")
+            errorMessage = AppStrings.Events.detailsRequired
             return false
         }
 

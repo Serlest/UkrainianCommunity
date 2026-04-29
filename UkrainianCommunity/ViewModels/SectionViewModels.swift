@@ -13,6 +13,8 @@ final class HomeViewModel: ObservableObject {
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
     private let marketplaceRepository: MarketplaceRepository
+    private var loadTask: Task<Void, Never>?
+    private var hasLoaded = false
 
     init(
         userRepository: UserRepository,
@@ -30,16 +32,37 @@ final class HomeViewModel: ObservableObject {
         highlights = []
         latestNews = []
         isLoading = false
-        reload()
+    }
+
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await startLoad(force: false)
     }
 
     func reload() {
+        print("HomeViewModel.reload()")
         Task {
-            await load()
+            await refresh()
         }
     }
 
-    private func load() async {
+    func refresh() async {
+        await startLoad(force: true)
+    }
+
+    private func startLoad(force: Bool) async {
+        guard force || !hasLoaded else { return }
+
+        loadTask?.cancel()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad()
+        }
+        loadTask = task
+        await task.value
+    }
+
+    private func performLoad() async {
         isLoading = true
         defer { isLoading = false }
 
@@ -56,6 +79,7 @@ final class HomeViewModel: ObservableObject {
             let resolvedOrganizations = try await organizations
             let resolvedMarketplaceItems = try await marketplaceItems
 
+            guard !Task.isCancelled else { return }
             user = resolvedUser
             latestNews = Array(resolvedNews.prefix(3))
             highlights = [
@@ -65,11 +89,13 @@ final class HomeViewModel: ObservableObject {
                 HomeHighlight(id: "marketplace", title: AppStrings.Tabs.marketplace, detail: AppStrings.homeHighlightMarketplace(resolvedMarketplaceItems.count), systemImage: "basket.fill")
             ]
             error = nil
+            hasLoaded = true
+        } catch is CancellationError {
         } catch let appError as AppError {
-            latestNews = []
+            guard !Task.isCancelled else { return }
             error = appError
         } catch {
-            latestNews = []
+            guard !Task.isCancelled else { return }
             self.error = .unknown
         }
     }
@@ -96,6 +122,7 @@ final class NewsViewModel: ObservableObject {
     }
 
     func reload() {
+        print("EventsViewModel.reload()")
         Task {
             await refresh()
         }
@@ -256,6 +283,20 @@ final class EventsViewModel: ObservableObject {
 
     func event(for eventID: String) -> Event? {
         events.first(where: { $0.id == eventID })
+    }
+
+    func deleteEvent(id: String) async throws {
+        do {
+            try await repository.deleteEvent(id: id)
+            error = nil
+            await refresh()
+        } catch let appError as AppError {
+            error = appError
+            throw appError
+        } catch {
+            self.error = .unknown
+            throw AppError.unknown
+        }
     }
 
     private func startLoad(force: Bool) async {
