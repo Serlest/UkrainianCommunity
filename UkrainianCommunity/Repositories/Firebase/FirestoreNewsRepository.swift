@@ -1,9 +1,11 @@
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
 
 struct FirestoreNewsRepository: NewsRepository {
     private let collection = Firestore.firestore().collection("news")
+    private let likesCollection = Firestore.firestore().collection("likes")
 
     func fetchNews() async throws -> [NewsPost] {
         let snapshot = try await collection
@@ -11,8 +13,10 @@ struct FirestoreNewsRepository: NewsRepository {
             .order(by: "createdAt", descending: true)
             .getDocuments()
 
+        let likedNewsIDs = try await fetchLikedNewsIDs()
+
         return try snapshot.documents.map { document in
-            try NewsPost(dto: makeNewsPostDTO(from: document))
+            try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs))
         }
     }
 
@@ -57,14 +61,90 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func likeNews(id: String) async throws {
-        throw AppError.unknown
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let newsReference = collection.document(id)
+        let likeReference = likesCollection.document(likeDocumentID(newsID: id, userID: uid))
+
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let newsSnapshot = try transaction.getDocument(newsReference)
+                guard newsSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let likeSnapshot = try transaction.getDocument(likeReference)
+                if likeSnapshot.exists {
+                    return nil
+                }
+
+                transaction.setData([
+                    "id": likeReference.documentID,
+                    "newsId": id,
+                    "userId": uid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], forDocument: likeReference)
+                transaction.updateData([
+                    "likeCount": FieldValue.increment(Int64(1))
+                ], forDocument: newsReference)
+            } catch {
+                errorPointer?.pointee = (error as NSError)
+            }
+
+            return nil
+        }
     }
 
     func unlikeNews(id: String) async throws {
-        throw AppError.unknown
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let newsReference = collection.document(id)
+        let likeReference = likesCollection.document(likeDocumentID(newsID: id, userID: uid))
+
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let newsSnapshot = try transaction.getDocument(newsReference)
+                guard newsSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let likeSnapshot = try transaction.getDocument(likeReference)
+                guard likeSnapshot.exists else {
+                    return nil
+                }
+
+                let currentLikeCount = newsSnapshot.data()?["likeCount"] as? Int ?? 0
+                transaction.deleteDocument(likeReference)
+                transaction.updateData([
+                    "likeCount": max(0, currentLikeCount - 1)
+                ], forDocument: newsReference)
+            } catch {
+                errorPointer?.pointee = (error as NSError)
+            }
+
+            return nil
+        }
     }
 
-    private func makeNewsPostDTO(from document: QueryDocumentSnapshot) throws -> NewsPostDTO {
+    private func fetchLikedNewsIDs() async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return []
+        }
+
+        let snapshot = try await likesCollection
+            .whereField("userId", isEqualTo: uid)
+            .getDocuments()
+
+        return Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
+    }
+
+    private func makeNewsPostDTO(from document: QueryDocumentSnapshot, likedNewsIDs: Set<String>) throws -> NewsPostDTO {
         let data = document.data()
 
         guard
@@ -98,8 +178,12 @@ struct FirestoreNewsRepository: NewsRepository {
             comments: comments,
             moderationStatus: moderationStatus,
             likeCount: data["likeCount"] as? Int ?? 0,
-            likeState: data["likeState"] as? String ?? LikeState.notLiked.rawValue
+            likeState: likedNewsIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue
         )
+    }
+
+    private func likeDocumentID(newsID: String, userID: String) -> String {
+        "\(newsID)_\(userID)"
     }
 
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {
@@ -130,5 +214,26 @@ struct FirestoreNewsRepository: NewsRepository {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+}
+
+private extension AppError {
+    var asNSError: NSError {
+        NSError(domain: "AppError", code: code)
+    }
+
+    var code: Int {
+        switch self {
+        case .network:
+            1
+        case .permissionDenied:
+            2
+        case .validationFailed:
+            3
+        case .notFound:
+            4
+        case .unknown:
+            5
+        }
     }
 }

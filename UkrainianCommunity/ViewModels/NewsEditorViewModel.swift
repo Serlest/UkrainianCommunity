@@ -32,16 +32,14 @@ final class NewsEditorViewModel: ObservableObject {
             return
         }
 
-        guard let image = UIImage(data: data),
-              let compressedData = image.jpegData(compressionQuality: 0.8)
-        else {
+        guard UIImage(data: data) != nil else {
             errorMessage = "Failed to load the selected image."
             return
         }
 
         successMessage = nil
         errorMessage = nil
-        selectedImageData = compressedData
+        selectedImageData = data
     }
 
     func publish() async {
