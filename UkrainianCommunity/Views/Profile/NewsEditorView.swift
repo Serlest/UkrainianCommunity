@@ -3,6 +3,7 @@ import SwiftUI
 import UIKit
 
 struct NewsEditorView: View {
+    @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: NewsEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
 
@@ -13,13 +14,13 @@ struct NewsEditorView: View {
     var body: some View {
         Form {
             Section {
-                TextField("Title", text: $viewModel.title)
-                TextField("Summary", text: $viewModel.summary)
-                TextField("Body", text: $viewModel.body, axis: .vertical)
+                TextField(AppStrings.NewsEditor.fieldTitle, text: $viewModel.title)
+                TextField(AppStrings.NewsEditor.fieldSummary, text: $viewModel.summary)
+                TextField(AppStrings.NewsEditor.fieldBody, text: $viewModel.body, axis: .vertical)
                     .lineLimit(5, reservesSpace: true)
 
                 PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
-                    Label("Select Photo", systemImage: "photo.on.rectangle")
+                    Label(AppStrings.NewsEditor.selectPhoto, systemImage: "photo.on.rectangle")
                 }
 
                 if let selectedImageData = viewModel.selectedImageData,
@@ -36,9 +37,9 @@ struct NewsEditorView: View {
             Section {
                 if viewModel.isPublishing {
                     if viewModel.isUploadingImage {
-                        ProgressView("Uploading image...")
+                        ProgressView(AppStrings.NewsEditor.uploadingImage)
                     } else {
-                        ProgressView("Publishing...")
+                        ProgressView(AppStrings.NewsEditor.publishing)
                     }
                 }
 
@@ -54,7 +55,7 @@ struct NewsEditorView: View {
                         .foregroundStyle(.red)
                 }
 
-                Button("Publish") {
+                Button(AppStrings.NewsEditor.publish) {
                     Task {
                         await viewModel.publish()
                     }
@@ -62,11 +63,14 @@ struct NewsEditorView: View {
                 .disabled(!viewModel.canPublish)
             }
         }
-        .navigationTitle("Create News")
+        .navigationTitle(AppStrings.NewsEditor.title)
         .onChange(of: selectedPhoto) { _, newItem in
             Task {
                 await loadSelectedPhoto(item: newItem)
             }
+        }
+        .task(id: authState.user?.id) {
+            viewModel.setAuthState(authState)
         }
     }
 
@@ -85,7 +89,7 @@ struct NewsEditorView: View {
             }
         } catch {
             await MainActor.run {
-                viewModel.errorMessage = "Failed to load the selected image."
+                viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
             }
         }
     }
@@ -95,4 +99,5 @@ struct NewsEditorView: View {
     NavigationStack {
         NewsEditorView(repository: MockNewsRepository())
     }
+    .environmentObject(AuthState())
 }

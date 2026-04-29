@@ -21,6 +21,39 @@ enum AppStrings {
     enum News {
         static var title: String { text("news.title", "News") }
         static var detailTitle: String { text("news.detail.title", "News Details") }
+        static var empty: String { text("news.empty", "No news available yet.") }
+        static var retry: String { text("news.retry", "Retry") }
+        static var loadNetworkError: String { text("news.error.load.network", "Unable to load news. Check your connection and try again.") }
+        static var loadPermissionError: String { text("news.error.load.permission", "You do not have permission to view this news.") }
+        static var loadValidationError: String { text("news.error.load.validation", "The news data could not be loaded.") }
+        static var loadUnknownError: String { text("news.error.load.unknown", "Something went wrong while loading news.") }
+        static var actionPermissionError: String { text("news.error.action.permission", "You do not have permission to perform this action.") }
+        static var actionValidationError: String { text("news.error.action.validation", "The news data could not be processed.") }
+        static var actionNotFoundError: String { text("news.error.action.not_found", "The selected news item could not be found.") }
+        static var actionUnknownError: String { text("news.error.action.unknown", "Something went wrong while processing the news.") }
+        static var deleteConfirmation: String { text("news.delete.confirmation", "Delete this news post?") }
+        static var delete: String { text("news.delete", "Delete") }
+        static var cancel: String { text("news.cancel", "Cancel") }
+        static var deleteFailed: String { text("news.delete_failed", "Delete Failed") }
+        static var dismissError: String { text("news.dismiss_error", "OK") }
+    }
+
+    enum NewsEditor {
+        static var title: String { text("news.editor.title", "Create News") }
+        static var fieldTitle: String { text("news.editor.field.title", "Title") }
+        static var fieldSummary: String { text("news.editor.field.summary", "Summary") }
+        static var fieldBody: String { text("news.editor.field.body", "Body") }
+        static var selectPhoto: String { text("news.editor.select_photo", "Select Photo") }
+        static var publish: String { text("news.editor.publish", "Publish") }
+        static var publishing: String { text("news.editor.publishing", "Publishing...") }
+        static var uploadingImage: String { text("news.editor.uploading_image", "Uploading image...") }
+        static var publishedSuccessfully: String { text("news.editor.success", "News published successfully.") }
+        static var titleRequired: String { text("news.editor.validation.title_required", "Title is required.") }
+        static var bodyRequired: String { text("news.editor.validation.body_required", "Body is required.") }
+        static var imageLoadFailed: String { text("news.editor.image_load_failed", "Failed to load the selected image.") }
+        static var imageProcessingFailed: String { text("news.editor.image_processing_failed", "Failed to process the selected image.") }
+        static var imageTooLarge: String { text("news.editor.image_too_large", "Image is too large. Please choose a smaller photo.") }
+        static var authorFallback: String { text("news.editor.author_fallback", "Unknown author") }
     }
 
     enum Events {
@@ -59,6 +92,29 @@ enum AppStrings {
         static var role: String { text("profile.role", "Role") }
         static var accountStatus: String { text("profile.account_status", "Account status") }
         static var capabilities: String { text("profile.capabilities", "Capabilities") }
+        static var loadingUserProfile: String { text("profile.loading_user_profile", "Loading user profile...") }
+        static var adminTools: String { text("profile.admin_tools", "Admin tools") }
+        static var moderationTools: String { text("profile.moderation_tools", "Moderation tools") }
+        static var userManagement: String { text("profile.user_management", "User management") }
+        static var reviewPendingContent: String { text("profile.review_pending_content", "Review pending content") }
+        static var manageNews: String { text("profile.manage_news", "Manage news") }
+        static var manageEvents: String { text("profile.manage_events", "Manage events") }
+        static var manageOrganizations: String { text("profile.manage_organizations", "Manage organizations") }
+        static var manageMarketplace: String { text("profile.manage_marketplace", "Manage marketplace") }
+    }
+
+    enum Moderation {
+        static var title: String { text("moderation.title", "Moderation Tools") }
+        static var subtitle: String { text("moderation.subtitle", "Moderation tools will be available here.") }
+    }
+
+    enum UserManagement {
+        static var title: String { text("user_management.title", "User Management") }
+        static var subtitle: String { text("user_management.subtitle", "User management tools will be available here.") }
+        static var viewUsers: String { text("user_management.view_users", "View users") }
+        static var blockUser: String { text("user_management.block_user", "Block user") }
+        static var assignModerator: String { text("user_management.assign_moderator", "Assign moderator") }
+        static var assignAdmin: String { text("user_management.assign_admin", "Assign admin") }
     }
 
     enum Settings {

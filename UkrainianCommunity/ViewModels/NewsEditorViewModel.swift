@@ -15,9 +15,11 @@ final class NewsEditorViewModel: ObservableObject {
 
     private let repository: NewsRepository
     private let imageUploadService = ImageUploadService.shared
+    private var authState: AuthState?
 
-    init(repository: NewsRepository) {
+    init(repository: NewsRepository, authState: AuthState? = nil) {
         self.repository = repository
+        self.authState = authState
     }
 
     var canPublish: Bool {
@@ -33,13 +35,17 @@ final class NewsEditorViewModel: ObservableObject {
         }
 
         guard UIImage(data: data) != nil else {
-            errorMessage = "Failed to load the selected image."
+            errorMessage = AppStrings.NewsEditor.imageLoadFailed
             return
         }
 
         successMessage = nil
         errorMessage = nil
         selectedImageData = data
+    }
+
+    func setAuthState(_ authState: AuthState?) {
+        self.authState = authState
     }
 
     func publish() async {
@@ -59,7 +65,7 @@ final class NewsEditorViewModel: ObservableObject {
             subtitle: trimmedSummary,
             imageURL: nil,
             body: trimmedBody,
-            authorName: "Admin",
+            authorName: resolvedAuthorName,
             publishedAt: now,
             createdAt: now,
             updatedAt: now,
@@ -97,7 +103,7 @@ final class NewsEditorViewModel: ObservableObject {
             )
 
             try await repository.createNews(newsToCreate)
-            successMessage = "News published successfully."
+            successMessage = AppStrings.NewsEditor.publishedSuccessfully
             print("Publishing succeeded")
             title = ""
             summary = ""
@@ -124,16 +130,30 @@ final class NewsEditorViewModel: ObservableObject {
         body.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var resolvedAuthorName: String {
+        if let fullName = authState?.user?.fullName.trimmingCharacters(in: .whitespacesAndNewlines),
+           !fullName.isEmpty {
+            return fullName
+        }
+
+        if let userID = authState?.user?.id.trimmingCharacters(in: .whitespacesAndNewlines),
+           !userID.isEmpty {
+            return userID
+        }
+
+        return AppStrings.NewsEditor.authorFallback
+    }
+
     private func validate() -> Bool {
         guard !trimmedTitle.isEmpty else {
-            errorMessage = "Title is required."
+            errorMessage = AppStrings.NewsEditor.titleRequired
             successMessage = nil
             print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
             return false
         }
 
         guard !trimmedBody.isEmpty else {
-            errorMessage = "Body is required."
+            errorMessage = AppStrings.NewsEditor.bodyRequired
             successMessage = nil
             print("Validation failed: \(errorMessage ?? "Unknown validation error.")")
             return false

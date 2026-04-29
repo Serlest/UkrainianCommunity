@@ -4,19 +4,19 @@ struct UserManagementView: View {
     var body: some View {
         List {
             Section {
-                Text("User management tools will be available here.")
+                Text(AppStrings.UserManagement.subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             Section {
-                Label("View users", systemImage: "person.3")
-                Label("Block user", systemImage: "hand.raised")
-                Label("Assign moderator", systemImage: "person.badge.plus")
-                Label("Assign admin", systemImage: "person.crop.circle.badge.plus")
+                Label(AppStrings.UserManagement.viewUsers, systemImage: "person.3")
+                Label(AppStrings.UserManagement.blockUser, systemImage: "hand.raised")
+                Label(AppStrings.UserManagement.assignModerator, systemImage: "person.badge.plus")
+                Label(AppStrings.UserManagement.assignAdmin, systemImage: "person.crop.circle.badge.plus")
             }
         }
-        .navigationTitle("User Management")
+        .navigationTitle(AppStrings.UserManagement.title)
     }
 }
 

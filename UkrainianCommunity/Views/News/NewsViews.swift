@@ -8,15 +8,15 @@ struct NewsListView: View {
     private var errorText: String {
         switch viewModel.error {
         case .network:
-            "Unable to load news. Check your connection and try again."
+            AppStrings.News.loadNetworkError
         case .permissionDenied:
-            "You do not have permission to view this news."
+            AppStrings.News.loadPermissionError
         case .validationFailed:
-            "The news data could not be loaded."
+            AppStrings.News.loadValidationError
         case .notFound:
-            "No news available yet."
+            AppStrings.News.empty
         case .unknown:
-            "Something went wrong while loading news."
+            AppStrings.News.loadUnknownError
         case nil:
             ""
         }
@@ -38,7 +38,7 @@ struct NewsListView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
-                    Button("Retry") {
+                    Button(AppStrings.News.retry) {
                         Task {
                             await viewModel.refresh()
                         }
@@ -49,12 +49,12 @@ struct NewsListView: View {
                 .padding(.horizontal, 24)
             } else if viewModel.posts.isEmpty {
                 VStack(spacing: 16) {
-                    Text("No news available yet.")
+                    Text(AppStrings.News.empty)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
-                    Button("Retry") {
+                    Button(AppStrings.News.retry) {
                         Task {
                             await viewModel.refresh()
                         }
@@ -108,17 +108,17 @@ struct NewsListView: View {
 private func readableNewsErrorText(_ error: AppError?) -> String {
     switch error {
     case .network:
-        "Unable to load news. Check your connection and try again."
+        AppStrings.News.loadNetworkError
     case .permissionDenied:
-        "You do not have permission to perform this action."
+        AppStrings.News.actionPermissionError
     case .validationFailed:
-        "The news data could not be processed."
+        AppStrings.News.actionValidationError
     case .notFound:
-        "The selected news item could not be found."
+        AppStrings.News.actionNotFoundError
     case .unknown:
-        "Something went wrong while processing the news."
+        AppStrings.News.actionUnknownError
     case nil:
-        "Something went wrong while processing the news."
+        AppStrings.News.actionUnknownError
     }
 }
 
@@ -249,19 +249,19 @@ struct NewsDetailView: View {
                 }
             }
         }
-        .confirmationDialog("Delete this news post?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
+        .confirmationDialog(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button(AppStrings.News.delete, role: .destructive) {
                 Task {
                     await deleteCurrentNews()
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(AppStrings.News.cancel, role: .cancel) {}
         }
-        .alert("Delete Failed", isPresented: Binding(
+        .alert(AppStrings.News.deleteFailed, isPresented: Binding(
             get: { deleteErrorMessage != nil },
             set: { if !$0 { deleteErrorMessage = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button(AppStrings.News.dismissError, role: .cancel) {}
         } message: {
             Text(deleteErrorMessage ?? "")
         }

@@ -84,9 +84,9 @@ private enum ImageUploadError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidImageData:
-            "Failed to process the selected image."
+            AppStrings.NewsEditor.imageProcessingFailed
         case .imageTooLarge:
-            "Image is too large. Please choose a smaller photo."
+            AppStrings.NewsEditor.imageTooLarge
         }
     }
 }

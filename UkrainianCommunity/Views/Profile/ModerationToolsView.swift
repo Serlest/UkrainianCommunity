@@ -10,24 +10,24 @@ struct ModerationToolsView: View {
     var body: some View {
         List {
             Section {
-                Text("Moderation tools will be available here.")
+                Text(AppStrings.Moderation.subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             Section {
-                Label("Review pending content", systemImage: "clock.badge.exclamationmark")
+                Label(AppStrings.Profile.reviewPendingContent, systemImage: "clock.badge.exclamationmark")
                 NavigationLink {
                     NewsEditorView(repository: newsRepository)
                 } label: {
-                    Label("Manage news", systemImage: "newspaper")
+                    Label(AppStrings.Profile.manageNews, systemImage: "newspaper")
                 }
-                Label("Manage events", systemImage: "calendar")
-                Label("Manage organizations", systemImage: "building.2")
-                Label("Manage marketplace", systemImage: "storefront")
+                Label(AppStrings.Profile.manageEvents, systemImage: "calendar")
+                Label(AppStrings.Profile.manageOrganizations, systemImage: "building.2")
+                Label(AppStrings.Profile.manageMarketplace, systemImage: "storefront")
             }
         }
-        .navigationTitle("Moderation Tools")
+        .navigationTitle(AppStrings.Moderation.title)
     }
 }
 

@@ -40,7 +40,7 @@ struct ProfileView: View {
                     MetadataRow(label: AppStrings.Profile.role, value: user.role.title, systemImage: "person.badge.key")
                     MetadataRow(label: AppStrings.Profile.accountStatus, value: user.blockState.title, systemImage: "checkmark.shield")
                 } else {
-                    Text("Loading user profile...")
+                    Text(AppStrings.Profile.loadingUserProfile)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -55,27 +55,27 @@ struct ProfileView: View {
             }
 
             if canShowModerationTools {
-                Section("Moderation tools") {
+                Section(AppStrings.Profile.moderationTools) {
                     NavigationLink {
                         ModerationToolsView()
                     } label: {
-                        Label("Review pending content", systemImage: "clock.badge.exclamationmark")
+                        Label(AppStrings.Profile.reviewPendingContent, systemImage: "clock.badge.exclamationmark")
                     }
-                    Label("Manage news", systemImage: "newspaper")
-                    Label("Manage events", systemImage: "calendar")
-                    Label("Manage organizations", systemImage: "building.2")
-                    Label("Manage marketplace", systemImage: "storefront")
+                    Label(AppStrings.Profile.manageNews, systemImage: "newspaper")
+                    Label(AppStrings.Profile.manageEvents, systemImage: "calendar")
+                    Label(AppStrings.Profile.manageOrganizations, systemImage: "building.2")
+                    Label(AppStrings.Profile.manageMarketplace, systemImage: "storefront")
                 }
             }
 
             if canShowAdminTools {
-                Section("Admin tools") {
+                Section(AppStrings.Profile.adminTools) {
                     NavigationLink {
                         UserManagementView()
                     } label: {
-                        Label("User management", systemImage: "person.3")
+                        Label(AppStrings.Profile.userManagement, systemImage: "person.3")
                     }
-                    Label("Moderation tools", systemImage: "checkmark.shield")
+                    Label(AppStrings.Profile.moderationTools, systemImage: "checkmark.shield")
                 }
             }
 
