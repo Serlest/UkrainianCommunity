@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var viewModel: ProfileViewModel
+    @EnvironmentObject var authState: AuthState
 
     var body: some View {
         List {
@@ -14,8 +15,14 @@ struct ProfileView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                MetadataRow(label: AppStrings.Profile.role, value: viewModel.user.role.title, systemImage: "person.badge.key")
-                MetadataRow(label: AppStrings.Profile.accountStatus, value: viewModel.user.blockState.title, systemImage: "checkmark.shield")
+                if let user = authState.user {
+                    MetadataRow(label: AppStrings.Profile.role, value: user.role.title, systemImage: "person.badge.key")
+                    MetadataRow(label: AppStrings.Profile.accountStatus, value: user.blockState.title, systemImage: "checkmark.shield")
+                } else {
+                    Text("Loading user profile...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
                 MetadataRow(label: AppStrings.Profile.memberSince, value: LocalizationStore.dateString(from: viewModel.user.joinedAt), systemImage: "calendar")
             }
 
@@ -51,4 +58,5 @@ struct ProfileView: View {
     NavigationStack {
         ProfileView(viewModel: ProfileViewModel(repository: MockUserRepository()))
     }
+    .environmentObject(AuthState())
 }
