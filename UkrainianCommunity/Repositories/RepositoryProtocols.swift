@@ -7,6 +7,7 @@ protocol UserRepository {
 
 protocol NewsRepository {
     func fetchNews() async throws -> [NewsPost]
+    func createNews(_ news: NewsPost) async throws
     func likeNews(id: String) async throws
     func unlikeNews(id: String) async throws
 }

@@ -34,7 +34,7 @@ struct NewsPost: Identifiable, Codable {
     var likeCount: Int
     var likeState: LikeState
 
-    init(
+    nonisolated init(
         id: String,
         title: String,
         subtitle: String,

@@ -16,6 +16,10 @@ private actor MockRepositoryStore {
         news[index].likeCount += isLiked ? 1 : -1
     }
 
+    func createNews(_ item: NewsPost) {
+        news.insert(item, at: 0)
+    }
+
     func toggleEventLike(id: String, isLiked: Bool) throws {
         guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         events[index].likeState = isLiked ? .liked : .notLiked
@@ -57,6 +61,10 @@ struct MockNewsRepository: NewsRepository {
 
     func fetchNews() async throws -> [NewsPost] {
         await store.news
+    }
+
+    func createNews(_ news: NewsPost) async throws {
+        await store.createNews(news)
     }
 
     func likeNews(id: String) async throws {

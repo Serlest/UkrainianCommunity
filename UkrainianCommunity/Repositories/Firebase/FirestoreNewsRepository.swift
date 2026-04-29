@@ -15,6 +15,27 @@ struct FirestoreNewsRepository: NewsRepository {
         }
     }
 
+    func createNews(_ news: NewsPost) async throws {
+        let dto = news.dto
+
+        try await collection.document(news.id).setData([
+            "id": dto.id,
+            "title": dto.title,
+            "subtitle": dto.subtitle,
+            "summary": dto.subtitle,
+            "imageURL": dto.imageURL as Any,
+            "body": dto.body,
+            "authorName": dto.authorName,
+            "publishedAt": Timestamp(date: dto.publishedAt),
+            "createdAt": Timestamp(date: dto.createdAt),
+            "updatedAt": Timestamp(date: dto.updatedAt),
+            "comments": dto.comments.map(makeCommentData(from:)),
+            "moderationStatus": dto.moderationStatus,
+            "likeCount": dto.likeCount,
+            "likeState": dto.likeState
+        ])
+    }
+
     func likeNews(id: String) async throws {
         throw AppError.unknown
     }
@@ -59,6 +80,16 @@ struct FirestoreNewsRepository: NewsRepository {
             likeCount: data["likeCount"] as? Int ?? 0,
             likeState: data["likeState"] as? String ?? LikeState.notLiked.rawValue
         )
+    }
+
+    private func makeCommentData(from dto: CommentDTO) -> [String: Any] {
+        [
+            "id": dto.id,
+            "authorName": dto.authorName,
+            "body": dto.body,
+            "createdAt": Timestamp(date: dto.createdAt),
+            "updatedAt": Timestamp(date: dto.updatedAt)
+        ]
     }
 
     private func makeCommentDTO(from data: [String: Any]) -> CommentDTO? {
