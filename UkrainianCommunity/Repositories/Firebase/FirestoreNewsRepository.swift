@@ -7,6 +7,7 @@ struct FirestoreNewsRepository: NewsRepository {
     func fetchNews() async throws -> [NewsPost] {
         let snapshot = try await collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+            .order(by: "createdAt", descending: true)
             .getDocuments()
 
         return try snapshot.documents.map { document in
@@ -27,16 +28,17 @@ struct FirestoreNewsRepository: NewsRepository {
 
         guard
             let title = data["title"] as? String,
-            let subtitle = data["subtitle"] as? String,
             let body = data["body"] as? String,
-            let authorName = data["authorName"] as? String,
-            let publishedAt = (data["publishedAt"] as? Timestamp)?.dateValue(),
             let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),
             let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue(),
             let moderationStatus = data["moderationStatus"] as? String
         else {
             throw AppError.notFound
         }
+
+        let subtitle = (data["summary"] as? String) ?? (data["subtitle"] as? String) ?? ""
+        let authorName = data["authorName"] as? String ?? ""
+        let publishedAt = (data["publishedAt"] as? Timestamp)?.dateValue() ?? createdAt
 
         let comments = (data["comments"] as? [[String: Any]] ?? []).compactMap { commentData in
             makeCommentDTO(from: commentData)
