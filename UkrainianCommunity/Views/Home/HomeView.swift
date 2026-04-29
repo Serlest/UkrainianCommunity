@@ -3,6 +3,23 @@ import SwiftUI
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
 
+    private var newsErrorText: String {
+        switch viewModel.error {
+        case .network:
+            AppStrings.News.loadNetworkError
+        case .permissionDenied:
+            AppStrings.News.loadPermissionError
+        case .validationFailed:
+            AppStrings.News.loadValidationError
+        case .notFound:
+            AppStrings.News.empty
+        case .unknown:
+            AppStrings.News.loadUnknownError
+        case nil:
+            ""
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -35,6 +52,43 @@ struct HomeView: View {
                             Text(item.detail)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(AppStrings.Home.latestNews)
+                        .font(.title3.weight(.semibold))
+
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 8)
+                    } else if viewModel.error != nil {
+                        CommunityCard {
+                            Text(newsErrorText)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if viewModel.latestNews.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.News.empty)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        ForEach(viewModel.latestNews) { post in
+                            CommunityCard {
+                                Text(post.title)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(post.subtitle)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Text(post.authorName)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(AppTheme.primaryBlue)
+                            }
                         }
                     }
                 }

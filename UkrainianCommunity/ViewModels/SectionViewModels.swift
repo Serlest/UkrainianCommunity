@@ -5,6 +5,8 @@ import Foundation
 final class HomeViewModel: ObservableObject {
     @Published private(set) var user: AppUser
     @Published private(set) var highlights: [HomeHighlight]
+    @Published private(set) var latestNews: [NewsPost]
+    @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     private let userRepository: UserRepository
     private let newsRepository: NewsRepository
@@ -26,6 +28,8 @@ final class HomeViewModel: ObservableObject {
         self.marketplaceRepository = marketplaceRepository
         user = .placeholder
         highlights = []
+        latestNews = []
+        isLoading = false
         reload()
     }
 
@@ -36,6 +40,9 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+
         do {
             async let loadedUser = userRepository.fetchCurrentUser()
             async let news = newsRepository.fetchNews()
@@ -50,6 +57,7 @@ final class HomeViewModel: ObservableObject {
             let resolvedMarketplaceItems = try await marketplaceItems
 
             user = resolvedUser
+            latestNews = Array(resolvedNews.prefix(3))
             highlights = [
                 HomeHighlight(id: "news", title: AppStrings.Tabs.news, detail: AppStrings.homeHighlightNews(resolvedNews.count), systemImage: "newspaper.fill"),
                 HomeHighlight(id: "events", title: AppStrings.Tabs.events, detail: AppStrings.homeHighlightEvents(resolvedEvents.count), systemImage: "calendar"),
@@ -58,8 +66,10 @@ final class HomeViewModel: ObservableObject {
             ]
             error = nil
         } catch let appError as AppError {
+            latestNews = []
             error = appError
         } catch {
+            latestNews = []
             self.error = .unknown
         }
     }

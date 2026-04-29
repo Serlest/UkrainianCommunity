@@ -532,6 +532,23 @@
         }
       }
     },
+    "home.latest_news" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neueste Nachrichten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Останні новини"
+          }
+        }
+      }
+    },
     "home.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {

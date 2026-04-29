@@ -16,6 +16,7 @@ enum AppStrings {
         static var title: String { text("home.title", "Ukrainian Community Tirol") }
         static var subtitle: String { text("home.subtitle", "A calm, trusted place for updates, events, organizations, and neighbor-to-neighbor support.") }
         static var highlights: String { text("home.highlights", "Community Highlights") }
+        static var latestNews: String { text("home.latest_news", "Latest News") }
     }
 
     enum News {
