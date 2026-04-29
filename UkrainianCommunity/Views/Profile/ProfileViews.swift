@@ -4,6 +4,15 @@ struct ProfileView: View {
     @ObservedObject var viewModel: ProfileViewModel
     @EnvironmentObject var authState: AuthState
 
+    private var canShowAdminTools: Bool {
+        guard let role = authState.user?.role else {
+            return false
+        }
+
+        let permissions = role.permissions
+        return permissions.canManageUsers || permissions.canAccessOwnerTools
+    }
+
     var body: some View {
         List {
             Section {
@@ -30,6 +39,13 @@ struct ProfileView: View {
                 ForEach(viewModel.capabilities, id: \.self) { capability in
                     Label(capability, systemImage: "checkmark.circle.fill")
                         .foregroundStyle(AppTheme.primaryBlue)
+                }
+            }
+
+            if canShowAdminTools {
+                Section("Admin tools") {
+                    Label("User management", systemImage: "person.3")
+                    Label("Moderation tools", systemImage: "checkmark.shield")
                 }
             }
 
