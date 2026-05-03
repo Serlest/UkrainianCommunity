@@ -9,9 +9,6 @@ struct AppContainer {
     let infoRepository: InfoRepository
 
     static var development: AppContainer {
-        #if DEBUG
-        print("AppContainer development created")
-        #endif
         return AppContainer(
             userRepository: FirestoreUserRepository(),
             newsRepository: FirestoreNewsRepository(),

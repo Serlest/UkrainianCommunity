@@ -93,11 +93,6 @@ struct RemoteImageView: View {
             .frame(height: resolvedHeight)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .onAppear {
-            #if DEBUG
-            print("RemoteImageView appear source=\(source) imageURLPresent=\(imageURL != nil) requestedHeight=\(height) resolvedHeight=\(resolvedHeight) containerHeight=\(resolvedHeight)")
-            #endif
-        }
         .task(id: imageURL) {
             await loadImage()
         }
@@ -148,9 +143,6 @@ struct RemoteImageView: View {
 
         let cacheKey = imageURL as NSString
         if let cachedImage = RemoteImageCache.shared.object(forKey: cacheKey) {
-            #if DEBUG
-            print("RemoteImageView cached source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight)")
-            #endif
             loadedImage = cachedImage
             return
         }
@@ -165,21 +157,13 @@ struct RemoteImageView: View {
             }
 
             RemoteImageCache.shared.setObject(image, forKey: cacheKey, cost: data.count)
-            #if DEBUG
-            print("RemoteImageView loaded source=\(source) imageURLPresent=true requestedHeight=\(height) resolvedHeight=\(resolvedHeight) bytes=\(data.count)")
-            #endif
             loadedImage = image
         } catch {
             let nsError = error as NSError
             if nsError.code == NSURLErrorCancelled {
-                #if DEBUG
-                print("RemoteImageView cancelled source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight)")
-                #endif
                 return
             }
-            #if DEBUG
             print("RemoteImageView failed source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight) code=\(nsError.code) message=\(nsError.localizedDescription)")
-            #endif
         }
     }
 }

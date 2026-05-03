@@ -6,19 +6,9 @@ private enum FirebaseBootstrap {
     private static var isConfigured = false
 
     static func ensureConfigured() {
-        #if DEBUG
-        print("FirebaseBootstrap ensureConfigured called")
-        #endif
         if !isConfigured {
             FirebaseApp.configure()
             isConfigured = true
-            #if DEBUG
-            print("FirebaseBootstrap configure executed")
-            #endif
-        } else {
-            #if DEBUG
-            print("FirebaseBootstrap configure skipped already configured")
-            #endif
         }
     }
 }
@@ -40,9 +30,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 struct UkrainianCommunityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var authState = AuthService.shared.authState
+    private let container: AppContainer
 
     init() {
         FirebaseBootstrap.ensureConfigured()
+        container = .development
 
         let environment = ProcessInfo.processInfo.environment
 
@@ -59,7 +51,7 @@ struct UkrainianCommunityApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(container: .development)
+            ContentView(container: container)
                 .environmentObject(authState)
         }
     }

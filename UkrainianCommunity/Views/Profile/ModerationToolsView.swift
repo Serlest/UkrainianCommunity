@@ -219,10 +219,10 @@ struct ModerationToolsView: View {
     @StateObject private var viewModel: ModerationQueueViewModel
 
     init(
-        newsRepository: NewsRepository = AppContainer.development.newsRepository,
-        eventRepository: EventRepository = AppContainer.development.eventRepository,
-        organizationRepository: OrganizationRepository = AppContainer.development.organizationRepository,
-        marketplaceRepository: MarketplaceRepository = AppContainer.development.marketplaceRepository
+        newsRepository: NewsRepository = FirestoreNewsRepository(),
+        eventRepository: EventRepository = FirestoreEventRepository(),
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        marketplaceRepository: MarketplaceRepository = FirestoreMarketplaceRepository()
     ) {
         _viewModel = StateObject(wrappedValue: ModerationQueueViewModel(
             newsRepository: newsRepository,

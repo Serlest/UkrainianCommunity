@@ -14,11 +14,9 @@ final class UserProfileService {
             let snapshot = try await document.getDocument()
 
             if snapshot.exists {
-                print("User profile already exists: \(uid)")
                 return
             }
 
-            print("Creating new user document: \(uid)")
             try await document.setData([
                 "id": uid,
                 "role": "user",
@@ -31,7 +29,6 @@ final class UserProfileService {
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])
-            print("User profile created: \(uid)")
         } catch {
             print("User profile Firestore error: \(error)")
         }
@@ -44,7 +41,6 @@ final class UserProfileService {
             let snapshot = try await document.getDocument()
 
             guard snapshot.exists, let data = snapshot.data() else {
-                print("User profile not found: \(uid)")
                 return nil
             }
 
@@ -81,13 +77,6 @@ final class UserProfileService {
                 updatedAt: updatedAt
             ))
 
-            print("User profile fetched successfully: \(uid)")
-            #if DEBUG
-            print("User profile debug uid=\(user.id)")
-            print("User profile debug globalRole=\(user.globalRole.rawValue)")
-            print("User profile debug accountStatus=\(user.accountStatus.rawValue)")
-            print("User profile debug isBlocked=\(isBlocked)")
-            #endif
             return user
         } catch {
             print("User profile fetch error: \(error)")

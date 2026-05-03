@@ -251,7 +251,7 @@ private struct EventCard: View {
         CommunityCard {
             RemoteCardImage(imageURL: event.imageURL, height: 220, source: "EventCard")
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text(event.title)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -276,10 +276,10 @@ private struct EventCard: View {
 
                         Spacer(minLength: 8)
 
-                        Text(event.registrationState.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.primaryBlue)
-                            .lineLimit(1)
+                            Text(event.registrationState.title)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppTheme.primaryBlue)
+                                .lineLimit(1)
                     }
                 }
                 .padding(.trailing, 88)
@@ -368,12 +368,14 @@ struct EventDetailView: View {
                                 systemImage: "building"
                             )
 
-                            VStack(alignment: .leading, spacing: 12) {
-                            Button(event.registrationState == .registered ? AppStrings.Events.registered : AppStrings.Events.register) {
-                                viewModel.toggleRegistration(for: event.id)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppTheme.primaryBlue)
+                            HStack(alignment: .center, spacing: 12) {
+                                Button(event.registrationState == .registered ? AppStrings.Events.registered : AppStrings.Events.register) {
+                                    viewModel.toggleRegistration(for: event.id)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppTheme.primaryBlue)
+
+                                Spacer(minLength: 0)
 
                                 LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
                                     viewModel.toggleLike(for: event.id)
@@ -436,22 +438,11 @@ struct EventDetailView: View {
         } message: {
             Text(deleteErrorMessage ?? "")
         }
-        .onAppear {
-            #if DEBUG
-            print("EventDetailView appear eventID=\(eventID)")
-            #endif
-        }
         .onDisappear {
-            #if DEBUG
-            print("EventDetailView disappear eventID=\(eventID) pendingRemoval=\(pendingRemovalEventID ?? "nil") countBefore=\(viewModel.events.count)")
-            #endif
             guard let pendingRemovalEventID else { return }
             withTransaction(Transaction(animation: nil)) {
                 viewModel.removeDeletedEvent(id: pendingRemovalEventID)
             }
-            #if DEBUG
-            print("EventDetailView removed event after disappear eventID=\(pendingRemovalEventID) countAfter=\(viewModel.events.count)")
-            #endif
             self.pendingRemovalEventID = nil
         }
     }
@@ -463,14 +454,8 @@ struct EventDetailView: View {
         defer { isDeleting = false }
 
         do {
-            #if DEBUG
-            print("EventDetailView delete start eventID=\(eventID) countBefore=\(viewModel.events.count)")
-            #endif
             try await viewModel.deleteEvent(id: eventID)
             pendingRemovalEventID = eventID
-            #if DEBUG
-            print("EventDetailView delete success eventID=\(eventID) dismissing")
-            #endif
             dismiss()
             onEventDeleted()
         } catch let appError as AppError {

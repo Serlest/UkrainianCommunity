@@ -486,7 +486,9 @@ final class ProfileViewModel: ObservableObject {
     func reload() {
         Task {
             do {
-                user = try await repository.fetchCurrentUser()
+                if !(repository is FirestoreUserRepository) {
+                    user = try await repository.fetchCurrentUser()
+                }
                 settings = try await repository.fetchSettings()
                 settings.language = LocalizationStore.language
                 error = nil

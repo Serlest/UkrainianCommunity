@@ -252,7 +252,7 @@ private struct NewsCard: View {
         CommunityCard {
             RemoteCardImage(imageURL: post.imageURL, height: 220, source: "NewsCard")
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text(post.title)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -369,22 +369,11 @@ struct NewsDetailView: View {
         } message: {
             Text(deleteErrorMessage ?? "")
         }
-        .onAppear {
-            #if DEBUG
-            print("NewsDetailView appear postID=\(postID)")
-            #endif
-        }
         .onDisappear {
-            #if DEBUG
-            print("NewsDetailView disappear postID=\(postID) pendingRemoval=\(pendingRemovalPostID ?? "nil") countBefore=\(viewModel.posts.count)")
-            #endif
             guard let pendingRemovalPostID else { return }
             withTransaction(Transaction(animation: nil)) {
                 viewModel.removeDeletedNews(id: pendingRemovalPostID)
             }
-            #if DEBUG
-            print("NewsDetailView removed post after disappear postID=\(pendingRemovalPostID) countAfter=\(viewModel.posts.count)")
-            #endif
             self.pendingRemovalPostID = nil
         }
     }
@@ -396,14 +385,8 @@ struct NewsDetailView: View {
         defer { isDeleting = false }
 
         do {
-            #if DEBUG
-            print("NewsDetailView delete start postID=\(postID) countBefore=\(viewModel.posts.count)")
-            #endif
             try await viewModel.deleteNews(id: postID)
             pendingRemovalPostID = postID
-            #if DEBUG
-            print("NewsDetailView delete success postID=\(postID) dismissing")
-            #endif
             dismiss()
             onNewsDeleted()
         } catch let appError as AppError {

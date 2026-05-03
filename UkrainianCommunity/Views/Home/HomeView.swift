@@ -54,10 +54,19 @@ struct HomeView: View {
                                 .background(.white.opacity(0.16), in: Capsule())
                         }
                     } else {
-                        HStack {
-                            Text(AppStrings.Profile.loadingUserProfile)
-                                .font(.headline)
-                            Spacer()
+                        HStack(alignment: .center, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(.white.opacity(0.24))
+                                    .frame(width: 140, height: 16)
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(.white.opacity(0.18))
+                                    .frame(width: 84, height: 12)
+                            }
+                            Spacer(minLength: 12)
+                            Capsule()
+                                .fill(.white.opacity(0.16))
+                                .frame(width: 88, height: 32)
                         }
                     }
                 }
@@ -238,6 +247,7 @@ struct HomeView: View {
                 }
             }
             .padding()
+            .padding(.bottom, 32)
         }
         .background(AppTheme.subtleGradient.ignoresSafeArea())
         .navigationTitle(AppStrings.Tabs.home)
@@ -351,29 +361,31 @@ private struct HomeNewsCard: View {
 
     var body: some View {
         CommunityCard {
-            if let imageURL = post.imageURL {
-                RemoteCardImage(imageURL: imageURL, height: previewImageHeight, source: "HomeNewsCard")
-            }
+            RemoteCardImage(imageURL: post.imageURL, height: previewImageHeight, source: "HomeNewsCard")
 
-            Text(post.title)
-                .font(.headline)
-                .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(post.title)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
 
-            Text(post.subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-
-            HStack(alignment: .center, spacing: 12) {
-                Text(sanitizedHomeAuthorName(post.authorName))
-                    .font(.caption.weight(.semibold))
+                Text(post.subtitle)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
 
-                Spacer()
+                HStack(alignment: .center, spacing: 12) {
+                    Text(sanitizedHomeAuthorName(post.authorName))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
 
-                Label("\(post.likeCount)", systemImage: post.likeState.isLiked ? "heart.fill" : "heart")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(post.likeState.isLiked ? AppTheme.accentRed : .secondary)
+                    Spacer(minLength: 8)
+
+                    Label("\(post.likeCount)", systemImage: post.likeState.isLiked ? "heart.fill" : "heart")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(post.likeState.isLiked ? AppTheme.accentRed : .secondary)
+                }
             }
         }
     }
@@ -387,29 +399,34 @@ private struct HomeEventCard: View {
         CommunityCard {
             RemoteCardImage(imageURL: event.imageURL, height: previewImageHeight, source: "HomeEventCard")
 
-            Text(event.title)
-                .font(.headline)
-                .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(event.title)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
 
-            Text(event.summary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+                Text(event.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
 
-            Text(eventDateText)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
+                Text(eventDateText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
 
-            HStack(alignment: .center, spacing: 12) {
-                Text(event.registrationState.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.primaryBlue)
+                HStack(alignment: .center, spacing: 12) {
+                    Text(event.registrationState.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.primaryBlue)
+                        .lineLimit(1)
 
-                Spacer()
+                    Spacer(minLength: 8)
 
-                Label("\(event.likeCount)", systemImage: event.likeState.isLiked ? "heart.fill" : "heart")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(event.likeState.isLiked ? AppTheme.accentRed : .secondary)
+                    Label("\(event.likeCount)", systemImage: event.likeState.isLiked ? "heart.fill" : "heart")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(event.likeState.isLiked ? AppTheme.accentRed : .secondary)
+                }
             }
         }
     }
