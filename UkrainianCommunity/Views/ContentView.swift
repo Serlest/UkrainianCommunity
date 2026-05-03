@@ -15,13 +15,7 @@ struct ContentView: View {
 
     init(container: AppContainer) {
         self.container = container
-        _homeViewModel = StateObject(wrappedValue: HomeViewModel(
-            userRepository: container.userRepository,
-            newsRepository: container.newsRepository,
-            eventRepository: container.eventRepository,
-            organizationRepository: container.organizationRepository,
-            marketplaceRepository: container.marketplaceRepository
-        ))
+        _homeViewModel = StateObject(wrappedValue: HomeViewModel(userRepository: container.userRepository))
         _newsViewModel = StateObject(wrappedValue: NewsViewModel(repository: container.newsRepository))
         _eventsViewModel = StateObject(wrappedValue: EventsViewModel(repository: container.eventRepository))
         _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: container.organizationRepository))
@@ -78,7 +72,13 @@ struct ContentView: View {
 
     private var homeTab: some View {
         NavigationStack {
-            HomeView(viewModel: homeViewModel)
+            HomeView(
+                viewModel: homeViewModel,
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
+                organizationsViewModel: organizationsViewModel,
+                marketplaceViewModel: marketplaceViewModel
+            )
         }
         .tabItem {
             Label(AppStrings.Tabs.home, systemImage: "house.fill")
@@ -92,11 +92,8 @@ struct ContentView: View {
                 newsRepository: container.newsRepository,
                 onNewsPublished: {
                     await newsViewModel.refresh()
-                    await homeViewModel.refresh()
                 },
-                onNewsChanged: {
-                    homeViewModel.reload()
-                }
+                onNewsChanged: {}
             )
         }
         .tabItem {
@@ -111,11 +108,8 @@ struct ContentView: View {
                 eventRepository: container.eventRepository,
                 onEventPublished: {
                     await eventsViewModel.refresh()
-                    await homeViewModel.refresh()
                 },
-                onEventDeleted: {
-                    homeViewModel.reload()
-                }
+                onEventDeleted: {}
             )
         }
         .tabItem {

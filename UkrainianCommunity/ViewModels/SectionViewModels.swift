@@ -4,33 +4,15 @@ import Foundation
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published private(set) var user: AppUser
-    @Published private(set) var highlights: [HomeHighlight]
-    @Published private(set) var latestNews: [NewsPost]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     private let userRepository: UserRepository
-    private let newsRepository: NewsRepository
-    private let eventRepository: EventRepository
-    private let organizationRepository: OrganizationRepository
-    private let marketplaceRepository: MarketplaceRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
 
-    init(
-        userRepository: UserRepository,
-        newsRepository: NewsRepository,
-        eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository,
-        marketplaceRepository: MarketplaceRepository
-    ) {
+    init(userRepository: UserRepository) {
         self.userRepository = userRepository
-        self.newsRepository = newsRepository
-        self.eventRepository = eventRepository
-        self.organizationRepository = organizationRepository
-        self.marketplaceRepository = marketplaceRepository
         user = .placeholder
-        highlights = []
-        latestNews = []
         isLoading = false
     }
 
@@ -66,27 +48,9 @@ final class HomeViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            async let loadedUser = userRepository.fetchCurrentUser()
-            async let news = newsRepository.fetchNews()
-            async let events = eventRepository.fetchEvents()
-            async let organizations = organizationRepository.fetchOrganizations()
-            async let marketplaceItems = marketplaceRepository.fetchMarketplaceItems()
-
-            let resolvedUser = try await loadedUser
-            let resolvedNews = try await news
-            let resolvedEvents = try await events
-            let resolvedOrganizations = try await organizations
-            let resolvedMarketplaceItems = try await marketplaceItems
-
+            let resolvedUser = try await userRepository.fetchCurrentUser()
             guard !Task.isCancelled else { return }
             user = resolvedUser
-            latestNews = Array(resolvedNews.prefix(3))
-            highlights = [
-                HomeHighlight(id: "news", title: AppStrings.Tabs.news, detail: AppStrings.homeHighlightNews(resolvedNews.count), systemImage: "newspaper.fill"),
-                HomeHighlight(id: "events", title: AppStrings.Tabs.events, detail: AppStrings.homeHighlightEvents(resolvedEvents.count), systemImage: "calendar"),
-                HomeHighlight(id: "organizations", title: AppStrings.Tabs.organizations, detail: AppStrings.homeHighlightOrganizations(resolvedOrganizations.count), systemImage: "building.2.fill"),
-                HomeHighlight(id: "marketplace", title: AppStrings.Tabs.marketplace, detail: AppStrings.homeHighlightMarketplace(resolvedMarketplaceItems.count), systemImage: "basket.fill")
-            ]
             error = nil
             hasLoaded = true
         } catch is CancellationError {

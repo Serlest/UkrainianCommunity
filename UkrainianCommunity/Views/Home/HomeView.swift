@@ -24,23 +24,10 @@ private func sanitizedHomeAuthorName(_ rawValue: String) -> String {
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
-
-    private var newsErrorText: String {
-        switch viewModel.error {
-        case .network:
-            AppStrings.News.loadNetworkError
-        case .permissionDenied:
-            AppStrings.News.loadPermissionError
-        case .validationFailed:
-            AppStrings.News.loadValidationError
-        case .notFound:
-            AppStrings.News.empty
-        case .unknown:
-            AppStrings.News.loadUnknownError
-        case nil:
-            ""
-        }
-    }
+    @ObservedObject var newsViewModel: NewsViewModel
+    @ObservedObject var eventsViewModel: EventsViewModel
+    @ObservedObject var organizationsViewModel: OrganizationsViewModel
+    @ObservedObject var marketplaceViewModel: MarketplaceViewModel
 
     var body: some View {
         ScrollView {
@@ -66,7 +53,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(AppStrings.Home.highlights)
                         .font(.title3.weight(.semibold))
-                    AdaptiveCardGrid(items: viewModel.highlights) { item in
+                    AdaptiveCardGrid(items: homeHighlights) { item in
                         CommunityCard {
                             Label(item.title, systemImage: item.systemImage)
                                 .font(.headline)
@@ -82,24 +69,24 @@ struct HomeView: View {
                     Text(AppStrings.Home.latestNews)
                         .font(.title3.weight(.semibold))
 
-                    if viewModel.isLoading && viewModel.latestNews.isEmpty {
+                    if newsViewModel.isLoading && latestNews.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 8)
-                    } else if viewModel.error != nil && viewModel.latestNews.isEmpty {
+                    } else if newsViewModel.error != nil && latestNews.isEmpty {
                         CommunityCard {
                             Text(newsErrorText)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
-                    } else if viewModel.latestNews.isEmpty {
+                    } else if latestNews.isEmpty {
                         CommunityCard {
                             Text(AppStrings.News.empty)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                     } else {
-                        if viewModel.error != nil {
+                        if newsViewModel.error != nil {
                             CommunityCard {
                                 Text(newsErrorText)
                                     .font(.subheadline)
@@ -107,18 +94,53 @@ struct HomeView: View {
                             }
                         }
 
-                        ForEach(viewModel.latestNews) { post in
+                        ForEach(latestNews) { post in
+                            NavigationLink {
+                                NewsDetailView(viewModel: newsViewModel, postID: post.id, onNewsDeleted: {})
+                            } label: {
+                                HomeNewsCard(post: post)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(AppStrings.Events.title)
+                        .font(.title3.weight(.semibold))
+
+                    if eventsViewModel.isLoading && latestEvents.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 8)
+                    } else if eventsViewModel.error != nil && latestEvents.isEmpty {
+                        CommunityCard {
+                            Text(eventErrorText)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if latestEvents.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.Events.empty)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        if eventsViewModel.error != nil {
                             CommunityCard {
-                                Text(post.title)
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                Text(post.subtitle)
+                                Text(eventErrorText)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                Text(sanitizedHomeAuthorName(post.authorName))
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
                             }
+                        }
+
+                        ForEach(latestEvents) { event in
+                            NavigationLink {
+                                EventDetailView(viewModel: eventsViewModel, eventID: event.id, onEventDeleted: {})
+                            } label: {
+                                HomeEventCard(event: event)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -128,8 +150,141 @@ struct HomeView: View {
         .background(AppTheme.subtleGradient.ignoresSafeArea())
         .navigationTitle(AppStrings.Tabs.home)
         .task {
-            await viewModel.loadIfNeeded()
+            async let homeLoad: Void = viewModel.loadIfNeeded()
+            async let newsLoad: Void = newsViewModel.loadIfNeeded()
+            async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
+            _ = await (homeLoad, newsLoad, eventsLoad)
         }
+    }
+
+    private var latestNews: [NewsPost] {
+        Array(newsViewModel.posts.prefix(3))
+    }
+
+    private var latestEvents: [Event] {
+        Array(eventsViewModel.events.prefix(3))
+    }
+
+    private var homeHighlights: [HomeHighlight] {
+        [
+            HomeHighlight(id: "news", title: AppStrings.Tabs.news, detail: AppStrings.homeHighlightNews(newsViewModel.posts.count), systemImage: "newspaper.fill"),
+            HomeHighlight(id: "events", title: AppStrings.Tabs.events, detail: AppStrings.homeHighlightEvents(eventsViewModel.events.count), systemImage: "calendar"),
+            HomeHighlight(id: "organizations", title: AppStrings.Tabs.organizations, detail: AppStrings.homeHighlightOrganizations(organizationsViewModel.organizations.count), systemImage: "building.2.fill"),
+            HomeHighlight(id: "marketplace", title: AppStrings.Tabs.marketplace, detail: AppStrings.homeHighlightMarketplace(marketplaceViewModel.items.count), systemImage: "basket.fill")
+        ]
+    }
+
+    private var newsErrorText: String {
+        switch newsViewModel.error {
+        case .network:
+            AppStrings.News.loadNetworkError
+        case .permissionDenied:
+            AppStrings.News.loadPermissionError
+        case .validationFailed:
+            AppStrings.News.loadValidationError
+        case .notFound:
+            AppStrings.News.empty
+        case .unknown:
+            AppStrings.News.loadUnknownError
+        case nil:
+            ""
+        }
+    }
+
+    private var eventErrorText: String {
+        switch eventsViewModel.error {
+        case .network:
+            AppStrings.Events.loadNetworkError
+        case .permissionDenied:
+            AppStrings.Events.loadPermissionError
+        case .validationFailed:
+            AppStrings.Events.loadValidationError
+        case .notFound:
+            AppStrings.Events.empty
+        case .unknown:
+            AppStrings.Events.loadUnknownError
+        case nil:
+            ""
+        }
+    }
+}
+
+private struct HomeNewsCard: View {
+    let post: NewsPost
+
+    var body: some View {
+        CommunityCard {
+            Text(post.title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text(post.subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(alignment: .center, spacing: 12) {
+                Text(sanitizedHomeAuthorName(post.authorName))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Label("\(post.likeCount)", systemImage: post.likeState.isLiked ? "heart.fill" : "heart")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(post.likeState.isLiked ? AppTheme.accentRed : .secondary)
+            }
+        }
+    }
+}
+
+private struct HomeEventCard: View {
+    let event: Event
+
+    var body: some View {
+        CommunityCard {
+            Text(event.title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text(event.summary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            Text(eventDateText)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            HStack(alignment: .center, spacing: 12) {
+                Text(event.registrationState.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.primaryBlue)
+
+                Spacer()
+
+                Label("\(event.likeCount)", systemImage: event.likeState.isLiked ? "heart.fill" : "heart")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(event.likeState.isLiked ? AppTheme.accentRed : .secondary)
+            }
+        }
+    }
+
+    private var eventDateText: String {
+        let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
+
+        guard event.endDate > event.startDate else {
+            return startDateText
+        }
+
+        let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
+        if isSameDay {
+            let endTimeText = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
+            return "\(startDateText) - \(endTimeText)"
+        }
+
+        let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
+        return "\(startDateText) - \(endDateText)"
     }
 }
 
@@ -137,12 +292,12 @@ struct HomeView: View {
     NavigationStack {
         HomeView(
             viewModel: HomeViewModel(
-                userRepository: MockUserRepository(),
-                newsRepository: MockNewsRepository(),
-                eventRepository: MockEventRepository(),
-                organizationRepository: MockOrganizationRepository(),
-                marketplaceRepository: MockMarketplaceRepository()
-            )
+                userRepository: MockUserRepository()
+            ),
+            newsViewModel: NewsViewModel(repository: MockNewsRepository()),
+            eventsViewModel: EventsViewModel(repository: MockEventRepository()),
+            organizationsViewModel: OrganizationsViewModel(repository: MockOrganizationRepository()),
+            marketplaceViewModel: MarketplaceViewModel(repository: MockMarketplaceRepository())
         )
     }
 }
