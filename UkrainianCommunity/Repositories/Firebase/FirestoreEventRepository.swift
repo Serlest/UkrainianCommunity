@@ -11,7 +11,7 @@ struct FirestoreEventRepository: EventRepository {
     func fetchEvents() async throws -> [Event] {
         let snapshot = try await collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-            .order(by: "createdAt", descending: true)
+            .order(by: "startDate", descending: false)
             .getDocuments()
 
         let likedEventIDs = try await fetchLikedEventIDs()
