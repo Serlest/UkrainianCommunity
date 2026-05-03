@@ -293,15 +293,26 @@ struct NewsDetailView: View {
         authState.user?.role.permissions.canDeleteNews == true
     }
 
+    private func newsCreatedDateText(for post: NewsPost) -> String {
+        LocalizationStore.dateString(from: post.createdAt, dateStyle: .medium, timeStyle: .short)
+    }
+
     var body: some View {
         Group {
             if let post = viewModel.post(for: postID) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         GradientHeroCard(title: post.title, subtitle: post.subtitle) {
-                            Text(sanitizedAuthorName(post.authorName))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                            HStack(alignment: .center, spacing: 12) {
+                                Label(sanitizedAuthorName(post.authorName), systemImage: "person")
+                                    .font(.subheadline.weight(.semibold))
+
+                                Spacer(minLength: 12)
+
+                                Label(newsCreatedDateText(for: post), systemImage: "calendar")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white.opacity(0.85))
+                            }
                         }
 
                         if let imageURL = post.imageURL {
@@ -309,33 +320,61 @@ struct NewsDetailView: View {
                         }
 
                         CommunityCard {
+                            if !post.subtitle.isEmpty {
+                                Text(post.subtitle)
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                            }
+
                             Text(post.body)
                                 .font(.body)
-                            LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
-                                viewModel.toggleLike(for: post.id)
+                                .foregroundStyle(.primary)
+
+                            HStack(alignment: .center, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Label(sanitizedAuthorName(post.authorName), systemImage: "person")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(.secondary)
+
+                                    Label(newsCreatedDateText(for: post), systemImage: "calendar")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer(minLength: 0)
+
+                                LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
+                                    viewModel.toggleLike(for: post.id)
+                                }
                             }
                         }
 
                         CommunityCard {
                             Text(AppStrings.Common.comments)
                                 .font(.headline)
-                            ForEach(post.comments) { comment in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(sanitizedAuthorName(comment.authorName))
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                    Text(comment.body)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+
+                            if post.comments.isEmpty {
+                                Text(AppStrings.Common.commentsPlaceholder)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(post.comments) { comment in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(sanitizedAuthorName(comment.authorName))
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                        Text(comment.body)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(.vertical, 4)
                                 }
-                                .padding(.vertical, 4)
                             }
-                            Text(AppStrings.Common.commentsPlaceholder)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
                         }
                     }
-                    .padding()
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)
