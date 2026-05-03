@@ -24,32 +24,13 @@ final class ImageUploadService {
     }
 
     private func uploadCoverImage(data: Data, storagePath: String) async throws -> URL {
-        let processingStartedAt = CFAbsoluteTimeGetCurrent()
-        print("Image processing started")
         let processedImage = try await prepareImageDataForUpload(from: data)
-        let processingDuration = CFAbsoluteTimeGetCurrent() - processingStartedAt
         let reference = storage.reference().child(storagePath)
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
 
-        do {
-            print("Image processing finished with duration: \(processingDuration)s")
-            print("Original data size: \(data.count) bytes")
-            print("Final size: \(processedImage.data.count) bytes")
-            print("Selected width: \(Int(processedImage.width))")
-            print("Selected quality: \(processedImage.quality)")
-            print("Upload path: \(storagePath)")
-            let uploadStartedAt = CFAbsoluteTimeGetCurrent()
-            print("Upload started")
-            _ = try await reference.putDataAsync(processedImage.data, metadata: metadata)
-            let uploadDuration = CFAbsoluteTimeGetCurrent() - uploadStartedAt
-            print("Upload finished with duration: \(uploadDuration)s")
-            print("Getting download URL")
-            return try await reference.downloadURL()
-        } catch {
-            print("Upload failed: \(error)")
-            throw error
-        }
+        _ = try await reference.putDataAsync(processedImage.data, metadata: metadata)
+        return try await reference.downloadURL()
     }
 
     private func prepareImageDataForUpload(from data: Data) async throws -> ProcessedImageUploadData {
@@ -77,8 +58,6 @@ final class ImageUploadService {
             throw ImageUploadError.invalidImageData
         }
 
-        var smallestAttempt: ProcessedImageUploadData?
-
         for width in preferredImageWidths {
             let resizedImage = normalizedImage(source: source, maxWidth: width)
 
@@ -93,21 +72,12 @@ final class ImageUploadService {
                     quality: quality
                 )
 
-                if smallestAttempt == nil || attempt.data.count < smallestAttempt?.data.count ?? .max {
-                    smallestAttempt = attempt
-                }
-
                 if jpegData.count < maxUploadBytes {
                     return attempt
                 }
             }
         }
 
-        if let smallestAttempt {
-            print("Final size: \(smallestAttempt.data.count) bytes")
-            print("Selected width: \(Int(smallestAttempt.width))")
-            print("Selected quality: \(smallestAttempt.quality)")
-        }
         throw ImageUploadError.imageTooLarge
     }
 

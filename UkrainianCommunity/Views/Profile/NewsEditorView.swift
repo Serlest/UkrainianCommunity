@@ -62,14 +62,7 @@ struct NewsEditorView: View {
                     Task {
                         let didPublish = await viewModel.publish()
                         guard didPublish else { return }
-#if DEBUG
-                        print("News publish: before onPublished callback")
-#endif
                         await onPublished()
-#if DEBUG
-                        print("News publish: after onPublished callback")
-                        print("News publish: before dismiss")
-#endif
                         dismiss()
                     }
                 }

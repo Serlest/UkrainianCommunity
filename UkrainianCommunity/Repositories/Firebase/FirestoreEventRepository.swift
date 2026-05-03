@@ -89,16 +89,7 @@ struct FirestoreEventRepository: EventRepository {
 
         do {
             try await imageReference.delete()
-        } catch let error as NSError {
-            if error.domain == StorageErrorDomain,
-               error.code == StorageErrorCode.objectNotFound.rawValue {
-                print("Event image not found for deletion: \(id)")
-            } else {
-                print("Failed to delete event image for \(id): \(error)")
-            }
-        } catch {
-            print("Failed to delete event image for \(id): \(error)")
-        }
+        } catch {}
 
         try await deleteRelatedLikes(eventID: id)
         try await deleteRelatedRegistrations(eventID: id)

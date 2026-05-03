@@ -40,9 +40,6 @@ final class HomeViewModel: ObservableObject {
     }
 
     func reload() {
-#if DEBUG
-        print("NewsViewModel.reload() start")
-#endif
         Task {
             await refresh()
         }
@@ -125,9 +122,6 @@ final class NewsViewModel: ObservableObject {
     }
 
     func reload() {
-#if DEBUG
-        print("NewsViewModel.reload() start")
-#endif
         Task {
             await refresh()
         }
@@ -201,10 +195,6 @@ final class NewsViewModel: ObservableObject {
             contentVersion &+= 1
             error = nil
             hasLoaded = true
-#if DEBUG
-            let postsWithImages = loadedPosts.filter { $0.imageURL != nil }.count
-            print("NewsViewModel.reload() finish: count=\(loadedPosts.count), withImageURL=\(postsWithImages)")
-#endif
         } catch is CancellationError {
         } catch let appError as AppError {
             guard !Task.isCancelled else { return }
@@ -238,9 +228,6 @@ final class EventsViewModel: ObservableObject {
     }
 
     func reload() {
-#if DEBUG
-        print("EventsViewModel.reload() start")
-#endif
         Task {
             await refresh()
         }

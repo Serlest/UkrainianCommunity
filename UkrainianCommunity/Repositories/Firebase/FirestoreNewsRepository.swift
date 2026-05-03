@@ -46,16 +46,7 @@ struct FirestoreNewsRepository: NewsRepository {
 
         do {
             try await imageReference.delete()
-        } catch let error as NSError {
-            if error.domain == StorageErrorDomain,
-               error.code == StorageErrorCode.objectNotFound.rawValue {
-                print("News image not found for deletion: \(id)")
-            } else {
-                print("Failed to delete news image for \(id): \(error)")
-            }
-        } catch {
-            print("Failed to delete news image for \(id): \(error)")
-        }
+        } catch {}
 
         try await deleteRelatedLikes(newsID: id)
         try await collection.document(id).delete()

@@ -1,6 +1,14 @@
 import SwiftUI
 import UIKit
 
+private enum RemoteImageCache {
+    static let shared: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 200
+        return cache
+    }()
+}
+
 struct GradientHeroCard<Content: View>: View {
     let title: String
     let subtitle: String
@@ -121,30 +129,21 @@ struct RemoteImageView: View {
             return
         }
 
-#if DEBUG
-        print("RemoteImageView start loading URL: \(imageURL)")
-#endif
+        let cacheKey = imageURL as NSString
+        if let cachedImage = RemoteImageCache.shared.object(forKey: cacheKey) {
+            loadedImage = cachedImage
+            return
+        }
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-
-#if DEBUG
-            print("RemoteImageView success URL: \(imageURL), data size: \(data.count)")
-#endif
-
             guard let image = UIImage(data: data) else {
-#if DEBUG
-                print("RemoteImageView decoded image nil: \(imageURL)")
-#endif
                 return
             }
 
+            RemoteImageCache.shared.setObject(image, forKey: cacheKey)
             loadedImage = image
-        } catch {
-#if DEBUG
-            print("RemoteImageView failed URL: \(imageURL), error: \(error)")
-#endif
-        }
+        } catch {}
     }
 }
 

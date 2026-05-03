@@ -84,21 +84,12 @@ final class NewsEditorViewModel: ObservableObject {
         do {
             if let selectedImageData {
                 isUploadingImage = true
-#if DEBUG
-                print("News publish: before upload/downloadURL")
-#endif
                 do {
                     let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
                     resolvedImageURL = downloadURL.absoluteString
-#if DEBUG
-                    print("News publish: download URL received \(downloadURL.absoluteString)")
-#endif
                 } catch {
                     isUploadingImage = false
                     errorMessage = readableUploadErrorMessage(for: error)
-#if DEBUG
-                    print("News publish: upload/downloadURL failed: \(error)")
-#endif
                     return false
                 }
                 isUploadingImage = false
@@ -120,13 +111,7 @@ final class NewsEditorViewModel: ObservableObject {
                 likeState: news.likeState
             )
 
-#if DEBUG
-            print("News publish: before createNews id=\(newsToCreate.id), imageURL=\(newsToCreate.imageURL ?? "nil")")
-#endif
             try await repository.createNews(newsToCreate)
-#if DEBUG
-            print("News publish: after createNews")
-#endif
             successMessage = AppStrings.NewsEditor.publishedSuccessfully
             title = ""
             summary = ""
@@ -136,9 +121,6 @@ final class NewsEditorViewModel: ObservableObject {
         } catch {
             isUploadingImage = false
             errorMessage = readablePublishErrorMessage(for: error)
-#if DEBUG
-            print("News publish: createNews failed: \(error)")
-#endif
             return false
         }
     }
