@@ -50,6 +50,7 @@ private final class ModerationQueueViewModel: ObservableObject {
     private let marketplaceRepository: MarketplaceRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
+    private var allowedSections: Set<AppSection> = []
 
     init(
         newsRepository: NewsRepository,
@@ -75,6 +76,14 @@ private final class ModerationQueueViewModel: ObservableObject {
     func reload() {
         Task {
             await refresh()
+        }
+    }
+
+    func setAllowedSections(_ sections: Set<AppSection>) {
+        let normalizedSections = sections.intersection([.news, .events, .organizations, .marketplace])
+        if allowedSections != normalizedSections {
+            allowedSections = normalizedSections
+            hasLoaded = false
         }
     }
 
@@ -121,19 +130,7 @@ private final class ModerationQueueViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            async let pendingNews = newsRepository.fetchPendingNews()
-            async let pendingEvents = eventRepository.fetchPendingEvents()
-            async let pendingOrganizations = organizationRepository.fetchPendingOrganizations()
-            async let pendingMarketplace = marketplaceRepository.fetchPendingMarketplaceItems()
-
-            let allItems = await [
-                makeItems(from: try pendingNews),
-                makeItems(from: try pendingEvents),
-                makeItems(from: try pendingOrganizations),
-                makeItems(from: try pendingMarketplace)
-            ]
-            .flatMap { $0 }
-            .sorted { $0.createdAt > $1.createdAt }
+            let allItems = try await loadAllowedItems()
 
             guard !Task.isCancelled else { return }
             items = allItems
@@ -147,6 +144,25 @@ private final class ModerationQueueViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             self.error = .unknown
         }
+    }
+
+    private func loadAllowedItems() async throws -> [ModerationQueueItem] {
+        var loadedItems: [ModerationQueueItem] = []
+
+        if allowedSections.contains(.news) {
+            loadedItems.append(contentsOf: makeItems(from: try await newsRepository.fetchPendingNews()))
+        }
+        if allowedSections.contains(.events) {
+            loadedItems.append(contentsOf: makeItems(from: try await eventRepository.fetchPendingEvents()))
+        }
+        if allowedSections.contains(.organizations) {
+            loadedItems.append(contentsOf: makeItems(from: try await organizationRepository.fetchPendingOrganizations()))
+        }
+        if allowedSections.contains(.marketplace) {
+            loadedItems.append(contentsOf: makeItems(from: try await marketplaceRepository.fetchPendingMarketplaceItems()))
+        }
+
+        return loadedItems.sorted { $0.createdAt > $1.createdAt }
     }
 
     private func makeItems(from news: [NewsPost]) -> [ModerationQueueItem] {
@@ -217,8 +233,17 @@ struct ModerationToolsView: View {
     }
 
     private var canAccessModeration: Bool {
-        guard let role = authState.user?.role else { return false }
-        return role.permissions.canModerateContent
+        guard let user = authState.user else { return false }
+        return PermissionService.canModerate(section: .news, user: user)
+            || PermissionService.canModerate(section: .events, user: user)
+            || PermissionService.canModerate(section: .organizations, user: user)
+            || PermissionService.canModerate(section: .marketplace, user: user)
+    }
+
+    private var allowedSections: Set<AppSection> {
+        guard let user = authState.user else { return [] }
+        return PermissionService.moderatedSections(for: user)
+            .intersection([.news, .events, .organizations, .marketplace])
     }
 
     var body: some View {
@@ -267,7 +292,12 @@ struct ModerationToolsView: View {
         }
         .navigationTitle(AppStrings.Moderation.title)
         .task {
+            viewModel.setAllowedSections(allowedSections)
             await viewModel.loadIfNeeded()
+        }
+        .onChange(of: allowedSections) { _, newSections in
+            viewModel.setAllowedSections(newSections)
+            viewModel.reload()
         }
     }
 

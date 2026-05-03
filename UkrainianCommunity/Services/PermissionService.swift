@@ -70,11 +70,30 @@ struct PermissionService {
     static func canModerate(section: AppSection, user: AppUser) -> Bool {
         switch user.globalRole {
         case .owner, .topAdmin:
-            true
+            return true
         case .appModerator:
-            user.moderatorSections.contains(section)
+            if user.moderatorSections.isEmpty, user.role == .moderator {
+                return true
+            }
+            return user.moderatorSections.contains(section)
         case .user:
-            false
+            return false
+        }
+    }
+
+    static func moderatedSections(for user: AppUser) -> Set<AppSection> {
+        let allSections = Set([AppSection.news, .events, .organizations, .marketplace, .comments])
+
+        switch user.globalRole {
+        case .owner, .topAdmin:
+            return allSections
+        case .appModerator:
+            if user.moderatorSections.isEmpty, user.role == .moderator {
+                return allSections
+            }
+            return Set(user.moderatorSections)
+        case .user:
+            return []
         }
     }
 

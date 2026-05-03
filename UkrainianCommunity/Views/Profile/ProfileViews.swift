@@ -14,12 +14,14 @@ struct ProfileView: View {
     }
 
     private var canShowModerationTools: Bool {
-        guard let role = authState.user?.role else {
+        guard let user = authState.user else {
             return false
         }
 
-        let permissions = role.permissions
-        return permissions.canModerateContent
+        return PermissionService.canModerate(section: .news, user: user)
+            || PermissionService.canModerate(section: .events, user: user)
+            || PermissionService.canModerate(section: .organizations, user: user)
+            || PermissionService.canModerate(section: .marketplace, user: user)
     }
 
     var body: some View {
