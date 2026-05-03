@@ -59,7 +59,7 @@ final class ImageUploadService {
         }
 
         for width in preferredImageWidths {
-            let resizedImage = normalizedImage(source: source, maxWidth: width)
+            let resizedImage = try normalizedImage(source: source, maxWidth: width)
 
             for quality in preferredCompressionQualities {
                 guard let jpegData = jpegData(from: resizedImage, compressionQuality: quality) else {
@@ -81,7 +81,7 @@ final class ImageUploadService {
         throw ImageUploadError.imageTooLarge
     }
 
-    nonisolated private static func normalizedImage(source: CGImageSource, maxWidth: CGFloat) -> CGImage {
+    nonisolated private static func normalizedImage(source: CGImageSource, maxWidth: CGFloat) throws -> CGImage {
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
@@ -98,7 +98,7 @@ final class ImageUploadService {
             kCGImageSourceShouldCacheImmediately: false,
             kCGImageSourceShouldCache: false
         ] as CFDictionary) else {
-            fatalError("Expected valid image source after earlier validation")
+            throw ImageUploadError.invalidImageData
         }
 
         return fallbackImage

@@ -23,6 +23,7 @@ private func sanitizedHomeAuthorName(_ rawValue: String) -> String {
 }
 
 struct HomeView: View {
+    @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: HomeViewModel
     @ObservedObject var newsViewModel: NewsViewModel
     @ObservedObject var eventsViewModel: EventsViewModel
@@ -33,34 +34,30 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 GradientHeroCard(title: AppStrings.Home.title, subtitle: AppStrings.Home.subtitle) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(viewModel.user.fullName)
-                                .font(.headline)
-                            Text(viewModel.user.city)
-                                .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.8))
-                        }
-                        Spacer()
-                        Text(viewModel.user.role.title)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(.white.opacity(0.16), in: Capsule())
-                    }
-                }
+                    if let user = authState.user {
+                        HStack(alignment: .top, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(user.fullName.isEmpty ? AppStrings.Profile.loadingUserProfile : user.fullName)
+                                    .font(.headline)
 
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(AppStrings.Home.highlights)
-                        .font(.title3.weight(.semibold))
-                    AdaptiveCardGrid(items: homeHighlights) { item in
-                        CommunityCard {
-                            Label(item.title, systemImage: item.systemImage)
+                                if !user.city.isEmpty {
+                                    Text(user.city)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white.opacity(0.8))
+                                }
+                            }
+                            Spacer(minLength: 12)
+                            Text(user.globalRole.title)
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(.white.opacity(0.16), in: Capsule())
+                        }
+                    } else {
+                        HStack {
+                            Text(AppStrings.Profile.loadingUserProfile)
                                 .font(.headline)
-                                .foregroundStyle(AppTheme.primaryBlue)
-                            Text(item.detail)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            Spacer()
                         }
                     }
                 }
@@ -224,6 +221,21 @@ struct HomeView: View {
                         }
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(AppStrings.Home.highlights)
+                        .font(.title3.weight(.semibold))
+                    AdaptiveCardGrid(items: homeHighlights) { item in
+                        CommunityCard {
+                            Label(item.title, systemImage: item.systemImage)
+                                .font(.headline)
+                                .foregroundStyle(AppTheme.primaryBlue)
+                            Text(item.detail)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
             .padding()
         }
@@ -335,9 +347,14 @@ struct HomeView: View {
 
 private struct HomeNewsCard: View {
     let post: NewsPost
+    private let previewImageHeight: CGFloat = 160
 
     var body: some View {
         CommunityCard {
+            if let imageURL = post.imageURL {
+                RemoteCardImage(imageURL: imageURL, height: previewImageHeight, source: "HomeNewsCard")
+            }
+
             Text(post.title)
                 .font(.headline)
                 .foregroundStyle(.primary)
@@ -364,9 +381,12 @@ private struct HomeNewsCard: View {
 
 private struct HomeEventCard: View {
     let event: Event
+    private let previewImageHeight: CGFloat = 160
 
     var body: some View {
         CommunityCard {
+            RemoteCardImage(imageURL: event.imageURL, height: previewImageHeight, source: "HomeEventCard")
+
             Text(event.title)
                 .font(.headline)
                 .foregroundStyle(.primary)
@@ -475,13 +495,12 @@ private struct HomeMarketplaceCard: View {
 #Preview {
     NavigationStack {
         HomeView(
-            viewModel: HomeViewModel(
-                userRepository: MockUserRepository()
-            ),
+            viewModel: HomeViewModel(),
             newsViewModel: NewsViewModel(repository: MockNewsRepository()),
             eventsViewModel: EventsViewModel(repository: MockEventRepository()),
             organizationsViewModel: OrganizationsViewModel(repository: MockOrganizationRepository()),
             marketplaceViewModel: MarketplaceViewModel(repository: MockMarketplaceRepository())
         )
     }
+    .environmentObject(AuthState())
 }

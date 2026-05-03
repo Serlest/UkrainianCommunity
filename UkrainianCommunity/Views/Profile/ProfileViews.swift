@@ -22,30 +22,67 @@ struct ProfileView: View {
             || PermissionService.canModerate(section: .marketplace, user: user)
     }
 
+    private var displayUser: AppUser? {
+        if let authenticatedUser = authState.user {
+            return authenticatedUser
+        }
+
+        guard viewModel.user.id != AppUser.placeholder.id else {
+            return nil
+        }
+
+        return viewModel.user
+    }
+
+    private var capabilityItems: [String] {
+        guard let user = displayUser else {
+            return [AppStrings.Common.likes, AppStrings.Profile.eventRegistration]
+        }
+
+        var items = [AppStrings.Common.likes, AppStrings.Profile.eventRegistration]
+
+        if PermissionService.canModerate(section: .news, user: user)
+            || PermissionService.canModerate(section: .events, user: user)
+            || PermissionService.canModerate(section: .organizations, user: user)
+            || PermissionService.canModerate(section: .marketplace, user: user) {
+            items.append(AppStrings.Profile.moderationTools)
+        }
+
+        if user.globalRole == .owner || user.globalRole == .topAdmin {
+            items.append(AppStrings.Profile.adminTools)
+            items.append(AppStrings.Profile.userManagement)
+        }
+
+        return items
+    }
+
     var body: some View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(viewModel.user.fullName)
+                    Text((displayUser?.fullName).flatMap { $0.isEmpty ? nil : $0 } ?? AppStrings.Profile.loadingUserProfile)
                         .font(.title3.weight(.bold))
-                    Text(viewModel.user.bio)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+
+                    if let bio = displayUser?.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
-                if let user = authState.user {
-                    MetadataRow(label: AppStrings.Profile.role, value: user.role.title, systemImage: "person.badge.key")
-                    MetadataRow(label: AppStrings.Profile.accountStatus, value: user.blockState.title, systemImage: "checkmark.shield")
+                if let user = displayUser {
+                    MetadataRow(label: AppStrings.Profile.role, value: user.globalRole.title, systemImage: "person.badge.key")
+                    MetadataRow(label: AppStrings.Profile.accountStatus, value: user.accountStatus.title, systemImage: "checkmark.shield")
+                    MetadataRow(label: AppStrings.Profile.memberSince, value: LocalizationStore.dateString(from: user.joinedAt), systemImage: "calendar")
                 } else {
                     Text(AppStrings.Profile.loadingUserProfile)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                MetadataRow(label: AppStrings.Profile.memberSince, value: LocalizationStore.dateString(from: viewModel.user.joinedAt), systemImage: "calendar")
             }
 
             Section(AppStrings.Profile.capabilities) {
-                ForEach(viewModel.capabilities, id: \.self) { capability in
+                ForEach(capabilityItems, id: \.self) { capability in
                     Label(capability, systemImage: "checkmark.circle.fill")
                         .foregroundStyle(AppTheme.primaryBlue)
                 }

@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAuth
 import FirebaseFirestore
 
 final class UserProfileService {
@@ -92,5 +93,23 @@ final class UserProfileService {
             print("User profile fetch error: \(error)")
             return nil
         }
+    }
+}
+
+struct FirestoreUserRepository: UserRepository {
+    func fetchCurrentUser() async throws -> AppUser {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        guard let user = await UserProfileService.shared.fetchUserProfile(uid: uid) else {
+            throw AppError.notFound
+        }
+
+        return user
+    }
+
+    func fetchSettings() async throws -> UserSettings {
+        .stored
     }
 }

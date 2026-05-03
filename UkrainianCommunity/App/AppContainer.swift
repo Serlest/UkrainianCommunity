@@ -13,7 +13,7 @@ struct AppContainer {
         print("AppContainer development created")
         #endif
         return AppContainer(
-            userRepository: MockUserRepository(),
+            userRepository: FirestoreUserRepository(),
             newsRepository: FirestoreNewsRepository(),
             eventRepository: FirestoreEventRepository(),
             organizationRepository: FirestoreOrganizationRepository(),

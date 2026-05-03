@@ -250,7 +250,7 @@ private struct NewsCard: View {
 
     var body: some View {
         CommunityCard {
-            RemoteImageView(imageURL: post.imageURL, height: 220, source: "NewsCard")
+            RemoteCardImage(imageURL: post.imageURL, height: 220, source: "NewsCard")
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(post.title)
@@ -265,9 +265,9 @@ private struct NewsCard: View {
                         .lineLimit(3)
                 }
 
-                HStack(alignment: .center, spacing: 12) {
-                    Text(sanitizedAuthorName(post.authorName))
-                        .font(.caption.weight(.semibold))
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(sanitizedAuthorName(post.authorName), systemImage: "person")
+                        .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }

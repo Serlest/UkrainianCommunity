@@ -138,6 +138,7 @@ enum AppStrings {
         static var role: String { text("profile.role", "Role") }
         static var accountStatus: String { text("profile.account_status", "Account status") }
         static var capabilities: String { text("profile.capabilities", "Capabilities") }
+        static var eventRegistration: String { text("profile.capability.event_registration", "Event registration") }
         static var loadingUserProfile: String { text("profile.loading_user_profile", "Loading user profile...") }
         static var adminTools: String { text("profile.admin_tools", "Admin tools") }
         static var moderationTools: String { text("profile.moderation_tools", "Moderation tools") }

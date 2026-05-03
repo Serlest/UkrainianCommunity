@@ -3284,6 +3284,23 @@
         }
       }
     },
+    "profile.capability.event_registration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Event-Anmeldung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реєстрація на події"
+          }
+        }
+      }
+    },
     "profile.loading_user_profile" : {
       "extractionState" : "manual",
       "localizations" : {

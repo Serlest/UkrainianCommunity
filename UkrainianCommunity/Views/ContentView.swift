@@ -15,7 +15,7 @@ struct ContentView: View {
 
     init(container: AppContainer) {
         self.container = container
-        _homeViewModel = StateObject(wrappedValue: HomeViewModel(userRepository: container.userRepository))
+        _homeViewModel = StateObject(wrappedValue: HomeViewModel())
         _newsViewModel = StateObject(wrappedValue: NewsViewModel(repository: container.newsRepository))
         _eventsViewModel = StateObject(wrappedValue: EventsViewModel(repository: container.eventRepository))
         _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: container.organizationRepository))
@@ -187,26 +187,85 @@ private struct CommunityHubView: View {
                     title: AppStrings.Community.title,
                     subtitle: AppStrings.Community.subtitle
                 ) {
-                    EmptyView()
+                    Text(communityOverviewText)
+                        .font(.subheadline.weight(.semibold))
                 }
 
-                communityLink(
-                    title: AppStrings.Tabs.organizations,
-                    subtitle: organizationsSubtitle,
-                    systemImage: "building.2.fill"
-                ) {
-                    OrganizationsListView(viewModel: organizationsViewModel)
+                VStack(alignment: .leading, spacing: 14) {
+                    communitySectionHeader(
+                        title: AppStrings.Tabs.organizations,
+                        subtitle: organizationsSubtitle,
+                        systemImage: "building.2.fill"
+                    ) {
+                        OrganizationsListView(viewModel: organizationsViewModel)
+                    }
+
+                    if organizationsViewModel.isLoading && latestOrganizations.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 8)
+                    } else if organizationsViewModel.error != nil && latestOrganizations.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.Organizations.loadUnknownError)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if latestOrganizations.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.Organizations.empty)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        ForEach(latestOrganizations) { organization in
+                            NavigationLink {
+                                OrganizationDetailView(viewModel: organizationsViewModel, organizationID: organization.id)
+                            } label: {
+                                CommunityOrganizationPreviewCard(organization: organization)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
 
-                communityLink(
-                    title: AppStrings.Tabs.marketplace,
-                    subtitle: marketplaceSubtitle,
-                    systemImage: "basket.fill"
-                ) {
-                    MarketplaceListView(viewModel: marketplaceViewModel)
+                VStack(alignment: .leading, spacing: 14) {
+                    communitySectionHeader(
+                        title: AppStrings.Tabs.marketplace,
+                        subtitle: marketplaceSubtitle,
+                        systemImage: "basket.fill"
+                    ) {
+                        MarketplaceListView(viewModel: marketplaceViewModel)
+                    }
+
+                    if marketplaceViewModel.isLoading && latestMarketplaceItems.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 8)
+                    } else if marketplaceViewModel.error != nil && latestMarketplaceItems.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.Marketplace.loadUnknownError)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if latestMarketplaceItems.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.Marketplace.empty)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        ForEach(latestMarketplaceItems) { item in
+                            NavigationLink {
+                                MarketplaceDetailView(viewModel: marketplaceViewModel, itemID: item.id)
+                            } label: {
+                                CommunityMarketplacePreviewCard(item: item)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
 
-                communityLink(
+                communitySectionHeader(
                     title: AppStrings.Tabs.info,
                     subtitle: AppStrings.Info.placeholderTitle,
                     systemImage: "info.circle.fill"
@@ -218,6 +277,11 @@ private struct CommunityHubView: View {
         }
         .background(AppTheme.subtleGradient.ignoresSafeArea())
         .navigationTitle(AppStrings.Community.title)
+        .task {
+            async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
+            async let marketplaceLoad: Void = marketplaceViewModel.loadIfNeeded()
+            _ = await (organizationsLoad, marketplaceLoad)
+        }
     }
 
     private var organizationsSubtitle: String {
@@ -228,24 +292,97 @@ private struct CommunityHubView: View {
         AppStrings.homeHighlightMarketplace(marketplaceViewModel.items.count)
     }
 
-    private func communityLink<Destination: View>(
+    private var latestOrganizations: [Organization] {
+        Array(organizationsViewModel.organizations.prefix(2))
+    }
+
+    private var latestMarketplaceItems: [MarketplaceItem] {
+        Array(marketplaceViewModel.items.prefix(2))
+    }
+
+    private var communityOverviewText: String {
+        let resourceCount = organizationsViewModel.organizations.count + marketplaceViewModel.items.count
+        return resourceCount > 0 ? AppStrings.homeHighlightOrganizations(resourceCount) : AppStrings.Community.subtitle
+    }
+
+    private func communitySectionHeader<Destination: View>(
         title: String,
         subtitle: String,
         systemImage: String,
         @ViewBuilder destination: () -> Destination
     ) -> some View {
         NavigationLink(destination: destination()) {
-            CommunityCard {
-                Label(title, systemImage: systemImage)
-                    .font(.headline)
-                    .foregroundStyle(AppTheme.primaryBlue)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(title, systemImage: systemImage)
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.primaryBlue)
 
-                Text(subtitle)
-                    .font(.subheadline)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct CommunityOrganizationPreviewCard: View {
+    let organization: Organization
+
+    var body: some View {
+        CommunityCard {
+            RemoteCardImage(imageURL: organization.imageURL, height: 160, source: "CommunityOrganizationPreviewCard")
+
+            Text(organization.name)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            Text(organization.description)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            MetadataRow(label: AppStrings.Common.city, value: organization.city, systemImage: "mappin")
+        }
+    }
+}
+
+private struct CommunityMarketplacePreviewCard: View {
+    let item: MarketplaceItem
+
+    var body: some View {
+        CommunityCard {
+            RemoteCardImage(imageURL: item.imageURL, height: 160, source: "CommunityMarketplacePreviewCard")
+
+            Text(item.title)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            Text(item.description)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(alignment: .center, spacing: 12) {
+                Text(item.city)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text(CurrencyFormatter.priceString(for: item.price, currencyCode: item.currency))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.primaryBlue)
+            }
+        }
     }
 }
 

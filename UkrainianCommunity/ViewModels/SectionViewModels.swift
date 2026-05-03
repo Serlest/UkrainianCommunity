@@ -3,64 +3,23 @@ import Foundation
 
 @MainActor
 final class HomeViewModel: ObservableObject {
-    @Published private(set) var user: AppUser
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
-    private let userRepository: UserRepository
-    private var loadTask: Task<Void, Never>?
-    private var hasLoaded = false
 
-    init(userRepository: UserRepository) {
-        self.userRepository = userRepository
-        user = .placeholder
+    init() {
         isLoading = false
     }
 
     func loadIfNeeded() async {
-        guard !hasLoaded else { return }
-        await startLoad(force: false)
+        error = nil
     }
 
     func reload() {
-        Task {
-            await refresh()
-        }
+        error = nil
     }
 
     func refresh() async {
-        await startLoad(force: true)
-    }
-
-    private func startLoad(force: Bool) async {
-        guard force || !hasLoaded else { return }
-
-        loadTask?.cancel()
-        let task = Task { [weak self] in
-            guard let self else { return }
-            await self.performLoad()
-        }
-        loadTask = task
-        await task.value
-    }
-
-    private func performLoad() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let resolvedUser = try await userRepository.fetchCurrentUser()
-            guard !Task.isCancelled else { return }
-            user = resolvedUser
-            error = nil
-            hasLoaded = true
-        } catch is CancellationError {
-        } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
-            error = appError
-        } catch {
-            guard !Task.isCancelled else { return }
-            self.error = .unknown
-        }
+        error = nil
     }
 }
 
@@ -540,16 +499,6 @@ final class ProfileViewModel: ObservableObject {
     }
 
     var capabilities: [String] {
-        var items = [AppStrings.Common.likes]
-        if user.role.canCreateContent {
-            items.append(AppStrings.Roles.moderator)
-        }
-        if user.role.canManageModerators {
-            items.append(AppStrings.Roles.admin)
-        }
-        if user.role.canManageUsers {
-            items.append(AppStrings.Roles.owner)
-        }
-        return items
+        [AppStrings.Common.likes, AppStrings.Profile.eventRegistration]
     }
 }
