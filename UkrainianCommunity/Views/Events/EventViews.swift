@@ -32,7 +32,7 @@ struct EventsListView: View {
     }
 
     private var canDeleteEvent: Bool {
-        authState.user?.role.permissions.canEditEvent == true
+        authState.user?.role.permissions.canDeleteEvent == true
     }
 
     var body: some View {
@@ -315,7 +315,7 @@ struct EventDetailView: View {
     private let detailImageHeight: CGFloat = 260
 
     private var canDeleteEvent: Bool {
-        authState.user?.role.permissions.canEditEvent == true
+        authState.user?.role.permissions.canDeleteEvent == true
     }
 
     private func eventDateTimeText(for event: Event) -> String {
