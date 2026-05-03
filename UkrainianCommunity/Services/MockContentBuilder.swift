@@ -98,19 +98,12 @@ enum MockContentBuilder {
             Organization(
                 id: "org-1",
                 name: localized("mock.org.1.name", "Ukrainian House Tirol"),
-                summary: localized("mock.org.1.summary", "Community support, language exchange, and cultural events."),
-                mission: localized("mock.org.1.mission", "Building a stable support network for Ukrainians in Tirol through information, cultural continuity, and local partnerships."),
+                description: localized("mock.org.1.description", "Community support, language exchange, and cultural events. Building a stable support network for Ukrainians in Tirol through information, cultural continuity, and local partnerships."),
                 city: localized("mock.city.innsbruck", "Innsbruck"),
-                website: "https://example.org/ukrainian-house-tirol",
+                imageURL: nil,
                 contactEmail: "hello@example.org",
+                website: "https://example.org/ukrainian-house-tirol",
                 createdAt: calendar.date(byAdding: .month, value: -10, to: .now) ?? .now,
-                updatedAt: calendar.date(byAdding: .day, value: -6, to: .now) ?? .now,
-                focusAreas: [
-                    localized("mock.org.focus.support", "Family support"),
-                    localized("mock.org.focus.culture", "Culture"),
-                    localized("mock.org.focus.integration", "Integration")
-                ],
-                comments: sampleComments(),
                 moderationStatus: .approved,
                 likeCount: 19,
                 likeState: .notLiked
@@ -118,20 +111,13 @@ enum MockContentBuilder {
             Organization(
                 id: "org-2",
                 name: localized("mock.org.2.name", "Tirol Volunteer Network"),
-                summary: localized("mock.org.2.summary", "Volunteer coordination for transport, translation, and everyday help."),
-                mission: localized("mock.org.2.mission", "Connecting volunteers and families quickly for practical, low-friction support across Tirol."),
+                description: localized("mock.org.2.description", "Volunteer coordination for transport, translation, and everyday help. Connecting volunteers and families quickly for practical, low-friction support across Tirol."),
                 city: localized("mock.city.hall", "Hall in Tirol"),
-                website: "https://example.org/volunteer-network",
+                imageURL: nil,
                 contactEmail: "support@example.org",
+                website: "https://example.org/volunteer-network",
                 createdAt: calendar.date(byAdding: .month, value: -14, to: .now) ?? .now,
-                updatedAt: calendar.date(byAdding: .month, value: -1, to: .now) ?? .now,
-                focusAreas: [
-                    localized("mock.org.focus.translation", "Translation"),
-                    localized("mock.org.focus.transport", "Transport"),
-                    localized("mock.org.focus.orientation", "Orientation")
-                ],
-                comments: [],
-                moderationStatus: .archived,
+                moderationStatus: .approved,
                 likeCount: 11,
                 likeState: .liked
             )

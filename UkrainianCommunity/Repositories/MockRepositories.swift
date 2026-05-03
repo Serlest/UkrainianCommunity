@@ -131,7 +131,7 @@ struct MockOrganizationRepository: OrganizationRepository {
     private let store = MockRepositoryStore.shared
 
     func fetchOrganizations() async throws -> [Organization] {
-        await store.organizations
+        await store.organizations.sorted { $0.createdAt > $1.createdAt }
     }
 
     func likeOrganization(id: String) async throws {

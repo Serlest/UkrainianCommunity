@@ -301,26 +301,31 @@ final class EventsViewModel: ObservableObject {
 @MainActor
 final class OrganizationsViewModel: ObservableObject {
     @Published var organizations: [Organization]
+    @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     private let repository: OrganizationRepository
+    private var loadTask: Task<Void, Never>?
+    private var hasLoaded = false
 
     init(repository: OrganizationRepository) {
         self.repository = repository
         organizations = []
-        reload()
+        isLoading = false
+    }
+
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await startLoad(force: false)
     }
 
     func reload() {
         Task {
-            do {
-                organizations = try await repository.fetchOrganizations()
-                error = nil
-            } catch let appError as AppError {
-                error = appError
-            } catch {
-                self.error = .unknown
-            }
+            await refresh()
         }
+    }
+
+    func refresh() async {
+        await startLoad(force: true)
     }
 
     func toggleLike(for organizationID: String) {
@@ -348,6 +353,38 @@ final class OrganizationsViewModel: ObservableObject {
 
     func organization(for organizationID: String) -> Organization? {
         organizations.first(where: { $0.id == organizationID })
+    }
+
+    private func startLoad(force: Bool) async {
+        guard force || !hasLoaded else { return }
+
+        loadTask?.cancel()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad()
+        }
+        loadTask = task
+        await task.value
+    }
+
+    private func performLoad() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let loadedOrganizations = try await repository.fetchOrganizations()
+            guard !Task.isCancelled else { return }
+            organizations = loadedOrganizations
+            error = nil
+            hasLoaded = true
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
     }
 }
 

@@ -60,15 +60,12 @@ struct EventDTO: Codable, Identifiable {
 struct OrganizationDTO: Codable, Identifiable {
     let id: String
     let name: String
-    let summary: String
-    let mission: String
+    let description: String
     let city: String
-    let website: String
-    let contactEmail: String
+    let imageURL: String?
+    let contactEmail: String?
+    let website: String?
     let createdAt: Date
-    let updatedAt: Date
-    let focusAreas: [String]
-    let comments: [CommentDTO]
     let moderationStatus: String
     let likeCount: Int
     let likeState: String
@@ -252,23 +249,12 @@ extension Organization {
         self.init(
             id: dto.id,
             name: dto.name,
-            summary: dto.summary,
-            mission: dto.mission,
+            description: dto.description,
             city: dto.city,
-            website: dto.website,
+            imageURL: dto.imageURL,
             contactEmail: dto.contactEmail,
+            website: dto.website,
             createdAt: dto.createdAt,
-            updatedAt: dto.updatedAt,
-            focusAreas: dto.focusAreas,
-            comments: dto.comments.map {
-                Comment(
-                    id: $0.id,
-                    authorName: $0.authorName,
-                    body: $0.body,
-                    createdAt: $0.createdAt,
-                    updatedAt: $0.updatedAt
-                )
-            },
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             likeCount: dto.likeCount,
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked
@@ -279,15 +265,12 @@ extension Organization {
         OrganizationDTO(
             id: id,
             name: name,
-            summary: summary,
-            mission: mission,
+            description: description,
             city: city,
-            website: website,
+            imageURL: imageURL,
             contactEmail: contactEmail,
+            website: website,
             createdAt: createdAt,
-            updatedAt: updatedAt,
-            focusAreas: focusAreas,
-            comments: comments.map(\.dto),
             moderationStatus: moderationStatus.rawValue,
             likeCount: likeCount,
             likeState: likeState.rawValue

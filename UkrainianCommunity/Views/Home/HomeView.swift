@@ -144,6 +144,46 @@ struct HomeView: View {
                         }
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(AppStrings.Organizations.title)
+                        .font(.title3.weight(.semibold))
+
+                    if organizationsViewModel.isLoading && latestOrganizations.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 8)
+                    } else if organizationsViewModel.error != nil && latestOrganizations.isEmpty {
+                        CommunityCard {
+                            Text(organizationErrorText)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if latestOrganizations.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.Organizations.empty)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        if organizationsViewModel.error != nil {
+                            CommunityCard {
+                                Text(organizationErrorText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        ForEach(latestOrganizations) { organization in
+                            NavigationLink {
+                                OrganizationDetailView(viewModel: organizationsViewModel, organizationID: organization.id)
+                            } label: {
+                                HomeOrganizationCard(organization: organization)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
             .padding()
         }
@@ -153,7 +193,8 @@ struct HomeView: View {
             async let homeLoad: Void = viewModel.loadIfNeeded()
             async let newsLoad: Void = newsViewModel.loadIfNeeded()
             async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
-            _ = await (homeLoad, newsLoad, eventsLoad)
+            async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
+            _ = await (homeLoad, newsLoad, eventsLoad, organizationsLoad)
         }
     }
 
@@ -203,6 +244,27 @@ struct HomeView: View {
             AppStrings.Events.empty
         case .unknown:
             AppStrings.Events.loadUnknownError
+        case nil:
+            ""
+        }
+    }
+
+    private var latestOrganizations: [Organization] {
+        Array(organizationsViewModel.organizations.prefix(3))
+    }
+
+    private var organizationErrorText: String {
+        switch organizationsViewModel.error {
+        case .network:
+            AppStrings.Organizations.loadNetworkError
+        case .permissionDenied:
+            AppStrings.Organizations.loadPermissionError
+        case .validationFailed:
+            AppStrings.Organizations.loadValidationError
+        case .notFound:
+            AppStrings.Organizations.empty
+        case .unknown:
+            AppStrings.Organizations.loadUnknownError
         case nil:
             ""
         }
@@ -285,6 +347,31 @@ private struct HomeEventCard: View {
 
         let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
         return "\(startDateText) - \(endDateText)"
+    }
+}
+
+private struct HomeOrganizationCard: View {
+    let organization: Organization
+
+    var body: some View {
+        CommunityCard {
+            if organization.imageURL != nil {
+                RemoteCardImage(imageURL: organization.imageURL, height: 220)
+            }
+
+            Text(organization.name)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text(organization.description)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            Text(organization.city)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

@@ -146,15 +146,12 @@ struct Event: Identifiable, Codable {
 struct Organization: Identifiable, Codable {
     let id: String
     let name: String
-    let summary: String
-    let mission: String
+    let description: String
     let city: String
-    let website: String
-    let contactEmail: String
+    let imageURL: String?
+    let contactEmail: String?
+    let website: String?
     let createdAt: Date
-    let updatedAt: Date
-    let focusAreas: [String]
-    let comments: [Comment]
     var moderationStatus: ModerationStatus
     var likeCount: Int
     var likeState: LikeState

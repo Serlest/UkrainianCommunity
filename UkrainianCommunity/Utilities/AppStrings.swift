@@ -96,6 +96,13 @@ enum AppStrings {
 
     enum Organizations {
         static var title: String { text("organizations.title", "Organizations") }
+        static var detailTitle: String { text("organizations.detail.title", "Organization Details") }
+        static var empty: String { text("organizations.empty", "No organizations available yet.") }
+        static var retry: String { text("organizations.retry", "Retry") }
+        static var loadNetworkError: String { text("organizations.error.load.network", "Unable to load organizations. Check your connection and try again.") }
+        static var loadPermissionError: String { text("organizations.error.load.permission", "You do not have permission to view these organizations.") }
+        static var loadValidationError: String { text("organizations.error.load.validation", "The organization data could not be loaded.") }
+        static var loadUnknownError: String { text("organizations.error.load.unknown", "Something went wrong while loading organizations.") }
     }
 
     enum Marketplace {
