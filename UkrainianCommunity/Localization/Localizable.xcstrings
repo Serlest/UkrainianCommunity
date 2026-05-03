@@ -3488,6 +3488,23 @@
         }
       }
     },
+    "role.app_moderator" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Moderator"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модератор застосунку"
+          }
+        }
+      }
+    },
     "role.moderator" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3518,6 +3535,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Власник"
+          }
+        }
+      }
+    },
+    "role.top_admin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top-Admin"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Головний адміністратор"
           }
         }
       }
@@ -3919,13 +3953,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Werkzeuge zur Benutzerverwaltung werden hier verfugbar sein."
+            "value" : "Prufen Sie Benutzerrollen-Datensatze, die noch ein Backfill fur die Rollenmigration benotigen."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Інструменти керування користувачами будуть доступні тут."
+            "value" : "Перевіряйте записи ролей користувачів, яким ще потрібен backfill для міграції ролей."
           }
         }
       }
@@ -3960,6 +3994,261 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Переглянути користувачів"
+          }
+        }
+      }
+    },
+    "user_management.account_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontostatus"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус облікового запису"
+          }
+        }
+      }
+    },
+    "user_management.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Probleme fur das Rollen-Backfill gefunden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проблем для backfill ролей не знайдено."
+          }
+        }
+      }
+    },
+    "user_management.global_role" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Globale Rolle"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глобальна роль"
+          }
+        }
+      }
+    },
+    "user_management.issue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Problem"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проблема"
+          }
+        }
+      }
+    },
+    "user_management.issue.admin_global_role_mismatch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-Admin ist nicht auf Top-Admin abgebildet"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-адміністратор не відображений у Top Admin"
+          }
+        }
+      }
+    },
+    "user_management.issue.blocked_status_mismatch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заблокований користувач все ще має активний статус"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заблокований користувач досі має активний статус облікового запису"
+          }
+        }
+      }
+    },
+    "user_management.issue.moderator_sections_missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-Moderator hat keine zugewiesenen Bereiche"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-модератор не має призначених секцій"
+          }
+        }
+      }
+    },
+    "user_management.issue.owner_global_role_mismatch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-Eigentumer ist nicht auf Owner abgebildet"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-власник не відображений у Owner"
+          }
+        }
+      }
+    },
+    "user_management.issue.user_global_role_missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-Benutzer hat keine globale Rolle"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-користувач не має глобальної ролі"
+          }
+        }
+      }
+    },
+    "user_management.legacy_role" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-Rolle"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legacy-роль"
+          }
+        }
+      }
+    },
+    "user_management.load_error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benutzerdiagnosen konnen derzeit nicht geladen werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зараз не вдається завантажити діагностику користувачів."
+          }
+        }
+      }
+    },
+    "user_management.moderator_sections" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Секції модератора"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Секції модератора"
+          }
+        }
+      }
+    },
+    "user_management.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie haben keine Berechtigung, die Rollen-Audit-Diagnose anzuzeigen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас немає дозволу переглядати діагностику аудиту ролей."
+          }
+        }
+      }
+    },
+    "user_management.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спробувати ще раз"
+          }
+        }
+      }
+    },
+    "user_management.uid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UID"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UID"
           }
         }
       }

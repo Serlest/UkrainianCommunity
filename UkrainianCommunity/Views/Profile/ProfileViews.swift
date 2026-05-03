@@ -5,12 +5,10 @@ struct ProfileView: View {
     @EnvironmentObject var authState: AuthState
 
     private var canShowAdminTools: Bool {
-        guard let role = authState.user?.role else {
+        guard let user = authState.user else {
             return false
         }
-
-        let permissions = role.permissions
-        return permissions.canManageUsers || permissions.canAccessOwnerTools
+        return user.globalRole == .owner || user.globalRole == .topAdmin
     }
 
     private var canShowModerationTools: Bool {

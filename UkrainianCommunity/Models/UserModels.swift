@@ -9,6 +9,19 @@ enum GlobalRole: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
+    var title: String {
+        switch self {
+        case .owner:
+            AppStrings.Roles.owner
+        case .topAdmin:
+            AppStrings.Roles.topAdmin
+        case .appModerator:
+            AppStrings.Roles.appModerator
+        case .user:
+            AppStrings.Roles.user
+        }
+    }
+
     nonisolated init(legacyRole: UserRole) {
         switch legacyRole {
         case .owner:
@@ -40,6 +53,19 @@ enum AccountStatus: String, CaseIterable, Codable, Identifiable {
     case permanentlyBanned
 
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .active:
+            AppStrings.Common.active
+        case .warned:
+            AppStrings.Common.status
+        case .temporarilyBanned:
+            AppStrings.Common.blocked
+        case .permanentlyBanned:
+            AppStrings.Common.blocked
+        }
+    }
 }
 
 enum CommunityRole: String, CaseIterable, Codable, Identifiable {
