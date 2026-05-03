@@ -184,6 +184,46 @@ struct HomeView: View {
                         }
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(AppStrings.Marketplace.title)
+                        .font(.title3.weight(.semibold))
+
+                    if marketplaceViewModel.isLoading && latestMarketplaceItems.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 8)
+                    } else if marketplaceViewModel.error != nil && latestMarketplaceItems.isEmpty {
+                        CommunityCard {
+                            Text(marketplaceErrorText)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if latestMarketplaceItems.isEmpty {
+                        CommunityCard {
+                            Text(AppStrings.Marketplace.empty)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        if marketplaceViewModel.error != nil {
+                            CommunityCard {
+                                Text(marketplaceErrorText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        ForEach(latestMarketplaceItems) { item in
+                            NavigationLink {
+                                MarketplaceDetailView(viewModel: marketplaceViewModel, itemID: item.id)
+                            } label: {
+                                HomeMarketplaceCard(item: item)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
             .padding()
         }
@@ -194,7 +234,8 @@ struct HomeView: View {
             async let newsLoad: Void = newsViewModel.loadIfNeeded()
             async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
             async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-            _ = await (homeLoad, newsLoad, eventsLoad, organizationsLoad)
+            async let marketplaceLoad: Void = marketplaceViewModel.loadIfNeeded()
+            _ = await (homeLoad, newsLoad, eventsLoad, organizationsLoad, marketplaceLoad)
         }
     }
 
@@ -253,6 +294,10 @@ struct HomeView: View {
         Array(organizationsViewModel.organizations.prefix(3))
     }
 
+    private var latestMarketplaceItems: [MarketplaceItem] {
+        Array(marketplaceViewModel.items.prefix(3))
+    }
+
     private var organizationErrorText: String {
         switch organizationsViewModel.error {
         case .network:
@@ -265,6 +310,23 @@ struct HomeView: View {
             AppStrings.Organizations.empty
         case .unknown:
             AppStrings.Organizations.loadUnknownError
+        case nil:
+            ""
+        }
+    }
+
+    private var marketplaceErrorText: String {
+        switch marketplaceViewModel.error {
+        case .network:
+            AppStrings.Marketplace.loadNetworkError
+        case .permissionDenied:
+            AppStrings.Marketplace.loadPermissionError
+        case .validationFailed:
+            AppStrings.Marketplace.loadValidationError
+        case .notFound:
+            AppStrings.Marketplace.empty
+        case .unknown:
+            AppStrings.Marketplace.loadUnknownError
         case nil:
             ""
         }
@@ -371,6 +433,39 @@ private struct HomeOrganizationCard: View {
             Text(organization.city)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct HomeMarketplaceCard: View {
+    let item: MarketplaceItem
+
+    var body: some View {
+        CommunityCard {
+            if item.imageURL != nil {
+                RemoteCardImage(imageURL: item.imageURL, height: 220)
+            }
+
+            Text(item.title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text(item.description)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack(alignment: .center, spacing: 12) {
+                Text(item.city)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text(CurrencyFormatter.priceString(for: item.price, currencyCode: item.currency))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.primaryBlue)
+            }
         }
     }
 }

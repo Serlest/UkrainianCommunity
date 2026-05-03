@@ -147,7 +147,7 @@ struct MockMarketplaceRepository: MarketplaceRepository {
     private let store = MockRepositoryStore.shared
 
     func fetchMarketplaceItems() async throws -> [MarketplaceItem] {
-        await store.marketplaceItems
+        await store.marketplaceItems.sorted { $0.createdAt > $1.createdAt }
     }
 
     func likeMarketplaceItem(id: String) async throws {

@@ -13,7 +13,7 @@ struct AppContainer {
         newsRepository: FirestoreNewsRepository(),
         eventRepository: FirestoreEventRepository(),
         organizationRepository: FirestoreOrganizationRepository(),
-        marketplaceRepository: MockMarketplaceRepository(),
+        marketplaceRepository: FirestoreMarketplaceRepository(),
         infoRepository: MockInfoRepository()
     )
 }

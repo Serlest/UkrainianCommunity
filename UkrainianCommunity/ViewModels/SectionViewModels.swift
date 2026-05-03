@@ -391,26 +391,31 @@ final class OrganizationsViewModel: ObservableObject {
 @MainActor
 final class MarketplaceViewModel: ObservableObject {
     @Published var items: [MarketplaceItem]
+    @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     private let repository: MarketplaceRepository
+    private var loadTask: Task<Void, Never>?
+    private var hasLoaded = false
 
     init(repository: MarketplaceRepository) {
         self.repository = repository
         items = []
-        reload()
+        isLoading = false
+    }
+
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await startLoad(force: false)
     }
 
     func reload() {
         Task {
-            do {
-                items = try await repository.fetchMarketplaceItems()
-                error = nil
-            } catch let appError as AppError {
-                error = appError
-            } catch {
-                self.error = .unknown
-            }
+            await refresh()
         }
+    }
+
+    func refresh() async {
+        await startLoad(force: true)
     }
 
     func toggleLike(for itemID: String) {
@@ -438,6 +443,38 @@ final class MarketplaceViewModel: ObservableObject {
 
     func item(for itemID: String) -> MarketplaceItem? {
         items.first(where: { $0.id == itemID })
+    }
+
+    private func startLoad(force: Bool) async {
+        guard force || !hasLoaded else { return }
+
+        loadTask?.cancel()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad()
+        }
+        loadTask = task
+        await task.value
+    }
+
+    private func performLoad() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let loadedItems = try await repository.fetchMarketplaceItems()
+            guard !Task.isCancelled else { return }
+            items = loadedItems
+            error = nil
+            hasLoaded = true
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
     }
 }
 

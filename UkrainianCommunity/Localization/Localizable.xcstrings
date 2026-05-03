@@ -1363,6 +1363,142 @@
         }
       }
     },
+    "marketplace.detail.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marktplatzdetails"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Деталі маркету"
+          }
+        }
+      }
+    },
+    "marketplace.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Marktplatzangebote verfügbar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оголошення маркету поки що недоступні."
+          }
+        }
+      }
+    },
+    "marketplace.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спробувати ще раз"
+          }
+        }
+      }
+    },
+    "marketplace.error.load.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marktplatzangebote konnten nicht geladen werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити оголошення маркету. Перевірте підключення та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "marketplace.error.load.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie haben keine Berechtigung, diese Marktplatzangebote anzuzeigen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас немає дозволу на перегляд цих оголошень маркету."
+          }
+        }
+      }
+    },
+    "marketplace.error.load.validation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Marktplatzdaten konnten nicht geladen werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити дані маркету."
+          }
+        }
+      }
+    },
+    "marketplace.error.load.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Laden der Marktplatzangebote ist ein Fehler aufgetreten."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Під час завантаження оголошень маркету сталася помилка."
+          }
+        }
+      }
+    },
+    "marketplace.category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kategorie"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Категорія"
+          }
+        }
+      }
+    },
     "mock.author.community" : {
       "extractionState" : "manual",
       "localizations" : {

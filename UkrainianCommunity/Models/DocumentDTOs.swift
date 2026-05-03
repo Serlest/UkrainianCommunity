@@ -75,16 +75,15 @@ struct MarketplaceItemDTO: Codable, Identifiable {
     let id: String
     let title: String
     let description: String
-    let city: String
     let price: Decimal?
-    let isFreeGift: Bool
-    let expirationDate: Date
-    let sellerName: String
+    let currency: String
+    let city: String
+    let category: String
+    let imageURL: String?
+    let contactEmail: String?
+    let expiresAt: Date?
     let createdAt: Date
     let updatedAt: Date
-    let contactValue: String
-    let contactMethod: String
-    let comments: [CommentDTO]
     let moderationStatus: String
     let likeCount: Int
     let likeState: String
@@ -284,24 +283,15 @@ extension MarketplaceItem {
             id: dto.id,
             title: dto.title,
             description: dto.description,
-            city: dto.city,
             price: dto.price,
-            isFreeGift: dto.isFreeGift,
-            expirationDate: dto.expirationDate,
-            sellerName: dto.sellerName,
+            currency: dto.currency,
+            city: dto.city,
+            category: dto.category,
+            imageURL: dto.imageURL,
+            contactEmail: dto.contactEmail,
+            expiresAt: dto.expiresAt,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
-            contactValue: dto.contactValue,
-            contactMethod: MarketplaceContactMethod(rawValue: dto.contactMethod) ?? .email,
-            comments: dto.comments.map {
-                Comment(
-                    id: $0.id,
-                    authorName: $0.authorName,
-                    body: $0.body,
-                    createdAt: $0.createdAt,
-                    updatedAt: $0.updatedAt
-                )
-            },
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             likeCount: dto.likeCount,
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked
@@ -313,16 +303,15 @@ extension MarketplaceItem {
             id: id,
             title: title,
             description: description,
-            city: city,
             price: price,
-            isFreeGift: isFreeGift,
-            expirationDate: expirationDate,
-            sellerName: sellerName,
+            currency: currency,
+            city: city,
+            category: category,
+            imageURL: imageURL,
+            contactEmail: contactEmail,
+            expiresAt: expiresAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
-            contactValue: contactValue,
-            contactMethod: contactMethod.rawValue,
-            comments: comments.map(\.dto),
             moderationStatus: moderationStatus.rawValue,
             likeCount: likeCount,
             likeState: likeState.rawValue

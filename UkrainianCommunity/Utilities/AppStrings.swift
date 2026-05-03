@@ -107,6 +107,14 @@ enum AppStrings {
 
     enum Marketplace {
         static var title: String { text("marketplace.title", "Marketplace") }
+        static var detailTitle: String { text("marketplace.detail.title", "Marketplace Details") }
+        static var empty: String { text("marketplace.empty", "No marketplace items available yet.") }
+        static var retry: String { text("marketplace.retry", "Retry") }
+        static var loadNetworkError: String { text("marketplace.error.load.network", "Unable to load marketplace items. Check your connection and try again.") }
+        static var loadPermissionError: String { text("marketplace.error.load.permission", "You do not have permission to view these marketplace items.") }
+        static var loadValidationError: String { text("marketplace.error.load.validation", "The marketplace data could not be loaded.") }
+        static var loadUnknownError: String { text("marketplace.error.load.unknown", "Something went wrong while loading marketplace items.") }
+        static var category: String { text("marketplace.category", "Category") }
         static var freeGift: String { text("marketplace.free_gift", "Free / Gift") }
         static var phone: String { text("marketplace.contact.phone", "Phone") }
         static var email: String { text("marketplace.contact.email", "Email") }

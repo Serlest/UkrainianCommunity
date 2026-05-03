@@ -201,16 +201,15 @@ struct MarketplaceItem: Identifiable, Codable {
     let id: String
     let title: String
     let description: String
-    let city: String
     let price: Decimal?
-    let isFreeGift: Bool
-    let expirationDate: Date
-    let sellerName: String
+    let currency: String
+    let city: String
+    let category: String
+    let imageURL: String?
+    let contactEmail: String?
+    let expiresAt: Date?
     let createdAt: Date
     let updatedAt: Date
-    let contactValue: String
-    let contactMethod: MarketplaceContactMethod
-    let comments: [Comment]
     var moderationStatus: ModerationStatus
     var likeCount: Int
     var likeState: LikeState
