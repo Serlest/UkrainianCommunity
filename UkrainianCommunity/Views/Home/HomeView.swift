@@ -414,11 +414,12 @@ private struct HomeEventCard: View {
 
 private struct HomeOrganizationCard: View {
     let organization: Organization
+    private let previewImageHeight: CGFloat = 160
 
     var body: some View {
         CommunityCard {
             if organization.imageURL != nil {
-                RemoteCardImage(imageURL: organization.imageURL, height: 220)
+                RemoteCardImage(imageURL: organization.imageURL, height: previewImageHeight, source: "HomeOrganizationCard")
             }
 
             Text(organization.name)
@@ -439,11 +440,12 @@ private struct HomeOrganizationCard: View {
 
 private struct HomeMarketplaceCard: View {
     let item: MarketplaceItem
+    private let previewImageHeight: CGFloat = 160
 
     var body: some View {
         CommunityCard {
             if item.imageURL != nil {
-                RemoteCardImage(imageURL: item.imageURL, height: 220)
+                RemoteCardImage(imageURL: item.imageURL, height: previewImageHeight, source: "HomeMarketplaceCard")
             }
 
             Text(item.title)

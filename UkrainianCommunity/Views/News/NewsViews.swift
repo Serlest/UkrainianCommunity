@@ -140,6 +140,7 @@ struct NewsListView: View {
                 Task {
                     do {
                         try await viewModel.deleteNews(id: postID)
+                        viewModel.removeDeletedNews(id: postID)
                         onNewsChanged()
                     } catch let appError as AppError {
                         deleteErrorMessage = readableNewsErrorText(appError)
@@ -249,7 +250,7 @@ private struct NewsCard: View {
 
     var body: some View {
         CommunityCard {
-            RemoteImageView(imageURL: post.imageURL, height: 220)
+            RemoteImageView(imageURL: post.imageURL, height: 220, source: "NewsCard")
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(post.title)
@@ -284,6 +285,8 @@ struct NewsDetailView: View {
     let onNewsDeleted: () -> Void
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
+    @State private var isDeleting = false
+    @State private var pendingRemovalPostID: String?
     private let detailImageHeight: CGFloat = 260
 
     private var canDeleteNews: Bool {
@@ -302,7 +305,7 @@ struct NewsDetailView: View {
                         }
 
                         if let imageURL = post.imageURL {
-                            RemoteCardImage(imageURL: imageURL, height: detailImageHeight, cornerRadius: 22)
+                            RemoteCardImage(imageURL: imageURL, height: detailImageHeight, cornerRadius: 22, source: "NewsDetailView")
                         }
 
                         CommunityCard {
@@ -347,6 +350,7 @@ struct NewsDetailView: View {
                 } label: {
                     Image(systemName: "trash")
                 }
+                .disabled(isDeleting)
             }
         }
         .confirmationDialog(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
@@ -365,14 +369,43 @@ struct NewsDetailView: View {
         } message: {
             Text(deleteErrorMessage ?? "")
         }
+        .onAppear {
+            #if DEBUG
+            print("NewsDetailView appear postID=\(postID)")
+            #endif
+        }
+        .onDisappear {
+            #if DEBUG
+            print("NewsDetailView disappear postID=\(postID) pendingRemoval=\(pendingRemovalPostID ?? "nil") countBefore=\(viewModel.posts.count)")
+            #endif
+            guard let pendingRemovalPostID else { return }
+            withTransaction(Transaction(animation: nil)) {
+                viewModel.removeDeletedNews(id: pendingRemovalPostID)
+            }
+            #if DEBUG
+            print("NewsDetailView removed post after disappear postID=\(pendingRemovalPostID) countAfter=\(viewModel.posts.count)")
+            #endif
+            self.pendingRemovalPostID = nil
+        }
     }
 
     @MainActor
     private func deleteCurrentNews() async {
+        guard !isDeleting else { return }
+        isDeleting = true
+        defer { isDeleting = false }
+
         do {
+            #if DEBUG
+            print("NewsDetailView delete start postID=\(postID) countBefore=\(viewModel.posts.count)")
+            #endif
             try await viewModel.deleteNews(id: postID)
-            onNewsDeleted()
+            pendingRemovalPostID = postID
+            #if DEBUG
+            print("NewsDetailView delete success postID=\(postID) dismissing")
+            #endif
             dismiss()
+            onNewsDeleted()
         } catch let appError as AppError {
             deleteErrorMessage = readableNewsErrorText(appError)
         } catch {

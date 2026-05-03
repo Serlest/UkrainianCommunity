@@ -8,12 +8,17 @@ struct AppContainer {
     let marketplaceRepository: MarketplaceRepository
     let infoRepository: InfoRepository
 
-    static let development = AppContainer(
-        userRepository: MockUserRepository(),
-        newsRepository: FirestoreNewsRepository(),
-        eventRepository: FirestoreEventRepository(),
-        organizationRepository: FirestoreOrganizationRepository(),
-        marketplaceRepository: FirestoreMarketplaceRepository(),
-        infoRepository: MockInfoRepository()
-    )
+    static var development: AppContainer {
+        #if DEBUG
+        print("AppContainer development created")
+        #endif
+        return AppContainer(
+            userRepository: MockUserRepository(),
+            newsRepository: FirestoreNewsRepository(),
+            eventRepository: FirestoreEventRepository(),
+            organizationRepository: FirestoreOrganizationRepository(),
+            marketplaceRepository: FirestoreMarketplaceRepository(),
+            infoRepository: MockInfoRepository()
+        )
+    }
 }

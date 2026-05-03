@@ -43,5 +43,9 @@ final class AuthService {
         print("User profile ensured: \(uid)")
     }
 
-    private init() {}
+    private init() {
+        #if DEBUG
+        print("AuthService init")
+        #endif
+    }
 }

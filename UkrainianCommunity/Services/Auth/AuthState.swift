@@ -22,5 +22,13 @@ final class AuthState: ObservableObject {
         }
 
         print("AuthState loaded user successfully: \(uid)")
+        #if DEBUG
+        if let result {
+            print("AuthState debug uid=\(result.id)")
+            print("AuthState debug globalRole=\(result.globalRole.rawValue)")
+            print("AuthState debug accountStatus=\(result.accountStatus.rawValue)")
+            print("AuthState debug isBlocked=\(result.blockState == .blocked)")
+        }
+        #endif
     }
 }

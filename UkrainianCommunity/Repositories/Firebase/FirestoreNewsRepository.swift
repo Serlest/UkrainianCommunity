@@ -72,8 +72,23 @@ struct FirestoreNewsRepository: NewsRepository {
 
         let newsReference = collection.document(id)
         let likeReference = likesCollection.document(likeDocumentID(newsID: id, userID: uid))
+        let likeData: [String: Any] = [
+            "id": likeReference.documentID,
+            "newsId": id,
+            "userId": uid,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+        #if DEBUG
+        print("Firestore likeNews start")
+        print("path content=\(newsReference.path)")
+        print("path like=\(likeReference.path)")
+        print("data like=\(likeData)")
+        print("counter update field=likeCount increment=+1")
+        #endif
+
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
                 let newsSnapshot = try transaction.getDocument(newsReference)
                 guard newsSnapshot.exists else {
@@ -86,12 +101,7 @@ struct FirestoreNewsRepository: NewsRepository {
                     return nil
                 }
 
-                transaction.setData([
-                    "id": likeReference.documentID,
-                    "newsId": id,
-                    "userId": uid,
-                    "createdAt": FieldValue.serverTimestamp()
-                ], forDocument: likeReference)
+                transaction.setData(likeData, forDocument: likeReference)
                 transaction.updateData([
                     "likeCount": FieldValue.increment(Int64(1))
                 ], forDocument: newsReference)
@@ -100,6 +110,18 @@ struct FirestoreNewsRepository: NewsRepository {
             }
 
             return nil
+            }
+            #if DEBUG
+            print("Firestore likeNews success")
+            #endif
+        } catch {
+            #if DEBUG
+            let nsError = error as NSError
+            print("Firestore likeNews failed")
+            print("error code=\(nsError.code) domain=\(nsError.domain)")
+            print("error message=\(nsError.localizedDescription)")
+            #endif
+            throw error
         }
     }
 
@@ -110,8 +132,16 @@ struct FirestoreNewsRepository: NewsRepository {
 
         let newsReference = collection.document(id)
         let likeReference = likesCollection.document(likeDocumentID(newsID: id, userID: uid))
+        #if DEBUG
+        print("Firestore unlikeNews start")
+        print("path content=\(newsReference.path)")
+        print("path like delete=\(likeReference.path)")
+        print("data like delete=document only")
+        print("counter update field=likeCount decrement=-1")
+        #endif
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
                 let newsSnapshot = try transaction.getDocument(newsReference)
                 guard newsSnapshot.exists else {
@@ -134,6 +164,18 @@ struct FirestoreNewsRepository: NewsRepository {
             }
 
             return nil
+            }
+            #if DEBUG
+            print("Firestore unlikeNews success")
+            #endif
+        } catch {
+            #if DEBUG
+            let nsError = error as NSError
+            print("Firestore unlikeNews failed")
+            print("error code=\(nsError.code) domain=\(nsError.domain)")
+            print("error message=\(nsError.localizedDescription)")
+            #endif
+            throw error
         }
     }
 

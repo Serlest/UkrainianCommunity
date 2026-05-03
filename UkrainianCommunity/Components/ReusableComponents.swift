@@ -4,7 +4,8 @@ import UIKit
 private enum RemoteImageCache {
     static let shared: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
-        cache.countLimit = 200
+        cache.countLimit = 100
+        cache.totalCostLimit = 75 * 1024 * 1024
         return cache
     }()
 }
@@ -71,34 +72,50 @@ struct CommunityCard<Content: View>: View {
 }
 
 struct RemoteImageView: View {
+    private static let fallbackHeight: CGFloat = 220
+
     let imageURL: String?
     let height: CGFloat
     let cornerRadius: CGFloat
+    let source: String
     @State private var loadedImage: UIImage?
 
-    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18) {
+    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18, source: String = "unknown") {
         self.imageURL = imageURL
         self.height = height
         self.cornerRadius = cornerRadius
+        self.source = source
     }
 
     var body: some View {
-        ZStack {
-            if let loadedImage {
-                Image(uiImage: loadedImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                placeholder
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(height: resolvedHeight)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .onAppear {
+            #if DEBUG
+            print("RemoteImageView appear source=\(source) imageURLPresent=\(imageURL != nil) requestedHeight=\(height) resolvedHeight=\(resolvedHeight) containerHeight=\(resolvedHeight)")
+            #endif
+        }
         .task(id: imageURL) {
             await loadImage()
+        }
+    }
+
+    private var resolvedHeight: CGFloat {
+        height > 0 ? height : Self.fallbackHeight
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let loadedImage {
+            Image(uiImage: loadedImage)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            placeholder
         }
     }
 
@@ -131,6 +148,9 @@ struct RemoteImageView: View {
 
         let cacheKey = imageURL as NSString
         if let cachedImage = RemoteImageCache.shared.object(forKey: cacheKey) {
+            #if DEBUG
+            print("RemoteImageView cached source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight)")
+            #endif
             loadedImage = cachedImage
             return
         }
@@ -138,12 +158,29 @@ struct RemoteImageView: View {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             guard let image = UIImage(data: data) else {
+                #if DEBUG
+                print("RemoteImageView decodeFailed source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight)")
+                #endif
                 return
             }
 
-            RemoteImageCache.shared.setObject(image, forKey: cacheKey)
+            RemoteImageCache.shared.setObject(image, forKey: cacheKey, cost: data.count)
+            #if DEBUG
+            print("RemoteImageView loaded source=\(source) imageURLPresent=true requestedHeight=\(height) resolvedHeight=\(resolvedHeight) bytes=\(data.count)")
+            #endif
             loadedImage = image
-        } catch {}
+        } catch {
+            let nsError = error as NSError
+            if nsError.code == NSURLErrorCancelled {
+                #if DEBUG
+                print("RemoteImageView cancelled source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight)")
+                #endif
+                return
+            }
+            #if DEBUG
+            print("RemoteImageView failed source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight) code=\(nsError.code) message=\(nsError.localizedDescription)")
+            #endif
+        }
     }
 }
 
@@ -151,15 +188,17 @@ struct RemoteCardImage: View {
     let imageURL: String?
     let height: CGFloat
     let cornerRadius: CGFloat
+    let source: String
 
-    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18) {
+    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18, source: String = "unknown") {
         self.imageURL = imageURL
         self.height = height
         self.cornerRadius = cornerRadius
+        self.source = source
     }
 
     var body: some View {
-        RemoteImageView(imageURL: imageURL, height: height, cornerRadius: cornerRadius)
+        RemoteImageView(imageURL: imageURL, height: height, cornerRadius: cornerRadius, source: source)
     }
 }
 

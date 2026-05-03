@@ -125,7 +125,6 @@ final class NewsViewModel: ObservableObject {
     func deleteNews(id: String) async throws {
         do {
             try await repository.deleteNews(id: id)
-            posts.removeAll { $0.id == id }
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -134,6 +133,10 @@ final class NewsViewModel: ObservableObject {
             self.error = .unknown
             throw AppError.unknown
         }
+    }
+
+    func removeDeletedNews(id: String) {
+        posts.removeAll { $0.id == id }
     }
 
     private func startLoad(force: Bool) async {
@@ -254,7 +257,6 @@ final class EventsViewModel: ObservableObject {
         do {
             try await repository.deleteEvent(id: id)
             error = nil
-            await refresh()
         } catch let appError as AppError {
             error = appError
             throw appError
@@ -262,6 +264,10 @@ final class EventsViewModel: ObservableObject {
             self.error = .unknown
             throw AppError.unknown
         }
+    }
+
+    func removeDeletedEvent(id: String) {
+        events.removeAll { $0.id == id }
     }
 
     private func startLoad(force: Bool) async {

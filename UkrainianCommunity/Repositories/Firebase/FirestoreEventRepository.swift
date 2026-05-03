@@ -121,8 +121,23 @@ struct FirestoreEventRepository: EventRepository {
 
         let eventReference = collection.document(id)
         let likeReference = likesCollection.document(likeDocumentID(eventID: id, userID: uid))
+        let likeData: [String: Any] = [
+            "id": likeReference.documentID,
+            "eventId": id,
+            "userId": uid,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+        #if DEBUG
+        print("Firestore likeEvent start")
+        print("path content=\(eventReference.path)")
+        print("path like=\(likeReference.path)")
+        print("data like=\(likeData)")
+        print("counter update field=likeCount increment=+1")
+        #endif
+
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
                 let eventSnapshot = try transaction.getDocument(eventReference)
                 guard eventSnapshot.exists else {
@@ -135,12 +150,7 @@ struct FirestoreEventRepository: EventRepository {
                     return nil
                 }
 
-                transaction.setData([
-                    "id": likeReference.documentID,
-                    "eventId": id,
-                    "userId": uid,
-                    "createdAt": FieldValue.serverTimestamp()
-                ], forDocument: likeReference)
+                transaction.setData(likeData, forDocument: likeReference)
                 transaction.updateData([
                     "likeCount": FieldValue.increment(Int64(1))
                 ], forDocument: eventReference)
@@ -149,6 +159,18 @@ struct FirestoreEventRepository: EventRepository {
             }
 
             return nil
+            }
+            #if DEBUG
+            print("Firestore likeEvent success")
+            #endif
+        } catch {
+            #if DEBUG
+            let nsError = error as NSError
+            print("Firestore likeEvent failed")
+            print("error code=\(nsError.code) domain=\(nsError.domain)")
+            print("error message=\(nsError.localizedDescription)")
+            #endif
+            throw error
         }
     }
 
@@ -159,8 +181,16 @@ struct FirestoreEventRepository: EventRepository {
 
         let eventReference = collection.document(id)
         let likeReference = likesCollection.document(likeDocumentID(eventID: id, userID: uid))
+        #if DEBUG
+        print("Firestore unlikeEvent start")
+        print("path content=\(eventReference.path)")
+        print("path like delete=\(likeReference.path)")
+        print("data like delete=document only")
+        print("counter update field=likeCount decrement=-1")
+        #endif
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
                 let eventSnapshot = try transaction.getDocument(eventReference)
                 guard eventSnapshot.exists else {
@@ -183,6 +213,18 @@ struct FirestoreEventRepository: EventRepository {
             }
 
             return nil
+            }
+            #if DEBUG
+            print("Firestore unlikeEvent success")
+            #endif
+        } catch {
+            #if DEBUG
+            let nsError = error as NSError
+            print("Firestore unlikeEvent failed")
+            print("error code=\(nsError.code) domain=\(nsError.domain)")
+            print("error message=\(nsError.localizedDescription)")
+            #endif
+            throw error
         }
     }
 
@@ -193,8 +235,23 @@ struct FirestoreEventRepository: EventRepository {
 
         let eventReference = collection.document(id)
         let registrationReference = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid))
+        let registrationData: [String: Any] = [
+            "id": registrationReference.documentID,
+            "eventId": id,
+            "userId": uid,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+        #if DEBUG
+        print("Firestore registerForEvent start")
+        print("path content=\(eventReference.path)")
+        print("path registration=\(registrationReference.path)")
+        print("data registration=\(registrationData)")
+        print("counter update field=registeredCount increment=+1")
+        #endif
+
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
                 let eventSnapshot = try transaction.getDocument(eventReference)
                 guard eventSnapshot.exists else {
@@ -207,12 +264,7 @@ struct FirestoreEventRepository: EventRepository {
                     return nil
                 }
 
-                transaction.setData([
-                    "id": registrationReference.documentID,
-                    "eventId": id,
-                    "userId": uid,
-                    "createdAt": FieldValue.serverTimestamp()
-                ], forDocument: registrationReference)
+                transaction.setData(registrationData, forDocument: registrationReference)
                 transaction.updateData([
                     "registeredCount": FieldValue.increment(Int64(1))
                 ], forDocument: eventReference)
@@ -221,6 +273,18 @@ struct FirestoreEventRepository: EventRepository {
             }
 
             return nil
+            }
+            #if DEBUG
+            print("Firestore registerForEvent success")
+            #endif
+        } catch {
+            #if DEBUG
+            let nsError = error as NSError
+            print("Firestore registerForEvent failed")
+            print("error code=\(nsError.code) domain=\(nsError.domain)")
+            print("error message=\(nsError.localizedDescription)")
+            #endif
+            throw error
         }
     }
 
@@ -231,8 +295,16 @@ struct FirestoreEventRepository: EventRepository {
 
         let eventReference = collection.document(id)
         let registrationReference = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid))
+        #if DEBUG
+        print("Firestore cancelEventRegistration start")
+        print("path content=\(eventReference.path)")
+        print("path registration delete=\(registrationReference.path)")
+        print("data registration delete=document only")
+        print("counter update field=registeredCount decrement=-1")
+        #endif
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
                 let eventSnapshot = try transaction.getDocument(eventReference)
                 guard eventSnapshot.exists else {
@@ -255,6 +327,18 @@ struct FirestoreEventRepository: EventRepository {
             }
 
             return nil
+            }
+            #if DEBUG
+            print("Firestore cancelEventRegistration success")
+            #endif
+        } catch {
+            #if DEBUG
+            let nsError = error as NSError
+            print("Firestore cancelEventRegistration failed")
+            print("error code=\(nsError.code) domain=\(nsError.domain)")
+            print("error message=\(nsError.localizedDescription)")
+            #endif
+            throw error
         }
     }
 

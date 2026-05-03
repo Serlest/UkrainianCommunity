@@ -136,7 +136,7 @@ private struct MarketplaceCard: View {
 
     var body: some View {
         CommunityCard {
-            RemoteCardImage(imageURL: item.imageURL, height: 220)
+            RemoteCardImage(imageURL: item.imageURL, height: 220, source: "MarketplaceCard")
 
             Text(item.title)
                 .font(.headline.weight(.semibold))
@@ -172,7 +172,7 @@ struct MarketplaceDetailView: View {
                         }
 
                         if item.imageURL != nil {
-                            RemoteCardImage(imageURL: item.imageURL, height: 260, cornerRadius: 22)
+                            RemoteCardImage(imageURL: item.imageURL, height: 260, cornerRadius: 22, source: "MarketplaceDetailView")
                         }
 
                         CommunityCard {

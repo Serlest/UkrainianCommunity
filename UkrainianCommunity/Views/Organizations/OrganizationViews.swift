@@ -134,7 +134,7 @@ private struct OrganizationCard: View {
 
     var body: some View {
         CommunityCard {
-            RemoteCardImage(imageURL: organization.imageURL, height: 220)
+            RemoteCardImage(imageURL: organization.imageURL, height: 220, source: "OrganizationCard")
 
             Text(organization.name)
                 .font(.headline.weight(.semibold))
@@ -167,7 +167,7 @@ struct OrganizationDetailView: View {
                         }
 
                         if organization.imageURL != nil {
-                            RemoteCardImage(imageURL: organization.imageURL, height: 260, cornerRadius: 22)
+                            RemoteCardImage(imageURL: organization.imageURL, height: 260, cornerRadius: 22, source: "OrganizationDetailView")
                         }
 
                         CommunityCard {

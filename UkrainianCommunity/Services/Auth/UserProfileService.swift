@@ -13,10 +13,7 @@ final class UserProfileService {
             let snapshot = try await document.getDocument()
 
             if snapshot.exists {
-                try await document.updateData([
-                    "updatedAt": FieldValue.serverTimestamp()
-                ])
-                print("User profile already exists. Updated timestamp: \(uid)")
+                print("User profile already exists: \(uid)")
                 return
             }
 
@@ -84,6 +81,12 @@ final class UserProfileService {
             ))
 
             print("User profile fetched successfully: \(uid)")
+            #if DEBUG
+            print("User profile debug uid=\(user.id)")
+            print("User profile debug globalRole=\(user.globalRole.rawValue)")
+            print("User profile debug accountStatus=\(user.accountStatus.rawValue)")
+            print("User profile debug isBlocked=\(isBlocked)")
+            #endif
             return user
         } catch {
             print("User profile fetch error: \(error)")

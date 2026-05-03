@@ -138,6 +138,7 @@ struct EventsListView: View {
                 Task {
                     do {
                         try await viewModel.deleteEvent(id: eventID)
+                        viewModel.removeDeletedEvent(id: eventID)
                         onEventDeleted()
                     } catch let appError as AppError {
                         deleteErrorMessage = readableEventErrorText(appError)
@@ -248,7 +249,7 @@ private struct EventCard: View {
 
     var body: some View {
         CommunityCard {
-            RemoteCardImage(imageURL: event.imageURL, height: 220)
+            RemoteCardImage(imageURL: event.imageURL, height: 220, source: "EventCard")
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(event.title)
@@ -312,6 +313,8 @@ struct EventDetailView: View {
     let onEventDeleted: () -> Void
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
+    @State private var isDeleting = false
+    @State private var pendingRemovalEventID: String?
     private let detailImageHeight: CGFloat = 260
 
     private var canDeleteEvent: Bool {
@@ -345,7 +348,7 @@ struct EventDetailView: View {
                                 .font(.subheadline.weight(.semibold))
                         }
 
-                        RemoteCardImage(imageURL: event.imageURL, height: detailImageHeight, cornerRadius: 22)
+                        RemoteCardImage(imageURL: event.imageURL, height: detailImageHeight, cornerRadius: 22, source: "EventDetailView")
 
                         CommunityCard {
                             Text(event.details)
@@ -414,6 +417,7 @@ struct EventDetailView: View {
                 } label: {
                     Image(systemName: "trash")
                 }
+                .disabled(isDeleting)
             }
         }
         .confirmationDialog(AppStrings.Events.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
@@ -432,14 +436,43 @@ struct EventDetailView: View {
         } message: {
             Text(deleteErrorMessage ?? "")
         }
+        .onAppear {
+            #if DEBUG
+            print("EventDetailView appear eventID=\(eventID)")
+            #endif
+        }
+        .onDisappear {
+            #if DEBUG
+            print("EventDetailView disappear eventID=\(eventID) pendingRemoval=\(pendingRemovalEventID ?? "nil") countBefore=\(viewModel.events.count)")
+            #endif
+            guard let pendingRemovalEventID else { return }
+            withTransaction(Transaction(animation: nil)) {
+                viewModel.removeDeletedEvent(id: pendingRemovalEventID)
+            }
+            #if DEBUG
+            print("EventDetailView removed event after disappear eventID=\(pendingRemovalEventID) countAfter=\(viewModel.events.count)")
+            #endif
+            self.pendingRemovalEventID = nil
+        }
     }
 
     @MainActor
     private func deleteCurrentEvent() async {
+        guard !isDeleting else { return }
+        isDeleting = true
+        defer { isDeleting = false }
+
         do {
+            #if DEBUG
+            print("EventDetailView delete start eventID=\(eventID) countBefore=\(viewModel.events.count)")
+            #endif
             try await viewModel.deleteEvent(id: eventID)
-            onEventDeleted()
+            pendingRemovalEventID = eventID
+            #if DEBUG
+            print("EventDetailView delete success eventID=\(eventID) dismissing")
+            #endif
             dismiss()
+            onEventDeleted()
         } catch let appError as AppError {
             deleteErrorMessage = readableEventErrorText(appError)
         } catch {
