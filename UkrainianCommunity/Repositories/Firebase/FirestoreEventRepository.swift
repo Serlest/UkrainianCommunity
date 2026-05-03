@@ -26,6 +26,24 @@ struct FirestoreEventRepository: EventRepository {
         }
     }
 
+    func fetchPendingEvents() async throws -> [Event] {
+        let snapshot = try await collection
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        let likedEventIDs = try await fetchLikedEventIDs()
+        let registeredEventIDs = try await fetchRegisteredEventIDs()
+
+        return try snapshot.documents.map { document in
+            try Event(dto: makeEventDTO(
+                from: document,
+                likedEventIDs: likedEventIDs,
+                registeredEventIDs: registeredEventIDs
+            ))
+        }
+    }
+
     func createEvent(_ event: Event) async throws {
         let now = Date()
         let normalizedEvent = Event(
@@ -238,6 +256,13 @@ struct FirestoreEventRepository: EventRepository {
 
             return nil
         }
+    }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await collection.document(id).updateData([
+            "moderationStatus": newStatus.rawValue,
+            "updatedAt": Timestamp(date: Date())
+        ])
     }
 
     private func fetchLikedEventIDs() async throws -> Set<String> {

@@ -35,6 +35,10 @@ struct PermissionService {
         isOwner
     }
 
+    var canModerateContent: Bool {
+        isModeratorTier
+    }
+
     var canBlockUsers: Bool {
         isAdminTier
     }
@@ -61,6 +65,40 @@ struct PermissionService {
 
     var canManageModerators: Bool {
         canAssignModerator
+    }
+
+    static func canModerate(section: AppSection, user: AppUser) -> Bool {
+        switch user.globalRole {
+        case .owner, .topAdmin:
+            true
+        case .appModerator:
+            user.moderatorSections.contains(section)
+        case .user:
+            false
+        }
+    }
+
+    static func canManageCommunity(organizationId: String, user: AppUser) -> Bool {
+        switch user.globalRole {
+        case .owner, .topAdmin:
+            return true
+        case .appModerator, .user:
+            return user.communityMemberships.contains {
+                $0.organizationId == organizationId && $0.role != .member
+            }
+        }
+    }
+
+    static func canAssignGlobalRoles(user: AppUser) -> Bool {
+        user.globalRole == .owner
+    }
+
+    static func canPermanentlyBan(user: AppUser) -> Bool {
+        user.globalRole == .owner
+    }
+
+    static func canTemporarilyBan(user: AppUser) -> Bool {
+        user.globalRole == .owner || user.globalRole == .topAdmin
     }
 
     private var isModeratorTier: Bool {

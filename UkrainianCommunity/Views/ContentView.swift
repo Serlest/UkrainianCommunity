@@ -47,6 +47,14 @@ struct ContentView: View {
             selectedAppearanceCode = newAppearance.rawValue
             UserSettings.stored = profileViewModel.settings
         }
+        .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in
+            Task {
+                await newsViewModel.refresh()
+                await eventsViewModel.refresh()
+                await organizationsViewModel.refresh()
+                await marketplaceViewModel.refresh()
+            }
+        }
     }
 
     private var selectedAppearance: AppAppearance {

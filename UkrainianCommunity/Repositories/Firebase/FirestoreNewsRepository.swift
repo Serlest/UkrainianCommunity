@@ -20,6 +20,19 @@ struct FirestoreNewsRepository: NewsRepository {
         }
     }
 
+    func fetchPendingNews() async throws -> [NewsPost] {
+        let snapshot = try await collection
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        let likedNewsIDs = try await fetchLikedNewsIDs()
+
+        return try snapshot.documents.map { document in
+            try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs))
+        }
+    }
+
     func createNews(_ news: NewsPost) async throws {
         let dto = news.dto
 
@@ -122,6 +135,13 @@ struct FirestoreNewsRepository: NewsRepository {
 
             return nil
         }
+    }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await collection.document(id).updateData([
+            "moderationStatus": newStatus.rawValue,
+            "updatedAt": Timestamp(date: Date())
+        ])
     }
 
     private func fetchLikedNewsIDs() async throws -> Set<String> {

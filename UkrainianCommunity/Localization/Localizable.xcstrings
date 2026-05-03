@@ -2253,13 +2253,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moderationswerkzeuge werden hier verfugbar sein."
+            "value" : "Prufen Sie ausstehende Community-Inhalte, bevor sie fur alle sichtbar werden."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Інструменти модерації будуть доступні тут."
+            "value" : "Перевіряйте контент спільноти, що очікує на модерацію, перш ніж він стане видимим для всіх."
           }
         }
       }
@@ -2277,6 +2277,278 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Інструменти модерації"
+          }
+        }
+      }
+    },
+    "moderation.approve" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freigeben"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Схвалити"
+          }
+        }
+      }
+    },
+    "moderation.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Derzeit gibt es keine ausstehenden Elemente."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зараз немає елементів, що очікують на перевірку."
+          }
+        }
+      }
+    },
+    "moderation.error.action.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Moderationsstatus konnte nicht aktualisiert werden. Prufen Sie Ihre Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося оновити статус модерації. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "moderation.error.action.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie haben keine Berechtigung, den Moderationsstatus zu aktualisieren."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас немає дозволу оновлювати статус модерації."
+          }
+        }
+      }
+    },
+    "moderation.error.action.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Aktualisieren des Moderationsstatus ist ein Fehler aufgetreten."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Під час оновлення статусу модерації сталася помилка."
+          }
+        }
+      }
+    },
+    "moderation.error.action.validation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Moderationsaktualisierung konnte nicht verarbeitet werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оновлення модерації не вдалося обробити."
+          }
+        }
+      }
+    },
+    "moderation.error.load.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausstehende Inhalte konnten nicht geladen werden. Prufen Sie Ihre Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити контент, що очікує на перевірку. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "moderation.error.load.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie haben keine Berechtigung, auf Moderationswerkzeuge zuzugreifen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас немає дозволу на доступ до інструментів модерації."
+          }
+        }
+      }
+    },
+    "moderation.error.load.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Laden der Moderationselemente ist ein Fehler aufgetreten."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Під час завантаження елементів модерації сталася помилка."
+          }
+        }
+      }
+    },
+    "moderation.error.load.validation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die ausstehenden Inhalte konnten nicht verarbeitet werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося обробити контент, що очікує на перевірку."
+          }
+        }
+      }
+    },
+    "moderation.reject" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ablehnen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилити"
+          }
+        }
+      }
+    },
+    "moderation.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спробувати ще раз"
+          }
+        }
+      }
+    },
+    "moderation.type.event" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ereignis"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подія"
+          }
+        }
+      }
+    },
+    "moderation.type.marketplace" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marktplatz"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Маркетплейс"
+          }
+        }
+      }
+    },
+    "moderation.type.news" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachrichten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новина"
+          }
+        }
+      }
+    },
+    "moderation.type.organization" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Організація"
           }
         }
       }

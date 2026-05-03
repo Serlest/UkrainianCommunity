@@ -25,6 +25,11 @@ final class UserProfileService {
                 "id": uid,
                 "role": "user",
                 "isBlocked": false,
+                "globalRole": GlobalRole.user.rawValue,
+                "moderatorSections": [],
+                "accountStatus": AccountStatus.active.rawValue,
+                "warningCount": 0,
+                "communityMemberships": [],
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])
@@ -45,23 +50,38 @@ final class UserProfileService {
                 return nil
             }
 
-            let roleRawValue = data["role"] as? String ?? UserRole.user.rawValue
-            let role = UserRole(rawValue: roleRawValue) ?? .user
             let isBlocked = data["isBlocked"] as? Bool ?? false
             let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? .now
             let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? createdAt
+            let moderatorSections = data["moderatorSections"] as? [String]
+            let communityMemberships: [CommunityMembershipDTO]? = (data["communityMemberships"] as? [[String: Any]])?.compactMap { rawMembership in
+                guard
+                    let organizationId = rawMembership["organizationId"] as? String,
+                    let role = rawMembership["role"] as? String
+                else {
+                    return nil
+                }
 
-            let user = AppUser(
+                return CommunityMembershipDTO(organizationId: organizationId, role: role)
+            }
+
+            let user = AppUser(dto: UserDTO(
                 id: data["id"] as? String ?? uid,
                 fullName: data["fullName"] as? String ?? "",
                 city: data["city"] as? String ?? "",
                 email: data["email"] as? String ?? "",
                 bio: data["bio"] as? String ?? "",
-                role: role,
-                blockState: isBlocked ? .blocked : .active,
+                role: data["role"] as? String ?? UserRole.user.rawValue,
+                blockState: data["blockState"] as? String ?? (isBlocked ? UserBlockState.blocked.rawValue : UserBlockState.active.rawValue),
+                globalRole: data["globalRole"] as? String,
+                moderatorSections: moderatorSections,
+                accountStatus: data["accountStatus"] as? String,
+                banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
+                warningCount: data["warningCount"] as? Int,
+                communityMemberships: communityMemberships,
                 createdAt: createdAt,
                 updatedAt: updatedAt
-            )
+            ))
 
             print("User profile fetched successfully: \(uid)")
             return user

@@ -19,6 +19,19 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         }
     }
 
+    func fetchPendingOrganizations() async throws -> [Organization] {
+        let snapshot = try await collection
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
+
+        return try snapshot.documents.map { document in
+            try Organization(dto: makeOrganizationDTO(from: document, likedOrganizationIDs: likedOrganizationIDs))
+        }
+    }
+
     func likeOrganization(id: String) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
@@ -89,6 +102,12 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
             return nil
         }
+    }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await collection.document(id).updateData([
+            "moderationStatus": newStatus.rawValue
+        ])
     }
 
     private func fetchLikedOrganizationIDs() async throws -> Set<String> {

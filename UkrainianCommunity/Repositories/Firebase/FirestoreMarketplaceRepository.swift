@@ -19,6 +19,19 @@ struct FirestoreMarketplaceRepository: MarketplaceRepository {
         }
     }
 
+    func fetchPendingMarketplaceItems() async throws -> [MarketplaceItem] {
+        let snapshot = try await collection
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        let likedMarketplaceIDs = try await fetchLikedMarketplaceIDs()
+
+        return try snapshot.documents.map { document in
+            try MarketplaceItem(dto: makeMarketplaceItemDTO(from: document, likedMarketplaceIDs: likedMarketplaceIDs))
+        }
+    }
+
     func likeMarketplaceItem(id: String) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
@@ -89,6 +102,13 @@ struct FirestoreMarketplaceRepository: MarketplaceRepository {
 
             return nil
         }
+    }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await collection.document(id).updateData([
+            "moderationStatus": newStatus.rawValue,
+            "updatedAt": Timestamp(date: Date())
+        ])
     }
 
     private func fetchLikedMarketplaceIDs() async throws -> Set<String> {

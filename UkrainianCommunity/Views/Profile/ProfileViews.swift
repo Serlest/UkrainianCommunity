@@ -19,10 +19,7 @@ struct ProfileView: View {
         }
 
         let permissions = role.permissions
-        return permissions.canCreateNews
-            || permissions.canEditNews
-            || permissions.canCreateEvent
-            || permissions.canEditEvent
+        return permissions.canModerateContent
     }
 
     var body: some View {

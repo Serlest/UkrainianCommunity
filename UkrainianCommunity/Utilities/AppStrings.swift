@@ -151,7 +151,23 @@ enum AppStrings {
 
     enum Moderation {
         static var title: String { text("moderation.title", "Moderation Tools") }
-        static var subtitle: String { text("moderation.subtitle", "Moderation tools will be available here.") }
+        static var subtitle: String { text("moderation.subtitle", "Review pending community content before it becomes visible to everyone.") }
+        static var empty: String { text("moderation.empty", "No pending items right now.") }
+        static var retry: String { text("moderation.retry", "Retry") }
+        static var approve: String { text("moderation.approve", "Approve") }
+        static var reject: String { text("moderation.reject", "Reject") }
+        static var typeNews: String { text("moderation.type.news", "News") }
+        static var typeEvent: String { text("moderation.type.event", "Event") }
+        static var typeOrganization: String { text("moderation.type.organization", "Organization") }
+        static var typeMarketplace: String { text("moderation.type.marketplace", "Marketplace") }
+        static var loadNetworkError: String { text("moderation.error.load.network", "Unable to load pending content. Check your connection and try again.") }
+        static var loadPermissionError: String { text("moderation.error.load.permission", "You do not have permission to access moderation tools.") }
+        static var loadValidationError: String { text("moderation.error.load.validation", "The pending content could not be loaded.") }
+        static var loadUnknownError: String { text("moderation.error.load.unknown", "Something went wrong while loading moderation items.") }
+        static var actionNetworkError: String { text("moderation.error.action.network", "Unable to update moderation status. Check your connection and try again.") }
+        static var actionPermissionError: String { text("moderation.error.action.permission", "You do not have permission to update moderation status.") }
+        static var actionValidationError: String { text("moderation.error.action.validation", "The moderation update could not be processed.") }
+        static var actionUnknownError: String { text("moderation.error.action.unknown", "Something went wrong while updating moderation status.") }
     }
 
     enum UserManagement {

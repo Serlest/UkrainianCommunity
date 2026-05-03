@@ -8,8 +8,21 @@ struct UserDTO: Codable, Identifiable {
     let bio: String
     let role: String
     let blockState: String
+    let globalRole: String?
+    let moderatorSections: [String]?
+    let accountStatus: String?
+    let banExpiresAt: Date?
+    let warningCount: Int?
+    let communityMemberships: [CommunityMembershipDTO]?
     let createdAt: Date
     let updatedAt: Date
+}
+
+struct CommunityMembershipDTO: Codable, Identifiable {
+    let organizationId: String
+    let role: String
+
+    var id: String { organizationId }
 }
 
 struct CommentDTO: Codable, Identifiable {
@@ -91,14 +104,31 @@ struct MarketplaceItemDTO: Codable, Identifiable {
 
 extension AppUser {
     init(dto: UserDTO) {
+        let legacyRole = UserRole(rawValue: dto.role) ?? .user
+        let resolvedGlobalRole = dto.globalRole.flatMap(GlobalRole.init(rawValue:)) ?? GlobalRole(legacyRole: legacyRole)
+        let resolvedModeratorSections = (dto.moderatorSections ?? []).compactMap(AppSection.init(rawValue:))
+        let resolvedAccountStatus = dto.accountStatus.flatMap(AccountStatus.init(rawValue:))
+            ?? (UserBlockState(rawValue: dto.blockState) == .blocked ? .temporarilyBanned : .active)
+
         self.init(
             id: dto.id,
             fullName: dto.fullName,
             city: dto.city,
             email: dto.email,
             bio: dto.bio,
-            role: UserRole(rawValue: dto.role) ?? .user,
+            role: legacyRole,
+            globalRole: resolvedGlobalRole,
+            moderatorSections: resolvedModeratorSections,
             blockState: UserBlockState(rawValue: dto.blockState) ?? .active,
+            accountStatus: resolvedAccountStatus,
+            banExpiresAt: dto.banExpiresAt,
+            warningCount: dto.warningCount ?? 0,
+            communityMemberships: (dto.communityMemberships ?? []).map {
+                CommunityMembership(
+                    organizationId: $0.organizationId,
+                    role: CommunityRole(rawValue: $0.role) ?? .member
+                )
+            },
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )
@@ -113,6 +143,17 @@ extension AppUser {
             bio: bio,
             role: role.rawValue,
             blockState: blockState.rawValue,
+            globalRole: globalRole.rawValue,
+            moderatorSections: moderatorSections.map(\.rawValue),
+            accountStatus: accountStatus.rawValue,
+            banExpiresAt: banExpiresAt,
+            warningCount: warningCount,
+            communityMemberships: communityMemberships.map {
+                CommunityMembershipDTO(
+                    organizationId: $0.organizationId,
+                    role: $0.role.rawValue
+                )
+            },
             createdAt: createdAt,
             updatedAt: updatedAt
         )

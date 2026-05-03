@@ -20,9 +20,20 @@ private actor MockRepositoryStore {
         news.insert(item, at: 0)
     }
 
+    func pendingNews() -> [NewsPost] {
+        news
+            .filter { $0.moderationStatus == .pendingReview }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     func deleteNews(id: String) throws {
         guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         news.remove(at: index)
+    }
+
+    func updateNewsModerationStatus(id: String, newStatus: ModerationStatus) throws {
+        guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        news[index].moderationStatus = newStatus
     }
 
     func toggleEventLike(id: String, isLiked: Bool) throws {
@@ -41,9 +52,20 @@ private actor MockRepositoryStore {
         events.sort { $0.startDate < $1.startDate }
     }
 
+    func pendingEvents() -> [Event] {
+        events
+            .filter { $0.moderationStatus == .pendingReview }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     func deleteEvent(id: String) throws {
         guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         events.remove(at: index)
+    }
+
+    func updateEventModerationStatus(id: String, newStatus: ModerationStatus) throws {
+        guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        events[index].moderationStatus = newStatus
     }
 
     func toggleOrganizationLike(id: String, isLiked: Bool) throws {
@@ -52,10 +74,32 @@ private actor MockRepositoryStore {
         organizations[index].likeCount += isLiked ? 1 : -1
     }
 
+    func pendingOrganizations() -> [Organization] {
+        organizations
+            .filter { $0.moderationStatus == .pendingReview }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func updateOrganizationModerationStatus(id: String, newStatus: ModerationStatus) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        organizations[index].moderationStatus = newStatus
+    }
+
     func toggleMarketplaceLike(id: String, isLiked: Bool) throws {
         guard let index = marketplaceItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         marketplaceItems[index].likeState = isLiked ? .liked : .notLiked
         marketplaceItems[index].likeCount += isLiked ? 1 : -1
+    }
+
+    func pendingMarketplaceItems() -> [MarketplaceItem] {
+        marketplaceItems
+            .filter { $0.moderationStatus == .pendingReview }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func updateMarketplaceModerationStatus(id: String, newStatus: ModerationStatus) throws {
+        guard let index = marketplaceItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        marketplaceItems[index].moderationStatus = newStatus
     }
 }
 
@@ -76,6 +120,12 @@ struct MockNewsRepository: NewsRepository {
 
     func fetchNews() async throws -> [NewsPost] {
         await store.news
+            .filter { $0.moderationStatus == .approved }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func fetchPendingNews() async throws -> [NewsPost] {
+        await store.pendingNews()
     }
 
     func createNews(_ news: NewsPost) async throws {
@@ -93,6 +143,10 @@ struct MockNewsRepository: NewsRepository {
     func unlikeNews(id: String) async throws {
         try await store.toggleNewsLike(id: id, isLiked: false)
     }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await store.updateNewsModerationStatus(id: id, newStatus: newStatus)
+    }
 }
 
 struct MockEventRepository: EventRepository {
@@ -100,6 +154,12 @@ struct MockEventRepository: EventRepository {
 
     func fetchEvents() async throws -> [Event] {
         await store.events
+            .filter { $0.moderationStatus == .approved }
+            .sorted { $0.startDate < $1.startDate }
+    }
+
+    func fetchPendingEvents() async throws -> [Event] {
+        await store.pendingEvents()
     }
 
     func createEvent(_ event: Event) async throws {
@@ -125,13 +185,23 @@ struct MockEventRepository: EventRepository {
     func cancelEventRegistration(id: String) async throws {
         try await store.setEventRegistration(id: id, isRegistered: false)
     }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await store.updateEventModerationStatus(id: id, newStatus: newStatus)
+    }
 }
 
 struct MockOrganizationRepository: OrganizationRepository {
     private let store = MockRepositoryStore.shared
 
     func fetchOrganizations() async throws -> [Organization] {
-        await store.organizations.sorted { $0.createdAt > $1.createdAt }
+        await store.organizations
+            .filter { $0.moderationStatus == .approved }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func fetchPendingOrganizations() async throws -> [Organization] {
+        await store.pendingOrganizations()
     }
 
     func likeOrganization(id: String) async throws {
@@ -141,13 +211,23 @@ struct MockOrganizationRepository: OrganizationRepository {
     func unlikeOrganization(id: String) async throws {
         try await store.toggleOrganizationLike(id: id, isLiked: false)
     }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await store.updateOrganizationModerationStatus(id: id, newStatus: newStatus)
+    }
 }
 
 struct MockMarketplaceRepository: MarketplaceRepository {
     private let store = MockRepositoryStore.shared
 
     func fetchMarketplaceItems() async throws -> [MarketplaceItem] {
-        await store.marketplaceItems.sorted { $0.createdAt > $1.createdAt }
+        await store.marketplaceItems
+            .filter { $0.moderationStatus == .approved }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func fetchPendingMarketplaceItems() async throws -> [MarketplaceItem] {
+        await store.pendingMarketplaceItems()
     }
 
     func likeMarketplaceItem(id: String) async throws {
@@ -156,6 +236,10 @@ struct MockMarketplaceRepository: MarketplaceRepository {
 
     func unlikeMarketplaceItem(id: String) async throws {
         try await store.toggleMarketplaceLike(id: id, isLiked: false)
+    }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
+        try await store.updateMarketplaceModerationStatus(id: id, newStatus: newStatus)
     }
 }
 

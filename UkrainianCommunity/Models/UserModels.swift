@@ -1,6 +1,63 @@
 import Foundation
 import SwiftUI
 
+enum GlobalRole: String, CaseIterable, Codable, Identifiable {
+    case owner
+    case topAdmin
+    case appModerator
+    case user
+
+    var id: String { rawValue }
+
+    nonisolated init(legacyRole: UserRole) {
+        switch legacyRole {
+        case .owner:
+            self = .owner
+        case .admin:
+            self = .topAdmin
+        case .moderator:
+            self = .appModerator
+        case .user:
+            self = .user
+        }
+    }
+}
+
+enum AppSection: String, CaseIterable, Codable, Identifiable {
+    case news
+    case events
+    case organizations
+    case marketplace
+    case comments
+
+    var id: String { rawValue }
+}
+
+enum AccountStatus: String, CaseIterable, Codable, Identifiable {
+    case active
+    case warned
+    case temporarilyBanned
+    case permanentlyBanned
+
+    var id: String { rawValue }
+}
+
+enum CommunityRole: String, CaseIterable, Codable, Identifiable {
+    case communityOwner
+    case communityAdmin
+    case communityModerator
+    case member
+
+    var id: String { rawValue }
+}
+
+struct CommunityMembership: Codable, Hashable, Identifiable {
+    let organizationId: String
+    let role: CommunityRole
+
+    var id: String { organizationId }
+}
+
 enum UserRole: String, CaseIterable, Codable, Identifiable {
     case user
     case moderator
@@ -148,11 +205,51 @@ struct AppUser: Identifiable, Codable {
     let email: String
     let bio: String
     let role: UserRole
+    let globalRole: GlobalRole
+    let moderatorSections: [AppSection]
     let blockState: UserBlockState
+    let accountStatus: AccountStatus
+    let banExpiresAt: Date?
+    let warningCount: Int
+    let communityMemberships: [CommunityMembership]
     let createdAt: Date
     let updatedAt: Date
 
     var joinedAt: Date { createdAt }
+
+    nonisolated init(
+        id: String,
+        fullName: String,
+        city: String,
+        email: String,
+        bio: String,
+        role: UserRole,
+        globalRole: GlobalRole? = nil,
+        moderatorSections: [AppSection] = [],
+        blockState: UserBlockState,
+        accountStatus: AccountStatus? = nil,
+        banExpiresAt: Date? = nil,
+        warningCount: Int = 0,
+        communityMemberships: [CommunityMembership] = [],
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.fullName = fullName
+        self.city = city
+        self.email = email
+        self.bio = bio
+        self.role = role
+        self.globalRole = globalRole ?? GlobalRole(legacyRole: role)
+        self.moderatorSections = moderatorSections
+        self.blockState = blockState
+        self.accountStatus = accountStatus ?? (blockState == .blocked ? .temporarilyBanned : .active)
+        self.banExpiresAt = banExpiresAt
+        self.warningCount = warningCount
+        self.communityMemberships = communityMemberships
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
 
     static let placeholder = AppUser(
         id: "placeholder-user",

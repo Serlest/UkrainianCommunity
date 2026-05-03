@@ -1,38 +1,377 @@
+import Combine
 import SwiftUI
 
-struct ModerationToolsView: View {
-    let newsRepository: NewsRepository
+extension Notification.Name {
+    static let moderationStatusDidChange = Notification.Name("moderationStatusDidChange")
+}
 
-    init(newsRepository: NewsRepository = AppContainer.development.newsRepository) {
+private enum ModeratedContentType: String {
+    case news
+    case event
+    case organization
+    case marketplace
+
+    var title: String {
+        switch self {
+        case .news:
+            AppStrings.Moderation.typeNews
+        case .event:
+            AppStrings.Moderation.typeEvent
+        case .organization:
+            AppStrings.Moderation.typeOrganization
+        case .marketplace:
+            AppStrings.Moderation.typeMarketplace
+        }
+    }
+}
+
+private struct ModerationQueueItem: Identifiable {
+    let contentID: String
+    let type: ModeratedContentType
+    let title: String
+    let summary: String
+    let createdAt: Date
+
+    var id: String {
+        "\(type.rawValue)-\(contentID)"
+    }
+}
+
+@MainActor
+private final class ModerationQueueViewModel: ObservableObject {
+    @Published private(set) var items: [ModerationQueueItem] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: AppError?
+    @Published private(set) var processingItemIDs = Set<String>()
+
+    private let newsRepository: NewsRepository
+    private let eventRepository: EventRepository
+    private let organizationRepository: OrganizationRepository
+    private let marketplaceRepository: MarketplaceRepository
+    private var loadTask: Task<Void, Never>?
+    private var hasLoaded = false
+
+    init(
+        newsRepository: NewsRepository,
+        eventRepository: EventRepository,
+        organizationRepository: OrganizationRepository,
+        marketplaceRepository: MarketplaceRepository
+    ) {
         self.newsRepository = newsRepository
+        self.eventRepository = eventRepository
+        self.organizationRepository = organizationRepository
+        self.marketplaceRepository = marketplaceRepository
+    }
+
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await startLoad(force: false)
+    }
+
+    func refresh() async {
+        await startLoad(force: true)
+    }
+
+    func reload() {
+        Task {
+            await refresh()
+        }
+    }
+
+    func updateStatus(for item: ModerationQueueItem, to newStatus: ModerationStatus) async {
+        processingItemIDs.insert(item.id)
+        defer { processingItemIDs.remove(item.id) }
+
+        do {
+            switch item.type {
+            case .news:
+                try await newsRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
+            case .event:
+                try await eventRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
+            case .organization:
+                try await organizationRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
+            case .marketplace:
+                try await marketplaceRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
+            }
+
+            items.removeAll { $0.id == item.id }
+            error = nil
+            NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    private func startLoad(force: Bool) async {
+        guard force || !hasLoaded else { return }
+
+        loadTask?.cancel()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad()
+        }
+        loadTask = task
+        await task.value
+    }
+
+    private func performLoad() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            async let pendingNews = newsRepository.fetchPendingNews()
+            async let pendingEvents = eventRepository.fetchPendingEvents()
+            async let pendingOrganizations = organizationRepository.fetchPendingOrganizations()
+            async let pendingMarketplace = marketplaceRepository.fetchPendingMarketplaceItems()
+
+            let allItems = await [
+                makeItems(from: try pendingNews),
+                makeItems(from: try pendingEvents),
+                makeItems(from: try pendingOrganizations),
+                makeItems(from: try pendingMarketplace)
+            ]
+            .flatMap { $0 }
+            .sorted { $0.createdAt > $1.createdAt }
+
+            guard !Task.isCancelled else { return }
+            items = allItems
+            error = nil
+            hasLoaded = true
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
+    }
+
+    private func makeItems(from news: [NewsPost]) -> [ModerationQueueItem] {
+        news.map {
+            ModerationQueueItem(
+                contentID: $0.id,
+                type: .news,
+                title: $0.title,
+                summary: $0.subtitle,
+                createdAt: $0.createdAt
+            )
+        }
+    }
+
+    private func makeItems(from events: [Event]) -> [ModerationQueueItem] {
+        events.map {
+            ModerationQueueItem(
+                contentID: $0.id,
+                type: .event,
+                title: $0.title,
+                summary: $0.summary,
+                createdAt: $0.createdAt
+            )
+        }
+    }
+
+    private func makeItems(from organizations: [Organization]) -> [ModerationQueueItem] {
+        organizations.map {
+            ModerationQueueItem(
+                contentID: $0.id,
+                type: .organization,
+                title: $0.name,
+                summary: $0.description,
+                createdAt: $0.createdAt
+            )
+        }
+    }
+
+    private func makeItems(from marketplaceItems: [MarketplaceItem]) -> [ModerationQueueItem] {
+        marketplaceItems.map {
+            ModerationQueueItem(
+                contentID: $0.id,
+                type: .marketplace,
+                title: $0.title,
+                summary: $0.description,
+                createdAt: $0.createdAt
+            )
+        }
+    }
+}
+
+struct ModerationToolsView: View {
+    @EnvironmentObject private var authState: AuthState
+    @StateObject private var viewModel: ModerationQueueViewModel
+
+    init(
+        newsRepository: NewsRepository = AppContainer.development.newsRepository,
+        eventRepository: EventRepository = AppContainer.development.eventRepository,
+        organizationRepository: OrganizationRepository = AppContainer.development.organizationRepository,
+        marketplaceRepository: MarketplaceRepository = AppContainer.development.marketplaceRepository
+    ) {
+        _viewModel = StateObject(wrappedValue: ModerationQueueViewModel(
+            newsRepository: newsRepository,
+            eventRepository: eventRepository,
+            organizationRepository: organizationRepository,
+            marketplaceRepository: marketplaceRepository
+        ))
+    }
+
+    private var canAccessModeration: Bool {
+        guard let role = authState.user?.role else { return false }
+        return role.permissions.canModerateContent
     }
 
     var body: some View {
-        List {
-            Section {
-                Text(AppStrings.Moderation.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+        Group {
+            if !canAccessModeration {
+                moderationStateView(message: AppStrings.Moderation.loadPermissionError)
+            } else if viewModel.isLoading && viewModel.items.isEmpty {
+                ProgressView(AppStrings.Profile.reviewPendingContent)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = viewModel.error, viewModel.items.isEmpty {
+                moderationErrorView(message: errorMessage(for: error))
+            } else if viewModel.items.isEmpty {
+                moderationStateView(message: AppStrings.Moderation.empty)
+            } else {
+                List {
+                    Section {
+                        Text(AppStrings.Moderation.subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
 
-            Section {
-                Label(AppStrings.Profile.reviewPendingContent, systemImage: "clock.badge.exclamationmark")
-                NavigationLink {
-                    NewsEditorView(repository: newsRepository)
-                } label: {
-                    Label(AppStrings.Profile.manageNews, systemImage: "newspaper")
+                    if let error = viewModel.error {
+                        Section {
+                            Text(errorMessage(for: error))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Section {
+                        ForEach(viewModel.items) { item in
+                            ModerationItemRow(
+                                item: item,
+                                isProcessing: viewModel.processingItemIDs.contains(item.id),
+                                approveAction: {
+                                    await viewModel.updateStatus(for: item, to: .approved)
+                                },
+                                rejectAction: {
+                                    await viewModel.updateStatus(for: item, to: .rejected)
+                                }
+                            )
+                        }
+                    }
                 }
-                Label(AppStrings.Profile.manageEvents, systemImage: "calendar")
-                Label(AppStrings.Profile.manageOrganizations, systemImage: "building.2")
-                Label(AppStrings.Profile.manageMarketplace, systemImage: "storefront")
             }
         }
         .navigationTitle(AppStrings.Moderation.title)
+        .task {
+            await viewModel.loadIfNeeded()
+        }
+    }
+
+    private func moderationStateView(message: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "checkmark.shield")
+                .font(.system(size: 30))
+                .foregroundStyle(.secondary)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    private func moderationErrorView(message: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 30))
+                .foregroundStyle(.secondary)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button(AppStrings.Moderation.retry) {
+                viewModel.reload()
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    private func errorMessage(for error: AppError) -> String {
+        switch error {
+        case .network:
+            AppStrings.Moderation.loadNetworkError
+        case .permissionDenied:
+            AppStrings.Moderation.loadPermissionError
+        case .validationFailed, .notFound:
+            AppStrings.Moderation.loadValidationError
+        case .unknown:
+            AppStrings.Moderation.loadUnknownError
+        }
+    }
+}
+
+private struct ModerationItemRow: View {
+    let item: ModerationQueueItem
+    let isProcessing: Bool
+    let approveAction: () async -> Void
+    let rejectAction: () async -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(item.type.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.primaryBlue)
+                Spacer()
+                Text(LocalizationStore.dateString(from: item.createdAt))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(item.title)
+                .font(.headline)
+
+            Text(item.summary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+
+            HStack(spacing: 12) {
+                Button(AppStrings.Moderation.approve) {
+                    Task {
+                        await approveAction()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button(AppStrings.Moderation.reject) {
+                    Task {
+                        await rejectAction()
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+            .disabled(isProcessing)
+        }
+        .padding(.vertical, 6)
     }
 }
 
 #Preview {
     NavigationStack {
-        ModerationToolsView(newsRepository: MockNewsRepository())
+        ModerationToolsView(
+            newsRepository: MockNewsRepository(),
+            eventRepository: MockEventRepository(),
+            organizationRepository: MockOrganizationRepository(),
+            marketplaceRepository: MockMarketplaceRepository()
+        )
     }
+    .environmentObject(AuthState())
 }
