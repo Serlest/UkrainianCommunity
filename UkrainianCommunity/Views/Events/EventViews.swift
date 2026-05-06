@@ -99,6 +99,7 @@ struct EventsListView: View {
                             LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
                                 viewModel.toggleLike(for: event.id)
                             }
+                            .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
                             .padding(.trailing, 18)
                             .padding(.bottom, 18)
                         }
@@ -338,34 +339,95 @@ struct EventDetailView: View {
         return "\(startDateText) - \(endDateText)"
     }
 
+    private var detailCardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+    }
+
     var body: some View {
         Group {
             if let event = viewModel.event(for: eventID) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        GradientHeroCard(title: event.title, subtitle: event.summary) {
-                            Text(event.registrationState.title)
-                                .font(.subheadline.weight(.semibold))
-                        }
+                GeometryReader { proxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(event.title)
+                                    .font(.title2.weight(.bold))
+                                    .foregroundStyle(.primary)
 
-                        RemoteCardImage(imageURL: event.imageURL, height: detailImageHeight, cornerRadius: 22, source: "EventDetailView")
+                                Text(event.summary)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
 
-                        CommunityCard {
-                            Text(event.details)
-                            EventDetailMetadataBlock(
-                                label: AppStrings.Events.fieldStartDate,
-                                value: eventDateTimeText(for: event),
-                                systemImage: "calendar"
+                                HStack(alignment: .center, spacing: 12) {
+                                    Label(eventDateTimeText(for: event), systemImage: "calendar")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(.secondary)
+
+                                    Spacer(minLength: 12)
+
+                                    Text(event.registrationState.title)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(AppTheme.primaryBlue)
+                                }
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
                             )
-                            EventDetailMetadataBlock(
-                                label: AppStrings.Common.city,
-                                value: event.city,
-                                systemImage: "mappin"
+
+                            VStack(alignment: .leading, spacing: 0) {
+                                RemoteImageView(
+                                    imageURL: event.imageURL,
+                                    height: detailImageHeight,
+                                    cornerRadius: 18,
+                                    source: "EventDetailView"
+                                )
+                                .frame(maxWidth: .infinity)
+                                .frame(height: detailImageHeight)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
                             )
-                            EventDetailMetadataBlock(
-                                label: AppStrings.Common.venue,
-                                value: event.venue,
-                                systemImage: "building"
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(event.details)
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                EventDetailMetadataBlock(
+                                    label: AppStrings.Events.fieldStartDate,
+                                    value: eventDateTimeText(for: event),
+                                    systemImage: "calendar"
+                                )
+                                EventDetailMetadataBlock(
+                                    label: AppStrings.Common.city,
+                                    value: event.city,
+                                    systemImage: "mappin"
+                                )
+                                EventDetailMetadataBlock(
+                                    label: AppStrings.Common.venue,
+                                    value: event.venue,
+                                    systemImage: "building"
+                                )
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
                             )
 
                             HStack(alignment: .center, spacing: 12) {
@@ -374,37 +436,60 @@ struct EventDetailView: View {
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(AppTheme.primaryBlue)
+                                .disabled(viewModel.pendingEventRegistrationIDs.contains(event.id))
 
                                 Spacer(minLength: 0)
 
                                 LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
                                     viewModel.toggleLike(for: event.id)
                                 }
+                                .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
                             }
-                        }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+                            )
 
-                        CommunityCard {
-                            Text(AppStrings.Common.comments)
-                                .font(.headline)
-                            if event.comments.isEmpty {
-                                Text(AppStrings.Common.commentsPlaceholder)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(event.comments) { comment in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(sanitizedEventCommentAuthorName(comment.authorName))
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                        Text(comment.body)
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(AppStrings.Common.comments)
+                                    .font(.headline)
+                                if event.comments.isEmpty {
+                                    Text(AppStrings.Common.commentsPlaceholder)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    ForEach(event.comments) { comment in
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text(sanitizedEventCommentAuthorName(comment.authorName))
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                            Text(comment.body)
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .padding(.vertical, 4)
                                     }
-                                    .padding(.vertical, 4)
                                 }
                             }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+                            )
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        .padding(.bottom, 120)
+                        .frame(width: proxy.size.width, alignment: .leading)
                     }
-                    .padding()
+                    .frame(width: proxy.size.width)
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)

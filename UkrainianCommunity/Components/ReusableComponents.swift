@@ -71,6 +71,95 @@ struct CommunityCard<Content: View>: View {
     }
 }
 
+struct DetailPageContainer<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: 16) {
+                    content
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 120)
+                .frame(width: proxy.size.width, alignment: .leading)
+            }
+            .frame(width: proxy.size.width)
+        }
+    }
+}
+
+struct DetailCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            content
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(AppTheme.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+        )
+    }
+}
+
+struct DetailHeaderCard<MetadataContent: View>: View {
+    let title: String
+    let subtitle: String?
+    @ViewBuilder let metadataContent: MetadataContent
+
+    var body: some View {
+        DetailCard {
+            Text(title)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.primary)
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            metadataContent
+        }
+    }
+}
+
+struct DetailImageCard: View {
+    let imageURL: String?
+    let height: CGFloat
+    let source: String
+
+    var body: some View {
+        DetailCard {
+            RemoteCardImage(imageURL: imageURL, height: height, cornerRadius: 18, source: source)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+    }
+}
+
+struct DetailActionRow<LeadingContent: View, TrailingContent: View>: View {
+    @ViewBuilder let leadingContent: LeadingContent
+    @ViewBuilder let trailingContent: TrailingContent
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            leadingContent
+            Spacer(minLength: 0)
+            trailingContent
+        }
+    }
+}
+
 struct RemoteImageView: View {
     private static let fallbackHeight: CGFloat = 220
 
@@ -88,10 +177,21 @@ struct RemoteImageView: View {
     }
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .frame(height: resolvedHeight)
-        .clipped()
+        Group {
+            if let loadedImage {
+                Image(uiImage: loadedImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: resolvedHeight)
+                    .clipped()
+            } else {
+                placeholder
+                    .frame(maxWidth: .infinity)
+                    .frame(height: resolvedHeight)
+                    .clipped()
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .task(id: imageURL) {
             await loadImage()
@@ -100,18 +200,6 @@ struct RemoteImageView: View {
 
     private var resolvedHeight: CGFloat {
         height > 0 ? height : Self.fallbackHeight
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if let loadedImage {
-            Image(uiImage: loadedImage)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            placeholder
-        }
     }
 
     private var placeholder: some View {
@@ -130,7 +218,6 @@ struct RemoteImageView: View {
                 .font(.title2)
                 .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @MainActor

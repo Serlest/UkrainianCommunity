@@ -157,38 +157,39 @@ struct OrganizationDetailView: View {
     var body: some View {
         Group {
             if let organization = viewModel.organization(for: organizationID) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        GradientHeroCard(title: organization.name, subtitle: organization.city) {
-                            if let contactEmail = organization.contactEmail, !contactEmail.isEmpty {
-                                Text(contactEmail)
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                        }
-
-                        if organization.imageURL != nil {
-                            RemoteCardImage(imageURL: organization.imageURL, height: 260, cornerRadius: 22, source: "OrganizationDetailView")
-                        }
-
-                        CommunityCard {
-                            Text(organization.description)
-                                .font(.body)
-                        }
-
-                        CommunityCard {
-                            Text(organization.city)
-                                .font(.body)
-
-                            if let contactEmail = organization.contactEmail, !contactEmail.isEmpty {
-                                MetadataRow(label: AppStrings.Common.contact, value: contactEmail, systemImage: "envelope")
-                            }
-
-                            if let website = organization.website, !website.isEmpty {
-                                MetadataRow(label: AppStrings.Common.website, value: website, systemImage: "link")
-                            }
+                DetailPageContainer {
+                    DetailHeaderCard(title: organization.name, subtitle: organization.city) {
+                        if let contactEmail = organization.contactEmail, !contactEmail.isEmpty {
+                            MetadataRow(label: AppStrings.Common.contact, value: contactEmail, systemImage: "envelope")
                         }
                     }
-                    .padding()
+
+                    if organization.imageURL != nil {
+                        DetailImageCard(
+                            imageURL: organization.imageURL,
+                            height: 260,
+                            source: "OrganizationDetailView"
+                        )
+                    }
+
+                    DetailCard {
+                        Text(organization.description)
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    DetailCard {
+                        MetadataRow(label: AppStrings.Common.city, value: organization.city, systemImage: "mappin")
+
+                        if let contactEmail = organization.contactEmail, !contactEmail.isEmpty {
+                            MetadataRow(label: AppStrings.Common.contact, value: contactEmail, systemImage: "envelope")
+                        }
+
+                        if let website = organization.website, !website.isEmpty {
+                            MetadataRow(label: AppStrings.Common.website, value: website, systemImage: "link")
+                        }
+                    }
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)

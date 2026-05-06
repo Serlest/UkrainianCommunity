@@ -164,41 +164,52 @@ struct MarketplaceDetailView: View {
     var body: some View {
         Group {
             if let item = viewModel.item(for: itemID) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        GradientHeroCard(title: item.title, subtitle: item.category) {
-                            Text(item.city)
-                                .font(.subheadline.weight(.semibold))
+                DetailPageContainer {
+                    DetailHeaderCard(title: item.title, subtitle: item.category) {
+                        MetadataRow(label: AppStrings.Common.city, value: item.city, systemImage: "mappin")
+                    }
+
+                    if item.imageURL != nil {
+                        DetailImageCard(
+                            imageURL: item.imageURL,
+                            height: 260,
+                            source: "MarketplaceDetailView"
+                        )
+                    }
+
+                    DetailCard {
+                        Text(item.description)
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    DetailCard {
+                        MetadataRow(label: AppStrings.Common.price, value: CurrencyFormatter.priceString(for: item.price, currencyCode: item.currency), systemImage: "eurosign")
+                        MetadataRow(label: AppStrings.Common.city, value: item.city, systemImage: "mappin")
+                        MetadataRow(label: AppStrings.Marketplace.category, value: item.category, systemImage: "tag")
+
+                        if let contactEmail = item.contactEmail, !contactEmail.isEmpty {
+                            MetadataRow(label: AppStrings.Common.contact, value: contactEmail, systemImage: "envelope")
                         }
 
-                        if item.imageURL != nil {
-                            RemoteCardImage(imageURL: item.imageURL, height: 260, cornerRadius: 22, source: "MarketplaceDetailView")
+                        if let expiresAt = item.expiresAt {
+                            MetadataRow(label: AppStrings.Common.expires, value: LocalizationStore.dateString(from: expiresAt), systemImage: "clock")
                         }
+                    }
 
-                        CommunityCard {
-                            Text(item.description)
-                                .font(.body)
-                        }
-
-                        CommunityCard {
-                            MetadataRow(label: AppStrings.Common.price, value: CurrencyFormatter.priceString(for: item.price, currencyCode: item.currency), systemImage: "eurosign")
-                            MetadataRow(label: AppStrings.Common.city, value: item.city, systemImage: "mappin")
-                            MetadataRow(label: AppStrings.Marketplace.category, value: item.category, systemImage: "tag")
-
-                            if let contactEmail = item.contactEmail, !contactEmail.isEmpty {
-                                MetadataRow(label: AppStrings.Common.contact, value: contactEmail, systemImage: "envelope")
-                            }
-
-                            if let expiresAt = item.expiresAt {
-                                MetadataRow(label: AppStrings.Common.expires, value: LocalizationStore.dateString(from: expiresAt), systemImage: "clock")
-                            }
-
+                    DetailCard {
+                        DetailActionRow {
+                            Text(AppStrings.Common.likes)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        } trailingContent: {
                             LikeButton(isLiked: item.likeState.isLiked, count: item.likeCount) {
                                 viewModel.toggleLike(for: item.id)
                             }
+                            .disabled(viewModel.pendingMarketplaceLikeIDs.contains(item.id))
                         }
                     }
-                    .padding()
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)

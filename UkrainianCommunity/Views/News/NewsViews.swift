@@ -101,6 +101,7 @@ struct NewsListView: View {
                             LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
                                 viewModel.toggleLike(for: post.id)
                             }
+                            .disabled(viewModel.pendingNewsLikeIDs.contains(post.id))
                             .padding(.trailing, 18)
                             .padding(.bottom, 18)
                         }
@@ -297,84 +298,143 @@ struct NewsDetailView: View {
         LocalizationStore.dateString(from: post.createdAt, dateStyle: .medium, timeStyle: .short)
     }
 
+    private var detailCardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+    }
+
     var body: some View {
         Group {
             if let post = viewModel.post(for: postID) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        GradientHeroCard(title: post.title, subtitle: post.subtitle) {
-                            HStack(alignment: .center, spacing: 12) {
-                                Label(sanitizedAuthorName(post.authorName), systemImage: "person")
-                                    .font(.subheadline.weight(.semibold))
-
-                                Spacer(minLength: 12)
-
-                                Label(newsCreatedDateText(for: post), systemImage: "calendar")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white.opacity(0.85))
-                            }
-                        }
-
-                        if let imageURL = post.imageURL {
-                            RemoteCardImage(imageURL: imageURL, height: detailImageHeight, cornerRadius: 22, source: "NewsDetailView")
-                        }
-
-                        CommunityCard {
-                            if !post.subtitle.isEmpty {
-                                Text(post.subtitle)
-                                    .font(.headline.weight(.semibold))
+                GeometryReader { proxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(post.title)
+                                    .font(.title2.weight(.bold))
                                     .foregroundStyle(.primary)
-                            }
 
-                            Text(post.body)
-                                .font(.body)
-                                .foregroundStyle(.primary)
+                                if !post.subtitle.isEmpty {
+                                    Text(post.subtitle)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
 
-                            HStack(alignment: .center, spacing: 12) {
-                                VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .center, spacing: 12) {
                                     Label(sanitizedAuthorName(post.authorName), systemImage: "person")
                                         .font(.caption.weight(.medium))
                                         .foregroundStyle(.secondary)
+
+                                    Spacer(minLength: 12)
 
                                     Label(newsCreatedDateText(for: post), systemImage: "calendar")
                                         .font(.caption.weight(.medium))
                                         .foregroundStyle(.secondary)
                                 }
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+                            )
+
+                            if let imageURL = post.imageURL {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    RemoteImageView(
+                                        imageURL: imageURL,
+                                        height: detailImageHeight,
+                                        cornerRadius: 18,
+                                        source: "NewsDetailView"
+                                    )
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: detailImageHeight)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                }
+                                .padding(20)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(AppTheme.cardBackground)
+                                .clipShape(detailCardShape)
+                                .overlay(
+                                    detailCardShape
+                                        .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+                                )
+                            }
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(post.body)
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+                            )
+
+                            HStack(alignment: .center, spacing: 12) {
+                                Text(AppStrings.Common.likes)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.secondary)
 
                                 Spacer(minLength: 0)
 
                                 LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
                                     viewModel.toggleLike(for: post.id)
                                 }
+                                .disabled(viewModel.pendingNewsLikeIDs.contains(post.id))
                             }
-                        }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+                            )
 
-                        CommunityCard {
-                            Text(AppStrings.Common.comments)
-                                .font(.headline)
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(AppStrings.Common.comments)
+                                    .font(.headline)
 
-                            if post.comments.isEmpty {
-                                Text(AppStrings.Common.commentsPlaceholder)
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(post.comments) { comment in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(sanitizedAuthorName(comment.authorName))
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                        Text(comment.body)
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
+                                if post.comments.isEmpty {
+                                    Text(AppStrings.Common.commentsPlaceholder)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    ForEach(post.comments) { comment in
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text(sanitizedAuthorName(comment.authorName))
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                            Text(comment.body)
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .padding(.vertical, 4)
                                     }
-                                    .padding(.vertical, 4)
                                 }
                             }
+                            .padding(20)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.cardBackground)
+                            .clipShape(detailCardShape)
+                            .overlay(
+                                detailCardShape
+                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+                            )
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        .padding(.bottom, 120)
+                        .frame(width: proxy.size.width, alignment: .leading)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
+                    .frame(width: proxy.size.width)
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)

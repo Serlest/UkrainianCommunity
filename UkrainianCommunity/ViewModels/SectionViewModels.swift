@@ -29,6 +29,7 @@ final class NewsViewModel: ObservableObject {
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     @Published private(set) var contentVersion = 0
+    @Published private(set) var pendingNewsLikeIDs = Set<String>()
     private let repository: NewsRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -56,9 +57,13 @@ final class NewsViewModel: ObservableObject {
 
     func toggleLike(for postID: String) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
+        guard !pendingNewsLikeIDs.contains(postID) else { return }
         let shouldLike = posts[index].likeState == .notLiked
 
         Task {
+            pendingNewsLikeIDs.insert(postID)
+            defer { pendingNewsLikeIDs.remove(postID) }
+
             do {
                 if shouldLike {
                     try await repository.likeNews(id: postID)
@@ -138,6 +143,8 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     @Published private(set) var contentVersion = 0
+    @Published private(set) var pendingEventLikeIDs = Set<String>()
+    @Published private(set) var pendingEventRegistrationIDs = Set<String>()
     private let repository: EventRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -165,9 +172,13 @@ final class EventsViewModel: ObservableObject {
 
     func toggleLike(for eventID: String) {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard !pendingEventLikeIDs.contains(eventID) else { return }
         let shouldLike = events[index].likeState == .notLiked
 
         Task {
+            pendingEventLikeIDs.insert(eventID)
+            defer { pendingEventLikeIDs.remove(eventID) }
+
             do {
                 if shouldLike {
                     try await repository.likeEvent(id: eventID)
@@ -188,9 +199,13 @@ final class EventsViewModel: ObservableObject {
 
     func toggleRegistration(for eventID: String) {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard !pendingEventRegistrationIDs.contains(eventID) else { return }
         let shouldRegister = events[index].registrationState != .registered
 
         Task {
+            pendingEventRegistrationIDs.insert(eventID)
+            defer { pendingEventRegistrationIDs.remove(eventID) }
+
             do {
                 if shouldRegister {
                     try await repository.registerForEvent(id: eventID)
@@ -198,7 +213,30 @@ final class EventsViewModel: ObservableObject {
                     try await repository.cancelEventRegistration(id: eventID)
                 }
 
-                events[index].registrationState = shouldRegister ? .registered : .notRegistered
+                let updatedRegisteredCount = shouldRegister
+                    ? events[index].registeredCount + 1
+                    : max(0, events[index].registeredCount - 1)
+
+                events[index] = Event(
+                    id: events[index].id,
+                    title: events[index].title,
+                    summary: events[index].summary,
+                    details: events[index].details,
+                    city: events[index].city,
+                    venue: events[index].venue,
+                    imageURL: events[index].imageURL,
+                    startDate: events[index].startDate,
+                    endDate: events[index].endDate,
+                    createdAt: events[index].createdAt,
+                    updatedAt: events[index].updatedAt,
+                    capacity: events[index].capacity,
+                    registeredCount: updatedRegisteredCount,
+                    comments: events[index].comments,
+                    moderationStatus: events[index].moderationStatus,
+                    registrationState: shouldRegister ? .registered : .notRegistered,
+                    likeCount: events[index].likeCount,
+                    likeState: events[index].likeState
+                )
                 error = nil
             } catch let appError as AppError {
                 error = appError
@@ -268,6 +306,7 @@ final class OrganizationsViewModel: ObservableObject {
     @Published var organizations: [Organization]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var pendingOrganizationLikeIDs = Set<String>()
     private let repository: OrganizationRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -295,9 +334,13 @@ final class OrganizationsViewModel: ObservableObject {
 
     func toggleLike(for organizationID: String) {
         guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+        guard !pendingOrganizationLikeIDs.contains(organizationID) else { return }
         let shouldLike = organizations[index].likeState == .notLiked
 
         Task {
+            pendingOrganizationLikeIDs.insert(organizationID)
+            defer { pendingOrganizationLikeIDs.remove(organizationID) }
+
             do {
                 if shouldLike {
                     try await repository.likeOrganization(id: organizationID)
@@ -358,6 +401,7 @@ final class MarketplaceViewModel: ObservableObject {
     @Published var items: [MarketplaceItem]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var pendingMarketplaceLikeIDs = Set<String>()
     private let repository: MarketplaceRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -385,9 +429,13 @@ final class MarketplaceViewModel: ObservableObject {
 
     func toggleLike(for itemID: String) {
         guard let index = items.firstIndex(where: { $0.id == itemID }) else { return }
+        guard !pendingMarketplaceLikeIDs.contains(itemID) else { return }
         let shouldLike = items[index].likeState == .notLiked
 
         Task {
+            pendingMarketplaceLikeIDs.insert(itemID)
+            defer { pendingMarketplaceLikeIDs.remove(itemID) }
+
             do {
                 if shouldLike {
                     try await repository.likeMarketplaceItem(id: itemID)

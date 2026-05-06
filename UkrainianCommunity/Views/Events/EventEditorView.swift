@@ -111,13 +111,25 @@ struct EventEditorView: View {
 
         do {
             let data = try await item.loadTransferable(type: Data.self)
+            guard let data else {
+                await MainActor.run {
+                    selectedPhoto = nil
+                    viewModel.setImageProcessing(false)
+                    viewModel.setSelectedImageData(nil)
+                    viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
+                }
+                return
+            }
+
             await MainActor.run {
                 viewModel.setImageProcessing(false)
                 viewModel.setSelectedImageData(data)
             }
         } catch {
             await MainActor.run {
+                selectedPhoto = nil
                 viewModel.setImageProcessing(false)
+                viewModel.setSelectedImageData(nil)
                 viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
             }
         }
