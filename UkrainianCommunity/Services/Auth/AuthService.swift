@@ -27,7 +27,6 @@ final class AuthService {
     func signOut() {
         do {
             try Auth.auth().signOut()
-            print("Signed out")
         } catch {
             print("Sign out error: \(error.localizedDescription)")
         }

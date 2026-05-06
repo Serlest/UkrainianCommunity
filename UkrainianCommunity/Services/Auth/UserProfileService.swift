@@ -30,7 +30,6 @@ final class UserProfileService {
                 "updatedAt": FieldValue.serverTimestamp()
             ])
         } catch {
-            print("User profile Firestore error: \(error)")
         }
     }
 
@@ -79,7 +78,6 @@ final class UserProfileService {
 
             return user
         } catch {
-            print("User profile fetch error: \(error)")
             return nil
         }
     }

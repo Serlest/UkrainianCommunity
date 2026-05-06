@@ -17,7 +17,6 @@ final class AuthState: ObservableObject {
 
         if result == nil {
             errorMessage = "Failed to load user profile."
-            print("AuthState failed to load user: \(uid)")
         }
     }
 }
