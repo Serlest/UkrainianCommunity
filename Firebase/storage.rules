@@ -1,0 +1,70 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function existsUser(uid) {
+      return firestore.exists(/databases/(default)/documents/users/$(uid));
+    }
+
+    function userDoc(uid) {
+      return firestore.get(/databases/(default)/documents/users/$(uid));
+    }
+
+    function userData(uid) {
+      return userDoc(uid).data;
+    }
+
+    function currentUserData() {
+      return userData(request.auth.uid);
+    }
+
+    function isOwner() {
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && currentUserData().globalRole == 'owner';
+    }
+
+    function isTopAdmin() {
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && currentUserData().globalRole == 'topAdmin';
+    }
+
+    function isAppModerator() {
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && currentUserData().globalRole == 'appModerator';
+    }
+
+    function canManageContentImages() {
+      return isOwner() || isTopAdmin() || isAppModerator();
+    }
+
+    match /news/{filePath=**} {
+      allow read: if isSignedIn();
+      allow write: if canManageContentImages();
+    }
+
+    match /events/{filePath=**} {
+      allow read: if isSignedIn();
+      allow write: if canManageContentImages();
+    }
+
+    match /organizations/{filePath=**} {
+      allow read: if isSignedIn();
+      allow write: if canManageContentImages();
+    }
+
+    match /marketplace/{filePath=**} {
+      allow read: if isSignedIn();
+      allow write: if canManageContentImages();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,164 +1,206 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    function currentUserDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    function existsUser(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function userData(uid) {
+      return userDoc(uid).data;
     }
 
     function currentUserData() {
-      return currentUserDoc().data;
+      return userData(request.auth.uid);
     }
 
-    function currentUserRole() {
-      return currentUserData().role;
-    }
-
-    function isBlocked() {
-      return signedIn() && currentUserData().isBlocked == true;
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
 
     function isOwner() {
-      return signedIn() && currentUserRole() == 'owner';
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && currentUserData().globalRole == 'owner';
     }
 
-    function isAdmin() {
-      return signedIn() && (currentUserRole() == 'admin' || isOwner());
+    function isTopAdmin() {
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && currentUserData().globalRole == 'topAdmin';
     }
 
-    function isModerator() {
-      return signedIn() && (
-        currentUserRole() == 'moderator' ||
-        currentUserRole() == 'admin' ||
-        currentUserRole() == 'owner'
-      );
+    function isAppModerator() {
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && currentUserData().globalRole == 'appModerator';
     }
 
-    function canWriteContent() {
-      return signedIn() && !isBlocked() && isModerator();
+    function isActiveUser() {
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && (
+          !('accountStatus' in currentUserData())
+          || currentUserData().accountStatus == 'active'
+          || currentUserData().accountStatus == 'warned'
+        );
     }
 
-    function isPublished() {
+    function moderatorSections() {
+      return isAppModerator() && ('moderatorSections' in currentUserData())
+        ? currentUserData().moderatorSections
+        : [];
+    }
+
+    function canModerateSection(section) {
+      return isOwner()
+        || isTopAdmin()
+        || (isAppModerator() && moderatorSections().hasAny([section]));
+    }
+
+    function isApprovedContent() {
       return resource.data.moderationStatus == 'approved';
     }
 
-    function isPublishedAfterWrite() {
-      return request.resource.data.moderationStatus == 'approved';
+    function userSelfEditableFields() {
+      return ['fullName', 'city', 'bio', 'email', 'updatedAt'];
     }
 
-    // Users collection:
-    // - authenticated users can read their own user doc
-    // - admins/owners can read all user docs
-    // - user can create only their own initial profile
-    // - user can update only safe fields on their own doc
-    // - user cannot change their own role or block status
-    // - admins can manage moderators and block users
-    // - owners can fully manage users
-    match /users/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
-
-      allow create: if signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.id == userId
+    function safeUserCreate(uid) {
+      return isSelf(uid)
+        && request.resource.data.id == uid
         && request.resource.data.role == 'user'
-        && request.resource.data.isBlocked == false;
-
-      allow update: if signedIn() && (
-        isOwner() ||
-        (
-          isAdmin()
-          && request.resource.data.id == resource.data.id
-          && (
-            request.resource.data.role in ['user', 'moderator', 'admin']
-          )
-        ) ||
-        (
-          request.auth.uid == userId
-          && !isBlocked()
-          && request.resource.data.id == resource.data.id
-          && request.resource.data.role == resource.data.role
-          && request.resource.data.isBlocked == resource.data.isBlocked
-        )
-      );
-
-      allow delete: if isOwner();
+        && request.resource.data.isBlocked == false
+        && request.resource.data.globalRole == 'user'
+        && request.resource.data.accountStatus == 'active'
+        && request.resource.data.warningCount == 0
+        && request.resource.data.moderatorSections is list
+        && request.resource.data.moderatorSections.size() == 0
+        && request.resource.data.communityMemberships is list
+        && request.resource.data.communityMemberships.size() == 0;
     }
 
-    // Public content collections:
-    // - everyone can read approved content
-    // - moderator/admin/owner can create and edit
-    // - owner can delete
-    match /news/{documentId} {
-      allow read: if isPublished();
-      allow create, update: if canWriteContent();
-      allow delete: if isOwner();
+    function safeSelfUserUpdate(uid) {
+      return isSelf(uid)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfEditableFields());
     }
 
-    match /events/{documentId} {
-      allow read: if isPublished();
-      allow create, update: if canWriteContent();
-      allow delete: if isOwner();
+    function targetUserIsOwner() {
+      return resource.data.role == 'owner'
+        || ('globalRole' in resource.data && resource.data.globalRole == 'owner');
     }
 
-    match /organizations/{documentId} {
-      allow read: if isPublished();
-      allow create, update: if canWriteContent();
-      allow delete: if isOwner();
+    function incomingUserBecomesOwner() {
+      return request.resource.data.role == 'owner'
+        || ('globalRole' in request.resource.data && request.resource.data.globalRole == 'owner');
     }
 
-    match /marketplace/{documentId} {
-      allow read: if isPublished();
-      allow create, update: if canWriteContent();
-      allow delete: if isOwner();
+    function incomingUserBecomesPermanentlyBanned() {
+      return ('accountStatus' in request.resource.data)
+        && request.resource.data.accountStatus == 'permanentlyBanned';
     }
 
-    // Comments:
-    // - readable when attached to public content
-    // - authenticated non-blocked users can create their own comments
-    // - moderators/admins/owners can edit/delete for moderation
-    // Assumption: top-level comments documents include:
-    // - authorId
-    // - parentCollection
-    // - parentStatus
-    match /comments/{commentId} {
-      allow read: if resource.data.parentStatus == 'approved';
-
-      allow create: if signedIn()
-        && !isBlocked()
-        && request.resource.data.authorId == request.auth.uid;
-
-      allow update, delete: if signedIn() && (
-        (!isBlocked() && resource.data.authorId == request.auth.uid) ||
-        isModerator()
-      );
+    function topAdminUserUpdateAllowed() {
+      return !targetUserIsOwner()
+        && !incomingUserBecomesOwner()
+        && !incomingUserBecomesPermanentlyBanned()
+        && request.resource.data.id == resource.data.id;
     }
 
-    // Registrations:
-    // - authenticated users can create and manage only their own registrations
-    // - moderators/admins/owners can read for event management
-    // Assumption: registration documents include userId
-    match /registrations/{registrationId} {
-      allow read: if signedIn() && (
-        resource.data.userId == request.auth.uid || isModerator()
-      );
-
-      allow create, update, delete: if signedIn()
-        && !isBlocked()
-        && request.resource.data.userId == request.auth.uid;
+    function canWriteContent(section) {
+      return canModerateSection(section);
     }
 
-    // Likes:
-    // - authenticated users can create and remove only their own likes
-    // Assumption: like documents include userId
+    function canReadModerationQueue(section) {
+      return canModerateSection(section);
+    }
+
+    function onlyLikeCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
+    }
+
+    function onlyNewsLikeCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
+    }
+
+    function onlyEventCountersChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount', 'registeredCount']);
+    }
+
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isOwner() || isTopAdmin();
+
+      allow create: if safeUserCreate(uid);
+
+      allow update: if isOwner()
+        || (isTopAdmin() && topAdminUserUpdateAllowed())
+        || safeSelfUserUpdate(uid);
+
+      allow delete: if isOwner() && uid != request.auth.uid;
+    }
+
+    match /news/{newsId} {
+      allow read: if isApprovedContent() || canReadModerationQueue('news');
+      allow create, delete: if canWriteContent('news');
+      allow update: if canWriteContent('news')
+        || (isActiveUser() && onlyNewsLikeCountChanged());
+    }
+
+    match /events/{eventId} {
+      allow read: if isApprovedContent() || canReadModerationQueue('events');
+      allow create, delete: if canWriteContent('events');
+      allow update: if canWriteContent('events')
+        || (isActiveUser() && onlyEventCountersChanged());
+    }
+
+    match /organizations/{organizationId} {
+      allow read: if isApprovedContent() || canReadModerationQueue('organizations');
+      allow create, delete: if canWriteContent('organizations');
+      allow update: if canWriteContent('organizations')
+        || (isActiveUser() && onlyLikeCountChanged());
+    }
+
+    match /marketplace/{itemId} {
+      allow read: if isApprovedContent() || canReadModerationQueue('marketplace');
+      allow create, delete: if canWriteContent('marketplace');
+      allow update: if canWriteContent('marketplace')
+        || (isActiveUser() && onlyLikeCountChanged());
+    }
+
     match /likes/{likeId} {
-      allow read: if signedIn();
+      allow read: if isActiveUser();
 
-      allow create, update, delete: if signedIn()
-        && !isBlocked()
+      allow create: if isActiveUser()
         && request.resource.data.userId == request.auth.uid;
+
+      allow update: if false;
+
+      allow delete: if isActiveUser()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /registrations/{registrationId} {
+      allow read: if isActiveUser();
+
+      allow create: if isActiveUser()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if false;
+
+      allow delete: if isActiveUser()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
