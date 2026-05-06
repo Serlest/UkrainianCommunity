@@ -3,6 +3,18 @@ import Foundation
 
 @MainActor
 final class EventEditorViewModel: ObservableObject {
+    enum Mode {
+        case create
+        case edit(existing: Event)
+
+        var isEditing: Bool {
+            if case .edit = self {
+                return true
+            }
+            return false
+        }
+    }
+
     @Published var title = ""
     @Published var summary = ""
     @Published var details = ""
@@ -19,9 +31,21 @@ final class EventEditorViewModel: ObservableObject {
 
     private let repository: EventRepository
     private let imageUploadService = ImageUploadService.shared
+    private let mode: Mode
 
-    init(repository: EventRepository) {
+    init(repository: EventRepository, mode: Mode = .create) {
         self.repository = repository
+        self.mode = mode
+
+        if case let .edit(existingEvent) = mode {
+            title = existingEvent.title
+            summary = existingEvent.summary
+            details = existingEvent.details
+            city = existingEvent.city
+            venue = existingEvent.venue
+            startDate = existingEvent.startDate
+            endDate = existingEvent.endDate
+        }
     }
 
     var canPublish: Bool {
@@ -33,6 +57,14 @@ final class EventEditorViewModel: ObservableObject {
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
+    }
+
+    var navigationTitle: String {
+        mode.isEditing ? AppStrings.Events.editTitle : AppStrings.Events.editorTitle
+    }
+
+    var submitButtonTitle: String {
+        mode.isEditing ? AppStrings.Events.saveChanges : AppStrings.Events.publish
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -61,7 +93,40 @@ final class EventEditorViewModel: ObservableObject {
         }
 
         let now = Date()
-        let eventID = UUID().uuidString
+        let eventID: String
+        let createdAt: Date
+        let existingImageURL: String?
+        let existingRegisteredCount: Int
+        let existingComments: [Comment]
+        let existingModerationStatus: ModerationStatus
+        let existingRegistrationState: EventRegistrationState
+        let existingLikeCount: Int
+        let existingLikeState: LikeState
+        let existingCapacity: Int?
+        switch mode {
+        case .create:
+            eventID = UUID().uuidString
+            createdAt = now
+            existingImageURL = nil
+            existingRegisteredCount = 0
+            existingComments = []
+            existingModerationStatus = .approved
+            existingRegistrationState = .notRegistered
+            existingLikeCount = 0
+            existingLikeState = .notLiked
+            existingCapacity = nil
+        case let .edit(existingEvent):
+            eventID = existingEvent.id
+            createdAt = existingEvent.createdAt
+            existingImageURL = existingEvent.imageURL
+            existingRegisteredCount = existingEvent.registeredCount
+            existingComments = existingEvent.comments
+            existingModerationStatus = existingEvent.moderationStatus
+            existingRegistrationState = existingEvent.registrationState
+            existingLikeCount = existingEvent.likeCount
+            existingLikeState = existingEvent.likeState
+            existingCapacity = existingEvent.capacity
+        }
         var resolvedImageURL: String?
         let newEvent = Event(
             id: eventID,
@@ -73,15 +138,15 @@ final class EventEditorViewModel: ObservableObject {
             imageURL: nil,
             startDate: startDate,
             endDate: endDate,
-            createdAt: now,
+            createdAt: createdAt,
             updatedAt: now,
-            capacity: nil,
-            registeredCount: 0,
-            comments: [],
-            moderationStatus: .approved,
-            registrationState: .notRegistered,
-            likeCount: 0,
-            likeState: .notLiked
+            capacity: existingCapacity,
+            registeredCount: existingRegisteredCount,
+            comments: existingComments,
+            moderationStatus: existingModerationStatus,
+            registrationState: existingRegistrationState,
+            likeCount: existingLikeCount,
+            likeState: existingLikeState
         )
 
         isPublishing = true
@@ -93,6 +158,8 @@ final class EventEditorViewModel: ObservableObject {
                 let downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
                 resolvedImageURL = downloadURL.absoluteString
                 isUploadingImage = false
+            } else {
+                resolvedImageURL = existingImageURL
             }
 
             let eventToCreate = Event(
@@ -116,8 +183,14 @@ final class EventEditorViewModel: ObservableObject {
                 likeState: newEvent.likeState
             )
 
-            try await repository.createEvent(eventToCreate)
-            successMessage = AppStrings.Events.publishedSuccessfully
+            switch mode {
+            case .create:
+                try await repository.createEvent(eventToCreate)
+                successMessage = AppStrings.Events.publishedSuccessfully
+            case .edit:
+                try await repository.updateEvent(eventToCreate)
+                successMessage = AppStrings.Events.updatedSuccessfully
+            }
             title = ""
             summary = ""
             details = ""

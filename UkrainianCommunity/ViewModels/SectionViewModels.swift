@@ -86,6 +86,10 @@ final class NewsViewModel: ObservableObject {
         posts.first(where: { $0.id == postID })
     }
 
+    var editorRepository: NewsRepository {
+        repository
+    }
+
     func deleteNews(id: String) async throws {
         do {
             try await repository.deleteNews(id: id)
@@ -248,6 +252,10 @@ final class EventsViewModel: ObservableObject {
 
     func event(for eventID: String) -> Event? {
         events.first(where: { $0.id == eventID })
+    }
+
+    var editorRepository: EventRepository {
+        repository
     }
 
     func deleteEvent(id: String) async throws {

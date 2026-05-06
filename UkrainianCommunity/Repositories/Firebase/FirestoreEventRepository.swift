@@ -102,6 +102,28 @@ struct FirestoreEventRepository: EventRepository {
         try await collection.document(dto.id).setData(data)
     }
 
+    func updateEvent(_ event: Event) async throws {
+        var data: [String: Any] = [
+            "title": event.title,
+            "summary": event.summary,
+            "details": event.details,
+            "city": event.city,
+            "venue": event.venue,
+            "imageURL": event.imageURL as Any,
+            "startDate": Timestamp(date: event.startDate),
+            "endDate": Timestamp(date: event.endDate),
+            "updatedAt": Timestamp(date: event.updatedAt)
+        ]
+
+        if let capacity = event.capacity {
+            data["capacity"] = capacity
+        } else {
+            data["capacity"] = FieldValue.delete()
+        }
+
+        try await collection.document(event.id).updateData(data)
+    }
+
     func deleteEvent(id: String) async throws {
         let imageReference = Storage.storage().reference().child("events/\(id)/cover.jpg")
 

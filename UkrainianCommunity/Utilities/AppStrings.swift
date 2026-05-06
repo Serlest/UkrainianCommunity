@@ -41,14 +41,17 @@ enum AppStrings {
 
     enum NewsEditor {
         static var title: String { text("news.editor.title", "Create News") }
+        static var editTitle: String { text("news.editor.edit_title", "Edit News") }
         static var fieldTitle: String { text("news.editor.field.title", "Title") }
         static var fieldSummary: String { text("news.editor.field.summary", "Summary") }
         static var fieldBody: String { text("news.editor.field.body", "Body") }
         static var selectPhoto: String { text("news.editor.select_photo", "Select Photo") }
         static var publish: String { text("news.editor.publish", "Publish") }
+        static var saveChanges: String { text("news.editor.save_changes", "Save Changes") }
         static var publishing: String { text("news.editor.publishing", "Publishing...") }
         static var uploadingImage: String { text("news.editor.uploading_image", "Uploading image...") }
         static var publishedSuccessfully: String { text("news.editor.success", "News published successfully.") }
+        static var updatedSuccessfully: String { text("news.editor.updated_success", "News updated successfully.") }
         static var titleRequired: String { text("news.editor.validation.title_required", "Title is required.") }
         static var bodyRequired: String { text("news.editor.validation.body_required", "Body is required.") }
         static var imageLoadFailed: String { text("news.editor.image_load_failed", "Failed to load the selected image.") }
@@ -73,6 +76,7 @@ enum AppStrings {
         static var actionNotFoundError: String { text("events.error.action.not_found", "The selected event could not be found.") }
         static var actionUnknownError: String { text("events.error.action.unknown", "Something went wrong while processing the event.") }
         static var editorTitle: String { text("events.editor.title", "Create Event") }
+        static var editTitle: String { text("events.editor.edit_title", "Edit Event") }
         static var fieldTitle: String { text("events.editor.field.title", "Title") }
         static var fieldSummary: String { text("events.editor.field.summary", "Summary") }
         static var fieldDetails: String { text("events.editor.field.details", "Details") }
@@ -81,8 +85,10 @@ enum AppStrings {
         static var fieldStartDate: String { text("events.editor.field.start_date", "Start Date") }
         static var fieldEndDate: String { text("events.editor.field.end_date", "End Date") }
         static var publish: String { text("events.editor.publish", "Publish") }
+        static var saveChanges: String { text("events.editor.save_changes", "Save Changes") }
         static var publishing: String { text("events.editor.publishing", "Publishing...") }
         static var publishedSuccessfully: String { text("events.editor.success", "Event published successfully.") }
+        static var updatedSuccessfully: String { text("events.editor.updated_success", "Event updated successfully.") }
         static var summaryRequired: String { text("events.editor.validation.summary_required", "Summary is required.") }
         static var detailsRequired: String { text("events.editor.validation.details_required", "Details are required.") }
         static var descriptionRequired: String { text("events.editor.validation.description_required", "Description is required.") }

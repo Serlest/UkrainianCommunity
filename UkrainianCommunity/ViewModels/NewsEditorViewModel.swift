@@ -3,6 +3,18 @@ import Foundation
 
 @MainActor
 final class NewsEditorViewModel: ObservableObject {
+    enum Mode {
+        case create
+        case edit(existing: NewsPost)
+
+        var isEditing: Bool {
+            if case .edit = self {
+                return true
+            }
+            return false
+        }
+    }
+
     @Published var title = ""
     @Published var summary = ""
     @Published var body = ""
@@ -16,10 +28,18 @@ final class NewsEditorViewModel: ObservableObject {
     private let repository: NewsRepository
     private let imageUploadService = ImageUploadService.shared
     private var authState: AuthState?
+    private let mode: Mode
 
-    init(repository: NewsRepository, authState: AuthState? = nil) {
+    init(repository: NewsRepository, authState: AuthState? = nil, mode: Mode = .create) {
         self.repository = repository
         self.authState = authState
+        self.mode = mode
+
+        if case let .edit(existingNews) = mode {
+            title = existingNews.title
+            summary = existingNews.subtitle
+            body = existingNews.body
+        }
     }
 
     var canPublish: Bool {
@@ -28,6 +48,14 @@ final class NewsEditorViewModel: ObservableObject {
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
+    }
+
+    var navigationTitle: String {
+        mode.isEditing ? AppStrings.NewsEditor.editTitle : AppStrings.NewsEditor.title
+    }
+
+    var submitButtonTitle: String {
+        mode.isEditing ? AppStrings.NewsEditor.saveChanges : AppStrings.NewsEditor.publish
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -60,7 +88,22 @@ final class NewsEditorViewModel: ObservableObject {
         }
 
         let now = Date()
-        let newsID = UUID().uuidString
+        let newsID: String
+        let createdAt: Date
+        let publishedAt: Date
+        let existingImageURL: String?
+        switch mode {
+        case .create:
+            newsID = UUID().uuidString
+            createdAt = now
+            publishedAt = now
+            existingImageURL = nil
+        case let .edit(existingNews):
+            newsID = existingNews.id
+            createdAt = existingNews.createdAt
+            publishedAt = existingNews.publishedAt
+            existingImageURL = existingNews.imageURL
+        }
         var resolvedImageURL: String?
         let news = NewsPost(
             id: newsID,
@@ -69,11 +112,11 @@ final class NewsEditorViewModel: ObservableObject {
             imageURL: nil,
             body: trimmedBody,
             authorName: resolvedAuthorName,
-            publishedAt: now,
-            createdAt: now,
+            publishedAt: publishedAt,
+            createdAt: createdAt,
             updatedAt: now,
             comments: [],
-            moderationStatus: .approved,
+            moderationStatus: existingModerationStatus,
             likeCount: 0,
             likeState: .notLiked
         )
@@ -93,6 +136,8 @@ final class NewsEditorViewModel: ObservableObject {
                     return false
                 }
                 isUploadingImage = false
+            } else {
+                resolvedImageURL = existingImageURL
             }
 
             let newsToCreate = NewsPost(
@@ -111,8 +156,14 @@ final class NewsEditorViewModel: ObservableObject {
                 likeState: news.likeState
             )
 
-            try await repository.createNews(newsToCreate)
-            successMessage = AppStrings.NewsEditor.publishedSuccessfully
+            switch mode {
+            case .create:
+                try await repository.createNews(newsToCreate)
+                successMessage = AppStrings.NewsEditor.publishedSuccessfully
+            case .edit:
+                try await repository.updateNews(newsToCreate)
+                successMessage = AppStrings.NewsEditor.updatedSuccessfully
+            }
             title = ""
             summary = ""
             body = ""
@@ -138,6 +189,10 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     private var resolvedAuthorName: String {
+        if case let .edit(existingNews) = mode, selectedImageData == nil, authState?.user == nil {
+            return existingNews.authorName
+        }
+
         if let fullName = authState?.user?.fullName.trimmingCharacters(in: .whitespacesAndNewlines),
            !fullName.isEmpty {
             return fullName
@@ -149,6 +204,13 @@ final class NewsEditorViewModel: ObservableObject {
         }
 
         return AppStrings.NewsEditor.authorFallback
+    }
+
+    private var existingModerationStatus: ModerationStatus {
+        if case let .edit(existingNews) = mode {
+            return existingNews.moderationStatus
+        }
+        return .approved
     }
 
     private func validate() -> Bool {

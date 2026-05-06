@@ -10,7 +10,12 @@ struct EventEditorView: View {
     private let onPublished: @MainActor () async -> Void
 
     init(repository: EventRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
-        _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository))
+        _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create))
+        self.onPublished = onPublished
+    }
+
+    init(repository: EventRepository, event: Event, onPublished: @escaping @MainActor () async -> Void = {}) {
+        _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .edit(existing: event)))
         self.onPublished = onPublished
     }
 
@@ -82,13 +87,13 @@ struct EventEditorView: View {
                             Text(viewModel.isUploadingImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Events.publishing)
                         }
                     } else {
-                        Text(AppStrings.Events.publish)
+                        Text(viewModel.submitButtonTitle)
                     }
                 }
                 .disabled(!viewModel.canPublish)
             }
         }
-        .navigationTitle(AppStrings.Events.editorTitle)
+        .navigationTitle(viewModel.navigationTitle)
         .onChange(of: selectedPhoto) { _, newItem in
             Task {
                 await loadSelectedPhoto(item: newItem)

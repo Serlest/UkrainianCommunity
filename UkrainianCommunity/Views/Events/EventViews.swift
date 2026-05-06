@@ -315,8 +315,13 @@ struct EventDetailView: View {
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
     @State private var isDeleting = false
+    @State private var isShowingEditSheet = false
     @State private var pendingRemovalEventID: String?
     private let detailImageHeight: CGFloat = 260
+
+    private var canEditEvent: Bool {
+        authState.user?.role.permissions.canEditEvent == true
+    }
 
     private var canDeleteEvent: Bool {
         authState.user?.role.permissions.canDeleteEvent == true
@@ -341,6 +346,17 @@ struct EventDetailView: View {
 
     private var detailCardShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
+    }
+
+    @ViewBuilder
+    private var editSheetContent: some View {
+        if let event = viewModel.event(for: eventID) {
+            NavigationStack {
+                EventEditorView(repository: viewModel.editorRepository, event: event) {
+                    await viewModel.refresh()
+                }
+            }
+        }
     }
 
     var body: some View {
@@ -498,6 +514,14 @@ struct EventDetailView: View {
         .navigationTitle(AppStrings.Events.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if canEditEvent, viewModel.event(for: eventID) != nil {
+                Button {
+                    isShowingEditSheet = true
+                } label: {
+                    Image(systemName: "pencil")
+                }
+            }
+
             if canDeleteEvent {
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
@@ -522,6 +546,9 @@ struct EventDetailView: View {
             Button(AppStrings.Events.dismissError, role: .cancel) {}
         } message: {
             Text(deleteErrorMessage ?? "")
+        }
+        .sheet(isPresented: $isShowingEditSheet) {
+            editSheetContent
         }
         .onDisappear {
             guard let pendingRemovalEventID else { return }

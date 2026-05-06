@@ -20,6 +20,26 @@ private actor MockRepositoryStore {
         news.insert(item, at: 0)
     }
 
+    func updateNews(_ item: NewsPost) throws {
+        guard let index = news.firstIndex(where: { $0.id == item.id }) else { throw AppError.notFound }
+        let existingItem = news[index]
+        news[index] = NewsPost(
+            id: existingItem.id,
+            title: item.title,
+            subtitle: item.subtitle,
+            imageURL: item.imageURL,
+            body: item.body,
+            authorName: item.authorName,
+            publishedAt: existingItem.publishedAt,
+            createdAt: existingItem.createdAt,
+            updatedAt: item.updatedAt,
+            comments: existingItem.comments,
+            moderationStatus: existingItem.moderationStatus,
+            likeCount: existingItem.likeCount,
+            likeState: existingItem.likeState
+        )
+    }
+
     func pendingNews() -> [NewsPost] {
         news
             .filter { $0.moderationStatus == .pendingReview }
@@ -49,6 +69,32 @@ private actor MockRepositoryStore {
 
     func createEvent(_ item: Event) {
         events.append(item)
+        events.sort { $0.startDate < $1.startDate }
+    }
+
+    func updateEvent(_ item: Event) throws {
+        guard let index = events.firstIndex(where: { $0.id == item.id }) else { throw AppError.notFound }
+        let existingItem = events[index]
+        events[index] = Event(
+            id: existingItem.id,
+            title: item.title,
+            summary: item.summary,
+            details: item.details,
+            city: item.city,
+            venue: item.venue,
+            imageURL: item.imageURL,
+            startDate: item.startDate,
+            endDate: item.endDate,
+            createdAt: existingItem.createdAt,
+            updatedAt: item.updatedAt,
+            capacity: item.capacity,
+            registeredCount: existingItem.registeredCount,
+            comments: existingItem.comments,
+            moderationStatus: existingItem.moderationStatus,
+            registrationState: existingItem.registrationState,
+            likeCount: existingItem.likeCount,
+            likeState: existingItem.likeState
+        )
         events.sort { $0.startDate < $1.startDate }
     }
 
@@ -132,6 +178,10 @@ struct MockNewsRepository: NewsRepository {
         await store.createNews(news)
     }
 
+    func updateNews(_ news: NewsPost) async throws {
+        try await store.updateNews(news)
+    }
+
     func deleteNews(id: String) async throws {
         try await store.deleteNews(id: id)
     }
@@ -164,6 +214,10 @@ struct MockEventRepository: EventRepository {
 
     func createEvent(_ event: Event) async throws {
         await store.createEvent(event)
+    }
+
+    func updateEvent(_ event: Event) async throws {
+        try await store.updateEvent(event)
     }
 
     func deleteEvent(id: String) async throws {

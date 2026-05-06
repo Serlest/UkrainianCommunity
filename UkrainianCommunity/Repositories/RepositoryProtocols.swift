@@ -9,6 +9,7 @@ protocol NewsRepository {
     func fetchNews() async throws -> [NewsPost]
     func fetchPendingNews() async throws -> [NewsPost]
     func createNews(_ news: NewsPost) async throws
+    func updateNews(_ news: NewsPost) async throws
     func deleteNews(id: String) async throws
     func likeNews(id: String) async throws
     func unlikeNews(id: String) async throws
@@ -19,6 +20,7 @@ protocol EventRepository {
     func fetchEvents() async throws -> [Event]
     func fetchPendingEvents() async throws -> [Event]
     func createEvent(_ event: Event) async throws
+    func updateEvent(_ event: Event) async throws
     func deleteEvent(id: String) async throws
     func likeEvent(id: String) async throws
     func unlikeEvent(id: String) async throws

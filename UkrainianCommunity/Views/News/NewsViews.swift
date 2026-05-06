@@ -287,8 +287,13 @@ struct NewsDetailView: View {
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
     @State private var isDeleting = false
+    @State private var isShowingEditSheet = false
     @State private var pendingRemovalPostID: String?
     private let detailImageHeight: CGFloat = 260
+
+    private var canEditNews: Bool {
+        authState.user?.role.permissions.canEditNews == true
+    }
 
     private var canDeleteNews: Bool {
         authState.user?.role.permissions.canDeleteNews == true
@@ -300,6 +305,18 @@ struct NewsDetailView: View {
 
     private var detailCardShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
+    }
+
+    @ViewBuilder
+    private var editSheetContent: some View {
+        if let post = viewModel.post(for: postID) {
+            NavigationStack {
+                NewsEditorView(repository: viewModel.editorRepository, news: post) {
+                    await viewModel.refresh()
+                }
+            }
+            .environmentObject(authState)
+        }
     }
 
     var body: some View {
@@ -443,6 +460,14 @@ struct NewsDetailView: View {
         .navigationTitle(AppStrings.News.detailTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if canEditNews, viewModel.post(for: postID) != nil {
+                Button {
+                    isShowingEditSheet = true
+                } label: {
+                    Image(systemName: "pencil")
+                }
+            }
+
             if canDeleteNews {
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
@@ -467,6 +492,9 @@ struct NewsDetailView: View {
             Button(AppStrings.News.dismissError, role: .cancel) {}
         } message: {
             Text(deleteErrorMessage ?? "")
+        }
+        .sheet(isPresented: $isShowingEditSheet) {
+            editSheetContent
         }
         .onDisappear {
             guard let pendingRemovalPostID else { return }

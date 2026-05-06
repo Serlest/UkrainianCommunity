@@ -10,7 +10,12 @@ struct NewsEditorView: View {
     private let onPublished: @MainActor () async -> Void
 
     init(repository: NewsRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
-        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository))
+        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create))
+        self.onPublished = onPublished
+    }
+
+    init(repository: NewsRepository, news: NewsPost, onPublished: @escaping @MainActor () async -> Void = {}) {
+        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .edit(existing: news)))
         self.onPublished = onPublished
     }
 
@@ -58,7 +63,7 @@ struct NewsEditorView: View {
                         .foregroundStyle(.red)
                 }
 
-                Button(AppStrings.NewsEditor.publish) {
+                Button(viewModel.submitButtonTitle) {
                     Task {
                         let didPublish = await viewModel.publish()
                         guard didPublish else { return }
@@ -69,7 +74,7 @@ struct NewsEditorView: View {
                 .disabled(!viewModel.canPublish)
             }
         }
-        .navigationTitle(AppStrings.NewsEditor.title)
+        .navigationTitle(viewModel.navigationTitle)
         .onChange(of: selectedPhoto) { _, newItem in
             Task {
                 await loadSelectedPhoto(item: newItem)

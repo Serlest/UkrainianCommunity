@@ -54,6 +54,18 @@ struct FirestoreNewsRepository: NewsRepository {
         ])
     }
 
+    func updateNews(_ news: NewsPost) async throws {
+        try await collection.document(news.id).updateData([
+            "title": news.title,
+            "subtitle": news.subtitle,
+            "summary": news.subtitle,
+            "body": news.body,
+            "imageURL": news.imageURL as Any,
+            "authorName": news.authorName,
+            "updatedAt": Timestamp(date: news.updatedAt)
+        ])
+    }
+
     func deleteNews(id: String) async throws {
         let imageReference = Storage.storage().reference().child("news/\(id)/cover.jpg")
 
