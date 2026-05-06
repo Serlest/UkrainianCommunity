@@ -21,14 +21,14 @@ struct GradientHeroCard<Content: View>: View {
                 .font(.title2.weight(.bold))
             Text(subtitle)
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(AppTheme.textOnHero.opacity(0.85))
             content
         }
-        .padding(20)
+        .padding(AppTheme.detailCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.heroGradient)
-        .foregroundStyle(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(AppTheme.surfaceHero)
+        .foregroundStyle(AppTheme.textOnHero)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
     }
 }
 
@@ -58,15 +58,15 @@ struct CommunityCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             content
         }
-        .padding(18)
+        .padding(AppTheme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppTheme.cardBackground)
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.surfacePrimary)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
         )
     }
 }
@@ -80,8 +80,8 @@ struct DetailPageContainer<Content: View>: View {
                 VStack(alignment: .leading, spacing: 16) {
                     content
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
                 .padding(.bottom, 120)
                 .frame(width: proxy.size.width, alignment: .leading)
             }
@@ -97,15 +97,15 @@ struct DetailCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             content
         }
-        .padding(20)
+        .padding(AppTheme.detailCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(AppTheme.cardBackground)
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .fill(AppTheme.surfacePrimary)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
         )
     }
 }
@@ -139,10 +139,10 @@ struct DetailImageCard: View {
 
     var body: some View {
         DetailCard {
-            RemoteCardImage(imageURL: imageURL, height: height, cornerRadius: 18, source: source)
+            RemoteCardImage(imageURL: imageURL, height: height, cornerRadius: AppTheme.imageRadius, source: source)
                 .frame(maxWidth: .infinity)
                 .frame(height: height)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
         }
     }
 }
@@ -205,18 +205,18 @@ struct RemoteImageView: View {
     private var placeholder: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(AppTheme.groupedBackground)
+                .fill(AppTheme.surfaceSecondary)
             LinearGradient(
                 colors: [
-                    AppTheme.groupedBackground,
-                    AppTheme.cardBackground
+                    AppTheme.surfaceSecondary,
+                    AppTheme.surfacePrimary
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             Image(systemName: "photo")
                 .font(.title2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 
@@ -279,12 +279,12 @@ struct LikeButton: View {
         Button(action: action) {
             Label("\(count)", systemImage: isLiked ? "heart.fill" : "heart")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isLiked ? AppTheme.accentRed : AppTheme.primaryBlue)
+                .foregroundStyle(isLiked ? AppTheme.accentDestructive : AppTheme.accentPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
                     Capsule()
-                        .fill((isLiked ? AppTheme.accentRed : AppTheme.primaryBlue).opacity(0.12))
+                        .fill(isLiked ? AppTheme.badgeRedFill : AppTheme.badgeBlueFill)
                 )
         }
         .buttonStyle(.plain)
@@ -303,11 +303,11 @@ struct MetadataRow: View {
                 Spacer()
                 Text(value)
                     .multilineTextAlignment(.trailing)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
         } icon: {
             Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.primaryBlue)
+                .foregroundStyle(AppTheme.accentPrimary)
         }
         .font(.subheadline)
     }
@@ -320,3 +320,97 @@ struct EmptyStateView: View {
         ContentUnavailableView(title, systemImage: "tray")
     }
 }
+struct LoadingStateCard: View {
+    let title: String?
+
+    var body: some View {
+        CommunityCard {
+            HStack(spacing: 12) {
+                ProgressView()
+
+                if let title, !title.isEmpty {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 6)
+        }
+    }
+}
+
+struct EmptyStateCard: View {
+    let systemImage: String
+    let title: String
+    let message: String
+
+    var body: some View {
+        CommunityCard {
+            VStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 30))
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Text(title)
+                    .font(.title3.weight(.semibold))
+
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
+    }
+}
+
+struct ErrorStateCard: View {
+    let systemImage: String
+    let title: String
+    let message: String
+    let retryTitle: String?
+    let retryAction: (() -> Void)?
+
+    init(
+        systemImage: String = "exclamationmark.triangle",
+        title: String,
+        message: String,
+        retryTitle: String? = nil,
+        retryAction: (() -> Void)? = nil
+    ) {
+        self.systemImage = systemImage
+        self.title = title
+        self.message = message
+        self.retryTitle = retryTitle
+        self.retryAction = retryAction
+    }
+
+    var body: some View {
+        CommunityCard {
+            VStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 30))
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Text(title)
+                    .font(.title3.weight(.semibold))
+
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+
+                if let retryTitle, let retryAction {
+                    Button(retryTitle, action: retryAction)
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accentPrimary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
+    }
+}
+

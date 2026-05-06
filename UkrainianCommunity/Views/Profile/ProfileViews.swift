@@ -77,16 +77,18 @@ struct ProfileView: View {
                 } else {
                     Text(AppStrings.Profile.loadingUserProfile)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
+            .listRowBackground(AppTheme.surfacePrimary)
 
             Section(AppStrings.Profile.capabilities) {
                 ForEach(capabilityItems, id: \.self) { capability in
                     Label(capability, systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(AppTheme.primaryBlue)
+                        .foregroundStyle(AppTheme.accentPrimary)
                 }
             }
+            .listRowBackground(AppTheme.surfacePrimary)
 
             if canShowModerationTools {
                 Section(AppStrings.Profile.moderationTools) {
@@ -100,6 +102,7 @@ struct ProfileView: View {
                     Label(AppStrings.Profile.manageOrganizations, systemImage: "building.2")
                     Label(AppStrings.Profile.manageMarketplace, systemImage: "storefront")
                 }
+                .listRowBackground(AppTheme.surfacePrimary)
             }
 
             if canShowAdminTools {
@@ -111,6 +114,7 @@ struct ProfileView: View {
                     }
                     Label(AppStrings.Profile.moderationTools, systemImage: "checkmark.shield")
                 }
+                .listRowBackground(AppTheme.surfacePrimary)
             }
 
             Section(AppStrings.Settings.title) {
@@ -126,10 +130,26 @@ struct ProfileView: View {
                     }
                 }
 
-                MetadataRow(label: AppStrings.Settings.privacyPolicy, value: AppStrings.Settings.placeholder, systemImage: "lock.doc")
-                MetadataRow(label: AppStrings.Settings.terms, value: AppStrings.Settings.placeholder, systemImage: "doc.text")
+                LabeledContent {
+                    Text(AppStrings.Settings.placeholder)
+                        .foregroundStyle(AppTheme.textSecondary)
+                } label: {
+                    Label(AppStrings.Settings.privacyPolicy, systemImage: "lock.doc")
+                }
+
+                LabeledContent {
+                    Text(AppStrings.Settings.placeholder)
+                        .foregroundStyle(AppTheme.textSecondary)
+                } label: {
+                    Label(AppStrings.Settings.terms, systemImage: "doc.text")
+                }
             }
+            .listRowBackground(AppTheme.surfacePrimary)
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
+        .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.Profile.title)
     }
 }

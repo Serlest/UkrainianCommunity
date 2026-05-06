@@ -9,6 +9,7 @@ struct EventsListView: View {
     @State private var pendingDeleteEventID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
+    @State private var isShowingCreateSheet = false
 
     private var errorText: String {
         switch viewModel.error {
@@ -39,46 +40,35 @@ struct EventsListView: View {
         ScrollView {
             if viewModel.events.isEmpty && viewModel.isLoading {
                 VStack {
-                    Spacer(minLength: 0)
-                    ProgressView()
-                    Spacer(minLength: 0)
+                    LoadingStateCard(title: nil)
                 }
                 .frame(maxWidth: .infinity, minHeight: 420)
             } else if viewModel.events.isEmpty && viewModel.error != nil {
-                EventsStateView(
+                ErrorStateCard(
                     systemImage: "calendar",
                     title: AppStrings.Events.title,
-                    subtitle: errorText
+                    message: errorText,
+                    retryTitle: AppStrings.Events.retry
                 ) {
-                    Button(AppStrings.Events.retry) {
-                        viewModel.reload()
-                    }
-                    .buttonStyle(.borderedProminent)
+                    viewModel.reload()
                 }
+                .frame(maxWidth: .infinity, minHeight: 420)
             } else if viewModel.events.isEmpty {
-                EventsStateView(
+                EmptyStateCard(
                     systemImage: "calendar",
                     title: AppStrings.Events.title,
-                    subtitle: AppStrings.Events.empty
-                ) {
-                    Button(AppStrings.Events.retry) {
-                        viewModel.reload()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
+                    message: AppStrings.Events.empty
+                )
+                .frame(maxWidth: .infinity, minHeight: 420)
             } else {
                 VStack(spacing: 16) {
                     if viewModel.error != nil {
-                        VStack(spacing: 8) {
-                            Text(errorText)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-
-                            Button(AppStrings.Events.retry) {
-                                viewModel.reload()
-                            }
-                            .buttonStyle(.bordered)
+                        ErrorStateCard(
+                            title: AppStrings.Events.title,
+                            message: errorText,
+                            retryTitle: AppStrings.Events.retry
+                        ) {
+                            viewModel.reload()
                         }
                         .padding(.horizontal, 16)
                     }
@@ -100,6 +90,8 @@ struct EventsListView: View {
                                 viewModel.toggleLike(for: event.id)
                             }
                             .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
+                            .accessibilityLabel(event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
+                            .accessibilityHint(AppStrings.Common.likes)
                             .padding(.trailing, 18)
                             .padding(.bottom, 18)
                         }
@@ -164,11 +156,18 @@ struct EventsListView: View {
         }
         .toolbar {
             if canCreateEvent {
-                NavigationLink {
-                    EventEditorView(repository: eventRepository, onPublished: onEventPublished)
+                Button {
+                    isShowingCreateSheet = true
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel(AppStrings.Action.create)
+                .accessibilityHint(AppStrings.Events.title)
+            }
+        }
+        .sheet(isPresented: $isShowingCreateSheet) {
+            NavigationStack {
+                EventEditorView(repository: eventRepository, onPublished: onEventPublished)
             }
         }
     }
@@ -211,38 +210,6 @@ private func looksLikeRawEventAuthorIdentifier(_ value: String) -> Bool {
 
     let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
     return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
-}
-
-private struct EventsStateView<ActionContent: View>: View {
-    let systemImage: String
-    let title: String
-    let subtitle: String
-    @ViewBuilder let actionContent: ActionContent
-
-    var body: some View {
-        VStack {
-            Spacer(minLength: 0)
-            VStack(spacing: 16) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 44))
-                    .foregroundStyle(.secondary)
-
-                Text(title)
-                    .font(.title3.weight(.semibold))
-
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                actionContent
-            }
-            .frame(maxWidth: 320)
-            .padding(.horizontal, 24)
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, minHeight: 420)
-    }
 }
 
 private struct EventCard: View {
@@ -453,6 +420,8 @@ struct EventDetailView: View {
                                 .buttonStyle(.borderedProminent)
                                 .tint(AppTheme.primaryBlue)
                                 .disabled(viewModel.pendingEventRegistrationIDs.contains(event.id))
+                                .accessibilityLabel(event.registrationState == .registered ? AppStrings.Action.cancelRegistration : AppStrings.Action.register)
+                                .accessibilityHint(AppStrings.Events.title)
 
                                 Spacer(minLength: 0)
 
@@ -460,6 +429,8 @@ struct EventDetailView: View {
                                     viewModel.toggleLike(for: event.id)
                                 }
                                 .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
+                                .accessibilityLabel(event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
+                                .accessibilityHint(AppStrings.Common.likes)
                             }
                             .padding(20)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -520,6 +491,8 @@ struct EventDetailView: View {
                 } label: {
                     Image(systemName: "pencil")
                 }
+                .accessibilityLabel(AppStrings.Action.edit)
+                .accessibilityHint(AppStrings.Events.title)
             }
 
             if canDeleteEvent {
@@ -529,6 +502,8 @@ struct EventDetailView: View {
                     Image(systemName: "trash")
                 }
                 .disabled(isDeleting)
+                .accessibilityLabel(AppStrings.Action.delete)
+                .accessibilityHint(AppStrings.Events.title)
             }
         }
         .confirmationDialog(AppStrings.Events.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {

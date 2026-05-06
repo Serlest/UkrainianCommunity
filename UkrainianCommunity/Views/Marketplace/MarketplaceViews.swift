@@ -24,52 +24,39 @@ struct MarketplaceListView: View {
         ScrollView {
             if viewModel.items.isEmpty && viewModel.isLoading {
                 VStack {
-                    Spacer(minLength: 0)
-                    ProgressView()
-                    Spacer(minLength: 0)
+                    LoadingStateCard(title: nil)
                 }
                 .frame(maxWidth: .infinity, minHeight: 420)
             } else if viewModel.items.isEmpty && viewModel.error != nil {
-                MarketplaceStateView(
+                ErrorStateCard(
                     systemImage: "basket",
                     title: AppStrings.Marketplace.title,
-                    subtitle: errorText
+                    message: errorText,
+                    retryTitle: AppStrings.Marketplace.retry
                 ) {
-                    Button(AppStrings.Marketplace.retry) {
-                        Task {
-                            await viewModel.refresh()
-                        }
+                    Task {
+                        await viewModel.refresh()
                     }
-                    .buttonStyle(.borderedProminent)
                 }
+                .frame(maxWidth: .infinity, minHeight: 420)
             } else if viewModel.items.isEmpty {
-                MarketplaceStateView(
+                EmptyStateCard(
                     systemImage: "basket",
                     title: AppStrings.Marketplace.title,
-                    subtitle: AppStrings.Marketplace.empty
-                ) {
-                    Button(AppStrings.Marketplace.retry) {
-                        Task {
-                            await viewModel.refresh()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
+                    message: AppStrings.Marketplace.empty
+                )
+                .frame(maxWidth: .infinity, minHeight: 420)
             } else {
                 VStack(spacing: 16) {
                     if viewModel.error != nil {
-                        VStack(spacing: 8) {
-                            Text(errorText)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-
-                            Button(AppStrings.Marketplace.retry) {
-                                Task {
-                                    await viewModel.refresh()
-                                }
+                        ErrorStateCard(
+                            title: AppStrings.Marketplace.title,
+                            message: errorText,
+                            retryTitle: AppStrings.Marketplace.retry
+                        ) {
+                            Task {
+                                await viewModel.refresh()
                             }
-                            .buttonStyle(.bordered)
                         }
                         .padding(.horizontal, 16)
                     }
@@ -96,38 +83,6 @@ struct MarketplaceListView: View {
         .refreshable {
             await viewModel.refresh()
         }
-    }
-}
-
-private struct MarketplaceStateView<ActionContent: View>: View {
-    let systemImage: String
-    let title: String
-    let subtitle: String
-    @ViewBuilder let actionContent: ActionContent
-
-    var body: some View {
-        VStack {
-            Spacer(minLength: 0)
-            VStack(spacing: 16) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 44))
-                    .foregroundStyle(.secondary)
-
-                Text(title)
-                    .font(.title3.weight(.semibold))
-
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                actionContent
-            }
-            .frame(maxWidth: 320)
-            .padding(.horizontal, 24)
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, minHeight: 420)
     }
 }
 

@@ -175,8 +175,9 @@ struct UserManagementView: View {
                     Section {
                         Text(AppStrings.UserManagement.subtitle)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
+                    .listRowBackground(AppTheme.surfacePrimary)
 
                     ForEach(viewModel.entries) { entry in
                         VStack(alignment: .leading, spacing: 12) {
@@ -207,20 +208,26 @@ struct UserManagementView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(AppStrings.UserManagement.issue)
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppTheme.textSecondary)
 
                                 ForEach(entry.issues) { issue in
                                     Label(issue.title, systemImage: "exclamationmark.circle")
                                         .font(.subheadline)
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(AppTheme.textPrimary)
                                 }
                             }
                         }
                         .padding(.vertical, 6)
+                        .listRowBackground(AppTheme.surfacePrimary)
                     }
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.pageBackground)
             }
         }
+        .background(AppTheme.pageBackground)
+        .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.UserManagement.title)
         .task {
             await viewModel.loadIfNeeded()
@@ -241,14 +248,14 @@ struct UserManagementView: View {
             VStack(spacing: 16) {
                 Image(systemName: systemImage)
                     .font(.system(size: 44))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
 
                 Text(title)
                     .font(.title3.weight(.semibold))
 
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                     .multilineTextAlignment(.center)
 
                 actionContent()
@@ -258,6 +265,7 @@ struct UserManagementView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.pageBackground)
     }
 
     private func legacyRoleTitle(_ rawValue: String) -> String {

@@ -247,6 +247,17 @@ enum AppStrings {
         static var legalPlaceholder: String { text("common.placeholder.legal", "Placeholder") }
     }
 
+    enum Action {
+        static var create: String { text("action.create", "Create") }
+        static var edit: String { text("action.edit", "Edit") }
+        static var delete: String { text("action.delete", "Delete") }
+        static var like: String { text("action.like", "Like") }
+        static var unlike: String { text("action.unlike", "Unlike") }
+        static var register: String { text("action.register", "Register") }
+        static var cancelRegistration: String { text("action.cancel_registration", "Cancel Registration") }
+        static var saveChanges: String { text("action.save_changes", "Save Changes") }
+    }
+
     enum Validation {
         static var newsTitleRequired: String { text("validation.news.title_required", "News title is required.") }
         static var newsSubtitleRequired: String { text("validation.news.subtitle_required", "News subtitle is required.") }

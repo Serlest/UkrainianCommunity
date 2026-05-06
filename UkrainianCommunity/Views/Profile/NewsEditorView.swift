@@ -74,6 +74,9 @@ struct NewsEditorView: View {
                 .disabled(!viewModel.canPublish)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
+        .tint(AppTheme.accentPrimary)
         .navigationTitle(viewModel.navigationTitle)
         .onChange(of: selectedPhoto) { _, newItem in
             Task {

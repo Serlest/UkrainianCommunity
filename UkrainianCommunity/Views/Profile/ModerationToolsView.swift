@@ -262,15 +262,17 @@ struct ModerationToolsView: View {
                     Section {
                         Text(AppStrings.Moderation.subtitle)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
+                    .listRowBackground(AppTheme.surfacePrimary)
 
                     if let error = viewModel.error {
                         Section {
                             Text(errorMessage(for: error))
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                         }
+                        .listRowBackground(AppTheme.surfacePrimary)
                     }
 
                     Section {
@@ -287,9 +289,15 @@ struct ModerationToolsView: View {
                             )
                         }
                     }
+                    .listRowBackground(AppTheme.surfacePrimary)
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.pageBackground)
             }
         }
+        .background(AppTheme.pageBackground)
+        .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.Moderation.title)
         .task {
             viewModel.setAllowedSections(allowedSections)
@@ -305,24 +313,25 @@ struct ModerationToolsView: View {
         VStack(spacing: 12) {
             Image(systemName: "checkmark.shield")
                 .font(.system(size: 30))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .background(AppTheme.pageBackground)
     }
 
     private func moderationErrorView(message: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 30))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
             Button(AppStrings.Moderation.retry) {
                 viewModel.reload()
@@ -358,11 +367,11 @@ private struct ModerationItemRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(item.type.title)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.primaryBlue)
+                    .foregroundStyle(AppTheme.accentPrimary)
                 Spacer()
                 Text(LocalizationStore.dateString(from: item.createdAt))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
 
             Text(item.title)
@@ -370,7 +379,7 @@ private struct ModerationItemRow: View {
 
             Text(item.summary)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(3)
 
             HStack(spacing: 12) {
@@ -387,6 +396,7 @@ private struct ModerationItemRow: View {
                     }
                 }
                 .buttonStyle(.bordered)
+                .tint(AppTheme.accentDestructive)
             }
             .disabled(isProcessing)
         }
