@@ -3,9 +3,12 @@ import Foundation
 struct UserDTO: Codable, Identifiable {
     let id: String
     let fullName: String
+    let displayName: String?
     let city: String
     let email: String
+    let avatarURL: String?
     let bio: String
+    let telegramUsername: String?
     let role: String
     let blockState: String
     let globalRole: String?
@@ -14,8 +17,23 @@ struct UserDTO: Codable, Identifiable {
     let banExpiresAt: Date?
     let warningCount: Int?
     let communityMemberships: [CommunityMembershipDTO]?
+    let selectedFederalState: String?
+    let acceptedTermsAt: Date?
+    let acceptedPrivacyAt: Date?
+    let termsVersion: String?
+    let privacyVersion: String?
     let createdAt: Date
     let updatedAt: Date
+}
+
+struct FeedbackDTO: Codable, Identifiable {
+    let id: String
+    let type: String
+    let message: String
+    let status: String
+    let createdAt: Date
+    let userId: String
+    let userDisplayName: String
 }
 
 struct CommunityMembershipDTO: Codable, Identifiable {
@@ -37,6 +55,13 @@ struct NewsPostDTO: Codable, Identifiable {
     let id: String
     let title: String
     let subtitle: String
+    let regionScope: String?
+    let federalState: String?
+    let city: String?
+    let sourceType: String?
+    let organizationId: String?
+    let organizationName: String?
+    let organizationImageURL: String?
     let imageURL: String?
     let body: String
     let authorName: String
@@ -54,6 +79,12 @@ struct EventDTO: Codable, Identifiable {
     let title: String
     let summary: String
     let details: String
+    let regionScope: String?
+    let federalState: String?
+    let sourceType: String?
+    let organizationId: String?
+    let organizationName: String?
+    let organizationImageURL: String?
     let city: String
     let venue: String
     let imageURL: String?
@@ -70,31 +101,33 @@ struct EventDTO: Codable, Identifiable {
     let likeState: String
 }
 
+struct GuideArticleDTO: Codable, Identifiable {
+    let id: String
+    let title: String
+    let summary: String
+    let body: String
+    let category: String
+    let regionScope: String?
+    let federalState: String?
+    let city: String?
+    let officialSourceURL: String?
+    let sourceName: String?
+    let isPinned: Bool
+    let moderationStatus: String
+    let createdAt: Date
+    let updatedAt: Date
+}
+
 struct OrganizationDTO: Codable, Identifiable {
     let id: String
     let name: String
     let description: String
+    let regionScope: String?
+    let federalState: String?
     let city: String
     let imageURL: String?
     let contactEmail: String?
     let website: String?
-    let createdAt: Date
-    let moderationStatus: String
-    let likeCount: Int
-    let likeState: String
-}
-
-struct MarketplaceItemDTO: Codable, Identifiable {
-    let id: String
-    let title: String
-    let description: String
-    let price: Decimal?
-    let currency: String
-    let city: String
-    let category: String
-    let imageURL: String?
-    let contactEmail: String?
-    let expiresAt: Date?
     let createdAt: Date
     let updatedAt: Date
     let moderationStatus: String
@@ -113,9 +146,12 @@ extension AppUser {
         self.init(
             id: dto.id,
             fullName: dto.fullName,
+            displayName: dto.displayName ?? dto.fullName,
             city: dto.city,
             email: dto.email,
+            avatarURL: dto.avatarURL.flatMap(URL.init(string:)),
             bio: dto.bio,
+            telegramUsername: dto.telegramUsername,
             role: legacyRole,
             globalRole: resolvedGlobalRole,
             moderatorSections: resolvedModeratorSections,
@@ -129,6 +165,11 @@ extension AppUser {
                     role: CommunityRole(rawValue: $0.role) ?? .member
                 )
             },
+            selectedFederalState: dto.selectedFederalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
+            acceptedTermsAt: dto.acceptedTermsAt,
+            acceptedPrivacyAt: dto.acceptedPrivacyAt,
+            termsVersion: dto.termsVersion,
+            privacyVersion: dto.privacyVersion,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )
@@ -138,9 +179,12 @@ extension AppUser {
         UserDTO(
             id: id,
             fullName: fullName,
+            displayName: displayName,
             city: city,
             email: email,
+            avatarURL: avatarURL?.absoluteString,
             bio: bio,
+            telegramUsername: telegramUsername,
             role: role.rawValue,
             blockState: blockState.rawValue,
             globalRole: globalRole.rawValue,
@@ -154,8 +198,39 @@ extension AppUser {
                     role: $0.role.rawValue
                 )
             },
+            selectedFederalState: selectedFederalState?.rawValue,
+            acceptedTermsAt: acceptedTermsAt,
+            acceptedPrivacyAt: acceptedPrivacyAt,
+            termsVersion: termsVersion,
+            privacyVersion: privacyVersion,
             createdAt: createdAt,
             updatedAt: updatedAt
+        )
+    }
+}
+
+extension FeedbackItem {
+    init(dto: FeedbackDTO) {
+        self.init(
+            id: dto.id,
+            type: FeedbackType(rawValue: dto.type) ?? .question,
+            message: dto.message,
+            status: FeedbackStatus(rawValue: dto.status) ?? .open,
+            createdAt: dto.createdAt,
+            userId: dto.userId,
+            userDisplayName: dto.userDisplayName
+        )
+    }
+
+    var dto: FeedbackDTO {
+        FeedbackDTO(
+            id: id,
+            type: type.rawValue,
+            message: message,
+            status: status.rawValue,
+            createdAt: createdAt,
+            userId: userId,
+            userDisplayName: userDisplayName
         )
     }
 }
@@ -188,6 +263,15 @@ extension NewsPost {
             id: dto.id,
             title: dto.title,
             subtitle: dto.subtitle,
+            regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .federalState,
+            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
+            city: dto.city,
+            source: ContentSourceMetadata(
+                sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)) ?? .app,
+                organizationId: dto.organizationId,
+                organizationName: dto.organizationName,
+                organizationImageURL: dto.organizationImageURL
+            ),
             imageURL: dto.imageURL,
             body: dto.body,
             authorName: dto.authorName,
@@ -214,6 +298,13 @@ extension NewsPost {
             id: id,
             title: title,
             subtitle: subtitle,
+            regionScope: regionScope?.rawValue,
+            federalState: federalState?.rawValue,
+            city: city,
+            sourceType: source.sourceType.rawValue,
+            organizationId: source.organizationId,
+            organizationName: source.organizationName,
+            organizationImageURL: source.organizationImageURL,
             imageURL: imageURL,
             body: body,
             authorName: authorName,
@@ -235,6 +326,14 @@ extension Event {
             title: dto.title,
             summary: dto.summary,
             details: dto.details,
+            regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .city,
+            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
+            source: ContentSourceMetadata(
+                sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)) ?? .app,
+                organizationId: dto.organizationId,
+                organizationName: dto.organizationName,
+                organizationImageURL: dto.organizationImageURL
+            ),
             city: dto.city,
             venue: dto.venue,
             imageURL: dto.imageURL,
@@ -266,6 +365,12 @@ extension Event {
             title: title,
             summary: summary,
             details: details,
+            regionScope: regionScope?.rawValue,
+            federalState: federalState?.rawValue,
+            sourceType: source.sourceType.rawValue,
+            organizationId: source.organizationId,
+            organizationName: source.organizationName,
+            organizationImageURL: source.organizationImageURL,
             city: city,
             venue: venue,
             imageURL: imageURL,
@@ -290,11 +395,14 @@ extension Organization {
             id: dto.id,
             name: dto.name,
             description: dto.description,
+            regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .city,
+            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
             city: dto.city,
             imageURL: dto.imageURL,
             contactEmail: dto.contactEmail,
             website: dto.website,
             createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt,
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             likeCount: dto.likeCount,
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked
@@ -306,11 +414,14 @@ extension Organization {
             id: id,
             name: name,
             description: description,
+            regionScope: regionScope?.rawValue,
+            federalState: federalState?.rawValue,
             city: city,
             imageURL: imageURL,
             contactEmail: contactEmail,
             website: website,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             moderationStatus: moderationStatus.rawValue,
             likeCount: likeCount,
             likeState: likeState.rawValue
@@ -318,44 +429,42 @@ extension Organization {
     }
 }
 
-extension MarketplaceItem {
-    init(dto: MarketplaceItemDTO) {
+extension GuideArticle {
+    init(dto: GuideArticleDTO) {
         self.init(
             id: dto.id,
             title: dto.title,
-            description: dto.description,
-            price: dto.price,
-            currency: dto.currency,
+            summary: dto.summary,
+            body: dto.body,
+            category: GuideCategory(rawValue: dto.category) ?? .documents,
+            regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .austria,
+            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)),
             city: dto.city,
-            category: dto.category,
-            imageURL: dto.imageURL,
-            contactEmail: dto.contactEmail,
-            expiresAt: dto.expiresAt,
+            officialSourceURL: dto.officialSourceURL,
+            sourceName: dto.sourceName,
+            isPinned: dto.isPinned,
+            moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .approved,
             createdAt: dto.createdAt,
-            updatedAt: dto.updatedAt,
-            moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
-            likeCount: dto.likeCount,
-            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked
+            updatedAt: dto.updatedAt
         )
     }
 
-    var dto: MarketplaceItemDTO {
-        MarketplaceItemDTO(
+    var dto: GuideArticleDTO {
+        GuideArticleDTO(
             id: id,
             title: title,
-            description: description,
-            price: price,
-            currency: currency,
+            summary: summary,
+            body: body,
+            category: category.rawValue,
+            regionScope: regionScope?.rawValue,
+            federalState: federalState?.rawValue,
             city: city,
-            category: category,
-            imageURL: imageURL,
-            contactEmail: contactEmail,
-            expiresAt: expiresAt,
-            createdAt: createdAt,
-            updatedAt: updatedAt,
+            officialSourceURL: officialSourceURL,
+            sourceName: sourceName,
+            isPinned: isPinned,
             moderationStatus: moderationStatus.rawValue,
-            likeCount: likeCount,
-            likeState: likeState.rawValue
+            createdAt: createdAt,
+            updatedAt: updatedAt
         )
     }
 }

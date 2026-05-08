@@ -1,5 +1,74 @@
 import Foundation
 
+struct AuthValidationService {
+    private let minimumPasswordLength = 8
+
+    func validateLogin(email: String, password: String) -> [String] {
+        var errors = [String]()
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedEmail.isEmpty {
+            errors.append(AppStrings.Validation.authEmailRequired)
+        } else if !isValidEmail(trimmedEmail) {
+            errors.append(AppStrings.Validation.authEmailInvalid)
+        }
+
+        if password.count < minimumPasswordLength {
+            errors.append(AppStrings.Validation.authPasswordTooShort)
+        }
+
+        return errors
+    }
+
+    func validateRegistration(
+        email: String,
+        password: String,
+        repeatedPassword: String,
+        displayName: String,
+        acceptedTerms: Bool,
+        acceptedPrivacy: Bool
+    ) -> [String] {
+        var errors = validateLogin(email: email, password: password)
+
+        if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            errors.append(AppStrings.Validation.authDisplayNameRequired)
+        }
+
+        if password != repeatedPassword {
+            errors.append(AppStrings.Validation.authPasswordMismatch)
+        }
+
+        if !acceptedTerms {
+            errors.append(AppStrings.Validation.authTermsRequired)
+        }
+
+        if !acceptedPrivacy {
+            errors.append(AppStrings.Validation.authPrivacyRequired)
+        }
+
+        return errors
+    }
+
+    func validatePasswordReset(email: String) -> [String] {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedEmail.isEmpty {
+            return [AppStrings.Validation.authEmailRequired]
+        }
+
+        if !isValidEmail(trimmedEmail) {
+            return [AppStrings.Validation.authEmailInvalid]
+        }
+
+        return []
+    }
+
+    private func isValidEmail(_ email: String) -> Bool {
+        let pattern = #"^[^\s@]+@[^\s@]+\.[^\s@]+$"#
+        return email.range(of: pattern, options: .regularExpression) != nil
+    }
+}
+
 struct NewsValidationService {
     func validate(title: String, subtitle: String, body: String) -> [String] {
         var errors = [String]()
@@ -42,35 +111,36 @@ struct EventValidationService {
     }
 }
 
-struct MarketplaceValidationService {
+struct OrganizationValidationService {
     func validate(
-        title: String,
+        name: String,
         description: String,
         city: String,
-        price: Decimal?,
-        isFreeGift: Bool,
-        expirationDate: Date,
-        contactValue: String
+        contactEmail: String,
+        website: String
     ) -> [String] {
         var errors = [String]()
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = contactEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedWebsite = website.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.marketplaceTitleRequired)
+        if trimmedName.isEmpty {
+            errors.append(AppStrings.Validation.organizationNameRequired)
         }
-        if description.trimmingCharacters(in: .whitespacesAndNewlines).count < 10 {
-            errors.append(AppStrings.Validation.marketplaceDescriptionTooShort)
+        if trimmedDescription.count < 20 {
+            errors.append(AppStrings.Validation.organizationDescriptionTooShort)
         }
-        if city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.marketplaceCityRequired)
+        if trimmedCity.isEmpty {
+            errors.append(AppStrings.Validation.organizationCityRequired)
         }
-        if contactValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.marketplaceContactRequired)
+        if !trimmedEmail.isEmpty, !trimmedEmail.contains("@") {
+            errors.append(AppStrings.Validation.organizationEmailInvalid)
         }
-        if !isFreeGift, let price, price < 0 {
-            errors.append(AppStrings.Validation.marketplacePriceInvalid)
-        }
-        if expirationDate < .now {
-            errors.append(AppStrings.Validation.marketplaceExpirationInvalid)
+        if !trimmedWebsite.isEmpty,
+           URL(string: trimmedWebsite)?.scheme?.isEmpty != false {
+            errors.append(AppStrings.Validation.organizationWebsiteInvalid)
         }
 
         return errors

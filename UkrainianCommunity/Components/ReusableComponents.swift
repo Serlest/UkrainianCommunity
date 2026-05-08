@@ -137,11 +137,15 @@ struct DetailImageCard: View {
     let height: CGFloat
     let source: String
 
+    private var resolvedHeight: CGFloat {
+        RemoteImageView.normalizedHeight(for: height)
+    }
+
     var body: some View {
         DetailCard {
             RemoteCardImage(imageURL: imageURL, height: height, cornerRadius: AppTheme.imageRadius, source: source)
                 .frame(maxWidth: .infinity)
-                .frame(height: height)
+                .frame(height: resolvedHeight)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
         }
     }
@@ -199,7 +203,11 @@ struct RemoteImageView: View {
     }
 
     private var resolvedHeight: CGFloat {
-        height > 0 ? height : Self.fallbackHeight
+        Self.normalizedHeight(for: height)
+    }
+
+    static func normalizedHeight(for height: CGFloat) -> CGFloat {
+        height > 0 ? height : fallbackHeight
     }
 
     private var placeholder: some View {
@@ -257,16 +265,25 @@ struct RemoteCardImage: View {
     let height: CGFloat
     let cornerRadius: CGFloat
     let source: String
+    let isDecorative: Bool
 
-    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18, source: String = "unknown") {
+    init(
+        imageURL: String?,
+        height: CGFloat,
+        cornerRadius: CGFloat = 18,
+        source: String = "unknown",
+        isDecorative: Bool = false
+    ) {
         self.imageURL = imageURL
         self.height = height
         self.cornerRadius = cornerRadius
         self.source = source
+        self.isDecorative = isDecorative
     }
 
     var body: some View {
         RemoteImageView(imageURL: imageURL, height: height, cornerRadius: cornerRadius, source: source)
+            .accessibilityHidden(isDecorative)
     }
 }
 
@@ -310,6 +327,79 @@ struct MetadataRow: View {
                 .foregroundStyle(AppTheme.accentPrimary)
         }
         .font(.subheadline)
+    }
+}
+
+struct SelectableFilterChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isSelected ? AppTheme.accentPrimary : AppTheme.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? AppTheme.badgeBlueFill : AppTheme.surfacePrimary)
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(isSelected ? AppTheme.borderSubtle : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct SectionHeaderBlock: View {
+    let title: String
+    let subtitle: String?
+
+    init(title: String, subtitle: String? = nil) {
+        self.title = title
+        self.subtitle = subtitle
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct ContentMetadataPill: View {
+    let systemImage: String
+    let text: String
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary)
+            .multilineTextAlignment(.leading)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(AppTheme.surfaceSecondary)
+            )
     }
 }
 
@@ -413,4 +503,3 @@ struct ErrorStateCard: View {
         }
     }
 }
-

@@ -3,12 +3,9 @@ import Foundation
 enum AppStrings {
     enum Tabs {
         static var home: String { text("tab.home", "Home") }
-        static var news: String { text("tab.news", "News") }
         static var events: String { text("tab.events", "Events") }
-        static var community: String { text("tab.community", "Community") }
         static var organizations: String { text("tab.organizations", "Organizations") }
-        static var marketplace: String { text("tab.marketplace", "Marketplace") }
-        static var info: String { text("tab.info", "Info") }
+        static var info: String { text("tab.info", "Guide") }
         static var profile: String { text("tab.profile", "Profile") }
     }
 
@@ -16,6 +13,7 @@ enum AppStrings {
         static var title: String { text("home.title", "Ukrainian Community Tirol") }
         static var subtitle: String { text("home.subtitle", "A calm, trusted place for updates, events, organizations, and neighbor-to-neighbor support.") }
         static var highlights: String { text("home.highlights", "Community Highlights") }
+        static var feedTitle: String { text("home.feed_title", "Community Feed") }
         static var latestNews: String { text("home.latest_news", "Latest News") }
     }
 
@@ -62,6 +60,12 @@ enum AppStrings {
 
     enum Events {
         static var title: String { text("events.title", "Events") }
+        static var upcomingTitle: String { text("events.section.upcoming", "Upcoming") }
+        static var pastTitle: String { text("events.section.past", "Past") }
+        static var filterAll: String { text("events.filter.all", "All") }
+        static var filterToday: String { text("events.filter.today", "Today") }
+        static var filterThisWeek: String { text("events.filter.this_week", "This week") }
+        static var filteredUpcomingEmpty: String { text("events.empty.filtered_upcoming", "No upcoming events match this time range right now.") }
         static var register: String { text("events.register", "Register") }
         static var registered: String { text("events.registered", "Registered") }
         static var waitlisted: String { text("events.waitlisted", "Waitlisted") }
@@ -103,43 +107,97 @@ enum AppStrings {
     enum Organizations {
         static var title: String { text("organizations.title", "Organizations") }
         static var detailTitle: String { text("organizations.detail.title", "Organization Details") }
+        static var activityTitle: String { text("organizations.activity.title", "Community Activity") }
         static var empty: String { text("organizations.empty", "No organizations available yet.") }
         static var retry: String { text("organizations.retry", "Retry") }
         static var loadNetworkError: String { text("organizations.error.load.network", "Unable to load organizations. Check your connection and try again.") }
         static var loadPermissionError: String { text("organizations.error.load.permission", "You do not have permission to view these organizations.") }
         static var loadValidationError: String { text("organizations.error.load.validation", "The organization data could not be loaded.") }
         static var loadUnknownError: String { text("organizations.error.load.unknown", "Something went wrong while loading organizations.") }
-    }
-
-    enum Marketplace {
-        static var title: String { text("marketplace.title", "Marketplace") }
-        static var detailTitle: String { text("marketplace.detail.title", "Marketplace Details") }
-        static var empty: String { text("marketplace.empty", "No marketplace items available yet.") }
-        static var retry: String { text("marketplace.retry", "Retry") }
-        static var loadNetworkError: String { text("marketplace.error.load.network", "Unable to load marketplace items. Check your connection and try again.") }
-        static var loadPermissionError: String { text("marketplace.error.load.permission", "You do not have permission to view these marketplace items.") }
-        static var loadValidationError: String { text("marketplace.error.load.validation", "The marketplace data could not be loaded.") }
-        static var loadUnknownError: String { text("marketplace.error.load.unknown", "Something went wrong while loading marketplace items.") }
-        static var category: String { text("marketplace.category", "Category") }
-        static var freeGift: String { text("marketplace.free_gift", "Free / Gift") }
-        static var phone: String { text("marketplace.contact.phone", "Phone") }
-        static var email: String { text("marketplace.contact.email", "Email") }
-        static var telegram: String { text("marketplace.contact.telegram", "Telegram") }
+        static var actionPermissionError: String { text("organizations.error.action.permission", "You do not have permission to perform this action.") }
+        static var actionValidationError: String { text("organizations.error.action.validation", "The organization data could not be processed.") }
+        static var actionNotFoundError: String { text("organizations.error.action.not_found", "The selected organization could not be found.") }
+        static var actionUnknownError: String { text("organizations.error.action.unknown", "Something went wrong while processing the organization.") }
+        static var editorTitle: String { text("organizations.editor.title", "Create Organization") }
+        static var editTitle: String { text("organizations.editor.edit_title", "Edit Organization") }
+        static var fieldName: String { text("organizations.editor.field.name", "Name") }
+        static var fieldDescription: String { text("organizations.editor.field.description", "Description") }
+        static var fieldContactEmail: String { text("organizations.editor.field.contact_email", "Contact Email") }
+        static var fieldWebsite: String { text("organizations.editor.field.website", "Website") }
+        static var publish: String { text("organizations.editor.publish", "Publish") }
+        static var saveChanges: String { text("organizations.editor.save_changes", "Save Changes") }
+        static var publishing: String { text("organizations.editor.publishing", "Saving...") }
+        static var publishedSuccessfully: String { text("organizations.editor.success", "Organization published successfully.") }
+        static var updatedSuccessfully: String { text("organizations.editor.updated_success", "Organization updated successfully.") }
+        static var imageSectionTitle: String { text("organizations.editor.image_section", "Image") }
+        static var detailsSectionTitle: String { text("organizations.editor.details_section", "Details") }
+        static var deleteConfirmation: String { text("organizations.delete.confirmation", "Delete this organization?") }
+        static var delete: String { text("organizations.delete", "Delete") }
+        static var cancel: String { text("organizations.cancel", "Cancel") }
+        static var deleteFailed: String { text("organizations.delete_failed", "Delete Failed") }
+        static var dismissError: String { text("organizations.dismiss_error", "OK") }
     }
 
     enum Info {
-        static var title: String { text("info.title", "Info") }
-        static var placeholderTitle: String { text("info.placeholder.title", "Information hub foundation") }
-        static var placeholderBody: String { text("info.placeholder.body", "This section is ready for official guidance, practical resources, and trusted local references in a later phase.") }
-    }
-
-    enum Community {
-        static var title: String { text("community.title", "Community") }
-        static var subtitle: String { text("community.subtitle", "Find trusted organizations, local offers, and practical information in one place.") }
+        static var title: String { text("info.title", "Guide") }
+        static var subtitle: String { text("guide.subtitle", "Curated practical guidance, official references, and everyday orientation for families in Austria.") }
+        static var pinnedTitle: String { text("guide.pinned", "Important Now") }
+        static var categoriesTitle: String { text("guide.categories", "Categories") }
+        static var allCategories: String { text("guide.categories.all", "All") }
+        static var allArticlesTitle: String { text("guide.articles", "Articles") }
+        static var officialSource: String { text("guide.official_source", "Official source") }
+        static var searchPlaceholder: String { text("guide.search", "Search the guide") }
+        static var noResults: String { text("guide.no_results", "No guide articles match this search right now.") }
+        static var articleDetailTitle: String { text("guide.detail.title", "Guide Article") }
+        static var categoryDocuments: String { text("guide.category.documents", "Documents") }
+        static var categoryAnmeldung: String { text("guide.category.anmeldung", "Anmeldung") }
+        static var categoryWork: String { text("guide.category.work", "Work") }
+        static var categoryAMS: String { text("guide.category.ams", "AMS") }
+        static var categoryHousing: String { text("guide.category.housing", "Housing") }
+        static var categoryMedicine: String { text("guide.category.medicine", "Medicine") }
+        static var categoryChildren: String { text("guide.category.children", "Children") }
+        static var categoryEducation: String { text("guide.category.education", "Education") }
+        static var categoryBusiness: String { text("guide.category.business", "Business") }
+        static var categoryContacts: String { text("guide.category.contacts", "Contacts") }
+        static var categoryEmergency: String { text("guide.category.emergency", "Emergency") }
     }
 
     enum Profile {
         static var title: String { text("profile.title", "Profile") }
+        static var guestTitle: String { text("profile.guest.title", "Browsing as a guest") }
+        static var guestMessage: String { text("profile.guest.message", "You can explore Home, Events, Organizations, and the Guide without an account. Likes, registrations, feedback, and profile features will require sign-in in the next phase.") }
+        static var accountSection: String { text("profile.account_section", "Account") }
+        static var accountSummary: String { text("profile.account_summary", "Personal account") }
+        static var appManagement: String { text("profile.app_management", "App Management") }
+        static var appManagementSubtitle: String { text("profile.app_management.subtitle", "Moderation, publishing, and administration tools are grouped here according to your role.") }
+        static var myProfile: String { text("profile.my_profile", "My Profile") }
+        static var myActivity: String { text("profile.my_activity", "My Activity") }
+        static var activitySubtitle: String { text("profile.activity.subtitle", "Your personal participation and saved capabilities live here. Additional activity history will arrive in later phases.") }
+        static var myOrganizations: String { text("profile.my_organizations", "My Organizations") }
+        static var organizationsSectionSubtitle: String { text("profile.organizations.subtitle", "Organization responsibilities and publishing access appear here when your role includes them.") }
+        static var organizationManagement: String { text("profile.organization_management", "Organization Management") }
+        static var organizationManagementSubtitle: String { text("profile.organization_management.subtitle", "Manage the organizations you help lead and publish organization-owned updates.") }
+        static var contentManagement: String { text("profile.content_management", "Content Management") }
+        static var contentManagementSubtitle: String { text("profile.content_management.subtitle", "Manage app-owned community news and events.") }
+        static var appAdministration: String { text("profile.app_administration", "App Administration") }
+        static var feedbackSupport: String { text("profile.feedback_support", "Feedback & Support") }
+        static var manageAppNews: String { text("profile.manage_app_news", "Manage app News") }
+        static var manageAppEvents: String { text("profile.manage_app_events", "Manage app Events") }
+        static var createOrganizationNews: String { text("profile.create_organization_news", "Create organization News") }
+        static var createOrganizationEvent: String { text("profile.create_organization_event", "Create organization Event") }
+        static var editOrganizationDetails: String { text("profile.edit_organization_details", "Edit organization details") }
+        static var noManagedOrganizations: String { text("profile.no_managed_organizations", "No organizations are assigned to you yet.") }
+        static var editProfile: String { text("profile.edit", "Edit Profile") }
+        static var fullName: String { text("profile.full_name", "Full name") }
+        static var displayName: String { text("profile.display_name", "Display name") }
+        static var bio: String { text("profile.bio", "Bio") }
+        static var emailReadOnlyHint: String { text("profile.email_read_only_hint", "Your email address is managed through account sign-in and cannot be changed here yet.") }
+        static var telegramUsername: String { text("profile.telegram", "Telegram username") }
+        static var region: String { text("profile.region", "Region") }
+        static var saveProfile: String { text("profile.save", "Save") }
+        static var profileSaved: String { text("profile.saved", "Profile updated.") }
+        static var profileSaveFailed: String { text("profile.save_failed", "Unable to save profile right now.") }
+        static var displayNameRequired: String { text("profile.validation.display_name_required", "Display name is required.") }
         static var memberSince: String { text("profile.member_since", "Member since") }
         static var role: String { text("profile.role", "Role") }
         static var accountStatus: String { text("profile.account_status", "Account status") }
@@ -153,7 +211,25 @@ enum AppStrings {
         static var manageNews: String { text("profile.manage_news", "Manage news") }
         static var manageEvents: String { text("profile.manage_events", "Manage events") }
         static var manageOrganizations: String { text("profile.manage_organizations", "Manage organizations") }
-        static var manageMarketplace: String { text("profile.manage_marketplace", "Manage marketplace") }
+        static var signOut: String { text("profile.sign_out", "Sign Out") }
+        static var signOutConfirmTitle: String { text("profile.sign_out.confirm_title", "Sign out?") }
+        static var signOutConfirmMessage: String { text("profile.sign_out.confirm_message", "You will return to guest browsing and protected actions will require sign-in again.") }
+        static var signOutFailed: String { text("profile.sign_out.failed", "We couldn’t sign you out right now.") }
+    }
+
+    enum Feedback {
+        static var title: String { text("feedback.title", "Feedback") }
+        static var subtitle: String { text("feedback.subtitle", "Share a question, suggestion, bug, or report with the team.") }
+        static var fieldType: String { text("feedback.field.type", "Type") }
+        static var fieldMessage: String { text("feedback.field.message", "Message") }
+        static var submit: String { text("feedback.submit", "Send Feedback") }
+        static var submitted: String { text("feedback.submitted", "Feedback sent. Thank you.") }
+        static var submitFailed: String { text("feedback.submit_failed", "Unable to send feedback right now.") }
+        static var messageRequired: String { text("feedback.validation.message_required", "Please enter a message.") }
+        static var typeQuestion: String { text("feedback.type.question", "Question") }
+        static var typeSuggestion: String { text("feedback.type.suggestion", "Suggestion") }
+        static var typeBug: String { text("feedback.type.bug", "Bug") }
+        static var typeReport: String { text("feedback.type.report", "Report") }
     }
 
     enum Moderation {
@@ -166,7 +242,6 @@ enum AppStrings {
         static var typeNews: String { text("moderation.type.news", "News") }
         static var typeEvent: String { text("moderation.type.event", "Event") }
         static var typeOrganization: String { text("moderation.type.organization", "Organization") }
-        static var typeMarketplace: String { text("moderation.type.marketplace", "Marketplace") }
         static var loadNetworkError: String { text("moderation.error.load.network", "Unable to load pending content. Check your connection and try again.") }
         static var loadPermissionError: String { text("moderation.error.load.permission", "You do not have permission to access moderation tools.") }
         static var loadValidationError: String { text("moderation.error.load.validation", "The pending content could not be loaded.") }
@@ -201,6 +276,31 @@ enum AppStrings {
         static var issueBlockedStatusMismatch: String { text("user_management.issue.blocked_status_mismatch", "Blocked user still has active account status") }
     }
 
+    enum FederalStates {
+        static func title(for state: AustrianFederalState) -> String {
+            switch state {
+            case .burgenland:
+                text("federal_state.burgenland", "Burgenland")
+            case .kaernten:
+                text("federal_state.kaernten", "Kaernten")
+            case .niederoesterreich:
+                text("federal_state.niederoesterreich", "Niederoesterreich")
+            case .oberoesterreich:
+                text("federal_state.oberoesterreich", "Oberoesterreich")
+            case .salzburg:
+                text("federal_state.salzburg", "Salzburg")
+            case .steiermark:
+                text("federal_state.steiermark", "Steiermark")
+            case .tirol:
+                text("federal_state.tirol", "Tirol")
+            case .vorarlberg:
+                text("federal_state.vorarlberg", "Vorarlberg")
+            case .wien:
+                text("federal_state.wien", "Wien")
+            }
+        }
+    }
+
     enum Settings {
         static var title: String { text("settings.title", "Settings") }
         static var language: String { text("settings.language", "Language") }
@@ -215,6 +315,33 @@ enum AppStrings {
         static var dark: String { text("settings.appearance.dark", "Dark") }
     }
 
+    enum Legal {
+        static var versionLabel: String { text("legal.version_label", "Version %@") }
+        static var lastUpdatedLabel: String { text("legal.last_updated_label", "Last updated %@") }
+
+        static var termsIntroTitle: String { text("legal.terms.intro.title", "Using the app") }
+        static var termsIntroBody: String { text("legal.terms.intro.body", "Ukrainian Community Tirol helps people discover public updates, events, organizations, and practical guide content. By using the app with an account, you agree to use it lawfully, respectfully, and only for its intended community purpose.") }
+        static var termsAccountTitle: String { text("legal.terms.account.title", "Account responsibilities") }
+        static var termsAccountBody: String { text("legal.terms.account.body", "You are responsible for the accuracy of the profile details you provide, for keeping your sign-in credentials private, and for the actions taken through your account. You may not impersonate other people or create accounts to evade moderation.") }
+        static var termsContentTitle: String { text("legal.terms.content.title", "Community content and moderation") }
+        static var termsContentBody: String { text("legal.terms.content.body", "User-submitted content can be reviewed, limited, or removed when it is misleading, unsafe, unlawful, abusive, discriminatory, spam-like, or unrelated to the app’s purpose. Roles with moderation responsibilities may manage content according to the project’s moderation model.") }
+        static var termsAvailabilityTitle: String { text("legal.terms.availability.title", "Availability and changes") }
+        static var termsAvailabilityBody: String { text("legal.terms.availability.body", "We may improve, change, or temporarily limit parts of the service, including community features and account access, to maintain reliability, security, and compliance. We do not promise uninterrupted availability.") }
+        static var termsLiabilityTitle: String { text("legal.terms.liability.title", "Information and responsibility") }
+        static var termsLiabilityBody: String { text("legal.terms.liability.body", "The app is intended to support orientation and community coordination. It does not replace legal, medical, financial, or official government advice. Users remain responsible for decisions they make based on shared information.") }
+
+        static var privacyIntroTitle: String { text("legal.privacy.intro.title", "What we store") }
+        static var privacyIntroBody: String { text("legal.privacy.intro.body", "When you create an account, we store the profile fields needed for the app to function: email address, display name, optional Telegram username, selected federal state, role/status fields, and timestamps related to account creation and consent.") }
+        static var privacyUsageTitle: String { text("legal.privacy.usage.title", "Why we use your data") }
+        static var privacyUsageBody: String { text("legal.privacy.usage.body", "We use account data to authenticate you, show your profile, apply permissions, support feedback and event registration, and keep the community space safe through moderation and abuse prevention.") }
+        static var privacyStorageTitle: String { text("legal.privacy.storage.title", "Storage and service providers") }
+        static var privacyStorageBody: String { text("legal.privacy.storage.body", "This app uses Firebase services for authentication, database storage, and media storage. Data is processed only to deliver the app’s features, maintain security, and support internal operations.") }
+        static var privacySharingTitle: String { text("legal.privacy.sharing.title", "Sharing and visibility") }
+        static var privacySharingBody: String { text("legal.privacy.sharing.body", "We do not sell your personal data. Some profile information and user-generated content may be visible inside the app where needed for community features. Administrative and moderation roles may access relevant records to enforce rules and manage the service.") }
+        static var privacyRightsTitle: String { text("legal.privacy.rights.title", "Your choices") }
+        static var privacyRightsBody: String { text("legal.privacy.rights.body", "You can update supported profile fields in the app. If you need help with account data, moderation questions, or deletion requests, contact the project team through the provided support channel.") }
+    }
+
     enum Roles {
         static var user: String { text("role.user", "User") }
         static var moderator: String { text("role.moderator", "Moderator") }
@@ -225,6 +352,9 @@ enum AppStrings {
     }
 
     enum Common {
+        static var app: String { text("common.app", "App") }
+        static var ok: String { text("common.ok", "OK") }
+        static var cancel: String { text("common.cancel", "Cancel") }
         static var likes: String { text("common.likes", "Likes") }
         static var comments: String { text("common.comments", "Comments") }
         static var city: String { text("common.city", "City") }
@@ -259,6 +389,13 @@ enum AppStrings {
     }
 
     enum Validation {
+        static var authEmailRequired: String { text("validation.auth.email_required", "Email is required.") }
+        static var authEmailInvalid: String { text("validation.auth.email_invalid", "Enter a valid email address.") }
+        static var authPasswordTooShort: String { text("validation.auth.password_too_short", "Password must be at least 8 characters.") }
+        static var authPasswordMismatch: String { text("validation.auth.password_mismatch", "Passwords do not match.") }
+        static var authDisplayNameRequired: String { text("validation.auth.display_name_required", "Display name is required.") }
+        static var authTermsRequired: String { text("validation.auth.terms_required", "You need to accept the Terms of Use.") }
+        static var authPrivacyRequired: String { text("validation.auth.privacy_required", "You need to accept the Privacy Policy.") }
         static var newsTitleRequired: String { text("validation.news.title_required", "News title is required.") }
         static var newsSubtitleRequired: String { text("validation.news.subtitle_required", "News subtitle is required.") }
         static var newsBodyTooShort: String { text("validation.news.body_too_short", "News body is too short.") }
@@ -267,12 +404,63 @@ enum AppStrings {
         static var eventCityRequired: String { text("validation.event.city_required", "Event city is required.") }
         static var eventVenueRequired: String { text("validation.event.venue_required", "Event venue is required.") }
         static var eventDateOrderInvalid: String { text("validation.event.date_order_invalid", "Event end date must be after the start date.") }
-        static var marketplaceTitleRequired: String { text("validation.marketplace.title_required", "Marketplace title is required.") }
-        static var marketplaceDescriptionTooShort: String { text("validation.marketplace.description_too_short", "Marketplace description is too short.") }
-        static var marketplaceCityRequired: String { text("validation.marketplace.city_required", "Marketplace city is required.") }
-        static var marketplaceContactRequired: String { text("validation.marketplace.contact_required", "Marketplace contact is required.") }
-        static var marketplacePriceInvalid: String { text("validation.marketplace.price_invalid", "Marketplace price must be zero or greater.") }
-        static var marketplaceExpirationInvalid: String { text("validation.marketplace.expiration_invalid", "Marketplace expiration date must be in the future.") }
+        static var organizationNameRequired: String { text("validation.organization.name_required", "Organization name is required.") }
+        static var organizationDescriptionTooShort: String { text("validation.organization.description_too_short", "Organization description is too short.") }
+        static var organizationCityRequired: String { text("validation.organization.city_required", "Organization city is required.") }
+        static var organizationEmailInvalid: String { text("validation.organization.email_invalid", "Contact email must be valid.") }
+        static var organizationWebsiteInvalid: String { text("validation.organization.website_invalid", "Website must start with http:// or https://.") }
+    }
+
+    enum Auth {
+        static var title: String { text("auth.title", "Account") }
+        static var landingTitle: String { text("auth.landing.title", "Welcome") }
+        static var landingSubtitle: String { text("auth.landing.subtitle", "Create an account or sign in to save likes, register for events, send feedback, and manage content if your role allows it.") }
+        static var signIn: String { text("auth.sign_in", "Sign In") }
+        static var createAccount: String { text("auth.create_account", "Create Account") }
+        static var email: String { text("auth.email", "Email") }
+        static var password: String { text("auth.password", "Password") }
+        static var passwordRepeat: String { text("auth.password_repeat", "Repeat Password") }
+        static var displayName: String { text("auth.display_name", "Display Name") }
+        static var telegramUsername: String { text("auth.telegram", "Telegram Username") }
+        static var forgotPassword: String { text("auth.forgot_password", "Forgot Password?") }
+        static var sendResetLink: String { text("auth.send_reset_link", "Send Reset Link") }
+        static var resetPasswordTitle: String { text("auth.reset_password.title", "Reset Password") }
+        static var resetPasswordSubtitle: String { text("auth.reset_password.subtitle", "Enter the email linked to your account and we will send a reset link.") }
+        static var resetPasswordSuccess: String { text("auth.reset_password.success", "The reset link has been sent.") }
+        static var registerTitle: String { text("auth.register.title", "Create Account") }
+        static var loginTitle: String { text("auth.login.title", "Sign In") }
+        static var signInAction: String { text("auth.sign_in.action", "Sign In") }
+        static var createAccountAction: String { text("auth.create_account.action", "Create Account") }
+        static var signingIn: String { text("auth.signing_in", "Signing In...") }
+        static var creatingAccount: String { text("auth.creating_account", "Creating Account...") }
+        static var resetPasswordSending: String { text("auth.reset_password.sending", "Sending...") }
+        static var federalState: String { text("auth.federal_state", "Federal State") }
+        static var signInInstead: String { text("auth.sign_in_instead", "Already have an account? Sign In") }
+        static var createAccountInstead: String { text("auth.create_account_instead", "Need an account? Create one") }
+        static var continueAsGuest: String { text("auth.continue_as_guest", "Continue as Guest") }
+        static var consentTitle: String { text("auth.consent.title", "Terms & Privacy") }
+        static var consentSubtitle: String { text("auth.consent.subtitle", "To create an account, please confirm that you accept the Terms of Use and the Privacy Policy.") }
+        static var acceptTerms: String { text("auth.consent.accept_terms", "I accept the Terms of Use") }
+        static var acceptPrivacy: String { text("auth.consent.accept_privacy", "I accept the Privacy Policy") }
+        static var reviewTerms: String { text("auth.consent.review_terms", "Read Terms of Use") }
+        static var reviewPrivacy: String { text("auth.consent.review_privacy", "Read Privacy Policy") }
+        static var currentTermsVersion: String { text("auth.consent.current_terms_version", "Terms version %@") }
+        static var currentPrivacyVersion: String { text("auth.consent.current_privacy_version", "Privacy version %@") }
+        static var requiredTitle: String { text("auth.required.title", "Sign in required") }
+        static var placeholderTitle: String { text("auth.placeholder.title", "Authentication is coming in the next phase") }
+        static var placeholderMessage: String { text("auth.placeholder.message", "Full sign-in and account creation will be added in the next phase. You can keep browsing public content as a guest for now.") }
+        static var signInFailed: String { text("auth.sign_in_failed", "We couldn’t sign you in right now.") }
+        static var registrationFailed: String { text("auth.registration_failed", "We couldn’t create your account right now.") }
+        static var registrationInvalidEmail: String { text("auth.registration.invalid_email", "Please enter a valid email address.") }
+        static var registrationEmailAlreadyInUse: String { text("auth.registration.email_in_use", "This email address is already in use.") }
+        static var registrationWeakPassword: String { text("auth.registration.weak_password", "Choose a stronger password with at least 8 characters.") }
+        static var registrationNetworkError: String { text("auth.registration.network_error", "We couldn’t reach the server. Check your connection and try again.") }
+        static var registrationOperationNotAllowed: String { text("auth.registration.operation_not_allowed", "Email registration is not enabled right now.") }
+        static var registrationUnknownError: String { text("auth.registration.unknown_error", "We couldn’t finish registration right now. Please try again.") }
+        static var registrationProfilePermissionError: String { text("auth.registration.profile_permission", "Your account was created, but the profile setup was blocked by backend rules. Please contact support or deploy the latest Firebase rules.") }
+        static var registrationProfileNetworkError: String { text("auth.registration.profile_network", "Your account was created, but the profile setup could not finish because of a network problem. Please try again.") }
+        static var registrationProfileUnknownError: String { text("auth.registration.profile_unknown", "Your account was created, but the profile setup could not be completed. Please try again later.") }
+        static var resetPasswordFailed: String { text("auth.reset_password.failed", "We couldn’t send a reset link right now.") }
     }
 
     static func homeHighlightNews(_ count: Int) -> String {
@@ -287,16 +475,36 @@ enum AppStrings {
         LocalizationStore.localizedFormat("home.highlight.organizations", defaultValue: "%lld trusted support groups", arguments: [count])
     }
 
-    static func homeHighlightMarketplace(_ count: Int) -> String {
-        LocalizationStore.localizedFormat("home.highlight.marketplace", defaultValue: "%lld neighborhood exchange offers", arguments: [count])
-    }
-
     static func commentLine(author: String, body: String) -> String {
         LocalizationStore.localizedFormat("common.comment_line", defaultValue: "%1$@: %2$@", arguments: [author, body])
     }
 
     static func contactLine(method: String, value: String) -> String {
         LocalizationStore.localizedFormat("common.contact_line", defaultValue: "%1$@: %2$@", arguments: [method, value])
+    }
+
+    static func authRequiredMessage(for capability: String) -> String {
+        LocalizationStore.localizedFormat(
+            "auth.required.message",
+            defaultValue: "%1$@ requires an account. You can keep browsing as a guest for now.",
+            arguments: [capability]
+        )
+    }
+
+    static func legalVersionLabel(_ version: String) -> String {
+        LocalizationStore.localizedFormat("legal.version_label", defaultValue: "Version %@", arguments: [version])
+    }
+
+    static func legalLastUpdatedLabel(_ date: String) -> String {
+        LocalizationStore.localizedFormat("legal.last_updated_label", defaultValue: "Last updated %@", arguments: [date])
+    }
+
+    static func authCurrentTermsVersion(_ version: String) -> String {
+        LocalizationStore.localizedFormat("auth.consent.current_terms_version", defaultValue: "Terms version %@", arguments: [version])
+    }
+
+    static func authCurrentPrivacyVersion(_ version: String) -> String {
+        LocalizationStore.localizedFormat("auth.consent.current_privacy_version", defaultValue: "Privacy version %@", arguments: [version])
     }
 
     private static func text(_ key: String, _ defaultValue: String) -> String {

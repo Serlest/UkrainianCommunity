@@ -23,6 +23,10 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "events/\(eventID)/cover.jpg")
     }
 
+    func uploadOrganizationCoverImage(data: Data, organizationID: String) async throws -> URL {
+        try await uploadCoverImage(data: data, storagePath: "organizations/\(organizationID)/cover.jpg")
+    }
+
     private func uploadCoverImage(data: Data, storagePath: String) async throws -> URL {
         let processedImage = try await prepareImageDataForUpload(from: data)
         let reference = storage.reference().child(storagePath)

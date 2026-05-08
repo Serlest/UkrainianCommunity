@@ -2,55 +2,60 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-struct EventEditorView: View {
+struct OrganizationEditorView: View {
+    @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel: EventEditorViewModel
+    @ObservedObject var organizationsViewModel: OrganizationsViewModel
+    @StateObject private var viewModel: OrganizationEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
+    private let onSaved: @MainActor () async -> Void
 
-    private let onPublished: @MainActor () async -> Void
-
-    init(repository: EventRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
-        _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create()))
-        self.onPublished = onPublished
+    init(
+        organizationsViewModel: OrganizationsViewModel,
+        onSaved: @escaping @MainActor () async -> Void = {}
+    ) {
+        self.organizationsViewModel = organizationsViewModel
+        _viewModel = StateObject(wrappedValue: OrganizationEditorViewModel(mode: .create))
+        self.onSaved = onSaved
     }
 
     init(
-        repository: EventRepository,
-        organizationId: String,
-        organizationName: String,
-        organizationImageURL: String?,
-        onPublished: @escaping @MainActor () async -> Void = {}
+        organizationsViewModel: OrganizationsViewModel,
+        organization: Organization,
+        onSaved: @escaping @MainActor () async -> Void = {}
     ) {
-        _viewModel = StateObject(wrappedValue: EventEditorViewModel(
-            repository: repository,
-            mode: .create(context: .init(
-                organizationId: organizationId,
-                organizationName: organizationName,
-                organizationImageURL: organizationImageURL
-            ))
-        ))
-        self.onPublished = onPublished
-    }
-
-    init(repository: EventRepository, event: Event, onPublished: @escaping @MainActor () async -> Void = {}) {
-        _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .edit(existing: event)))
-        self.onPublished = onPublished
+        self.organizationsViewModel = organizationsViewModel
+        _viewModel = StateObject(wrappedValue: OrganizationEditorViewModel(mode: .edit(existing: organization)))
+        self.onSaved = onSaved
     }
 
     var body: some View {
         Form {
-            Section {
-                TextField(AppStrings.Events.fieldTitle, text: $viewModel.title)
-                TextField(AppStrings.Events.fieldSummary, text: $viewModel.summary, axis: .vertical)
-                    .lineLimit(2...4)
-                TextField(AppStrings.Events.fieldDetails, text: $viewModel.details, axis: .vertical)
+            Section(AppStrings.Organizations.detailsSectionTitle) {
+                TextField(AppStrings.Organizations.fieldName, text: $viewModel.name)
+                    .accessibilityLabel(AppStrings.Organizations.fieldName)
+                TextField(AppStrings.Organizations.fieldDescription, text: $viewModel.description, axis: .vertical)
                     .lineLimit(4...8)
+                    .accessibilityLabel(AppStrings.Organizations.fieldDescription)
                 TextField(AppStrings.Common.city, text: $viewModel.city)
-                TextField(AppStrings.Common.venue, text: $viewModel.venue)
+                    .accessibilityLabel(AppStrings.Common.city)
+                TextField(AppStrings.Organizations.fieldContactEmail, text: $viewModel.contactEmail)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .accessibilityLabel(AppStrings.Organizations.fieldContactEmail)
+                TextField(AppStrings.Organizations.fieldWebsite, text: $viewModel.website)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .accessibilityLabel(AppStrings.Organizations.fieldWebsite)
+            }
 
+            Section(AppStrings.Organizations.imageSectionTitle) {
                 PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
                     Label(AppStrings.NewsEditor.selectPhoto, systemImage: "photo.on.rectangle")
                 }
+                .accessibilityLabel(AppStrings.NewsEditor.selectPhoto)
 
                 if let selectedImageData = viewModel.selectedImageData,
                    let image = UIImage(data: selectedImageData) {
@@ -61,17 +66,6 @@ struct EventEditorView: View {
                         .frame(height: 180)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
-            }
-
-            Section {
-                EventDateFieldRow(
-                    title: AppStrings.Events.fieldStartDate,
-                    selection: $viewModel.startDate
-                )
-                EventDateFieldRow(
-                    title: AppStrings.Events.fieldEndDate,
-                    selection: $viewModel.endDate
-                )
             }
 
             if let errorMessage = viewModel.errorMessage {
@@ -93,22 +87,30 @@ struct EventEditorView: View {
             Section {
                 Button {
                     Task {
-                        let didPublish = await viewModel.publish()
-                        guard didPublish else { return }
-                        await onPublished()
+                        let didSave = await viewModel.submit(
+                            with: organizationsViewModel,
+                            user: authState.user
+                        )
+                        guard didSave else { return }
+                        await onSaved()
                         dismiss()
                     }
                 } label: {
-                    if viewModel.isPublishing || viewModel.isProcessingImage {
+                    if organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text(viewModel.isUploadingImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Events.publishing)
+                            Text(
+                                organizationsViewModel.isUploadingOrganizationImage
+                                    ? AppStrings.NewsEditor.uploadingImage
+                                    : AppStrings.Organizations.publishing
+                            )
                         }
                     } else {
                         Text(viewModel.submitButtonTitle)
                     }
                 }
-                .disabled(!viewModel.canPublish)
+                .disabled(!viewModel.canSubmit || organizationsViewModel.isSavingOrganization)
+                .accessibilityLabel(viewModel.submitButtonTitle)
             }
         }
         .scrollContentBackground(.hidden)
@@ -162,39 +164,9 @@ struct EventEditorView: View {
     }
 }
 
-private struct EventDateFieldRow: View {
-    let title: String
-    @Binding var selection: Date
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text(LocalizationStore.dateString(from: selection, dateStyle: .medium, timeStyle: .short))
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 12)
-
-            DatePicker(
-                title,
-                selection: $selection,
-                displayedComponents: [.date, .hourAndMinute]
-            )
-            .labelsHidden()
-            .datePickerStyle(.compact)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
 #Preview {
     NavigationStack {
-        EventEditorView(repository: MockEventRepository())
+        OrganizationEditorView(organizationsViewModel: OrganizationsViewModel(repository: MockOrganizationRepository()))
     }
+    .environmentObject(AuthState())
 }

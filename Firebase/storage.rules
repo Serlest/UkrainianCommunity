@@ -44,22 +44,17 @@ service firebase.storage {
     }
 
     match /news/{filePath=**} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if canManageContentImages();
     }
 
     match /events/{filePath=**} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if canManageContentImages();
     }
 
     match /organizations/{filePath=**} {
-      allow read: if isSignedIn();
-      allow write: if canManageContentImages();
-    }
-
-    match /marketplace/{filePath=**} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if canManageContentImages();
     }
 

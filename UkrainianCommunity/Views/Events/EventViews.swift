@@ -1,15 +1,94 @@
+import Combine
 import SwiftUI
+
+enum EventPresentationMode {
+    case `public`
+    case management
+
+    var allowsManagementControls: Bool {
+        self == .management
+    }
+}
+
+private enum EventDiscoveryFilter: CaseIterable, Identifiable {
+    case all
+    case today
+    case thisWeek
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .all:
+            AppStrings.Events.filterAll
+        case .today:
+            AppStrings.Events.filterToday
+        case .thisWeek:
+            AppStrings.Events.filterThisWeek
+        }
+    }
+}
+
+private struct UpcomingEventDaySection: Identifiable {
+    let date: Date
+    let events: [Event]
+
+    var id: Date { date }
+}
+
+private struct EventDiscoveryContent {
+    let upcomingSections: [UpcomingEventDaySection]
+    let pastEvents: [Event]
+}
+
+private func eventScheduleText(for event: Event) -> String {
+    let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
+
+    guard event.endDate > event.startDate else {
+        return startDateText
+    }
+
+    let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
+    if isSameDay {
+        let endTimeText = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
+        return "\(startDateText) - \(endTimeText)"
+    }
+
+    let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
+    return "\(startDateText) - \(endDateText)"
+}
+
+private func eventDayTitleText(for date: Date) -> String {
+    LocalizationStore.dateString(from: date, dateStyle: .full, timeStyle: .none)
+}
 
 struct EventsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
     let eventRepository: EventRepository
     let onEventPublished: @MainActor () async -> Void
-    let onEventDeleted: @MainActor () -> Void
+    let onEventDeleted: @MainActor @Sendable () -> Void
+    let presentationMode: EventPresentationMode
     @State private var pendingDeleteEventID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
     @State private var isShowingCreateSheet = false
+    @State private var selectedFilter: EventDiscoveryFilter = .all
+    @State private var guestAccessAction: GuestAccessAction?
+
+    init(
+        viewModel: EventsViewModel,
+        eventRepository: EventRepository,
+        onEventPublished: @escaping @MainActor () async -> Void,
+        onEventDeleted: @escaping @MainActor @Sendable () -> Void,
+        presentationMode: EventPresentationMode = .public
+    ) {
+        self.viewModel = viewModel
+        self.eventRepository = eventRepository
+        self.onEventPublished = onEventPublished
+        self.onEventDeleted = onEventDeleted
+        self.presentationMode = presentationMode
+    }
 
     private var errorText: String {
         switch viewModel.error {
@@ -29,11 +108,47 @@ struct EventsListView: View {
     }
 
     private var canCreateEvent: Bool {
-        authState.user?.role.permissions.canCreateEvent == true
+        presentationMode.allowsManagementControls && PermissionService.canCreateEvent(user: authState.user)
     }
 
     private var canDeleteEvent: Bool {
-        authState.user?.role.permissions.canDeleteEvent == true
+        presentationMode.allowsManagementControls && PermissionService.canDeleteEvent(user: authState.user)
+    }
+
+    private var discoveryContent: EventDiscoveryContent {
+        let calendar = Calendar.current
+        let now = Date()
+        let upcomingEvents = viewModel.events
+            .filter { $0.endDate >= now }
+            .sorted { $0.startDate < $1.startDate }
+        let filteredUpcomingEvents: [Event]
+
+        switch selectedFilter {
+        case .all:
+            filteredUpcomingEvents = upcomingEvents
+        case .today:
+            filteredUpcomingEvents = upcomingEvents.filter { calendar.isDate($0.startDate, inSameDayAs: now) }
+        case .thisWeek:
+            guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
+                filteredUpcomingEvents = upcomingEvents
+                break
+            }
+            filteredUpcomingEvents = upcomingEvents.filter { interval.contains($0.startDate) }
+        }
+
+        let groupedEvents = Dictionary(grouping: filteredUpcomingEvents) {
+            calendar.startOfDay(for: $0.startDate)
+        }
+
+        let upcomingSections = groupedEvents
+            .map { UpcomingEventDaySection(date: $0.key, events: $0.value.sorted { $0.startDate < $1.startDate }) }
+            .sorted { $0.date < $1.date }
+
+        let pastEvents = viewModel.events
+            .filter { $0.endDate < now }
+            .sorted { $0.startDate > $1.startDate }
+
+        return EventDiscoveryContent(upcomingSections: upcomingSections, pastEvents: pastEvents)
     }
 
     var body: some View {
@@ -61,7 +176,9 @@ struct EventsListView: View {
                 )
                 .frame(maxWidth: .infinity, minHeight: 420)
             } else {
-                VStack(spacing: 16) {
+                let content = discoveryContent
+
+                VStack(spacing: AppTheme.sectionSpacing) {
                     if viewModel.error != nil {
                         ErrorStateCard(
                             title: AppStrings.Events.title,
@@ -70,40 +187,71 @@ struct EventsListView: View {
                         ) {
                             viewModel.reload()
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, AppTheme.pageHorizontal)
                     }
 
-                    AdaptiveCardGrid(items: viewModel.events) { event in
-                        ZStack(alignment: .bottomTrailing) {
-                            NavigationLink {
-                                EventDetailView(
-                                    viewModel: viewModel,
-                                    eventID: event.id,
-                                    onEventDeleted: onEventDeleted
-                                )
-                            } label: {
-                                EventCard(event: event)
-                            }
-                            .buttonStyle(.plain)
+                    EventFilterChips(selectedFilter: $selectedFilter)
+                        .padding(.horizontal, AppTheme.pageHorizontal)
 
-                            LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
-                                viewModel.toggleLike(for: event.id)
+                    VStack(alignment: .leading, spacing: AppTheme.feedSpacing) {
+                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                            SectionHeaderBlock(title: AppStrings.Events.upcomingTitle)
+
+                            if content.upcomingSections.isEmpty {
+                                EmptyStateCard(
+                                    systemImage: "calendar.badge.exclamationmark",
+                                    title: AppStrings.Events.upcomingTitle,
+                                    message: AppStrings.Events.filteredUpcomingEmpty
+                                )
+                            } else {
+                                ForEach(content.upcomingSections) { section in
+                                    VStack(alignment: .leading, spacing: 14) {
+                                        EventDayHeader(dateText: eventDayTitleText(for: section.date))
+
+                                        VStack(spacing: 14) {
+                                            ForEach(section.events) { event in
+                                                EventDiscoveryRow(
+                                                    event: event,
+                                                    viewModel: viewModel,
+                                                    onLikeTap: handleLike(for:),
+                                                    onEventDeleted: { @MainActor @Sendable in
+                                                        onEventDeleted()
+                                                    },
+                                                    presentationMode: presentationMode,
+                                                    canDeleteEvent: canDeleteEvent,
+                                                    pendingDeleteEventID: $pendingDeleteEventID
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
-                            .accessibilityLabel(event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
-                            .accessibilityHint(AppStrings.Common.likes)
-                            .padding(.trailing, 18)
-                            .padding(.bottom, 18)
                         }
-                        .swipeActions(edge: .trailing) {
-                            if canDeleteEvent {
-                                Button(AppStrings.Events.delete, role: .destructive) {
-                                    pendingDeleteEventID = event.id
+
+                        if !content.pastEvents.isEmpty {
+                            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                                SectionHeaderBlock(title: AppStrings.Events.pastTitle)
+
+                                VStack(spacing: 14) {
+                                    ForEach(content.pastEvents) { event in
+                                        EventDiscoveryRow(
+                                            event: event,
+                                            viewModel: viewModel,
+                                            onLikeTap: handleLike(for:),
+                                            onEventDeleted: { @MainActor @Sendable in
+                                                onEventDeleted()
+                                            },
+                                            presentationMode: presentationMode,
+                                            canDeleteEvent: canDeleteEvent,
+                                            pendingDeleteEventID: $pendingDeleteEventID
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, AppTheme.pageHorizontal)
+                    .padding(.bottom, AppTheme.sectionSpacing)
                 }
             }
         }
@@ -111,10 +259,17 @@ struct EventsListView: View {
         .navigationTitle(AppStrings.Events.title)
         .task {
             await viewModel.loadIfNeeded()
+            await viewModel.refreshIfStale()
         }
         .refreshable {
             await viewModel.refresh()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .eventsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
+            Task {
+                await viewModel.refresh()
+            }
+        }
+        .guestAccessAlert($guestAccessAction)
         .confirmationDialog(
             AppStrings.Events.deleteConfirmation,
             isPresented: Binding(
@@ -172,6 +327,92 @@ struct EventsListView: View {
         }
     }
 
+    private func handleLike(for eventID: String) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = .likes
+            return
+        }
+
+        viewModel.toggleLike(for: eventID)
+    }
+
+}
+
+private struct EventFilterChips: View {
+    @Binding var selectedFilter: EventDiscoveryFilter
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(EventDiscoveryFilter.allCases) { filter in
+                    SelectableFilterChip(title: filter.title, isSelected: selectedFilter == filter) {
+                        selectedFilter = filter
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+private struct EventDayHeader: View {
+    let dateText: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(dateText)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            Rectangle()
+                .fill(AppTheme.borderSubtle)
+                .frame(maxWidth: .infinity)
+                .frame(height: 1)
+        }
+        .padding(.horizontal, 2)
+    }
+}
+
+private struct EventDiscoveryRow: View {
+    let event: Event
+    @ObservedObject var viewModel: EventsViewModel
+    let onLikeTap: (String) -> Void
+    let onEventDeleted: @MainActor @Sendable () -> Void
+    let presentationMode: EventPresentationMode
+    let canDeleteEvent: Bool
+    @Binding var pendingDeleteEventID: String?
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            NavigationLink {
+                EventDetailView(
+                    viewModel: viewModel,
+                    eventID: event.id,
+                    onEventDeleted: { @MainActor @Sendable in
+                        onEventDeleted()
+                    }
+                )
+                .environment(\.eventPresentationMode, presentationMode)
+            } label: {
+                EventCard(event: event)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("event.card.\(event.id)")
+
+            LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
+                onLikeTap(event.id)
+            }
+            .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
+            .accessibilityIdentifier("event.like.\(event.id)")
+            .accessibilityLabel(event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
+            .accessibilityHint(AppStrings.Common.likes)
+            .padding(.trailing, 18)
+            .padding(.bottom, 18)
+        }
+        .modifier(EventDeleteSwipeActions(isEnabled: canDeleteEvent) {
+            pendingDeleteEventID = event.id
+        })
+    }
 }
 
 private func readableEventErrorText(_ error: AppError?) -> String {
@@ -212,103 +453,102 @@ private func looksLikeRawEventAuthorIdentifier(_ value: String) -> Bool {
     return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
 }
 
+private struct EventCardMetadataStack: View {
+    let scheduleText: String
+    let city: String
+    let registrationTitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ContentMetadataPill(systemImage: "calendar", text: scheduleText)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    ContentMetadataPill(systemImage: "mappin.and.ellipse", text: city)
+                    ContentMetadataPill(systemImage: "checkmark.circle", text: registrationTitle)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ContentMetadataPill(systemImage: "mappin.and.ellipse", text: city)
+                    ContentMetadataPill(systemImage: "checkmark.circle", text: registrationTitle)
+                }
+            }
+        }
+    }
+}
+
 private struct EventCard: View {
     let event: Event
 
     var body: some View {
         CommunityCard {
-            RemoteCardImage(imageURL: event.imageURL, height: 220, source: "EventCard")
+            RemoteCardImage(imageURL: event.imageURL, height: 220, source: "EventCard", isDecorative: true)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text(event.title)
-                    .font(.headline.weight(.semibold))
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(.primary)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(event.summary)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Label(eventDateTimeText, systemImage: "calendar")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-
-                    HStack(alignment: .center, spacing: 12) {
-                        Label(event.city, systemImage: "mappin.and.ellipse")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-
-                        Spacer(minLength: 8)
-
-                            Text(event.registrationState.title)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(AppTheme.primaryBlue)
-                                .lineLimit(1)
-                    }
-                }
+                EventCardMetadataStack(
+                    scheduleText: eventScheduleText(for: event),
+                    city: event.city,
+                    registrationTitle: event.registrationState.title
+                )
                 .padding(.trailing, 88)
+
+                if !event.venue.isEmpty {
+                    Text(event.venue)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 
-    private var eventDateTimeText: String {
-        let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
-
-        guard event.endDate > event.startDate else {
-            return startDateText
-        }
-
-        let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
-        if isSameDay {
-            let endTimeText = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
-            return "\(startDateText) - \(endTimeText)"
-        }
-
-        let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
-        return "\(startDateText) - \(endDateText)"
+    private var accessibilitySummary: String {
+        [
+            event.title,
+            event.summary,
+            eventScheduleText(for: event),
+            event.city,
+            event.registrationState.title,
+            "\(event.likeCount) \(AppStrings.Common.likes)"
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: ", ")
     }
 }
 
 struct EventDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.eventPresentationMode) private var presentationMode
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
     let eventID: String
-    let onEventDeleted: () -> Void
+    let onEventDeleted: @MainActor @Sendable () -> Void
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
     @State private var isDeleting = false
     @State private var isShowingEditSheet = false
     @State private var pendingRemovalEventID: String?
+    @State private var guestAccessAction: GuestAccessAction?
     private let detailImageHeight: CGFloat = 260
 
     private var canEditEvent: Bool {
-        authState.user?.role.permissions.canEditEvent == true
+        presentationMode.allowsManagementControls && PermissionService.canEditEvent(user: authState.user)
     }
 
     private var canDeleteEvent: Bool {
-        authState.user?.role.permissions.canDeleteEvent == true
-    }
-
-    private func eventDateTimeText(for event: Event) -> String {
-        let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
-
-        guard event.endDate > event.startDate else {
-            return startDateText
-        }
-
-        let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
-        if isSameDay {
-            let endTimeText = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
-            return "\(startDateText) - \(endTimeText)"
-        }
-
-        let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
-        return "\(startDateText) - \(endDateText)"
+        presentationMode.allowsManagementControls && PermissionService.canDeleteEvent(user: authState.user)
     }
 
     private var detailCardShape: RoundedRectangle {
@@ -341,16 +581,28 @@ struct EventDetailView: View {
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
 
-                                HStack(alignment: .center, spacing: 12) {
-                                    Label(eventDateTimeText(for: event), systemImage: "calendar")
-                                        .font(.caption.weight(.medium))
-                                        .foregroundStyle(.secondary)
+                                ViewThatFits(in: .horizontal) {
+                                    HStack(alignment: .center, spacing: 12) {
+                                        Label(eventScheduleText(for: event), systemImage: "calendar")
+                                            .font(.caption.weight(.medium))
+                                            .foregroundStyle(.secondary)
 
-                                    Spacer(minLength: 12)
+                                        Spacer(minLength: 12)
 
-                                    Text(event.registrationState.title)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(AppTheme.primaryBlue)
+                                        Text(event.registrationState.title)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(AppTheme.primaryBlue)
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Label(eventScheduleText(for: event), systemImage: "calendar")
+                                            .font(.caption.weight(.medium))
+                                            .foregroundStyle(.secondary)
+
+                                        Text(event.registrationState.title)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(AppTheme.primaryBlue)
+                                    }
                                 }
                             }
                             .padding(20)
@@ -370,7 +622,6 @@ struct EventDetailView: View {
                                     source: "EventDetailView"
                                 )
                                 .frame(maxWidth: .infinity)
-                                .frame(height: detailImageHeight)
                                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                             }
                             .padding(20)
@@ -390,7 +641,7 @@ struct EventDetailView: View {
 
                                 EventDetailMetadataBlock(
                                     label: AppStrings.Events.fieldStartDate,
-                                    value: eventDateTimeText(for: event),
+                                    value: eventScheduleText(for: event),
                                     systemImage: "calendar"
                                 )
                                 EventDetailMetadataBlock(
@@ -413,24 +664,19 @@ struct EventDetailView: View {
                                     .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
                             )
 
-                            HStack(alignment: .center, spacing: 12) {
-                                Button(event.registrationState == .registered ? AppStrings.Events.registered : AppStrings.Events.register) {
-                                    viewModel.toggleRegistration(for: event.id)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(AppTheme.primaryBlue)
-                                .disabled(viewModel.pendingEventRegistrationIDs.contains(event.id))
-                                .accessibilityLabel(event.registrationState == .registered ? AppStrings.Action.cancelRegistration : AppStrings.Action.register)
-                                .accessibilityHint(AppStrings.Events.title)
+                            ViewThatFits(in: .horizontal) {
+                                HStack(alignment: .center, spacing: 12) {
+                                    registrationButton(for: event)
 
-                                Spacer(minLength: 0)
+                                    Spacer(minLength: 0)
 
-                                LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
-                                    viewModel.toggleLike(for: event.id)
+                                    likeButton(for: event)
                                 }
-                                .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
-                                .accessibilityLabel(event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
-                                .accessibilityHint(AppStrings.Common.likes)
+                                
+                                VStack(alignment: .leading, spacing: 12) {
+                                    registrationButton(for: event)
+                                    likeButton(for: event)
+                                }
                             }
                             .padding(20)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -525,6 +771,7 @@ struct EventDetailView: View {
         .sheet(isPresented: $isShowingEditSheet) {
             editSheetContent
         }
+        .guestAccessAlert($guestAccessAction)
         .onDisappear {
             guard let pendingRemovalEventID else { return }
             withTransaction(Transaction(animation: nil)) {
@@ -550,6 +797,38 @@ struct EventDetailView: View {
         } catch {
             deleteErrorMessage = readableEventErrorText(.unknown)
         }
+    }
+
+    private func registrationButton(for event: Event) -> some View {
+        Button(event.registrationState == .registered ? AppStrings.Events.registered : AppStrings.Events.register) {
+            guard authState.isAuthenticated else {
+                guestAccessAction = .registration
+                return
+            }
+
+            viewModel.toggleRegistration(for: event.id)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(AppTheme.primaryBlue)
+        .disabled(viewModel.pendingEventRegistrationIDs.contains(event.id))
+        .accessibilityIdentifier("event.register.\(event.id)")
+        .accessibilityLabel(event.registrationState == .registered ? AppStrings.Action.cancelRegistration : AppStrings.Action.register)
+        .accessibilityHint(AppStrings.Events.title)
+    }
+
+    private func likeButton(for event: Event) -> some View {
+        LikeButton(isLiked: event.likeState.isLiked, count: event.likeCount) {
+            guard authState.isAuthenticated else {
+                guestAccessAction = .likes
+                return
+            }
+
+            viewModel.toggleLike(for: event.id)
+        }
+        .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
+        .accessibilityIdentifier("event.like.\(event.id)")
+        .accessibilityLabel(event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
+        .accessibilityHint(AppStrings.Common.likes)
     }
 }
 
@@ -585,7 +864,8 @@ private struct EventDetailMetadataBlock: View {
             viewModel: EventsViewModel(repository: MockEventRepository()),
             eventRepository: MockEventRepository(),
             onEventPublished: {},
-            onEventDeleted: {}
+            onEventDeleted: {},
+            presentationMode: .management
         )
             .environmentObject(AuthState())
     }
@@ -598,6 +878,36 @@ private struct EventDetailMetadataBlock: View {
             eventID: MockContentBuilder.events().first!.id,
             onEventDeleted: {}
         )
+        .environment(\.eventPresentationMode, .management)
     }
     .environmentObject(AuthState())
+}
+
+private struct EventDeleteSwipeActions: ViewModifier {
+    let isEnabled: Bool
+    let onDelete: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.swipeActions(edge: .trailing) {
+                Button(AppStrings.Events.delete, role: .destructive) {
+                    onDelete()
+                }
+            }
+        } else {
+            content
+        }
+    }
+}
+
+private struct EventPresentationModeKey: EnvironmentKey {
+    static let defaultValue: EventPresentationMode = .public
+}
+
+extension EnvironmentValues {
+    var eventPresentationMode: EventPresentationMode {
+        get { self[EventPresentationModeKey.self] }
+        set { self[EventPresentationModeKey.self] = newValue }
+    }
 }

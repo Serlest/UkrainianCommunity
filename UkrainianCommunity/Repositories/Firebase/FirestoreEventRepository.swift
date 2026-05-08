@@ -51,6 +51,9 @@ struct FirestoreEventRepository: EventRepository {
             title: event.title,
             summary: event.summary,
             details: event.details,
+            regionScope: event.regionScope,
+            federalState: event.federalState,
+            source: event.source,
             city: event.city,
             venue: event.venue,
             imageURL: event.imageURL,
@@ -72,6 +75,12 @@ struct FirestoreEventRepository: EventRepository {
             "title": dto.title,
             "summary": dto.summary,
             "details": dto.details,
+            "regionScope": dto.regionScope as Any,
+            "federalState": dto.federalState as Any,
+            "sourceType": dto.sourceType as Any,
+            "organizationId": dto.organizationId as Any,
+            "organizationName": dto.organizationName as Any,
+            "organizationImageURL": dto.organizationImageURL as Any,
             "city": dto.city,
             "venue": dto.venue,
             "imageURL": dto.imageURL as Any,
@@ -107,6 +116,12 @@ struct FirestoreEventRepository: EventRepository {
             "title": event.title,
             "summary": event.summary,
             "details": event.details,
+            "regionScope": event.regionScope?.rawValue as Any,
+            "federalState": event.federalState?.rawValue as Any,
+            "sourceType": event.source.sourceType.rawValue,
+            "organizationId": event.source.organizationId as Any,
+            "organizationName": event.source.organizationName as Any,
+            "organizationImageURL": event.source.organizationImageURL as Any,
             "city": event.city,
             "venue": event.venue,
             "imageURL": event.imageURL as Any,
@@ -372,6 +387,12 @@ struct FirestoreEventRepository: EventRepository {
             title: title,
             summary: summary,
             details: details,
+            regionScope: data["regionScope"] as? String,
+            federalState: data["federalState"] as? String,
+            sourceType: data["sourceType"] as? String,
+            organizationId: data["organizationId"] as? String,
+            organizationName: data["organizationName"] as? String,
+            organizationImageURL: data["organizationImageURL"] as? String,
             city: city,
             venue: venue,
             imageURL: data["imageURL"] as? String,
@@ -449,43 +470,5 @@ struct FirestoreEventRepository: EventRepository {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
-    }
-}
-
-private extension Array {
-    func chunked(into size: Int) -> [ArraySlice<Element>] {
-        guard size > 0 else { return [self[...]] }
-
-        var chunks: [ArraySlice<Element>] = []
-        var currentIndex = startIndex
-
-        while currentIndex < endIndex {
-            let nextIndex = index(currentIndex, offsetBy: size, limitedBy: endIndex) ?? endIndex
-            chunks.append(self[currentIndex..<nextIndex])
-            currentIndex = nextIndex
-        }
-
-        return chunks
-    }
-}
-
-private extension AppError {
-    var asNSError: NSError {
-        NSError(domain: "AppError", code: code)
-    }
-
-    var code: Int {
-        switch self {
-        case .network:
-            1
-        case .permissionDenied:
-            2
-        case .validationFailed:
-            3
-        case .notFound:
-            4
-        case .unknown:
-            5
-        }
     }
 }

@@ -1,10 +1,67 @@
 import Foundation
 import Combine
 
+enum AuthSessionState: Equatable {
+    case restoring
+    case guest
+    case authenticated
+}
+
+enum AuthFlowDestination: String, Identifiable {
+    case landing
+    case login
+    case register
+    case passwordReset
+
+    var id: String { rawValue }
+}
+
 final class AuthState: ObservableObject {
     @Published var user: AppUser?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published private(set) var sessionState: AuthSessionState = .restoring
+    @Published var presentedAuthFlow: AuthFlowDestination?
+
+    var isGuest: Bool {
+        sessionState == .guest
+    }
+
+    var isAuthenticated: Bool {
+        sessionState == .authenticated
+    }
+
+    var isRestoring: Bool {
+        sessionState == .restoring
+    }
+
+    @MainActor
+    func beginRestoringSession() {
+        sessionState = .restoring
+        errorMessage = nil
+    }
+
+    @MainActor
+    func setGuestSession() {
+        user = nil
+        sessionState = .guest
+        errorMessage = nil
+    }
+
+    @MainActor
+    func setAuthenticatedSession() {
+        sessionState = .authenticated
+    }
+
+    @MainActor
+    func presentAuthFlow(_ destination: AuthFlowDestination = .landing) {
+        presentedAuthFlow = destination
+    }
+
+    @MainActor
+    func dismissAuthFlow() {
+        presentedAuthFlow = nil
+    }
 
     @MainActor
     func loadUser(uid: String) async {

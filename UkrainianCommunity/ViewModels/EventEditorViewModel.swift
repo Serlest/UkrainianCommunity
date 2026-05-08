@@ -3,8 +3,33 @@ import Foundation
 
 @MainActor
 final class EventEditorViewModel: ObservableObject {
+    struct CreateContext {
+        let organizationId: String?
+        let organizationName: String?
+        let organizationImageURL: String?
+
+        nonisolated static let app = CreateContext(
+            organizationId: nil,
+            organizationName: nil,
+            organizationImageURL: nil
+        )
+
+        var source: ContentSourceMetadata {
+            guard let organizationId, !organizationId.isEmpty else {
+                return ContentSourceMetadata(sourceType: .app)
+            }
+
+            return ContentSourceMetadata(
+                sourceType: .organization,
+                organizationId: organizationId,
+                organizationName: organizationName,
+                organizationImageURL: organizationImageURL
+            )
+        }
+    }
+
     enum Mode {
-        case create
+        case create(context: CreateContext = .app)
         case edit(existing: Event)
 
         var isEditing: Bool {
@@ -33,7 +58,7 @@ final class EventEditorViewModel: ObservableObject {
     private let imageUploadService = ImageUploadService.shared
     private let mode: Mode
 
-    init(repository: EventRepository, mode: Mode = .create) {
+    init(repository: EventRepository, mode: Mode = .create()) {
         self.repository = repository
         self.mode = mode
 
@@ -103,8 +128,11 @@ final class EventEditorViewModel: ObservableObject {
         let existingLikeCount: Int
         let existingLikeState: LikeState
         let existingCapacity: Int?
+        let existingRegionScope: RegionScope?
+        let existingFederalState: AustrianFederalState?
+        let existingSource: ContentSourceMetadata
         switch mode {
-        case .create:
+        case let .create(context):
             eventID = UUID().uuidString
             createdAt = now
             existingImageURL = nil
@@ -115,6 +143,9 @@ final class EventEditorViewModel: ObservableObject {
             existingLikeCount = 0
             existingLikeState = .notLiked
             existingCapacity = nil
+            existingRegionScope = .city
+            existingFederalState = .tirol
+            existingSource = context.source
         case let .edit(existingEvent):
             eventID = existingEvent.id
             createdAt = existingEvent.createdAt
@@ -126,6 +157,9 @@ final class EventEditorViewModel: ObservableObject {
             existingLikeCount = existingEvent.likeCount
             existingLikeState = existingEvent.likeState
             existingCapacity = existingEvent.capacity
+            existingRegionScope = existingEvent.regionScope
+            existingFederalState = existingEvent.federalState
+            existingSource = existingEvent.source
         }
         var resolvedImageURL: String?
         let newEvent = Event(
@@ -133,6 +167,9 @@ final class EventEditorViewModel: ObservableObject {
             title: trimmedTitle,
             summary: trimmedSummary,
             details: trimmedDetails,
+            regionScope: existingRegionScope,
+            federalState: existingFederalState,
+            source: existingSource,
             city: trimmedCity,
             venue: trimmedVenue,
             imageURL: nil,
@@ -167,6 +204,9 @@ final class EventEditorViewModel: ObservableObject {
                 title: newEvent.title,
                 summary: newEvent.summary,
                 details: newEvent.details,
+                regionScope: newEvent.regionScope,
+                federalState: newEvent.federalState,
+                source: newEvent.source,
                 city: newEvent.city,
                 venue: newEvent.venue,
                 imageURL: resolvedImageURL,
@@ -191,6 +231,7 @@ final class EventEditorViewModel: ObservableObject {
                 try await repository.updateEvent(eventToCreate)
                 successMessage = AppStrings.Events.updatedSuccessfully
             }
+            AppContentChangeBus.postEventsChanged(organizationID: eventToCreate.source.organizationId)
             title = ""
             summary = ""
             details = ""

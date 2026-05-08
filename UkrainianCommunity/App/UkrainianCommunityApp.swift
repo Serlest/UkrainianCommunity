@@ -1,6 +1,6 @@
+import FirebaseAuth
 import FirebaseCore
 import SwiftUI
-import UIKit
 
 private enum FirebaseBootstrap {
     private static var isConfigured = false
@@ -13,30 +13,42 @@ private enum FirebaseBootstrap {
     }
 }
 
-final class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-    ) -> Bool {
-        Task { @MainActor in
-            await AuthService.shared.signInAnonymously()
-        }
-
-        return true
-    }
-}
-
 @main
 struct UkrainianCommunityApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var authState = AuthService.shared.authState
     private let container: AppContainer
 
     init() {
-        FirebaseBootstrap.ensureConfigured()
-        container = .development
-
+        let processInfo = ProcessInfo.processInfo
+        let isUITesting = processInfo.arguments.contains("-ui-testing")
         let environment = ProcessInfo.processInfo.environment
+
+        FirebaseBootstrap.ensureConfigured()
+
+        if isUITesting {
+            container = .uiTesting
+        } else {
+            container = .development
+        }
+
+        let shouldForceGuestSession = environment["UITestForceGuestSession"] == "1"
+        let shouldForceAuthenticatedSession = environment["UITestForceAuthenticatedSession"] == "1"
+        let sharedAuthState = AuthService.shared.authState
+
+        if shouldForceGuestSession {
+            try? Auth.auth().signOut()
+        }
+
+        Task { @MainActor in
+            if shouldForceAuthenticatedSession {
+                sharedAuthState.user = MockContentBuilder.currentUser()
+                sharedAuthState.setAuthenticatedSession()
+            } else if shouldForceGuestSession {
+                sharedAuthState.setGuestSession()
+            } else {
+                await AuthService.shared.restoreSession()
+            }
+        }
 
         if environment["UITestResetUserSettings"] == "1" {
             AppLanguage.stored = .german

@@ -9,7 +9,6 @@ private enum ModeratedContentType: String {
     case news
     case event
     case organization
-    case marketplace
 
     var title: String {
         switch self {
@@ -19,8 +18,6 @@ private enum ModeratedContentType: String {
             AppStrings.Moderation.typeEvent
         case .organization:
             AppStrings.Moderation.typeOrganization
-        case .marketplace:
-            AppStrings.Moderation.typeMarketplace
         }
     }
 }
@@ -47,7 +44,6 @@ private final class ModerationQueueViewModel: ObservableObject {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
-    private let marketplaceRepository: MarketplaceRepository
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var allowedSections: Set<AppSection> = []
@@ -55,13 +51,11 @@ private final class ModerationQueueViewModel: ObservableObject {
     init(
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository,
-        marketplaceRepository: MarketplaceRepository
+        organizationRepository: OrganizationRepository
     ) {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
-        self.marketplaceRepository = marketplaceRepository
     }
 
     func loadIfNeeded() async {
@@ -80,7 +74,7 @@ private final class ModerationQueueViewModel: ObservableObject {
     }
 
     func setAllowedSections(_ sections: Set<AppSection>) {
-        let normalizedSections = sections.intersection([.news, .events, .organizations, .marketplace])
+        let normalizedSections = sections.intersection([.news, .events, .organizations])
         if allowedSections != normalizedSections {
             allowedSections = normalizedSections
             hasLoaded = false
@@ -99,8 +93,6 @@ private final class ModerationQueueViewModel: ObservableObject {
                 try await eventRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
             case .organization:
                 try await organizationRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
-            case .marketplace:
-                try await marketplaceRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
             }
 
             items.removeAll { $0.id == item.id }
@@ -158,9 +150,6 @@ private final class ModerationQueueViewModel: ObservableObject {
         if allowedSections.contains(.organizations) {
             loadedItems.append(contentsOf: makeItems(from: try await organizationRepository.fetchPendingOrganizations()))
         }
-        if allowedSections.contains(.marketplace) {
-            loadedItems.append(contentsOf: makeItems(from: try await marketplaceRepository.fetchPendingMarketplaceItems()))
-        }
 
         return loadedItems.sorted { $0.createdAt > $1.createdAt }
     }
@@ -201,17 +190,6 @@ private final class ModerationQueueViewModel: ObservableObject {
         }
     }
 
-    private func makeItems(from marketplaceItems: [MarketplaceItem]) -> [ModerationQueueItem] {
-        marketplaceItems.map {
-            ModerationQueueItem(
-                contentID: $0.id,
-                type: .marketplace,
-                title: $0.title,
-                summary: $0.description,
-                createdAt: $0.createdAt
-            )
-        }
-    }
 }
 
 struct ModerationToolsView: View {
@@ -221,14 +199,12 @@ struct ModerationToolsView: View {
     init(
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        marketplaceRepository: MarketplaceRepository = FirestoreMarketplaceRepository()
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
         _viewModel = StateObject(wrappedValue: ModerationQueueViewModel(
             newsRepository: newsRepository,
             eventRepository: eventRepository,
-            organizationRepository: organizationRepository,
-            marketplaceRepository: marketplaceRepository
+            organizationRepository: organizationRepository
         ))
     }
 
@@ -237,13 +213,12 @@ struct ModerationToolsView: View {
         return PermissionService.canModerate(section: .news, user: user)
             || PermissionService.canModerate(section: .events, user: user)
             || PermissionService.canModerate(section: .organizations, user: user)
-            || PermissionService.canModerate(section: .marketplace, user: user)
     }
 
     private var allowedSections: Set<AppSection> {
         guard let user = authState.user else { return [] }
         return PermissionService.moderatedSections(for: user)
-            .intersection([.news, .events, .organizations, .marketplace])
+            .intersection([.news, .events, .organizations])
     }
 
     var body: some View {
@@ -409,8 +384,7 @@ private struct ModerationItemRow: View {
         ModerationToolsView(
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
-            organizationRepository: MockOrganizationRepository(),
-            marketplaceRepository: MockMarketplaceRepository()
+            organizationRepository: MockOrganizationRepository()
         )
     }
     .environmentObject(AuthState())

@@ -1,4 +1,14 @@
+import Combine
 import SwiftUI
+
+enum NewsPresentationMode {
+    case `public`
+    case management
+
+    var allowsManagementControls: Bool {
+        self == .management
+    }
+}
 
 struct NewsListView: View {
     @EnvironmentObject private var authState: AuthState
@@ -6,10 +16,26 @@ struct NewsListView: View {
     let newsRepository: NewsRepository
     let onNewsPublished: @MainActor () async -> Void
     let onNewsChanged: () -> Void
+    let presentationMode: NewsPresentationMode
     @State private var pendingDeletePostID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
     @State private var isShowingCreateSheet = false
+    @State private var guestAccessAction: GuestAccessAction?
+
+    init(
+        viewModel: NewsViewModel,
+        newsRepository: NewsRepository,
+        onNewsPublished: @escaping @MainActor () async -> Void,
+        onNewsChanged: @escaping () -> Void,
+        presentationMode: NewsPresentationMode = .public
+    ) {
+        self.viewModel = viewModel
+        self.newsRepository = newsRepository
+        self.onNewsPublished = onNewsPublished
+        self.onNewsChanged = onNewsChanged
+        self.presentationMode = presentationMode
+    }
 
     private var errorText: String {
         switch viewModel.error {
@@ -29,11 +55,11 @@ struct NewsListView: View {
     }
 
     private var canCreateNews: Bool {
-        authState.user?.role.permissions.canCreateNews == true
+        presentationMode.allowsManagementControls && PermissionService.canCreateNews(user: authState.user)
     }
 
     private var canDeleteNews: Bool {
-        authState.user?.role.permissions.canDeleteNews == true
+        presentationMode.allowsManagementControls && PermissionService.canDeleteNews(user: authState.user)
     }
 
     var body: some View {
@@ -81,27 +107,26 @@ struct NewsListView: View {
                         ZStack(alignment: .bottomTrailing) {
                             NavigationLink {
                                 NewsDetailView(viewModel: viewModel, postID: post.id, onNewsDeleted: onNewsChanged)
+                                    .environment(\.newsPresentationMode, presentationMode)
                             } label: {
                                 NewsCard(post: post)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("news.card.\(post.id)")
 
                             LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
-                                viewModel.toggleLike(for: post.id)
+                                handleLike(for: post.id)
                             }
                             .disabled(viewModel.pendingNewsLikeIDs.contains(post.id))
+                            .accessibilityIdentifier("news.like.\(post.id)")
                             .accessibilityLabel(post.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
                             .accessibilityHint(AppStrings.Common.likes)
                             .padding(.trailing, 18)
                             .padding(.bottom, 18)
                         }
-                        .swipeActions(edge: .trailing) {
-                            if canDeleteNews {
-                                Button(AppStrings.News.delete, role: .destructive) {
-                                    pendingDeletePostID = post.id
-                                }
-                            }
-                        }
+                        .modifier(NewsDeleteSwipeActions(isEnabled: canDeleteNews) {
+                            pendingDeletePostID = post.id
+                        })
                     }
                     .padding()
                 }
@@ -115,6 +140,12 @@ struct NewsListView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .newsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
+            Task {
+                await viewModel.refresh()
+            }
+        }
+        .guestAccessAlert($guestAccessAction)
         .confirmationDialog(
             AppStrings.News.deleteConfirmation,
             isPresented: Binding(
@@ -170,6 +201,15 @@ struct NewsListView: View {
                 NewsEditorView(repository: newsRepository, onPublished: onNewsPublished)
             }
         }
+    }
+
+    private func handleLike(for postID: String) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = .likes
+            return
+        }
+
+        viewModel.toggleLike(for: postID)
     }
 }
 private func readableNewsErrorText(_ error: AppError?) -> String {
@@ -244,6 +284,7 @@ private struct NewsCard: View {
 
 struct NewsDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.newsPresentationMode) private var presentationMode
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
@@ -253,14 +294,15 @@ struct NewsDetailView: View {
     @State private var isDeleting = false
     @State private var isShowingEditSheet = false
     @State private var pendingRemovalPostID: String?
+    @State private var guestAccessAction: GuestAccessAction?
     private let detailImageHeight: CGFloat = 260
 
     private var canEditNews: Bool {
-        authState.user?.role.permissions.canEditNews == true
+        presentationMode.allowsManagementControls && PermissionService.canEditNews(user: authState.user)
     }
 
     private var canDeleteNews: Bool {
-        authState.user?.role.permissions.canDeleteNews == true
+        presentationMode.allowsManagementControls && PermissionService.canDeleteNews(user: authState.user)
     }
 
     private func newsCreatedDateText(for post: NewsPost) -> String {
@@ -330,7 +372,6 @@ struct NewsDetailView: View {
                                         source: "NewsDetailView"
                                     )
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: detailImageHeight)
                                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 }
                                 .padding(20)
@@ -366,9 +407,10 @@ struct NewsDetailView: View {
                                 Spacer(minLength: 0)
 
                                 LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
-                                    viewModel.toggleLike(for: post.id)
+                                    handleLike(for: post.id)
                                 }
                                 .disabled(viewModel.pendingNewsLikeIDs.contains(post.id))
+                                .accessibilityIdentifier("news.like.\(post.id)")
                                 .accessibilityLabel(post.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
                                 .accessibilityHint(AppStrings.Common.likes)
                             }
@@ -466,6 +508,7 @@ struct NewsDetailView: View {
         .sheet(isPresented: $isShowingEditSheet) {
             editSheetContent
         }
+        .guestAccessAlert($guestAccessAction)
         .onDisappear {
             guard let pendingRemovalPostID else { return }
             withTransaction(Transaction(animation: nil)) {
@@ -492,6 +535,15 @@ struct NewsDetailView: View {
             deleteErrorMessage = readableNewsErrorText(.unknown)
         }
     }
+
+    private func handleLike(for postID: String) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = .likes
+            return
+        }
+
+        viewModel.toggleLike(for: postID)
+    }
 }
 
 #Preview("News List") {
@@ -500,7 +552,8 @@ struct NewsDetailView: View {
             viewModel: NewsViewModel(repository: MockNewsRepository()),
             newsRepository: MockNewsRepository(),
             onNewsPublished: {},
-            onNewsChanged: {}
+            onNewsChanged: {},
+            presentationMode: .management
         )
     }
 }
@@ -512,5 +565,35 @@ struct NewsDetailView: View {
             postID: MockContentBuilder.newsPosts().first!.id,
             onNewsDeleted: {}
         )
+        .environment(\.newsPresentationMode, .management)
+    }
+}
+
+private struct NewsDeleteSwipeActions: ViewModifier {
+    let isEnabled: Bool
+    let onDelete: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.swipeActions(edge: .trailing) {
+                Button(AppStrings.News.delete, role: .destructive) {
+                    onDelete()
+                }
+            }
+        } else {
+            content
+        }
+    }
+}
+
+private struct NewsPresentationModeKey: EnvironmentKey {
+    static let defaultValue: NewsPresentationMode = .public
+}
+
+extension EnvironmentValues {
+    var newsPresentationMode: NewsPresentationMode {
+        get { self[NewsPresentationModeKey.self] }
+        set { self[NewsPresentationModeKey.self] = newValue }
     }
 }

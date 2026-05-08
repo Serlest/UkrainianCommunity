@@ -70,17 +70,28 @@ service cloud.firestore {
     }
 
     function userSelfEditableFields() {
-      return ['fullName', 'city', 'bio', 'email', 'updatedAt'];
+      return ['fullName', 'displayName', 'telegramUsername', 'city', 'bio', 'email', 'selectedFederalState', 'updatedAt'];
     }
 
     function safeUserCreate(uid) {
       return isSelf(uid)
         && request.resource.data.id == uid
+        && request.resource.data.fullName is string
+        && request.resource.data.displayName is string
+        && request.resource.data.city is string
+        && request.resource.data.email is string
+        && request.resource.data.bio is string
         && request.resource.data.role == 'user'
         && request.resource.data.isBlocked == false
+        && request.resource.data.blockState == 'active'
         && request.resource.data.globalRole == 'user'
+        && request.resource.data.selectedFederalState is string
         && request.resource.data.accountStatus == 'active'
         && request.resource.data.warningCount == 0
+        && request.resource.data.acceptedTermsAt is timestamp
+        && request.resource.data.acceptedPrivacyAt is timestamp
+        && request.resource.data.termsVersion is string
+        && request.resource.data.privacyVersion is string
         && request.resource.data.moderatorSections is list
         && request.resource.data.moderatorSections.size() == 0
         && request.resource.data.communityMemberships is list
@@ -168,13 +179,6 @@ service cloud.firestore {
         || (isActiveUser() && onlyLikeCountChanged());
     }
 
-    match /marketplace/{itemId} {
-      allow read: if isApprovedContent() || canReadModerationQueue('marketplace');
-      allow create, delete: if canWriteContent('marketplace');
-      allow update: if canWriteContent('marketplace')
-        || (isActiveUser() && onlyLikeCountChanged());
-    }
-
     match /likes/{likeId} {
       allow read: if isActiveUser();
 
@@ -197,6 +201,29 @@ service cloud.firestore {
 
       allow delete: if isActiveUser()
         && resource.data.userId == request.auth.uid;
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isOwner()
+        || isTopAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'open';
+
+      allow update, delete: if isOwner() || isTopAdmin();
+    }
+
+    match /guideArticles/{articleId} {
+      allow read: if resource.data.moderationStatus == 'approved'
+        || isOwner()
+        || isTopAdmin()
+        || isAppModerator();
+
+      allow create, update, delete: if isOwner()
+        || isTopAdmin()
+        || isAppModerator();
     }
 
     match /{document=**} {

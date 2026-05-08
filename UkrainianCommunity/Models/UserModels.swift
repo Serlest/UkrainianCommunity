@@ -40,7 +40,6 @@ enum AppSection: String, CaseIterable, Codable, Identifiable {
     case news
     case events
     case organizations
-    case marketplace
     case comments
 
     var id: String { rawValue }
@@ -224,12 +223,24 @@ struct UserSettings: Codable {
     }
 }
 
+struct EditableUserProfileDraft: Equatable {
+    let fullName: String
+    let displayName: String
+    let telegramUsername: String?
+    let city: String
+    let bio: String
+    let selectedFederalState: AustrianFederalState
+}
+
 struct AppUser: Identifiable, Codable {
     let id: String
     let fullName: String
+    let displayName: String
     let city: String
     let email: String
+    let avatarURL: URL?
     let bio: String
+    let telegramUsername: String?
     let role: UserRole
     let globalRole: GlobalRole
     let moderatorSections: [AppSection]
@@ -238,17 +249,57 @@ struct AppUser: Identifiable, Codable {
     let banExpiresAt: Date?
     let warningCount: Int
     let communityMemberships: [CommunityMembership]
+    let selectedFederalState: AustrianFederalState?
+    let acceptedTermsAt: Date?
+    let acceptedPrivacyAt: Date?
+    let termsVersion: String?
+    let privacyVersion: String?
     let createdAt: Date
     let updatedAt: Date
 
     var joinedAt: Date { createdAt }
+    var preferredDisplayName: String {
+        let trimmedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedDisplayName.isEmpty {
+            return trimmedDisplayName
+        }
+
+        let trimmedFullName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedFullName.isEmpty {
+            return trimmedFullName
+        }
+
+        return AppStrings.Profile.loadingUserProfile
+    }
+
+    var preferredFullName: String? {
+        let trimmedFullName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDisplayName = preferredDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedFullName.isEmpty, trimmedFullName != trimmedDisplayName else {
+            return nil
+        }
+        return trimmedFullName
+    }
+
+    var initials: String {
+        let source = preferredDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = source
+            .split(whereSeparator: \.isWhitespace)
+            .prefix(2)
+            .compactMap { $0.first.map(String.init) }
+        let joined = parts.joined()
+        return joined.isEmpty ? "UC" : joined.uppercased()
+    }
 
     nonisolated init(
         id: String,
         fullName: String,
+        displayName: String = "",
         city: String,
         email: String,
+        avatarURL: URL? = nil,
         bio: String,
+        telegramUsername: String? = nil,
         role: UserRole,
         globalRole: GlobalRole? = nil,
         moderatorSections: [AppSection] = [],
@@ -257,14 +308,22 @@ struct AppUser: Identifiable, Codable {
         banExpiresAt: Date? = nil,
         warningCount: Int = 0,
         communityMemberships: [CommunityMembership] = [],
+        selectedFederalState: AustrianFederalState? = .tirol,
+        acceptedTermsAt: Date? = nil,
+        acceptedPrivacyAt: Date? = nil,
+        termsVersion: String? = nil,
+        privacyVersion: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
         self.id = id
         self.fullName = fullName
+        self.displayName = displayName
         self.city = city
         self.email = email
+        self.avatarURL = avatarURL
         self.bio = bio
+        self.telegramUsername = telegramUsername
         self.role = role
         self.globalRole = globalRole ?? GlobalRole(legacyRole: role)
         self.moderatorSections = moderatorSections
@@ -273,6 +332,11 @@ struct AppUser: Identifiable, Codable {
         self.banExpiresAt = banExpiresAt
         self.warningCount = warningCount
         self.communityMemberships = communityMemberships
+        self.selectedFederalState = selectedFederalState
+        self.acceptedTermsAt = acceptedTermsAt
+        self.acceptedPrivacyAt = acceptedPrivacyAt
+        self.termsVersion = termsVersion
+        self.privacyVersion = privacyVersion
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -280,12 +344,55 @@ struct AppUser: Identifiable, Codable {
     static let placeholder = AppUser(
         id: "placeholder-user",
         fullName: "",
+        displayName: "",
         city: "",
         email: "",
+        avatarURL: nil,
         bio: "",
+        telegramUsername: nil,
         role: .user,
         blockState: .active,
         createdAt: .now,
         updatedAt: .now
     )
+}
+
+enum FeedbackType: String, CaseIterable, Codable, Identifiable {
+    case question
+    case suggestion
+    case bug
+    case report
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .question:
+            AppStrings.Feedback.typeQuestion
+        case .suggestion:
+            AppStrings.Feedback.typeSuggestion
+        case .bug:
+            AppStrings.Feedback.typeBug
+        case .report:
+            AppStrings.Feedback.typeReport
+        }
+    }
+}
+
+enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
+    case open
+    case reviewed
+    case closed
+
+    var id: String { rawValue }
+}
+
+struct FeedbackItem: Identifiable, Codable {
+    let id: String
+    let type: FeedbackType
+    let message: String
+    let status: FeedbackStatus
+    let createdAt: Date
+    let userId: String
+    let userDisplayName: String
 }

@@ -6,7 +6,8 @@
 - `news`
 - `events`
 - `organizations`
-- `marketplace`
+- `guideArticles`
+- `feedback`
 - `comments`
 - `registrations`
 - `likes`
@@ -28,7 +29,7 @@ Client-side role checks are useful for UI and UX, but they do not protect data b
 
 ### Public Content
 
-- Users can read public content from `news`, `events`, `organizations`, and `marketplace`.
+- Users can read public content from `news`, `events`, `organizations`, and `guideArticles`.
 - Public read access for `comments` can be allowed where the related content is public.
 
 ### Users
@@ -44,7 +45,7 @@ Client-side role checks are useful for UI and UX, but they do not protect data b
   - `news`
   - `events`
   - `organizations`
-  - `marketplace`
+  - `guideArticles`
 - Moderators should not manage user roles.
 - Moderators should not have full access to all user documents.
 
@@ -85,10 +86,16 @@ Client-side role checks are useful for UI and UX, but they do not protect data b
 - Readable by users if public/published.
 - Writable by `moderator`, `admin`, and `owner`.
 
-### `marketplace`
+### `guideArticles`
 
 - Readable by users if public/published.
 - Writable by `moderator`, `admin`, and `owner`.
+
+### `feedback`
+
+- Readable by the submitting user and privileged app administrators.
+- Writable by authenticated users for their own submissions.
+- Status and review lifecycle should be restricted to privileged roles.
 
 ### `comments`
 

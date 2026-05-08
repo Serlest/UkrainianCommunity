@@ -3,8 +3,33 @@ import Foundation
 
 @MainActor
 final class NewsEditorViewModel: ObservableObject {
+    struct CreateContext {
+        let organizationId: String?
+        let organizationName: String?
+        let organizationImageURL: String?
+
+        nonisolated static let app = CreateContext(
+            organizationId: nil,
+            organizationName: nil,
+            organizationImageURL: nil
+        )
+
+        var source: ContentSourceMetadata {
+            guard let organizationId, !organizationId.isEmpty else {
+                return ContentSourceMetadata(sourceType: .app)
+            }
+
+            return ContentSourceMetadata(
+                sourceType: .organization,
+                organizationId: organizationId,
+                organizationName: organizationName,
+                organizationImageURL: organizationImageURL
+            )
+        }
+    }
+
     enum Mode {
-        case create
+        case create(context: CreateContext = .app)
         case edit(existing: NewsPost)
 
         var isEditing: Bool {
@@ -30,7 +55,7 @@ final class NewsEditorViewModel: ObservableObject {
     private var authState: AuthState?
     private let mode: Mode
 
-    init(repository: NewsRepository, authState: AuthState? = nil, mode: Mode = .create) {
+    init(repository: NewsRepository, authState: AuthState? = nil, mode: Mode = .create()) {
         self.repository = repository
         self.authState = authState
         self.mode = mode
@@ -92,23 +117,39 @@ final class NewsEditorViewModel: ObservableObject {
         let createdAt: Date
         let publishedAt: Date
         let existingImageURL: String?
+        let existingRegionScope: RegionScope?
+        let existingFederalState: AustrianFederalState?
+        let existingCity: String?
+        let existingSource: ContentSourceMetadata
         switch mode {
-        case .create:
+        case let .create(context):
             newsID = UUID().uuidString
             createdAt = now
             publishedAt = now
             existingImageURL = nil
+            existingRegionScope = .federalState
+            existingFederalState = .tirol
+            existingCity = nil
+            existingSource = context.source
         case let .edit(existingNews):
             newsID = existingNews.id
             createdAt = existingNews.createdAt
             publishedAt = existingNews.publishedAt
             existingImageURL = existingNews.imageURL
+            existingRegionScope = existingNews.regionScope
+            existingFederalState = existingNews.federalState
+            existingCity = existingNews.city
+            existingSource = existingNews.source
         }
         var resolvedImageURL: String?
         let news = NewsPost(
             id: newsID,
             title: trimmedTitle,
             subtitle: trimmedSummary,
+            regionScope: existingRegionScope,
+            federalState: existingFederalState,
+            city: existingCity,
+            source: existingSource,
             imageURL: nil,
             body: trimmedBody,
             authorName: resolvedAuthorName,
@@ -144,6 +185,10 @@ final class NewsEditorViewModel: ObservableObject {
                 id: news.id,
                 title: news.title,
                 subtitle: news.subtitle,
+                regionScope: news.regionScope,
+                federalState: news.federalState,
+                city: news.city,
+                source: news.source,
                 imageURL: resolvedImageURL,
                 body: news.body,
                 authorName: news.authorName,
@@ -164,6 +209,7 @@ final class NewsEditorViewModel: ObservableObject {
                 try await repository.updateNews(newsToCreate)
                 successMessage = AppStrings.NewsEditor.updatedSuccessfully
             }
+            AppContentChangeBus.postNewsChanged(organizationID: newsToCreate.source.organizationId)
             title = ""
             summary = ""
             body = ""

@@ -41,6 +41,13 @@ struct FirestoreNewsRepository: NewsRepository {
             "title": dto.title,
             "subtitle": dto.subtitle,
             "summary": dto.subtitle,
+            "regionScope": dto.regionScope as Any,
+            "federalState": dto.federalState as Any,
+            "city": dto.city as Any,
+            "sourceType": dto.sourceType as Any,
+            "organizationId": dto.organizationId as Any,
+            "organizationName": dto.organizationName as Any,
+            "organizationImageURL": dto.organizationImageURL as Any,
             "imageURL": dto.imageURL as Any,
             "body": dto.body,
             "authorName": dto.authorName,
@@ -59,6 +66,13 @@ struct FirestoreNewsRepository: NewsRepository {
             "title": news.title,
             "subtitle": news.subtitle,
             "summary": news.subtitle,
+            "regionScope": news.regionScope?.rawValue as Any,
+            "federalState": news.federalState?.rawValue as Any,
+            "city": news.city as Any,
+            "sourceType": news.source.sourceType.rawValue,
+            "organizationId": news.source.organizationId as Any,
+            "organizationName": news.source.organizationName as Any,
+            "organizationImageURL": news.source.organizationImageURL as Any,
             "body": news.body,
             "imageURL": news.imageURL as Any,
             "authorName": news.authorName,
@@ -209,6 +223,13 @@ struct FirestoreNewsRepository: NewsRepository {
             id: data["id"] as? String ?? document.documentID,
             title: title,
             subtitle: subtitle,
+            regionScope: data["regionScope"] as? String,
+            federalState: data["federalState"] as? String,
+            city: data["city"] as? String,
+            sourceType: data["sourceType"] as? String,
+            organizationId: data["organizationId"] as? String,
+            organizationName: data["organizationName"] as? String,
+            organizationImageURL: data["organizationImageURL"] as? String,
             imageURL: data["imageURL"] as? String,
             body: body,
             authorName: authorName,
@@ -271,43 +292,5 @@ struct FirestoreNewsRepository: NewsRepository {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
-    }
-}
-
-private extension Array {
-    func chunked(into size: Int) -> [ArraySlice<Element>] {
-        guard size > 0 else { return [self[...]] }
-
-        var chunks: [ArraySlice<Element>] = []
-        var currentIndex = startIndex
-
-        while currentIndex < endIndex {
-            let nextIndex = index(currentIndex, offsetBy: size, limitedBy: endIndex) ?? endIndex
-            chunks.append(self[currentIndex..<nextIndex])
-            currentIndex = nextIndex
-        }
-
-        return chunks
-    }
-}
-
-private extension AppError {
-    var asNSError: NSError {
-        NSError(domain: "AppError", code: code)
-    }
-
-    var code: Int {
-        switch self {
-        case .network:
-            1
-        case .permissionDenied:
-            2
-        case .validationFailed:
-            3
-        case .notFound:
-            4
-        case .unknown:
-            5
-        }
     }
 }

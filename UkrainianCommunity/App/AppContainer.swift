@@ -2,19 +2,30 @@ import Foundation
 
 struct AppContainer {
     let userRepository: UserRepository
+    let feedbackRepository: FeedbackRepository
     let newsRepository: NewsRepository
     let eventRepository: EventRepository
     let organizationRepository: OrganizationRepository
-    let marketplaceRepository: MarketplaceRepository
     let infoRepository: InfoRepository
 
     static var development: AppContainer {
         return AppContainer(
             userRepository: FirestoreUserRepository(),
+            feedbackRepository: FirestoreFeedbackRepository(),
             newsRepository: FirestoreNewsRepository(),
             eventRepository: FirestoreEventRepository(),
             organizationRepository: FirestoreOrganizationRepository(),
-            marketplaceRepository: FirestoreMarketplaceRepository(),
+            infoRepository: FirestoreGuideRepository()
+        )
+    }
+
+    static var uiTesting: AppContainer {
+        AppContainer(
+            userRepository: MockUserRepository(),
+            feedbackRepository: MockFeedbackRepository(),
+            newsRepository: MockNewsRepository(),
+            eventRepository: MockEventRepository(),
+            organizationRepository: MockOrganizationRepository(),
             infoRepository: MockInfoRepository()
         )
     }

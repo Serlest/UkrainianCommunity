@@ -3,6 +3,11 @@ import Foundation
 protocol UserRepository {
     func fetchCurrentUser() async throws -> AppUser
     func fetchSettings() async throws -> UserSettings
+    func updateProfile(_ profile: EditableUserProfileDraft) async throws -> AppUser
+}
+
+protocol FeedbackRepository {
+    func submitFeedback(_ feedback: FeedbackItem) async throws
 }
 
 protocol NewsRepository {
@@ -32,19 +37,15 @@ protocol EventRepository {
 protocol OrganizationRepository {
     func fetchOrganizations() async throws -> [Organization]
     func fetchPendingOrganizations() async throws -> [Organization]
+    func createOrganization(_ organization: Organization) async throws
+    func updateOrganization(_ organization: Organization) async throws
+    func deleteOrganization(id: String) async throws
+    func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL
     func likeOrganization(id: String) async throws
     func unlikeOrganization(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
 }
 
-protocol MarketplaceRepository {
-    func fetchMarketplaceItems() async throws -> [MarketplaceItem]
-    func fetchPendingMarketplaceItems() async throws -> [MarketplaceItem]
-    func likeMarketplaceItem(id: String) async throws
-    func unlikeMarketplaceItem(id: String) async throws
-    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
-}
-
 protocol InfoRepository {
-    func fetchInfoItems() async throws -> [InfoItem]
+    func fetchGuideArticles() async throws -> [GuideArticle]
 }

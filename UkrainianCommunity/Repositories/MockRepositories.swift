@@ -7,8 +7,42 @@ private actor MockRepositoryStore {
     var news = MockContentBuilder.newsPosts()
     var events = MockContentBuilder.events()
     var organizations = MockContentBuilder.organizations()
-    var marketplaceItems = MockContentBuilder.marketplaceItems()
     var infoItems = MockContentBuilder.infoItems()
+    var guideArticles = MockContentBuilder.guideArticles()
+    var feedbackItems: [FeedbackItem] = []
+
+    func updateUserProfile(_ profile: EditableUserProfileDraft) -> AppUser {
+        user = AppUser(
+            id: user.id,
+            fullName: profile.fullName,
+            displayName: profile.displayName,
+            city: profile.city,
+            email: user.email,
+            avatarURL: user.avatarURL,
+            bio: profile.bio,
+            telegramUsername: profile.telegramUsername,
+            role: user.role,
+            globalRole: user.globalRole,
+            moderatorSections: user.moderatorSections,
+            blockState: user.blockState,
+            accountStatus: user.accountStatus,
+            banExpiresAt: user.banExpiresAt,
+            warningCount: user.warningCount,
+            communityMemberships: user.communityMemberships,
+            selectedFederalState: profile.selectedFederalState,
+            acceptedTermsAt: user.acceptedTermsAt,
+            acceptedPrivacyAt: user.acceptedPrivacyAt,
+            termsVersion: user.termsVersion,
+            privacyVersion: user.privacyVersion,
+            createdAt: user.createdAt,
+            updatedAt: .now
+        )
+        return user
+    }
+
+    func createFeedback(_ item: FeedbackItem) {
+        feedbackItems.insert(item, at: 0)
+    }
 
     func toggleNewsLike(id: String, isLiked: Bool) throws {
         guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
@@ -27,6 +61,10 @@ private actor MockRepositoryStore {
             id: existingItem.id,
             title: item.title,
             subtitle: item.subtitle,
+            regionScope: item.regionScope,
+            federalState: item.federalState,
+            city: item.city,
+            source: item.source,
             imageURL: item.imageURL,
             body: item.body,
             authorName: item.authorName,
@@ -80,6 +118,9 @@ private actor MockRepositoryStore {
             title: item.title,
             summary: item.summary,
             details: item.details,
+            regionScope: item.regionScope,
+            federalState: item.federalState,
+            source: item.source,
             city: item.city,
             venue: item.venue,
             imageURL: item.imageURL,
@@ -126,26 +167,40 @@ private actor MockRepositoryStore {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    func createOrganization(_ item: Organization) {
+        organizations.insert(item, at: 0)
+    }
+
+    func updateOrganization(_ item: Organization) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == item.id }) else { throw AppError.notFound }
+        let existingItem = organizations[index]
+        organizations[index] = Organization(
+            id: existingItem.id,
+            name: item.name,
+            description: item.description,
+            regionScope: item.regionScope,
+            federalState: item.federalState,
+            city: item.city,
+            imageURL: item.imageURL,
+            contactEmail: item.contactEmail,
+            website: item.website,
+            createdAt: existingItem.createdAt,
+            updatedAt: item.updatedAt,
+            moderationStatus: existingItem.moderationStatus,
+            likeCount: existingItem.likeCount,
+            likeState: existingItem.likeState
+        )
+        organizations.sort { $0.createdAt > $1.createdAt }
+    }
+
+    func deleteOrganization(id: String) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        organizations.remove(at: index)
+    }
+
     func updateOrganizationModerationStatus(id: String, newStatus: ModerationStatus) throws {
         guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         organizations[index].moderationStatus = newStatus
-    }
-
-    func toggleMarketplaceLike(id: String, isLiked: Bool) throws {
-        guard let index = marketplaceItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
-        marketplaceItems[index].likeState = isLiked ? .liked : .notLiked
-        marketplaceItems[index].likeCount += isLiked ? 1 : -1
-    }
-
-    func pendingMarketplaceItems() -> [MarketplaceItem] {
-        marketplaceItems
-            .filter { $0.moderationStatus == .pendingReview }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    func updateMarketplaceModerationStatus(id: String, newStatus: ModerationStatus) throws {
-        guard let index = marketplaceItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
-        marketplaceItems[index].moderationStatus = newStatus
     }
 }
 
@@ -158,6 +213,18 @@ struct MockUserRepository: UserRepository {
 
     func fetchSettings() async throws -> UserSettings {
         .stored
+    }
+
+    func updateProfile(_ profile: EditableUserProfileDraft) async throws -> AppUser {
+        await store.updateUserProfile(profile)
+    }
+}
+
+struct MockFeedbackRepository: FeedbackRepository {
+    private let store = MockRepositoryStore.shared
+
+    func submitFeedback(_ feedback: FeedbackItem) async throws {
+        await store.createFeedback(feedback)
     }
 }
 
@@ -258,6 +325,22 @@ struct MockOrganizationRepository: OrganizationRepository {
         await store.pendingOrganizations()
     }
 
+    func createOrganization(_ organization: Organization) async throws {
+        await store.createOrganization(organization)
+    }
+
+    func updateOrganization(_ organization: Organization) async throws {
+        try await store.updateOrganization(organization)
+    }
+
+    func deleteOrganization(id: String) async throws {
+        try await store.deleteOrganization(id: id)
+    }
+
+    func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL {
+        URL(string: "https://example.com/organizations/\(organizationID)/cover.jpg")!
+    }
+
     func likeOrganization(id: String) async throws {
         try await store.toggleOrganizationLike(id: id, isLiked: true)
     }
@@ -271,36 +354,17 @@ struct MockOrganizationRepository: OrganizationRepository {
     }
 }
 
-struct MockMarketplaceRepository: MarketplaceRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchMarketplaceItems() async throws -> [MarketplaceItem] {
-        await store.marketplaceItems
-            .filter { $0.moderationStatus == .approved }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    func fetchPendingMarketplaceItems() async throws -> [MarketplaceItem] {
-        await store.pendingMarketplaceItems()
-    }
-
-    func likeMarketplaceItem(id: String) async throws {
-        try await store.toggleMarketplaceLike(id: id, isLiked: true)
-    }
-
-    func unlikeMarketplaceItem(id: String) async throws {
-        try await store.toggleMarketplaceLike(id: id, isLiked: false)
-    }
-
-    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
-        try await store.updateMarketplaceModerationStatus(id: id, newStatus: newStatus)
-    }
-}
-
 struct MockInfoRepository: InfoRepository {
     private let store = MockRepositoryStore.shared
 
-    func fetchInfoItems() async throws -> [InfoItem] {
-        await store.infoItems
+    func fetchGuideArticles() async throws -> [GuideArticle] {
+        await store.guideArticles
+            .filter { $0.moderationStatus == .approved }
+            .sorted { lhs, rhs in
+                if lhs.isPinned == rhs.isPinned {
+                    return lhs.updatedAt > rhs.updatedAt
+                }
+                return lhs.isPinned && !rhs.isPinned
+            }
     }
 }

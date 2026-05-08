@@ -10,7 +10,25 @@ struct NewsEditorView: View {
     private let onPublished: @MainActor () async -> Void
 
     init(repository: NewsRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
-        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create))
+        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create()))
+        self.onPublished = onPublished
+    }
+
+    init(
+        repository: NewsRepository,
+        organizationId: String,
+        organizationName: String,
+        organizationImageURL: String?,
+        onPublished: @escaping @MainActor () async -> Void = {}
+    ) {
+        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(
+            repository: repository,
+            mode: .create(context: .init(
+                organizationId: organizationId,
+                organizationName: organizationName,
+                organizationImageURL: organizationImageURL
+            ))
+        ))
         self.onPublished = onPublished
     }
 
