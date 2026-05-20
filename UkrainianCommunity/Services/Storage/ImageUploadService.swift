@@ -27,6 +27,14 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "organizations/\(organizationID)/cover.jpg")
     }
 
+    func uploadProfileAvatarImage(data: Data, userID: String) async throws -> URL {
+        try await uploadCoverImage(data: data, storagePath: "profileImages/\(userID)/avatar.jpg")
+    }
+
+    func uploadHomeBannerImage(data: Data) async throws -> URL {
+        try await uploadCoverImage(data: data, storagePath: HomeBannerMetadata.storagePath)
+    }
+
     private func uploadCoverImage(data: Data, storagePath: String) async throws -> URL {
         let processedImage = try await prepareImageDataForUpload(from: data)
         let reference = storage.reference().child(storagePath)

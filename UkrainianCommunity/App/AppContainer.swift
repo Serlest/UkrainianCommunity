@@ -7,6 +7,7 @@ struct AppContainer {
     let eventRepository: EventRepository
     let organizationRepository: OrganizationRepository
     let infoRepository: InfoRepository
+    let homeBannerService: HomeBannerServiceProtocol
 
     static var development: AppContainer {
         return AppContainer(
@@ -15,7 +16,8 @@ struct AppContainer {
             newsRepository: FirestoreNewsRepository(),
             eventRepository: FirestoreEventRepository(),
             organizationRepository: FirestoreOrganizationRepository(),
-            infoRepository: FirestoreGuideRepository()
+            infoRepository: FirestoreGuideRepository(),
+            homeBannerService: FirestoreHomeBannerService()
         )
     }
 
@@ -26,7 +28,8 @@ struct AppContainer {
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
             organizationRepository: MockOrganizationRepository(),
-            infoRepository: MockInfoRepository()
+            infoRepository: MockInfoRepository(),
+            homeBannerService: MockHomeBannerService()
         )
     }
 }

@@ -1,9 +1,12 @@
 import Combine
+import PhotosUI
 import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var viewModel: ProfileViewModel
+    private let eventRepository: EventRepository
     @EnvironmentObject var authState: AuthState
+    @StateObject private var registrationsViewModel: MyRegistrationsViewModel
     @State private var isShowingEditProfileSheet = false
     @State private var fullNameDraft = ""
     @State private var displayNameDraft = ""
@@ -11,11 +14,21 @@ struct ProfileView: View {
     @State private var cityDraft = ""
     @State private var bioDraft = ""
     @State private var selectedFederalStateDraft: AustrianFederalState = .tirol
+    @State private var selectedAvatarPhoto: PhotosPickerItem?
+    @State private var selectedAvatarImageData: Data?
+    @State private var avatarPreviewImage: UIImage?
+    @State private var isLoadingAvatarSelection = false
     @State private var selectedFeedbackType: FeedbackType = .question
     @State private var feedbackMessage = ""
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isShowingLogoutConfirmation = false
     @State private var logoutErrorMessage: String?
+
+    init(viewModel: ProfileViewModel, eventRepository: EventRepository) {
+        self.viewModel = viewModel
+        self.eventRepository = eventRepository
+        _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(repository: eventRepository))
+    }
 
     private var permissionUser: AppUser? {
         authState.user ?? displayUser
@@ -58,33 +71,77 @@ struct ProfileView: View {
         return AppStrings.FederalStates.title(for: federalState)
     }
 
-    private var capabilityItems: [String] {
-        guard let user = permissionUser else {
-            return [AppStrings.Common.likes, AppStrings.Profile.eventRegistration]
-        }
-
-        var items = [AppStrings.Common.likes, AppStrings.Profile.eventRegistration]
-
-        if PermissionService.canModerate(section: .news, user: user)
-            || PermissionService.canModerate(section: .events, user: user)
-            || PermissionService.canModerate(section: .organizations, user: user) {
-            items.append(AppStrings.Profile.moderationTools)
-        }
-
-        if PermissionService.canAccessAdminTools(user: user) {
-            items.append(AppStrings.Profile.adminTools)
-            items.append(AppStrings.Profile.userManagement)
-        }
-
-        return items
-    }
-
-    private var hasManagementSection: Bool {
-        canShowOrganizationManagement || canShowContentManagement
-    }
-
     private var hasAdministrationSection: Bool {
         canShowModerationTools || canShowAdminTools
+    }
+
+    private var saveButtonTitle: String {
+        viewModel.isSavingProfile ? AppStrings.Profile.savingProfile : AppStrings.Profile.saveProfile
+    }
+
+    private var profileStatusStyle: InlineMessageStyle {
+        if viewModel.profileMessage == AppStrings.Profile.profileSaved {
+            return .success
+        }
+
+        if viewModel.isSavingProfile || isLoadingAvatarSelection {
+            return .info
+        }
+
+        return .error
+    }
+
+    private var profileStatusMessage: String? {
+        if isLoadingAvatarSelection {
+            return AppStrings.Profile.avatarLoading
+        }
+
+        if viewModel.isSavingProfile {
+            return AppStrings.Profile.savingProfileMessage
+        }
+
+        if selectedAvatarImageData != nil, viewModel.profileMessage == nil {
+            return AppStrings.Profile.avatarReadyToSave
+        }
+
+        return viewModel.profileMessage
+    }
+
+    private var profileValidationHint: String? {
+        if displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return AppStrings.Profile.displayNameRequired
+        }
+
+        if isLoadingAvatarSelection {
+            return AppStrings.Profile.avatarLoading
+        }
+
+        if !hasProfileChanges {
+            return AppStrings.Profile.noProfileChanges
+        }
+
+        return nil
+    }
+
+    private var hasProfileChanges: Bool {
+        guard let user = displayUser else { return false }
+
+        let hasTextualChanges =
+            user.fullName.trimmingCharacters(in: .whitespacesAndNewlines) != fullNameDraft.trimmingCharacters(in: .whitespacesAndNewlines) ||
+            user.displayName.trimmingCharacters(in: .whitespacesAndNewlines) != displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines) ||
+            (user.telegramUsername ?? "").trimmingCharacters(in: .whitespacesAndNewlines) != telegramUsernameDraft.trimmingCharacters(in: .whitespacesAndNewlines) ||
+            user.city.trimmingCharacters(in: .whitespacesAndNewlines) != cityDraft.trimmingCharacters(in: .whitespacesAndNewlines) ||
+            user.bio.trimmingCharacters(in: .whitespacesAndNewlines) != bioDraft.trimmingCharacters(in: .whitespacesAndNewlines) ||
+            user.selectedFederalState != selectedFederalStateDraft
+
+        return hasTextualChanges || selectedAvatarImageData != nil
+    }
+
+    private var canSaveProfile: Bool {
+        !viewModel.isSavingProfile &&
+        !isLoadingAvatarSelection &&
+        hasProfileChanges &&
+        !displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var feedbackSupportSection: some View {
@@ -104,23 +161,49 @@ struct ProfileView: View {
     }
 
     private var activitySection: some View {
-        Section(AppStrings.Profile.myActivity) {
-            ActivitySummaryCard(
-                title: AppStrings.Profile.accountSummary,
-                subtitle: AppStrings.Profile.activitySubtitle,
-                items: capabilityItems
+        Section {
+            NavigationLink {
+                MyRegistrationsView(
+                    viewModel: registrationsViewModel,
+                    eventRepository: eventRepository
+                )
+            } label: {
+                AppNavigationRow(
+                    title: AppStrings.Profile.myRegistrations,
+                    subtitle: registrationsSectionSubtitle,
+                    systemImage: "calendar.badge.clock"
+                )
+            }
+            .accessibilityLabel(AppStrings.Profile.myRegistrations)
+        } header: {
+            SectionHeaderBlock(
+                title: AppStrings.Profile.myActivity,
+                subtitle: AppStrings.Profile.activitySectionSummary
             )
+            .textCase(nil)
         }
         .listRowBackground(AppTheme.surfacePrimary)
     }
 
+    private var registrationsSectionSubtitle: String {
+        if registrationsViewModel.isLoading && registrationsViewModel.events.isEmpty {
+            return AppStrings.Profile.registrationsLoading
+        }
+
+        if registrationsViewModel.registrationsCount == 0 {
+            return AppStrings.Profile.registrationsEmptySummary
+        }
+
+        return AppStrings.profileRegistrationsCount(registrationsViewModel.registrationsCount)
+    }
+
     private var organizationsSection: some View {
-        Section(AppStrings.Profile.myOrganizations) {
+        Section {
             if canShowOrganizationManagement, let user = permissionUser {
                 NavigationLink {
                     OrganizationManagementHubView(currentUser: user)
                 } label: {
-                    ProfileNavigationCardLabel(
+                    AppNavigationRow(
                         title: AppStrings.Profile.organizationManagement,
                         subtitle: AppStrings.Profile.organizationManagementSubtitle,
                         systemImage: "building.2.crop.circle"
@@ -128,24 +211,30 @@ struct ProfileView: View {
                 }
                 .accessibilityLabel(AppStrings.Profile.organizationManagement)
             } else {
-                SectionSummaryCard(
+                EmptyStateCard(
+                    systemImage: "building.2",
                     title: AppStrings.Profile.myOrganizations,
-                    subtitle: AppStrings.Profile.organizationsSectionSubtitle,
-                    systemImage: "building.2"
+                    message: AppStrings.Profile.organizationsSectionSubtitle
                 )
             }
+        } header: {
+            SectionHeaderBlock(
+                title: AppStrings.Profile.myOrganizations,
+                subtitle: AppStrings.Profile.organizationsSectionSummary
+            )
+            .textCase(nil)
         }
         .listRowBackground(AppTheme.surfacePrimary)
     }
 
     private var appManagementSection: some View {
-        Section(AppStrings.Profile.appManagement) {
+        Section {
             if canShowContentManagement {
                 if PermissionService.canManageAppNews(user: permissionUser) {
                     NavigationLink {
                         AppNewsManagementView()
                     } label: {
-                        ProfileNavigationCardLabel(
+                        AppNavigationRow(
                             title: AppStrings.Profile.manageAppNews,
                             subtitle: AppStrings.Profile.contentManagementSubtitle,
                             systemImage: "newspaper"
@@ -158,7 +247,7 @@ struct ProfileView: View {
                     NavigationLink {
                         AppEventsManagementView()
                     } label: {
-                        ProfileNavigationCardLabel(
+                        AppNavigationRow(
                             title: AppStrings.Profile.manageAppEvents,
                             subtitle: AppStrings.Profile.contentManagementSubtitle,
                             systemImage: "calendar"
@@ -172,7 +261,7 @@ struct ProfileView: View {
                 NavigationLink {
                     ModerationToolsView()
                 } label: {
-                    ProfileNavigationCardLabel(
+                    AppNavigationRow(
                         title: AppStrings.Profile.reviewPendingContent,
                         subtitle: AppStrings.Profile.appManagementSubtitle,
                         systemImage: "clock.badge.exclamationmark"
@@ -185,7 +274,7 @@ struct ProfileView: View {
                 NavigationLink {
                     UserManagementView()
                 } label: {
-                    ProfileNavigationCardLabel(
+                    AppNavigationRow(
                         title: AppStrings.Profile.userManagement,
                         subtitle: AppStrings.Profile.appManagementSubtitle,
                         systemImage: "person.3"
@@ -193,13 +282,99 @@ struct ProfileView: View {
                 }
                 .accessibilityLabel(AppStrings.Profile.userManagement)
             }
+        } header: {
+            SectionHeaderBlock(
+                title: AppStrings.Profile.appManagement,
+                subtitle: AppStrings.Profile.appManagementSubtitle
+            )
+            .textCase(nil)
+        }
+        .listRowBackground(AppTheme.surfacePrimary)
+    }
+
+    private var settingsPreferencesSection: some View {
+        Section {
+            Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.title).tag(language)
+                }
+            }
+
+            Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
+                ForEach(AppAppearance.allCases) { appearance in
+                    Text(appearance.title).tag(appearance)
+                }
+            }
+        } header: {
+            SectionHeaderBlock(
+                title: AppStrings.Settings.title,
+                subtitle: AppStrings.Settings.preferencesSubtitle
+            )
+            .textCase(nil)
+        }
+        .listRowBackground(AppTheme.surfacePrimary)
+    }
+
+    private var settingsLegalSection: some View {
+        Section {
+            NavigationLink {
+                LegalDocumentView(document: .privacy)
+            } label: {
+                AppNavigationRow(
+                    title: AppStrings.Settings.privacyPolicy,
+                    subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion),
+                    systemImage: "lock.doc"
+                )
+            }
+            .accessibilityIdentifier("settings.privacy.button")
+            .accessibilityLabel(AppStrings.Settings.privacyPolicy)
+
+            NavigationLink {
+                LegalDocumentView(document: .terms)
+            } label: {
+                AppNavigationRow(
+                    title: AppStrings.Settings.terms,
+                    subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion),
+                    systemImage: "doc.text"
+                )
+            }
+            .accessibilityIdentifier("settings.terms.button")
+            .accessibilityLabel(AppStrings.Settings.terms)
+        } header: {
+            SectionHeaderBlock(
+                title: AppStrings.Settings.legalSection,
+                subtitle: AppStrings.Settings.legalSectionSubtitle
+            )
+            .textCase(nil)
+        }
+        .listRowBackground(AppTheme.surfacePrimary)
+    }
+
+    private var settingsSessionSection: some View {
+        Section {
+            Button(role: .destructive) {
+                isShowingLogoutConfirmation = true
+            } label: {
+                AppNavigationRow(
+                    title: AppStrings.Profile.signOut,
+                    subtitle: AppStrings.Settings.sessionSubtitle,
+                    systemImage: "rectangle.portrait.and.arrow.right",
+                    tint: AppTheme.accentDestructive,
+                    accessory: .none
+                )
+            }
+            .accessibilityIdentifier("profile.logout.button")
+            .accessibilityLabel(AppStrings.Profile.signOut)
+        } header: {
+            SectionHeaderBlock(title: AppStrings.Settings.sessionSection)
+                .textCase(nil)
         }
         .listRowBackground(AppTheme.surfacePrimary)
     }
 
     var body: some View {
         List {
-            Section(AppStrings.Profile.accountSection) {
+            Section {
                 ProfileHeaderCard(
                     sessionState: authState.sessionState,
                     user: displayUser,
@@ -208,8 +383,22 @@ struct ProfileView: View {
                     onSignIn: { authState.presentAuthFlow(.login) },
                     onCreateAccount: { authState.presentAuthFlow(.register) }
                 )
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 4, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
+            } header: {
+                if authState.isAuthenticated {
+                    SectionHeaderBlock(
+                        title: AppStrings.Profile.accountSection,
+                        subtitle: AppStrings.Profile.accountSectionSummary
+                    )
+                    .textCase(nil)
+                } else {
+                    Text(AppStrings.Profile.guestSectionSummary)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .textCase(nil)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
 
             if authState.isAuthenticated {
@@ -225,62 +414,73 @@ struct ProfileView: View {
                 feedbackSupportSection
             }
 
-            Section(AppStrings.Settings.title) {
-                Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
-                    ForEach(AppLanguage.allCases) { language in
-                        Text(language.title).tag(language)
-                    }
-                }
+            settingsPreferencesSection
+            settingsLegalSection
 
-                Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
-                    ForEach(AppAppearance.allCases) { appearance in
-                        Text(appearance.title).tag(appearance)
-                    }
-                }
-
-                NavigationLink {
-                    LegalDocumentView(document: .privacy)
-                } label: {
-                    Label(AppStrings.Settings.privacyPolicy, systemImage: "lock.doc")
-                }
-                .accessibilityIdentifier("settings.privacy.button")
-                .accessibilityLabel(AppStrings.Settings.privacyPolicy)
-
-                NavigationLink {
-                    LegalDocumentView(document: .terms)
-                } label: {
-                    Label(AppStrings.Settings.terms, systemImage: "doc.text")
-                }
-                .accessibilityIdentifier("settings.terms.button")
-                .accessibilityLabel(AppStrings.Settings.terms)
-
-                if authState.isAuthenticated {
-                    Button(role: .destructive) {
-                        isShowingLogoutConfirmation = true
-                    } label: {
-                        Label(AppStrings.Profile.signOut, systemImage: "rectangle.portrait.and.arrow.right")
-                    }
-                    .accessibilityIdentifier("profile.logout.button")
-                    .accessibilityLabel(AppStrings.Profile.signOut)
-                }
+            if authState.isAuthenticated {
+                settingsSessionSection
             }
-            .listRowBackground(AppTheme.surfacePrimary)
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(AppTheme.pageBackground)
         .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.Profile.title)
+        .safeAreaInset(edge: .bottom) {
+            Color.clear
+                .frame(height: 72)
+        }
         .task {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
+            if authState.isAuthenticated {
+                await registrationsViewModel.loadIfNeeded()
+                await registrationsViewModel.refreshIfStale()
+            } else {
+                registrationsViewModel.resetForGuest()
+            }
         }
         .refreshable {
             await viewModel.refresh()
+            if authState.isAuthenticated {
+                await registrationsViewModel.refresh()
+            }
+        }
+        .onChange(of: authState.isAuthenticated) { _, isAuthenticated in
+            Task {
+                if isAuthenticated {
+                    await registrationsViewModel.refresh()
+                } else {
+                    registrationsViewModel.resetForGuest()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .registrationsChanged)) { _ in
+            guard authState.isAuthenticated else { return }
+            Task {
+                await registrationsViewModel.refresh()
+            }
         }
         .sheet(isPresented: $isShowingEditProfileSheet) {
             NavigationStack {
                 Form {
+                    Section {
+                        ProfileAvatarEditorCard(
+                            avatarURL: displayUser?.avatarURL,
+                            initials: displayUser?.initials ?? "UC",
+                            previewImage: avatarPreviewImage,
+                            selectedPhoto: $selectedAvatarPhoto,
+                            isLoadingAvatar: isLoadingAvatarSelection,
+                            isSavingAvatar: viewModel.isSavingProfile && selectedAvatarImageData != nil
+                        )
+                    } header: {
+                        SectionHeaderBlock(
+                            title: AppStrings.Profile.editProfile,
+                            subtitle: AppStrings.Profile.editProfileSubtitle
+                        )
+                        .textCase(nil)
+                    }
+
                     Section {
                         TextField(AppStrings.Profile.fullName, text: $fullNameDraft)
                             .textInputAutocapitalization(.words)
@@ -330,12 +530,10 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    if let profileStatusMessage = viewModel.profileMessage {
+                    if let profileStatusMessage {
                         Section {
-                            Text(profileStatusMessage)
-                                .font(.footnote)
-                                .foregroundStyle(profileStatusMessage == AppStrings.Profile.profileSaved ? .green : .red)
-                                .fixedSize(horizontal: false, vertical: true)
+                            InlineMessageCard(style: profileStatusStyle, message: profileStatusMessage)
+                                .accessibilityLabel(profileStatusMessage)
                         }
                     }
 
@@ -349,26 +547,50 @@ struct ProfileView: View {
                                         telegramUsername: telegramUsernameDraft,
                                         city: cityDraft,
                                         bio: bioDraft,
-                                        selectedFederalState: selectedFederalStateDraft
-                                    )
+                                        selectedFederalState: selectedFederalStateDraft,
+                                        avatarURL: displayUser?.avatarURL
+                                    ),
+                                    avatarImageData: selectedAvatarImageData
                                 )
                                 guard let updatedUser else { return }
                                 authState.user = updatedUser
                                 isShowingEditProfileSheet = false
                             }
                         } label: {
-                            if viewModel.isSavingProfile {
-                                ProgressView(AppStrings.Profile.saveProfile)
+                            if viewModel.isSavingProfile || isLoadingAvatarSelection {
+                                ProgressView(saveButtonTitle)
                             } else {
-                                Text(AppStrings.Profile.saveProfile)
+                                Text(saveButtonTitle)
                             }
                         }
-                        .disabled(viewModel.isSavingProfile)
+                        .disabled(!canSaveProfile)
                         .accessibilityLabel(AppStrings.Profile.saveProfile)
+                    } footer: {
+                        if let profileValidationHint {
+                            Text(profileValidationHint)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .navigationTitle(AppStrings.Profile.editProfile)
+                .navigationBarTitleDisplayMode(.inline)
+                .interactiveDismissDisabled(viewModel.isSavingProfile)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(AppStrings.Common.cancel) {
+                            guard !viewModel.isSavingProfile else { return }
+                            isShowingEditProfileSheet = false
+                        }
+                    }
+                }
+                .onChange(of: selectedAvatarPhoto) { _, newValue in
+                    Task {
+                        await loadSelectedAvatarPhoto(item: newValue)
+                    }
+                }
             }
+            .presentationDragIndicator(.visible)
         }
         .confirmationDialog(
             AppStrings.Profile.signOutConfirmTitle,
@@ -415,8 +637,46 @@ struct ProfileView: View {
         cityDraft = displayUser?.city ?? ""
         bioDraft = displayUser?.bio ?? ""
         selectedFederalStateDraft = displayUser?.selectedFederalState ?? .tirol
+        selectedAvatarPhoto = nil
+        selectedAvatarImageData = nil
+        avatarPreviewImage = nil
         viewModel.profileMessage = nil
         isShowingEditProfileSheet = true
+    }
+
+    @MainActor
+    private func loadSelectedAvatarPhoto(item: PhotosPickerItem?) async {
+        guard let item else {
+            selectedAvatarImageData = nil
+            avatarPreviewImage = nil
+            isLoadingAvatarSelection = false
+            return
+        }
+
+        isLoadingAvatarSelection = true
+        do {
+            let data = try await item.loadTransferable(type: Data.self)
+            guard
+                let data,
+                let image = UIImage(data: data)
+            else {
+                viewModel.profileMessage = AppStrings.Profile.avatarSelectionFailed
+                selectedAvatarImageData = nil
+                avatarPreviewImage = nil
+                isLoadingAvatarSelection = false
+                return
+            }
+
+            selectedAvatarImageData = data
+            avatarPreviewImage = image
+            viewModel.profileMessage = nil
+            isLoadingAvatarSelection = false
+        } catch {
+            viewModel.profileMessage = AppStrings.Profile.avatarSelectionFailed
+            selectedAvatarImageData = nil
+            avatarPreviewImage = nil
+            isLoadingAvatarSelection = false
+        }
     }
 
     private func submitFeedback(for user: AppUser) {
@@ -448,13 +708,13 @@ private struct ProfileHeaderCard: View {
     let onCreateAccount: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        CommunityCard {
             if let user {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .center, spacing: 14) {
                         ProfileAvatarView(user: user)
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(user.preferredDisplayName)
                                 .font(.title2.weight(.bold))
                                 .foregroundStyle(AppTheme.textPrimary)
@@ -462,7 +722,7 @@ private struct ProfileHeaderCard: View {
 
                             if let fullName = user.preferredFullName {
                                 Text(fullName)
-                                    .font(.subheadline)
+                                    .font(.footnote)
                                     .foregroundStyle(AppTheme.textSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -495,37 +755,38 @@ private struct ProfileHeaderCard: View {
 
                     if let bio = user.bio.nilIfEmpty {
                         Text(bio)
-                            .font(.body)
+                            .font(.subheadline)
                             .foregroundStyle(AppTheme.textSecondary)
+                            .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 8) {
                         if let city = user.city.nilIfEmpty {
-                            ProfileMetadataRow(value: city, systemImage: "mappin.and.ellipse")
+                            ProfileMetadataRow(
+                                title: AppStrings.Common.city,
+                                value: city,
+                                systemImage: "mappin.and.ellipse"
+                            )
                         }
 
                         if let telegramUsername = user.telegramUsername?.nilIfEmpty {
-                            ProfileMetadataRow(value: "@\(telegramUsername)", systemImage: "paperplane")
+                            ProfileMetadataRow(
+                                title: AppStrings.Profile.telegramUsername,
+                                value: "@\(telegramUsername)",
+                                systemImage: "paperplane"
+                            )
                         }
-
-                        ProfileMetadataRow(
-                            value: LocalizationStore.dateString(from: user.joinedAt),
-                            systemImage: "calendar"
-                        )
-
-                        ProfileMetadataRow(
-                            value: user.accountStatus.title,
-                            systemImage: "checkmark.shield"
-                        )
                     }
-                }
 
-                Button(AppStrings.Profile.editProfile, action: onEditProfile)
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accentPrimary)
+                    Button(action: onEditProfile) {
+                        Label(AppStrings.Profile.editProfile, systemImage: "slider.horizontal.3")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .appActionButtonStyle(.secondary)
                     .accessibilityIdentifier("profile.edit.button")
                     .accessibilityLabel(AppStrings.Profile.editProfile)
+                }
             } else if sessionState == .restoring {
                 HStack(spacing: 12) {
                     ProgressView()
@@ -533,37 +794,49 @@ private struct ProfileHeaderCard: View {
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
+                .padding(.vertical, 4)
             } else {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(AppStrings.Profile.guestTitle)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(AppTheme.textPrimary)
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(AppStrings.Profile.guestTitle)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    Text(AppStrings.Profile.guestMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(AppStrings.Profile.guestMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-                    HStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         Button(AppStrings.Auth.signIn, action: onSignIn)
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppTheme.accentPrimary)
+                            .frame(maxWidth: .infinity)
+                            .appActionButtonStyle(.primary)
                             .accessibilityIdentifier("profile.guest.signIn")
 
-                        Button(AppStrings.Auth.createAccount, action: onCreateAccount)
-                            .buttonStyle(.bordered)
-                            .accessibilityIdentifier("profile.guest.createAccount")
+                        Button(action: onCreateAccount) {
+                            Text(AppStrings.Auth.createAccount)
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(AppTheme.accentPrimary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(AppTheme.surfacePrimary)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(AppTheme.accentPrimary.opacity(0.34), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.guest.createAccount")
                     }
                 }
                 .accessibilityIdentifier("profile.guest.card")
             }
         }
-        .padding(20)
-        .background(AppTheme.surfacePrimary, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .stroke(AppTheme.borderSubtle)
-        )
         .accessibilityIdentifier("profile.account.hero")
     }
 }
@@ -572,117 +845,63 @@ private struct ProfileAvatarView: View {
     let user: AppUser
 
     var body: some View {
-        Group {
-            if let avatarURL = user.avatarURL {
-                AsyncImage(url: avatarURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        avatarFallback
-                    }
-                }
-            } else {
-                avatarFallback
-            }
-        }
-        .frame(width: 88, height: 88)
-        .clipShape(Circle())
-        .overlay(Circle().stroke(AppTheme.borderSubtle))
-        .accessibilityLabel(user.preferredDisplayName)
-    }
-
-    private var avatarFallback: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [AppTheme.accentPrimarySoft, AppTheme.surfaceSecondary],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            Text(user.initials)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(AppTheme.accentPrimary)
-        }
+        AvatarArtworkView(
+            avatarURL: user.avatarURL,
+            initials: user.initials,
+            size: 72,
+            accessibilityLabel: user.preferredDisplayName
+        )
     }
 }
 
-private struct ProfileMetadataRow: View {
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        Label {
-            Text(value)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.accentPrimary)
-        }
-        .font(.subheadline)
-        .foregroundStyle(AppTheme.textSecondary)
-    }
-}
-
-private struct ProfileNavigationCardLabel: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.headline)
-                .foregroundStyle(AppTheme.accentPrimary)
-                .frame(width: 34, height: 34)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 12))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(AppTheme.textPrimary)
-
-                Text(subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-
-            Spacer(minLength: 12)
-
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 8)
-    }
-}
-
-private struct ActivitySummaryCard: View {
-    let title: String
-    let subtitle: String
-    let items: [String]
+private struct ProfileAvatarEditorCard: View {
+    let avatarURL: URL?
+    let initials: String
+    let previewImage: UIImage?
+    @Binding var selectedPhoto: PhotosPickerItem?
+    let isLoadingAvatar: Bool
+    let isSavingAvatar: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(AppTheme.textPrimary)
+            HStack(alignment: .center, spacing: 16) {
+                AvatarArtworkView(
+                    avatarURL: avatarURL,
+                    previewImage: previewImage,
+                    initials: initials,
+                    size: 84,
+                    isLoading: isLoadingAvatar || isSavingAvatar,
+                    isDecorative: true
+                )
 
-                Text(subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(AppStrings.Profile.changeAvatar)
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.textPrimary)
 
-            FlowLayout(spacing: 10) {
-                ForEach(items, id: \.self) { item in
-                    ProfileBadge(title: item, systemImage: "checkmark.circle.fill")
+                    Text(AppStrings.Profile.avatarSubtitle)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
+                        Label(AppStrings.Profile.changeAvatar, systemImage: "camera.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isSavingAvatar)
+                    .accessibilityLabel(AppStrings.Profile.changeAvatar)
+
+                    if isLoadingAvatar {
+                        Text(AppStrings.Profile.avatarLoading)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if isSavingAvatar {
+                        Text(AppStrings.Profile.avatarUploading)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
@@ -690,32 +909,218 @@ private struct ActivitySummaryCard: View {
     }
 }
 
-private struct SectionSummaryCard: View {
+private struct ProfileMetadataRow: View {
     let title: String
-    let subtitle: String
+    let value: String
     let systemImage: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.headline)
-                .foregroundStyle(AppTheme.accentPrimary)
-                .frame(width: 38, height: 38)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 6) {
+        Label {
+            HStack(spacing: 8) {
                 Text(title)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Spacer(minLength: 8)
+
+                Text(value)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(AppTheme.accentPrimary)
+        }
+        .font(.subheadline)
+    }
+}
+
+private struct MyRegistrationsView: View {
+    @EnvironmentObject private var authState: AuthState
+    @ObservedObject var viewModel: MyRegistrationsViewModel
+    let eventRepository: EventRepository
+
+    private var calendar: Calendar { .current }
+
+    private var upcomingEvents: [Event] {
+        let startOfToday = calendar.startOfDay(for: Date())
+        return viewModel.events.filter { $0.endDate >= startOfToday }
+    }
+
+    private var pastEvents: [Event] {
+        let startOfToday = calendar.startOfDay(for: Date())
+        return viewModel.events.filter { $0.endDate < startOfToday }
+    }
+
+    var body: some View {
+        List {
+            if viewModel.isLoading && viewModel.events.isEmpty {
+                LoadingStateCard(title: AppStrings.Profile.registrationsLoading)
+                    .listRowBackground(Color.clear)
+            } else if let error = viewModel.error, viewModel.events.isEmpty {
+                ErrorStateCard(
+                    title: AppStrings.Profile.myRegistrations,
+                    message: readableRegistrationsErrorText(error)
+                )
+                .listRowBackground(Color.clear)
+            } else if viewModel.events.isEmpty {
+                EmptyStateCard(
+                    systemImage: "calendar.badge.clock",
+                    title: AppStrings.Profile.myRegistrations,
+                    message: AppStrings.Profile.registrationsEmptyMessage
+                )
+                .listRowBackground(Color.clear)
+            } else {
+                if !upcomingEvents.isEmpty {
+                    Section(AppStrings.Events.upcomingTitle) {
+                        ForEach(upcomingEvents) { event in
+                            registrationRow(for: event)
+                        }
+                    }
+                    .listRowBackground(AppTheme.surfacePrimary)
+                }
+
+                if !pastEvents.isEmpty {
+                    Section(AppStrings.Events.pastTitle) {
+                        ForEach(pastEvents) { event in
+                            registrationRow(for: event)
+                        }
+                    }
+                    .listRowBackground(AppTheme.surfacePrimary)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
+        .navigationTitle(AppStrings.Profile.myRegistrations)
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await viewModel.loadIfNeeded()
+            await viewModel.refreshIfStale()
+        }
+        .refreshable {
+            await viewModel.refresh()
+        }
+    }
+
+    @ViewBuilder
+    private func registrationRow(for event: Event) -> some View {
+        NavigationLink {
+            RegisteredEventDetailContainer(event: event, repository: eventRepository)
+        } label: {
+            RegistrationEventRow(
+                event: event,
+                isUpdating: viewModel.pendingCancellationIDs.contains(event.id)
+            )
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                Task {
+                    await viewModel.cancelRegistration(for: event.id)
+                }
+            } label: {
+                Text(AppStrings.Action.cancelRegistration)
+            }
+            .disabled(viewModel.pendingCancellationIDs.contains(event.id))
+        }
+        .accessibilityLabel("\(event.title), \(registrationEventScheduleText(for: event))")
+    }
+
+    private func readableRegistrationsErrorText(_ error: AppError) -> String {
+        switch error {
+        case .network:
+            AppStrings.Events.loadNetworkError
+        case .permissionDenied:
+            AppStrings.Events.loadPermissionError
+        case .validationFailed:
+            AppStrings.Events.loadValidationError
+        case .notFound:
+            AppStrings.Profile.registrationsEmptyMessage
+        case .unknown:
+            AppStrings.Events.loadUnknownError
+        }
+    }
+}
+
+private struct RegisteredEventDetailContainer: View {
+    let event: Event
+    @StateObject private var detailViewModel: EventsViewModel
+
+    init(event: Event, repository: EventRepository) {
+        self.event = event
+        _detailViewModel = StateObject(wrappedValue: EventsViewModel(repository: repository))
+    }
+
+    var body: some View {
+        EventDetailView(
+            viewModel: detailViewModel,
+            eventID: event.id,
+            onEventDeleted: {}
+        )
+        .environment(\.eventPresentationMode, .public)
+    }
+}
+
+private struct RegistrationEventRow: View {
+    let event: Event
+    let isUpdating: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(event.title)
                     .font(.headline)
                     .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                Text(subtitle)
+                Text(event.summary)
                     .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(2)
+
+                Label(registrationEventScheduleText(for: event), systemImage: "calendar")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Label("\(event.city), \(event.venue)", systemImage: "mappin.and.ellipse")
+                    .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            Spacer(minLength: 12)
+
+            if isUpdating {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AppTheme.accentPrimary)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
+        .opacity(isUpdating ? 0.7 : 1)
     }
+}
+
+private func registrationEventScheduleText(for event: Event) -> String {
+    let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
+
+    guard event.endDate > event.startDate else {
+        return startDateText
+    }
+
+    let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
+    if isSameDay {
+        let endTimeText = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
+        return "\(startDateText) - \(endTimeText)"
+    }
+
+    let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
+    return "\(startDateText) - \(endDateText)"
 }
 
 private struct FeedbackComposerCard: View {
@@ -726,31 +1131,55 @@ private struct FeedbackComposerCard: View {
     let onSubmit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(AppStrings.Feedback.subtitle)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Picker(AppStrings.Feedback.fieldType, selection: $selectedFeedbackType) {
-                ForEach(FeedbackType.allCases) { feedbackType in
-                    Text(feedbackType.title).tag(feedbackType)
+            LabeledContent(AppStrings.Feedback.fieldType) {
+                Picker(AppStrings.Feedback.fieldType, selection: $selectedFeedbackType) {
+                    ForEach(FeedbackType.allCases) { feedbackType in
+                        Text(feedbackType.title).tag(feedbackType)
+                    }
                 }
+                .pickerStyle(.menu)
             }
-            .pickerStyle(.menu)
             .accessibilityLabel(AppStrings.Feedback.fieldType)
 
-            TextEditor(text: $feedbackMessage)
-                .frame(minHeight: 110)
-                .padding(8)
-                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppStrings.Feedback.fieldMessage)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                ZStack(alignment: .topLeading) {
+                    if feedbackMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(AppStrings.Feedback.fieldMessage)
+                            .font(.body)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 14)
+                    }
+
+                    TextEditor(text: $feedbackMessage)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 92)
+                        .padding(8)
+                        .background(Color.clear)
+                }
+                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(AppTheme.borderSubtle)
+                )
                 .accessibilityLabel(AppStrings.Feedback.fieldMessage)
+            }
 
             if let statusMessage {
-                Text(statusMessage)
-                    .font(.footnote)
-                    .foregroundStyle(statusMessage == AppStrings.Feedback.submitted ? .green : .red)
-                    .fixedSize(horizontal: false, vertical: true)
+                InlineMessageCard(
+                    style: statusMessage == AppStrings.Feedback.submitted ? .success : .error,
+                    message: statusMessage
+                )
             }
 
             Button(action: onSubmit) {
@@ -763,11 +1192,12 @@ private struct FeedbackComposerCard: View {
                 }
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .tint(AppTheme.accentPrimary)
             .disabled(isSubmitting)
             .accessibilityLabel(AppStrings.Feedback.submit)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 }
 
@@ -785,58 +1215,6 @@ private struct ProfileBadge: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .background(AppTheme.accentPrimarySoft, in: Capsule())
-    }
-}
-
-private struct FlowLayout: Layout {
-    let spacing: CGFloat
-
-    init(spacing: CGFloat = 8) {
-        self.spacing = spacing
-    }
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if currentX + size.width > maxWidth, currentX > 0 {
-                currentX = 0
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            rowHeight = max(rowHeight, size.height)
-            currentX += size.width + spacing
-        }
-
-        return CGSize(width: proposal.width ?? currentX, height: currentY + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var currentX = bounds.minX
-        var currentY = bounds.minY
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if currentX + size.width > bounds.maxX, currentX > bounds.minX {
-                currentX = bounds.minX
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            subview.place(
-                at: CGPoint(x: currentX, y: currentY),
-                proposal: ProposedViewSize(width: size.width, height: size.height)
-            )
-
-            currentX += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
     }
 }
 
@@ -888,10 +1266,12 @@ private struct AppEventsManagementView: View {
 }
 
 private struct OrganizationManagementHubView: View {
+    @EnvironmentObject private var authState: AuthState
     let currentUser: AppUser
 
     private let repository: OrganizationRepository
     @StateObject private var organizationsViewModel: OrganizationsViewModel
+    @State private var isShowingCreateOrganization = false
 
     init(
         currentUser: AppUser,
@@ -912,6 +1292,10 @@ private struct OrganizationManagementHubView: View {
         }
     }
 
+    private var canCreateOrganization: Bool {
+        PermissionService.canCreateOrganization(user: currentUser)
+    }
+
     var body: some View {
         List {
             Section {
@@ -920,6 +1304,25 @@ private struct OrganizationManagementHubView: View {
                     .foregroundStyle(.secondary)
             }
             .listRowBackground(AppTheme.surfacePrimary)
+
+            if canCreateOrganization {
+                Section {
+                    Button {
+                        isShowingCreateOrganization = true
+                    } label: {
+                        AppNavigationRow(
+                            title: AppStrings.Organizations.editorTitle,
+                            subtitle: AppStrings.Profile.organizationManagementSubtitle,
+                            systemImage: "plus.circle",
+                            accessory: .none
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("organization.management.create")
+                    .accessibilityLabel(AppStrings.Organizations.editorTitle)
+                }
+                .listRowBackground(AppTheme.surfacePrimary)
+            }
 
             if organizationsViewModel.isLoading && manageableOrganizations.isEmpty {
                 Section {
@@ -964,6 +1367,7 @@ private struct OrganizationManagementHubView: View {
         .scrollContentBackground(.hidden)
         .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Profile.organizationManagement)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await organizationsViewModel.loadIfNeeded()
             await organizationsViewModel.refreshIfStale()
@@ -975,6 +1379,17 @@ private struct OrganizationManagementHubView: View {
             Task {
                 await organizationsViewModel.refresh()
             }
+        }
+        .sheet(isPresented: $isShowingCreateOrganization) {
+            NavigationStack {
+                OrganizationEditorView(
+                    organizationsViewModel: organizationsViewModel,
+                    onSaved: {
+                        await organizationsViewModel.refresh()
+                    }
+                )
+            }
+            .environmentObject(authState)
         }
     }
 }
@@ -1081,6 +1496,7 @@ private struct ManagedOrganizationView: View {
         .scrollContentBackground(.hidden)
         .background(AppTheme.pageBackground)
         .navigationTitle(currentOrganization.name)
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isShowingNewsEditor) {
             NavigationStack {
                 NewsEditorView(
@@ -1173,10 +1589,13 @@ private struct ManagedOrganizationView: View {
 
 #Preview {
     NavigationStack {
-        ProfileView(viewModel: ProfileViewModel(
-            repository: MockUserRepository(),
-            feedbackRepository: MockFeedbackRepository()
-        ))
+        ProfileView(
+            viewModel: ProfileViewModel(
+                repository: MockUserRepository(),
+                feedbackRepository: MockFeedbackRepository()
+            ),
+            eventRepository: MockEventRepository()
+        )
     }
     .environmentObject(AuthState())
 }

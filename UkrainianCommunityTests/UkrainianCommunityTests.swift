@@ -431,7 +431,8 @@ struct UkrainianCommunityTests {
                 telegramUsername: "olena.tirol",
                 city: "Innsbruck",
                 bio: "Community volunteer",
-                selectedFederalState: .tirol
+                selectedFederalState: .tirol,
+                avatarURL: URL(string: "https://example.com/new-avatar.jpg")
             )
         )
 
@@ -441,6 +442,45 @@ struct UkrainianCommunityTests {
         #expect(updated.city == "Innsbruck")
         #expect(updated.bio == "Community volunteer")
         #expect(updated.selectedFederalState == .tirol)
+        #expect(updated.avatarURL?.absoluteString == "https://example.com/new-avatar.jpg")
+    }
+
+    @Test func mockEventRepositoryFetchRegisteredEventsReturnsOnlyRegisteredItems() async throws {
+        let repository = MockEventRepository()
+        let targetEvent = makeEvent(
+            id: "registered-events-test-\(UUID().uuidString)",
+            startDate: .now.addingTimeInterval(86_400),
+            endDate: .now.addingTimeInterval(90_000)
+        )
+        try await repository.createEvent(targetEvent)
+
+        let initialRegisteredEvents = try await repository.fetchRegisteredEvents()
+        #expect(initialRegisteredEvents.allSatisfy { $0.registrationState == .registered })
+
+        try await repository.registerForEvent(id: targetEvent.id)
+
+        let registeredEvents = try await repository.fetchRegisteredEvents()
+
+        #expect(registeredEvents.contains(where: { $0.id == targetEvent.id }))
+        #expect(registeredEvents.allSatisfy { $0.registrationState == .registered })
+        #expect(registeredEvents.map(\.startDate) == registeredEvents.map(\.startDate).sorted(by: <))
+    }
+
+    @Test func myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount() async throws {
+        let repository = MockEventRepository()
+        let targetEvent = try #require((try await repository.fetchEvents()).first(where: { $0.registrationState == .registered }))
+        let viewModel = MyRegistrationsViewModel(repository: repository)
+
+        await viewModel.refresh()
+        #expect(viewModel.events.contains(where: { $0.id == targetEvent.id }))
+
+        await viewModel.cancelRegistration(for: targetEvent.id)
+
+        #expect(viewModel.events.contains(where: { $0.id == targetEvent.id }) == false)
+        #expect(viewModel.pendingCancellationIDs.contains(targetEvent.id) == false)
+        #expect(viewModel.registrationsCount == viewModel.events.count)
+        let registeredEvents = try await repository.fetchRegisteredEvents()
+        #expect(registeredEvents.contains(where: { $0.id == targetEvent.id }) == false)
     }
 
     @Test func feedbackModelSupportsExpectedTypesAndOpenStatus() {

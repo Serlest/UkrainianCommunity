@@ -190,7 +190,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             regionScope: data["regionScope"] as? String,
             federalState: data["federalState"] as? String,
             city: city,
-            imageURL: data["imageURL"] as? String,
+            imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
             contactEmail: data["contactEmail"] as? String,
             website: data["website"] as? String,
             createdAt: createdAt,
@@ -269,5 +269,12 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             throw AppError.permissionDenied
         }
         return uid
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

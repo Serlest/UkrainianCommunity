@@ -70,7 +70,7 @@ service cloud.firestore {
     }
 
     function userSelfEditableFields() {
-      return ['fullName', 'displayName', 'telegramUsername', 'city', 'bio', 'email', 'selectedFederalState', 'updatedAt'];
+      return ['fullName', 'displayName', 'telegramUsername', 'city', 'bio', 'email', 'selectedFederalState', 'avatarURL', 'updatedAt'];
     }
 
     function safeUserCreate(uid) {
@@ -187,8 +187,9 @@ service cloud.firestore {
 
       allow update: if false;
 
-      allow delete: if isActiveUser()
-        && resource.data.userId == request.auth.uid;
+      allow delete: if (isActiveUser() && resource.data.userId == request.auth.uid)
+        || isOwner()
+        || isTopAdmin();
     }
 
     match /registrations/{registrationId} {
@@ -199,8 +200,9 @@ service cloud.firestore {
 
       allow update: if false;
 
-      allow delete: if isActiveUser()
-        && resource.data.userId == request.auth.uid;
+      allow delete: if (isActiveUser() && resource.data.userId == request.auth.uid)
+        || isOwner()
+        || isTopAdmin();
     }
 
     match /feedback/{feedbackId} {
@@ -213,6 +215,11 @@ service cloud.firestore {
         && request.resource.data.status == 'open';
 
       allow update, delete: if isOwner() || isTopAdmin();
+    }
+
+    match /appConfig/homeBanner {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isOwner() || isTopAdmin();
     }
 
     match /guideArticles/{articleId} {

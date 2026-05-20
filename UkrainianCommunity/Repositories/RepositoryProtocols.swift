@@ -23,6 +23,7 @@ protocol NewsRepository {
 
 protocol EventRepository {
     func fetchEvents() async throws -> [Event]
+    func fetchRegisteredEvents() async throws -> [Event]
     func fetchPendingEvents() async throws -> [Event]
     func createEvent(_ event: Event) async throws
     func updateEvent(_ event: Event) async throws

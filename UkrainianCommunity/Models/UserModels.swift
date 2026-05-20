@@ -230,6 +230,25 @@ struct EditableUserProfileDraft: Equatable {
     let city: String
     let bio: String
     let selectedFederalState: AustrianFederalState
+    let avatarURL: URL?
+
+    init(
+        fullName: String,
+        displayName: String,
+        telegramUsername: String?,
+        city: String,
+        bio: String,
+        selectedFederalState: AustrianFederalState,
+        avatarURL: URL? = nil
+    ) {
+        self.fullName = fullName
+        self.displayName = displayName
+        self.telegramUsername = telegramUsername
+        self.city = city
+        self.bio = bio
+        self.selectedFederalState = selectedFederalState
+        self.avatarURL = avatarURL
+    }
 }
 
 struct AppUser: Identifiable, Codable {

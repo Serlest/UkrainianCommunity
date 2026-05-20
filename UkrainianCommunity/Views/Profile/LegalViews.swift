@@ -66,27 +66,40 @@ struct LegalDocumentView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(AppStrings.legalVersionLabel(document.version))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                CommunityCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(document.title)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
 
-                    Text(lastUpdatedText)
-                        .font(.footnote)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(AppStrings.Legal.screenIntro)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(AppStrings.legalVersionLabel(document.version))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentPrimary)
+
+                        Text(lastUpdatedText)
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 ForEach(Array(document.sections.enumerated()), id: \.offset) { _, section in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(section.title)
-                            .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
+                    CommunityCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(section.title)
+                                .font(.headline)
+                                .foregroundStyle(AppTheme.textPrimary)
 
-                        Text(section.body)
-                            .font(.body)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                            Text(section.body)
+                                .font(.body)
+                                .foregroundStyle(AppTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }

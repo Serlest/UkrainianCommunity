@@ -31,7 +31,8 @@ struct ContentView: View {
         _homeViewModel = StateObject(wrappedValue: HomeViewModel(
             newsRepository: container.newsRepository,
             eventRepository: container.eventRepository,
-            organizationRepository: container.organizationRepository
+            organizationRepository: container.organizationRepository,
+            homeBannerService: container.homeBannerService
         ))
         _newsViewModel = StateObject(wrappedValue: NewsViewModel(repository: container.newsRepository))
         _eventsViewModel = StateObject(wrappedValue: EventsViewModel(repository: container.eventRepository))
@@ -163,7 +164,10 @@ struct ContentView: View {
 
     private var profileTab: some View {
         NavigationStack {
-            ProfileView(viewModel: profileViewModel)
+            ProfileView(
+                viewModel: profileViewModel,
+                eventRepository: container.eventRepository
+            )
         }
         .accessibilityIdentifier("screen.profile")
         .id(profileNavigationRootID)

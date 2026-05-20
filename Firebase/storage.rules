@@ -5,6 +5,10 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
     function existsUser(uid) {
       return firestore.exists(/databases/(default)/documents/users/$(uid));
     }
@@ -56,6 +60,16 @@ service firebase.storage {
     match /organizations/{filePath=**} {
       allow read: if true;
       allow write: if canManageContentImages();
+    }
+
+    match /profileImages/{uid}/{filePath=**} {
+      allow read: if true;
+      allow write: if isSelf(uid) || isOwner() || isTopAdmin();
+    }
+
+    match /appConfig/homeBanner/{filePath=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner() || isTopAdmin();
     }
 
     match /{allPaths=**} {

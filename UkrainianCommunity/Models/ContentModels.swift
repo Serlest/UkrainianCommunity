@@ -320,6 +320,7 @@ struct HomeFeedItem: Identifiable, Equatable {
     let federalState: AustrianFederalState?
     let city: String?
     let eventStartDate: Date?
+    let eventEndDate: Date?
     let eventVenue: String?
     let organizationId: String?
     let organizationName: String?
@@ -338,6 +339,7 @@ struct HomeFeedItem: Identifiable, Equatable {
         federalState = post.federalState
         city = post.city
         eventStartDate = nil
+        eventEndDate = nil
         eventVenue = nil
         organizationId = post.source.organizationId
         organizationName = post.source.organizationName
@@ -357,6 +359,7 @@ struct HomeFeedItem: Identifiable, Equatable {
         federalState = event.federalState
         city = event.city
         eventStartDate = event.startDate
+        eventEndDate = event.endDate
         eventVenue = event.venue
         organizationId = event.source.organizationId
         organizationName = event.source.organizationName
@@ -376,6 +379,7 @@ struct HomeFeedItem: Identifiable, Equatable {
         federalState = organization.federalState
         city = organization.city
         eventStartDate = nil
+        eventEndDate = nil
         eventVenue = nil
         organizationId = organization.id
         organizationName = organization.name

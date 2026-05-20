@@ -230,7 +230,7 @@ struct FirestoreNewsRepository: NewsRepository {
             organizationId: data["organizationId"] as? String,
             organizationName: data["organizationName"] as? String,
             organizationImageURL: data["organizationImageURL"] as? String,
-            imageURL: data["imageURL"] as? String,
+            imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
             body: body,
             authorName: authorName,
             publishedAt: publishedAt,
@@ -292,5 +292,12 @@ struct FirestoreNewsRepository: NewsRepository {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

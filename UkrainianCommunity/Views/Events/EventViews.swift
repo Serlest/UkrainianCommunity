@@ -42,20 +42,20 @@ private struct EventDiscoveryContent {
 }
 
 private func eventScheduleText(for event: Event) -> String {
-    let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
+    let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .none)
+    let timeRangeText = LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate)
 
     guard event.endDate > event.startDate else {
-        return startDateText
+        return "\(startDateText), \(timeRangeText)"
     }
 
     let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
     if isSameDay {
-        let endTimeText = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
-        return "\(startDateText) - \(endTimeText)"
+        return "\(startDateText), \(timeRangeText)"
     }
 
     let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
-    return "\(startDateText) - \(endDateText)"
+    return "\(startDateText)–\(endDateText)"
 }
 
 private func eventDayTitleText(for date: Date) -> String {
@@ -153,110 +153,28 @@ struct EventsListView: View {
 
     var body: some View {
         ScrollView {
-            if viewModel.events.isEmpty && viewModel.isLoading {
-                VStack {
-                    LoadingStateCard(title: nil)
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                BrandedScreenHeader(title: AppStrings.Events.title, subtitle: AppStrings.Home.brandSubtitle) {
+                    AppInfoChip(
+                        title: AppStrings.Home.regionAllAustria,
+                        systemImage: "mappin.and.ellipse",
+                        tint: AppTheme.accentPrimary,
+                        fill: AppTheme.surfaceElevated,
+                        border: AppTheme.borderSubtle
+                    )
                 }
-                .frame(maxWidth: .infinity, minHeight: 420)
-            } else if viewModel.events.isEmpty && viewModel.error != nil {
-                ErrorStateCard(
-                    systemImage: "calendar",
-                    title: AppStrings.Events.title,
-                    message: errorText,
-                    retryTitle: AppStrings.Events.retry
-                ) {
-                    viewModel.reload()
-                }
-                .frame(maxWidth: .infinity, minHeight: 420)
-            } else if viewModel.events.isEmpty {
-                EmptyStateCard(
-                    systemImage: "calendar",
-                    title: AppStrings.Events.title,
-                    message: AppStrings.Events.empty
-                )
-                .frame(maxWidth: .infinity, minHeight: 420)
-            } else {
-                let content = discoveryContent
+                .padding(.top, 10)
 
-                VStack(spacing: AppTheme.sectionSpacing) {
-                    if viewModel.error != nil {
-                        ErrorStateCard(
-                            title: AppStrings.Events.title,
-                            message: errorText,
-                            retryTitle: AppStrings.Events.retry
-                        ) {
-                            viewModel.reload()
-                        }
-                        .padding(.horizontal, AppTheme.pageHorizontal)
-                    }
+                EventFilterChips(selectedFilter: $selectedFilter)
 
-                    EventFilterChips(selectedFilter: $selectedFilter)
-                        .padding(.horizontal, AppTheme.pageHorizontal)
-
-                    VStack(alignment: .leading, spacing: AppTheme.feedSpacing) {
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                            SectionHeaderBlock(title: AppStrings.Events.upcomingTitle)
-
-                            if content.upcomingSections.isEmpty {
-                                EmptyStateCard(
-                                    systemImage: "calendar.badge.exclamationmark",
-                                    title: AppStrings.Events.upcomingTitle,
-                                    message: AppStrings.Events.filteredUpcomingEmpty
-                                )
-                            } else {
-                                ForEach(content.upcomingSections) { section in
-                                    VStack(alignment: .leading, spacing: 14) {
-                                        EventDayHeader(dateText: eventDayTitleText(for: section.date))
-
-                                        VStack(spacing: 14) {
-                                            ForEach(section.events) { event in
-                                                EventDiscoveryRow(
-                                                    event: event,
-                                                    viewModel: viewModel,
-                                                    onLikeTap: handleLike(for:),
-                                                    onEventDeleted: { @MainActor @Sendable in
-                                                        onEventDeleted()
-                                                    },
-                                                    presentationMode: presentationMode,
-                                                    canDeleteEvent: canDeleteEvent,
-                                                    pendingDeleteEventID: $pendingDeleteEventID
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if !content.pastEvents.isEmpty {
-                            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                                SectionHeaderBlock(title: AppStrings.Events.pastTitle)
-
-                                VStack(spacing: 14) {
-                                    ForEach(content.pastEvents) { event in
-                                        EventDiscoveryRow(
-                                            event: event,
-                                            viewModel: viewModel,
-                                            onLikeTap: handleLike(for:),
-                                            onEventDeleted: { @MainActor @Sendable in
-                                                onEventDeleted()
-                                            },
-                                            presentationMode: presentationMode,
-                                            canDeleteEvent: canDeleteEvent,
-                                            pendingDeleteEventID: $pendingDeleteEventID
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, AppTheme.pageHorizontal)
-                    .padding(.bottom, AppTheme.sectionSpacing)
-                }
+                eventListContent
             }
+            .padding(.horizontal, AppTheme.pageHorizontal)
+            .padding(.bottom, 112)
         }
-        .background(AppTheme.groupedBackground.ignoresSafeArea())
+        .background(AppTheme.subtleGradient.ignoresSafeArea())
         .navigationTitle(AppStrings.Events.title)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
@@ -327,6 +245,102 @@ struct EventsListView: View {
         }
     }
 
+    @ViewBuilder
+    private var eventListContent: some View {
+        if viewModel.events.isEmpty && viewModel.isLoading {
+            LoadingStateCard(title: nil)
+                .frame(maxWidth: .infinity, minHeight: 240)
+        } else if viewModel.events.isEmpty && viewModel.error != nil {
+            ErrorStateCard(
+                systemImage: "calendar",
+                title: AppStrings.Events.title,
+                message: errorText,
+                retryTitle: AppStrings.Events.retry
+            ) {
+                viewModel.reload()
+            }
+            .frame(maxWidth: .infinity, minHeight: 240)
+        } else if viewModel.events.isEmpty {
+            EmptyStateCard(
+                systemImage: "calendar",
+                title: AppStrings.Events.title,
+                message: AppStrings.Events.empty
+            )
+            .frame(maxWidth: .infinity, minHeight: 240)
+        } else {
+            let content = discoveryContent
+
+            VStack(alignment: .leading, spacing: AppTheme.feedSpacing) {
+                upcomingContent(content)
+
+                if !content.pastEvents.isEmpty {
+                    pastContent(content)
+                }
+            }
+        }
+    }
+
+    private func upcomingContent(_ content: EventDiscoveryContent) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+            DashboardSectionHeader(title: AppStrings.Events.upcomingTitle) {
+                AppInfoChip(
+                    title: "\(content.upcomingSections.reduce(0) { $0 + $1.events.count })",
+                    tint: AppTheme.accentPrimary,
+                    fill: AppTheme.badgeBlueFill
+                )
+            }
+
+            if content.upcomingSections.isEmpty {
+                EmptyStateCard(
+                    systemImage: "calendar.badge.exclamationmark",
+                    title: AppStrings.Events.upcomingTitle,
+                    message: AppStrings.Events.filteredUpcomingEmpty
+                )
+            } else {
+                ForEach(content.upcomingSections) { section in
+                    VStack(alignment: .leading, spacing: 12) {
+                        EventDayHeader(dateText: eventDayTitleText(for: section.date))
+
+                        DashboardFeedContainer(items: section.events) { event in
+                            eventRow(for: event)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func pastContent(_ content: EventDiscoveryContent) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+            DashboardSectionHeader(title: AppStrings.Events.pastTitle) {
+                AppInfoChip(
+                    title: "\(content.pastEvents.count)",
+                    tint: AppTheme.textSecondary,
+                    fill: AppTheme.surfaceElevated,
+                    border: AppTheme.borderSubtle
+                )
+            }
+
+            DashboardFeedContainer(items: content.pastEvents) { event in
+                eventRow(for: event)
+            }
+        }
+    }
+
+    private func eventRow(for event: Event) -> some View {
+        EventDiscoveryRow(
+            event: event,
+            viewModel: viewModel,
+            onLikeTap: handleLike(for:),
+            onEventDeleted: { @MainActor @Sendable in
+                onEventDeleted()
+            },
+            presentationMode: presentationMode,
+            canDeleteEvent: canDeleteEvent,
+            pendingDeleteEventID: $pendingDeleteEventID
+        )
+    }
+
     private func handleLike(for eventID: String) {
         guard authState.isAuthenticated else {
             guestAccessAction = .likes
@@ -345,12 +359,34 @@ private struct EventFilterChips: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(EventDiscoveryFilter.allCases) { filter in
-                    SelectableFilterChip(title: filter.title, isSelected: selectedFilter == filter) {
+                    Button {
                         selectedFilter = filter
+                    } label: {
+                        AppInfoChip(
+                            title: filter.title,
+                            systemImage: filter.systemImage,
+                            tint: selectedFilter == filter ? AppTheme.accentPrimary : AppTheme.textSecondary,
+                            fill: selectedFilter == filter ? AppTheme.badgeBlueFill : AppTheme.surfaceElevated,
+                            border: selectedFilter == filter ? nil : AppTheme.borderSubtle
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.vertical, 4)
+        }
+    }
+}
+
+private extension EventDiscoveryFilter {
+    var systemImage: String {
+        switch self {
+        case .all:
+            "square.grid.2x2"
+        case .today:
+            "calendar"
+        case .thisWeek:
+            "calendar.badge.clock"
         }
     }
 }
@@ -359,15 +395,15 @@ private struct EventDayHeader: View {
     let dateText: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(dateText)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.primary)
+        HStack(spacing: 8) {
+            Image(systemName: "calendar")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
 
-            Rectangle()
-                .fill(AppTheme.borderSubtle)
-                .frame(maxWidth: .infinity)
-                .frame(height: 1)
+            Text(dateText)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(2)
         }
         .padding(.horizontal, 2)
     }
@@ -406,8 +442,8 @@ private struct EventDiscoveryRow: View {
             .accessibilityIdentifier("event.like.\(event.id)")
             .accessibilityLabel(event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
             .accessibilityHint(AppStrings.Common.likes)
-            .padding(.trailing, 18)
-            .padding(.bottom, 18)
+            .padding(.trailing, 16)
+            .padding(.bottom, 16)
         }
         .modifier(EventDeleteSwipeActions(isEnabled: canDeleteEvent) {
             pendingDeleteEventID = event.id
@@ -453,65 +489,91 @@ private func looksLikeRawEventAuthorIdentifier(_ value: String) -> Bool {
     return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
 }
 
-private struct EventCardMetadataStack: View {
-    let scheduleText: String
-    let city: String
-    let registrationTitle: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ContentMetadataPill(systemImage: "calendar", text: scheduleText)
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    ContentMetadataPill(systemImage: "mappin.and.ellipse", text: city)
-                    ContentMetadataPill(systemImage: "checkmark.circle", text: registrationTitle)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    ContentMetadataPill(systemImage: "mappin.and.ellipse", text: city)
-                    ContentMetadataPill(systemImage: "checkmark.circle", text: registrationTitle)
-                }
-            }
-        }
-    }
-}
-
 private struct EventCard: View {
     let event: Event
 
     var body: some View {
-        CommunityCard {
-            RemoteCardImage(imageURL: event.imageURL, height: 220, source: "EventCard", isDecorative: true)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text(event.title)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(event.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                EventCardMetadataStack(
-                    scheduleText: eventScheduleText(for: event),
-                    city: event.city,
-                    registrationTitle: event.registrationState.title
+        SoftContentCard {
+            HStack(alignment: .center, spacing: 14) {
+                AppFeedThumbnail(
+                    imageURL: event.imageURL,
+                    fallbackSystemImage: "calendar",
+                    tint: AppTheme.accentPrimary,
+                    fill: AppTheme.badgeBlueFill,
+                    source: "EventCard"
                 )
-                .padding(.trailing, 88)
 
-                if !event.venue.isEmpty {
-                    Text(event.venue)
-                        .font(.footnote)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 8) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .center, spacing: 8) {
+                            typeChip
+
+                            Spacer(minLength: 8)
+
+                            AppDateBadge(date: event.startDate)
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            typeChip
+                            AppDateBadge(date: event.startDate)
+                        }
+                    }
+
+                    Text(event.title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(2)
+
+                    if !event.summary.isEmpty {
+                        Text(event.summary)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .lineLimit(2)
+                    }
+
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            AppMetadataLine(title: timeText, systemImage: "clock")
+                            AppMetadataLine(title: event.city, systemImage: "mappin.and.ellipse")
+                            AppMetadataLine(title: event.registrationState.title, systemImage: "checkmark.circle")
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            AppMetadataLine(title: timeText, systemImage: "clock")
+                            AppMetadataLine(title: event.city, systemImage: "mappin.and.ellipse")
+                            AppMetadataLine(title: event.registrationState.title, systemImage: "checkmark.circle")
+                        }
+                    }
+                    .padding(.trailing, 86)
+
+                    if !event.venue.isEmpty {
+                        AppMetadataLine(title: event.venue, systemImage: "building.2")
+                            .padding(.trailing, 86)
+                    }
                 }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var typeChip: some View {
+        AppInfoChip(
+            title: AppStrings.Events.title.uppercased(),
+            systemImage: "calendar",
+            tint: AppTheme.accentPrimary,
+            fill: AppTheme.badgeBlueFill
+        )
+    }
+
+    private var timeText: String {
+        let startTime = LocalizationStore.dateString(from: event.startDate, dateStyle: .none, timeStyle: .short)
+        guard event.endDate > event.startDate else {
+            return startTime
+        }
+
+        let endTime = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
+        return "\(startTime) - \(endTime)"
     }
 
     private var accessibilitySummary: String {
@@ -614,24 +676,26 @@ struct EventDetailView: View {
                                     .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
                             )
 
-                            VStack(alignment: .leading, spacing: 0) {
-                                RemoteImageView(
-                                    imageURL: event.imageURL,
-                                    height: detailImageHeight,
-                                    cornerRadius: 18,
-                                    source: "EventDetailView"
+                            if let imageURL = event.imageURL {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    RemoteImageView(
+                                        imageURL: imageURL,
+                                        height: detailImageHeight,
+                                        cornerRadius: 18,
+                                        source: "EventDetailView"
+                                    )
+                                    .frame(maxWidth: .infinity)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                }
+                                .padding(20)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(AppTheme.cardBackground)
+                                .clipShape(detailCardShape)
+                                .overlay(
+                                    detailCardShape
+                                        .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
                                 )
-                                .frame(maxWidth: .infinity)
-                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                             }
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppTheme.cardBackground)
-                            .clipShape(detailCardShape)
-                            .overlay(
-                                detailCardShape
-                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
-                            )
 
                             VStack(alignment: .leading, spacing: 12) {
                                 Text(event.details)
@@ -772,6 +836,9 @@ struct EventDetailView: View {
             editSheetContent
         }
         .guestAccessAlert($guestAccessAction)
+        .task {
+            await viewModel.loadIfNeeded()
+        }
         .onDisappear {
             guard let pendingRemovalEventID else { return }
             withTransaction(Transaction(animation: nil)) {

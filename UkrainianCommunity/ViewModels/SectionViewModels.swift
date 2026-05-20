@@ -1,4 +1,5 @@
 import Combine
+import FirebaseAuth
 import Foundation
 
 nonisolated private let defaultRefreshStaleInterval: TimeInterval = 300
@@ -8,15 +9,24 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var feedItems: [HomeFeedItem]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var bannerImageSource: AppHeroBannerImageSource
+    @Published private(set) var isBannerUploading: Bool
+    @Published private(set) var bannerError: AppError?
     private let feedViewModel: HomeFeedViewModel
+    private let homeBannerService: HomeBannerServiceProtocol
+    private var hasLoadedBanner = false
 
     init(
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository
+        organizationRepository: OrganizationRepository,
+        homeBannerService: HomeBannerServiceProtocol
     ) {
         feedItems = []
         isLoading = false
+        bannerImageSource = .none
+        isBannerUploading = false
+        self.homeBannerService = homeBannerService
         feedViewModel = HomeFeedViewModel(
             newsRepository: newsRepository,
             eventRepository: eventRepository,
@@ -49,6 +59,54 @@ final class HomeViewModel: ObservableObject {
         feedItems = feedViewModel.items
         isLoading = feedViewModel.isLoading
         error = feedViewModel.error
+    }
+
+    func loadBannerIfNeeded() async {
+        guard !hasLoadedBanner else { return }
+        await refreshBanner()
+    }
+
+    func refreshBanner() async {
+        do {
+            if let metadata = try await homeBannerService.fetchHomeBanner() {
+                bannerImageSource = .remoteURL(metadata.imageURL)
+            } else {
+                bannerImageSource = .none
+            }
+            bannerError = nil
+            hasLoadedBanner = true
+        } catch {
+            hasLoadedBanner = true
+        }
+    }
+
+    func updateHomeBannerImage(data: Data, user: AppUser?) async {
+        guard PermissionService.canManageHomeBanner(user: user), let user else {
+            bannerError = .permissionDenied
+            return
+        }
+
+        isBannerUploading = true
+        defer { isBannerUploading = false }
+
+        do {
+            let metadata = try await homeBannerService.updateHomeBannerImage(data: data, updatedBy: user.id)
+            bannerImageSource = .remoteURL(metadata.imageURL)
+            bannerError = nil
+            hasLoadedBanner = true
+        } catch let appError as AppError {
+            bannerError = appError
+        } catch {
+            bannerError = .unknown
+        }
+    }
+
+    func setBannerSelectionFailed() {
+        bannerError = .validationFailed
+    }
+
+    func clearBannerError() {
+        bannerError = nil
     }
 }
 
@@ -495,6 +553,120 @@ final class EventsViewModel: ObservableObject {
 }
 
 @MainActor
+final class MyRegistrationsViewModel: ObservableObject {
+    @Published private(set) var events: [Event]
+    @Published private(set) var isLoading: Bool
+    @Published private(set) var error: AppError?
+    @Published private(set) var pendingCancellationIDs = Set<String>()
+
+    private let repository: EventRepository
+    private var loadTask: Task<Void, Never>?
+    private var hasLoaded = false
+    private var lastLoadedAt: Date?
+
+    init(repository: EventRepository) {
+        self.repository = repository
+        events = []
+        isLoading = false
+    }
+
+    var registrationsCount: Int {
+        events.count
+    }
+
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await startLoad(force: false)
+    }
+
+    func refresh() async {
+        await startLoad(force: true)
+    }
+
+    func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
+        guard hasLoaded else {
+            await loadIfNeeded()
+            return
+        }
+
+        guard let lastLoadedAt else {
+            await refresh()
+            return
+        }
+
+        guard Date().timeIntervalSince(lastLoadedAt) > maxAge else { return }
+        await refresh()
+    }
+
+    func resetForGuest() {
+        events = []
+        error = nil
+        hasLoaded = false
+        lastLoadedAt = nil
+        pendingCancellationIDs = []
+    }
+
+    func cancelRegistration(for eventID: String) async {
+        guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard !pendingCancellationIDs.contains(eventID) else { return }
+
+        let organizationID = events[index].source.organizationId
+        pendingCancellationIDs.insert(eventID)
+        defer { pendingCancellationIDs.remove(eventID) }
+
+        do {
+            try await repository.cancelEventRegistration(id: eventID)
+            events.removeAll { $0.id == eventID }
+            error = nil
+            AppContentChangeBus.postEventsChanged(organizationID: organizationID)
+            AppContentChangeBus.postRegistrationsChanged(organizationID: organizationID)
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    private func startLoad(force: Bool) async {
+        guard force || !hasLoaded else { return }
+
+        if let loadTask {
+            await loadTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad()
+        }
+        loadTask = task
+        await task.value
+        self.loadTask = nil
+    }
+
+    private func performLoad() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let loadedEvents = try await repository.fetchRegisteredEvents()
+            guard !Task.isCancelled else { return }
+            events = loadedEvents
+            error = nil
+            hasLoaded = true
+            lastLoadedAt = Date()
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
+    }
+}
+
+@MainActor
 final class OrganizationsViewModel: ObservableObject {
     @Published var organizations: [Organization]
     @Published private(set) var isLoading: Bool
@@ -877,11 +1049,7 @@ final class ProfileViewModel: ObservableObject {
         await refresh()
     }
 
-    var capabilities: [String] {
-        [AppStrings.Common.likes, AppStrings.Profile.eventRegistration]
-    }
-
-    func saveProfile(_ profile: EditableUserProfileDraft) async -> AppUser? {
+    func saveProfile(_ profile: EditableUserProfileDraft, avatarImageData: Data? = nil) async -> AppUser? {
         guard !isSavingProfile else { return nil }
 
         let trimmedDisplayName = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -895,18 +1063,42 @@ final class ProfileViewModel: ObservableObject {
         defer { isSavingProfile = false }
 
         do {
-            let updatedUser = try await repository.updateProfile(profile)
+            let resolvedProfile: EditableUserProfileDraft
+            if let avatarImageData {
+                let avatarUserID = AuthService.shared.currentUser?.uid ?? user.id
+                let avatarURL = try await ImageUploadService.shared.uploadProfileAvatarImage(
+                    data: avatarImageData,
+                    userID: avatarUserID
+                )
+                resolvedProfile = EditableUserProfileDraft(
+                    fullName: profile.fullName,
+                    displayName: profile.displayName,
+                    telegramUsername: profile.telegramUsername,
+                    city: profile.city,
+                    bio: profile.bio,
+                    selectedFederalState: profile.selectedFederalState,
+                    avatarURL: avatarURL
+                )
+            } else {
+                resolvedProfile = profile
+            }
+
+            let updatedUser = try await repository.updateProfile(resolvedProfile)
             user = updatedUser
             error = nil
             profileMessage = AppStrings.Profile.profileSaved
             return updatedUser
         } catch let appError as AppError {
             error = appError
-            profileMessage = AppStrings.Profile.profileSaveFailed
+            profileMessage = avatarImageData != nil || appError == .network
+                ? AppStrings.Profile.avatarUploadFailed
+                : AppStrings.Profile.profileSaveFailed
             return nil
         } catch {
             self.error = .unknown
-            profileMessage = AppStrings.Profile.profileSaveFailed
+            profileMessage = avatarImageData != nil
+                ? AppStrings.Profile.avatarUploadFailed
+                : AppStrings.Profile.profileSaveFailed
             return nil
         }
     }

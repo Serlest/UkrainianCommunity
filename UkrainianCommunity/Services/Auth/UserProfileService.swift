@@ -237,6 +237,7 @@ struct FirestoreUserRepository: UserRepository {
             "bio": trimmedBio,
             "telegramUsername": (trimmedTelegramUsername?.isEmpty == false) ? trimmedTelegramUsername! : NSNull(),
             "selectedFederalState": profile.selectedFederalState.rawValue,
+            "avatarURL": profile.avatarURL?.absoluteString ?? FieldValue.delete(),
             "updatedAt": FieldValue.serverTimestamp()
         ])
 

@@ -68,7 +68,7 @@ struct NewsListView: View {
                 VStack {
                     LoadingStateCard(title: nil)
                 }
-                .frame(maxWidth: .infinity, minHeight: 420)
+                .frame(maxWidth: .infinity, minHeight: 260)
             } else if viewModel.posts.isEmpty && viewModel.error != nil {
                 ErrorStateCard(
                     systemImage: "newspaper",
@@ -80,29 +80,16 @@ struct NewsListView: View {
                         await viewModel.refresh()
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 420)
+                .frame(maxWidth: .infinity, minHeight: 260)
             } else if viewModel.posts.isEmpty {
                 EmptyStateCard(
                     systemImage: "newspaper",
                     title: AppStrings.News.title,
                     message: AppStrings.News.empty
                 )
-                .frame(maxWidth: .infinity, minHeight: 420)
+                .frame(maxWidth: .infinity, minHeight: 260)
             } else {
                 VStack(spacing: 16) {
-                    if viewModel.error != nil {
-                        ErrorStateCard(
-                            title: AppStrings.News.title,
-                            message: errorText,
-                            retryTitle: AppStrings.News.retry
-                        ) {
-                            Task {
-                                await viewModel.refresh()
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                    }
-
                     AdaptiveCardGrid(items: viewModel.posts) { post in
                         ZStack(alignment: .bottomTrailing) {
                             NavigationLink {

@@ -246,6 +246,11 @@ struct PermissionService {
         user.globalRole == .owner
     }
 
+    static func canManageHomeBanner(user: AppUser?) -> Bool {
+        guard let user else { return false }
+        return user.globalRole == .owner
+    }
+
     static func canTemporarilyBan(user: AppUser) -> Bool {
         user.globalRole == .owner || user.globalRole == .topAdmin
     }

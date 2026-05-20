@@ -18,7 +18,7 @@ private actor MockRepositoryStore {
             displayName: profile.displayName,
             city: profile.city,
             email: user.email,
-            avatarURL: user.avatarURL,
+            avatarURL: profile.avatarURL ?? user.avatarURL,
             bio: profile.bio,
             telegramUsername: profile.telegramUsername,
             role: user.role,
@@ -102,7 +102,39 @@ private actor MockRepositoryStore {
 
     func setEventRegistration(id: String, isRegistered: Bool) throws {
         guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        let currentState = events[index].registrationState
+        let currentlyRegistered = currentState == .registered
+
+        guard currentlyRegistered != isRegistered else { return }
+
         events[index].registrationState = isRegistered ? .registered : .notRegistered
+        let adjustedCount = isRegistered
+            ? events[index].registeredCount + 1
+            : max(0, events[index].registeredCount - 1)
+
+        events[index] = Event(
+            id: events[index].id,
+            title: events[index].title,
+            summary: events[index].summary,
+            details: events[index].details,
+            regionScope: events[index].regionScope,
+            federalState: events[index].federalState,
+            source: events[index].source,
+            city: events[index].city,
+            venue: events[index].venue,
+            imageURL: events[index].imageURL,
+            startDate: events[index].startDate,
+            endDate: events[index].endDate,
+            createdAt: events[index].createdAt,
+            updatedAt: events[index].updatedAt,
+            capacity: events[index].capacity,
+            registeredCount: adjustedCount,
+            comments: events[index].comments,
+            moderationStatus: events[index].moderationStatus,
+            registrationState: isRegistered ? .registered : .notRegistered,
+            likeCount: events[index].likeCount,
+            likeState: events[index].likeState
+        )
     }
 
     func createEvent(_ item: Event) {
@@ -272,6 +304,12 @@ struct MockEventRepository: EventRepository {
     func fetchEvents() async throws -> [Event] {
         await store.events
             .filter { $0.moderationStatus == .approved }
+            .sorted { $0.startDate < $1.startDate }
+    }
+
+    func fetchRegisteredEvents() async throws -> [Event] {
+        await store.events
+            .filter { $0.moderationStatus == .approved && $0.registrationState == .registered }
             .sorted { $0.startDate < $1.startDate }
     }
 

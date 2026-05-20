@@ -27,23 +27,33 @@ enum AppTheme {
     )
     static let surfacePrimary = Color(uiColor: .secondarySystemBackground)
     static let surfaceSecondary = Color(uiColor: .tertiarySystemBackground)
+    static let surfaceElevated = Color(uiColor: .systemBackground)
     static let surfaceHero = heroGradient
-    static let borderSubtle = accentPrimary.opacity(0.08)
+    static let borderSubtle = accentPrimary.opacity(0.04)
+    static let shadowSoft = Color.black.opacity(0.018)
     static let textPrimary = Color.primary
     static let textSecondary = Color.secondary
     static let textOnHero = Color.white
     static let badgeBlueFill = accentPrimarySoft
     static let badgeRedFill = accentDestructive.opacity(0.12)
+    static let badgeGreenFill = Color.green.opacity(0.12)
+    static let badgePurpleFill = Color.purple.opacity(0.12)
 
     static let pageHorizontal: CGFloat = 16
     static let sectionSpacing: CGFloat = 16
     static let feedSpacing: CGFloat = 24
+    static let dashboardSpacing: CGFloat = 12
     static let cardPadding: CGFloat = 18
     static let detailCardPadding: CGFloat = 20
+    static let dashboardCardPadding: CGFloat = 8
 
-    static let cardRadius: CGFloat = 22
-    static let heroRadius: CGFloat = 24
-    static let imageRadius: CGFloat = 18
+    static let cardRadius: CGFloat = 17
+    static let heroRadius: CGFloat = 22
+    static let imageRadius: CGFloat = 16
+    static let chipRadius: CGFloat = 14
+    static let feedThumbnailSize: CGFloat = 58
+    static let feedThumbnailRadius: CGFloat = 13
+    static let heroBannerHeight: CGFloat = 146
 
     static let heroGradient = LinearGradient(
         colors: [accentPrimary.opacity(0.92), accentDestructive.opacity(0.82), accentSupport.opacity(0.68)],
@@ -52,7 +62,7 @@ enum AppTheme {
     )
 
     static let subtleGradient = LinearGradient(
-        colors: [accentPrimary.opacity(0.08), accentSupport.opacity(0.06), accentDestructive.opacity(0.05)],
+        colors: [accentPrimary.opacity(0.018), accentSupport.opacity(0.012), Color(uiColor: .systemBackground)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )

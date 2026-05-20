@@ -96,6 +96,7 @@ struct NewsEditorView: View {
         .background(AppTheme.pageBackground)
         .tint(AppTheme.accentPrimary)
         .navigationTitle(viewModel.navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: selectedPhoto) { _, newItem in
             Task {
                 await loadSelectedPhoto(item: newItem)

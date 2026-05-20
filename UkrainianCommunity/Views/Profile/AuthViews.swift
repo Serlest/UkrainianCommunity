@@ -10,7 +10,7 @@ struct AuthFlowContainerView: View {
             destinationView(for: initialDestination)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button(AppStrings.Common.ok) {
+                        Button(AppStrings.Common.cancel) {
                             authState.dismissAuthFlow()
                         }
                     }
@@ -37,15 +37,17 @@ struct AuthLandingView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(AppStrings.Auth.landingTitle)
-                        .font(.largeTitle.weight(.bold))
-                        .foregroundStyle(AppTheme.textPrimary)
+                CommunityCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(AppStrings.Auth.landingTitle)
+                            .font(.largeTitle.weight(.bold))
+                            .foregroundStyle(AppTheme.textPrimary)
 
-                    Text(AppStrings.Auth.landingSubtitle)
-                        .font(.body)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(AppStrings.Auth.landingSubtitle)
+                            .font(.body)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 VStack(spacing: 12) {
@@ -80,7 +82,6 @@ struct AuthLandingView: View {
 }
 
 struct LoginView: View {
-    @EnvironmentObject private var authState: AuthState
     @State private var email = ""
     @State private var password = ""
     @State private var errorMessage: String?
@@ -100,31 +101,43 @@ struct LoginView: View {
                 SecureField(AppStrings.Auth.password, text: $password)
                     .textContentType(.password)
                     .accessibilityLabel(AppStrings.Auth.password)
-            } footer: {
-                Text(AppStrings.Auth.landingSubtitle)
+            } header: {
+                SectionHeaderBlock(
+                    title: AppStrings.Auth.loginTitle,
+                    subtitle: AppStrings.Auth.loginSubtitle
+                )
+                .textCase(nil)
             }
+            .listRowBackground(AppTheme.surfacePrimary)
 
             if let errorMessage {
                 Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
+                    InlineMessageCard(style: .error, message: errorMessage)
                 }
+                .listRowBackground(AppTheme.surfacePrimary)
             }
 
             Section {
                 Button {
                     submit()
                 } label: {
-                    if isSubmitting {
-                        ProgressView(AppStrings.Auth.signingIn)
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text(AppStrings.Auth.signInAction)
-                            .frame(maxWidth: .infinity)
+                    HStack {
+                        Spacer()
+                        if isSubmitting {
+                            ProgressView()
+                            Text(AppStrings.Auth.signingIn)
+                                .fontWeight(.semibold)
+                        } else {
+                            Text(AppStrings.Auth.signInAction)
+                                .fontWeight(.semibold)
+                        }
+                        Spacer()
                     }
+                    .padding(.vertical, 8)
                 }
-                .disabled(isSubmitting)
+                .buttonStyle(.borderedProminent)
+                .tint(canSubmit ? AppTheme.accentPrimary : AppTheme.borderSubtle)
+                .disabled(isSubmitting || !canSubmit)
                 .accessibilityIdentifier("auth.login.submit")
 
                 NavigationLink(AppStrings.Auth.forgotPassword) {
@@ -134,15 +147,25 @@ struct LoginView: View {
                 NavigationLink(AppStrings.Auth.createAccountInstead) {
                     RegisterView(prefilledEmail: email)
                 }
+            } footer: {
+                if let validationHint {
+                    Text(validationHint)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .listRowBackground(AppTheme.surfacePrimary)
         }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Auth.loginTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.login.screen")
     }
 
     private func submit() {
-        let errors = validationService.validateLogin(email: email, password: password)
+        let errors = validationErrors
         guard errors.isEmpty else {
             errorMessage = errors.first
             return
@@ -164,10 +187,22 @@ struct LoginView: View {
             }
         }
     }
+
+    private var validationErrors: [String] {
+        validationService.validateLogin(email: email, password: password)
+    }
+
+    private var canSubmit: Bool {
+        validationErrors.isEmpty
+    }
+
+    private var validationHint: String? {
+        guard !canSubmit else { return nil }
+        return validationErrors.first
+    }
 }
 
 struct RegisterView: View {
-    @EnvironmentObject private var authState: AuthState
     @State private var email: String
     @State private var password = ""
     @State private var repeatedPassword = ""
@@ -217,7 +252,14 @@ struct RegisterView: View {
                         Text(AppStrings.FederalStates.title(for: state)).tag(state)
                     }
                 }
+            } header: {
+                SectionHeaderBlock(
+                    title: AppStrings.Auth.registerTitle,
+                    subtitle: AppStrings.Auth.registerSubtitle
+                )
+                .textCase(nil)
             }
+            .listRowBackground(AppTheme.surfacePrimary)
 
             Section {
                 TermsPrivacyConsentView(
@@ -225,13 +267,13 @@ struct RegisterView: View {
                     acceptedPrivacy: $acceptedPrivacy
                 )
             }
+            .listRowBackground(AppTheme.surfacePrimary)
 
             if let errorMessage {
                 Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
+                    InlineMessageCard(style: .error, message: errorMessage)
                 }
+                .listRowBackground(AppTheme.surfacePrimary)
             }
 
             Section {
@@ -264,13 +306,18 @@ struct RegisterView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .listRowBackground(AppTheme.surfacePrimary)
 
             Section {
                 NavigationLink(AppStrings.Auth.signInInstead) {
                     LoginView()
                 }
             }
+            .listRowBackground(AppTheme.surfacePrimary)
         }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Auth.registerTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.register.screen")
@@ -349,41 +396,66 @@ struct PasswordResetView: View {
                     .keyboardType(.emailAddress)
                     .autocorrectionDisabled()
                     .accessibilityLabel(AppStrings.Auth.email)
-            } footer: {
-                Text(AppStrings.Auth.resetPasswordSubtitle)
+            } header: {
+                SectionHeaderBlock(
+                    title: AppStrings.Auth.resetPasswordTitle,
+                    subtitle: AppStrings.Auth.resetPasswordSubtitle
+                )
+                .textCase(nil)
             }
+            .listRowBackground(AppTheme.surfacePrimary)
 
             if let message {
                 Section {
-                    Text(message)
-                        .foregroundStyle(message == AppStrings.Auth.resetPasswordSuccess ? .green : .red)
-                        .fixedSize(horizontal: false, vertical: true)
+                    InlineMessageCard(
+                        style: message == AppStrings.Auth.resetPasswordSuccess ? .success : .error,
+                        message: message
+                    )
                 }
+                .listRowBackground(AppTheme.surfacePrimary)
             }
 
             Section {
                 Button {
                     submit()
                 } label: {
-                    if isSubmitting {
-                        ProgressView(AppStrings.Auth.resetPasswordSending)
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text(AppStrings.Auth.sendResetLink)
-                            .frame(maxWidth: .infinity)
+                    HStack {
+                        Spacer()
+                        if isSubmitting {
+                            ProgressView()
+                            Text(AppStrings.Auth.resetPasswordSending)
+                                .fontWeight(.semibold)
+                        } else {
+                            Text(AppStrings.Auth.sendResetLink)
+                                .fontWeight(.semibold)
+                        }
+                        Spacer()
                     }
+                    .padding(.vertical, 8)
                 }
-                .disabled(isSubmitting)
+                .buttonStyle(.borderedProminent)
+                .tint(canSubmit ? AppTheme.accentPrimary : AppTheme.borderSubtle)
+                .disabled(isSubmitting || !canSubmit)
                 .accessibilityIdentifier("auth.reset.submit")
+            } footer: {
+                if let validationHint {
+                    Text(validationHint)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .listRowBackground(AppTheme.surfacePrimary)
         }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Auth.resetPasswordTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.reset.screen")
     }
 
     private func submit() {
-        let errors = validationService.validatePasswordReset(email: email)
+        let errors = validationErrors
         guard errors.isEmpty else {
             message = errors.first
             return
@@ -405,6 +477,19 @@ struct PasswordResetView: View {
             }
         }
     }
+
+    private var validationErrors: [String] {
+        validationService.validatePasswordReset(email: email)
+    }
+
+    private var canSubmit: Bool {
+        validationErrors.isEmpty
+    }
+
+    private var validationHint: String? {
+        guard !canSubmit else { return nil }
+        return validationErrors.first
+    }
 }
 
 struct TermsPrivacyConsentView: View {
@@ -412,7 +497,7 @@ struct TermsPrivacyConsentView: View {
     @Binding var acceptedPrivacy: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(AppStrings.Auth.consentTitle)
                 .font(.headline)
                 .foregroundStyle(AppTheme.textPrimary)
@@ -422,37 +507,35 @@ struct TermsPrivacyConsentView: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            NavigationLink {
-                LegalDocumentView(document: .terms)
-            } label: {
-                Label(AppStrings.Auth.reviewTerms, systemImage: "doc.text")
-                    .font(.subheadline.weight(.medium))
-            }
-            .accessibilityIdentifier("auth.consent.termsLink")
-
-            Text(AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion))
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-
             Toggle(AppStrings.Auth.acceptTerms, isOn: $acceptedTerms)
                 .accessibilityLabel(AppStrings.Auth.acceptTerms)
 
-            NavigationLink {
-                LegalDocumentView(document: .privacy)
-            } label: {
-                Label(AppStrings.Auth.reviewPrivacy, systemImage: "lock.doc")
-                    .font(.subheadline.weight(.medium))
-            }
-            .accessibilityIdentifier("auth.consent.privacyLink")
-
-            Text(AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion))
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-
             Toggle(AppStrings.Auth.acceptPrivacy, isOn: $acceptedPrivacy)
                 .accessibilityLabel(AppStrings.Auth.acceptPrivacy)
+
+            VStack(alignment: .leading, spacing: 8) {
+                NavigationLink {
+                    LegalDocumentView(document: .terms)
+                } label: {
+                    Label(AppStrings.Auth.reviewTerms, systemImage: "doc.text")
+                        .font(.subheadline.weight(.medium))
+                }
+                .accessibilityIdentifier("auth.consent.termsLink")
+
+                NavigationLink {
+                    LegalDocumentView(document: .privacy)
+                } label: {
+                    Label(AppStrings.Auth.reviewPrivacy, systemImage: "lock.doc")
+                        .font(.subheadline.weight(.medium))
+                }
+                .accessibilityIdentifier("auth.consent.privacyLink")
+            }
+
+            Text("\(AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion)) · \(AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion))")
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 }
 

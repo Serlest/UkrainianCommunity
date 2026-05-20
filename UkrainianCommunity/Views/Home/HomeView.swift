@@ -1,27 +1,7 @@
 import Combine
+import Foundation
+import PhotosUI
 import SwiftUI
-
-private func sanitizedHomeAuthorName(_ rawValue: String) -> String {
-    let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedValue.isEmpty else {
-        return AppStrings.NewsEditor.authorFallback
-    }
-
-    guard trimmedValue.count >= 20 else {
-        return trimmedValue
-    }
-
-    guard trimmedValue.rangeOfCharacter(from: .whitespacesAndNewlines) == nil else {
-        return trimmedValue
-    }
-
-    let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
-    if trimmedValue.rangeOfCharacter(from: allowedCharacters.inverted) == nil {
-        return AppStrings.NewsEditor.authorFallback
-    }
-
-    return trimmedValue
-}
 
 struct HomeView: View {
     @EnvironmentObject private var authState: AuthState
@@ -29,28 +9,52 @@ struct HomeView: View {
     @ObservedObject var newsViewModel: NewsViewModel
     @ObservedObject var eventsViewModel: EventsViewModel
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
+    @State private var selectedBannerPhoto: PhotosPickerItem?
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 12) {
+                homeHeader
+
                 homeHero
-                    .padding(.top, 8)
+
+                HomeFilterRow()
 
                 feedContent
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, 32)
-            .padding(.bottom, 32)
+            .padding(.bottom, 112)
         }
         .background(AppTheme.subtleGradient.ignoresSafeArea())
-        .navigationTitle(AppStrings.Tabs.home)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .refreshable {
             await refreshAllContent()
         }
         .task {
             await loadContentIfNeeded()
             await refreshContentIfStale()
+        }
+        .onChange(of: selectedBannerPhoto) { _, newItem in
+            Task {
+                await updateHomeBanner(from: newItem)
+                selectedBannerPhoto = nil
+            }
+        }
+        .alert(
+            AppStrings.Home.bannerUploadFailed,
+            isPresented: Binding(
+                get: { viewModel.bannerError != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        viewModel.clearBannerError()
+                    }
+                }
+            )
+        ) {
+            Button(AppStrings.News.dismissError, role: .cancel) {
+                viewModel.clearBannerError()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
@@ -76,158 +80,109 @@ struct HomeView: View {
     }
 
     private var homeHero: some View {
-        GradientHeroCard(title: AppStrings.Home.title, subtitle: AppStrings.Home.subtitle) {
-            VStack(alignment: .leading, spacing: 18) {
-                Text(AppStrings.Home.feedTitle.uppercased())
-                    .font(.caption.weight(.semibold))
-                    .tracking(0.8)
-                    .foregroundStyle(.white.opacity(0.76))
+        ZStack(alignment: .bottomTrailing) {
+            AppHeroBanner(
+                title: AppStrings.Home.bannerTitle,
+                subtitle: AppStrings.Home.bannerSubtitle,
+                imageSource: viewModel.bannerImageSource
+            )
 
-                if let user = authState.user {
-                    HStack(alignment: .top, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(user.fullName.isEmpty ? AppStrings.Profile.loadingUserProfile : user.fullName)
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(.white)
-
-                            if !user.city.isEmpty {
-                                Label(user.city, systemImage: "mappin.and.ellipse")
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(.white.opacity(0.78))
-                            }
-                        }
-
-                        Spacer(minLength: 12)
-
-                        Text(user.globalRole.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(.white.opacity(0.16), in: Capsule())
-                    }
-                } else {
-                    HStack(alignment: .center, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(.white.opacity(0.24))
-                                .frame(width: 164, height: 18)
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(.white.opacity(0.18))
-                                .frame(width: 112, height: 12)
-                        }
-                        Spacer(minLength: 12)
-                        Capsule()
-                            .fill(.white.opacity(0.16))
-                            .frame(width: 88, height: 32)
-                    }
-                }
+            if PermissionService.canManageHomeBanner(user: authState.user) {
+                HomeBannerEditButton(
+                    selectedItem: $selectedBannerPhoto,
+                    isUploading: viewModel.isBannerUploading
+                )
+                .padding(10)
             }
         }
+    }
+
+    private var homeHeader: some View {
+        BrandedScreenHeader(
+            title: AppStrings.Home.brandTitle,
+            subtitle: AppStrings.Home.brandSubtitle,
+            brandAssetName: "logo1",
+            showsBrandText: false,
+            brandSize: CGSize(width: 190, height: 64)
+        ) {
+            HomeNotificationButton()
+        }
+        .padding(.top, 8)
     }
 
     @ViewBuilder
     private var feedContent: some View {
         if viewModel.isLoading && viewModel.feedItems.isEmpty {
-            VStack(spacing: 0) {
-                LoadingStateCard(title: nil)
-            }
-            .frame(maxWidth: .infinity, minHeight: 420)
+            LoadingStateCard(title: nil)
+                .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.feedItems.isEmpty && viewModel.error != nil {
-            VStack(alignment: .leading, spacing: 16) {
-                feedSectionHeader
-                ErrorStateCard(
-                    title: AppStrings.Tabs.home,
-                    message: homeErrorText,
-                    retryTitle: AppStrings.News.retry
-                ) {
-                    viewModel.reload()
-                }
+            ErrorStateCard(
+                title: AppStrings.Tabs.home,
+                message: homeErrorText,
+                retryTitle: AppStrings.News.retry
+            ) {
+                viewModel.reload()
             }
-            .frame(maxWidth: .infinity, minHeight: 420)
+            .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.feedItems.isEmpty {
-            VStack(alignment: .leading, spacing: 16) {
-                feedSectionHeader
-                EmptyStateCard(
-                    systemImage: "tray",
-                    title: AppStrings.Tabs.home,
-                    message: AppStrings.Common.noItems
-                )
-            }
-            .frame(maxWidth: .infinity, minHeight: 420)
+            EmptyStateCard(
+                systemImage: "tray",
+                title: AppStrings.Tabs.home,
+                message: AppStrings.Common.noItems
+            )
+            .frame(maxWidth: .infinity, minHeight: 180)
         } else {
-            VStack(alignment: .leading, spacing: 18) {
-                feedSectionHeader
-
-                if viewModel.error != nil {
-                    ErrorStateCard(
-                        title: AppStrings.Tabs.home,
-                        message: homeErrorText,
-                        retryTitle: AppStrings.News.retry
-                    ) {
-                        viewModel.reload()
-                    }
+            DashboardFeedContainer(items: viewModel.feedItems, spacing: 10) { item in
+                NavigationLink {
+                    destinationView(for: item)
+                } label: {
+                    HomeFeedCard(item: item)
                 }
-
-                LazyVStack(spacing: 16) {
-                    ForEach(viewModel.feedItems) { item in
-                        NavigationLink {
-                            destinationView(for: item)
-                        } label: {
-                            HomeFeedCard(item: item)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+                .buttonStyle(.plain)
             }
-        }
-    }
-
-    private var feedSectionHeader: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(AppStrings.Home.feedTitle)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary)
-
-                Text(AppStrings.Home.latestNews)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 12)
-
-            Text("\(viewModel.feedItems.count)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(AppTheme.badgeBlueFill, in: Capsule())
         }
     }
 
     private func loadContentIfNeeded() async {
         async let homeLoad: Void = viewModel.loadIfNeeded()
+        async let bannerLoad: Void = viewModel.loadBannerIfNeeded()
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-        _ = await (homeLoad, newsLoad, eventsLoad, organizationsLoad)
+        _ = await (homeLoad, bannerLoad, newsLoad, eventsLoad, organizationsLoad)
     }
 
     private func refreshContentIfStale() async {
         async let homeRefresh: Void = viewModel.refreshIfStale()
+        async let bannerLoad: Void = viewModel.loadBannerIfNeeded()
         async let newsRefresh: Void = newsViewModel.refreshIfStale()
         async let eventsRefresh: Void = eventsViewModel.refreshIfStale()
         async let organizationsRefresh: Void = organizationsViewModel.refreshIfStale()
-        _ = await (homeRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
+        _ = await (homeRefresh, bannerLoad, newsRefresh, eventsRefresh, organizationsRefresh)
     }
 
     private func refreshAllContent() async {
         async let homeRefresh: Void = viewModel.refresh()
+        async let bannerRefresh: Void = viewModel.refreshBanner()
         async let newsRefresh: Void = newsViewModel.refresh()
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
-        _ = await (homeRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
+        _ = await (homeRefresh, bannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
+    }
+
+    private func updateHomeBanner(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                viewModel.setBannerSelectionFailed()
+                return
+            }
+
+            await viewModel.updateHomeBannerImage(data: data, user: authState.user)
+        } catch {
+            viewModel.setBannerSelectionFailed()
+        }
     }
 
     private var homeErrorText: String {
@@ -260,117 +215,205 @@ struct HomeView: View {
     }
 }
 
-private struct HomeFeedCard: View {
-    let item: HomeFeedItem
-    private let previewImageHeight: CGFloat = 184
+private struct HomeFilterRow: View {
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                HomeFilterChip(title: AppStrings.Home.filterAll, systemImage: "square.grid.2x2", isSelected: true)
+                HomeFilterChip(title: AppStrings.Home.filterSubscriptions, systemImage: "bookmark", isSelected: false)
+                HomeFilterChip(title: AppStrings.Home.filterFavorites, systemImage: "star", isSelected: false)
+                HomeFilterChip(
+                    title: AppStrings.Home.regionAllAustria,
+                    systemImage: "mappin.and.ellipse",
+                    isSelected: false,
+                    trailingSystemImage: "chevron.down"
+                )
+            }
+        }
+        .scrollClipDisabled()
+    }
+}
+
+private struct HomeFilterChip: View {
+    let title: String
+    let systemImage: String
+    let isSelected: Bool
+    let trailingSystemImage: String?
+
+    init(title: String, systemImage: String, isSelected: Bool, trailingSystemImage: String? = nil) {
+        self.title = title
+        self.systemImage = systemImage
+        self.isSelected = isSelected
+        self.trailingSystemImage = trailingSystemImage
+    }
 
     var body: some View {
-        CommunityCard {
-            if item.imageURL != nil {
-                ZStack(alignment: .bottomLeading) {
-                    RemoteCardImage(
-                        imageURL: item.imageURL,
-                        height: previewImageHeight,
-                        source: "HomeFeedCard",
-                        isDecorative: true
+        AppInfoChip(
+            title: title,
+            systemImage: systemImage,
+            tint: isSelected ? AppTheme.accentPrimary : AppTheme.textSecondary,
+            fill: isSelected ? AppTheme.badgeBlueFill : AppTheme.surfaceElevated,
+            border: isSelected ? nil : AppTheme.borderSubtle,
+            trailingSystemImage: trailingSystemImage,
+            size: .regular
+        )
+        .frame(minHeight: 38)
+    }
+}
+
+private struct HomeNotificationButton: View {
+    var body: some View {
+        Button {
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bell")
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: 40, height: 40)
+
+                Circle()
+                    .fill(AppTheme.accentDestructive)
+                    .frame(width: 8, height: 8)
+                    .offset(x: -6, y: 6)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.Home.notifications)
+    }
+}
+
+private struct HomeBannerEditButton: View {
+    @Binding var selectedItem: PhotosPickerItem?
+    let isUploading: Bool
+
+    var body: some View {
+        PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+            ZStack {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 34, height: 34)
+                    .overlay(
+                        Circle()
+                            .stroke(AppTheme.borderSubtle, lineWidth: 1)
                     )
 
-                    LinearGradient(
-                        colors: [.black.opacity(0.02), .black.opacity(0.22)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
-
-                    if item.itemType == .event, let eventMetadataText {
-                        metadataCapsule(title: eventMetadataText, systemImage: "calendar")
-                            .padding(14)
-                    }
+                if isUploading {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
                 }
             }
+        }
+        .buttonStyle(.plain)
+        .disabled(isUploading)
+        .accessibilityLabel(AppStrings.Home.changeBanner)
+    }
+}
 
-            VStack(alignment: .leading, spacing: 14) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: 10) {
-                        metadataCapsule(title: itemTypeTitle, systemImage: itemTypeSystemImage)
+private struct HomeFeedCard: View {
+    let item: HomeFeedItem
 
-                        Spacer(minLength: 12)
+    var body: some View {
+        SoftContentCard(padding: 9) {
+            HStack(alignment: .top, spacing: 11) {
+                AppFeedThumbnail(
+                    imageURL: item.imageURL,
+                    fallbackSystemImage: itemTypeSystemImage,
+                    tint: itemTypeTint,
+                    fill: itemTypeFill,
+                    size: thumbnailSize,
+                    source: "HomeFeedCard"
+                )
 
-                        Text(publishedDateText)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        metadataCapsule(title: itemTypeTitle, systemImage: itemTypeSystemImage)
-
-                        Text(publishedDateText)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(sourceSubtitle)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textCase(.uppercase)
+                VStack(alignment: .leading, spacing: 4) {
+                    typeChip
 
                     Text(item.title)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
 
-                    Text(item.summary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    if item.imageURL == nil, let eventMetadataText {
-                        metadataLine(title: eventMetadataText, systemImage: "calendar")
+                    if shouldShowPreview, !item.summary.isEmpty {
+                        Text(item.summary)
+                            .font(.caption2)
+                            .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                            .lineLimit(1)
                     }
 
-                    if let regionMetadataText {
-                        metadataLine(title: regionMetadataText, systemImage: "mappin.and.ellipse")
-                    }
-                }
+                    if item.itemType == .event {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 10) {
+                                metadataLine
+                                if let secondaryMetadataText {
+                                    AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
+                                }
+                            }
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: 10) {
-                        metadataLine(title: sourceTypeTitle, systemImage: sourceTypeSystemImage)
-
-                        Spacer(minLength: 8)
-
-                        HStack(spacing: 6) {
-                            Image(systemName: "heart")
-                                .font(.caption)
-                            Text("\(item.likeCount)")
+                            VStack(alignment: .leading, spacing: 3) {
+                                metadataLine
+                                if let secondaryMetadataText {
+                                    AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
+                                }
+                            }
                         }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        metadataLine(title: sourceTypeTitle, systemImage: sourceTypeSystemImage)
-
-                        HStack(spacing: 6) {
-                            Image(systemName: "heart")
-                                .font(.caption)
-                            Text("\(item.likeCount)")
-                        }
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
                     }
                 }
+
+                Spacer(minLength: 2)
+
+                rightAccessory
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var typeChip: some View {
+        AppInfoChip(
+            title: itemTypeTitle.uppercased(),
+            systemImage: itemTypeSystemImage,
+            tint: itemTypeTint,
+            fill: itemTypeFill,
+            size: .small
+        )
+    }
+
+    private var timestampText: some View {
+        Text(publishedDateText)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary)
+            .lineLimit(1)
+    }
+
+    @ViewBuilder
+    private var rightAccessory: some View {
+        if item.itemType == .event, let eventStartDate = item.eventStartDate {
+            HStack(alignment: .top, spacing: 6) {
+                AppDateBadge(date: eventStartDate)
+                bookmarkIcon
+            }
+        } else {
+            VStack(alignment: .trailing, spacing: 8) {
+                timestampText
+                Spacer(minLength: 8)
+                bookmarkIcon
+            }
+            .frame(minHeight: AppTheme.feedThumbnailSize)
+        }
+    }
+
+    private var bookmarkIcon: some View {
+        Image(systemName: "bookmark")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+            .frame(width: 20, height: 20)
+    }
+
+    private var metadataLine: some View {
+        AppMetadataLine(title: primaryMetadataText, systemImage: primaryMetadataIcon)
     }
 
     private var itemTypeTitle: String {
@@ -387,56 +430,86 @@ private struct HomeFeedCard: View {
     private var itemTypeSystemImage: String {
         switch item.itemType {
         case .news:
-            return "newspaper"
+            "newspaper"
         case .event:
-            return "calendar"
+            "calendar"
         case .organization:
-            return "building.2"
+            "building.2"
         }
     }
 
-    private var sourceSubtitle: String {
+    private var itemTypeTint: Color {
+        switch item.itemType {
+        case .news:
+            Color.green
+        case .event:
+            AppTheme.accentPrimary
+        case .organization:
+            Color.purple
+        }
+    }
+
+    private var itemTypeFill: Color {
+        switch item.itemType {
+        case .news:
+            AppTheme.badgeGreenFill
+        case .event:
+            AppTheme.badgeBlueFill
+        case .organization:
+            AppTheme.badgePurpleFill
+        }
+    }
+
+    private var thumbnailSize: CGFloat {
+        item.itemType == .event ? AppTheme.feedThumbnailSize + 2 : AppTheme.feedThumbnailSize + 8
+    }
+
+    private var shouldShowPreview: Bool {
+        item.itemType == .news || item.itemType == .event
+    }
+
+    private var publishedDateText: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = LocalizationStore.locale
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: item.publishedAt, relativeTo: Date())
+    }
+
+    private var primaryMetadataText: String {
+        if item.itemType == .event, let eventStartDate = item.eventStartDate {
+            return LocalizationStore.timeRangeString(startDate: eventStartDate, endDate: item.eventEndDate)
+        }
+
+        if let city = item.city, !city.isEmpty {
+            return city
+        }
+
         if let organizationName = item.organizationName, !organizationName.isEmpty {
             return organizationName
         }
-        return AppStrings.Common.app
+
+        return sourceTypeTitle
+    }
+
+    private var primaryMetadataIcon: String {
+        item.itemType == .event ? "clock" : "mappin.and.ellipse"
+    }
+
+    private var secondaryMetadataText: String? {
+        guard item.itemType == .event else { return nil }
+        if let city = item.city, !city.isEmpty {
+            return city
+        }
+        return nil
     }
 
     private var sourceTypeTitle: String {
         switch item.sourceType {
         case .app:
-            return AppStrings.Common.app
+            AppStrings.Common.app
         case .organization:
-            return AppStrings.Tabs.organizations
+            AppStrings.Tabs.organizations
         }
-    }
-
-    private var sourceTypeSystemImage: String {
-        switch item.sourceType {
-        case .app:
-            return "sparkles"
-        case .organization:
-            return "building.2"
-        }
-    }
-
-    private var publishedDateText: String {
-        LocalizationStore.dateString(from: item.publishedAt, dateStyle: .medium, timeStyle: .short)
-    }
-
-    private var eventMetadataText: String? {
-        guard let eventStartDate = item.eventStartDate else { return nil }
-        return LocalizationStore.dateString(from: eventStartDate, dateStyle: .medium, timeStyle: .short)
-    }
-
-    private var regionMetadataText: String? {
-        if let city = item.city, !city.isEmpty {
-            if let venue = item.eventVenue, !venue.isEmpty {
-                return "\(city) • \(venue)"
-            }
-            return city
-        }
-        return nil
     }
 
     private var accessibilitySummary: String {
@@ -446,70 +519,10 @@ private struct HomeFeedCard: View {
             parts.append(item.summary)
         }
 
-        if let eventMetadataText {
-            parts.append(eventMetadataText)
-        }
-
-        if let regionMetadataText {
-            parts.append(regionMetadataText)
-        }
+        parts.append(primaryMetadataText)
 
         parts.append("\(item.likeCount) \(AppStrings.Common.likes)")
         return parts.joined(separator: ", ")
-    }
-
-    @ViewBuilder
-    private func metadataLine(title: String, systemImage: String) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
-
-            Text(title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    @ViewBuilder
-    private func metadataCapsule(title: String, systemImage: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.caption2.weight(.semibold))
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .foregroundStyle(itemTypeCapsuleForeground)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(itemTypeCapsuleBackground, in: Capsule())
-    }
-
-    private var itemTypeCapsuleForeground: Color {
-        switch item.itemType {
-        case .news:
-            return AppTheme.accentPrimary
-        case .event:
-            return AppTheme.accentPrimary
-        case .organization:
-            return .secondary
-        }
-    }
-
-    private var itemTypeCapsuleBackground: Color {
-        switch item.itemType {
-        case .news:
-            return AppTheme.badgeBlueFill
-        case .event:
-            return AppTheme.accentSupport.opacity(0.16)
-        case .organization:
-            return Color.secondary.opacity(0.12)
-        }
     }
 }
 
@@ -519,7 +532,8 @@ private struct HomeFeedCard: View {
             viewModel: HomeViewModel(
                 newsRepository: MockNewsRepository(),
                 eventRepository: MockEventRepository(),
-                organizationRepository: MockOrganizationRepository()
+                organizationRepository: MockOrganizationRepository(),
+                homeBannerService: MockHomeBannerService()
             ),
             newsViewModel: NewsViewModel(repository: MockNewsRepository()),
             eventsViewModel: EventsViewModel(repository: MockEventRepository()),

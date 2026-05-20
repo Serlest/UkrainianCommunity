@@ -26,6 +26,49 @@ struct FirestoreEventRepository: EventRepository {
         }
     }
 
+    func fetchRegisteredEvents() async throws -> [Event] {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let registrationsSnapshot = try await registrationsCollection
+            .whereField("userId", isEqualTo: uid)
+            .getDocuments()
+
+        let registeredEventIDs = registrationsSnapshot.documents.compactMap { $0.data()["eventId"] as? String }
+        guard !registeredEventIDs.isEmpty else {
+            return []
+        }
+
+        let likedEventIDs = try await fetchLikedEventIDs()
+        let registeredEventIDSet = Set(registeredEventIDs)
+        var registeredEvents: [Event] = []
+
+        for chunk in registeredEventIDs.chunked(into: 10) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .getDocuments()
+
+            let resolvedEvents = try snapshot.documents.compactMap { document -> Event? in
+                let dto = try makeEventDTO(
+                    from: document,
+                    likedEventIDs: likedEventIDs,
+                    registeredEventIDs: registeredEventIDSet
+                )
+
+                guard dto.moderationStatus == ModerationStatus.approved.rawValue else {
+                    return nil
+                }
+
+                return Event(dto: dto)
+            }
+
+            registeredEvents.append(contentsOf: resolvedEvents)
+        }
+
+        return registeredEvents.sorted { $0.startDate < $1.startDate }
+    }
+
     func fetchPendingEvents() async throws -> [Event] {
         let snapshot = try await collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
@@ -395,7 +438,7 @@ struct FirestoreEventRepository: EventRepository {
             organizationImageURL: data["organizationImageURL"] as? String,
             city: city,
             venue: venue,
-            imageURL: data["imageURL"] as? String,
+            imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,
@@ -470,5 +513,12 @@ struct FirestoreEventRepository: EventRepository {
             createdAt: createdAt,
             updatedAt: updatedAt
         )
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
