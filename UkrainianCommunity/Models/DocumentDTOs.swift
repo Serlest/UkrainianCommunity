@@ -45,10 +45,45 @@ struct CommunityMembershipDTO: Codable, Identifiable {
 
 struct CommentDTO: Codable, Identifiable {
     let id: String
+    let parentType: String?
+    let parentId: String?
+    let authorId: String?
     let authorName: String
-    let body: String
+    let authorPhotoURL: String?
+    let text: String
     let createdAt: Date
-    let updatedAt: Date
+    let updatedAt: Date?
+    let moderationStatus: String?
+    let isDeleted: Bool?
+
+    var body: String { text }
+
+    nonisolated init(
+        id: String,
+        parentType: String? = nil,
+        parentId: String? = nil,
+        authorId: String? = nil,
+        authorName: String,
+        authorPhotoURL: String? = nil,
+        text: String? = nil,
+        body: String? = nil,
+        createdAt: Date,
+        updatedAt: Date? = nil,
+        moderationStatus: String? = ModerationStatus.approved.rawValue,
+        isDeleted: Bool? = false
+    ) {
+        self.id = id
+        self.parentType = parentType
+        self.parentId = parentId
+        self.authorId = authorId
+        self.authorName = authorName
+        self.authorPhotoURL = authorPhotoURL
+        self.text = text ?? body ?? ""
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.moderationStatus = moderationStatus
+        self.isDeleted = isDeleted
+    }
 }
 
 struct NewsPostDTO: Codable, Identifiable {
@@ -58,6 +93,8 @@ struct NewsPostDTO: Codable, Identifiable {
     let regionScope: String?
     let federalState: String?
     let city: String?
+    let category: String?
+    let tags: [String]?
     let sourceType: String?
     let organizationId: String?
     let organizationName: String?
@@ -72,6 +109,8 @@ struct NewsPostDTO: Codable, Identifiable {
     let moderationStatus: String
     let likeCount: Int
     let likeState: String
+    let viewCount: Int
+    let isBookmarked: Bool
 }
 
 struct EventDTO: Codable, Identifiable {
@@ -85,13 +124,20 @@ struct EventDTO: Codable, Identifiable {
     let organizationId: String?
     let organizationName: String?
     let organizationImageURL: String?
+    let authorId: String?
+    let authorName: String?
     let city: String
     let venue: String
+    let address: String?
+    let locationNote: String?
+    let latitude: Double?
+    let longitude: Double?
     let imageURL: String?
     let startDate: Date
     let endDate: Date
     let createdAt: Date
     let updatedAt: Date
+    let price: Double
     let capacity: Int?
     let registeredCount: Int
     let comments: [CommentDTO]
@@ -99,6 +145,11 @@ struct EventDTO: Codable, Identifiable {
     let registrationState: String
     let likeCount: Int
     let likeState: String
+    let viewCount: Int
+    let category: String?
+    let visibility: String?
+    let isAllDay: Bool?
+    let isBookmarked: Bool
 }
 
 struct GuideArticleDTO: Codable, Identifiable {
@@ -239,20 +290,32 @@ extension Comment {
     init(dto: CommentDTO) {
         self.init(
             id: dto.id,
+            parentType: dto.parentType.flatMap(CommentParentType.init(rawValue:)),
+            parentId: dto.parentId,
+            authorId: dto.authorId,
             authorName: dto.authorName,
-            body: dto.body,
+            authorPhotoURL: dto.authorPhotoURL,
+            text: dto.text,
             createdAt: dto.createdAt,
-            updatedAt: dto.updatedAt
+            updatedAt: dto.updatedAt,
+            moderationStatus: dto.moderationStatus.flatMap(ModerationStatus.init(rawValue:)) ?? .approved,
+            isDeleted: dto.isDeleted ?? false
         )
     }
 
     var dto: CommentDTO {
         CommentDTO(
             id: id,
+            parentType: parentType?.rawValue,
+            parentId: parentId,
+            authorId: authorId,
             authorName: authorName,
-            body: body,
+            authorPhotoURL: authorPhotoURL,
+            text: text,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            moderationStatus: moderationStatus.rawValue,
+            isDeleted: isDeleted
         )
     }
 }
@@ -266,6 +329,8 @@ extension NewsPost {
             regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .federalState,
             federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
             city: dto.city,
+            category: dto.category.flatMap(NewsCategory.init(rawValue:)) ?? .news,
+            tags: dto.tags ?? [],
             source: ContentSourceMetadata(
                 sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)) ?? .app,
                 organizationId: dto.organizationId,
@@ -289,7 +354,9 @@ extension NewsPost {
             },
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             likeCount: dto.likeCount,
-            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked
+            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
+            viewCount: dto.viewCount,
+            isBookmarked: dto.isBookmarked
         )
     }
 
@@ -301,6 +368,8 @@ extension NewsPost {
             regionScope: regionScope?.rawValue,
             federalState: federalState?.rawValue,
             city: city,
+            category: category.rawValue,
+            tags: tags,
             sourceType: source.sourceType.rawValue,
             organizationId: source.organizationId,
             organizationName: source.organizationName,
@@ -314,7 +383,9 @@ extension NewsPost {
             comments: comments.map(\.dto),
             moderationStatus: moderationStatus.rawValue,
             likeCount: likeCount,
-            likeState: likeState.rawValue
+            likeState: likeState.rawValue,
+            viewCount: viewCount,
+            isBookmarked: isBookmarked
         )
     }
 }
@@ -334,13 +405,20 @@ extension Event {
                 organizationName: dto.organizationName,
                 organizationImageURL: dto.organizationImageURL
             ),
+            authorId: dto.authorId,
+            authorName: dto.authorName,
             city: dto.city,
             venue: dto.venue,
+            address: dto.address,
+            locationNote: dto.locationNote,
+            latitude: dto.latitude,
+            longitude: dto.longitude,
             imageURL: dto.imageURL,
             startDate: dto.startDate,
             endDate: dto.endDate,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
+            price: dto.price,
             capacity: dto.capacity,
             registeredCount: dto.registeredCount,
             comments: dto.comments.map {
@@ -355,7 +433,12 @@ extension Event {
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             registrationState: EventRegistrationState(rawValue: dto.registrationState) ?? .notRegistered,
             likeCount: dto.likeCount,
-            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked
+            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
+            viewCount: dto.viewCount,
+            category: dto.category.flatMap(EventCategory.init(rawValue:)) ?? .unspecified,
+            visibility: dto.visibility.flatMap(EventVisibility.init(rawValue:)) ?? .public,
+            isAllDay: dto.isAllDay ?? false,
+            isBookmarked: dto.isBookmarked
         )
     }
 
@@ -371,20 +454,32 @@ extension Event {
             organizationId: source.organizationId,
             organizationName: source.organizationName,
             organizationImageURL: source.organizationImageURL,
+            authorId: authorId,
+            authorName: authorName,
             city: city,
             venue: venue,
+            address: address,
+            locationNote: locationNote,
+            latitude: latitude,
+            longitude: longitude,
             imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            price: price,
             capacity: capacity,
             registeredCount: registeredCount,
             comments: comments.map(\.dto),
             moderationStatus: moderationStatus.rawValue,
             registrationState: registrationState.rawValue,
             likeCount: likeCount,
-            likeState: likeState.rawValue
+            likeState: likeState.rawValue,
+            viewCount: viewCount,
+            category: category.rawValue,
+            visibility: visibility.rawValue,
+            isAllDay: isAllDay,
+            isBookmarked: isBookmarked
         )
     }
 }

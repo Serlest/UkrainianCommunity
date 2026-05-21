@@ -10,6 +10,7 @@ private actor MockRepositoryStore {
     var infoItems = MockContentBuilder.infoItems()
     var guideArticles = MockContentBuilder.guideArticles()
     var feedbackItems: [FeedbackItem] = []
+    var viewedNewsIDs = Set<String>()
 
     func updateUserProfile(_ profile: EditableUserProfileDraft) -> AppUser {
         user = AppUser(
@@ -50,6 +51,19 @@ private actor MockRepositoryStore {
         news[index].likeCount += isLiked ? 1 : -1
     }
 
+    func recordNewsView(id: String) throws -> Bool {
+        guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        guard !viewedNewsIDs.contains(id) else { return false }
+        viewedNewsIDs.insert(id)
+        news[index].viewCount += 1
+        return true
+    }
+
+    func setNewsBookmark(id: String, isBookmarked: Bool) throws {
+        guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        news[index].isBookmarked = isBookmarked
+    }
+
     func createNews(_ item: NewsPost) {
         news.insert(item, at: 0)
     }
@@ -64,6 +78,8 @@ private actor MockRepositoryStore {
             regionScope: item.regionScope,
             federalState: item.federalState,
             city: item.city,
+            category: item.category,
+            tags: item.tags,
             source: item.source,
             imageURL: item.imageURL,
             body: item.body,
@@ -74,7 +90,9 @@ private actor MockRepositoryStore {
             comments: existingItem.comments,
             moderationStatus: existingItem.moderationStatus,
             likeCount: existingItem.likeCount,
-            likeState: existingItem.likeState
+            likeState: existingItem.likeState,
+            viewCount: existingItem.viewCount,
+            isBookmarked: existingItem.isBookmarked
         )
     }
 
@@ -92,6 +110,50 @@ private actor MockRepositoryStore {
     func updateNewsModerationStatus(id: String, newStatus: ModerationStatus) throws {
         guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         news[index].moderationStatus = newStatus
+    }
+
+    func addNewsComment(newsID: String, text: String, author: AppUser) throws -> Comment {
+        guard let index = news.firstIndex(where: { $0.id == newsID }) else { throw AppError.notFound }
+        let comment = Comment(
+            id: UUID().uuidString,
+            parentType: .news,
+            parentId: newsID,
+            authorId: author.id,
+            authorName: author.commentDisplayName,
+            authorPhotoURL: author.avatarURL?.absoluteString,
+            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            createdAt: .now
+        )
+        news[index].comments.append(comment)
+        return comment
+    }
+
+    func updateNewsComment(newsID: String, commentID: String, text: String) throws -> Comment {
+        guard let postIndex = news.firstIndex(where: { $0.id == newsID }),
+              let commentIndex = news[postIndex].comments.firstIndex(where: { $0.id == commentID }) else {
+            throw AppError.notFound
+        }
+        let existing = news[postIndex].comments[commentIndex]
+        let updated = Comment(
+            id: existing.id,
+            parentType: existing.parentType,
+            parentId: existing.parentId,
+            authorId: existing.authorId,
+            authorName: existing.authorName,
+            authorPhotoURL: existing.authorPhotoURL,
+            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            createdAt: existing.createdAt,
+            updatedAt: .now,
+            moderationStatus: existing.moderationStatus,
+            isDeleted: existing.isDeleted
+        )
+        news[postIndex].comments[commentIndex] = updated
+        return updated
+    }
+
+    func deleteNewsComment(newsID: String, commentID: String) throws {
+        guard let index = news.firstIndex(where: { $0.id == newsID }) else { throw AppError.notFound }
+        news[index].comments.removeAll { $0.id == commentID }
     }
 
     func toggleEventLike(id: String, isLiked: Bool) throws {
@@ -120,21 +182,43 @@ private actor MockRepositoryStore {
             regionScope: events[index].regionScope,
             federalState: events[index].federalState,
             source: events[index].source,
+            authorId: events[index].authorId,
+            authorName: events[index].authorName,
             city: events[index].city,
             venue: events[index].venue,
+            address: events[index].address,
+            latitude: events[index].latitude,
+            longitude: events[index].longitude,
             imageURL: events[index].imageURL,
             startDate: events[index].startDate,
             endDate: events[index].endDate,
             createdAt: events[index].createdAt,
             updatedAt: events[index].updatedAt,
+            price: events[index].price,
             capacity: events[index].capacity,
             registeredCount: adjustedCount,
             comments: events[index].comments,
             moderationStatus: events[index].moderationStatus,
             registrationState: isRegistered ? .registered : .notRegistered,
             likeCount: events[index].likeCount,
-            likeState: events[index].likeState
+            likeState: events[index].likeState,
+            viewCount: events[index].viewCount,
+            category: events[index].category,
+            visibility: events[index].visibility,
+            isAllDay: events[index].isAllDay,
+            isBookmarked: events[index].isBookmarked
         )
+    }
+
+    func setEventBookmark(id: String, isBookmarked: Bool) throws {
+        guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        events[index].isBookmarked = isBookmarked
+    }
+
+    func recordEventView(id: String) throws -> Bool {
+        guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        events[index].viewCount += 1
+        return true
     }
 
     func createEvent(_ item: Event) {
@@ -153,20 +237,31 @@ private actor MockRepositoryStore {
             regionScope: item.regionScope,
             federalState: item.federalState,
             source: item.source,
+            authorId: item.authorId ?? existingItem.authorId,
+            authorName: item.authorName ?? existingItem.authorName,
             city: item.city,
             venue: item.venue,
+            address: item.address,
+            latitude: item.latitude,
+            longitude: item.longitude,
             imageURL: item.imageURL,
             startDate: item.startDate,
             endDate: item.endDate,
             createdAt: existingItem.createdAt,
             updatedAt: item.updatedAt,
+            price: item.price,
             capacity: item.capacity,
             registeredCount: existingItem.registeredCount,
             comments: existingItem.comments,
             moderationStatus: existingItem.moderationStatus,
             registrationState: existingItem.registrationState,
             likeCount: existingItem.likeCount,
-            likeState: existingItem.likeState
+            likeState: existingItem.likeState,
+            viewCount: existingItem.viewCount,
+            category: item.category,
+            visibility: item.visibility,
+            isAllDay: item.isAllDay,
+            isBookmarked: existingItem.isBookmarked
         )
         events.sort { $0.startDate < $1.startDate }
     }
@@ -185,6 +280,50 @@ private actor MockRepositoryStore {
     func updateEventModerationStatus(id: String, newStatus: ModerationStatus) throws {
         guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         events[index].moderationStatus = newStatus
+    }
+
+    func addEventComment(eventID: String, text: String, author: AppUser) throws -> Comment {
+        guard let index = events.firstIndex(where: { $0.id == eventID }) else { throw AppError.notFound }
+        let comment = Comment(
+            id: UUID().uuidString,
+            parentType: .event,
+            parentId: eventID,
+            authorId: author.id,
+            authorName: author.commentDisplayName,
+            authorPhotoURL: author.avatarURL?.absoluteString,
+            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            createdAt: .now
+        )
+        events[index].comments.append(comment)
+        return comment
+    }
+
+    func updateEventComment(eventID: String, commentID: String, text: String) throws -> Comment {
+        guard let eventIndex = events.firstIndex(where: { $0.id == eventID }),
+              let commentIndex = events[eventIndex].comments.firstIndex(where: { $0.id == commentID }) else {
+            throw AppError.notFound
+        }
+        let existing = events[eventIndex].comments[commentIndex]
+        let updated = Comment(
+            id: existing.id,
+            parentType: existing.parentType,
+            parentId: existing.parentId,
+            authorId: existing.authorId,
+            authorName: existing.authorName,
+            authorPhotoURL: existing.authorPhotoURL,
+            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            createdAt: existing.createdAt,
+            updatedAt: .now,
+            moderationStatus: existing.moderationStatus,
+            isDeleted: existing.isDeleted
+        )
+        events[eventIndex].comments[commentIndex] = updated
+        return updated
+    }
+
+    func deleteEventComment(eventID: String, commentID: String) throws {
+        guard let index = events.firstIndex(where: { $0.id == eventID }) else { throw AppError.notFound }
+        events[index].comments.removeAll { $0.id == commentID }
     }
 
     func toggleOrganizationLike(id: String, isLiked: Bool) throws {
@@ -293,8 +432,32 @@ struct MockNewsRepository: NewsRepository {
         try await store.toggleNewsLike(id: id, isLiked: false)
     }
 
+    func recordNewsView(id: String) async throws -> Bool {
+        try await store.recordNewsView(id: id)
+    }
+
+    func bookmarkNews(id: String) async throws {
+        try await store.setNewsBookmark(id: id, isBookmarked: true)
+    }
+
+    func unbookmarkNews(id: String) async throws {
+        try await store.setNewsBookmark(id: id, isBookmarked: false)
+    }
+
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
         try await store.updateNewsModerationStatus(id: id, newStatus: newStatus)
+    }
+
+    func addNewsComment(newsID: String, text: String, author: AppUser) async throws -> Comment {
+        try await store.addNewsComment(newsID: newsID, text: text, author: author)
+    }
+
+    func updateNewsComment(newsID: String, commentID: String, text: String) async throws -> Comment {
+        try await store.updateNewsComment(newsID: newsID, commentID: commentID, text: text)
+    }
+
+    func deleteNewsComment(newsID: String, commentID: String) async throws {
+        try await store.deleteNewsComment(newsID: newsID, commentID: commentID)
     }
 }
 
@@ -337,6 +500,10 @@ struct MockEventRepository: EventRepository {
         try await store.toggleEventLike(id: id, isLiked: false)
     }
 
+    func recordEventView(id: String) async throws -> Bool {
+        try await store.recordEventView(id: id)
+    }
+
     func registerForEvent(id: String) async throws {
         try await store.setEventRegistration(id: id, isRegistered: true)
     }
@@ -345,8 +512,28 @@ struct MockEventRepository: EventRepository {
         try await store.setEventRegistration(id: id, isRegistered: false)
     }
 
+    func bookmarkEvent(id: String) async throws {
+        try await store.setEventBookmark(id: id, isBookmarked: true)
+    }
+
+    func unbookmarkEvent(id: String) async throws {
+        try await store.setEventBookmark(id: id, isBookmarked: false)
+    }
+
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
         try await store.updateEventModerationStatus(id: id, newStatus: newStatus)
+    }
+
+    func addEventComment(eventID: String, text: String, author: AppUser) async throws -> Comment {
+        try await store.addEventComment(eventID: eventID, text: text, author: author)
+    }
+
+    func updateEventComment(eventID: String, commentID: String, text: String) async throws -> Comment {
+        try await store.updateEventComment(eventID: eventID, commentID: commentID, text: text)
+    }
+
+    func deleteEventComment(eventID: String, commentID: String) async throws {
+        try await store.deleteEventComment(eventID: eventID, commentID: commentID)
     }
 }
 
@@ -404,5 +591,14 @@ struct MockInfoRepository: InfoRepository {
                 }
                 return lhs.isPinned && !rhs.isPinned
             }
+    }
+}
+
+private extension AppUser {
+    nonisolated var commentDisplayName: String {
+        let display = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !display.isEmpty { return display }
+        let full = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return full.isEmpty ? "Користувач" : full
     }
 }

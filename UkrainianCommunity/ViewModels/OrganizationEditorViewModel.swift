@@ -44,6 +44,17 @@ final class OrganizationEditorViewModel: ObservableObject {
         mode.isEditing ? AppStrings.Organizations.editTitle : AppStrings.Organizations.editorTitle
     }
 
+    var isEditing: Bool {
+        mode.isEditing
+    }
+
+    var existingImageURL: String? {
+        if case let .edit(existingOrganization) = mode {
+            return existingOrganization.imageURL
+        }
+        return nil
+    }
+
     var submitButtonTitle: String {
         mode.isEditing ? AppStrings.Organizations.saveChanges : AppStrings.Organizations.publish
     }
@@ -88,7 +99,7 @@ final class OrganizationEditorViewModel: ObservableObject {
                 city: trimmedCity,
                 imageURL: nil,
                 contactEmail: trimmedContactEmail.nilIfEmpty,
-                website: trimmedWebsite.nilIfEmpty,
+                website: normalizedWebsite.nilIfEmpty,
                 createdAt: now,
                 updatedAt: now,
                 moderationStatus: .approved,
@@ -105,7 +116,7 @@ final class OrganizationEditorViewModel: ObservableObject {
                 city: trimmedCity,
                 imageURL: existing.imageURL,
                 contactEmail: trimmedContactEmail.nilIfEmpty,
-                website: trimmedWebsite.nilIfEmpty,
+                website: normalizedWebsite.nilIfEmpty,
                 createdAt: existing.createdAt,
                 updatedAt: now,
                 moderationStatus: existing.moderationStatus,
@@ -160,13 +171,19 @@ final class OrganizationEditorViewModel: ObservableObject {
         website.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var normalizedWebsite: String {
+        guard !trimmedWebsite.isEmpty else { return "" }
+        guard URL(string: trimmedWebsite)?.scheme?.isEmpty != false else { return trimmedWebsite }
+        return "https://\(trimmedWebsite)"
+    }
+
     private func validate() -> Bool {
         let errors = validationService.validate(
             name: name,
             description: description,
             city: city,
             contactEmail: contactEmail,
-            website: website
+            website: normalizedWebsite
         )
 
         guard let firstError = errors.first else {

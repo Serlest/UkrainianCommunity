@@ -102,7 +102,8 @@ struct ContentView: View {
                 viewModel: homeViewModel,
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
-                organizationsViewModel: organizationsViewModel
+                organizationsViewModel: organizationsViewModel,
+                newsRepository: container.newsRepository
             )
         }
         .accessibilityIdentifier("screen.home")
@@ -119,6 +120,7 @@ struct ContentView: View {
             EventsListView(
                 viewModel: eventsViewModel,
                 eventRepository: container.eventRepository,
+                bannerService: container.homeBannerService,
                 onEventPublished: {},
                 onEventDeleted: {}
             )
@@ -136,6 +138,7 @@ struct ContentView: View {
         NavigationStack {
             OrganizationsListView(
                 viewModel: organizationsViewModel,
+                bannerService: container.homeBannerService,
                 onOrganizationSaved: {},
                 onOrganizationDeleted: {}
             )
@@ -151,7 +154,10 @@ struct ContentView: View {
 
     private var infoTab: some View {
         NavigationStack {
-            InfoView(viewModel: infoViewModel)
+            InfoView(
+                viewModel: infoViewModel,
+                bannerService: container.homeBannerService
+            )
         }
         .accessibilityIdentifier("screen.guide")
         .id(guideNavigationRootID)

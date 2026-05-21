@@ -1,4 +1,5 @@
 import Combine
+import PhotosUI
 import SwiftUI
 
 enum OrganizationPresentationMode {
@@ -37,6 +38,56 @@ private func organizationContactText(for organization: Organization) -> String? 
 private func organizationWebsiteText(for organization: Organization) -> String? {
     guard let website = organization.website, !website.isEmpty else { return nil }
     return website
+}
+
+private enum OrganizationCategoryFilter: CaseIterable, Identifiable {
+    case all
+    case support
+    case education
+    case culture
+    case work
+    case children
+    case other
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .all:
+            AppStrings.Home.filterAll
+        case .support:
+            AppStrings.Organizations.categorySupport
+        case .education:
+            AppStrings.Organizations.categoryEducation
+        case .culture:
+            AppStrings.Organizations.categoryCulture
+        case .work:
+            AppStrings.Organizations.categoryWork
+        case .children:
+            AppStrings.Organizations.categoryChildren
+        case .other:
+            AppStrings.Organizations.categoryOther
+        }
+    }
+
+    var systemImage: String? {
+        switch self {
+        case .all:
+            "square.grid.2x2"
+        case .support:
+            "hands.sparkles"
+        case .education:
+            "graduationcap"
+        case .culture:
+            "paintpalette"
+        case .work:
+            "briefcase"
+        case .children:
+            "figure.2.and.child.holdinghands"
+        case .other:
+            "ellipsis"
+        }
+    }
 }
 
 @MainActor
@@ -130,6 +181,7 @@ private final class OrganizationActivityViewModel: ObservableObject {
 struct OrganizationsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: OrganizationsViewModel
+    @StateObject private var heroBannerViewModel: AppHeroBannerViewModel
     let onOrganizationSaved: @MainActor () async -> Void
     let onOrganizationDeleted: @MainActor () -> Void
     let presentationMode: OrganizationPresentationMode
@@ -137,9 +189,12 @@ struct OrganizationsListView: View {
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
     @State private var isShowingCreateSheet = false
+    @State private var selectedCategory: OrganizationCategoryFilter = .all
+    @State private var selectedBannerPhoto: PhotosPickerItem?
 
     init(
         viewModel: OrganizationsViewModel,
+        bannerService: HomeBannerServiceProtocol = FirestoreHomeBannerService(),
         onOrganizationSaved: @escaping @MainActor () async -> Void = {},
         onOrganizationDeleted: @escaping @MainActor () -> Void = {},
         presentationMode: OrganizationPresentationMode = .public
@@ -148,6 +203,10 @@ struct OrganizationsListView: View {
         self.onOrganizationSaved = onOrganizationSaved
         self.onOrganizationDeleted = onOrganizationDeleted
         self.presentationMode = presentationMode
+        _heroBannerViewModel = StateObject(wrappedValue: AppHeroBannerViewModel(
+            section: .organizations,
+            bannerService: bannerService
+        ))
     }
 
     private var errorText: String {
@@ -167,80 +226,43 @@ struct OrganizationsListView: View {
         }
     }
 
-    var body: some View {
-        ScrollView {
-            if viewModel.organizations.isEmpty && viewModel.isLoading {
-                VStack {
-                    LoadingStateCard(title: nil)
-                }
-                .frame(maxWidth: .infinity, minHeight: 420)
-            } else if viewModel.organizations.isEmpty && viewModel.error != nil {
-                ErrorStateCard(
-                    systemImage: "building.2",
-                    title: AppStrings.Organizations.title,
-                    message: errorText,
-                    retryTitle: AppStrings.Organizations.retry
-                ) {
-                    Task {
-                        await viewModel.refresh()
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 420)
-            } else if viewModel.organizations.isEmpty {
-                EmptyStateCard(
-                    systemImage: "building.2",
-                    title: AppStrings.Organizations.title,
-                    message: AppStrings.Organizations.empty
-                )
-                .frame(maxWidth: .infinity, minHeight: 420)
-            } else {
-                VStack(spacing: AppTheme.sectionSpacing) {
-                    if viewModel.error != nil {
-                        ErrorStateCard(
-                            title: AppStrings.Organizations.title,
-                            message: errorText,
-                            retryTitle: AppStrings.Organizations.retry
-                        ) {
-                            Task {
-                                await viewModel.refresh()
-                            }
-                        }
-                        .padding(.horizontal, AppTheme.pageHorizontal)
-                    }
+    private var canCreateOrganization: Bool {
+        presentationMode.allowsManagementControls && PermissionService.canCreateOrganization(user: authState.user)
+    }
 
-                    AdaptiveCardGrid(items: viewModel.organizations) { organization in
-                        NavigationLink {
-                            OrganizationDetailView(
-                                viewModel: viewModel,
-                                organizationID: organization.id,
-                                onOrganizationSaved: onOrganizationSaved,
-                                onOrganizationDeleted: onOrganizationDeleted
-                            )
-                            .environment(\.organizationPresentationMode, presentationMode)
-                        } label: {
-                            OrganizationCard(organization: organization)
-                        }
-                        .buttonStyle(.plain)
-                        .modifier(OrganizationDeleteSwipeActions(
-                            isEnabled: presentationMode.allowsManagementControls && PermissionService.canDeleteOrganization(user: authState.user),
-                            onDelete: {
-                                pendingDeleteOrganizationID = organization.id
-                            }
-                        ))
-                    }
-                    .padding(.horizontal, AppTheme.pageHorizontal)
-                    .padding(.bottom, AppTheme.sectionSpacing)
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: AppTheme.eventsHeaderContentSpacing) {
+                organizationsHeader
+
+                organizationsHero
+
+                OrganizationCategoriesSection(selectedCategory: $selectedCategory)
+
+                AppGroupedContentPlane {
+                    organizationsPlaneContent
                 }
             }
+            .padding(.horizontal, AppTheme.pageHorizontal)
+            .padding(.bottom, AppTheme.homeBottomContentPadding)
         }
-        .background(AppTheme.groupedBackground.ignoresSafeArea())
-        .navigationTitle(AppStrings.Organizations.title)
+        .background(AppBackgroundView())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
+            await heroBannerViewModel.loadIfNeeded()
         }
         .refreshable {
             await viewModel.refresh()
+            await heroBannerViewModel.refresh()
+        }
+        .onChange(of: selectedBannerPhoto) { _, newItem in
+            Task {
+                await updateOrganizationsBanner(from: newItem)
+                selectedBannerPhoto = nil
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
@@ -286,15 +308,19 @@ struct OrganizationsListView: View {
         } message: {
             Text(deleteErrorMessage ?? readableOrganizationErrorText(.unknown))
         }
-        .toolbar {
-            if presentationMode.allowsManagementControls && PermissionService.canCreateOrganization(user: authState.user) {
-                Button {
-                    isShowingCreateSheet = true
-                } label: {
-                    Image(systemName: "plus")
+        .alert(
+            AppStrings.Home.bannerUploadFailed,
+            isPresented: Binding(
+                get: { heroBannerViewModel.error != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        heroBannerViewModel.clearError()
+                    }
                 }
-                .accessibilityLabel(AppStrings.Action.create)
-                .accessibilityHint(AppStrings.Organizations.title)
+            )
+        ) {
+            Button(AppStrings.News.dismissError, role: .cancel) {
+                heroBannerViewModel.clearError()
             }
         }
         .sheet(isPresented: $isShowingCreateSheet) {
@@ -306,6 +332,124 @@ struct OrganizationsListView: View {
             }
             .environmentObject(authState)
         }
+    }
+
+    private var organizationsHeader: some View {
+        AppBrandHeader {
+            HStack(spacing: 8) {
+                if canCreateOrganization {
+                    AppIconControlButton(systemImage: "plus", accessibilityLabel: AppStrings.Action.create) {
+                        isShowingCreateSheet = true
+                    }
+                    .accessibilityHint(AppStrings.Organizations.title)
+                }
+
+                AppNotificationBellButton()
+            }
+        }
+    }
+
+    private var organizationsHero: some View {
+        ZStack(alignment: .bottomTrailing) {
+            AppHeroBanner(
+                title: AppStrings.Organizations.heroTitle,
+                subtitle: AppStrings.Organizations.heroSubtitle,
+                imageSource: heroBannerViewModel.imageSource,
+                height: AppTheme.organizationsHeroHeight,
+                displaysTextOverImage: true
+            )
+
+            if PermissionService.canManageHomeBanner(user: authState.user) {
+                AppHeroBannerEditButton(
+                    selectedItem: $selectedBannerPhoto,
+                    isUploading: heroBannerViewModel.isUploading
+                )
+                .padding(10)
+            }
+        }
+    }
+
+    private func updateOrganizationsBanner(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                heroBannerViewModel.setSelectionFailed()
+                return
+            }
+
+            await heroBannerViewModel.updateImage(data: data, user: authState.user)
+        } catch {
+            heroBannerViewModel.setSelectionFailed()
+        }
+    }
+
+    @ViewBuilder
+    private var organizationsPlaneContent: some View {
+        if viewModel.organizations.isEmpty && viewModel.isLoading {
+            LoadingStateCard(title: nil)
+                .frame(maxWidth: .infinity, minHeight: 320)
+        } else if viewModel.organizations.isEmpty && viewModel.error != nil {
+            ErrorStateCard(
+                systemImage: "building.2",
+                title: AppStrings.Organizations.title,
+                message: errorText,
+                retryTitle: AppStrings.Organizations.retry
+            ) {
+                Task {
+                    await viewModel.refresh()
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 320)
+        } else if viewModel.organizations.isEmpty {
+            EmptyStateCard(
+                systemImage: "building.2",
+                title: AppStrings.Organizations.title,
+                message: AppStrings.Organizations.empty
+            )
+            .frame(maxWidth: .infinity, minHeight: 320)
+        } else {
+            VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+                if viewModel.error != nil {
+                    ErrorStateCard(
+                        title: AppStrings.Organizations.title,
+                        message: errorText,
+                        retryTitle: AppStrings.Organizations.retry
+                    ) {
+                        Task {
+                            await viewModel.refresh()
+                        }
+                    }
+                }
+
+                DashboardSectionHeader(title: AppStrings.Organizations.popularTitle)
+
+                DashboardFeedContainer(items: viewModel.organizations, spacing: AppTheme.feedRowSpacing) { organization in
+                    organizationLink(for: organization)
+                }
+            }
+        }
+    }
+
+    private func organizationLink(for organization: Organization) -> some View {
+        NavigationLink {
+            OrganizationDetailView(
+                viewModel: viewModel,
+                organizationID: organization.id,
+                onOrganizationSaved: onOrganizationSaved,
+                onOrganizationDeleted: onOrganizationDeleted
+            )
+            .environment(\.organizationPresentationMode, presentationMode)
+        } label: {
+            OrganizationCard(organization: organization)
+        }
+        .buttonStyle(.plain)
+        .modifier(OrganizationDeleteSwipeActions(
+            isEnabled: presentationMode.allowsManagementControls && PermissionService.canDeleteOrganization(user: authState.user),
+            onDelete: {
+                pendingDeleteOrganizationID = organization.id
+            }
+        ))
     }
 }
 
@@ -330,30 +474,67 @@ private struct OrganizationCard: View {
     let organization: Organization
 
     var body: some View {
-        CommunityCard {
-            RemoteCardImage(imageURL: organization.imageURL, height: 220, source: "OrganizationCard", isDecorative: true)
+        SoftContentCard(padding: AppTheme.organizationsCardPadding) {
+            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
+                AppFeedThumbnail(
+                    imageURL: organization.imageURL,
+                    fallbackSystemImage: "building.2",
+                    tint: AppTheme.accentPrimary,
+                    fill: AppTheme.badgeBlueFill,
+                    size: AppTheme.organizationsThumbnailSize,
+                    cornerRadius: AppTheme.feedThumbnailRadius,
+                    source: "OrganizationCard"
+                )
 
-            VStack(alignment: .leading, spacing: 12) {
-                Text(organization.name)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(organization.name)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(2)
 
-                Text(organization.description)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(organization.description)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
+                        .lineLimit(2)
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        ContentMetadataPill(systemImage: "mappin.and.ellipse", text: organization.city)
-                        ContentMetadataPill(systemImage: "checkmark.shield", text: organization.moderationStatus.title)
+                    HStack(spacing: 6) {
+                        AppInfoChip(
+                            title: organization.city,
+                            systemImage: "mappin.and.ellipse",
+                            tint: AppTheme.textSecondary,
+                            fill: AppTheme.surfaceControl.opacity(0.62),
+                            size: .small
+                        )
+
+                        AppInfoChip(
+                            title: organization.moderationStatus.title,
+                            systemImage: "checkmark.shield",
+                            tint: AppTheme.textSecondary,
+                            fill: AppTheme.surfaceControl.opacity(0.62),
+                            size: .small
+                        )
                     }
+                    .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        ContentMetadataPill(systemImage: "mappin.and.ellipse", text: organization.city)
-                        ContentMetadataPill(systemImage: "checkmark.shield", text: organization.moderationStatus.title)
+                VStack(alignment: .trailing, spacing: 14) {
+                    Image(systemName: "bookmark")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.2")
+                            .font(.caption.weight(.medium))
+
+                        Text(compactLikeCount)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
                     }
+                    .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
                 }
             }
         }
@@ -372,11 +553,49 @@ private struct OrganizationCard: View {
         .filter { !$0.isEmpty }
         .joined(separator: ", ")
     }
+
+    private var compactLikeCount: String {
+        if organization.likeCount >= 1_000 {
+            String(format: "%.1fK", Double(organization.likeCount) / 1_000)
+        } else {
+            "\(organization.likeCount)"
+        }
+    }
+}
+
+private struct OrganizationCategoriesSection: View {
+    @Binding var selectedCategory: OrganizationCategoryFilter
+
+    var body: some View {
+        AppHorizontalFilterRow {
+            ForEach(OrganizationCategoryFilter.allCases) { category in
+                Button {
+                    selectedCategory = category
+                } label: {
+                    AppFilterChip(
+                        title: category.title,
+                        systemImage: category.systemImage,
+                        isSelected: selectedCategory == category
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if category == .all {
+                    AppFilterChip(
+                        title: AppStrings.Home.regionAllAustria,
+                        systemImage: "mappin.and.ellipse",
+                        trailingSystemImage: "chevron.down"
+                    )
+                }
+            }
+        }
+    }
 }
 
 struct OrganizationDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.organizationPresentationMode) private var presentationMode
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: OrganizationsViewModel
     let organizationID: String
@@ -389,6 +608,7 @@ struct OrganizationDetailView: View {
     @State private var isShowingCreateEventSheet = false
     @State private var pendingRemovalOrganizationID: String?
     @State private var guestAccessAction: GuestAccessAction?
+    @State private var isAboutExpanded = false
     @StateObject private var activityViewModel: OrganizationActivityViewModel
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
@@ -434,7 +654,7 @@ struct OrganizationDetailView: View {
     }
 
     private var canCreateOrganizationEvent: Bool {
-        presentationMode.allowsManagementControls && PermissionService.canCreateEvent(for: organizationID, user: authState.user)
+        PermissionService.canCreateEvent(for: organizationID, user: authState.user)
     }
 
     private var canEditOrganization: Bool {
@@ -448,173 +668,29 @@ struct OrganizationDetailView: View {
     var body: some View {
         Group {
             if let organization = viewModel.organization(for: organizationID) {
-                DetailPageContainer {
-                    DetailHeaderCard(title: organization.name, subtitle: organization.description) {
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 8) {
-                                ContentMetadataPill(systemImage: "mappin.and.ellipse", text: organization.city)
-                                ContentMetadataPill(systemImage: "checkmark.shield", text: organization.moderationStatus.title)
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                        detailHeader
+                            .padding(.top, AppTheme.dashboardSpacing)
 
-                                if let contactEmail = organizationContactText(for: organization) {
-                                    ContentMetadataPill(systemImage: "envelope", text: contactEmail)
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                ContentMetadataPill(systemImage: "mappin.and.ellipse", text: organization.city)
-                                ContentMetadataPill(systemImage: "checkmark.shield", text: organization.moderationStatus.title)
-
-                                if let contactEmail = organizationContactText(for: organization) {
-                                    ContentMetadataPill(systemImage: "envelope", text: contactEmail)
-                                }
-                            }
-                        }
+                        organizationHero(for: organization)
+                        actionButtons(for: organization)
+                        aboutCard(for: organization)
+                        managementCard
+                        organizationTabs
+                        activitySection(for: organization)
                     }
-
-                    if organization.imageURL != nil {
-                        DetailImageCard(
-                            imageURL: organization.imageURL,
-                            height: 260,
-                            source: "OrganizationDetailView"
-                        )
-                    }
-
-                    DetailCard {
-                        MetadataRow(label: AppStrings.Common.city, value: organization.city, systemImage: "mappin")
-
-                        if let contactEmail = organizationContactText(for: organization) {
-                            MetadataRow(label: AppStrings.Common.contact, value: contactEmail, systemImage: "envelope")
-                        }
-
-                        if let website = organizationWebsiteText(for: organization) {
-                            MetadataRow(label: AppStrings.Common.website, value: website, systemImage: "link")
-                        }
-                    }
-
-                    DetailCard {
-                        DetailActionRow {
-                            Text(AppStrings.Common.likes)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.secondary)
-                        } trailingContent: {
-                            LikeButton(isLiked: organization.likeState.isLiked, count: organization.likeCount) {
-                                guard authState.isAuthenticated else {
-                                    guestAccessAction = .likes
-                                    return
-                                }
-
-                                viewModel.toggleLike(for: organization.id)
-                            }
-                            .disabled(viewModel.pendingOrganizationLikeIDs.contains(organization.id))
-                            .accessibilityIdentifier("organization.like.\(organization.id)")
-                            .accessibilityLabel(organization.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
-                            .accessibilityHint(AppStrings.Common.likes)
-                        }
-                    }
-
-                    if canCreateOrganizationNews || canCreateOrganizationEvent {
-                        DetailCard {
-                            if canCreateOrganizationNews {
-                                Button {
-                                    isShowingCreateNewsSheet = true
-                                } label: {
-                                    DetailActionRow {
-                                        Text(AppStrings.NewsEditor.title)
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundStyle(.primary)
-                                    } trailingContent: {
-                                        Image(systemName: "square.and.pencil")
-                                            .foregroundStyle(AppTheme.accentPrimary)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            if canCreateOrganizationEvent {
-                                Button {
-                                    isShowingCreateEventSheet = true
-                                } label: {
-                                    DetailActionRow {
-                                        Text(AppStrings.Events.editorTitle)
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundStyle(.primary)
-                                    } trailingContent: {
-                                        Image(systemName: "calendar.badge.plus")
-                                            .foregroundStyle(AppTheme.accentPrimary)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-
-                    DetailCard {
-                        SectionHeaderBlock(title: AppStrings.Organizations.activityTitle)
-
-                        if activityViewModel.isLoading && activityViewModel.items.isEmpty {
-                            LoadingStateCard(title: nil)
-                        } else if activityViewModel.items.isEmpty && activityViewModel.error != nil {
-                            ErrorStateCard(
-                                systemImage: "building.2",
-                                title: AppStrings.Organizations.activityTitle,
-                                message: readableOrganizationErrorText(activityViewModel.error),
-                                retryTitle: AppStrings.Organizations.retry
-                            ) {
-                                Task {
-                                    await activityViewModel.refresh(for: organization)
-                                }
-                            }
-                        } else if activityViewModel.isEmptyStateWithoutProfile {
-                            EmptyStateCard(
-                                systemImage: "building.2",
-                                title: AppStrings.Organizations.activityTitle,
-                                message: AppStrings.Organizations.empty
-                            )
-                        } else {
-                            ForEach(activityViewModel.items) { item in
-                                if let destination = item.destination {
-                                    NavigationLink {
-                                        activityDestinationView(for: destination)
-                                    } label: {
-                                        OrganizationActivityCard(item: item)
-                                    }
-                                    .buttonStyle(.plain)
-                                } else {
-                                    OrganizationActivityCard(item: item)
-                                }
-                            }
-                        }
-                    }
+                    .padding(.horizontal, AppTheme.pageHorizontal)
+                    .padding(.bottom, AppTheme.homeBottomContentPadding)
                 }
+                .background(AppBackgroundView())
+                .navigationBarBackButtonHidden(true)
+                .toolbar(.hidden, for: .navigationBar)
                 .task(id: organization.id) {
                     await activityViewModel.loadIfNeeded(for: organization)
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)
-            }
-        }
-        .navigationTitle(AppStrings.Organizations.detailTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if canEditOrganization, viewModel.organization(for: organizationID) != nil {
-                Button {
-                    isShowingEditSheet = true
-                } label: {
-                    Image(systemName: "pencil")
-                }
-                .accessibilityLabel(AppStrings.Action.edit)
-                .accessibilityHint(AppStrings.Organizations.detailTitle)
-            }
-
-            if canDeleteOrganization {
-                Button(role: .destructive) {
-                    showDeleteConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .disabled(viewModel.pendingOrganizationDeleteIDs.contains(organizationID))
-                .accessibilityLabel(AppStrings.Action.delete)
-                .accessibilityHint(AppStrings.Organizations.detailTitle)
             }
         }
         .confirmationDialog(AppStrings.Organizations.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
@@ -643,7 +719,8 @@ struct OrganizationDetailView: View {
                         repository: newsRepository,
                         organizationId: organization.id,
                         organizationName: organization.name,
-                        organizationImageURL: organization.imageURL
+                        organizationImageURL: organization.imageURL,
+                        organizationFederalState: organization.federalState
                     ) {}
                 }
                 .environmentObject(authState)
@@ -656,7 +733,8 @@ struct OrganizationDetailView: View {
                         repository: eventRepository,
                         organizationId: organization.id,
                         organizationName: organization.name,
-                        organizationImageURL: organization.imageURL
+                        organizationImageURL: organization.imageURL,
+                        organizationFederalState: organization.federalState
                     ) {}
                 }
             }
@@ -692,6 +770,366 @@ struct OrganizationDetailView: View {
             }
             self.pendingRemovalOrganizationID = nil
         }
+    }
+
+    private var detailHeader: some View {
+        AppCenteredBrandHeader {
+            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                dismiss()
+            }
+        } trailingContent: {
+            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+                AppGlassIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share, isPlaceholder: true)
+                AppGlassIconButton(systemImage: "bookmark", accessibilityLabel: AppStrings.Action.save, isPlaceholder: true)
+            }
+        }
+    }
+
+    private func organizationHero(for organization: Organization) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: AppTheme.sectionSpacing) {
+                organizationLogo(for: organization)
+                    .frame(width: 132, height: 132)
+
+                heroText(for: organization)
+            }
+
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                organizationLogo(for: organization)
+                    .frame(width: 132, height: 132)
+
+                heroText(for: organization)
+            }
+        }
+    }
+
+    private func organizationLogo(for organization: Organization) -> some View {
+        Group {
+            if organization.imageURL != nil {
+                RemoteImageView(
+                    imageURL: organization.imageURL,
+                    height: 132,
+                    cornerRadius: AppTheme.imageRadius,
+                    source: "OrganizationDetailView",
+                    placeholderStyle: .glassSkeleton
+                )
+            } else {
+                RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
+                    .fill(AppTheme.glassControlSurface(for: colorScheme))
+                    .overlay(
+                        Text(organizationInitials(for: organization))
+                            .font(.title.weight(.bold))
+                            .foregroundStyle(AppTheme.accentPrimary)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
+                            .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                    )
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+        .accessibilityLabel(AppStrings.Organizations.imageSectionTitle)
+    }
+
+    private func heroText(for organization: Organization) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+            AppInfoChip(
+                title: AppStrings.Organizations.detailBadge.uppercased(),
+                systemImage: "building.2",
+                tint: Color.purple,
+                fill: AppTheme.badgePurpleFill,
+                size: .small
+            )
+
+            Text(organization.name)
+                .font(.largeTitle.weight(.bold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(organization.description)
+                .font(.body.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+
+            metadataRow(for: organization)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func metadataRow(for organization: Organization) -> some View {
+        AppHorizontalFilterRow {
+            ContentMetadataPill(systemImage: "mappin.and.ellipse", text: organization.city)
+
+            if let website = organizationWebsiteText(for: organization) {
+                ContentMetadataPill(systemImage: "globe", text: website)
+            }
+
+            if let contactEmail = organizationContactText(for: organization) {
+                ContentMetadataPill(systemImage: "envelope", text: contactEmail)
+            }
+        }
+    }
+
+    private func actionButtons(for organization: Organization) -> some View {
+        AppHorizontalFilterRow {
+            organizationActionButton(
+                title: AppStrings.Organizations.follow,
+                systemImage: "person.2.badge.plus",
+                isPlaceholder: true
+            )
+
+            organizationActionButton(
+                title: AppStrings.Organizations.message,
+                systemImage: "message",
+                isPlaceholder: true
+            )
+
+            organizationActionButton(
+                title: AppStrings.Organizations.share,
+                systemImage: "square.and.arrow.up",
+                isPlaceholder: true
+            )
+
+            organizationActionButton(
+                title: AppStrings.Organizations.support,
+                systemImage: organization.likeState.isLiked ? "heart.fill" : "heart",
+                isPrimary: false,
+                isDisabled: viewModel.pendingOrganizationLikeIDs.contains(organization.id)
+            ) {
+                guard authState.isAuthenticated else {
+                    guestAccessAction = .likes
+                    return
+                }
+
+                viewModel.toggleLike(for: organization.id)
+            }
+            .accessibilityIdentifier("organization.like.\(organization.id)")
+            .accessibilityLabel(organization.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
+            .accessibilityHint(AppStrings.Common.likes)
+        }
+    }
+
+    private func organizationActionButton(
+        title: String,
+        systemImage: String,
+        isPrimary: Bool = false,
+        isPlaceholder: Bool = false,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void = {}
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isPrimary && !isPlaceholder ? .white : AppTheme.textPrimary)
+                .padding(.horizontal, AppTheme.dashboardSpacing)
+                .frame(height: AppTheme.iconButtonSize)
+                .background(
+                    isPrimary && !isPlaceholder ? AppTheme.accentPrimary : AppTheme.glassControlSurface(for: colorScheme),
+                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .strokeBorder(isPrimary && !isPlaceholder ? AppTheme.accentPrimary.opacity(0.15) : AppTheme.glassBorder(for: colorScheme))
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(isPlaceholder || isDisabled)
+        .opacity(isPlaceholder || isDisabled ? 0.58 : 1)
+        .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
+    }
+
+    private func aboutCard(for organization: Organization) -> some View {
+        AppEditorSectionCard {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: AppTheme.sectionSpacing) {
+                    aboutText(for: organization)
+                    organizationInfoBlock(for: organization)
+                        .frame(width: 220)
+                }
+
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    aboutText(for: organization)
+                    organizationInfoBlock(for: organization)
+                }
+            }
+        }
+    }
+
+    private func aboutText(for organization: Organization) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+            AppEditorSectionTitle(title: AppStrings.Organizations.aboutSectionTitle)
+
+            Text(organization.description)
+                .font(.body)
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineSpacing(4)
+                .lineLimit(isAboutExpanded ? nil : 5)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if organization.description.count > 180 {
+                Button {
+                    withAnimation(.snappy) {
+                        isAboutExpanded.toggle()
+                    }
+                } label: {
+                    Label(AppStrings.Organizations.showMore, systemImage: "chevron.down")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func organizationInfoBlock(for organization: Organization) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+            ContentMetadataPill(systemImage: "mappin.and.ellipse", text: organization.city)
+
+            if let website = organizationWebsiteText(for: organization) {
+                ContentMetadataPill(systemImage: "globe", text: website)
+            }
+
+            if let contactEmail = organizationContactText(for: organization) {
+                ContentMetadataPill(systemImage: "envelope", text: contactEmail)
+            }
+        }
+        .padding(AppTheme.dashboardSpacing)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var managementCard: some View {
+        if canEditOrganization || canDeleteOrganization || canCreateOrganizationNews || canCreateOrganizationEvent {
+            AppEditorSectionCard {
+                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    if canEditOrganization {
+                        organizationManagementButton(title: AppStrings.Action.edit, systemImage: "pencil") {
+                            isShowingEditSheet = true
+                        }
+                    }
+
+                    if canCreateOrganizationNews {
+                        organizationManagementButton(title: AppStrings.NewsEditor.title, systemImage: "newspaper") {
+                            isShowingCreateNewsSheet = true
+                        }
+                    }
+
+                    if canCreateOrganizationEvent {
+                        organizationManagementButton(title: AppStrings.Events.editorTitle, systemImage: "calendar.badge.plus") {
+                            isShowingCreateEventSheet = true
+                        }
+                    }
+
+                    if canDeleteOrganization {
+                        organizationManagementButton(title: AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
+                            showDeleteConfirmation = true
+                        }
+                        .disabled(viewModel.pendingOrganizationDeleteIDs.contains(organizationID))
+                    }
+                }
+            }
+        }
+    }
+
+    private func organizationManagementButton(
+        title: String,
+        systemImage: String,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: role, action: action) {
+            DetailActionRow {
+                Label(title, systemImage: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.textPrimary)
+            } trailingContent: {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+
+    private var organizationTabs: some View {
+        AppHorizontalFilterRow {
+            AppFilterChip(title: AppStrings.Organizations.tabEvents, systemImage: "calendar", isSelected: true)
+            disabledTab(title: AppStrings.Organizations.tabAbout, systemImage: "info.bubble")
+            disabledTab(title: AppStrings.Organizations.tabNews, systemImage: "newspaper")
+            disabledTab(title: AppStrings.Organizations.tabPhoto, systemImage: "photo")
+            disabledTab(title: AppStrings.Organizations.tabTeam, systemImage: "person.2")
+        }
+    }
+
+    private func disabledTab(title: String, systemImage: String) -> some View {
+        AppFilterChip(title: title, systemImage: systemImage)
+            .opacity(0.55)
+            .accessibilityHint(AppStrings.Action.comingSoon)
+    }
+
+    private func activitySection(for organization: Organization) -> some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                HStack {
+                    AppEditorSectionTitle(title: AppStrings.Organizations.upcomingEventsTitle)
+
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                }
+
+                if activityViewModel.isLoading && activityViewModel.items.isEmpty {
+                    LoadingStateCard(title: nil)
+                } else if activityViewModel.items.isEmpty && activityViewModel.error != nil {
+                    ErrorStateCard(
+                        systemImage: "building.2",
+                        title: AppStrings.Organizations.activityTitle,
+                        message: readableOrganizationErrorText(activityViewModel.error),
+                        retryTitle: AppStrings.Organizations.retry
+                    ) {
+                        Task {
+                            await activityViewModel.refresh(for: organization)
+                        }
+                    }
+                } else {
+                    let eventItems = activityViewModel.items.filter { $0.itemType == .event }
+
+                    if eventItems.isEmpty {
+                        EmptyStateCard(
+                            systemImage: "calendar",
+                            title: AppStrings.Organizations.upcomingEventsTitle,
+                            message: AppStrings.Organizations.empty
+                        )
+                    } else {
+                        ForEach(eventItems) { item in
+                            if let destination = item.destination {
+                                NavigationLink {
+                                    activityDestinationView(for: destination)
+                                } label: {
+                                    OrganizationActivityCard(item: item)
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                OrganizationActivityCard(item: item)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func organizationInitials(for organization: Organization) -> String {
+        let words = organization.name
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+        let initials = String(words).uppercased()
+        return initials.isEmpty ? "UC" : initials
     }
 
     @MainActor

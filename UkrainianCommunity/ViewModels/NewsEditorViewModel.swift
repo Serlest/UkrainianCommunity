@@ -7,11 +7,13 @@ final class NewsEditorViewModel: ObservableObject {
         let organizationId: String?
         let organizationName: String?
         let organizationImageURL: String?
+        let organizationFederalState: AustrianFederalState?
 
         nonisolated static let app = CreateContext(
             organizationId: nil,
             organizationName: nil,
-            organizationImageURL: nil
+            organizationImageURL: nil,
+            organizationFederalState: nil
         )
 
         var source: ContentSourceMetadata {
@@ -25,6 +27,11 @@ final class NewsEditorViewModel: ObservableObject {
                 organizationName: organizationName,
                 organizationImageURL: organizationImageURL
             )
+        }
+
+        var isOrganizationPost: Bool {
+            guard let organizationId else { return false }
+            return !organizationId.isEmpty
         }
     }
 
@@ -43,6 +50,9 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var title = ""
     @Published var summary = ""
     @Published var body = ""
+    @Published var category: NewsCategory = .news
+    @Published var tagsInput = ""
+    @Published var selectedFederalState: AustrianFederalState = .tirol
     @Published var isPublishing = false
     @Published var isUploadingImage = false
     @Published var isProcessingImage = false
@@ -64,15 +74,40 @@ final class NewsEditorViewModel: ObservableObject {
             title = existingNews.title
             summary = existingNews.subtitle
             body = existingNews.body
+            category = existingNews.category
+            tagsInput = existingNews.tags.joined(separator: ", ")
+            selectedFederalState = existingNews.federalState ?? .tirol
         }
     }
 
     var canPublish: Bool {
         !trimmedTitle.isEmpty
+            && !trimmedSummary.isEmpty
             && !trimmedBody.isEmpty
+            && resolvedFederalState != nil
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
+    }
+
+    var isEditing: Bool {
+        mode.isEditing
+    }
+
+    var showsRegionPicker: Bool {
+        guard isAppLevelPost else { return false }
+        return PermissionService.canManageAppNews(user: authState?.user)
+    }
+
+    var requiresOrganizationRegionBeforePublishing: Bool {
+        isOrganizationPost && resolvedFederalState == nil
+    }
+
+    var existingImageURL: String? {
+        if case let .edit(existingNews) = mode {
+            return existingNews.imageURL
+        }
+        return nil
     }
 
     var navigationTitle: String {
@@ -81,6 +116,10 @@ final class NewsEditorViewModel: ObservableObject {
 
     var submitButtonTitle: String {
         mode.isEditing ? AppStrings.NewsEditor.saveChanges : AppStrings.NewsEditor.publish
+    }
+
+    var primarySubmitButtonTitle: String {
+        mode.isEditing ? AppStrings.NewsEditor.primarySaveChanges : AppStrings.NewsEditor.primaryPublish
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -115,40 +154,52 @@ final class NewsEditorViewModel: ObservableObject {
         let now = Date()
         let newsID: String
         let createdAt: Date
-        let publishedAt: Date
         let existingImageURL: String?
-        let existingRegionScope: RegionScope?
-        let existingFederalState: AustrianFederalState?
         let existingCity: String?
         let existingSource: ContentSourceMetadata
+        let existingComments: [Comment]
+        let existingLikeCount: Int
+        let existingLikeState: LikeState
+        let existingViewCount: Int
+        let existingIsBookmarked: Bool
+        let publishedAt: Date
+        let newsFederalState = resolvedFederalState
         switch mode {
         case let .create(context):
             newsID = UUID().uuidString
             createdAt = now
             publishedAt = now
             existingImageURL = nil
-            existingRegionScope = .federalState
-            existingFederalState = .tirol
             existingCity = nil
             existingSource = context.source
+            existingComments = []
+            existingLikeCount = 0
+            existingLikeState = .notLiked
+            existingViewCount = 0
+            existingIsBookmarked = false
         case let .edit(existingNews):
             newsID = existingNews.id
             createdAt = existingNews.createdAt
             publishedAt = existingNews.publishedAt
             existingImageURL = existingNews.imageURL
-            existingRegionScope = existingNews.regionScope
-            existingFederalState = existingNews.federalState
             existingCity = existingNews.city
             existingSource = existingNews.source
+            existingComments = existingNews.comments
+            existingLikeCount = existingNews.likeCount
+            existingLikeState = existingNews.likeState
+            existingViewCount = existingNews.viewCount
+            existingIsBookmarked = existingNews.isBookmarked
         }
         var resolvedImageURL: String?
         let news = NewsPost(
             id: newsID,
             title: trimmedTitle,
             subtitle: trimmedSummary,
-            regionScope: existingRegionScope,
-            federalState: existingFederalState,
+            regionScope: .federalState,
+            federalState: newsFederalState,
             city: existingCity,
+            category: .news,
+            tags: parsedTags,
             source: existingSource,
             imageURL: nil,
             body: trimmedBody,
@@ -156,10 +207,12 @@ final class NewsEditorViewModel: ObservableObject {
             publishedAt: publishedAt,
             createdAt: createdAt,
             updatedAt: now,
-            comments: [],
+            comments: existingComments,
             moderationStatus: existingModerationStatus,
-            likeCount: 0,
-            likeState: .notLiked
+            likeCount: existingLikeCount,
+            likeState: existingLikeState,
+            viewCount: existingViewCount,
+            isBookmarked: existingIsBookmarked
         )
 
         isPublishing = true
@@ -188,6 +241,8 @@ final class NewsEditorViewModel: ObservableObject {
                 regionScope: news.regionScope,
                 federalState: news.federalState,
                 city: news.city,
+                category: news.category,
+                tags: news.tags,
                 source: news.source,
                 imageURL: resolvedImageURL,
                 body: news.body,
@@ -198,7 +253,9 @@ final class NewsEditorViewModel: ObservableObject {
                 comments: news.comments,
                 moderationStatus: news.moderationStatus,
                 likeCount: news.likeCount,
-                likeState: news.likeState
+                likeState: news.likeState,
+                viewCount: news.viewCount,
+                isBookmarked: news.isBookmarked
             )
 
             switch mode {
@@ -234,6 +291,42 @@ final class NewsEditorViewModel: ObservableObject {
         body.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var parsedTags: [String] {
+        var seen = Set<String>()
+        return tagsInput
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .filter { tag in
+                let key = tag.lowercased()
+                guard !seen.contains(key) else { return false }
+                seen.insert(key)
+                return true
+            }
+    }
+
+    private var isOrganizationPost: Bool {
+        switch mode {
+        case let .create(context):
+            return context.isOrganizationPost
+        case let .edit(existingNews):
+            return existingNews.source.sourceType == .organization
+        }
+    }
+
+    private var isAppLevelPost: Bool {
+        !isOrganizationPost
+    }
+
+    private var resolvedFederalState: AustrianFederalState? {
+        switch mode {
+        case let .create(context):
+            return context.isOrganizationPost ? context.organizationFederalState : selectedFederalState
+        case let .edit(existingNews):
+            return existingNews.source.sourceType == .organization ? existingNews.federalState : selectedFederalState
+        }
+    }
+
     private var resolvedAuthorName: String {
         if case let .edit(existingNews) = mode, selectedImageData == nil, authState?.user == nil {
             return existingNews.authorName
@@ -266,8 +359,20 @@ final class NewsEditorViewModel: ObservableObject {
             return false
         }
 
+        guard !trimmedSummary.isEmpty else {
+            errorMessage = AppStrings.NewsEditor.summaryRequired
+            successMessage = nil
+            return false
+        }
+
         guard !trimmedBody.isEmpty else {
             errorMessage = AppStrings.NewsEditor.bodyRequired
+            successMessage = nil
+            return false
+        }
+
+        guard resolvedFederalState != nil else {
+            errorMessage = AppStrings.NewsEditor.organizationRegionRequired
             successMessage = nil
             return false
         }

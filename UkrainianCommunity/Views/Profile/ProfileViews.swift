@@ -1503,7 +1503,8 @@ private struct ManagedOrganizationView: View {
                     repository: FirestoreNewsRepository(),
                     organizationId: currentOrganization.id,
                     organizationName: currentOrganization.name,
-                    organizationImageURL: currentOrganization.imageURL
+                    organizationImageURL: currentOrganization.imageURL,
+                    organizationFederalState: currentOrganization.federalState
                 )
             }
         }
@@ -1513,7 +1514,8 @@ private struct ManagedOrganizationView: View {
                     repository: FirestoreEventRepository(),
                     organizationId: currentOrganization.id,
                     organizationName: currentOrganization.name,
-                    organizationImageURL: currentOrganization.imageURL
+                    organizationImageURL: currentOrganization.imageURL,
+                    organizationFederalState: currentOrganization.federalState
                 )
             }
         }

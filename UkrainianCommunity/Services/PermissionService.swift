@@ -20,7 +20,7 @@ struct PermissionService {
     }
 
     var canCreateEvent: Bool {
-        isModeratorTier
+        isOwner
     }
 
     var canCreateOrganization: Bool {
@@ -28,7 +28,7 @@ struct PermissionService {
     }
 
     var canEditEvent: Bool {
-        isModeratorTier
+        isOwner
     }
 
     var canEditOrganization: Bool {
@@ -193,26 +193,26 @@ struct PermissionService {
 
     static func canCreateEvent(user: AppUser?) -> Bool {
         guard let user else { return false }
-        return canModerate(section: .events, user: user)
+        return user.globalRole == .owner
     }
 
     static func canCreateEvent(for organizationId: String, user: AppUser?) -> Bool {
         guard let user else { return false }
-        return canModerate(section: .events, user: user) || canManageCommunity(organizationId: organizationId, user: user)
+        return user.globalRole == .owner
     }
 
     static func canEditEvent(user: AppUser?) -> Bool {
         guard let user else { return false }
-        return canModerate(section: .events, user: user)
+        return user.globalRole == .owner
     }
 
     static func canDeleteEvent(user: AppUser?) -> Bool {
         guard let user else { return false }
 
         switch user.globalRole {
-        case .owner, .topAdmin:
+        case .owner:
             return true
-        case .appModerator, .user:
+        case .topAdmin, .appModerator, .user:
             return false
         }
     }
@@ -248,7 +248,7 @@ struct PermissionService {
 
     static func canManageHomeBanner(user: AppUser?) -> Bool {
         guard let user else { return false }
-        return user.globalRole == .owner
+        return user.globalRole == .owner || user.globalRole == .topAdmin
     }
 
     static func canTemporarilyBan(user: AppUser) -> Bool {

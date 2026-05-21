@@ -18,6 +18,12 @@ protocol NewsRepository {
     func deleteNews(id: String) async throws
     func likeNews(id: String) async throws
     func unlikeNews(id: String) async throws
+    func recordNewsView(id: String) async throws -> Bool
+    func addNewsComment(newsID: String, text: String, author: AppUser) async throws -> Comment
+    func updateNewsComment(newsID: String, commentID: String, text: String) async throws -> Comment
+    func deleteNewsComment(newsID: String, commentID: String) async throws
+    func bookmarkNews(id: String) async throws
+    func unbookmarkNews(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
 }
 
@@ -30,8 +36,14 @@ protocol EventRepository {
     func deleteEvent(id: String) async throws
     func likeEvent(id: String) async throws
     func unlikeEvent(id: String) async throws
+    func recordEventView(id: String) async throws -> Bool
+    func addEventComment(eventID: String, text: String, author: AppUser) async throws -> Comment
+    func updateEventComment(eventID: String, commentID: String, text: String) async throws -> Comment
+    func deleteEventComment(eventID: String, commentID: String) async throws
     func registerForEvent(id: String) async throws
     func cancelEventRegistration(id: String) async throws
+    func bookmarkEvent(id: String) async throws
+    func unbookmarkEvent(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
 }
 

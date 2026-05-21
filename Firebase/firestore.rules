@@ -28,19 +28,28 @@ service cloud.firestore {
     function isOwner() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && currentUserData().globalRole == 'owner';
+        && (
+          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'owner')
+          || (('role' in currentUserData()) && currentUserData().role == 'owner')
+        );
     }
 
     function isTopAdmin() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && currentUserData().globalRole == 'topAdmin';
+        && (
+          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'topAdmin')
+          || (('role' in currentUserData()) && currentUserData().role == 'admin')
+        );
     }
 
     function isAppModerator() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && currentUserData().globalRole == 'appModerator';
+        && (
+          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'appModerator')
+          || (('role' in currentUserData()) && currentUserData().role == 'moderator')
+        );
     }
 
     function isActiveUser() {
@@ -130,6 +139,47 @@ service cloud.firestore {
       return canModerateSection(section);
     }
 
+    function canModerateAppContent(section) {
+      return isOwner() || isTopAdmin() || isAppModerator() || canModerateSection(section);
+    }
+
+    function canManageOrganizationContent(organizationId) {
+      return isSignedIn()
+        && existsUser(request.auth.uid)
+        && organizationId is string
+        && ('communityMemberships' in currentUserData())
+        && currentUserData().communityMemberships.hasAny([
+          {'organizationId': organizationId, 'role': 'communityOwner'},
+          {'organizationId': organizationId, 'role': 'communityAdmin'},
+          {'organizationId': organizationId, 'role': 'communityModerator'}
+        ]);
+    }
+
+    function canModerateNewsComment(newsId) {
+      return canModerateAppContent('news')
+        || canModerateSection('comments')
+        || (
+          get(/databases/$(database)/documents/news/$(newsId)).data.sourceType == 'organization'
+          && canManageOrganizationContent(get(/databases/$(database)/documents/news/$(newsId)).data.organizationId)
+        );
+    }
+
+    function canModerateEventComment(eventId) {
+      return canModerateAppContent('events')
+        || canModerateSection('comments')
+        || (
+          get(/databases/$(database)/documents/events/$(eventId)).data.sourceType == 'organization'
+          && canManageOrganizationContent(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId)
+        );
+    }
+
+    function isAppManagedHeroBannerDocument(bannerId) {
+      return bannerId == 'homeBanner'
+        || bannerId == 'eventsBanner'
+        || bannerId == 'organizationsBanner'
+        || bannerId == 'guideBanner';
+    }
+
     function canReadModerationQueue(section) {
       return canModerateSection(section);
     }
@@ -138,12 +188,42 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
     }
 
-    function onlyNewsLikeCountChanged() {
+    function onlyNewsEngagementCountersChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
+    }
+
+    function onlyNewsViewCountIncremented() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+        && request.resource.data.viewCount == resource.data.viewCount + 1;
+    }
+
+    function onlyNewsCommentCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+        && (
+          (!('commentCount' in resource.data) && request.resource.data.commentCount == 1)
+          || (('commentCount' in resource.data)
+            && (request.resource.data.commentCount == resource.data.commentCount + 1
+              || (resource.data.commentCount > 0 && request.resource.data.commentCount == resource.data.commentCount - 1)))
+        );
     }
 
     function onlyEventCountersChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount', 'registeredCount']);
+    }
+
+    function onlyEventViewCountIncremented() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+        && request.resource.data.viewCount == resource.data.viewCount + 1;
+    }
+
+    function onlyEventCommentCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+        && (
+          (!('commentCount' in resource.data) && request.resource.data.commentCount == 1)
+          || (('commentCount' in resource.data)
+            && (request.resource.data.commentCount == resource.data.commentCount + 1
+              || (resource.data.commentCount > 0 && request.resource.data.commentCount == resource.data.commentCount - 1)))
+        );
     }
 
     match /users/{uid} {
@@ -156,20 +236,138 @@ service cloud.firestore {
         || safeSelfUserUpdate(uid);
 
       allow delete: if isOwner() && uid != request.auth.uid;
+
+      match /newsBookmarks/{newsId} {
+        allow read: if isSelf(uid);
+
+        allow create: if isActiveUser()
+          && request.auth.uid == uid
+          && request.resource.data.id == newsId
+          && request.resource.data.newsId == newsId
+          && request.resource.data.userId == uid;
+
+        allow update: if false;
+
+        allow delete: if isActiveUser()
+          && request.auth.uid == uid
+          && resource.data.newsId == newsId
+          && resource.data.userId == uid;
+      }
+
+      match /eventBookmarks/{eventId} {
+        allow read: if isSelf(uid);
+
+        allow create: if isActiveUser()
+          && request.auth.uid == uid
+          && request.resource.data.id == eventId
+          && request.resource.data.eventId == eventId
+          && request.resource.data.userId == uid;
+
+        allow update: if false;
+
+        allow delete: if isActiveUser()
+          && request.auth.uid == uid
+          && resource.data.eventId == eventId
+          && resource.data.userId == uid;
+      }
+
+      match /eventViews/{eventId} {
+        allow read: if isSelf(uid);
+
+        allow create: if isActiveUser()
+          && request.auth.uid == uid
+          && request.resource.data.id == eventId
+          && request.resource.data.eventId == eventId
+          && request.resource.data.userId == uid;
+
+        allow update, delete: if false;
+      }
+
+      match /newsViews/{newsId} {
+        allow read: if isSelf(uid);
+
+        allow create: if isActiveUser()
+          && request.auth.uid == uid
+          && request.resource.data.id == newsId
+          && request.resource.data.newsId == newsId
+          && request.resource.data.userId == uid;
+
+        allow update, delete: if false;
+      }
     }
 
     match /news/{newsId} {
       allow read: if isApprovedContent() || canReadModerationQueue('news');
       allow create, delete: if canWriteContent('news');
       allow update: if canWriteContent('news')
-        || (isActiveUser() && onlyNewsLikeCountChanged());
+        || (isActiveUser() && (onlyNewsEngagementCountersChanged() || onlyNewsViewCountIncremented() || onlyNewsCommentCountChanged()));
+
+      match /comments/{commentId} {
+        allow read: if get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved'
+          || canReadModerationQueue('news');
+
+        allow create: if isActiveUser()
+          && request.resource.data.id == commentId
+          && request.resource.data.parentType == 'news'
+          && request.resource.data.parentId == newsId
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.authorName is string
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.isDeleted == false;
+
+        allow update: if isActiveUser()
+          && resource.data.authorId == request.auth.uid
+          && request.resource.data.authorId == resource.data.authorId
+          && request.resource.data.parentId == resource.data.parentId
+          && request.resource.data.parentType == resource.data.parentType
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000;
+
+        allow delete: if (isActiveUser() && resource.data.authorId == request.auth.uid)
+          || canModerateNewsComment(newsId);
+      }
     }
 
     match /events/{eventId} {
       allow read: if isApprovedContent() || canReadModerationQueue('events');
       allow create, delete: if canWriteContent('events');
       allow update: if canWriteContent('events')
-        || (isActiveUser() && onlyEventCountersChanged());
+        || (isActiveUser() && (onlyEventCountersChanged() || onlyEventViewCountIncremented() || onlyEventCommentCountChanged()));
+
+      match /comments/{commentId} {
+        allow read: if get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved'
+          || canReadModerationQueue('events');
+
+        allow create: if isActiveUser()
+          && request.resource.data.id == commentId
+          && request.resource.data.parentType == 'event'
+          && request.resource.data.parentId == eventId
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.authorName is string
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.isDeleted == false;
+
+        allow update: if isActiveUser()
+          && resource.data.authorId == request.auth.uid
+          && request.resource.data.authorId == resource.data.authorId
+          && request.resource.data.parentId == resource.data.parentId
+          && request.resource.data.parentType == resource.data.parentType
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000;
+
+        allow delete: if (isActiveUser() && resource.data.authorId == request.auth.uid)
+          || canModerateEventComment(eventId);
+      }
     }
 
     match /organizations/{organizationId} {
@@ -217,9 +415,10 @@ service cloud.firestore {
       allow update, delete: if isOwner() || isTopAdmin();
     }
 
-    match /appConfig/homeBanner {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isOwner() || isTopAdmin();
+    match /appConfig/{bannerId} {
+      allow read: if isAppManagedHeroBannerDocument(bannerId) && isSignedIn();
+      allow create, update, delete: if isAppManagedHeroBannerDocument(bannerId)
+        && (isOwner() || isTopAdmin());
     }
 
     match /guideArticles/{articleId} {

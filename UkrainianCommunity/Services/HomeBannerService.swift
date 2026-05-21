@@ -12,9 +12,35 @@ struct HomeBannerMetadata: Equatable {
     let updatedBy: String
 }
 
+enum AppHeroBannerSection: String, CaseIterable {
+    case home
+    case events
+    case organizations
+    case guide
+
+    var documentID: String {
+        switch self {
+        case .home:
+            "homeBanner"
+        case .events:
+            "eventsBanner"
+        case .organizations:
+            "organizationsBanner"
+        case .guide:
+            "guideBanner"
+        }
+    }
+
+    var storagePath: String {
+        "appConfig/\(documentID)/banner.jpg"
+    }
+}
+
 protocol HomeBannerServiceProtocol {
     func fetchHomeBanner() async throws -> HomeBannerMetadata?
     func updateHomeBannerImage(data: Data, updatedBy userID: String) async throws -> HomeBannerMetadata
+    func fetchBanner(for section: AppHeroBannerSection) async throws -> HomeBannerMetadata?
+    func updateBannerImage(data: Data, for section: AppHeroBannerSection, updatedBy userID: String) async throws -> HomeBannerMetadata
 }
 
 final class FirestoreHomeBannerService: HomeBannerServiceProtocol {
@@ -26,8 +52,16 @@ final class FirestoreHomeBannerService: HomeBannerServiceProtocol {
     }
 
     func fetchHomeBanner() async throws -> HomeBannerMetadata? {
+        try await fetchBanner(for: .home)
+    }
+
+    func updateHomeBannerImage(data: Data, updatedBy userID: String) async throws -> HomeBannerMetadata {
+        try await updateBannerImage(data: data, for: .home, updatedBy: userID)
+    }
+
+    func fetchBanner(for section: AppHeroBannerSection) async throws -> HomeBannerMetadata? {
         do {
-            let snapshot = try await homeBannerDocument.getDocument()
+            let snapshot = try await bannerDocument(for: section).getDocument()
             guard snapshot.exists, let data = snapshot.data() else {
                 return nil
             }
@@ -38,7 +72,7 @@ final class FirestoreHomeBannerService: HomeBannerServiceProtocol {
 
             return HomeBannerMetadata(
                 imageURL: imageURL,
-                storagePath: data["storagePath"] as? String ?? HomeBannerMetadata.storagePath,
+                storagePath: data["storagePath"] as? String ?? section.storagePath,
                 updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? .distantPast,
                 updatedBy: data["updatedBy"] as? String ?? ""
             )
@@ -47,18 +81,18 @@ final class FirestoreHomeBannerService: HomeBannerServiceProtocol {
         }
     }
 
-    func updateHomeBannerImage(data: Data, updatedBy userID: String) async throws -> HomeBannerMetadata {
+    func updateBannerImage(data: Data, for section: AppHeroBannerSection, updatedBy userID: String) async throws -> HomeBannerMetadata {
         do {
-            let uploadedURL = try await imageUploadService.uploadHomeBannerImage(data: data)
+            let uploadedURL = try await imageUploadService.uploadAppConfigBannerImage(data: data, storagePath: section.storagePath)
             let updatedAt = Date()
             let metadata = HomeBannerMetadata(
                 imageURL: uploadedURL.absoluteString,
-                storagePath: HomeBannerMetadata.storagePath,
+                storagePath: section.storagePath,
                 updatedAt: updatedAt,
                 updatedBy: userID
             )
 
-            try await homeBannerDocument.setData([
+            try await bannerDocument(for: section).setData([
                 "imageURL": metadata.imageURL,
                 "storagePath": metadata.storagePath,
                 "updatedAt": Timestamp(date: metadata.updatedAt),
@@ -73,10 +107,10 @@ final class FirestoreHomeBannerService: HomeBannerServiceProtocol {
         }
     }
 
-    private var homeBannerDocument: DocumentReference {
+    private func bannerDocument(for section: AppHeroBannerSection) -> DocumentReference {
         database
             .collection(HomeBannerMetadata.collectionPath)
-            .document(HomeBannerMetadata.documentID)
+            .document(section.documentID)
     }
 
     private func mapFirestoreError(_ error: Error) -> AppError {
@@ -99,24 +133,36 @@ final class FirestoreHomeBannerService: HomeBannerServiceProtocol {
 }
 
 final class MockHomeBannerService: HomeBannerServiceProtocol {
-    private var metadata: HomeBannerMetadata?
+    private var metadataBySection: [AppHeroBannerSection: HomeBannerMetadata]
 
     init(metadata: HomeBannerMetadata? = nil) {
-        self.metadata = metadata
+        if let metadata {
+            metadataBySection = [.home: metadata]
+        } else {
+            metadataBySection = [:]
+        }
     }
 
     func fetchHomeBanner() async throws -> HomeBannerMetadata? {
-        metadata
+        try await fetchBanner(for: .home)
     }
 
     func updateHomeBannerImage(data: Data, updatedBy userID: String) async throws -> HomeBannerMetadata {
+        try await updateBannerImage(data: data, for: .home, updatedBy: userID)
+    }
+
+    func fetchBanner(for section: AppHeroBannerSection) async throws -> HomeBannerMetadata? {
+        metadataBySection[section]
+    }
+
+    func updateBannerImage(data: Data, for section: AppHeroBannerSection, updatedBy userID: String) async throws -> HomeBannerMetadata {
         let updatedMetadata = HomeBannerMetadata(
-            imageURL: "https://example.com/home-banner.jpg",
-            storagePath: HomeBannerMetadata.storagePath,
+            imageURL: "https://example.com/\(section.documentID).jpg",
+            storagePath: section.storagePath,
             updatedAt: Date(),
             updatedBy: userID
         )
-        metadata = updatedMetadata
+        metadataBySection[section] = updatedMetadata
         return updatedMetadata
     }
 }

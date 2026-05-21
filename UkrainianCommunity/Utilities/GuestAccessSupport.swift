@@ -6,6 +6,8 @@ enum GuestAccessAction: String, Identifiable {
     case feedback
     case profileEditing
     case management
+    case bookmarks
+    case comments
 
     var id: String { rawValue }
 
@@ -21,6 +23,10 @@ enum GuestAccessAction: String, Identifiable {
             AppStrings.Profile.editProfile
         case .management:
             AppStrings.Profile.contentManagement
+        case .bookmarks:
+            AppStrings.Action.save
+        case .comments:
+            AppStrings.Common.comments
         }
     }
 }

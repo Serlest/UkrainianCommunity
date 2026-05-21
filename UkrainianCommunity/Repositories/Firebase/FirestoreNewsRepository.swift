@@ -14,10 +14,15 @@ struct FirestoreNewsRepository: NewsRepository {
             .getDocuments()
 
         let likedNewsIDs = try await fetchLikedNewsIDs()
+        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
 
-        return try snapshot.documents.map { document in
-            try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs))
+        var posts: [NewsPost] = []
+        for document in snapshot.documents {
+            var post = try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
+            post.comments = try await fetchComments(newsID: document.documentID)
+            posts.append(post)
         }
+        return posts
     }
 
     func fetchPendingNews() async throws -> [NewsPost] {
@@ -27,10 +32,15 @@ struct FirestoreNewsRepository: NewsRepository {
             .getDocuments()
 
         let likedNewsIDs = try await fetchLikedNewsIDs()
+        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
 
-        return try snapshot.documents.map { document in
-            try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs))
+        var posts: [NewsPost] = []
+        for document in snapshot.documents {
+            var post = try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
+            post.comments = try await fetchComments(newsID: document.documentID)
+            posts.append(post)
         }
+        return posts
     }
 
     func createNews(_ news: NewsPost) async throws {
@@ -44,6 +54,8 @@ struct FirestoreNewsRepository: NewsRepository {
             "regionScope": dto.regionScope as Any,
             "federalState": dto.federalState as Any,
             "city": dto.city as Any,
+            "category": dto.category as Any,
+            "tags": dto.tags as Any,
             "sourceType": dto.sourceType as Any,
             "organizationId": dto.organizationId as Any,
             "organizationName": dto.organizationName as Any,
@@ -57,7 +69,9 @@ struct FirestoreNewsRepository: NewsRepository {
             "comments": dto.comments.map(makeCommentData(from:)),
             "moderationStatus": dto.moderationStatus,
             "likeCount": dto.likeCount,
-            "likeState": dto.likeState
+            "likeState": dto.likeState,
+            "viewCount": dto.viewCount,
+            "commentCount": dto.comments.count
         ])
     }
 
@@ -69,6 +83,8 @@ struct FirestoreNewsRepository: NewsRepository {
             "regionScope": news.regionScope?.rawValue as Any,
             "federalState": news.federalState?.rawValue as Any,
             "city": news.city as Any,
+            "category": news.category.rawValue,
+            "tags": news.tags,
             "sourceType": news.source.sourceType.rawValue,
             "organizationId": news.source.organizationId as Any,
             "organizationName": news.source.organizationName as Any,
@@ -130,10 +146,6 @@ struct FirestoreNewsRepository: NewsRepository {
             return nil
             }
         } catch {
-            let nsError = error as NSError
-            print("Firestore likeNews failed")
-            print("error code=\(nsError.code) domain=\(nsError.domain)")
-            print("error message=\(nsError.localizedDescription)")
             throw error
         }
     }
@@ -171,10 +183,6 @@ struct FirestoreNewsRepository: NewsRepository {
             return nil
             }
         } catch {
-            let nsError = error as NSError
-            print("Firestore unlikeNews failed")
-            print("error code=\(nsError.code) domain=\(nsError.domain)")
-            print("error message=\(nsError.localizedDescription)")
             throw error
         }
     }
@@ -184,6 +192,176 @@ struct FirestoreNewsRepository: NewsRepository {
             "moderationStatus": newStatus.rawValue,
             "updatedAt": Timestamp(date: Date())
         ])
+    }
+
+    func recordNewsView(id: String) async throws -> Bool {
+        guard let uid = Auth.auth().currentUser?.uid else { return false }
+
+        let newsReference = collection.document(id)
+        let viewReference = viewReference(newsID: id, userID: uid)
+        let viewData: [String: Any] = [
+            "id": id,
+            "newsId": id,
+            "userId": uid,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+
+        let result = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let newsSnapshot = try transaction.getDocument(newsReference)
+                guard newsSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return false
+                }
+
+                let viewSnapshot = try transaction.getDocument(viewReference)
+                guard !viewSnapshot.exists else {
+                    return false
+                }
+
+                transaction.setData(viewData, forDocument: viewReference)
+                transaction.updateData([
+                    "viewCount": FieldValue.increment(Int64(1))
+                ], forDocument: newsReference)
+                return true
+            } catch {
+                errorPointer?.pointee = error as NSError
+                return false
+            }
+        }
+
+        return result as? Bool ?? false
+    }
+
+    func addNewsComment(newsID: String, text: String, author: AppUser) async throws -> Comment {
+        guard Auth.auth().currentUser?.uid == author.id else {
+            throw AppError.permissionDenied
+        }
+
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            throw AppError.validationFailed
+        }
+
+        let now = Date()
+        let newsReference = collection.document(newsID)
+        let commentReference = newsReference.collection("comments").document()
+        let comment = Comment(
+            id: commentReference.documentID,
+            parentType: .news,
+            parentId: newsID,
+            authorId: author.id,
+            authorName: author.commentDisplayName,
+            authorPhotoURL: author.avatarURL?.absoluteString,
+            text: String(trimmedText.prefix(1000)),
+            createdAt: now,
+            updatedAt: nil,
+            moderationStatus: .approved,
+            isDeleted: false
+        )
+
+        let firestore = Firestore.firestore()
+        let batch = firestore.batch()
+        batch.setData(makeCommentData(from: comment.dto), forDocument: commentReference)
+        batch.updateData([
+            "commentCount": FieldValue.increment(Int64(1))
+        ], forDocument: newsReference)
+        try await batch.commit()
+        return comment
+    }
+
+    func updateNewsComment(newsID: String, commentID: String, text: String) async throws -> Comment {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            throw AppError.validationFailed
+        }
+
+        let commentReference = collection.document(newsID).collection("comments").document(commentID)
+        let snapshot = try await commentReference.getDocument()
+        guard let existing = makeCommentDTO(from: snapshot.data() ?? [:]) else {
+            throw AppError.notFound
+        }
+        guard existing.authorId == uid else {
+            throw AppError.permissionDenied
+        }
+
+        let now = Date()
+        try await commentReference.updateData([
+            "text": String(trimmedText.prefix(1000)),
+            "body": String(trimmedText.prefix(1000)),
+            "updatedAt": Timestamp(date: now)
+        ])
+
+        return Comment(
+            id: commentID,
+            parentType: .news,
+            parentId: newsID,
+            authorId: existing.authorId,
+            authorName: existing.authorName,
+            authorPhotoURL: existing.authorPhotoURL,
+            text: String(trimmedText.prefix(1000)),
+            createdAt: existing.createdAt,
+            updatedAt: now,
+            moderationStatus: existing.moderationStatus.flatMap(ModerationStatus.init(rawValue:)) ?? .approved,
+            isDeleted: existing.isDeleted ?? false
+        )
+    }
+
+    func deleteNewsComment(newsID: String, commentID: String) async throws {
+        guard Auth.auth().currentUser != nil else {
+            throw AppError.permissionDenied
+        }
+
+        let newsReference = collection.document(newsID)
+        let commentReference = newsReference.collection("comments").document(commentID)
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let newsSnapshot = try transaction.getDocument(newsReference)
+                let commentSnapshot = try transaction.getDocument(commentReference)
+                guard makeCommentDTO(from: commentSnapshot.data() ?? [:]) != nil else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                transaction.deleteDocument(commentReference)
+                let currentCommentCount = newsSnapshot.data()?["commentCount"] as? Int ?? 0
+                if currentCommentCount > 0 {
+                    transaction.updateData([
+                        "commentCount": currentCommentCount - 1
+                    ], forDocument: newsReference)
+                }
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+
+            return nil
+        }
+    }
+
+    func bookmarkNews(id: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        let bookmarkReference = bookmarkReference(newsID: id, userID: uid)
+        try await bookmarkReference.setData([
+            "id": id,
+            "newsId": id,
+            "userId": uid,
+            "createdAt": FieldValue.serverTimestamp()
+        ], merge: true)
+    }
+
+    func unbookmarkNews(id: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
+
+        try await bookmarkReference(newsID: id, userID: uid).delete()
     }
 
     private func fetchLikedNewsIDs() async throws -> Set<String> {
@@ -198,7 +376,21 @@ struct FirestoreNewsRepository: NewsRepository {
         return Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
     }
 
-    private func makeNewsPostDTO(from document: QueryDocumentSnapshot, likedNewsIDs: Set<String>) throws -> NewsPostDTO {
+    private func fetchBookmarkedNewsIDs() async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return []
+        }
+
+        let snapshot = try await Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .collection("newsBookmarks")
+            .getDocuments()
+
+        return Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
+    }
+
+    private func makeNewsPostDTO(from document: QueryDocumentSnapshot, likedNewsIDs: Set<String>, bookmarkedNewsIDs: Set<String>) throws -> NewsPostDTO {
         let data = document.data()
 
         guard
@@ -226,6 +418,8 @@ struct FirestoreNewsRepository: NewsRepository {
             regionScope: data["regionScope"] as? String,
             federalState: data["federalState"] as? String,
             city: data["city"] as? String,
+            category: data["category"] as? String,
+            tags: data["tags"] as? [String],
             sourceType: data["sourceType"] as? String,
             organizationId: data["organizationId"] as? String,
             organizationName: data["organizationName"] as? String,
@@ -239,12 +433,40 @@ struct FirestoreNewsRepository: NewsRepository {
             comments: comments,
             moderationStatus: moderationStatus,
             likeCount: data["likeCount"] as? Int ?? 0,
-            likeState: likedNewsIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue
+            likeState: likedNewsIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue,
+            viewCount: data["viewCount"] as? Int ?? 0,
+            isBookmarked: bookmarkedNewsIDs.contains(document.documentID)
         )
     }
 
     private func likeDocumentID(newsID: String, userID: String) -> String {
         "\(newsID)_\(userID)"
+    }
+
+    private func bookmarkReference(newsID: String, userID: String) -> DocumentReference {
+        Firestore.firestore()
+            .collection("users")
+            .document(userID)
+            .collection("newsBookmarks")
+            .document(newsID)
+    }
+
+    private func viewReference(newsID: String, userID: String) -> DocumentReference {
+        Firestore.firestore()
+            .collection("users")
+            .document(userID)
+            .collection("newsViews")
+            .document(newsID)
+    }
+
+    private func fetchComments(newsID: String) async throws -> [Comment] {
+        let snapshot = try await collection.document(newsID)
+            .collection("comments")
+            .whereField("isDeleted", isEqualTo: false)
+            .order(by: "createdAt", descending: false)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
     }
 
     private func deleteRelatedLikes(newsID: String) async throws {
@@ -265,32 +487,59 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {
-        [
+        var data: [String: Any] = [
             "id": dto.id,
             "authorName": dto.authorName,
-            "body": dto.body,
+            "text": dto.text,
+            "body": dto.text,
             "createdAt": Timestamp(date: dto.createdAt),
-            "updatedAt": Timestamp(date: dto.updatedAt)
+            "isDeleted": dto.isDeleted ?? false
         ]
+
+        if let parentType = dto.parentType {
+            data["parentType"] = parentType
+        }
+        if let parentId = dto.parentId {
+            data["parentId"] = parentId
+        }
+        if let authorId = dto.authorId {
+            data["authorId"] = authorId
+        }
+        if let authorPhotoURL = dto.authorPhotoURL {
+            data["authorPhotoURL"] = authorPhotoURL
+        }
+        if let updatedAt = dto.updatedAt {
+            data["updatedAt"] = Timestamp(date: updatedAt)
+        }
+        if let moderationStatus = dto.moderationStatus {
+            data["moderationStatus"] = moderationStatus
+        }
+        return data
     }
 
     private func makeCommentDTO(from data: [String: Any]) -> CommentDTO? {
         guard
             let id = data["id"] as? String,
             let authorName = data["authorName"] as? String,
-            let body = data["body"] as? String,
-            let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),
-            let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue()
+            let createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
         else {
             return nil
         }
+        let text = (data["text"] as? String) ?? (data["body"] as? String) ?? ""
+        guard !text.isEmpty else { return nil }
 
         return CommentDTO(
             id: id,
+            parentType: data["parentType"] as? String,
+            parentId: data["parentId"] as? String,
+            authorId: data["authorId"] as? String,
             authorName: authorName,
-            body: body,
+            authorPhotoURL: data["authorPhotoURL"] as? String,
+            text: text,
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue(),
+            moderationStatus: data["moderationStatus"] as? String,
+            isDeleted: data["isDeleted"] as? Bool
         )
     }
 }
@@ -299,5 +548,14 @@ private extension String {
     var nilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private extension AppUser {
+    nonisolated var commentDisplayName: String {
+        let display = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !display.isEmpty { return display }
+        let full = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return full.isEmpty ? "Користувач" : full
     }
 }

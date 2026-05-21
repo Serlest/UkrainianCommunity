@@ -18,12 +18,15 @@ enum AppStrings {
         static var bannerSubtitle: String { text("home.banner.subtitle", "Support, information, and opportunities for Ukrainians in Austria.") }
         static var regionAllAustria: String { text("home.region.all_austria", "All Austria") }
         static var highlights: String { text("home.highlights", "Community Highlights") }
-        static var feedTitle: String { text("home.feed_title", "Community Feed") }
         static var latestNews: String { text("home.latest_news", "Latest updates") }
         static var filterAll: String { text("home.filter.all", "All") }
         static var filterSubscriptions: String { text("home.filter.subscriptions", "Subscriptions") }
         static var filterFavorites: String { text("home.filter.favorites", "Favorites") }
-        static var filterButton: String { text("home.filter.button", "Filter") }
+        static var filterSaved: String { text("home.filter.saved", "Збережені") }
+        static var filterSubscribed: String { text("home.filter.subscribed", "Підписані") }
+        static var emptySaved: String { text("home.empty.saved", "У вас ще немає збережених матеріалів.") }
+        static var emptySubscribed: String { text("home.empty.subscribed", "Немає контенту від підписаних організацій.") }
+        static var emptyRegion: String { text("home.empty.region", "Немає контенту в обраному регіоні.") }
         static var notifications: String { text("home.notifications", "Notifications") }
         static var changeBanner: String { text("home.banner.change", "Change banner image") }
         static var bannerUploadFailed: String { text("home.banner.upload_failed", "Unable to update the banner image.") }
@@ -31,7 +34,9 @@ enum AppStrings {
 
     enum News {
         static var title: String { text("news.title", "News") }
-        static var detailTitle: String { text("news.detail.title", "News Details") }
+        static var detailTitle: String { text("news.detail.title", "Деталі новини") }
+        static var detailBadge: String { text("news.detail.badge", "Новина") }
+        static var bodySectionTitle: String { text("news.detail.body_section", "Про що йдеться") }
         static var empty: String { text("news.empty", "No news available yet.") }
         static var retry: String { text("news.retry", "Retry") }
         static var loadNetworkError: String { text("news.error.load.network", "Unable to load news. Check your connection and try again.") }
@@ -50,20 +55,55 @@ enum AppStrings {
     }
 
     enum NewsEditor {
-        static var title: String { text("news.editor.title", "Create News") }
-        static var editTitle: String { text("news.editor.edit_title", "Edit News") }
-        static var fieldTitle: String { text("news.editor.field.title", "Title") }
-        static var fieldSummary: String { text("news.editor.field.summary", "Summary") }
-        static var fieldBody: String { text("news.editor.field.body", "Body") }
-        static var selectPhoto: String { text("news.editor.select_photo", "Select Photo") }
-        static var publish: String { text("news.editor.publish", "Publish") }
-        static var saveChanges: String { text("news.editor.save_changes", "Save Changes") }
-        static var publishing: String { text("news.editor.publishing", "Publishing...") }
-        static var uploadingImage: String { text("news.editor.uploading_image", "Uploading image...") }
+        static var title: String { text("news.editor.title", "Додати новину") }
+        static var addTitle: String { text("news.editor.add_title", "Додати новину") }
+        static var editTitle: String { text("news.editor.edit_title", "Редагувати новину") }
+        static var editorSubtitle: String { text("news.editor.subtitle", "Поділіться важливою інформацією з громадою.") }
+        static var fieldTitle: String { text("news.editor.field.title", "Заголовок") }
+        static var fieldSummary: String { text("news.editor.field.summary", "Короткий опис") }
+        static var fieldBody: String { text("news.editor.field.body", "Зміст") }
+        static var titleFieldRequired: String { text("news.editor.field.title_required", "Заголовок новини *") }
+        static var titlePlaceholder: String { text("news.editor.placeholder.title", "Введіть заголовок") }
+        static var summaryFieldRequired: String { text("news.editor.field.summary_required", "Короткий опис *") }
+        static var summaryPlaceholder: String { text("news.editor.placeholder.summary", "Коротко опишіть новину. Цей текст буде відображатися в списку новин.") }
+        static var selectPhoto: String { text("news.editor.select_photo", "Вибрати фото") }
+        static var coverSectionTitle: String { text("news.editor.cover.title", "Обкладинка новини") }
+        static var coverUploadTitle: String { text("news.editor.cover.upload_title", "Додайте фото обкладинки") }
+        static var coverUploadHelper: String { text("news.editor.cover.upload_helper", "JPG, PNG до 10 MB. Рекомендовано 16:9") }
+        static var replacePhoto: String { text("news.editor.cover.replace", "Замінити фото") }
+        static var categorySectionTitle: String { text("news.editor.category.title", "Категорія") }
+        static var categoryNews: String { text("news.editor.category.news", "Новина") }
+        static var categoryEvent: String { text("news.editor.category.event", "Подія") }
+        static var categoryEducation: String { text("news.editor.category.education", "Освіта") }
+        static var categoryCulture: String { text("news.editor.category.culture", "Культура") }
+        static var categoryOther: String { text("news.editor.category.other", "Інше") }
+        static var locationTitle: String { text("news.editor.details.location", "Місце події (необов’язково)") }
+        static var locationPlaceholder: String { text("news.editor.details.location_placeholder", "Введіть адресу або назву місця") }
+        static var languageTitle: String { text("news.editor.details.language", "Мова новини *") }
+        static var languageUkrainian: String { text("news.editor.details.language_ukrainian", "Українська") }
+        static var bodySectionTitle: String { text("news.editor.body.title", "Зміст новини *") }
+        static var bodyPlaceholder: String { text("news.editor.body.placeholder", "Напишіть основний текст новини...") }
+        static var tagsSectionTitle: String { text("news.editor.tags.title", "Теги (необов’язково)") }
+        static var tagsPlaceholder: String { text("news.editor.tags.placeholder", "Додайте теги через кому") }
+        static var tagsHelper: String { text("news.editor.tags.helper", "Наприклад: підтримка, освіта, інтеграція") }
+        static var additionalSettingsTitle: String { text("news.editor.settings.title", "Додаткові налаштування") }
+        static var visibilityTitle: String { text("news.editor.settings.visibility", "Видимість") }
+        static var visibilityEveryone: String { text("news.editor.settings.visibility_everyone", "Видно всім") }
+        static var regionSectionTitle: String { text("news.editor.region.title", "Регіон") }
+        static var regionTitle: String { text("news.editor.region.field", "Bundesland") }
+        static var publish: String { text("news.editor.publish", "Опублікувати") }
+        static var saveChanges: String { text("news.editor.save_changes", "Зберегти") }
+        static var primaryPublish: String { text("news.editor.primary_publish", "Опублікувати новину") }
+        static var primarySaveChanges: String { text("news.editor.primary_save_changes", "Зберегти зміни") }
+        static var publishing: String { text("news.editor.publishing", "Публікуємо...") }
+        static var uploadingImage: String { text("news.editor.uploading_image", "Завантажуємо фото...") }
+        static var processingImage: String { text("news.editor.processing_image", "Готуємо фото...") }
         static var publishedSuccessfully: String { text("news.editor.success", "News published successfully.") }
         static var updatedSuccessfully: String { text("news.editor.updated_success", "News updated successfully.") }
         static var titleRequired: String { text("news.editor.validation.title_required", "Title is required.") }
+        static var summaryRequired: String { text("news.editor.validation.summary_required", "Short description is required.") }
         static var bodyRequired: String { text("news.editor.validation.body_required", "Body is required.") }
+        static var organizationRegionRequired: String { text("news.editor.validation.organization_region_required", "Перед публікацією заповніть регіон організації.") }
         static var imageLoadFailed: String { text("news.editor.image_load_failed", "Failed to load the selected image.") }
         static var imageProcessingFailed: String { text("news.editor.image_processing_failed", "Failed to process the selected image.") }
         static var imageTooLarge: String { text("news.editor.image_too_large", "Image is too large. Please choose a smaller photo.") }
@@ -72,16 +112,26 @@ enum AppStrings {
 
     enum Events {
         static var title: String { text("events.title", "Events") }
+        static var heroTitle: String { text("events.hero.title", "Події громади") }
+        static var heroSubtitle: String { text("events.hero.subtitle", "Зустрічі, навчання та підтримка поруч із вами.") }
         static var upcomingTitle: String { text("events.section.upcoming", "Upcoming") }
         static var pastTitle: String { text("events.section.past", "Past") }
-        static var filterAll: String { text("events.filter.all", "All") }
+        static var filterAll: String { text("events.filter.all", "Усі") }
         static var filterToday: String { text("events.filter.today", "Today") }
         static var filterThisWeek: String { text("events.filter.this_week", "This week") }
+        static var searchPlaceholder: String { text("events.search.placeholder", "Search events") }
+        static var allCategories: String { text("events.filter.all_categories", "Усі категорії") }
+        static var categoryEducation: String { text("events.category.education", "Освіта") }
+        static var categoryCulture: String { text("events.category.culture", "Культура") }
+        static var categoryMeetups: String { text("events.category.meetups", "Зустрічі") }
+        static var categoryMeetupSingular: String { text("events.category.meetup_singular", "Зустріч") }
+        static var categoryChildren: String { text("events.category.children", "Для дітей") }
+        static var categoryOther: String { text("events.category.other", "Інше") }
         static var filteredUpcomingEmpty: String { text("events.empty.filtered_upcoming", "No upcoming events match this time range right now.") }
-        static var register: String { text("events.register", "Register") }
-        static var registered: String { text("events.registered", "Registered") }
-        static var waitlisted: String { text("events.waitlisted", "Waitlisted") }
-        static var allDay: String { text("events.all_day", "All day") }
+        static var register: String { text("events.register", "Я піду") }
+        static var registered: String { text("events.registered", "Я йду") }
+        static var waitlisted: String { text("events.waitlisted", "У списку очікування") }
+        static var allDay: String { text("events.all_day", "Подія на весь день") }
         static var empty: String { text("events.empty", "No events available yet.") }
         static var retry: String { text("events.retry", "Retry") }
         static var loadNetworkError: String { text("events.error.load.network", "Unable to load events. Check your connection and try again.") }
@@ -92,24 +142,85 @@ enum AppStrings {
         static var actionValidationError: String { text("events.error.action.validation", "The event data could not be processed.") }
         static var actionNotFoundError: String { text("events.error.action.not_found", "The selected event could not be found.") }
         static var actionUnknownError: String { text("events.error.action.unknown", "Something went wrong while processing the event.") }
-        static var editorTitle: String { text("events.editor.title", "Create Event") }
-        static var editTitle: String { text("events.editor.edit_title", "Edit Event") }
-        static var fieldTitle: String { text("events.editor.field.title", "Title") }
-        static var fieldSummary: String { text("events.editor.field.summary", "Summary") }
-        static var fieldDetails: String { text("events.editor.field.details", "Details") }
-        static var fieldDescription: String { text("events.editor.field.description", "Description") }
-        static var fieldLocation: String { text("events.editor.field.location", "Location") }
-        static var fieldStartDate: String { text("events.editor.field.start_date", "Start Date") }
-        static var fieldEndDate: String { text("events.editor.field.end_date", "End Date") }
-        static var publish: String { text("events.editor.publish", "Publish") }
-        static var saveChanges: String { text("events.editor.save_changes", "Save Changes") }
-        static var publishing: String { text("events.editor.publishing", "Publishing...") }
+        static var detailBadge: String { text("events.detail.badge", "Зустріч") }
+        static var aboutSectionTitle: String { text("events.detail.about", "Про подію") }
+        static var detailOrganizerSectionTitle: String { text("events.detail.organizer", "Організатор") }
+        static var detailsSectionTitle: String { text("events.detail.details", "Деталі") }
+        static var locationSectionTitle: String { text("events.detail.location", "Місце проведення") }
+        static var similarEvents: String { text("events.detail.similar_events", "Схожі події") }
+        static var addToCalendar: String { text("events.detail.add_to_calendar", "Додати в календар") }
+        static var calendarAddedTitle: String { text("events.detail.calendar_added.title", "Додано в календар") }
+        static var calendarAddedMessage: String { text("events.detail.calendar_added.message", "Подію збережено у вашому календарі.") }
+        static var calendarAlreadyAddedTitle: String { text("events.detail.calendar_already_added.title", "Вже додано") }
+        static var calendarAlreadyAddedMessage: String { text("events.detail.calendar_already_added.message", "Цю подію вже додано в календар у цій сесії.") }
+        static var calendarPermissionTitle: String { text("events.detail.calendar_permission.title", "Немає доступу до календаря") }
+        static var calendarPermissionMessage: String { text("events.detail.calendar_permission.message", "Дозвольте доступ до календаря в налаштуваннях iOS, щоб додавати події.") }
+        static var calendarErrorTitle: String { text("events.detail.calendar_error.title", "Не вдалося додати подію") }
+        static var calendarErrorMessage: String { text("events.detail.calendar_error.message", "Спробуйте ще раз пізніше.") }
+        static var share: String { text("events.detail.share", "Поділитися") }
+        static var viewOrganization: String { text("events.detail.view_organization", "Переглянути організацію") }
+        static var genericEventBadge: String { text("events.detail.generic_badge", "Подія") }
+        static var expectedParticipants: String { text("events.detail.expected_participants", "Очікувано учасників") }
+        static var addedDate: String { text("events.detail.added_date", "Додано") }
+        static var showOnMap: String { text("events.detail.show_on_map", "Показати на карті") }
+        static var editorTitle: String { text("events.editor.title", "Створити подію") }
+        static var editTitle: String { text("events.editor.edit_title", "Редагувати подію") }
+        static var editorSubtitle: String { text("events.editor.subtitle", "Запросіть громаду на важливу подію.") }
+        static var dateSectionTitle: String { text("events.editor.date_section", "Дата і час *") }
+        static var durationSectionTitle: String { text("events.editor.duration_section", "Тривалість") }
+        static var imageSectionTitle: String { text("events.editor.image_section", "Обкладинка події") }
+        static var coverUploadTitle: String { text("events.editor.cover_upload_title", "Додайте фото обкладинки") }
+        static var coverUploadHelper: String { text("events.editor.cover_upload_helper", "JPG, PNG до 10 MB. Рекомендовано 16:9") }
+        static var fieldTitle: String { text("events.editor.field.title", "Назва події *") }
+        static var titlePlaceholder: String { text("events.editor.placeholder.title", "Введіть назву події") }
+        static var fieldSummary: String { text("events.editor.field.summary", "Короткий опис *") }
+        static var summaryPlaceholder: String { text("events.editor.placeholder.summary", "Коротко опишіть подію. Цей текст буде відображатися в списку подій.") }
+        static var fieldDetails: String { text("events.editor.field.details", "Опис події *") }
+        static var detailsPlaceholder: String { text("events.editor.placeholder.details", "Опишіть вашу подію. Що на учасників чекає?") }
+        static var fieldDescription: String { text("events.editor.field.description", "Опис") }
+        static var fieldLocation: String { text("events.editor.field.location", "Місце проведення *") }
+        static var locationPlaceholder: String { text("events.editor.placeholder.location", "Введіть адресу або назву місця") }
+        static var addressPlaceholder: String { text("events.editor.placeholder.address", "Адреса") }
+        static var locationNoteTitle: String { text("events.editor.location_note.title", "Уточнення місця") }
+        static var locationNotePlaceholder: String { text("events.editor.location_note.placeholder", "Наприклад: вхід з двору, 2 поверх, зал праворуч") }
+        static var selectedLocation: String { text("events.editor.selected_location", "Обрана локація") }
+        static var searchLocation: String { text("events.editor.search_location", "Пошук місця або адреси") }
+        static var selectLocation: String { text("events.editor.select_location", "Вибрати") }
+        static var noLocationResults: String { text("events.editor.no_location_results", "Нічого не знайдено") }
+        static var chooseOnMap: String { text("events.editor.choose_on_map", "Вибрати на карті") }
+        static var fieldStartDate: String { text("events.editor.field.start_date", "Дата") }
+        static var startTime: String { text("events.editor.start_time", "Початок") }
+        static var fieldEndDate: String { text("events.editor.field.end_date", "Закінчення") }
+        static var endTime: String { text("events.editor.end_time", "Завершення") }
+        static var editorOrganizerSectionTitle: String { text("events.editor.organizer_section", "Організатор *") }
+        static var changeOrganizer: String { text("events.editor.change_organizer", "Змінити організатора") }
+        static var categorySectionTitle: String { text("events.editor.category_section", "Категорія *") }
+        static var categoryTraining: String { text("events.editor.category.training", "Навчання") }
+        static var additionalSettingsTitle: String { text("events.editor.settings", "Додаткові налаштування") }
+        static var visibilityTitle: String { text("events.editor.visibility", "Видимість події") }
+        static var visibilityPublic: String { text("events.editor.visibility_public", "Публічна") }
+        static var visibilityPrivate: String { text("events.editor.visibility_private", "Приватна") }
+        static var priceTitle: String { text("events.editor.price", "Вартість") }
+        static var pricePlaceholder: String { text("events.editor.price_placeholder", "0") }
+        static var priceHelper: String { text("events.editor.price_helper", "0 = безкоштовно") }
+        static var maxParticipantsTitle: String { text("events.editor.max_participants", "Максимальна кількість учасників") }
+        static var unlimitedParticipants: String { text("events.editor.unlimited_participants", "Необмежена") }
+        static var publishNotice: String { text("events.editor.publish_notice", "Після публікації подію буде видно у стрічці та в календарі подій.") }
+        static var publish: String { text("events.editor.publish", "Створити подію") }
+        static var saveChanges: String { text("events.editor.save_changes", "Зберегти") }
+        static var primaryPublish: String { text("events.editor.primary_publish", "Опублікувати подію") }
+        static var primarySaveChanges: String { text("events.editor.primary_save_changes", "Зберегти зміни") }
+        static var publishing: String { text("events.editor.publishing", "Публікуємо...") }
         static var publishedSuccessfully: String { text("events.editor.success", "Event published successfully.") }
         static var updatedSuccessfully: String { text("events.editor.updated_success", "Event updated successfully.") }
-        static var summaryRequired: String { text("events.editor.validation.summary_required", "Summary is required.") }
+        static var summaryRequired: String { text("events.editor.validation.summary_required", "Короткий опис обов'язковий.") }
         static var detailsRequired: String { text("events.editor.validation.details_required", "Details are required.") }
         static var descriptionRequired: String { text("events.editor.validation.description_required", "Description is required.") }
         static var invalidDateOrder: String { text("events.editor.validation.invalid_date_order", "End date must be after the start date.") }
+        static var startDateInPast: String { text("events.editor.validation.start_date_in_past", "Дата початку не може бути в минулому.") }
+        static var invalidCapacity: String { text("events.editor.validation.invalid_capacity", "Максимальна кількість учасників має бути більше 0.") }
+        static var invalidPrice: String { text("events.editor.validation.invalid_price", "Вартість не може бути від’ємною.") }
+        static var organizationRegionRequired: String { text("events.editor.validation.organization_region_required", "Перед публікацією заповніть регіон організації.") }
         static var deleteConfirmation: String { text("events.delete.confirmation", "Delete this event?") }
         static var delete: String { text("events.delete", "Delete") }
         static var cancel: String { text("events.cancel", "Cancel") }
@@ -119,8 +230,21 @@ enum AppStrings {
 
     enum Organizations {
         static var title: String { text("organizations.title", "Organizations") }
-        static var detailTitle: String { text("organizations.detail.title", "Organization Details") }
-        static var activityTitle: String { text("organizations.activity.title", "Community Activity") }
+        static var detailTitle: String { text("organizations.detail.title", "Деталі організації") }
+        static var detailBadge: String { text("organizations.detail.badge", "Організація") }
+        static var activityTitle: String { text("organizations.activity.title", "Активність громади") }
+        static var heroTitle: String { text("organizations.hero.title", "Разом — ми сильніші") }
+        static var heroSubtitle: String { text("organizations.hero.subtitle", "Знайдіть організації, які підтримують українців в Австрії.") }
+        static var popularTitle: String { text("organizations.popular.title", "Популярні організації") }
+        static var categoriesTitle: String { text("organizations.categories.title", "Категорії") }
+        static var searchPlaceholder: String { text("organizations.search.placeholder", "Пошук організацій") }
+        static var categorySupport: String { text("organizations.category.support", "Підтримка") }
+        static var categoryEducation: String { text("organizations.category.education", "Освіта") }
+        static var categoryCulture: String { text("organizations.category.culture", "Культура") }
+        static var categoryWork: String { text("organizations.category.work", "Робота") }
+        static var categoryChildren: String { text("organizations.category.children", "Для дітей") }
+        static var categoryLegal: String { text("organizations.category.legal", "Правова допомога") }
+        static var categoryOther: String { text("organizations.category.other", "Інше") }
         static var empty: String { text("organizations.empty", "No organizations available yet.") }
         static var retry: String { text("organizations.retry", "Retry") }
         static var loadNetworkError: String { text("organizations.error.load.network", "Unable to load organizations. Check your connection and try again.") }
@@ -131,19 +255,50 @@ enum AppStrings {
         static var actionValidationError: String { text("organizations.error.action.validation", "The organization data could not be processed.") }
         static var actionNotFoundError: String { text("organizations.error.action.not_found", "The selected organization could not be found.") }
         static var actionUnknownError: String { text("organizations.error.action.unknown", "Something went wrong while processing the organization.") }
-        static var editorTitle: String { text("organizations.editor.title", "Create Organization") }
-        static var editTitle: String { text("organizations.editor.edit_title", "Edit Organization") }
-        static var fieldName: String { text("organizations.editor.field.name", "Name") }
-        static var fieldDescription: String { text("organizations.editor.field.description", "Description") }
-        static var fieldContactEmail: String { text("organizations.editor.field.contact_email", "Contact Email") }
-        static var fieldWebsite: String { text("organizations.editor.field.website", "Website") }
-        static var publish: String { text("organizations.editor.publish", "Publish") }
-        static var saveChanges: String { text("organizations.editor.save_changes", "Save Changes") }
-        static var publishing: String { text("organizations.editor.publishing", "Saving...") }
+        static var editorTitle: String { text("organizations.editor.title", "Створити організацію") }
+        static var editTitle: String { text("organizations.editor.edit_title", "Редагувати організацію") }
+        static var editorSubtitle: String { text("organizations.editor.subtitle", "Заповніть інформацію про вашу організацію.") }
+        static var fieldName: String { text("organizations.editor.field.name", "Назва організації *") }
+        static var fieldNamePlaceholder: String { text("organizations.editor.field.name_placeholder", "Введіть назву організації") }
+        static var fieldDescription: String { text("organizations.editor.field.description", "Короткий опис *") }
+        static var fieldDescriptionPlaceholder: String { text("organizations.editor.field.description_placeholder", "Коротко опишіть діяльність вашої організації") }
+        static var fieldContactEmail: String { text("organizations.editor.field.contact_email", "Електронна пошта") }
+        static var fieldWebsite: String { text("organizations.editor.field.website", "Веб-сайт (необов’язково)") }
+        static var publish: String { text("organizations.editor.publish", "Створити організацію") }
+        static var saveChanges: String { text("organizations.editor.save_changes", "Зберегти") }
+        static var publishing: String { text("organizations.editor.publishing", "Зберігаємо...") }
         static var publishedSuccessfully: String { text("organizations.editor.success", "Organization published successfully.") }
         static var updatedSuccessfully: String { text("organizations.editor.updated_success", "Organization updated successfully.") }
-        static var imageSectionTitle: String { text("organizations.editor.image_section", "Image") }
-        static var detailsSectionTitle: String { text("organizations.editor.details_section", "Details") }
+        static var imageSectionTitle: String { text("organizations.editor.image_section", "Логотип організації") }
+        static var logoUploadTitle: String { text("organizations.editor.logo_upload_title", "Додайте логотип") }
+        static var logoUploadHelper: String { text("organizations.editor.logo_upload_helper", "JPG, PNG до 5 MB. Рекомендовано 1:1") }
+        static var detailsSectionTitle: String { text("organizations.editor.details_section", "Основна інформація") }
+        static var categorySectionTitle: String { text("organizations.editor.category_section", "Категорія діяльності *") }
+        static var categoryIntegration: String { text("organizations.editor.category.integration", "Інтеграція") }
+        static var contactSectionTitle: String { text("organizations.editor.contact_section", "Контактна інформація") }
+        static var phonePlaceholder: String { text("organizations.editor.phone_placeholder", "Номер телефону") }
+        static var socialPlaceholder: String { text("organizations.editor.social_placeholder", "Соціальні мережі (Facebook, Instagram тощо)") }
+        static var locationSectionTitle: String { text("organizations.editor.location_section", "Місцезнаходження") }
+        static var locationPlaceholder: String { text("organizations.editor.location_placeholder", "Введіть адресу або назву міста") }
+        static var chooseOnMap: String { text("organizations.editor.choose_on_map", "Вибрати на карті") }
+        static var aboutSectionTitle: String { text("organizations.about_section", "Про організацію") }
+        static var aboutPlaceholder: String { text("organizations.editor.about_placeholder", "Розкажіть більше про вашу організацію, місію та цілі") }
+        static var settingsSectionTitle: String { text("organizations.editor.settings_section", "Додаткові налаштування") }
+        static var visibilityTitle: String { text("organizations.editor.visibility_title", "Видимість організації") }
+        static var visibilityPublic: String { text("organizations.editor.visibility_public", "Публічна") }
+        static var visibilityHelper: String { text("organizations.editor.visibility_helper", "Хто може бачити вашу організацію") }
+        static var moderationNotice: String { text("organizations.editor.moderation_notice", "Після створення організація буде відправлена на модерацію. Ви зможете редагувати інформацію після публікації.") }
+        static var follow: String { text("organizations.detail.follow", "Підписатися") }
+        static var message: String { text("organizations.detail.message", "Повідомлення") }
+        static var share: String { text("organizations.detail.share", "Поділитися") }
+        static var support: String { text("organizations.detail.support", "Підтримати") }
+        static var showMore: String { text("organizations.detail.show_more", "Показати більше") }
+        static var upcomingEventsTitle: String { text("organizations.detail.upcoming_events", "Найближчі події") }
+        static var tabEvents: String { text("organizations.detail.tab_events", "Події") }
+        static var tabAbout: String { text("organizations.detail.tab_about", "Про нас") }
+        static var tabNews: String { text("organizations.detail.tab_news", "Новини") }
+        static var tabPhoto: String { text("organizations.detail.tab_photo", "Фото") }
+        static var tabTeam: String { text("organizations.detail.tab_team", "Команда") }
         static var deleteConfirmation: String { text("organizations.delete.confirmation", "Delete this organization?") }
         static var delete: String { text("organizations.delete", "Delete") }
         static var cancel: String { text("organizations.cancel", "Cancel") }
@@ -154,8 +309,11 @@ enum AppStrings {
     enum Info {
         static var title: String { text("info.title", "Guide") }
         static var subtitle: String { text("guide.subtitle", "Curated practical guidance, official references, and everyday orientation for families in Austria.") }
+        static var heroTitle: String { text("guide.hero.title", "Довідник громади") }
+        static var heroSubtitle: String { text("guide.hero.subtitle", "Практичні поради, документи та корисні контакти для життя в Австрії.") }
         static var pinnedTitle: String { text("guide.pinned", "Important Now") }
         static var categoriesTitle: String { text("guide.categories", "Categories") }
+        static var popularCategoriesTitle: String { text("guide.categories.popular", "Популярні категорії") }
         static var allCategories: String { text("guide.categories.all", "All") }
         static var allArticlesTitle: String { text("guide.articles", "Articles") }
         static var officialSource: String { text("guide.official_source", "Official source") }
@@ -393,7 +551,9 @@ enum AppStrings {
     enum Common {
         static var app: String { text("common.app", "App") }
         static var ok: String { text("common.ok", "OK") }
+        static var done: String { text("common.done", "Готово") }
         static var cancel: String { text("common.cancel", "Cancel") }
+        static var back: String { text("common.back", "Back") }
         static var likes: String { text("common.likes", "Likes") }
         static var comments: String { text("common.comments", "Comments") }
         static var city: String { text("common.city", "City") }
@@ -412,16 +572,27 @@ enum AppStrings {
         static var archived: String { text("common.archived", "Archived") }
         static var noItems: String { text("common.no_items", "No items available.") }
         static var notAvailable: String { text("common.not_available", "Not available") }
+        static var viewAll: String { text("common.view_all", "Дивитися всі") }
         static var commentsPlaceholder: String { text("common.comments_placeholder", "Comments UI will be expanded in a later phase.") }
+        static var noCommentsYet: String { text("common.comments.empty", "Ще немає коментарів.") }
+        static var commentInputPlaceholder: String { text("common.comments.input_placeholder", "Напишіть коментар…") }
+        static var signInToComment: String { text("common.comments.sign_in", "Увійдіть, щоб коментувати") }
+        static var deleteCommentConfirmation: String { text("common.comments.delete_confirmation", "Видалити цей коментар?") }
+        static var deleteCommentFailed: String { text("common.comments.delete_failed", "Не вдалося видалити коментар") }
         static var legalPlaceholder: String { text("common.placeholder.legal", "Placeholder") }
+        static var uploadImageTitle: String { text("common.upload_image.title", "Add image") }
+        static var uploadImageHelper: String { text("common.upload_image.helper", "JPG, PNG up to 10 MB. Recommended 16:9") }
     }
 
     enum Action {
         static var create: String { text("action.create", "Create") }
         static var edit: String { text("action.edit", "Edit") }
         static var delete: String { text("action.delete", "Delete") }
+        static var share: String { text("action.share", "Share") }
+        static var save: String { text("action.save", "Save") }
         static var like: String { text("action.like", "Like") }
         static var unlike: String { text("action.unlike", "Unlike") }
+        static var comingSoon: String { text("action.coming_soon", "Coming soon") }
         static var register: String { text("action.register", "Register") }
         static var cancelRegistration: String { text("action.cancel_registration", "Cancel Registration") }
         static var saveChanges: String { text("action.save_changes", "Save Changes") }

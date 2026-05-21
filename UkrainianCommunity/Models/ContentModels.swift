@@ -33,6 +33,46 @@ enum RegionScope: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
 }
 
+enum NewsCategory: String, CaseIterable, Codable, Identifiable {
+    case news
+    case event
+    case education
+    case culture
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .news:
+            AppStrings.NewsEditor.categoryNews
+        case .event:
+            AppStrings.NewsEditor.categoryEvent
+        case .education:
+            AppStrings.NewsEditor.categoryEducation
+        case .culture:
+            AppStrings.NewsEditor.categoryCulture
+        case .other:
+            AppStrings.NewsEditor.categoryOther
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .news:
+            "newspaper"
+        case .event:
+            "calendar"
+        case .education:
+            "graduationcap"
+        case .culture:
+            "theatermasks"
+        case .other:
+            "square.grid.2x2"
+        }
+    }
+}
+
 enum ContentSourceType: String, CaseIterable, Codable, Identifiable {
     case app
     case organization
@@ -59,12 +99,52 @@ struct ContentSourceMetadata: Codable, Equatable {
     }
 }
 
+enum CommentParentType: String, Codable {
+    case news
+    case event
+}
+
 struct Comment: Identifiable, Codable {
     let id: String
+    let parentType: CommentParentType?
+    let parentId: String?
+    let authorId: String?
     let authorName: String
-    let body: String
+    let authorPhotoURL: String?
+    let text: String
     let createdAt: Date
-    let updatedAt: Date
+    let updatedAt: Date?
+    let moderationStatus: ModerationStatus
+    let isDeleted: Bool
+
+    var body: String { text }
+
+    nonisolated init(
+        id: String,
+        parentType: CommentParentType? = nil,
+        parentId: String? = nil,
+        authorId: String? = nil,
+        authorName: String,
+        authorPhotoURL: String? = nil,
+        text: String? = nil,
+        body: String? = nil,
+        createdAt: Date,
+        updatedAt: Date? = nil,
+        moderationStatus: ModerationStatus = .approved,
+        isDeleted: Bool = false
+    ) {
+        self.id = id
+        self.parentType = parentType
+        self.parentId = parentId
+        self.authorId = authorId
+        self.authorName = authorName
+        self.authorPhotoURL = authorPhotoURL
+        self.text = text ?? body ?? ""
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.moderationStatus = moderationStatus
+        self.isDeleted = isDeleted
+    }
 }
 
 struct NewsPost: Identifiable, Codable {
@@ -74,6 +154,8 @@ struct NewsPost: Identifiable, Codable {
     let regionScope: RegionScope?
     let federalState: AustrianFederalState?
     let city: String?
+    let category: NewsCategory
+    let tags: [String]
     let source: ContentSourceMetadata
     let imageURL: String?
     let body: String
@@ -81,10 +163,13 @@ struct NewsPost: Identifiable, Codable {
     let publishedAt: Date
     let createdAt: Date
     let updatedAt: Date
-    let comments: [Comment]
+    var comments: [Comment]
     var moderationStatus: ModerationStatus
     var likeCount: Int
     var likeState: LikeState
+    var viewCount: Int
+    var isBookmarked: Bool
+    var commentCount: Int { comments.filter { !$0.isDeleted }.count }
 
     nonisolated init(
         id: String,
@@ -93,6 +178,8 @@ struct NewsPost: Identifiable, Codable {
         regionScope: RegionScope? = .federalState,
         federalState: AustrianFederalState? = .tirol,
         city: String? = nil,
+        category: NewsCategory = .news,
+        tags: [String] = [],
         source: ContentSourceMetadata = ContentSourceMetadata(),
         imageURL: String? = nil,
         body: String,
@@ -103,7 +190,9 @@ struct NewsPost: Identifiable, Codable {
         comments: [Comment],
         moderationStatus: ModerationStatus,
         likeCount: Int,
-        likeState: LikeState
+        likeState: LikeState,
+        viewCount: Int = 0,
+        isBookmarked: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -111,6 +200,8 @@ struct NewsPost: Identifiable, Codable {
         self.regionScope = regionScope
         self.federalState = federalState
         self.city = city
+        self.category = category
+        self.tags = tags
         self.source = source
         self.imageURL = imageURL
         self.body = body
@@ -122,6 +213,8 @@ struct NewsPost: Identifiable, Codable {
         self.moderationStatus = moderationStatus
         self.likeCount = likeCount
         self.likeState = likeState
+        self.viewCount = viewCount
+        self.isBookmarked = isBookmarked
     }
 }
 
@@ -142,6 +235,71 @@ enum EventRegistrationState: String, Codable {
     }
 }
 
+enum EventCategory: String, CaseIterable, Codable, Identifiable {
+    case unspecified
+    case meetups
+    case training
+    case culture
+    case education
+    case other
+
+    static var allCases: [EventCategory] {
+        [.meetups, .training, .culture, .education, .other]
+    }
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .unspecified:
+            AppStrings.Events.genericEventBadge
+        case .meetups:
+            AppStrings.Events.categoryMeetups
+        case .training:
+            AppStrings.Events.categoryTraining
+        case .culture:
+            AppStrings.Events.categoryCulture
+        case .education:
+            AppStrings.Events.categoryEducation
+        case .other:
+            AppStrings.Events.categoryOther
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .unspecified:
+            "calendar"
+        case .meetups:
+            "person.2"
+        case .training:
+            "graduationcap"
+        case .culture:
+            "theatermasks"
+        case .education:
+            "book"
+        case .other:
+            "square.grid.2x2"
+        }
+    }
+}
+
+enum EventVisibility: String, CaseIterable, Codable, Identifiable {
+    case `public`
+    case `private`
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .public:
+            AppStrings.Events.visibilityPublic
+        case .private:
+            AppStrings.Events.visibilityPrivate
+        }
+    }
+}
+
 struct Event: Identifiable, Codable {
     let id: String
     let title: String
@@ -150,20 +308,33 @@ struct Event: Identifiable, Codable {
     let regionScope: RegionScope?
     let federalState: AustrianFederalState?
     let source: ContentSourceMetadata
+    let authorId: String?
+    let authorName: String?
     let city: String
     let venue: String
+    let address: String?
+    let locationNote: String?
+    let latitude: Double?
+    let longitude: Double?
     let imageURL: String?
     let startDate: Date
     let endDate: Date
     let createdAt: Date
     let updatedAt: Date
+    let price: Double
     let capacity: Int?
     let registeredCount: Int
-    let comments: [Comment]
+    var comments: [Comment]
     var moderationStatus: ModerationStatus
     var registrationState: EventRegistrationState
     var likeCount: Int
     var likeState: LikeState
+    var viewCount: Int
+    let category: EventCategory
+    let visibility: EventVisibility
+    let isAllDay: Bool
+    var isBookmarked: Bool
+    var commentCount: Int { comments.filter { !$0.isDeleted }.count }
 
     nonisolated init(
         id: String,
@@ -173,20 +344,32 @@ struct Event: Identifiable, Codable {
         regionScope: RegionScope? = .city,
         federalState: AustrianFederalState? = .tirol,
         source: ContentSourceMetadata = ContentSourceMetadata(),
+        authorId: String? = nil,
+        authorName: String? = nil,
         city: String,
         venue: String,
+        address: String? = nil,
+        locationNote: String? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
         imageURL: String? = nil,
         startDate: Date,
         endDate: Date,
         createdAt: Date,
         updatedAt: Date,
+        price: Double = 0,
         capacity: Int?,
         registeredCount: Int,
         comments: [Comment],
         moderationStatus: ModerationStatus,
         registrationState: EventRegistrationState,
         likeCount: Int,
-        likeState: LikeState
+        likeState: LikeState,
+        viewCount: Int = 0,
+        category: EventCategory = .meetups,
+        visibility: EventVisibility = .public,
+        isAllDay: Bool = false,
+        isBookmarked: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -195,13 +378,21 @@ struct Event: Identifiable, Codable {
         self.regionScope = regionScope
         self.federalState = federalState
         self.source = source
+        self.authorId = authorId
+        self.authorName = authorName
         self.city = city
         self.venue = venue
+        self.address = address
+        let trimmedLocationNote = locationNote?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.locationNote = trimmedLocationNote?.isEmpty == true ? nil : trimmedLocationNote
+        self.latitude = latitude
+        self.longitude = longitude
         self.imageURL = imageURL
         self.startDate = startDate
         self.endDate = endDate
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.price = max(0, price)
         self.capacity = capacity
         self.registeredCount = registeredCount
         self.comments = comments
@@ -209,6 +400,11 @@ struct Event: Identifiable, Codable {
         self.registrationState = registrationState
         self.likeCount = likeCount
         self.likeState = likeState
+        self.viewCount = viewCount
+        self.category = category
+        self.visibility = visibility
+        self.isAllDay = isAllDay
+        self.isBookmarked = isBookmarked
     }
 }
 
@@ -324,6 +520,8 @@ struct HomeFeedItem: Identifiable, Equatable {
     let eventVenue: String?
     let organizationId: String?
     let organizationName: String?
+    let authorName: String?
+    let isSaved: Bool
     let likeCount: Int
     let destination: HomeFeedDestinationReference
 
@@ -343,6 +541,8 @@ struct HomeFeedItem: Identifiable, Equatable {
         eventVenue = nil
         organizationId = post.source.organizationId
         organizationName = post.source.organizationName
+        authorName = post.authorName
+        isSaved = post.isBookmarked
         likeCount = post.likeCount
         destination = .news(id: post.id)
     }
@@ -363,6 +563,8 @@ struct HomeFeedItem: Identifiable, Equatable {
         eventVenue = event.venue
         organizationId = event.source.organizationId
         organizationName = event.source.organizationName
+        authorName = event.authorName
+        isSaved = event.isBookmarked
         likeCount = event.likeCount
         destination = .event(id: event.id)
     }
@@ -383,6 +585,8 @@ struct HomeFeedItem: Identifiable, Equatable {
         eventVenue = nil
         organizationId = organization.id
         organizationName = organization.name
+        authorName = nil
+        isSaved = false
         likeCount = organization.likeCount
         destination = .organization(id: organization.id)
     }

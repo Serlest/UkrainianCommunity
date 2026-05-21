@@ -20,6 +20,10 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>FirebaseAppDelegateProxyEnabled</key>
     <false/>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Додайте подію громади до свого календаря.</string>
+    <key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+    <string>Додайте подію громади до свого календаря.</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UIApplicationSceneManifest</key>

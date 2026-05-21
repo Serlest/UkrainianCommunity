@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 
 private enum RemoteImageCache {
     static let shared: NSCache<NSString, UIImage> = {
@@ -33,14 +34,21 @@ struct GradientHeroCard<Content: View>: View {
 }
 
 struct BrandMarkView: View {
+    enum ContentMode {
+        case fit
+        case fill
+    }
+
     let size: CGFloat
     let width: CGFloat
     let assetName: String?
+    let contentMode: ContentMode
 
-    init(size: CGFloat, width: CGFloat? = nil, assetName: String? = nil) {
+    init(size: CGFloat, width: CGFloat? = nil, assetName: String? = nil, contentMode: ContentMode = .fit) {
         self.size = size
         self.width = width ?? size
         self.assetName = assetName
+        self.contentMode = contentMode
     }
 
     var body: some View {
@@ -48,12 +56,13 @@ struct BrandMarkView: View {
             if let assetName {
                 Image(assetName)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(contentMode: contentMode == .fill ? .fill : .fit)
             } else {
                 generatedMark
             }
         }
-        .frame(width: width, height: size)
+        .frame(width: width, height: size, alignment: .leading)
+        .clipped()
         .accessibilityHidden(true)
     }
 
@@ -104,6 +113,7 @@ struct BrandedScreenHeader<TrailingContent: View>: View {
     let brandAssetName: String?
     let showsBrandText: Bool
     let brandSize: CGSize
+    let brandContentMode: BrandMarkView.ContentMode
     @ViewBuilder let trailingContent: TrailingContent
 
     init(
@@ -112,6 +122,7 @@ struct BrandedScreenHeader<TrailingContent: View>: View {
         brandAssetName: String? = nil,
         showsBrandText: Bool = true,
         brandSize: CGSize = CGSize(width: 52, height: 52),
+        brandContentMode: BrandMarkView.ContentMode = .fit,
         @ViewBuilder trailingContent: () -> TrailingContent
     ) {
         self.title = title
@@ -119,12 +130,18 @@ struct BrandedScreenHeader<TrailingContent: View>: View {
         self.brandAssetName = brandAssetName
         self.showsBrandText = showsBrandText
         self.brandSize = brandSize
+        self.brandContentMode = brandContentMode
         self.trailingContent = trailingContent()
     }
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            BrandMarkView(size: brandSize.height, width: brandSize.width, assetName: brandAssetName)
+            BrandMarkView(
+                size: brandSize.height,
+                width: brandSize.width,
+                assetName: brandAssetName,
+                contentMode: brandContentMode
+            )
 
             if showsBrandText {
                 VStack(alignment: .leading, spacing: 1) {
@@ -158,6 +175,94 @@ extension BrandedScreenHeader where TrailingContent == EmptyView {
     }
 }
 
+struct AppBrandHeader<TrailingContent: View>: View {
+    @ViewBuilder let trailingContent: TrailingContent
+
+    init(@ViewBuilder trailingContent: () -> TrailingContent) {
+        self.trailingContent = trailingContent()
+    }
+
+    var body: some View {
+        BrandedScreenHeader(
+            title: AppStrings.Home.brandTitle,
+            subtitle: AppStrings.Home.brandSubtitle,
+            brandAssetName: "logo1",
+            showsBrandText: false,
+            brandSize: AppTheme.appHeaderLogoSize,
+            brandContentMode: .fit
+        ) {
+            trailingContent
+        }
+        .padding(.leading, AppTheme.appHeaderLeadingAdjustment)
+    }
+}
+
+struct AppBackgroundView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        GeometryReader { proxy in
+            Image("background")
+                .resizable()
+                .scaledToFill()
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
+                .overlay(readabilityOverlay)
+        }
+        .ignoresSafeArea()
+    }
+
+    private var readabilityOverlay: some View {
+        LinearGradient(
+            colors: colorScheme == .dark ? darkOverlayColors : lightOverlayColors,
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var lightOverlayColors: [Color] {
+        [
+            Color.white.opacity(0.12),
+            Color.white.opacity(0.08),
+            AppTheme.accentSupport.opacity(0.06)
+        ]
+    }
+
+    private var darkOverlayColors: [Color] {
+        [
+            Color(red: 0.015, green: 0.022, blue: 0.040).opacity(0.52),
+            Color(red: 0.020, green: 0.030, blue: 0.055).opacity(0.58),
+            Color(red: 0.010, green: 0.016, blue: 0.032).opacity(0.66)
+        ]
+    }
+}
+
+struct AppGroupedContentPlane<Content: View>: View {
+    let padding: CGFloat
+    @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(padding: CGFloat = AppTheme.contentPlanePadding, @ViewBuilder content: () -> Content) {
+        self.padding = padding
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content
+        }
+        .padding(padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.groupedPlaneSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.contentPlaneRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.contentPlaneRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.contentPlaneRadius, style: .continuous)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.72))
+        )
+        .shadow(color: AppTheme.contentPlaneShadow(for: colorScheme), radius: 22, y: 11)
+    }
+}
+
 enum AppHeroBannerImageSource: Equatable {
     case remoteURL(String)
     case localAsset(String)
@@ -169,25 +274,29 @@ struct AppHeroBanner<FooterContent: View>: View {
     let subtitle: String
     let imageSource: AppHeroBannerImageSource
     let height: CGFloat
+    let displaysTextOverImage: Bool
     @ViewBuilder let footerContent: FooterContent
+    @Environment(\.colorScheme) private var colorScheme
 
     init(
         title: String,
         subtitle: String,
         imageSource: AppHeroBannerImageSource = .none,
         height: CGFloat = AppTheme.heroBannerHeight,
+        displaysTextOverImage: Bool = false,
         @ViewBuilder footerContent: () -> FooterContent
     ) {
         self.title = title
         self.subtitle = subtitle
         self.imageSource = imageSource
         self.height = height
+        self.displaysTextOverImage = displaysTextOverImage
         self.footerContent = footerContent()
     }
 
     var body: some View {
         Group {
-            if imageSource.isImageOnlyBanner {
+            if imageSource.isRemoteBanner || (imageSource.isImageOnlyBanner && !displaysTextOverImage) {
                 GeometryReader { proxy in
                     bannerArtwork
                         .frame(width: proxy.size.width, height: height)
@@ -234,12 +343,13 @@ struct AppHeroBanner<FooterContent: View>: View {
                 }
             }
         }
-        .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
+        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
         )
-        .shadow(color: AppTheme.shadowSoft, radius: 6, y: 3)
+        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 14, y: 7)
     }
 
     @ViewBuilder
@@ -251,19 +361,29 @@ struct AppHeroBanner<FooterContent: View>: View {
                 height: height,
                 cornerRadius: AppTheme.heroRadius,
                 source: "AppHeroBanner",
-                isDecorative: true
+                isDecorative: true,
+                placeholderStyle: .glassSkeleton
             )
         case let .localAsset(assetName):
             Image(assetName)
                 .resizable()
                 .scaledToFill()
         case .none:
-            AppHeroFallbackArtwork()
+            AppHeroFallbackSurface()
         }
     }
 }
 
 private extension AppHeroBannerImageSource {
+    var isRemoteBanner: Bool {
+        switch self {
+        case .remoteURL:
+            true
+        case .localAsset, .none:
+            false
+        }
+    }
+
     var isImageOnlyBanner: Bool {
         switch self {
         case .remoteURL, .localAsset:
@@ -279,92 +399,41 @@ extension AppHeroBanner where FooterContent == EmptyView {
         title: String,
         subtitle: String,
         imageSource: AppHeroBannerImageSource = .none,
-        height: CGFloat = AppTheme.heroBannerHeight
+        height: CGFloat = AppTheme.heroBannerHeight,
+        displaysTextOverImage: Bool = false
     ) {
-        self.init(title: title, subtitle: subtitle, imageSource: imageSource, height: height) {
+        self.init(
+            title: title,
+            subtitle: subtitle,
+            imageSource: imageSource,
+            height: height,
+            displaysTextOverImage: displaysTextOverImage
+        ) {
             EmptyView()
         }
     }
 }
 
-private struct AppHeroFallbackArtwork: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    AppTheme.accentPrimary.opacity(0.055),
-                    AppTheme.accentSupport.opacity(0.08),
-                    AppTheme.surfaceElevated
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            HStack {
-                Spacer()
-
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    AppTheme.accentPrimary.opacity(0.16),
-                                    AppTheme.accentSupport.opacity(0.14),
-                                    AppTheme.surfaceElevated.opacity(0.72)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 168, height: 116)
-                        .offset(x: 18, y: -4)
-
-                    Circle()
-                        .fill(AppTheme.surfaceElevated.opacity(0.74))
-                        .frame(width: 112, height: 112)
-                        .offset(x: -26, y: 16)
-
-                    Image(systemName: "building.columns")
-                        .font(.system(size: 54, weight: .medium))
-                        .foregroundStyle(AppTheme.accentPrimary.opacity(0.18))
-                        .offset(x: 20, y: -8)
-
-                    Image(systemName: "person.2.fill")
-                        .font(.system(size: 34, weight: .semibold))
-                        .foregroundStyle(AppTheme.accentPrimary.opacity(0.42))
-                        .offset(x: -28, y: 16)
-
-                    RibbonStripe(color: AppTheme.accentPrimary)
-                        .frame(height: 7)
-                        .offset(y: 52)
-
-                    RibbonStripe(color: AppTheme.accentDestructive)
-                        .frame(height: 6)
-                        .offset(y: 62)
-
-                    RibbonStripe(color: AppTheme.accentSupport)
-                        .frame(height: 5)
-                        .offset(y: 70)
-                }
-                .frame(width: 220)
-            }
-        }
-    }
-}
-
-private struct RibbonStripe: View {
-    let color: Color
+private struct AppHeroFallbackSurface: View {
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        CurvedFlagStripe()
-            .fill(color.opacity(0.92))
-            .frame(width: 230)
+        LinearGradient(
+            colors: [
+                AppTheme.glassControlSurface(for: colorScheme),
+                AppTheme.glassSurface(for: colorScheme),
+                AppTheme.groupedPlaneSurface(for: colorScheme)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
 
 struct SoftContentCard<Content: View>: View {
     let padding: CGFloat
     @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
 
     init(padding: CGFloat = AppTheme.dashboardCardPadding, @ViewBuilder content: () -> Content) {
         self.padding = padding
@@ -377,12 +446,13 @@ struct SoftContentCard<Content: View>: View {
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
         )
-        .shadow(color: AppTheme.shadowSoft, radius: 5, y: 2)
+        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 13, y: 6)
     }
 }
 
@@ -442,6 +512,380 @@ struct DashboardFeedContainer<Data: RandomAccessCollection, RowContent: View>: V
     }
 }
 
+struct AppIconControlButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    init(systemImage: String, accessibilityLabel: String, action: @escaping () -> Void = {}) {
+        self.systemImage = systemImage
+        self.accessibilityLabel = accessibilityLabel
+        self.action = action
+    }
+
+    var body: some View {
+        AppGlassIconButton(systemImage: systemImage, accessibilityLabel: accessibilityLabel) {
+            action()
+        }
+    }
+}
+
+struct AppGlassIconButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    let role: ButtonRole?
+    let isPlaceholder: Bool
+    let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(
+        systemImage: String,
+        accessibilityLabel: String,
+        role: ButtonRole? = nil,
+        isPlaceholder: Bool = false,
+        action: @escaping () -> Void = {}
+    ) {
+        self.systemImage = systemImage
+        self.accessibilityLabel = accessibilityLabel
+        self.role = role
+        self.isPlaceholder = isPlaceholder
+        self.action = action
+    }
+
+    var body: some View {
+        Button(role: role, action: action) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                )
+                .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(isPlaceholder)
+        .opacity(isPlaceholder ? 0.58 : 1)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
+    }
+}
+
+struct AppCenteredBrandHeader<LeadingContent: View, TrailingContent: View>: View {
+    @ViewBuilder let leadingContent: LeadingContent
+    @ViewBuilder let trailingContent: TrailingContent
+
+    init(
+        @ViewBuilder leadingContent: () -> LeadingContent,
+        @ViewBuilder trailingContent: () -> TrailingContent
+    ) {
+        self.leadingContent = leadingContent()
+        self.trailingContent = trailingContent()
+    }
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+                leadingContent
+
+                Spacer(minLength: 0)
+
+                trailingContent
+            }
+
+            BrandMarkView(
+                size: AppTheme.appHeaderLogoSize.height,
+                width: AppTheme.appHeaderLogoSize.width,
+                assetName: "logo1",
+                contentMode: .fit
+            )
+        }
+        .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+struct AppEditorSectionCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        SoftContentCard(padding: AppTheme.detailCardPadding) {
+            content
+        }
+    }
+}
+
+struct AppEditorSectionTitle: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct AppEditorField<Content: View>: View {
+    let title: String
+    let counterText: String?
+    @ViewBuilder let content: Content
+
+    init(title: String, counterText: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.counterText = counterText
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                if let counterText {
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                    Text(counterText)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .monospacedDigit()
+                }
+            }
+
+            content
+        }
+    }
+}
+
+struct AppUploadPlaceholder: View {
+    let title: String
+    let helper: String
+    let systemImage: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(title: String, helper: String, systemImage: String = "photo.badge.plus") {
+        self.title = title
+        self.helper = helper
+        self.systemImage = systemImage
+    }
+
+    var body: some View {
+        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+            Image(systemName: systemImage)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+
+            Text(helper)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineSpacing(2)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(16 / 9, contentMode: .fit)
+        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
+                .stroke(AppTheme.glassBorder(for: colorScheme), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
+        )
+    }
+}
+
+struct AppEditorSubmitButton: View {
+    let title: String
+    let isEnabled: Bool
+    let isLoading: Bool
+    let loadingTitle: String
+    let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(.white)
+                }
+
+                Text(isLoading ? loadingTitle : title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, AppTheme.sectionSpacing)
+            .frame(height: AppTheme.iconButtonSize)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                    .fill(isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.38))
+            )
+            .shadow(color: isEnabled ? AppTheme.glassShadow(for: colorScheme) : .clear, radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityLabel(title)
+    }
+}
+
+struct AppNotificationBellButton: View {
+    let action: () -> Void
+
+    init(action: @escaping () -> Void = {}) {
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bell")
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: 40, height: 40)
+
+                Circle()
+                    .fill(AppTheme.accentDestructive)
+                    .frame(width: 8, height: 8)
+                    .offset(x: -6, y: 6)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.Home.notifications)
+    }
+}
+
+struct AppHeroBannerEditButton: View {
+    @Binding var selectedItem: PhotosPickerItem?
+    let isUploading: Bool
+
+    var body: some View {
+        PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+            ZStack {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Circle()
+                            .stroke(AppTheme.borderSubtle, lineWidth: 1)
+                    )
+
+                if isUploading {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
+            }
+            .shadow(color: AppTheme.shadowSoft, radius: 4, y: 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(isUploading)
+        .accessibilityLabel(AppStrings.Home.changeBanner)
+    }
+}
+
+struct AppSearchBar: View {
+    let placeholder: String
+    @Binding var text: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.body.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+
+            TextField(placeholder, text: $text)
+                .font(.subheadline.weight(.medium))
+                .textInputAutocapitalization(.sentences)
+                .autocorrectionDisabled(false)
+        }
+        .padding(.horizontal, 14)
+        .frame(height: AppTheme.searchControlHeight)
+        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+        )
+        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 6, y: 2)
+    }
+}
+
+struct AppEventDateBlock: View {
+    let date: Date
+    let calendar: Calendar
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(date: Date, calendar: Calendar = .current) {
+        self.date = date
+        self.calendar = calendar
+    }
+
+    var body: some View {
+        VStack(spacing: 3) {
+            VStack(spacing: 1) {
+                Text(dayText)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .lineLimit(1)
+
+                Text(monthText.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(AppTheme.accentDestructive)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .frame(width: AppTheme.eventsDateRailWidth, height: 52)
+            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            )
+
+            Text(weekdayText.uppercased())
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
+                .lineLimit(1)
+        }
+        .frame(width: AppTheme.eventsDateRailWidth)
+    }
+
+    private var dayText: String {
+        "\(calendar.component(.day, from: date))"
+    }
+
+    private var monthText: String {
+        let formatter = DateFormatter()
+        formatter.locale = LocalizationStore.locale
+        formatter.setLocalizedDateFormatFromTemplate("MMM")
+        return formatter.string(from: date)
+    }
+
+    private var weekdayText: String {
+        let formatter = DateFormatter()
+        formatter.locale = LocalizationStore.locale
+        formatter.setLocalizedDateFormatFromTemplate("EEE")
+        return formatter.string(from: date)
+    }
+}
+
 struct AppInfoChip: View {
     enum Size {
         case small
@@ -450,9 +894,9 @@ struct AppInfoChip: View {
         var font: Font {
             switch self {
             case .small:
-                .caption2.weight(.bold)
+                .caption2.weight(.semibold)
             case .regular:
-                .caption.weight(.semibold)
+                .caption.weight(.medium)
             }
         }
 
@@ -461,7 +905,7 @@ struct AppInfoChip: View {
             case .small:
                 .caption2.weight(.semibold)
             case .regular:
-                .caption.weight(.semibold)
+                .caption.weight(.medium)
             }
         }
 
@@ -491,6 +935,7 @@ struct AppInfoChip: View {
     let border: Color?
     let trailingSystemImage: String?
     let size: Size
+    @Environment(\.colorScheme) private var colorScheme
 
     init(
         title: String,
@@ -531,12 +976,63 @@ struct AppInfoChip: View {
         .padding(.horizontal, size.horizontalPadding)
         .padding(.vertical, size.verticalPadding)
         .background(fill, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay {
             if let border {
                 RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
                     .strokeBorder(border)
             }
         }
+        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.65), radius: 5, y: 2)
+    }
+}
+
+struct AppFilterChip: View {
+    let title: String
+    let systemImage: String?
+    let isSelected: Bool
+    let trailingSystemImage: String?
+
+    init(
+        title: String,
+        systemImage: String? = nil,
+        isSelected: Bool = false,
+        trailingSystemImage: String? = nil
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.isSelected = isSelected
+        self.trailingSystemImage = trailingSystemImage
+    }
+
+    var body: some View {
+        AppInfoChip(
+            title: title,
+            systemImage: systemImage,
+            tint: isSelected ? .white : AppTheme.textSecondary.opacity(0.92),
+            fill: isSelected ? AppTheme.accentPrimary : AppTheme.surfaceGlass,
+            border: isSelected ? AppTheme.accentPrimary.opacity(0.18) : AppTheme.borderSubtle,
+            trailingSystemImage: trailingSystemImage,
+            size: .regular
+        )
+        .frame(minHeight: AppTheme.iconButtonSize)
+    }
+}
+
+struct AppHorizontalFilterRow<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                content
+            }
+        }
+        .scrollClipDisabled()
     }
 }
 
@@ -651,7 +1147,7 @@ struct AppMetadataLine: View {
             .font(.caption2.weight(.medium))
             .foregroundStyle(tint)
             .lineLimit(1)
-            .fixedSize(horizontal: false, vertical: true)
+            .minimumScaleFactor(0.82)
     }
 }
 
@@ -676,6 +1172,7 @@ struct AdaptiveCardGrid<Data: RandomAccessCollection, Content: View>: View where
 
 struct CommunityCard<Content: View>: View {
     @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -685,12 +1182,14 @@ struct CommunityCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .fill(AppTheme.surfacePrimary)
+                .fill(AppTheme.glassSurface(for: colorScheme))
         )
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
         )
+        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 8, y: 3)
     }
 }
 
@@ -700,12 +1199,12 @@ struct DetailPageContainer<Content: View>: View {
     var body: some View {
         GeometryReader { proxy in
             ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     content
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, 120)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
                 .frame(width: proxy.size.width, alignment: .leading)
             }
             .frame(width: proxy.size.width)
@@ -715,21 +1214,21 @@ struct DetailPageContainer<Content: View>: View {
 
 struct DetailCard<Content: View>: View {
     @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
             content
         }
         .padding(AppTheme.detailCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .fill(AppTheme.surfacePrimary)
-        )
+        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
         )
+        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 13, y: 6)
     }
 }
 
@@ -742,12 +1241,16 @@ struct DetailHeaderCard<MetadataContent: View>: View {
         DetailCard {
             Text(title)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             metadataContent
@@ -787,6 +1290,11 @@ struct DetailActionRow<LeadingContent: View, TrailingContent: View>: View {
     }
 }
 
+enum RemoteImagePlaceholderStyle {
+    case icon
+    case glassSkeleton
+}
+
 struct RemoteImageView: View {
     private static let fallbackHeight: CGFloat = 220
 
@@ -794,14 +1302,23 @@ struct RemoteImageView: View {
     let height: CGFloat
     let cornerRadius: CGFloat
     let source: String
+    let placeholderStyle: RemoteImagePlaceholderStyle
+    @Environment(\.colorScheme) private var colorScheme
     @State private var loadedImage: UIImage?
     @State private var loadFailed = false
 
-    init(imageURL: String?, height: CGFloat, cornerRadius: CGFloat = 18, source: String = "unknown") {
+    init(
+        imageURL: String?,
+        height: CGFloat,
+        cornerRadius: CGFloat = 18,
+        source: String = "unknown",
+        placeholderStyle: RemoteImagePlaceholderStyle = .icon
+    ) {
         self.imageURL = imageURL
         self.height = height
         self.cornerRadius = cornerRadius
         self.source = source
+        self.placeholderStyle = placeholderStyle
     }
 
     var body: some View {
@@ -819,7 +1336,7 @@ struct RemoteImageView: View {
                     .frame(height: resolvedHeight)
                     .clipped()
             } else {
-                placeholder(systemImage: "photo")
+                loadingPlaceholder
                     .frame(maxWidth: .infinity)
                     .frame(height: resolvedHeight)
                     .clipped()
@@ -854,6 +1371,30 @@ struct RemoteImageView: View {
             Image(systemName: systemImage)
                 .font(.title2)
                 .foregroundStyle(AppTheme.textSecondary)
+        }
+    }
+
+    @ViewBuilder
+    private var loadingPlaceholder: some View {
+        switch placeholderStyle {
+        case .icon:
+            placeholder(systemImage: "photo")
+        case .glassSkeleton:
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(AppTheme.glassControlSurface(for: colorScheme))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .overlay(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.05 : 0.20),
+                            Color.white.opacity(0.02),
+                            Color.white.opacity(colorScheme == .dark ? 0.04 : 0.16)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                )
         }
     }
 
@@ -902,23 +1443,32 @@ struct RemoteCardImage: View {
     let cornerRadius: CGFloat
     let source: String
     let isDecorative: Bool
+    let placeholderStyle: RemoteImagePlaceholderStyle
 
     init(
         imageURL: String?,
         height: CGFloat,
         cornerRadius: CGFloat = 18,
         source: String = "unknown",
-        isDecorative: Bool = false
+        isDecorative: Bool = false,
+        placeholderStyle: RemoteImagePlaceholderStyle = .icon
     ) {
         self.imageURL = imageURL
         self.height = height
         self.cornerRadius = cornerRadius
         self.source = source
         self.isDecorative = isDecorative
+        self.placeholderStyle = placeholderStyle
     }
 
     var body: some View {
-        RemoteImageView(imageURL: imageURL, height: height, cornerRadius: cornerRadius, source: source)
+        RemoteImageView(
+            imageURL: imageURL,
+            height: height,
+            cornerRadius: cornerRadius,
+            source: source,
+            placeholderStyle: placeholderStyle
+        )
             .accessibilityHidden(isDecorative)
     }
 }
@@ -1039,6 +1589,19 @@ extension View {
                 .controlSize(.large)
                 .tint(AppTheme.accentPrimary)
         }
+    }
+
+    func appEditorInputStyle(minHeight: CGFloat = AppTheme.newsEditorInputHeight) -> some View {
+        self
+            .font(.body)
+            .foregroundStyle(AppTheme.textPrimary)
+            .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+            .frame(minHeight: minHeight, alignment: .leading)
+            .background(AppTheme.surfaceControl.opacity(0.42), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                    .strokeBorder(AppTheme.borderSubtle)
+            )
     }
 }
 

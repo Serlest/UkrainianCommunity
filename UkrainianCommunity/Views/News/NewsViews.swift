@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import UIKit
 
 enum NewsPresentationMode {
     case `public`
@@ -272,6 +273,7 @@ private struct NewsCard: View {
 struct NewsDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.newsPresentationMode) private var presentationMode
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
@@ -282,23 +284,37 @@ struct NewsDetailView: View {
     @State private var isShowingEditSheet = false
     @State private var pendingRemovalPostID: String?
     @State private var guestAccessAction: GuestAccessAction?
-    private let detailImageHeight: CGFloat = 260
+    @State private var recordedViewKeys = Set<String>()
+    @State private var sharePayload: NewsSharePayload?
+    @State private var commentText = ""
+    @State private var editingCommentID: String?
+    @State private var pendingCommentDeleteID: String?
+    @State private var commentDeleteErrorMessage: String?
+    @FocusState private var isCommentFieldFocused: Bool
+    private let detailImageHeight: CGFloat = 220
+    private let detailActionButtonSize = AppTheme.iconButtonSize
+    private let detailActionButtonRadius = AppTheme.iconButtonRadius
+    private let detailSectionSpacing: CGFloat = 13
+    private let detailCardPadding: CGFloat = 14
+    private let detailCardRadius: CGFloat = 18
 
     private var canEditNews: Bool {
-        presentationMode.allowsManagementControls && PermissionService.canEditNews(user: authState.user)
+        guard let post = viewModel.post(for: postID) else { return false }
+        if PermissionService.canEditNews(user: authState.user) {
+            return true
+        }
+
+        guard let organizationID = post.source.organizationId else {
+            return false
+        }
+
+        return PermissionService.canCreateNews(for: organizationID, user: authState.user)
     }
 
     private var canDeleteNews: Bool {
-        presentationMode.allowsManagementControls && PermissionService.canDeleteNews(user: authState.user)
+        PermissionService.canDeleteNews(user: authState.user)
     }
 
-    private func newsCreatedDateText(for post: NewsPost) -> String {
-        LocalizationStore.dateString(from: post.createdAt, dateStyle: .medium, timeStyle: .short)
-    }
-
-    private var detailCardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
-    }
 
     @ViewBuilder
     private var editSheetContent: some View {
@@ -316,164 +332,65 @@ struct NewsDetailView: View {
         Group {
             if let post = viewModel.post(for: postID) {
                 GeometryReader { proxy in
+                    let contentHorizontalPadding = AppTheme.pageHorizontal
+                    let contentWidth = max(proxy.size.width - (contentHorizontalPadding * 2), 0)
+
                     ScrollView(.vertical, showsIndicators: true) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(post.title)
-                                    .font(.title2.weight(.bold))
-                                    .foregroundStyle(.primary)
+                        VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                            newsDetailHeader()
+                                .padding(.top, AppTheme.dashboardSpacing)
 
-                                if !post.subtitle.isEmpty {
-                                    Text(post.subtitle)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
+                            articleHeader(for: post)
+                                .onTapGesture { isCommentFieldFocused = false }
 
-                                HStack(alignment: .center, spacing: 12) {
-                                    Label(sanitizedAuthorName(post.authorName), systemImage: "person")
-                                        .font(.caption.weight(.medium))
-                                        .foregroundStyle(.secondary)
+                            heroImage(for: post)
+                                .onTapGesture { isCommentFieldFocused = false }
 
-                                    Spacer(minLength: 12)
-
-                                    Label(newsCreatedDateText(for: post), systemImage: "calendar")
-                                        .font(.caption.weight(.medium))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppTheme.cardBackground)
-                            .clipShape(detailCardShape)
-                            .overlay(
-                                detailCardShape
-                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
-                            )
-
-                            if let imageURL = post.imageURL {
-                                VStack(alignment: .leading, spacing: 0) {
-                                    RemoteImageView(
-                                        imageURL: imageURL,
-                                        height: detailImageHeight,
-                                        cornerRadius: 18,
-                                        source: "NewsDetailView"
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                }
-                                .padding(20)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(AppTheme.cardBackground)
-                                .clipShape(detailCardShape)
-                                .overlay(
-                                    detailCardShape
-                                        .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
-                                )
+                            if !post.subtitle.isEmpty {
+                                leadBlock(for: post)
+                                    .onTapGesture { isCommentFieldFocused = false }
                             }
 
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(post.body)
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppTheme.cardBackground)
-                            .clipShape(detailCardShape)
-                            .overlay(
-                                detailCardShape
-                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
-                            )
+                            articleBody(for: post)
+                                .onTapGesture { isCommentFieldFocused = false }
 
-                            HStack(alignment: .center, spacing: 12) {
-                                Text(AppStrings.Common.likes)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(.secondary)
+                            tagsSection(for: post)
+                                .onTapGesture { isCommentFieldFocused = false }
 
-                                Spacer(minLength: 0)
+                            relatedSection(for: post)
+                                .onTapGesture { isCommentFieldFocused = false }
 
-                                LikeButton(isLiked: post.likeState.isLiked, count: post.likeCount) {
-                                    handleLike(for: post.id)
-                                }
-                                .disabled(viewModel.pendingNewsLikeIDs.contains(post.id))
-                                .accessibilityIdentifier("news.like.\(post.id)")
-                                .accessibilityLabel(post.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
-                                .accessibilityHint(AppStrings.Common.likes)
-                            }
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppTheme.cardBackground)
-                            .clipShape(detailCardShape)
-                            .overlay(
-                                detailCardShape
-                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
-                            )
+                            actionsCard(for: post)
+                                .onTapGesture { isCommentFieldFocused = false }
 
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(AppStrings.Common.comments)
-                                    .font(.headline)
+                            managementCard(for: post)
+                                .onTapGesture { isCommentFieldFocused = false }
 
-                                if post.comments.isEmpty {
-                                    Text(AppStrings.Common.commentsPlaceholder)
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    ForEach(post.comments) { comment in
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            Text(sanitizedAuthorName(comment.authorName))
-                                                .font(.subheadline.weight(.semibold))
-                                                .foregroundStyle(.secondary)
-                                            Text(comment.body)
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        .padding(.vertical, 4)
-                                    }
-                                }
-                            }
-                            .padding(20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppTheme.cardBackground)
-                            .clipShape(detailCardShape)
-                            .overlay(
-                                detailCardShape
-                                    .strokeBorder(AppTheme.primaryBlue.opacity(0.08))
-                            )
+                            commentsSection(for: post)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        .padding(.bottom, 120)
-                        .frame(width: proxy.size.width, alignment: .leading)
+                        .frame(width: contentWidth, alignment: .leading)
+                        .padding(.horizontal, contentHorizontalPadding)
+                        .padding(.bottom, AppTheme.homeBottomContentPadding + 160)
                     }
                     .frame(width: proxy.size.width)
+                    .scrollDismissesKeyboard(.interactively)
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .background(AppBackgroundView())
         .navigationTitle(AppStrings.News.detailTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .toolbar {
-            if canEditNews, viewModel.post(for: postID) != nil {
-                Button {
-                    isShowingEditSheet = true
-                } label: {
-                    Image(systemName: "pencil")
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(AppStrings.Common.done) {
+                    isCommentFieldFocused = false
                 }
-                .accessibilityLabel(AppStrings.Action.edit)
-                .accessibilityHint(AppStrings.News.detailTitle)
-            }
-
-            if canDeleteNews {
-                Button(role: .destructive) {
-                    showDeleteConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .disabled(isDeleting)
-                .accessibilityLabel(AppStrings.Action.delete)
-                .accessibilityHint(AppStrings.News.detailTitle)
             }
         }
         .confirmationDialog(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
@@ -484,6 +401,20 @@ struct NewsDetailView: View {
             }
             Button(AppStrings.News.cancel, role: .cancel) {}
         }
+        .confirmationDialog(AppStrings.Common.deleteCommentConfirmation, isPresented: Binding(
+            get: { pendingCommentDeleteID != nil },
+            set: { if !$0 { pendingCommentDeleteID = nil } }
+        ), titleVisibility: .visible) {
+            Button(AppStrings.Action.delete, role: .destructive) {
+                guard let pendingCommentDeleteID else { return }
+                Task {
+                    await deleteComment(commentID: pendingCommentDeleteID)
+                }
+            }
+            Button(AppStrings.News.cancel, role: .cancel) {
+                pendingCommentDeleteID = nil
+            }
+        }
         .alert(AppStrings.News.deleteFailed, isPresented: Binding(
             get: { deleteErrorMessage != nil },
             set: { if !$0 { deleteErrorMessage = nil } }
@@ -492,10 +423,33 @@ struct NewsDetailView: View {
         } message: {
             Text(deleteErrorMessage ?? "")
         }
+        .alert(AppStrings.Common.deleteCommentFailed, isPresented: Binding(
+            get: { commentDeleteErrorMessage != nil },
+            set: { if !$0 { commentDeleteErrorMessage = nil } }
+        )) {
+            Button(AppStrings.News.dismissError, role: .cancel) {}
+        } message: {
+            Text(commentDeleteErrorMessage ?? readableNewsErrorText(.unknown))
+        }
         .sheet(isPresented: $isShowingEditSheet) {
             editSheetContent
         }
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(activityItems: payload.items)
+        }
         .guestAccessAlert($guestAccessAction)
+        .task {
+            guard viewModel.post(for: postID) != nil else { return }
+            guard !recordedViewKeys.contains(newsViewTaskID) else { return }
+            recordedViewKeys.insert(newsViewTaskID)
+            viewModel.recordView(for: postID)
+        }
+        .onChange(of: authState.user?.id) { _, _ in
+            guard viewModel.post(for: postID) != nil else { return }
+            guard !recordedViewKeys.contains(newsViewTaskID) else { return }
+            recordedViewKeys.insert(newsViewTaskID)
+            viewModel.recordView(for: postID)
+        }
         .onDisappear {
             guard let pendingRemovalPostID else { return }
             withTransaction(Transaction(animation: nil)) {
@@ -503,6 +457,657 @@ struct NewsDetailView: View {
             }
             self.pendingRemovalPostID = nil
         }
+    }
+
+    private func newsDetailHeader() -> some View {
+        AppCenteredBrandHeader {
+            detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                dismiss()
+            }
+        } trailingContent: {
+            headerActions()
+        }
+    }
+
+    private func headerActions() -> some View {
+        HStack(spacing: 10) {
+            detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
+                guard let post = viewModel.post(for: postID) else { return }
+                sharePayload = NewsSharePayload(post: post)
+            }
+
+            if let post = viewModel.post(for: postID) {
+                detailIconButton(
+                    systemImage: post.isBookmarked ? "bookmark.fill" : "bookmark",
+                    accessibilityLabel: AppStrings.Action.save
+                ) {
+                    handleBookmark(for: post.id)
+                }
+                .disabled(viewModel.pendingNewsBookmarkIDs.contains(post.id))
+            }
+        }
+    }
+
+    private func detailIconButton(
+        systemImage: String,
+        accessibilityLabel: String,
+        role: ButtonRole? = nil,
+        isPlaceholder: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        AppGlassIconButton(
+            systemImage: systemImage,
+            accessibilityLabel: accessibilityLabel,
+            role: role,
+            isPlaceholder: isPlaceholder
+        ) {
+            action()
+        }
+    }
+
+    private func articleHeader(for post: NewsPost) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            newsBadge
+
+            Text(post.title)
+                .font(.system(size: 28, weight: .bold, design: .default))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .lineSpacing(1)
+                .fixedSize(horizontal: false, vertical: true)
+
+            metadataRow(for: post)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var newsBadge: some View {
+        Label {
+            Text(AppStrings.News.detailBadge.uppercased())
+                .font(.caption2.weight(.bold))
+        } icon: {
+            Image(systemName: "newspaper")
+                .font(.caption2.weight(.bold))
+        }
+        .foregroundStyle(.purple)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(AppTheme.badgePurpleFill, in: Capsule())
+    }
+
+    private func metadataRow(for post: NewsPost) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) {
+                metadataItems(for: post)
+            }
+
+            VStack(alignment: .leading, spacing: 7) {
+                metadataItems(for: post)
+            }
+        }
+    }
+
+    private func metadataItems(for post: NewsPost) -> some View {
+        Group {
+            detailMetadataItem(systemImage: "calendar", text: newsDateText(for: post))
+            detailMetadataItem(systemImage: "clock", text: newsTimeText(for: post))
+            detailMetadataItem(systemImage: "eye", text: viewCountText(for: post))
+        }
+    }
+
+    private func detailMetadataItem(systemImage: String, text: String) -> some View {
+        Label {
+            Text(text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.semibold))
+                .frame(width: 15, height: 15)
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(AppTheme.accentPrimary.opacity(0.88))
+    }
+
+    @ViewBuilder
+    private func heroImage(for post: NewsPost) -> some View {
+        if let imageURL = sanitizedImageURL(post.imageURL) {
+            RemoteImageView(
+                imageURL: imageURL,
+                height: detailImageHeight,
+                cornerRadius: AppTheme.imageRadius,
+                source: "NewsDetailView",
+                placeholderStyle: .glassSkeleton
+            )
+            .frame(maxWidth: .infinity, minHeight: detailImageHeight, maxHeight: detailImageHeight)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
+                    .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.78))
+            )
+            .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.55), radius: 8, y: 4)
+        }
+    }
+
+    private func leadBlock(for post: NewsPost) -> some View {
+        detailGlassCard(padding: 12) {
+            HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
+                Image(systemName: "info.circle")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Коротко")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppTheme.textPrimary)
+
+                    Text(post.subtitle)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func articleBody(for post: NewsPost) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(AppStrings.News.bodySectionTitle)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(AppTheme.accentPrimary)
+
+            Text(post.body)
+                .font(.footnote)
+                .foregroundStyle(AppTheme.accentPrimary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func tagsSection(for post: NewsPost) -> some View {
+        if !post.tags.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Теги")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(post.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppTheme.accentPrimary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(AppTheme.accentPrimarySoft, in: Capsule())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func actionsCard(for post: NewsPost) -> some View {
+        detailGlassCard(padding: 9) {
+            HStack(spacing: 12) {
+                detailMetricButton(
+                    systemImage: post.likeState.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup",
+                    count: post.likeCount,
+                    accessibilityLabel: post.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like,
+                    isSelected: post.likeState.isLiked
+                ) {
+                    handleLike(for: post.id)
+                }
+                .disabled(viewModel.pendingNewsLikeIDs.contains(post.id))
+                .accessibilityIdentifier("news.like.\(post.id)")
+                .accessibilityHint(AppStrings.Common.likes)
+
+                detailMetricButton(
+                    systemImage: "bubble.left",
+                    count: post.commentCount,
+                    accessibilityLabel: AppStrings.Common.comments
+                ) {
+                    isCommentFieldFocused = true
+                }
+
+                Spacer(minLength: 0)
+
+                publisherLine(for: post)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func managementCard(for post: NewsPost) -> some View {
+        if canEditNews || canDeleteNews {
+            detailGlassCard(padding: 9) {
+                HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+                    if canEditNews {
+                        managementActionButton(systemImage: "pencil", title: AppStrings.Action.edit) {
+                            isShowingEditSheet = true
+                        }
+                        .accessibilityHint(AppStrings.News.detailTitle)
+                    }
+
+                    if canDeleteNews {
+                        managementActionButton(systemImage: "trash", title: AppStrings.Action.delete, role: .destructive) {
+                            showDeleteConfirmation = true
+                        }
+                        .disabled(isDeleting)
+                        .accessibilityHint(AppStrings.News.detailTitle)
+                    }
+                }
+            }
+        }
+    }
+
+    private func managementActionButton(
+        systemImage: String,
+        title: String,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: role, action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 40)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+
+    private func detailMetricButton(
+        systemImage: String,
+        count: Int,
+        accessibilityLabel: String,
+        isSelected: Bool = false,
+        isPlaceholder: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isSelected ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+
+                Text("\(count)")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .monospacedDigit()
+            }
+            .frame(minWidth: 74, minHeight: 36)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isPlaceholder)
+        .opacity(isPlaceholder ? 0.72 : 1)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue("\(count)")
+        .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
+    }
+
+    private func publisherLine(for post: NewsPost) -> some View {
+        Label(newsPublisherText(for: post), systemImage: "person.crop.circle")
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .frame(maxWidth: 190, alignment: .trailing)
+            .accessibilityLabel(newsPublisherText(for: post))
+    }
+
+    @ViewBuilder
+    private func relatedSection(for post: NewsPost) -> some View {
+        let relatedPosts = relatedNewsPosts(for: post)
+        if !relatedPosts.isEmpty {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Вам також може бути цікаво")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                    Text("Дивитися всі")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(relatedPosts) { relatedPost in
+                            relatedNewsCard(relatedPost)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func relatedNewsCard(_ post: NewsPost) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let imageURL = sanitizedImageURL(post.imageURL) {
+                RemoteImageView(
+                    imageURL: imageURL,
+                    height: 82,
+                    cornerRadius: 12,
+                    source: "NewsDetailRelated",
+                    placeholderStyle: .glassSkeleton
+                )
+                .overlay(alignment: .topLeading) {
+                    Label(AppStrings.News.detailBadge.uppercased(), systemImage: "newspaper")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(AppTheme.accentPrimary, in: Capsule())
+                        .padding(7)
+                }
+                .overlay(alignment: .bottomLeading) {
+                    Text(post.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(2)
+                        .padding(8)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                        .padding(7)
+                }
+            }
+        }
+        .frame(width: 170, height: 92)
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+    }
+
+    private func relatedNewsPosts(for post: NewsPost) -> [NewsPost] {
+        viewModel.posts
+            .filter { candidate in
+                candidate.id != post.id && sanitizedImageURL(candidate.imageURL) != nil
+            }
+            .sorted { lhs, rhs in
+                if lhs.category == post.category && rhs.category != post.category { return true }
+                if lhs.category != post.category && rhs.category == post.category { return false }
+                return lhs.publishedAt > rhs.publishedAt
+            }
+            .prefix(6)
+            .map { $0 }
+    }
+
+    private func commentsSection(for post: NewsPost) -> some View {
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppStrings.Common.comments)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+
+                commentComposer(parentID: post.id)
+
+                if post.comments.isEmpty {
+                    Text(AppStrings.Common.noCommentsYet)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(post.comments.enumerated()), id: \.element.id) { index, comment in
+                            commentRow(comment)
+
+                            if index < post.comments.count - 1 {
+                                Divider()
+                                    .padding(.vertical, AppTheme.eventsControlGroupSpacing)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func commentRow(_ comment: Comment) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            commentAvatar(comment)
+
+            VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                Text(sanitizedAuthorName(comment.authorName))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                Text(LocalizationStore.dateString(from: comment.createdAt, dateStyle: .short, timeStyle: .short))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(1)
+
+                if canEditComment(comment) || canDeleteComment(comment) {
+                    Menu {
+                        if canEditComment(comment) {
+                            Button(AppStrings.Action.edit, systemImage: "pencil") {
+                                editingCommentID = comment.id
+                                commentText = comment.text
+                                isCommentFieldFocused = true
+                            }
+                        }
+                        if canDeleteComment(comment) {
+                            Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
+                                pendingCommentDeleteID = comment.id
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .frame(width: 28, height: 28)
+                    }
+                }
+            }
+
+            Text(comment.text)
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func commentComposer(parentID: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if authState.isAuthenticated {
+                HStack(alignment: .bottom, spacing: 8) {
+                    TextField(AppStrings.Common.commentInputPlaceholder, text: $commentText, axis: .vertical)
+                        .focused($isCommentFieldFocused)
+                        .lineLimit(1...4)
+                        .textInputAutocapitalization(.sentences)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                        )
+
+                    Button {
+                        submitComment(parentID: parentID)
+                    } label: {
+                        Image(systemName: editingCommentID == nil ? "paperplane.fill" : "checkmark")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(AppTheme.accentPrimary, in: Circle())
+                    }
+                    .disabled(trimmedCommentText.isEmpty || viewModel.pendingNewsCommentIDs.contains(parentID))
+                    .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
+                }
+
+                Text("\(commentText.count)/1000")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            } else {
+                Button {
+                    guestAccessAction = .comments
+                } label: {
+                    Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var trimmedCommentText: String {
+        commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var newsViewTaskID: String {
+        "\(postID)-\(authState.user?.id ?? "guest")"
+    }
+
+    private func submitComment(parentID: String) {
+        guard let user = authState.user else {
+            guestAccessAction = .comments
+            return
+        }
+        let text = String(trimmedCommentText.prefix(1000))
+        guard !text.isEmpty else { return }
+        let editingID = editingCommentID
+        Task {
+            if let editingID {
+                await viewModel.updateComment(postID: parentID, commentID: editingID, text: text)
+            } else {
+                await viewModel.addComment(to: parentID, text: text, author: user)
+            }
+            await MainActor.run {
+                commentText = ""
+                editingCommentID = nil
+                isCommentFieldFocused = false
+            }
+        }
+    }
+
+    private func commentAvatar(_ comment: Comment) -> some View {
+        ZStack {
+            Circle()
+                .fill(AppTheme.accentPrimarySoft)
+            if let authorPhotoURL = comment.authorPhotoURL, !authorPhotoURL.isEmpty {
+                AsyncImage(url: URL(string: authorPhotoURL)) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Text(commentInitials(comment))
+                            .font(.caption.weight(.bold))
+                    }
+                }
+            } else {
+                Text(commentInitials(comment))
+                    .font(.caption.weight(.bold))
+            }
+        }
+        .foregroundStyle(AppTheme.accentPrimary)
+        .frame(width: 32, height: 32)
+        .clipShape(Circle())
+    }
+
+    private func commentInitials(_ comment: Comment) -> String {
+        let name = sanitizedAuthorName(comment.authorName)
+        return String(name.prefix(1)).uppercased()
+    }
+
+    private func canEditComment(_ comment: Comment) -> Bool {
+        guard let user = authState.user else { return false }
+        return comment.authorId == user.id
+    }
+
+    private func canDeleteComment(_ comment: Comment) -> Bool {
+        guard let user = authState.user else { return false }
+        if comment.authorId == user.id {
+            return true
+        }
+        if PermissionService.canModerate(section: .comments, user: user) || PermissionService.canModerate(section: .news, user: user) {
+            return true
+        }
+        guard let post = viewModel.post(for: postID), let organizationId = post.source.organizationId else {
+            return false
+        }
+        return PermissionService.canManageCommunity(organizationId: organizationId, user: user)
+    }
+
+    @MainActor
+    private func deleteComment(commentID: String) async {
+        pendingCommentDeleteID = nil
+        await viewModel.deleteComment(postID: postID, commentID: commentID)
+        if let error = viewModel.error {
+            commentDeleteErrorMessage = readableNewsErrorText(error)
+        }
+    }
+
+    private func newsDateText(for post: NewsPost) -> String {
+        LocalizationStore.dateString(from: post.createdAt, dateStyle: .medium, timeStyle: .none)
+    }
+
+    private func newsTimeText(for post: NewsPost) -> String {
+        LocalizationStore.dateString(from: post.createdAt, dateStyle: .none, timeStyle: .short)
+    }
+
+    private func viewCountText(for post: NewsPost) -> String {
+        "\(post.viewCount) переглядів"
+    }
+
+    private func newsSourceText(for post: NewsPost) -> String {
+        if let organizationName = post.source.organizationName?.trimmingCharacters(in: .whitespacesAndNewlines), !organizationName.isEmpty {
+            return organizationName
+        }
+
+        return sanitizedAuthorName(post.authorName)
+    }
+
+    private func newsPublisherText(for post: NewsPost) -> String {
+        let authorName = sanitizedAuthorName(post.authorName)
+        let trimmedOrganizationName = post.source.organizationName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let sourceName = trimmedOrganizationName.isEmpty ? AppStrings.Home.brandTitle : trimmedOrganizationName
+
+        guard authorName != AppStrings.NewsEditor.authorFallback else {
+            return sourceName
+        }
+
+        return "\(authorName) · \(sourceName)"
+    }
+
+    private func detailGlassCard<Content: View>(padding: CGFloat = 14, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: detailCardRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: detailCardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: detailCardRadius, style: .continuous)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.62))
+        )
+        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.45), radius: 8, y: 4)
+    }
+
+    private func sanitizedImageURL(_ imageURL: String?) -> String? {
+        guard let imageURL = imageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty else {
+            return nil
+        }
+        return imageURL
     }
 
     @MainActor
@@ -531,6 +1136,38 @@ struct NewsDetailView: View {
 
         viewModel.toggleLike(for: postID)
     }
+
+    private func handleBookmark(for postID: String) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = .bookmarks
+            return
+        }
+
+        viewModel.toggleBookmark(for: postID)
+    }
+}
+
+private struct NewsSharePayload: Identifiable {
+    let id = UUID()
+    let items: [Any]
+
+    init(post: NewsPost) {
+        var text = post.title
+        if !post.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            text += "\n\n\(post.subtitle)"
+        }
+        items = [text]
+    }
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview("News List") {

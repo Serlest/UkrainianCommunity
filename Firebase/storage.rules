@@ -28,23 +28,42 @@ service firebase.storage {
     function isOwner() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && currentUserData().globalRole == 'owner';
+        && (
+          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'owner')
+          || (('role' in currentUserData()) && currentUserData().role == 'owner')
+        );
     }
 
     function isTopAdmin() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && currentUserData().globalRole == 'topAdmin';
+        && (
+          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'topAdmin')
+          || (('role' in currentUserData()) && currentUserData().role == 'admin')
+        );
     }
 
     function isAppModerator() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && currentUserData().globalRole == 'appModerator';
+        && (
+          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'appModerator')
+          || (('role' in currentUserData()) && currentUserData().role == 'moderator')
+        );
     }
 
     function canManageContentImages() {
       return isOwner() || isTopAdmin() || isAppModerator();
+    }
+
+    function isAppManagedHeroBannerPath(bannerId, fileName) {
+      return (
+          bannerId == 'homeBanner'
+          || bannerId == 'eventsBanner'
+          || bannerId == 'organizationsBanner'
+          || bannerId == 'guideBanner'
+        )
+        && fileName == 'banner.jpg';
     }
 
     match /news/{filePath=**} {
@@ -67,9 +86,10 @@ service firebase.storage {
       allow write: if isSelf(uid) || isOwner() || isTopAdmin();
     }
 
-    match /appConfig/homeBanner/{filePath=**} {
-      allow read: if isSignedIn();
-      allow write: if isOwner() || isTopAdmin();
+    match /appConfig/{bannerId}/{fileName} {
+      allow read: if isAppManagedHeroBannerPath(bannerId, fileName) && isSignedIn();
+      allow write: if isAppManagedHeroBannerPath(bannerId, fileName)
+        && (isOwner() || isTopAdmin());
     }
 
     match /{allPaths=**} {
