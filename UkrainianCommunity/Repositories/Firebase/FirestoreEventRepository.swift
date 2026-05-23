@@ -18,18 +18,14 @@ struct FirestoreEventRepository: EventRepository {
         let registeredEventIDs = try await fetchRegisteredEventIDs()
         let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
 
-        var events: [Event] = []
-        for document in snapshot.documents {
-            var event = try Event(dto: makeEventDTO(
+        return try snapshot.documents.map { document in
+            try Event(dto: makeEventDTO(
                 from: document,
                 likedEventIDs: likedEventIDs,
                 registeredEventIDs: registeredEventIDs,
                 bookmarkedEventIDs: bookmarkedEventIDs
             ))
-            event.comments = try await fetchComments(eventID: document.documentID)
-            events.append(event)
         }
-        return events
     }
 
     func fetchRegisteredEvents() async throws -> [Event] {
@@ -69,9 +65,7 @@ struct FirestoreEventRepository: EventRepository {
                     continue
                 }
 
-                var event = Event(dto: dto)
-                event.comments = try await fetchComments(eventID: document.documentID)
-                resolvedEvents.append(event)
+                resolvedEvents.append(Event(dto: dto))
             }
 
             registeredEvents.append(contentsOf: resolvedEvents)
@@ -90,18 +84,40 @@ struct FirestoreEventRepository: EventRepository {
         let registeredEventIDs = try await fetchRegisteredEventIDs()
         let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
 
-        var events: [Event] = []
-        for document in snapshot.documents {
-            var event = try Event(dto: makeEventDTO(
+        return try snapshot.documents.map { document in
+            try Event(dto: makeEventDTO(
                 from: document,
                 likedEventIDs: likedEventIDs,
                 registeredEventIDs: registeredEventIDs,
                 bookmarkedEventIDs: bookmarkedEventIDs
             ))
-            event.comments = try await fetchComments(eventID: document.documentID)
-            events.append(event)
         }
-        return events
+    }
+
+    func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event] {
+        let snapshot = try await collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", in: organizationModerationStatusValues)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        let likedEventIDs = try await fetchLikedEventIDs()
+        let registeredEventIDs = try await fetchRegisteredEventIDs()
+        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+
+        return try snapshot.documents.map { document in
+            try Event(dto: makeEventDTO(
+                from: document,
+                likedEventIDs: likedEventIDs,
+                registeredEventIDs: registeredEventIDs,
+                bookmarkedEventIDs: bookmarkedEventIDs
+            ))
+        }
+    }
+
+    func fetchEventComments(eventID: String) async throws -> [Comment] {
+        try await fetchComments(eventID: eventID)
     }
 
     func createEvent(_ event: Event) async throws {
@@ -139,7 +155,6 @@ struct FirestoreEventRepository: EventRepository {
             likeState: event.likeState,
             viewCount: event.viewCount,
             category: event.category,
-            visibility: event.visibility,
             isAllDay: event.isAllDay
         )
         let dto = normalizedEvent.dto
@@ -163,23 +178,14 @@ struct FirestoreEventRepository: EventRepository {
             "updatedAt": dto.updatedAt,
             "price": dto.price,
             "registeredCount": dto.registeredCount,
-            "comments": dto.comments.map { comment in
-                [
-                    "id": comment.id,
-                    "authorName": comment.authorName,
-                    "body": comment.body,
-                    "createdAt": comment.createdAt,
-                    "updatedAt": comment.updatedAt as Any
-                ]
-            },
             "moderationStatus": dto.moderationStatus,
             "registrationState": dto.registrationState,
             "likeCount": dto.likeCount,
             "likeState": dto.likeState,
             "viewCount": dto.viewCount,
-            "commentCount": dto.comments.count,
+            "commentCount": dto.commentCount ?? dto.comments.count,
             "category": dto.category as Any,
-            "visibility": dto.visibility as Any,
+            "visibility": "public",
             "isAllDay": dto.isAllDay as Any
         ]
 
@@ -227,7 +233,7 @@ struct FirestoreEventRepository: EventRepository {
             "updatedAt": Timestamp(date: event.updatedAt),
             "price": event.price,
             "category": event.category.rawValue,
-            "visibility": event.visibility.rawValue,
+            "visibility": "public",
             "isAllDay": event.isAllDay
         ]
 
@@ -274,6 +280,13 @@ struct FirestoreEventRepository: EventRepository {
         }
 
         try await collection.document(event.id).updateData(data)
+    }
+
+    func updateEventImageURL(id: String, imageURL: String?) async throws {
+        try await collection.document(id).updateData([
+            "imageURL": imageURL as Any,
+            "updatedAt": Timestamp(date: Date())
+        ])
     }
 
     func deleteEvent(id: String) async throws {
@@ -527,6 +540,7 @@ struct FirestoreEventRepository: EventRepository {
             "id": registrationReference.documentID,
             "eventId": id,
             "userId": uid,
+            "registeredAt": FieldValue.serverTimestamp(),
             "createdAt": FieldValue.serverTimestamp()
         ]
 
@@ -539,11 +553,8 @@ struct FirestoreEventRepository: EventRepository {
                     return nil
                 }
 
-                let registrationSnapshot = try transaction.getDocument(registrationReference)
-                if registrationSnapshot.exists {
-                    return nil
-                }
-
+                // Do not pre-read the registration document here. Firestore rules allow create
+                // and deny update, so the deterministic document id acts as create-only protection.
                 transaction.setData(registrationData, forDocument: registrationReference)
                 transaction.updateData([
                     "registeredCount": FieldValue.increment(Int64(1))
@@ -715,6 +726,7 @@ struct FirestoreEventRepository: EventRepository {
             capacity: data["capacity"] as? Int,
             registeredCount: data["registeredCount"] as? Int ?? 0,
             comments: comments,
+            commentCount: (data["commentCount"] as? Int) ?? (data["commentCount"] as? NSNumber)?.intValue ?? 0,
             moderationStatus: moderationStatus,
             registrationState: registeredEventIDs.contains(document.documentID) ? EventRegistrationState.registered.rawValue : EventRegistrationState.notRegistered.rawValue,
             likeCount: data["likeCount"] as? Int ?? 0,
@@ -733,6 +745,14 @@ struct FirestoreEventRepository: EventRepository {
 
     private func registrationDocumentID(eventID: String, userID: String) -> String {
         "event_\(eventID)_\(userID)"
+    }
+
+    private var organizationModerationStatusValues: [String] {
+        [
+            ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.rejected.rawValue,
+            ModerationStatus.archived.rawValue
+        ]
     }
 
     private func eventBookmarkReference(eventID: String, userID: String) -> DocumentReference {

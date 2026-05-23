@@ -16,13 +16,11 @@ struct FirestoreNewsRepository: NewsRepository {
         let likedNewsIDs = try await fetchLikedNewsIDs()
         let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
 
-        var posts: [NewsPost] = []
-        for document in snapshot.documents {
-            var post = try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
-            post.comments = try await fetchComments(newsID: document.documentID)
-            posts.append(post)
-        }
-        return posts
+        return try snapshot.documents
+            .map { document in
+                try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
+            }
+            .filter(\.isOrganizationNews)
     }
 
     func fetchPendingNews() async throws -> [NewsPost] {
@@ -34,16 +32,34 @@ struct FirestoreNewsRepository: NewsRepository {
         let likedNewsIDs = try await fetchLikedNewsIDs()
         let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
 
-        var posts: [NewsPost] = []
-        for document in snapshot.documents {
-            var post = try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
-            post.comments = try await fetchComments(newsID: document.documentID)
-            posts.append(post)
+        return try snapshot.documents
+            .map { document in
+                try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
+            }
+            .filter(\.isOrganizationNews)
+    }
+
+    func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost] {
+        let snapshot = try await collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", in: organizationModerationStatusValues)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        let likedNewsIDs = try await fetchLikedNewsIDs()
+        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
+
+        return try snapshot.documents.map { document in
+            try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
         }
-        return posts
     }
 
     func createNews(_ news: NewsPost) async throws {
+        guard news.isOrganizationNews else {
+            throw AppError.validationFailed
+        }
+
         let dto = news.dto
 
         try await collection.document(news.id).setData([
@@ -66,16 +82,19 @@ struct FirestoreNewsRepository: NewsRepository {
             "publishedAt": Timestamp(date: dto.publishedAt),
             "createdAt": Timestamp(date: dto.createdAt),
             "updatedAt": Timestamp(date: dto.updatedAt),
-            "comments": dto.comments.map(makeCommentData(from:)),
             "moderationStatus": dto.moderationStatus,
             "likeCount": dto.likeCount,
             "likeState": dto.likeState,
             "viewCount": dto.viewCount,
-            "commentCount": dto.comments.count
+            "commentCount": dto.commentCount ?? dto.comments.count
         ])
     }
 
     func updateNews(_ news: NewsPost) async throws {
+        guard news.isOrganizationNews else {
+            throw AppError.validationFailed
+        }
+
         try await collection.document(news.id).updateData([
             "title": news.title,
             "subtitle": news.subtitle,
@@ -93,6 +112,13 @@ struct FirestoreNewsRepository: NewsRepository {
             "imageURL": news.imageURL as Any,
             "authorName": news.authorName,
             "updatedAt": Timestamp(date: news.updatedAt)
+        ])
+    }
+
+    func updateNewsImageURL(id: String, imageURL: String?) async throws {
+        try await collection.document(id).updateData([
+            "imageURL": imageURL as Any,
+            "updatedAt": Timestamp(date: Date())
         ])
     }
 
@@ -231,6 +257,10 @@ struct FirestoreNewsRepository: NewsRepository {
         }
 
         return result as? Bool ?? false
+    }
+
+    func fetchNewsComments(newsID: String) async throws -> [Comment] {
+        try await fetchComments(newsID: newsID)
     }
 
     func addNewsComment(newsID: String, text: String, author: AppUser) async throws -> Comment {
@@ -431,6 +461,7 @@ struct FirestoreNewsRepository: NewsRepository {
             createdAt: createdAt,
             updatedAt: updatedAt,
             comments: comments,
+            commentCount: (data["commentCount"] as? Int) ?? (data["commentCount"] as? NSNumber)?.intValue ?? 0,
             moderationStatus: moderationStatus,
             likeCount: data["likeCount"] as? Int ?? 0,
             likeState: likedNewsIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue,
@@ -441,6 +472,14 @@ struct FirestoreNewsRepository: NewsRepository {
 
     private func likeDocumentID(newsID: String, userID: String) -> String {
         "\(newsID)_\(userID)"
+    }
+
+    private var organizationModerationStatusValues: [String] {
+        [
+            ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.rejected.rawValue,
+            ModerationStatus.archived.rawValue
+        ]
     }
 
     private func bookmarkReference(newsID: String, userID: String) -> DocumentReference {
@@ -541,6 +580,13 @@ struct FirestoreNewsRepository: NewsRepository {
             moderationStatus: data["moderationStatus"] as? String,
             isDeleted: data["isDeleted"] as? Bool
         )
+    }
+}
+
+private extension NewsPost {
+    var isOrganizationNews: Bool {
+        source.sourceType == .organization
+            && source.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 }
 

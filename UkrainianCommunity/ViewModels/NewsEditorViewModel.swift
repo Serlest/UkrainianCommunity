@@ -4,23 +4,12 @@ import Foundation
 @MainActor
 final class NewsEditorViewModel: ObservableObject {
     struct CreateContext {
-        let organizationId: String?
+        let organizationId: String
         let organizationName: String?
         let organizationImageURL: String?
         let organizationFederalState: AustrianFederalState?
 
-        nonisolated static let app = CreateContext(
-            organizationId: nil,
-            organizationName: nil,
-            organizationImageURL: nil,
-            organizationFederalState: nil
-        )
-
         var source: ContentSourceMetadata {
-            guard let organizationId, !organizationId.isEmpty else {
-                return ContentSourceMetadata(sourceType: .app)
-            }
-
             return ContentSourceMetadata(
                 sourceType: .organization,
                 organizationId: organizationId,
@@ -30,13 +19,12 @@ final class NewsEditorViewModel: ObservableObject {
         }
 
         var isOrganizationPost: Bool {
-            guard let organizationId else { return false }
             return !organizationId.isEmpty
         }
     }
 
     enum Mode {
-        case create(context: CreateContext = .app)
+        case create(context: CreateContext? = nil)
         case edit(existing: NewsPost)
 
         var isEditing: Bool {
@@ -50,7 +38,6 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var title = ""
     @Published var summary = ""
     @Published var body = ""
-    @Published var category: NewsCategory = .news
     @Published var tagsInput = ""
     @Published var selectedFederalState: AustrianFederalState = .tirol
     @Published var isPublishing = false
@@ -59,6 +46,7 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
+    @Published private var selectedCreateContext: CreateContext?
 
     private let repository: NewsRepository
     private let imageUploadService = ImageUploadService.shared
@@ -70,11 +58,14 @@ final class NewsEditorViewModel: ObservableObject {
         self.authState = authState
         self.mode = mode
 
+        if case let .create(context) = mode {
+            selectedCreateContext = context
+        }
+
         if case let .edit(existingNews) = mode {
             title = existingNews.title
             summary = existingNews.subtitle
             body = existingNews.body
-            category = existingNews.category
             tagsInput = existingNews.tags.joined(separator: ", ")
             selectedFederalState = existingNews.federalState ?? .tirol
         }
@@ -85,6 +76,7 @@ final class NewsEditorViewModel: ObservableObject {
             && !trimmedSummary.isEmpty
             && !trimmedBody.isEmpty
             && resolvedFederalState != nil
+            && hasOrganizerForCreate
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
@@ -95,8 +87,7 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     var showsRegionPicker: Bool {
-        guard isAppLevelPost else { return false }
-        return PermissionService.canManageAppNews(user: authState?.user)
+        false
     }
 
     var requiresOrganizationRegionBeforePublishing: Bool {
@@ -108,6 +99,39 @@ final class NewsEditorViewModel: ObservableObject {
             return existingNews.imageURL
         }
         return nil
+    }
+
+    var organizerName: String? {
+        switch mode {
+        case .create:
+            selectedCreateContext?.organizationName
+        case let .edit(existingNews):
+            existingNews.source.organizationName
+        }
+    }
+
+    var organizerImageURL: String? {
+        switch mode {
+        case .create:
+            guard let imageURL = selectedCreateContext?.organizationImageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty else {
+                return nil
+            }
+            return imageURL
+        case let .edit(existingNews):
+            guard let imageURL = existingNews.source.organizationImageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty else {
+                return nil
+            }
+            return imageURL
+        }
+    }
+
+    var selectedOrganizationId: String? {
+        switch mode {
+        case .create:
+            selectedCreateContext?.organizationId
+        case let .edit(existingNews):
+            existingNews.source.organizationId
+        }
     }
 
     var navigationTitle: String {
@@ -141,6 +165,16 @@ final class NewsEditorViewModel: ObservableObject {
         self.authState = authState
     }
 
+    func selectOrganizer(_ organization: Organization) {
+        guard case .create = mode else { return }
+        selectedCreateContext = CreateContext(
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationImageURL: organization.imageURL,
+            organizationFederalState: organization.federalState
+        )
+    }
+
     func publish() async -> Bool {
         guard !isPublishing else { return false }
 
@@ -162,10 +196,15 @@ final class NewsEditorViewModel: ObservableObject {
         let existingLikeState: LikeState
         let existingViewCount: Int
         let existingIsBookmarked: Bool
+        let existingCommentCount: Int
         let publishedAt: Date
         let newsFederalState = resolvedFederalState
         switch mode {
-        case let .create(context):
+        case .create:
+            guard let context = selectedCreateContext, context.isOrganizationPost else {
+                errorMessage = AppStrings.NewsEditor.organizationRequired
+                return false
+            }
             newsID = UUID().uuidString
             createdAt = now
             publishedAt = now
@@ -177,6 +216,7 @@ final class NewsEditorViewModel: ObservableObject {
             existingLikeState = .notLiked
             existingViewCount = 0
             existingIsBookmarked = false
+            existingCommentCount = 0
         case let .edit(existingNews):
             newsID = existingNews.id
             createdAt = existingNews.createdAt
@@ -189,8 +229,8 @@ final class NewsEditorViewModel: ObservableObject {
             existingLikeState = existingNews.likeState
             existingViewCount = existingNews.viewCount
             existingIsBookmarked = existingNews.isBookmarked
+            existingCommentCount = existingNews.commentCount
         }
-        var resolvedImageURL: String?
         let news = NewsPost(
             id: newsID,
             title: trimmedTitle,
@@ -212,64 +252,52 @@ final class NewsEditorViewModel: ObservableObject {
             likeCount: existingLikeCount,
             likeState: existingLikeState,
             viewCount: existingViewCount,
-            isBookmarked: existingIsBookmarked
+            isBookmarked: existingIsBookmarked,
+            commentCount: existingCommentCount
         )
 
         isPublishing = true
         defer { isPublishing = false }
 
         do {
-            if let selectedImageData {
-                isUploadingImage = true
-                do {
-                    let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
-                    resolvedImageURL = downloadURL.absoluteString
-                } catch {
-                    isUploadingImage = false
-                    errorMessage = readableUploadErrorMessage(for: error)
-                    return false
-                }
-                isUploadingImage = false
-            } else {
-                resolvedImageURL = existingImageURL
-            }
-
-            let newsToCreate = NewsPost(
-                id: news.id,
-                title: news.title,
-                subtitle: news.subtitle,
-                regionScope: news.regionScope,
-                federalState: news.federalState,
-                city: news.city,
-                category: news.category,
-                tags: news.tags,
-                source: news.source,
-                imageURL: resolvedImageURL,
-                body: news.body,
-                authorName: news.authorName,
-                publishedAt: news.publishedAt,
-                createdAt: news.createdAt,
-                updatedAt: news.updatedAt,
-                comments: news.comments,
-                moderationStatus: news.moderationStatus,
-                likeCount: news.likeCount,
-                likeState: news.likeState,
-                viewCount: news.viewCount,
-                isBookmarked: news.isBookmarked
-            )
-
             switch mode {
             case .create:
-                try await repository.createNews(newsToCreate)
+                try await repository.createNews(news)
+
+                if let selectedImageData {
+                    isUploadingImage = true
+                    do {
+                        let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
+                        try await repository.updateNewsImageURL(id: newsID, imageURL: downloadURL.absoluteString)
+                    } catch {
+                        isUploadingImage = false
+                        try? await repository.deleteNews(id: news.id)
+                        errorMessage = readableUploadErrorMessage(for: error)
+                        return false
+                    }
+                    isUploadingImage = false
+                }
+
                 successMessage = AppStrings.NewsEditor.publishedSuccessfully
+
             case .edit:
-                try await repository.updateNews(newsToCreate)
+                var resolvedImageURL = existingImageURL
+                if let selectedImageData {
+                    isUploadingImage = true
+                    let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
+                    resolvedImageURL = downloadURL.absoluteString
+                    isUploadingImage = false
+                }
+
+                try await repository.updateNews(news.settingImageURL(resolvedImageURL))
                 successMessage = AppStrings.NewsEditor.updatedSuccessfully
             }
-            AppContentChangeBus.postNewsChanged(organizationID: newsToCreate.source.organizationId)
+
+            AppContentChangeBus.postNewsChanged(organizationID: news.source.organizationId)
             title = ""
             summary = ""
             body = ""
+            tagsInput = ""
             selectedImageData = nil
             return true
         } catch {
@@ -307,23 +335,19 @@ final class NewsEditorViewModel: ObservableObject {
 
     private var isOrganizationPost: Bool {
         switch mode {
-        case let .create(context):
-            return context.isOrganizationPost
+        case .create:
+            return selectedCreateContext?.isOrganizationPost ?? false
         case let .edit(existingNews):
             return existingNews.source.sourceType == .organization
         }
     }
 
-    private var isAppLevelPost: Bool {
-        !isOrganizationPost
-    }
-
     private var resolvedFederalState: AustrianFederalState? {
         switch mode {
-        case let .create(context):
-            return context.isOrganizationPost ? context.organizationFederalState : selectedFederalState
+        case .create:
+            return selectedCreateContext?.organizationFederalState
         case let .edit(existingNews):
-            return existingNews.source.sourceType == .organization ? existingNews.federalState : selectedFederalState
+            return existingNews.federalState
         }
     }
 
@@ -352,6 +376,10 @@ final class NewsEditorViewModel: ObservableObject {
         return .approved
     }
 
+    private var hasOrganizerForCreate: Bool {
+        isEditing || (selectedCreateContext?.isOrganizationPost ?? false)
+    }
+
     private func validate() -> Bool {
         guard !trimmedTitle.isEmpty else {
             errorMessage = AppStrings.NewsEditor.titleRequired
@@ -367,6 +395,12 @@ final class NewsEditorViewModel: ObservableObject {
 
         guard !trimmedBody.isEmpty else {
             errorMessage = AppStrings.NewsEditor.bodyRequired
+            successMessage = nil
+            return false
+        }
+
+        guard hasOrganizerForCreate else {
+            errorMessage = AppStrings.NewsEditor.organizationRequired
             successMessage = nil
             return false
         }
@@ -388,5 +422,34 @@ final class NewsEditorViewModel: ObservableObject {
     private func readablePublishErrorMessage(for error: Error) -> String {
         let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return message.isEmpty ? AppStrings.News.actionUnknownError : message
+    }
+}
+
+private extension NewsPost {
+    func settingImageURL(_ imageURL: String?) -> NewsPost {
+        NewsPost(
+            id: id,
+            title: title,
+            subtitle: subtitle,
+            regionScope: regionScope,
+            federalState: federalState,
+            city: city,
+            category: category,
+            tags: tags,
+            source: source,
+            imageURL: imageURL,
+            body: body,
+            authorName: authorName,
+            publishedAt: publishedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            comments: comments,
+            moderationStatus: moderationStatus,
+            likeCount: likeCount,
+            likeState: likeState,
+            viewCount: viewCount,
+            isBookmarked: isBookmarked,
+            commentCount: commentCount
+        )
     }
 }

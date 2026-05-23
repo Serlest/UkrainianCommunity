@@ -69,7 +69,7 @@ struct NewsListView: View {
                 VStack {
                     LoadingStateCard(title: nil)
                 }
-                .frame(maxWidth: .infinity, minHeight: 260)
+                .frame(maxWidth: .infinity, minHeight: 180)
             } else if viewModel.posts.isEmpty && viewModel.error != nil {
                 ErrorStateCard(
                     systemImage: "newspaper",
@@ -81,14 +81,14 @@ struct NewsListView: View {
                         await viewModel.refresh()
                     }
                 }
-                .frame(maxWidth: .infinity, minHeight: 260)
+                .frame(maxWidth: .infinity, minHeight: 180)
             } else if viewModel.posts.isEmpty {
                 EmptyStateCard(
                     systemImage: "newspaper",
                     title: AppStrings.News.title,
                     message: AppStrings.News.empty
                 )
-                .frame(maxWidth: .infinity, minHeight: 260)
+                .frame(maxWidth: .infinity, minHeight: 180)
             } else {
                 VStack(spacing: 16) {
                     AdaptiveCardGrid(items: viewModel.posts) { post in
@@ -238,6 +238,18 @@ private func looksLikeRawAuthorIdentifier(_ value: String) -> Bool {
     return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
 }
 
+private func newsPublisherText(for post: NewsPost) -> String {
+    let authorName = sanitizedAuthorName(post.authorName)
+    let trimmedOrganizationName = post.source.displayOrganizationName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let sourceName = trimmedOrganizationName.isEmpty ? AppStrings.News.missingOrganization : trimmedOrganizationName
+
+    guard authorName != AppStrings.NewsEditor.authorFallback else {
+        return sourceName
+    }
+
+    return "\(authorName) · \(sourceName)"
+}
+
 private struct NewsCard: View {
     let post: NewsPost
 
@@ -259,7 +271,7 @@ private struct NewsCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Label(sanitizedAuthorName(post.authorName), systemImage: "person")
+                    Label(newsPublisherText(for: post), systemImage: "person.crop.circle")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -278,6 +290,7 @@ struct NewsDetailView: View {
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
     let onNewsDeleted: () -> Void
+    private let organizationRepository: OrganizationRepository
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
     @State private var isDeleting = false
@@ -290,6 +303,7 @@ struct NewsDetailView: View {
     @State private var editingCommentID: String?
     @State private var pendingCommentDeleteID: String?
     @State private var commentDeleteErrorMessage: String?
+    @State private var permissionOrganization: Organization?
     @FocusState private var isCommentFieldFocused: Bool
     private let detailImageHeight: CGFloat = 220
     private let detailActionButtonSize = AppTheme.iconButtonSize
@@ -297,6 +311,18 @@ struct NewsDetailView: View {
     private let detailSectionSpacing: CGFloat = 13
     private let detailCardPadding: CGFloat = 14
     private let detailCardRadius: CGFloat = 18
+
+    init(
+        viewModel: NewsViewModel,
+        postID: String,
+        onNewsDeleted: @escaping () -> Void,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
+    ) {
+        self.viewModel = viewModel
+        self.postID = postID
+        self.onNewsDeleted = onNewsDeleted
+        self.organizationRepository = organizationRepository
+    }
 
     private var canEditNews: Bool {
         guard let post = viewModel.post(for: postID) else { return false }
@@ -308,11 +334,24 @@ struct NewsDetailView: View {
             return false
         }
 
-        return PermissionService.canCreateNews(for: organizationID, user: authState.user)
+        if let organization = organizationForPermissions(organizationID: organizationID) {
+            return PermissionService.canEditOrganizationNews(organization, user: authState.user)
+        }
+
+        return PermissionService.canEditOrganizationNews(organizationId: organizationID, user: authState.user)
     }
 
     private var canDeleteNews: Bool {
-        PermissionService.canDeleteNews(user: authState.user)
+        guard let post = viewModel.post(for: postID) else { return false }
+        guard let organizationID = post.source.organizationId else {
+            return PermissionService.canDeleteNews(post, user: authState.user)
+        }
+
+        if let organization = organizationForPermissions(organizationID: organizationID) {
+            return PermissionService.canManageOrganizationRoles(organization, user: authState.user)
+        }
+
+        return PermissionService.canDeleteNews(post, user: authState.user)
     }
 
 
@@ -337,9 +376,6 @@ struct NewsDetailView: View {
 
                     ScrollView(.vertical, showsIndicators: true) {
                         VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                            newsDetailHeader()
-                                .padding(.top, AppTheme.dashboardSpacing)
-
                             articleHeader(for: post)
                                 .onTapGesture { isCommentFieldFocused = false }
 
@@ -380,9 +416,10 @@ struct NewsDetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .background(AppBackgroundView())
-        .navigationTitle(AppStrings.News.detailTitle)
-        .navigationBarTitleDisplayMode(.inline)
+        .background(AppBackgroundView().allowsHitTesting(false))
+        .safeAreaInset(edge: .top, spacing: 0) {
+            newsDetailHeaderInset
+        }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar {
@@ -439,16 +476,21 @@ struct NewsDetailView: View {
         }
         .guestAccessAlert($guestAccessAction)
         .task {
-            guard viewModel.post(for: postID) != nil else { return }
+            await viewModel.loadIfNeeded()
+            guard let post = viewModel.post(for: postID) else { return }
+            await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
+            await viewModel.loadComments(for: postID)
             guard !recordedViewKeys.contains(newsViewTaskID) else { return }
             recordedViewKeys.insert(newsViewTaskID)
             viewModel.recordView(for: postID)
+            RecentViewRecorder.recordNews(post)
         }
         .onChange(of: authState.user?.id) { _, _ in
-            guard viewModel.post(for: postID) != nil else { return }
+            guard let post = viewModel.post(for: postID) else { return }
             guard !recordedViewKeys.contains(newsViewTaskID) else { return }
             recordedViewKeys.insert(newsViewTaskID)
             viewModel.recordView(for: postID)
+            RecentViewRecorder.recordNews(post)
         }
         .onDisappear {
             guard let pendingRemovalPostID else { return }
@@ -459,14 +501,28 @@ struct NewsDetailView: View {
         }
     }
 
+    private var newsDetailHeaderInset: some View {
+        newsDetailHeader()
+            .padding(.horizontal, AppTheme.pageHorizontal)
+            .padding(.top, AppTheme.dashboardSpacing)
+            .padding(.bottom, 6)
+            .background(Color.clear.allowsHitTesting(false))
+            .zIndex(50)
+    }
+
     private func newsDetailHeader() -> some View {
         AppCenteredBrandHeader {
             detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                dismiss()
+                navigateBack()
             }
         } trailingContent: {
             headerActions()
         }
+    }
+
+    private func navigateBack() {
+        isCommentFieldFocused = false
+        dismiss()
     }
 
     private func headerActions() -> some View {
@@ -483,7 +539,6 @@ struct NewsDetailView: View {
                 ) {
                     handleBookmark(for: post.id)
                 }
-                .disabled(viewModel.pendingNewsBookmarkIDs.contains(post.id))
             }
         }
     }
@@ -503,6 +558,8 @@ struct NewsDetailView: View {
         ) {
             action()
         }
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
     }
 
     private func articleHeader(for post: NewsPost) -> some View {
@@ -598,7 +655,7 @@ struct NewsDetailView: View {
                     .frame(width: 24)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Коротко")
+                    Text(AppStrings.News.summarySectionTitle)
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(AppTheme.textPrimary)
 
@@ -631,7 +688,7 @@ struct NewsDetailView: View {
     private func tagsSection(for post: NewsPost) -> some View {
         if !post.tags.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Теги")
+                Text(AppStrings.News.tagsSectionTitle)
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(AppTheme.accentPrimary)
 
@@ -773,13 +830,13 @@ struct NewsDetailView: View {
         if !relatedPosts.isEmpty {
             VStack(alignment: .leading, spacing: 9) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Вам також може бути цікаво")
+                    Text(AppStrings.News.relatedSectionTitle)
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(AppTheme.accentPrimary)
 
                     Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-                    Text("Дивитися всі")
+                    Text(AppStrings.News.relatedSectionAction)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.accentPrimary)
                 }
@@ -890,27 +947,9 @@ struct NewsDetailView: View {
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(1)
 
-                if canEditComment(comment) || canDeleteComment(comment) {
-                    Menu {
-                        if canEditComment(comment) {
-                            Button(AppStrings.Action.edit, systemImage: "pencil") {
-                                editingCommentID = comment.id
-                                commentText = comment.text
-                                isCommentFieldFocused = true
-                            }
-                        }
-                        if canDeleteComment(comment) {
-                            Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
-                                pendingCommentDeleteID = comment.id
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .frame(width: 28, height: 28)
+                    if canEditComment(comment) || canDeleteComment(comment) {
+                        commentActionMenu(for: comment)
                     }
-                }
             }
 
             Text(comment.text)
@@ -921,7 +960,33 @@ struct NewsDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+    }
+
+    private func commentActionMenu(for comment: Comment) -> some View {
+        Menu {
+            if canEditComment(comment) {
+                Button(AppStrings.Action.edit, systemImage: "pencil") {
+                    editingCommentID = comment.id
+                    commentText = comment.text
+                    isCommentFieldFocused = true
+                }
+            }
+            if canDeleteComment(comment) {
+                Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
+                    pendingCommentDeleteID = comment.id
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle.fill")
+                .font(.title3.weight(.semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: 34, height: 34)
+                .contentShape(Circle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.Action.delete)
     }
 
     private func commentComposer(parentID: String) -> some View {
@@ -1044,7 +1109,30 @@ struct NewsDetailView: View {
         guard let post = viewModel.post(for: postID), let organizationId = post.source.organizationId else {
             return false
         }
-        return PermissionService.canManageCommunity(organizationId: organizationId, user: user)
+        if let organization = organizationForPermissions(organizationID: organizationId) {
+            return PermissionService.canModerateOrganizationContent(organization, user: user)
+        }
+        return PermissionService.canModerateOrganizationComments(organizationId: organizationId, user: user)
+    }
+
+    private func organizationForPermissions(organizationID: String) -> Organization? {
+        guard permissionOrganization?.id == organizationID else { return nil }
+        return permissionOrganization
+    }
+
+    @MainActor
+    private func loadPermissionOrganizationIfNeeded(organizationID: String?) async {
+        guard let organizationID else {
+            permissionOrganization = nil
+            return
+        }
+        guard permissionOrganization?.id != organizationID else { return }
+
+        do {
+            permissionOrganization = try await organizationRepository.fetchOrganization(id: organizationID)
+        } catch {
+            permissionOrganization = nil
+        }
     }
 
     @MainActor
@@ -1069,23 +1157,11 @@ struct NewsDetailView: View {
     }
 
     private func newsSourceText(for post: NewsPost) -> String {
-        if let organizationName = post.source.organizationName?.trimmingCharacters(in: .whitespacesAndNewlines), !organizationName.isEmpty {
+        if let organizationName = post.source.displayOrganizationName?.trimmingCharacters(in: .whitespacesAndNewlines), !organizationName.isEmpty {
             return organizationName
         }
 
-        return sanitizedAuthorName(post.authorName)
-    }
-
-    private func newsPublisherText(for post: NewsPost) -> String {
-        let authorName = sanitizedAuthorName(post.authorName)
-        let trimmedOrganizationName = post.source.organizationName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let sourceName = trimmedOrganizationName.isEmpty ? AppStrings.Home.brandTitle : trimmedOrganizationName
-
-        guard authorName != AppStrings.NewsEditor.authorFallback else {
-            return sourceName
-        }
-
-        return "\(authorName) · \(sourceName)"
+        return AppStrings.News.missingOrganization
     }
 
     private func detailGlassCard<Content: View>(padding: CGFloat = 14, @ViewBuilder content: () -> Content) -> some View {

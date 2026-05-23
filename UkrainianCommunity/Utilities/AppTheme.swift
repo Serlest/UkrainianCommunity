@@ -16,15 +16,6 @@ enum AppTheme {
 
     // Apple-style calm page and surface tokens.
     static let pageBackground = Color(uiColor: .systemGroupedBackground)
-    static let pageBackgroundBranded = LinearGradient(
-        colors: [
-            accentPrimary.opacity(0.08),
-            accentSupport.opacity(0.06),
-            accentDestructive.opacity(0.05)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
     static let surfacePrimary = Color(uiColor: .secondarySystemGroupedBackground)
     static let surfaceSecondary = Color(uiColor: .tertiarySystemGroupedBackground)
     static let surfaceElevated = Color(uiColor: .secondarySystemGroupedBackground)
@@ -44,7 +35,6 @@ enum AppTheme {
 
     static let pageHorizontal: CGFloat = 16
     static let sectionSpacing: CGFloat = 16
-    static let feedSpacing: CGFloat = 24
     static let dashboardSpacing: CGFloat = 12
     static let cardPadding: CGFloat = 18
     static let detailCardPadding: CGFloat = 20
@@ -57,9 +47,6 @@ enum AppTheme {
     static let appHeaderLogoSize = CGSize(width: 160, height: 56)
     static let appHeaderBottomSpacing: CGFloat = 16
     static let appHeaderLeadingAdjustment: CGFloat = 0
-    static let homeHeaderLogoSize = appHeaderLogoSize
-    static let homeHeaderLeadingAdjustment = appHeaderLeadingAdjustment
-    static let homeHeroFilterSpacing: CGFloat = 18
     static let contentPlanePadding: CGFloat = 10
     static let homeFeedPlanePadding = contentPlanePadding
     static let eventsHeaderContentSpacing: CGFloat = 13
@@ -68,20 +55,14 @@ enum AppTheme {
     static let iconButtonSize: CGFloat = 44
     static let metadataIconSize: CGFloat = 18
     static let inputHorizontalPadding: CGFloat = 14
-    static let eventsSearchHeight = searchControlHeight
-    static let eventsActionButtonSize = iconButtonSize
     static let newsDetailHeroHeight: CGFloat = 260
     static let newsDetailActionButtonSize = iconButtonSize
     static let iconButtonRadius = chipRadius
     static let inputRadius = chipRadius
-    static let newsDetailActionButtonRadius = iconButtonRadius
     static let newsEditorSummaryInputHeight: CGFloat = 112
     static let newsEditorSummaryTextHeight: CGFloat = 94
-    static let newsEditorBodyInputHeight: CGFloat = 150
-    static let newsEditorCoverPreviewHeight: CGFloat = 190
     static let newsEditorDetailRowHeight: CGFloat = 52
     static let newsEditorInputHeight = newsEditorDetailRowHeight
-    static let eventsChipTopSpacing: CGFloat = 6
     static let eventsSectionSpacing: CGFloat = 12
     static let eventsListRowSpacing: CGFloat = 10
     static let eventsCardPadding: CGFloat = 8
@@ -187,8 +168,5 @@ enum AppTheme {
     // Backward-compatible aliases for the existing codebase. These should be
     // migrated gradually to semantic names in later design-system phases.
     static let primaryBlue = accentPrimary
-    static let accentYellow = accentSupport
-    static let accentRed = accentDestructive
-    static let cardBackground = surfacePrimary
     static let groupedBackground = pageBackground
 }

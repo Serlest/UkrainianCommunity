@@ -27,6 +27,14 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "organizations/\(organizationID)/cover.jpg")
     }
 
+    func uploadOrganizationPhoto(data: Data, organizationID: String, photoID: String) async throws -> URL {
+        try await uploadCoverImage(data: data, storagePath: "organizations/\(organizationID)/photos/\(photoID).jpg")
+    }
+
+    func deleteOrganizationPhoto(organizationID: String, photoID: String) async throws {
+        try await storage.reference().child("organizations/\(organizationID)/photos/\(photoID).jpg").delete()
+    }
+
     func uploadProfileAvatarImage(data: Data, userID: String) async throws -> URL {
         try await uploadCoverImage(data: data, storagePath: "profileImages/\(userID)/avatar.jpg")
     }
@@ -37,6 +45,40 @@ final class ImageUploadService {
 
     func uploadAppConfigBannerImage(data: Data, storagePath: String) async throws -> URL {
         try await uploadCoverImage(data: data, storagePath: storagePath)
+    }
+
+    func prepareEditorPreviewImageData(from data: Data) async throws -> Data {
+        let preferredPreviewWidths: [CGFloat] = [1600, 1400, 1200]
+        let preferredPreviewQualities: [CGFloat] = [0.82, 0.78, 0.75]
+        let maxPreviewBytes = 2_500_000
+
+        return try await Task.detached(priority: .userInitiated) {
+            try ImageUploadService.processImageData(
+                data,
+                preferredImageWidths: preferredPreviewWidths,
+                preferredCompressionQualities: preferredPreviewQualities,
+                maxUploadBytes: maxPreviewBytes
+            ).data
+        }.value
+    }
+
+    func prepareEditorImageSelection(from data: Data) async throws -> PreparedEditorImageSelection {
+        let preferredPreviewWidths: [CGFloat] = [1600, 1400, 1200]
+        let preferredPreviewQualities: [CGFloat] = [0.82, 0.78, 0.75]
+        let maxPreviewBytes = 2_500_000
+
+        return try await Task.detached(priority: .userInitiated) {
+            let processedImage = try ImageUploadService.processImageData(
+                data,
+                preferredImageWidths: preferredPreviewWidths,
+                preferredCompressionQualities: preferredPreviewQualities,
+                maxUploadBytes: maxPreviewBytes
+            )
+            guard let previewImage = UIImage(data: processedImage.data) else {
+                throw ImageUploadError.invalidImageData
+            }
+            return PreparedEditorImageSelection(data: processedImage.data, previewImage: previewImage)
+        }.value
     }
 
     private func uploadCoverImage(data: Data, storagePath: String) async throws -> URL {
@@ -121,19 +163,26 @@ final class ImageUploadService {
     }
 
     nonisolated private static func jpegData(from image: CGImage, compressionQuality: CGFloat) -> Data? {
-        let size = CGSize(width: image.width, height: image.height)
-        let format = UIGraphicsImageRendererFormat()
-        format.opaque = true
-        format.scale = 1
-
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        let renderedImage = renderer.image { context in
-            UIColor.white.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            UIImage(cgImage: image).draw(in: CGRect(origin: .zero, size: size))
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else {
+            return nil
         }
 
-        return renderedImage.jpegData(compressionQuality: compressionQuality)
+        let options: [CFString: Any] = [
+            kCGImageDestinationLossyCompressionQuality: compressionQuality
+        ]
+        CGImageDestinationAddImage(destination, image, options as CFDictionary)
+
+        guard CGImageDestinationFinalize(destination) else {
+            return nil
+        }
+
+        return data as Data
     }
 }
 
@@ -141,6 +190,11 @@ private struct ProcessedImageUploadData: Sendable {
     let data: Data
     let width: CGFloat
     let quality: CGFloat
+}
+
+struct PreparedEditorImageSelection: @unchecked Sendable {
+    let data: Data
+    let previewImage: UIImage
 }
 
 private enum ImageUploadError: LocalizedError {

@@ -1,6 +1,46 @@
 import Combine
 import Foundation
 
+enum OrganizationEditorCategory: String, CaseIterable, Identifiable {
+    case education
+    case culture
+    case support
+    case integration
+    case other
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .education:
+            AppStrings.Organizations.categoryEducation
+        case .culture:
+            AppStrings.Organizations.categoryCulture
+        case .support:
+            AppStrings.Organizations.categorySupport
+        case .integration:
+            AppStrings.Organizations.categoryIntegration
+        case .other:
+            AppStrings.Organizations.categoryOther
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .education:
+            "graduationcap"
+        case .culture:
+            "theatermasks"
+        case .support:
+            "hands.clap"
+        case .integration:
+            "person.2"
+        case .other:
+            "square.grid.2x2"
+        }
+    }
+}
+
 @MainActor
 final class OrganizationEditorViewModel: ObservableObject {
     enum Mode {
@@ -15,11 +55,41 @@ final class OrganizationEditorViewModel: ObservableObject {
         }
     }
 
+    static let shortDescriptionLimit = 160
+    static let fullDescriptionLimit = 1200
+
     @Published var name = ""
-    @Published var description = ""
+    @Published var shortDescription = "" {
+        didSet {
+            enforceShortDescriptionLimit()
+        }
+    }
+    @Published var fullDescription = "" {
+        didSet {
+            enforceFullDescriptionLimit()
+        }
+    }
     @Published var city = ""
-    @Published var contactEmail = ""
+    @Published var address = ""
+    @Published var selectedFederalState: AustrianFederalState?
+    @Published var email = ""
+    @Published var phone = ""
     @Published var website = ""
+    @Published var telegramURL = ""
+    @Published var donationURL = ""
+    @Published var missionStatement = ""
+    @Published var contactPerson = ""
+    @Published var organizationType = OrganizationEditorCategory.support.rawValue
+    @Published var foundedYear = "" {
+        didSet {
+            if trimmedFoundedYear.isEmpty {
+                foundedMonth = nil
+            }
+        }
+    }
+    @Published var foundedMonth: Int?
+    @Published var languages = ""
+    @Published var socialLinks = ""
     @Published var selectedImageData: Data?
     @Published var isProcessingImage = false
     @Published var successMessage: String?
@@ -33,10 +103,23 @@ final class OrganizationEditorViewModel: ObservableObject {
 
         if case let .edit(existingOrganization) = mode {
             name = existingOrganization.name
-            description = existingOrganization.description
+            shortDescription = Self.limitedShortDescription(existingOrganization.shortDescription)
+            fullDescription = Self.limitedFullDescription(existingOrganization.fullDescription)
             city = existingOrganization.city
-            contactEmail = existingOrganization.contactEmail ?? ""
+            address = existingOrganization.address ?? ""
+            selectedFederalState = existingOrganization.federalState
+            email = existingOrganization.email ?? existingOrganization.contactEmail ?? ""
+            phone = existingOrganization.phone ?? ""
             website = existingOrganization.website ?? ""
+            telegramURL = existingOrganization.telegramURL ?? ""
+            donationURL = existingOrganization.donationURL ?? ""
+            missionStatement = existingOrganization.missionStatement ?? ""
+            contactPerson = existingOrganization.contactPerson ?? ""
+            organizationType = existingOrganization.organizationType ?? OrganizationEditorCategory.support.rawValue
+            foundedYear = existingOrganization.foundedYear.map(String.init) ?? ""
+            foundedMonth = existingOrganization.foundedYear == nil ? nil : existingOrganization.foundedMonth
+            languages = existingOrganization.languages.joined(separator: ", ")
+            socialLinks = Self.socialLinksText(from: existingOrganization.socialLinks)
         }
     }
 
@@ -50,7 +133,7 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     var existingImageURL: String? {
         if case let .edit(existingOrganization) = mode {
-            return existingOrganization.imageURL
+            return existingOrganization.logoURL ?? existingOrganization.imageURL
         }
         return nil
     }
@@ -60,7 +143,15 @@ final class OrganizationEditorViewModel: ObservableObject {
     }
 
     var canSubmit: Bool {
-        !trimmedName.isEmpty && !trimmedDescription.isEmpty && !trimmedCity.isEmpty && !isProcessingImage
+        !trimmedName.isEmpty &&
+            !trimmedShortDescription.isEmpty &&
+            selectedFederalState != nil &&
+            !trimmedOrganizationType.isEmpty &&
+            !isProcessingImage
+    }
+
+    var canSelectFoundedMonth: Bool {
+        parsedFoundedYear != nil
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -90,16 +181,33 @@ final class OrganizationEditorViewModel: ObservableObject {
         let organization: Organization
         switch mode {
         case .create:
+            let legacyImageURL: String? = nil
             organization = Organization(
                 id: UUID().uuidString,
                 name: trimmedName,
-                description: trimmedDescription,
-                regionScope: .city,
-                federalState: .tirol,
+                description: trimmedShortDescription,
+                shortDescription: trimmedShortDescription,
+                fullDescription: trimmedFullDescription.nilIfEmpty ?? trimmedShortDescription,
+                regionScope: .federalState,
+                federalState: selectedFederalState,
                 city: trimmedCity,
-                imageURL: nil,
-                contactEmail: trimmedContactEmail.nilIfEmpty,
+                imageURL: legacyImageURL,
+                logoURL: legacyImageURL,
+                coverURL: legacyImageURL,
+                contactEmail: trimmedEmail.nilIfEmpty,
+                email: trimmedEmail.nilIfEmpty,
+                phone: trimmedPhone.nilIfEmpty,
                 website: normalizedWebsite.nilIfEmpty,
+                address: trimmedAddress.nilIfEmpty,
+                organizationType: trimmedOrganizationType.nilIfEmpty,
+                foundedYear: parsedFoundedYear,
+                foundedMonth: parsedFoundedMonth,
+                languages: parsedLanguages,
+                socialLinks: parsedSocialLinks,
+                telegramURL: normalizedTelegramURL.nilIfEmpty,
+                donationURL: normalizedDonationURL.nilIfEmpty,
+                missionStatement: trimmedMissionStatement.nilIfEmpty,
+                contactPerson: trimmedContactPerson.nilIfEmpty,
                 createdAt: now,
                 updatedAt: now,
                 moderationStatus: .approved,
@@ -110,18 +218,46 @@ final class OrganizationEditorViewModel: ObservableObject {
             organization = Organization(
                 id: existing.id,
                 name: trimmedName,
-                description: trimmedDescription,
+                description: trimmedShortDescription,
+                shortDescription: trimmedShortDescription,
+                fullDescription: trimmedFullDescription.nilIfEmpty ?? trimmedShortDescription,
                 regionScope: existing.regionScope,
-                federalState: existing.federalState,
+                federalState: selectedFederalState,
                 city: trimmedCity,
                 imageURL: existing.imageURL,
-                contactEmail: trimmedContactEmail.nilIfEmpty,
+                logoURL: existing.logoURL,
+                coverURL: existing.coverURL,
+                contactEmail: trimmedEmail.nilIfEmpty,
+                email: trimmedEmail.nilIfEmpty,
+                phone: trimmedPhone.nilIfEmpty,
                 website: normalizedWebsite.nilIfEmpty,
+                address: trimmedAddress.nilIfEmpty,
+                latitude: existing.latitude,
+                longitude: existing.longitude,
+                organizationType: trimmedOrganizationType.nilIfEmpty,
+                foundedYear: parsedFoundedYear,
+                foundedMonth: parsedFoundedMonth,
+                languages: parsedLanguages,
+                socialLinks: parsedSocialLinks,
+                telegramURL: normalizedTelegramURL.nilIfEmpty,
+                donationURL: normalizedDonationURL.nilIfEmpty,
+                missionStatement: trimmedMissionStatement.nilIfEmpty,
+                contactPerson: trimmedContactPerson.nilIfEmpty,
+                subscriberCount: existing.subscriberCount,
+                eventsHeldCount: existing.eventsHeldCount,
+                volunteersCount: existing.volunteersCount,
+                helpedPeopleCount: existing.helpedPeopleCount,
+                ownerId: existing.ownerId,
+                adminIds: existing.adminIds,
+                moderatorIds: existing.moderatorIds,
+                pinnedNewsId: existing.pinnedNewsId,
+                pinnedEventId: existing.pinnedEventId,
                 createdAt: existing.createdAt,
                 updatedAt: now,
                 moderationStatus: existing.moderationStatus,
                 likeCount: existing.likeCount,
-                likeState: existing.likeState
+                likeState: existing.likeState,
+                isBookmarked: existing.isBookmarked
             )
         }
 
@@ -155,20 +291,83 @@ final class OrganizationEditorViewModel: ObservableObject {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var trimmedDescription: String {
-        description.trimmingCharacters(in: .whitespacesAndNewlines)
+    private var trimmedShortDescription: String {
+        Self.limitedShortDescription(shortDescription.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private var trimmedFullDescription: String {
+        Self.limitedFullDescription(fullDescription.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private var trimmedCity: String {
         city.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var trimmedContactEmail: String {
-        contactEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+    private var trimmedAddress: String {
+        address.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedPhone: String {
+        phone.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var trimmedWebsite: String {
         website.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedTelegramURL: String {
+        telegramURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedDonationURL: String {
+        donationURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedMissionStatement: String {
+        missionStatement.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedContactPerson: String {
+        contactPerson.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedOrganizationType: String {
+        organizationType.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedFoundedYear: String {
+        foundedYear.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var parsedFoundedYear: Int? {
+        Int(trimmedFoundedYear)
+    }
+
+    private var parsedFoundedMonth: Int? {
+        guard parsedFoundedYear != nil else { return nil }
+        return foundedMonth.flatMap { (1...12).contains($0) ? $0 : nil }
+    }
+
+    private var parsedLanguages: [String] {
+        languages.commaSeparatedValues
+    }
+
+    private var parsedSocialLinks: [String: String] {
+        socialLinks.commaSeparatedValues.reduce(into: [:]) { result, value in
+            if let separatorIndex = value.firstIndex(of: ":") {
+                let key = String(value[..<separatorIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let link = String(value[value.index(after: separatorIndex)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !key.isEmpty, !link.isEmpty {
+                    result[key] = Self.normalizedSocialLink(link, key: key)
+                }
+            } else if let host = URL(string: value)?.host {
+                result[host] = Self.normalizedSocialLink(value, key: host)
+            }
+        }
     }
 
     private var normalizedWebsite: String {
@@ -177,14 +376,30 @@ final class OrganizationEditorViewModel: ObservableObject {
         return "https://\(trimmedWebsite)"
     }
 
+    private var normalizedTelegramURL: String {
+        Self.normalizedTelegramURL(trimmedTelegramURL)
+    }
+
+    private var normalizedDonationURL: String {
+        Self.normalizedWebURL(trimmedDonationURL)
+    }
+
     private func validate() -> Bool {
         let errors = validationService.validate(
             name: name,
-            description: description,
+            shortDescription: shortDescription,
+            region: selectedFederalState,
             city: city,
-            contactEmail: contactEmail,
-            website: normalizedWebsite
+            email: email,
+            website: normalizedWebsite,
+            foundedYear: foundedYear
         )
+
+        let optionalURLErrors = validateOptionalURLs()
+        if let firstURLError = optionalURLErrors.first {
+            errorMessage = firstURLError
+            return false
+        }
 
         guard let firstError = errors.first else {
             return true
@@ -196,10 +411,23 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     private func resetForm() {
         name = ""
-        description = ""
+        shortDescription = ""
+        fullDescription = ""
         city = ""
-        contactEmail = ""
+        address = ""
+        selectedFederalState = nil
+        email = ""
+        phone = ""
         website = ""
+        telegramURL = ""
+        donationURL = ""
+        missionStatement = ""
+        contactPerson = ""
+        organizationType = OrganizationEditorCategory.support.rawValue
+        foundedYear = ""
+        foundedMonth = nil
+        languages = ""
+        socialLinks = ""
         selectedImageData = nil
     }
 
@@ -207,10 +435,95 @@ final class OrganizationEditorViewModel: ObservableObject {
         let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return message.isEmpty ? AppStrings.Organizations.actionUnknownError : message
     }
+
+    private static func socialLinksText(from links: [String: String]) -> String {
+        links
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key): \($0.value)" }
+            .joined(separator: ", ")
+    }
+
+    private static func normalizedWebURL(_ rawValue: String) -> String {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        guard URL(string: trimmed)?.scheme?.isEmpty != false else { return trimmed }
+        return "https://\(trimmed)"
+    }
+
+    private static func normalizedTelegramURL(_ rawValue: String) -> String {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
+        if trimmed.hasPrefix("@") {
+            return "https://t.me/\(trimmed.dropFirst())"
+        }
+
+        let lowercase = trimmed.lowercased()
+        if lowercase.hasPrefix("t.me/") || lowercase.hasPrefix("telegram.me/") {
+            return "https://\(trimmed)"
+        }
+
+        return normalizedWebURL(trimmed)
+    }
+
+    private static func normalizedSocialLink(_ rawValue: String, key: String) -> String {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
+        let lowercaseKey = key.lowercased()
+        let lowercaseValue = trimmed.lowercased()
+        if lowercaseKey.contains("telegram") || lowercaseValue.hasPrefix("@") || lowercaseValue.contains("t.me/") {
+            return normalizedTelegramURL(trimmed)
+        }
+        if lowercaseKey.contains("instagram"), !lowercaseValue.contains("instagram.com") {
+            let username = trimmed.hasPrefix("@") ? String(trimmed.dropFirst()) : trimmed
+            return normalizedWebURL("instagram.com/\(username)")
+        }
+        if lowercaseKey.contains("facebook"), !lowercaseValue.contains("facebook.com") && !lowercaseValue.contains("fb.com") {
+            return normalizedWebURL("facebook.com/\(trimmed)")
+        }
+        return normalizedWebURL(trimmed)
+    }
+
+    private func validateOptionalURLs() -> [String] {
+        [normalizedTelegramURL, normalizedDonationURL]
+            .filter { !$0.isEmpty }
+            .compactMap { value in
+                URL(string: value)?.scheme?.isEmpty == false ? nil : AppStrings.Validation.organizationWebsiteInvalid
+            }
+    }
+
+    private func enforceShortDescriptionLimit() {
+        let limitedValue = Self.limitedShortDescription(shortDescription)
+        if shortDescription != limitedValue {
+            shortDescription = limitedValue
+        }
+    }
+
+    private func enforceFullDescriptionLimit() {
+        let limitedValue = Self.limitedFullDescription(fullDescription)
+        if fullDescription != limitedValue {
+            fullDescription = limitedValue
+        }
+    }
+
+    private static func limitedShortDescription(_ value: String) -> String {
+        String(value.prefix(shortDescriptionLimit))
+    }
+
+    private static func limitedFullDescription(_ value: String) -> String {
+        String(value.prefix(fullDescriptionLimit))
+    }
 }
 
 private extension String {
     var nilIfEmpty: String? {
         isEmpty ? nil : self
+    }
+
+    var commaSeparatedValues: [String] {
+        split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 }

@@ -34,26 +34,74 @@ service firebase.storage {
         );
     }
 
-    function isTopAdmin() {
+    function canModerateSection(section) {
+      return isOwner();
+    }
+
+    function canManageContentImages(section) {
+      return canModerateSection(section);
+    }
+
+    function existsOrganization(organizationId) {
       return isSignedIn()
-        && existsUser(request.auth.uid)
-        && (
-          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'topAdmin')
-          || (('role' in currentUserData()) && currentUserData().role == 'admin')
+        && organizationId is string
+        && firestore.exists(/databases/(default)/documents/organizations/$(organizationId));
+    }
+
+    function organizationData(organizationId) {
+      return firestore.get(/databases/(default)/documents/organizations/$(organizationId)).data;
+    }
+
+    function isOrganizationOwner(organizationId) {
+      return existsOrganization(organizationId)
+        && ('ownerId' in organizationData(organizationId))
+        && organizationData(organizationId).ownerId == request.auth.uid;
+    }
+
+    function isOrganizationAdmin(organizationId) {
+      return existsOrganization(organizationId)
+        && ('adminIds' in organizationData(organizationId))
+        && organizationData(organizationId).adminIds.hasAny([request.auth.uid]);
+    }
+
+    function isOrganizationModerator(organizationId) {
+      return existsOrganization(organizationId)
+        && ('moderatorIds' in organizationData(organizationId))
+        && organizationData(organizationId).moderatorIds.hasAny([request.auth.uid]);
+    }
+
+    function canEditOrganizationContent(organizationId) {
+      return isOwner()
+        || isOrganizationOwner(organizationId)
+        || isOrganizationAdmin(organizationId);
+    }
+
+    function canManageOrganizationPhotos(organizationId) {
+      return isOwner()
+        || canEditOrganizationContent(organizationId)
+        || isOrganizationModerator(organizationId);
+    }
+
+    function isSafeImageUpload() {
+      return request.resource != null
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    function canManageNewsCover(newsId) {
+      return firestore.exists(/databases/(default)/documents/news/$(newsId))
+        && firestore.get(/databases/(default)/documents/news/$(newsId)).data.sourceType == 'organization'
+        && canEditOrganizationContent(
+          firestore.get(/databases/(default)/documents/news/$(newsId)).data.organizationId
         );
     }
 
-    function isAppModerator() {
-      return isSignedIn()
-        && existsUser(request.auth.uid)
-        && (
-          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'appModerator')
-          || (('role' in currentUserData()) && currentUserData().role == 'moderator')
+    function canManageEventCover(eventId) {
+      return firestore.exists(/databases/(default)/documents/events/$(eventId))
+        && firestore.get(/databases/(default)/documents/events/$(eventId)).data.sourceType == 'organization'
+        && canEditOrganizationContent(
+          firestore.get(/databases/(default)/documents/events/$(eventId)).data.organizationId
         );
-    }
-
-    function canManageContentImages() {
-      return isOwner() || isTopAdmin() || isAppModerator();
     }
 
     function isAppManagedHeroBannerPath(bannerId, fileName) {
@@ -66,30 +114,67 @@ service firebase.storage {
         && fileName == 'banner.jpg';
     }
 
+    match /news/{newsId}/cover.jpg {
+      allow read: if true;
+      allow write: if canManageContentImages('news') || canManageNewsCover(newsId);
+    }
+
     match /news/{filePath=**} {
       allow read: if true;
-      allow write: if canManageContentImages();
+      allow write: if canManageContentImages('news');
+    }
+
+    match /events/{eventId}/cover.jpg {
+      allow read: if true;
+      allow write: if canManageContentImages('events') || canManageEventCover(eventId);
     }
 
     match /events/{filePath=**} {
       allow read: if true;
-      allow write: if canManageContentImages();
+      allow write: if canManageContentImages('events');
+    }
+
+    match /organizations/{organizationId}/cover.jpg {
+      allow read: if true;
+      allow write: if canManageContentImages('organizations')
+        || canEditOrganizationContent(organizationId);
+    }
+
+    match /organizations/{organizationId}/photos/{fileName} {
+      allow read: if true;
+      allow create: if canManageOrganizationPhotos(organizationId)
+        && fileName.matches('^.+\\.jpg$')
+        && isSafeImageUpload();
+      allow delete: if canManageOrganizationPhotos(organizationId)
+        && fileName.matches('^.+\\.jpg$');
+    }
+
+    match /organizations/{organizationId}/draftUploads/news/{fileName} {
+      allow read: if canEditOrganizationContent(organizationId);
+      allow write: if canEditOrganizationContent(organizationId)
+        && isSafeImageUpload();
+    }
+
+    match /organizations/{organizationId}/draftUploads/events/{fileName} {
+      allow read: if canEditOrganizationContent(organizationId);
+      allow write: if canEditOrganizationContent(organizationId)
+        && isSafeImageUpload();
     }
 
     match /organizations/{filePath=**} {
       allow read: if true;
-      allow write: if canManageContentImages();
+      allow write: if false;
     }
 
     match /profileImages/{uid}/{filePath=**} {
       allow read: if true;
-      allow write: if isSelf(uid) || isOwner() || isTopAdmin();
+      allow write: if isSelf(uid) || isOwner();
     }
 
     match /appConfig/{bannerId}/{fileName} {
-      allow read: if isAppManagedHeroBannerPath(bannerId, fileName) && isSignedIn();
+      allow read: if isAppManagedHeroBannerPath(bannerId, fileName);
       allow write: if isAppManagedHeroBannerPath(bannerId, fileName)
-        && (isOwner() || isTopAdmin());
+        && isOwner();
     }
 
     match /{allPaths=**} {

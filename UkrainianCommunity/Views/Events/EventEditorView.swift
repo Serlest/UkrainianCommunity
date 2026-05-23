@@ -7,21 +7,39 @@ import UIKit
 struct EventEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: EventEditorViewModel
+    @StateObject private var organizerOrganizationsViewModel: OrganizationsViewModel
     @StateObject private var locationSearch = EventLocationSearchViewModel()
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedPreviewImage: UIImage?
+    @State private var imageProcessingTask: Task<Void, Never>?
+    @State private var imageProcessingToken = UUID()
     @State private var isShowingMapPicker = false
+    @State private var isShowingOrganizerPicker = false
     @State private var isApplyingLocationSelection = false
     @State private var activeDatePicker: EventEditorDatePicker?
 
     private let onPublished: @MainActor () async -> Void
-    private let cardPadding: CGFloat = AppTheme.detailCompactCardPadding
-    private let editorSpacing: CGFloat = AppTheme.detailSectionSpacing
-    private let headerLogoSize = CGSize(width: 110, height: 39)
+    private let editorSectionSpacing: CGFloat = 8
+    private let editorCardSpacing: CGFloat = 8
+    private let editorCardPadding: CGFloat = 10
+    private let editorCardRadius: CGFloat = 16
+    private let compactInputHeight: CGFloat = 40
+    private let summaryInputHeight: CGFloat = 78
+    private let detailsInputHeight: CGFloat = 104
+    private let locationNoteInputHeight: CGFloat = 70
+    private let uploadMinHeight: CGFloat = 124
+    private let headerLogoSize = CGSize(width: 118, height: 42)
     private let organizerLogoSize: CGFloat = 48
 
-    init(repository: EventRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
+    init(
+        repository: EventRepository,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onPublished: @escaping @MainActor () async -> Void = {}
+    ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create()))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -31,6 +49,7 @@ struct EventEditorView: View {
         organizationName: String,
         organizationImageURL: String?,
         organizationFederalState: AustrianFederalState? = nil,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
         onPublished: @escaping @MainActor () async -> Void = {}
     ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(
@@ -42,17 +61,24 @@ struct EventEditorView: View {
                 organizationFederalState: organizationFederalState
             ))
         ))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
-    init(repository: EventRepository, event: Event, onPublished: @escaping @MainActor () async -> Void = {}) {
+    init(
+        repository: EventRepository,
+        event: Event,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onPublished: @escaping @MainActor () async -> Void = {}
+    ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .edit(existing: event)))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: editorSpacing) {
+            VStack(alignment: .leading, spacing: editorSectionSpacing) {
                 editorHeader
                     .padding(.top, AppTheme.dashboardSpacing)
 
@@ -84,6 +110,15 @@ struct EventEditorView: View {
                 applyLocation(selection)
             }
         }
+        .sheet(isPresented: $isShowingOrganizerPicker) {
+            OrganizerPickerSheet(
+                organizations: availableOrganizerOrganizations,
+                selectedOrganizationID: viewModel.selectedOrganizationId
+            ) { organization in
+                viewModel.selectOrganizer(organization)
+                isShowingOrganizerPicker = false
+            }
+        }
         .sheet(item: $activeDatePicker) { picker in
             EventDatePickerSheet(
                 title: picker.title,
@@ -92,8 +127,12 @@ struct EventEditorView: View {
             )
         }
         .onChange(of: selectedPhoto) { _, newItem in
-            Task {
-                await loadSelectedPhoto(item: newItem)
+            dismissKeyboard()
+            imageProcessingTask?.cancel()
+            let token = UUID()
+            imageProcessingToken = token
+            imageProcessingTask = Task {
+                await loadSelectedPhoto(item: newItem, token: token)
             }
         }
         .onChange(of: viewModel.venue) { _, newValue in
@@ -109,6 +148,19 @@ struct EventEditorView: View {
             guard !isApplyingLocationSelection else { return }
             viewModel.clearResolvedCoordinates()
         }
+        .onDisappear {
+            imageProcessingTask?.cancel()
+        }
+        .task {
+            await organizerOrganizationsViewModel.loadIfNeeded()
+            applyDefaultOrganizerIfNeeded()
+        }
+        .onChange(of: organizerOrganizationsViewModel.contentVersion) { _, _ in
+            applyDefaultOrganizerIfNeeded()
+        }
+        .onChange(of: authState.user?.id) { _, _ in
+            applyDefaultOrganizerIfNeeded()
+        }
     }
 
     private var editorHeader: some View {
@@ -123,7 +175,7 @@ struct EventEditorView: View {
         }
         .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
         .overlay(alignment: .leading) {
-            headerIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+            headerIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
                 dismiss()
             }
         }
@@ -151,12 +203,12 @@ struct EventEditorView: View {
     private var editorTitleBlock: some View {
         VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
             Text(viewModel.navigationTitle)
-                .font(.title.weight(.bold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(AppTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(AppStrings.Events.editorSubtitle)
-                .font(.callout.weight(.medium))
+                .font(.footnote.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -167,7 +219,7 @@ struct EventEditorView: View {
     private var statusContent: some View {
         if viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage {
             editorStatusCard {
-                Label(viewModel.isUploadingImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Events.publishing, systemImage: "arrow.triangle.2.circlepath")
+                Label(statusMessage, systemImage: "arrow.triangle.2.circlepath")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(AppTheme.accentPrimary)
             }
@@ -208,16 +260,44 @@ struct EventEditorView: View {
         return AppStrings.Events.publishing
     }
 
+    private var availableOrganizerOrganizations: [Organization] {
+        guard let user = authState.user else { return [] }
+
+        let organizations = organizerOrganizationsViewModel.organizations
+            .filter { $0.id != Organization.systemOrganizationID }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+
+        switch user.globalRole.effectiveRole {
+        case .owner:
+            return organizations
+        case .user, .topAdmin, .appModerator:
+            return PermissionService.manageableOrganizations(from: organizations, user: user)
+        }
+    }
+
+    private var canSelectOrganizer: Bool {
+        !viewModel.isEditing && availableOrganizerOrganizations.count > 1
+    }
+
+    private func applyDefaultOrganizerIfNeeded() {
+        guard !viewModel.isEditing else { return }
+        guard viewModel.selectedOrganizationId == nil else { return }
+        guard availableOrganizerOrganizations.count == 1, let organization = availableOrganizerOrganizations.first else { return }
+        viewModel.selectOrganizer(organization)
+    }
+
     private var bottomSubmitButton: some View {
         Button(action: submit) {
             HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if viewModel.isPublishing || viewModel.isUploadingImage {
+                if viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage {
                     ProgressView()
                         .controlSize(.small)
                         .tint(.white)
                 }
 
-                Text(viewModel.isPublishing || viewModel.isUploadingImage ? statusMessage : viewModel.primarySubmitButtonTitle)
+                Text(viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage ? statusMessage : viewModel.primarySubmitButtonTitle)
                     .font(.headline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
@@ -232,7 +312,7 @@ struct EventEditorView: View {
             .shadow(color: AppTheme.accentPrimary.opacity(viewModel.canPublish ? 0.18 : 0), radius: 12, y: 6)
         }
         .buttonStyle(.plain)
-        .disabled(!viewModel.canPublish || viewModel.isPublishing || viewModel.isUploadingImage)
+        .disabled(!viewModel.canPublish || viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage)
         .accessibilityLabel(viewModel.primarySubmitButtonTitle)
     }
 
@@ -247,27 +327,28 @@ struct EventEditorView: View {
 
     private var mainCard: some View {
         editorCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorField(title: AppStrings.Events.fieldTitle, counterText: "\(viewModel.title.count)/120") {
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorField(title: AppStrings.Events.fieldTitle, counterText: "\(viewModel.title.count)/120") {
                     TextField(AppStrings.Events.titlePlaceholder, text: $viewModel.title)
+                        .font(.subheadline)
                         .textInputAutocapitalization(.sentences)
-                        .appEditorInputStyle()
+                        .eventEditorCompactInputStyle(minHeight: compactInputHeight)
                 }
 
-                AppEditorField(title: AppStrings.Events.fieldSummary) {
+                editorField(title: AppStrings.Events.fieldSummary) {
                     multilineInput(
                         placeholder: AppStrings.Events.summaryPlaceholder,
                         text: $viewModel.summary,
-                        minHeight: 88,
+                        minHeight: summaryInputHeight,
                         counterText: "\(viewModel.summary.count)/200"
                     )
                 }
 
-                AppEditorField(title: AppStrings.Events.fieldDetails) {
+                editorField(title: AppStrings.Events.fieldDetails) {
                     multilineInput(
                         placeholder: AppStrings.Events.detailsPlaceholder,
                         text: $viewModel.details,
-                        minHeight: 132,
+                        minHeight: detailsInputHeight,
                         counterText: "\(viewModel.details.count)/2000"
                     )
                 }
@@ -277,28 +358,35 @@ struct EventEditorView: View {
 
     private var imageCard: some View {
         editorCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.imageSectionTitle)
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Events.imageSectionTitle)
 
                 PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
                     imagePickerContent
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.isProcessingImage || viewModel.isPublishing)
+                .simultaneousGesture(TapGesture().onEnded(dismissKeyboard))
                 .accessibilityLabel(AppStrings.Events.imageSectionTitle)
+                .overlay {
+                    if viewModel.isProcessingImage {
+                        imageProcessingOverlay
+                    }
+                }
             }
         }
     }
 
     @ViewBuilder
     private var imagePickerContent: some View {
-        if let selectedImageData = viewModel.selectedImageData,
-           let image = UIImage(data: selectedImageData) {
+        if let selectedPreviewImage {
+            let image = selectedPreviewImage
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
                 .frame(maxWidth: .infinity)
-                .frame(height: 150)
+                .frame(height: uploadMinHeight)
+                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
@@ -307,7 +395,7 @@ struct EventEditorView: View {
         } else if let existingImageURL = viewModel.existingImageURL {
             RemoteImageView(
                 imageURL: existingImageURL,
-                height: 150,
+                height: uploadMinHeight,
                 cornerRadius: AppTheme.imageRadius,
                 source: "EventEditorView",
                 placeholderStyle: .glassSkeleton
@@ -317,10 +405,20 @@ struct EventEditorView: View {
         }
     }
 
+    private var imageProcessingOverlay: some View {
+        ProgressView()
+            .controlSize(.regular)
+            .tint(AppTheme.accentPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: uploadMinHeight)
+            .background(.black.opacity(0.08), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+            .allowsHitTesting(false)
+    }
+
     private var dateTimeCard: some View {
         editorCard {
-            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.dateSectionTitle)
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Events.dateSectionTitle)
                 EventDatePickerRow(systemImage: "calendar", title: AppStrings.Events.fieldStartDate, value: dateValue(viewModel.startDate)) {
                     activeDatePicker = .startDate
                 }
@@ -348,31 +446,33 @@ struct EventEditorView: View {
 
     private var locationCard: some View {
         editorCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.fieldLocation)
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Events.fieldLocation)
 
                 iconTextField(systemImage: "mappin.circle", placeholder: AppStrings.Events.locationPlaceholder, text: $viewModel.venue)
 
                 locationSuggestions
 
-                AppEditorField(title: AppStrings.Events.addressPlaceholder) {
+                editorField(title: AppStrings.Events.addressPlaceholder) {
                     TextField(AppStrings.Events.addressPlaceholder, text: $viewModel.address)
+                        .font(.subheadline)
                         .textInputAutocapitalization(.words)
-                        .appEditorInputStyle()
+                        .eventEditorCompactInputStyle(minHeight: compactInputHeight)
                 }
 
-                AppEditorField(title: AppStrings.Common.city) {
+                editorField(title: AppStrings.Common.city) {
                     TextField(AppStrings.Common.city, text: $viewModel.city)
+                        .font(.subheadline)
                         .textInputAutocapitalization(.words)
-                        .appEditorInputStyle()
+                        .eventEditorCompactInputStyle(minHeight: compactInputHeight)
                 }
 
-                AppEditorField(title: AppStrings.Events.locationNoteTitle) {
+                editorField(title: AppStrings.Events.locationNoteTitle) {
                     multilineInput(
                         placeholder: AppStrings.Events.locationNotePlaceholder,
                         text: $viewModel.locationNote,
-                        minHeight: 76,
-                        counterText: "\(viewModel.locationNote.count)/160"
+                        minHeight: locationNoteInputHeight,
+                        counterText: "\(viewModel.locationNote.count)/\(EventEditorViewModel.locationNoteCharacterLimit)"
                     )
                 }
 
@@ -495,51 +595,97 @@ struct EventEditorView: View {
     private var organizerCard: some View {
         editorCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.editorOrganizerSectionTitle)
+                editorSectionTitle(AppStrings.Events.editorOrganizerSectionTitle)
 
-                HStack(spacing: AppTheme.dashboardSpacing) {
-                    AppFeedThumbnail(
-                        imageURL: viewModel.organizerImageURL,
-                        fallbackSystemImage: "building.2",
-                        tint: AppTheme.accentPrimary,
-                        fill: AppTheme.accentPrimarySoft,
-                        size: organizerLogoSize,
-                        cornerRadius: AppTheme.feedThumbnailRadius,
-                        source: "EventEditorOrganizer"
-                    )
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(viewModel.organizerName ?? AppStrings.Home.brandTitle)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .lineLimit(2)
-
-                        AppInfoChip(
-                            title: viewModel.organizerName == nil ? AppStrings.Tabs.events : AppStrings.Organizations.detailBadge,
-                            systemImage: "building.2",
+                Button {
+                    guard canSelectOrganizer else { return }
+                    isShowingOrganizerPicker = true
+                } label: {
+                    HStack(spacing: AppTheme.dashboardSpacing) {
+                        AppFeedThumbnail(
+                            imageURL: viewModel.organizerImageURL,
+                            fallbackSystemImage: "building.2",
                             tint: AppTheme.accentPrimary,
                             fill: AppTheme.accentPrimarySoft,
-                            size: .small
+                            size: organizerLogoSize,
+                            cornerRadius: AppTheme.feedThumbnailRadius,
+                            source: "EventEditorOrganizer"
                         )
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(viewModel.organizerName ?? organizerPlaceholderTitle)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+                                .lineLimit(2)
+
+                            AppInfoChip(
+                                title: organizerStatusTitle,
+                                systemImage: "building.2",
+                                tint: AppTheme.accentPrimary,
+                                fill: AppTheme.accentPrimarySoft,
+                                size: .small
+                            )
+                        }
+
+                        Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                        organizerAccessory
                     }
-
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                    Label(AppStrings.Common.notAvailable, systemImage: "lock.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.7))
-                        .labelStyle(.iconOnly)
-                        .frame(width: 32, height: 32)
-                        .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
                 }
+                .buttonStyle(.plain)
+                .disabled(!canSelectOrganizer)
             }
+        }
+    }
+
+    private var organizerPlaceholderTitle: String {
+        if organizerOrganizationsViewModel.isLoading {
+            return AppStrings.Profile.loadingUserProfile
+        }
+
+        return AppStrings.Home.brandTitle
+    }
+
+    private var organizerStatusTitle: String {
+        if viewModel.organizerName != nil {
+            return AppStrings.Organizations.detailBadge
+        }
+
+        if availableOrganizerOrganizations.isEmpty {
+            return AppStrings.Common.notAvailable
+        }
+
+        return AppStrings.Tabs.events
+    }
+
+    @ViewBuilder
+    private var organizerAccessory: some View {
+        if canSelectOrganizer {
+            Image(systemName: "chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
+        } else if organizerOrganizationsViewModel.isLoading {
+            ProgressView()
+                .controlSize(.small)
+                .tint(AppTheme.accentPrimary)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
+        } else {
+            Label(AppStrings.Common.notAvailable, systemImage: "lock.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.7))
+                .labelStyle(.iconOnly)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
         }
     }
 
     private var categoryCard: some View {
         editorCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.categorySectionTitle)
+                editorSectionTitle(AppStrings.Events.categorySectionTitle)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: AppTheme.eventsMetadataSpacing) {
@@ -559,7 +705,7 @@ struct EventEditorView: View {
     private var additionalSettingsCard: some View {
         editorCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.additionalSettingsTitle)
+                editorSectionTitle(AppStrings.Events.additionalSettingsTitle)
                 if viewModel.showsRegionPicker {
                     regionPickerRow
                     editorDivider
@@ -654,21 +800,58 @@ struct EventEditorView: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineSpacing(3)
         }
-        .padding(AppTheme.detailCompactCardPadding)
+        .padding(editorCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.surfaceGlass, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
     }
 
     private func editorCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        SoftContentCard(padding: cardPadding) {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(editorCardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.55))
+        )
+        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.45), radius: 10, y: 5)
+    }
+
+    private func editorStatusCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        editorCard {
             content()
         }
     }
 
-    private func editorStatusCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        SoftContentCard(padding: AppTheme.dashboardSpacing) {
+    private func editorField<Content: View>(title: String, counterText: String? = nil, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                if let counterText {
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                    Text(counterText)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .monospacedDigit()
+                }
+            }
+
             content()
         }
+    }
+
+    private func editorSectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var editorDivider: some View {
@@ -682,33 +865,34 @@ struct EventEditorView: View {
         ZStack(alignment: .topLeading) {
             if text.wrappedValue.isEmpty {
                 Text(placeholder)
-                    .font(.subheadline.weight(.medium))
+                    .font(.subheadline)
                     .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
-                    .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                    .padding(.vertical, 13)
+                    .lineSpacing(2)
+                    .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+                    .padding(.vertical, AppTheme.eventsMetadataSpacing)
             }
 
             TextEditor(text: text)
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline)
                 .foregroundStyle(AppTheme.textPrimary)
                 .scrollContentBackground(.hidden)
                 .textInputAutocapitalization(.sentences)
-                .padding(.horizontal, AppTheme.inputHorizontalPadding - 5)
-                .padding(.vertical, 5)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
                 .frame(minHeight: minHeight, alignment: .topLeading)
 
             Text(counterText)
-                .font(.caption.weight(.medium))
+                .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
                 .monospacedDigit()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .padding(.trailing, AppTheme.inputHorizontalPadding)
-                .padding(.bottom, 10)
+                .padding(.trailing, AppTheme.eventsControlGroupSpacing)
+                .padding(.bottom, AppTheme.eventsMetadataSpacing)
         }
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.82))
         )
     }
 
@@ -725,33 +909,36 @@ struct EventEditorView: View {
 
             Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-            Toggle("", isOn: $viewModel.isAllDay)
+            Toggle("", isOn: Binding(
+                get: { viewModel.isAllDay },
+                set: { viewModel.setAllDay($0) }
+            ))
                 .labelsHidden()
         }
         .frame(minHeight: 48)
     }
 
     private var compactUploadPlaceholder: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 7) {
             Image(systemName: "photo.badge.plus")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary.opacity(0.78))
 
             Text(AppStrings.Events.coverUploadTitle)
-                .font(.subheadline.weight(.semibold))
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
 
             Text(AppStrings.Events.coverUploadHelper)
-                .font(.caption.weight(.medium))
+                .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 150)
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+        .frame(height: uploadMinHeight)
+        .background(AppTheme.glassControlSurface(for: colorScheme).opacity(0.72), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
-                .stroke(AppTheme.glassBorder(for: colorScheme), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
+                .stroke(AppTheme.glassBorder(for: colorScheme).opacity(0.82), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
         )
     }
 
@@ -771,16 +958,16 @@ struct EventEditorView: View {
                 .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
             TextField(placeholder, text: text)
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline)
                 .foregroundStyle(AppTheme.textPrimary)
                 .textInputAutocapitalization(.words)
         }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.searchControlHeight)
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+        .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+        .frame(minHeight: compactInputHeight, alignment: .leading)
+        .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
         )
     }
 
@@ -799,11 +986,6 @@ struct EventEditorView: View {
             .accessibilityHint(AppStrings.Action.comingSoon)
     }
 
-    private func disabledSettingsRow(systemImage: String, title: String, value: String) -> some View {
-        settingsRow(systemImage: systemImage, title: title, value: value, showsChevron: false)
-            .opacity(0.68)
-            .accessibilityHint(AppStrings.Action.comingSoon)
-    }
 
     private func settingsRow(systemImage: String, title: String, value: String, showsChevron: Bool) -> some View {
         HStack(spacing: AppTheme.dashboardSpacing) {
@@ -815,14 +997,16 @@ struct EventEditorView: View {
             Text(title)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(1)
 
             Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-            if !value.isEmpty {
-                Text(value)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
+            Text(value.isEmpty ? "Оберіть регіон" : value)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(value.isEmpty ? AppTheme.textSecondary.opacity(0.68) : AppTheme.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .layoutPriority(1)
 
             if showsChevron {
                 Image(systemName: "chevron.down")
@@ -851,50 +1035,98 @@ struct EventEditorView: View {
 
     private func dateBinding(for picker: EventEditorDatePicker) -> Binding<Date> {
         switch picker {
-        case .startDate, .startTime:
-            $viewModel.startDate
-        case .endDate, .endTime:
-            $viewModel.endDate
+        case .startDate:
+            Binding(
+                get: { viewModel.startDate },
+                set: { viewModel.setStartDateComponent($0) }
+            )
+        case .startTime:
+            Binding(
+                get: { viewModel.startDate },
+                set: { viewModel.setStartTimeComponent($0) }
+            )
+        case .endDate:
+            Binding(
+                get: { viewModel.endDate },
+                set: { viewModel.setEndDateComponent($0) }
+            )
+        case .endTime:
+            Binding(
+                get: { viewModel.endDate },
+                set: { viewModel.setEndTimeComponent($0) }
+            )
         }
     }
 
-    private func loadSelectedPhoto(item: PhotosPickerItem?) async {
+    private func loadSelectedPhoto(item: PhotosPickerItem?, token: UUID) async {
         guard let item else {
             await MainActor.run {
+                guard imageProcessingToken == token else { return }
                 viewModel.setImageProcessing(false)
                 viewModel.setSelectedImageData(nil)
+                selectedPreviewImage = nil
             }
             return
         }
 
         await MainActor.run {
+            guard imageProcessingToken == token else { return }
             viewModel.setImageProcessing(true)
         }
 
         do {
-            let data = try await item.loadTransferable(type: Data.self)
-            guard let data else {
+            let originalData = try await item.loadTransferable(type: Data.self)
+            guard !Task.isCancelled else { return }
+            guard let originalData else {
                 await MainActor.run {
+                    guard imageProcessingToken == token else { return }
                     selectedPhoto = nil
                     viewModel.setImageProcessing(false)
                     viewModel.setSelectedImageData(nil)
+                    selectedPreviewImage = nil
                     viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
                 }
                 return
             }
+            let preparedImage = try await ImageUploadService.shared.prepareEditorImageSelection(from: originalData)
+            guard !Task.isCancelled else { return }
 
             await MainActor.run {
+                guard imageProcessingToken == token else { return }
                 viewModel.setImageProcessing(false)
-                viewModel.setSelectedImageData(data)
+                viewModel.setSelectedImageData(preparedImage.data)
+                selectedPreviewImage = preparedImage.previewImage
             }
         } catch {
+            guard !Task.isCancelled else { return }
             await MainActor.run {
+                guard imageProcessingToken == token else { return }
                 selectedPhoto = nil
                 viewModel.setImageProcessing(false)
                 viewModel.setSelectedImageData(nil)
+                selectedPreviewImage = nil
                 viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
             }
         }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
+private extension View {
+    func eventEditorCompactInputStyle(minHeight: CGFloat) -> some View {
+        self
+            .font(.subheadline)
+            .foregroundStyle(AppTheme.textPrimary)
+            .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+            .frame(minHeight: minHeight, alignment: .leading)
+            .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                    .strokeBorder(AppTheme.borderSubtle)
+            )
     }
 }
 
@@ -1340,6 +1572,89 @@ private struct EventMapPickerView: View {
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
         .frame(minHeight: 48)
+    }
+}
+
+private struct OrganizerPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let organizations: [Organization]
+    let selectedOrganizationID: String?
+    let onSelect: (Organization) -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+                    ForEach(organizations) { organization in
+                        Button {
+                            onSelect(organization)
+                        } label: {
+                            organizerRow(for: organization)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
+            }
+            .background(AppBackgroundView())
+            .navigationTitle(AppStrings.Events.editorOrganizerSectionTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppStrings.Common.cancel) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func organizerRow(for organization: Organization) -> some View {
+        SoftContentCard(padding: AppTheme.organizationsCardPadding) {
+            HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
+                AppFeedThumbnail(
+                    imageURL: organization.imageURL,
+                    fallbackSystemImage: "building.2",
+                    tint: AppTheme.accentPrimary,
+                    fill: AppTheme.badgeBlueFill,
+                    size: AppTheme.organizationsThumbnailSize,
+                    cornerRadius: AppTheme.feedThumbnailRadius,
+                    source: "OrganizerPickerSheet"
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(organization.name)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(2)
+
+                    if !organization.shortDescription.isEmpty {
+                        Text(organization.shortDescription)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
+                            .lineLimit(2)
+                    }
+
+                    AppInfoChip(
+                        title: organization.city,
+                        systemImage: "mappin.and.ellipse",
+                        tint: AppTheme.textSecondary,
+                        fill: AppTheme.surfaceControl.opacity(0.62),
+                        size: .small
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if organization.id == selectedOrganizationID {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
+            }
+        }
     }
 }
 

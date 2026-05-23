@@ -16,16 +16,19 @@ enum AppStrings {
         static var subtitle: String { text("home.subtitle", "A calm, trusted place for updates, events, organizations, and neighbor-to-neighbor support.") }
         static var bannerTitle: String { text("home.banner.title", "Together, stronger") }
         static var bannerSubtitle: String { text("home.banner.subtitle", "Support, information, and opportunities for Ukrainians in Austria.") }
-        static var regionAllAustria: String { text("home.region.all_austria", "All Austria") }
+        static var regionAllAustria: String { text("home.region.all_austria", "Вся Австрія") }
         static var highlights: String { text("home.highlights", "Community Highlights") }
         static var latestNews: String { text("home.latest_news", "Latest updates") }
-        static var filterAll: String { text("home.filter.all", "All") }
+        static var filterAll: String { text("home.filter.all", "Усе") }
+        static var filterNews: String { text("home.filter.news", "Новини") }
+        static var filterEvents: String { text("home.filter.events", "Події") }
+        static var filterOrganizations: String { text("home.filter.organizations", "Організації") }
         static var filterSubscriptions: String { text("home.filter.subscriptions", "Subscriptions") }
         static var filterFavorites: String { text("home.filter.favorites", "Favorites") }
         static var filterSaved: String { text("home.filter.saved", "Збережені") }
         static var filterSubscribed: String { text("home.filter.subscribed", "Підписані") }
         static var emptySaved: String { text("home.empty.saved", "У вас ще немає збережених матеріалів.") }
-        static var emptySubscribed: String { text("home.empty.subscribed", "Немає контенту від підписаних організацій.") }
+        static var emptySubscribed: String { text("home.empty.subscribed", "У вас ще немає підписок") }
         static var emptyRegion: String { text("home.empty.region", "Немає контенту в обраному регіоні.") }
         static var notifications: String { text("home.notifications", "Notifications") }
         static var changeBanner: String { text("home.banner.change", "Change banner image") }
@@ -36,7 +39,11 @@ enum AppStrings {
         static var title: String { text("news.title", "News") }
         static var detailTitle: String { text("news.detail.title", "Деталі новини") }
         static var detailBadge: String { text("news.detail.badge", "Новина") }
+        static var summarySectionTitle: String { text("news.detail.summary_section", "Коротко") }
         static var bodySectionTitle: String { text("news.detail.body_section", "Про що йдеться") }
+        static var tagsSectionTitle: String { text("news.detail.tags_section", "Теги") }
+        static var relatedSectionTitle: String { text("news.detail.related_section", "Вам також може бути цікаво") }
+        static var relatedSectionAction: String { text("news.detail.related_action", "Дивитися всі") }
         static var empty: String { text("news.empty", "No news available yet.") }
         static var retry: String { text("news.retry", "Retry") }
         static var loadNetworkError: String { text("news.error.load.network", "Unable to load news. Check your connection and try again.") }
@@ -52,6 +59,7 @@ enum AppStrings {
         static var cancel: String { text("news.cancel", "Cancel") }
         static var deleteFailed: String { text("news.delete_failed", "Delete Failed") }
         static var dismissError: String { text("news.dismiss_error", "OK") }
+        static var missingOrganization: String { text("news.source.missing_organization", "Організація не вказана") }
     }
 
     enum NewsEditor {
@@ -59,36 +67,28 @@ enum AppStrings {
         static var addTitle: String { text("news.editor.add_title", "Додати новину") }
         static var editTitle: String { text("news.editor.edit_title", "Редагувати новину") }
         static var editorSubtitle: String { text("news.editor.subtitle", "Поділіться важливою інформацією з громадою.") }
-        static var fieldTitle: String { text("news.editor.field.title", "Заголовок") }
-        static var fieldSummary: String { text("news.editor.field.summary", "Короткий опис") }
-        static var fieldBody: String { text("news.editor.field.body", "Зміст") }
         static var titleFieldRequired: String { text("news.editor.field.title_required", "Заголовок новини *") }
         static var titlePlaceholder: String { text("news.editor.placeholder.title", "Введіть заголовок") }
         static var summaryFieldRequired: String { text("news.editor.field.summary_required", "Короткий опис *") }
         static var summaryPlaceholder: String { text("news.editor.placeholder.summary", "Коротко опишіть новину. Цей текст буде відображатися в списку новин.") }
-        static var selectPhoto: String { text("news.editor.select_photo", "Вибрати фото") }
         static var coverSectionTitle: String { text("news.editor.cover.title", "Обкладинка новини") }
         static var coverUploadTitle: String { text("news.editor.cover.upload_title", "Додайте фото обкладинки") }
         static var coverUploadHelper: String { text("news.editor.cover.upload_helper", "JPG, PNG до 10 MB. Рекомендовано 16:9") }
         static var replacePhoto: String { text("news.editor.cover.replace", "Замінити фото") }
-        static var categorySectionTitle: String { text("news.editor.category.title", "Категорія") }
+        static var organizerSectionTitle: String { text("news.editor.organizer.title", "Організація *") }
+        static var selectOrganizer: String { text("news.editor.organizer.select", "Оберіть організацію") }
+        static var noOrganizerAccess: String { text("news.editor.organizer.no_access", "У вас немає організацій для публікації новин.") }
         static var categoryNews: String { text("news.editor.category.news", "Новина") }
         static var categoryEvent: String { text("news.editor.category.event", "Подія") }
         static var categoryEducation: String { text("news.editor.category.education", "Освіта") }
         static var categoryCulture: String { text("news.editor.category.culture", "Культура") }
         static var categoryOther: String { text("news.editor.category.other", "Інше") }
-        static var locationTitle: String { text("news.editor.details.location", "Місце події (необов’язково)") }
-        static var locationPlaceholder: String { text("news.editor.details.location_placeholder", "Введіть адресу або назву місця") }
-        static var languageTitle: String { text("news.editor.details.language", "Мова новини *") }
-        static var languageUkrainian: String { text("news.editor.details.language_ukrainian", "Українська") }
         static var bodySectionTitle: String { text("news.editor.body.title", "Зміст новини *") }
         static var bodyPlaceholder: String { text("news.editor.body.placeholder", "Напишіть основний текст новини...") }
         static var tagsSectionTitle: String { text("news.editor.tags.title", "Теги (необов’язково)") }
         static var tagsPlaceholder: String { text("news.editor.tags.placeholder", "Додайте теги через кому") }
         static var tagsHelper: String { text("news.editor.tags.helper", "Наприклад: підтримка, освіта, інтеграція") }
         static var additionalSettingsTitle: String { text("news.editor.settings.title", "Додаткові налаштування") }
-        static var visibilityTitle: String { text("news.editor.settings.visibility", "Видимість") }
-        static var visibilityEveryone: String { text("news.editor.settings.visibility_everyone", "Видно всім") }
         static var regionSectionTitle: String { text("news.editor.region.title", "Регіон") }
         static var regionTitle: String { text("news.editor.region.field", "Bundesland") }
         static var publish: String { text("news.editor.publish", "Опублікувати") }
@@ -103,6 +103,7 @@ enum AppStrings {
         static var titleRequired: String { text("news.editor.validation.title_required", "Title is required.") }
         static var summaryRequired: String { text("news.editor.validation.summary_required", "Short description is required.") }
         static var bodyRequired: String { text("news.editor.validation.body_required", "Body is required.") }
+        static var organizationRequired: String { text("news.editor.validation.organization_required", "Оберіть організацію для новини.") }
         static var organizationRegionRequired: String { text("news.editor.validation.organization_region_required", "Перед публікацією заповніть регіон організації.") }
         static var imageLoadFailed: String { text("news.editor.image_load_failed", "Failed to load the selected image.") }
         static var imageProcessingFailed: String { text("news.editor.image_processing_failed", "Failed to process the selected image.") }
@@ -119,7 +120,7 @@ enum AppStrings {
         static var filterAll: String { text("events.filter.all", "Усі") }
         static var filterToday: String { text("events.filter.today", "Today") }
         static var filterThisWeek: String { text("events.filter.this_week", "This week") }
-        static var searchPlaceholder: String { text("events.search.placeholder", "Search events") }
+        static var filterRegistered: String { text("events.filter.registered", "Зареєстровані") }
         static var allCategories: String { text("events.filter.all_categories", "Усі категорії") }
         static var categoryEducation: String { text("events.category.education", "Освіта") }
         static var categoryCulture: String { text("events.category.culture", "Культура") }
@@ -127,6 +128,8 @@ enum AppStrings {
         static var categoryMeetupSingular: String { text("events.category.meetup_singular", "Зустріч") }
         static var categoryChildren: String { text("events.category.children", "Для дітей") }
         static var categoryOther: String { text("events.category.other", "Інше") }
+        static var emptySaved: String { text("events.empty.saved", "У вас ще немає збережених подій") }
+        static var emptyRegistered: String { text("events.empty.registered", "У вас ще немає зареєстрованих подій.\nЗареєструйтесь на події, щоб бачити їх тут.") }
         static var filteredUpcomingEmpty: String { text("events.empty.filtered_upcoming", "No upcoming events match this time range right now.") }
         static var register: String { text("events.register", "Я піду") }
         static var registered: String { text("events.registered", "Я йду") }
@@ -167,7 +170,6 @@ enum AppStrings {
         static var editTitle: String { text("events.editor.edit_title", "Редагувати подію") }
         static var editorSubtitle: String { text("events.editor.subtitle", "Запросіть громаду на важливу подію.") }
         static var dateSectionTitle: String { text("events.editor.date_section", "Дата і час *") }
-        static var durationSectionTitle: String { text("events.editor.duration_section", "Тривалість") }
         static var imageSectionTitle: String { text("events.editor.image_section", "Обкладинка події") }
         static var coverUploadTitle: String { text("events.editor.cover_upload_title", "Додайте фото обкладинки") }
         static var coverUploadHelper: String { text("events.editor.cover_upload_helper", "JPG, PNG до 10 MB. Рекомендовано 16:9") }
@@ -177,7 +179,6 @@ enum AppStrings {
         static var summaryPlaceholder: String { text("events.editor.placeholder.summary", "Коротко опишіть подію. Цей текст буде відображатися в списку подій.") }
         static var fieldDetails: String { text("events.editor.field.details", "Опис події *") }
         static var detailsPlaceholder: String { text("events.editor.placeholder.details", "Опишіть вашу подію. Що на учасників чекає?") }
-        static var fieldDescription: String { text("events.editor.field.description", "Опис") }
         static var fieldLocation: String { text("events.editor.field.location", "Місце проведення *") }
         static var locationPlaceholder: String { text("events.editor.placeholder.location", "Введіть адресу або назву місця") }
         static var addressPlaceholder: String { text("events.editor.placeholder.address", "Адреса") }
@@ -193,13 +194,9 @@ enum AppStrings {
         static var fieldEndDate: String { text("events.editor.field.end_date", "Закінчення") }
         static var endTime: String { text("events.editor.end_time", "Завершення") }
         static var editorOrganizerSectionTitle: String { text("events.editor.organizer_section", "Організатор *") }
-        static var changeOrganizer: String { text("events.editor.change_organizer", "Змінити організатора") }
         static var categorySectionTitle: String { text("events.editor.category_section", "Категорія *") }
         static var categoryTraining: String { text("events.editor.category.training", "Навчання") }
         static var additionalSettingsTitle: String { text("events.editor.settings", "Додаткові налаштування") }
-        static var visibilityTitle: String { text("events.editor.visibility", "Видимість події") }
-        static var visibilityPublic: String { text("events.editor.visibility_public", "Публічна") }
-        static var visibilityPrivate: String { text("events.editor.visibility_private", "Приватна") }
         static var priceTitle: String { text("events.editor.price", "Вартість") }
         static var pricePlaceholder: String { text("events.editor.price_placeholder", "0") }
         static var priceHelper: String { text("events.editor.price_helper", "0 = безкоштовно") }
@@ -260,10 +257,24 @@ enum AppStrings {
         static var editorSubtitle: String { text("organizations.editor.subtitle", "Заповніть інформацію про вашу організацію.") }
         static var fieldName: String { text("organizations.editor.field.name", "Назва організації *") }
         static var fieldNamePlaceholder: String { text("organizations.editor.field.name_placeholder", "Введіть назву організації") }
-        static var fieldDescription: String { text("organizations.editor.field.description", "Короткий опис *") }
-        static var fieldDescriptionPlaceholder: String { text("organizations.editor.field.description_placeholder", "Коротко опишіть діяльність вашої організації") }
-        static var fieldContactEmail: String { text("organizations.editor.field.contact_email", "Електронна пошта") }
-        static var fieldWebsite: String { text("organizations.editor.field.website", "Веб-сайт (необов’язково)") }
+        static var fieldDescription: String { text("organizations.editor.field.description", "Короткий опис") }
+        static var fieldDescriptionPlaceholder: String { text("organizations.editor.field.description_placeholder", "Коротко опишіть діяльність організації") }
+        static var fieldFullDescription: String { text("organizations.editor.field.full_description", "Повний опис організації") }
+        static var fieldFullDescriptionPlaceholder: String { text("organizations.editor.field.full_description_placeholder", "Розкажіть більше про організацію, місію та цілі") }
+        static var fieldContactEmail: String { text("organizations.editor.field.contact_email", "Контактний email") }
+        static var fieldWebsite: String { text("organizations.editor.field.website", "Вебсайт") }
+        static var fieldTelegramURL: String { text("organizations.editor.field.telegram_url", "Telegram канал або чат") }
+        static var fieldDonationURL: String { text("organizations.editor.field.donation_url", "Посилання на донат") }
+        static var fieldMissionStatement: String { text("organizations.editor.field.mission_statement", "Місія") }
+        static var fieldMissionStatementPlaceholder: String { text("organizations.editor.field.mission_statement_placeholder", "Коротко опишіть місію організації") }
+        static var fieldContactPerson: String { text("organizations.editor.field.contact_person", "Контактна особа (необов’язково)") }
+        static var fieldContactPersonDisplay: String { text("organizations.detail.contact_person", "Контактна особа") }
+        static var fieldRegion: String { text("organizations.editor.field.region", "Bundesland *") }
+        static var fieldRegionPlaceholder: String { text("organizations.editor.field.region_placeholder", "Оберіть регіон") }
+        static var fieldCity: String { text("organizations.editor.field.city", "Місто") }
+        static var fieldAddress: String { text("organizations.editor.field.address", "Адреса") }
+        static var fieldFoundedYear: String { text("organizations.editor.field.founded_year", "Рік заснування") }
+        static var fieldLanguages: String { text("organizations.editor.field.languages", "Мови спілкування") }
         static var publish: String { text("organizations.editor.publish", "Створити організацію") }
         static var saveChanges: String { text("organizations.editor.save_changes", "Зберегти") }
         static var publishing: String { text("organizations.editor.publishing", "Зберігаємо...") }
@@ -277,13 +288,29 @@ enum AppStrings {
         static var categoryIntegration: String { text("organizations.editor.category.integration", "Інтеграція") }
         static var contactSectionTitle: String { text("organizations.editor.contact_section", "Контактна інформація") }
         static var phonePlaceholder: String { text("organizations.editor.phone_placeholder", "Номер телефону") }
-        static var socialPlaceholder: String { text("organizations.editor.social_placeholder", "Соціальні мережі (Facebook, Instagram тощо)") }
+        static var socialLinksTitle: String { text("organizations.editor.social_title", "Соціальні мережі") }
+        static var socialPlaceholder: String { text("organizations.editor.social_placeholder", "Instagram, Facebook, TikTok...") }
         static var locationSectionTitle: String { text("organizations.editor.location_section", "Місцезнаходження") }
         static var locationPlaceholder: String { text("organizations.editor.location_placeholder", "Введіть адресу або назву міста") }
         static var chooseOnMap: String { text("organizations.editor.choose_on_map", "Вибрати на карті") }
         static var aboutSectionTitle: String { text("organizations.about_section", "Про організацію") }
+        static var aboutEmptyMessage: String { text("organizations.detail.about_empty", "Повний опис організації поки не додано.") }
+        static var mainInformationTitle: String { text("organizations.detail.main_information", "Основна інформація") }
+        static var categoryTitle: String { text("organizations.detail.category", "Категорія") }
+        static var languagesTitle: String { text("organizations.detail.languages", "Мови") }
+        static var foundedTitle: String { text("organizations.detail.founded", "Засновано") }
         static var aboutPlaceholder: String { text("organizations.editor.about_placeholder", "Розкажіть більше про вашу організацію, місію та цілі") }
         static var settingsSectionTitle: String { text("organizations.editor.settings_section", "Додаткові налаштування") }
+        static var futureSectionTitle: String { text("organizations.editor.future_section", "Майбутні можливості") }
+        static var organizationSizeTitle: String { text("organizations.editor.organization_size", "Розмір організації") }
+        static var organizationSizeOptions: String { text("organizations.editor.organization_size_options", "Локальна, Регіональна, Всеавстрійська, Міжнародна") }
+        static var volunteersNeededTitle: String { text("organizations.editor.volunteers_needed", "Потрібні волонтери") }
+        static var volunteersNeededSubtitle: String { text("organizations.editor.volunteers_needed_subtitle", "Пізніше користувачі зможуть відгукуватися на волонтерські потреби.") }
+        static var verificationRequestTitle: String { text("organizations.editor.verification_request", "Подати заявку на верифікацію") }
+        static var verificationRequestSubtitle: String { text("organizations.editor.verification_request_subtitle", "Підтвердження організації буде доступне пізніше.") }
+        static var teamManagementTitle: String { text("organizations.editor.team_management", "Команда організації") }
+        static var teamManagementSubtitle: String { text("organizations.editor.team_management_subtitle", "Власник зможе додавати адміністраторів і модераторів.") }
+        static var comingSoon: String { text("organizations.editor.coming_soon", "Незабаром") }
         static var visibilityTitle: String { text("organizations.editor.visibility_title", "Видимість організації") }
         static var visibilityPublic: String { text("organizations.editor.visibility_public", "Публічна") }
         static var visibilityHelper: String { text("organizations.editor.visibility_helper", "Хто може бачити вашу організацію") }
@@ -292,11 +319,60 @@ enum AppStrings {
         static var message: String { text("organizations.detail.message", "Повідомлення") }
         static var share: String { text("organizations.detail.share", "Поділитися") }
         static var support: String { text("organizations.detail.support", "Підтримати") }
+        static var telegramDiscussion: String { text("organizations.detail.telegram_discussion", "Обговорення") }
+        static var followers: String { text("organizations.detail.followers", "Підписники") }
+        static var verified: String { text("organizations.detail.verified", "Перевірено") }
+        static var showOnMap: String { text("organizations.detail.show_on_map", "Показати на карті") }
+        static var emptyOrganizationEvents: String { text("organizations.detail.empty_events", "У цієї організації поки немає подій.") }
+        static var emptyOrganizationNews: String { text("organizations.detail.empty_news", "У цієї організації поки немає новин.") }
+        static var noOrganizationContacts: String { text("organizations.detail.no_contacts", "Організація ще не додала контактів.") }
+        static var contactsSubtitle: String { text("organizations.contacts.subtitle", "Зв’яжіться з організацією напряму.") }
+        static var contactsEmptyTitle: String { text("organizations.contacts.empty_title", "Організація ще не додала контактів.") }
+        static var contactsEmptyMessage: String { text("organizations.contacts.empty_message", "Коли команда додасть сайт, соцмережі або адресу, вони з’являться тут.") }
+        static var contactsAdd: String { text("organizations.contacts.add", "Додати контакти") }
+        static var contactsEdit: String { text("organizations.contacts.edit", "Редагувати контакти") }
+        static var contactsOpenWebsite: String { text("organizations.contacts.open_website", "Відкрити сайт") }
+        static var contactsOpenTelegram: String { text("organizations.contacts.open_telegram", "Відкрити Telegram") }
+        static var fieldEmail: String { text("organizations.contacts.email", "Email") }
+        static var fieldPhone: String { text("organizations.contacts.phone", "Телефон") }
+        static var fieldTelegram: String { text("organizations.contacts.telegram", "Telegram") }
+        static var fieldInstagram: String { text("organizations.contacts.instagram", "Instagram") }
+        static var fieldFacebook: String { text("organizations.contacts.facebook", "Facebook") }
+        static var fieldLocation: String { text("organizations.contacts.location", "Локація") }
+        static var teamComingSoon: String { text("organizations.detail.team_coming_soon", "Власник зможе додавати адміністраторів і модераторів.") }
+        static var photosComingSoon: String { text("organizations.detail.photos_coming_soon", "Галерея буде доступна пізніше.") }
+        static var photosEmptyTitle: String { text("organizations.photos.empty_title", "Фото поки немає.") }
+        static var photosEmptyMessage: String { text("organizations.photos.empty_message", "Коли команда додасть фото, вони з’являться тут.") }
+        static var photosAdd: String { text("organizations.photos.add", "Додати фото") }
+        static var photosCaption: String { text("organizations.photos.caption", "Підпис") }
+        static var photosCaptionPlaceholder: String { text("organizations.photos.caption_placeholder", "Короткий опис фото") }
+        static var photosUpload: String { text("organizations.photos.upload", "Завантажити") }
+        static var photosUploading: String { text("organizations.photos.uploading", "Завантажуємо фото...") }
+        static var photosUploadFailed: String { text("organizations.photos.upload_failed", "Не вдалося завантажити фото.") }
+        static var photosLoadFailed: String { text("organizations.photos.load_failed", "Не вдалося завантажити фото організації.") }
+        static var photosDelete: String { text("organizations.photos.delete", "Видалити фото") }
+        static var photosDeleteConfirmation: String { text("organizations.photos.delete_confirmation", "Видалити це фото?") }
+        static var photosDeleteFailed: String { text("organizations.photos.delete_failed", "Не вдалося видалити фото.") }
+        static var photosLimitReached: String { text("organizations.photos.limit_reached", "Можна додати до 30 фото.") }
+        static var photosPreparing: String { text("organizations.photos.preparing", "Готуємо фото...") }
+        static var photosSelectionFailed: String { text("organizations.photos.selection_failed", "Не вдалося обрати фото.") }
         static var showMore: String { text("organizations.detail.show_more", "Показати більше") }
         static var upcomingEventsTitle: String { text("organizations.detail.upcoming_events", "Найближчі події") }
+        static var communityHighlightsTitle: String { text("organizations.detail.community_highlights", "Життя спільноти") }
+        static var nearestEventTitle: String { text("organizations.detail.nearest_event", "Найближча подія") }
+        static var latestNewsTitle: String { text("organizations.detail.latest_news", "Останні новини") }
+        static var latestPhotosTitle: String { text("organizations.detail.latest_photos", "Останні фото") }
+        static var viewAction: String { text("organizations.detail.view", "Переглянути") }
+        static var allNewsAction: String { text("organizations.detail.all_news", "Усі новини") }
+        static var pinnedLabel: String { text("organizations.detail.pinned", "Закріплено") }
+        static var latestActivityPrefix: String { text("organizations.detail.latest_activity", "Активність") }
+        static var activityEventsShort: String { text("organizations.detail.activity_events_short", "події") }
+        static var activityNewsShort: String { text("organizations.detail.activity_news_short", "новини") }
+        static var activityPhotosShort: String { text("organizations.detail.activity_photos_short", "фото") }
         static var tabEvents: String { text("organizations.detail.tab_events", "Події") }
         static var tabAbout: String { text("organizations.detail.tab_about", "Про нас") }
         static var tabNews: String { text("organizations.detail.tab_news", "Новини") }
+        static var tabContacts: String { text("organizations.detail.tab_contacts", "Контакти") }
         static var tabPhoto: String { text("organizations.detail.tab_photo", "Фото") }
         static var tabTeam: String { text("organizations.detail.tab_team", "Команда") }
         static var deleteConfirmation: String { text("organizations.delete.confirmation", "Delete this organization?") }
@@ -355,6 +431,42 @@ enum AppStrings {
         static var organizationsSectionSummary: String { text("profile.organizations.section_summary", "Organization access linked to your account.") }
         static var organizationManagement: String { text("profile.organization_management", "Organization Management") }
         static var organizationManagementSubtitle: String { text("profile.organization_management.subtitle", "Manage the organizations you help lead and publish organization-owned updates.") }
+        static var organizationManagementIntro: String { text("profile.organization_management.intro", "Організації, якими ви керуєте або допомагаєте керувати.") }
+        static var organizationRoleOwner: String { text("profile.organization.role.owner", "Власник") }
+        static var organizationRoleAdmin: String { text("profile.organization.role.admin", "Адмін") }
+        static var organizationRoleModerator: String { text("profile.organization.role.moderator", "Модератор") }
+        static var organizationRolePlatformOwner: String { text("profile.organization.role.platform_owner", "Власник платформи") }
+        static var organizationOpen: String { text("profile.organization.open", "Відкрити") }
+        static var organizationManage: String { text("profile.organization.manage", "Керувати") }
+        static var organizationStatEvents: String { text("profile.organization.stat.events", "події") }
+        static var organizationStatSubscribers: String { text("profile.organization.stat.subscribers", "підписники") }
+        static var organizationInfoSection: String { text("profile.organization.info_section", "Інформація організації") }
+        static var organizationInfoLockedSubtitle: String { text("profile.organization.info_locked.subtitle", "Доступно для власника та адміна організації.") }
+        static var organizationPhotosSection: String { text("profile.organization.photos_section", "Фото") }
+        static var organizationPhotosPlaceholder: String { text("profile.organization.photos.placeholder", "Галерея організації буде додана пізніше.") }
+        static var organizationContactsSection: String { text("profile.organization.contacts_section", "Контакти") }
+        static var organizationContactsEditSubtitle: String { text("profile.organization.contacts.edit_subtitle", "Редагуються в інформації організації.") }
+        static var organizationTeamSection: String { text("profile.organization.team.section", "Команда") }
+        static var organizationTeamAddMember: String { text("profile.organization.team.add_member", "Додати учасника") }
+        static var organizationTeamEmptyTitle: String { text("profile.organization.team.empty_title", "Команда не завантажена.") }
+        static var organizationTeamEmptyMessage: String { text("profile.organization.team.empty_message", "Тут відображатимуться власник, адміни та модератори організації.") }
+        static var organizationTeamSearchPlaceholder: String { text("profile.organization.team.search_placeholder", "Пошук за іменем, email або nickname") }
+        static var organizationTeamRolePicker: String { text("profile.organization.team.role_picker", "Роль") }
+        static var organizationTeamNoUsers: String { text("profile.organization.team.no_users", "Користувачів не знайдено.") }
+        static var organizationTeamMissingProfile: String { text("profile.organization.team.missing_profile", "Профіль не знайдено") }
+        static var organizationTeamLoadFailed: String { text("profile.organization.team.error.load_failed", "Не вдалося завантажити команду організації.") }
+        static var organizationTeamUserSearchFailed: String { text("profile.organization.team.error.user_search_failed", "Не вдалося завантажити користувачів для пошуку.") }
+        static var organizationTeamPermissionDenied: String { text("profile.organization.team.error.permission_denied", "Недостатньо прав для керування командою.") }
+        static var organizationTeamOwnerCanAssignOnlyAdminModerator: String { text("profile.organization.team.error.owner_assign_limited", "Власник організації може призначати лише адмінів і модераторів.") }
+        static var organizationTeamOwnerCannotRemoveOwner: String { text("profile.organization.team.error.owner_remove_owner", "Власник організації не може зняти роль власника.") }
+        static var organizationTeamCannotRemoveLastOwner: String { text("profile.organization.team.error.last_owner", "Не можна видалити останнього власника організації.") }
+        static var organizationTeamUserProfileMissing: String { text("profile.organization.team.error.user_profile_missing", "Профіль користувача не знайдено.") }
+        static var organizationTeamUpdated: String { text("profile.organization.team.status.updated", "Команду оновлено.") }
+        static var organizationTeamSaveFailed: String { text("profile.organization.team.error.save_failed", "Не вдалося зберегти зміни команди.") }
+        static var organizationTeamRemoveRole: String { text("profile.organization.team.remove_role", "Зняти роль") }
+        static var organizationTeamSaveRole: String { text("profile.organization.team.save_role", "Зберегти роль") }
+        static var organizationTeamUnavailable: String { text("profile.organization.team.unavailable", "Недоступно") }
+        static var organizationTeamRoleActions: String { text("profile.organization.team.role_actions", "Дії з роллю") }
         static var contentManagement: String { text("profile.content_management", "Content Management") }
         static var contentManagementSubtitle: String { text("profile.content_management.subtitle", "Manage app-owned community news and events.") }
         static var appAdministration: String { text("profile.app_administration", "App Administration") }
@@ -364,7 +476,7 @@ enum AppStrings {
         static var createOrganizationNews: String { text("profile.create_organization_news", "Create organization News") }
         static var createOrganizationEvent: String { text("profile.create_organization_event", "Create organization Event") }
         static var editOrganizationDetails: String { text("profile.edit_organization_details", "Edit organization details") }
-        static var noManagedOrganizations: String { text("profile.no_managed_organizations", "No organizations are assigned to you yet.") }
+        static var noManagedOrganizations: String { text("profile.no_managed_organizations", "У вас поки немає організацій для керування.") }
         static var editProfile: String { text("profile.edit", "Edit Profile") }
         static var editProfileSubtitle: String { text("profile.edit.subtitle", "Keep your personal details up to date so your account card stays clear and trustworthy.") }
         static var fullName: String { text("profile.full_name", "Full name") }
@@ -377,10 +489,12 @@ enum AppStrings {
         static var avatarUploading: String { text("profile.avatar_uploading", "Uploading your profile photo…") }
         static var avatarReadyToSave: String { text("profile.avatar_ready_to_save", "Your new photo is ready. Save the profile to apply it everywhere in the app.") }
         static var avatarUploadFailed: String { text("profile.avatar_upload_failed", "The profile photo could not be uploaded right now. Check your connection and try again.") }
+        static var profilePhoto: String { text("profile.photo", "Фото профілю") }
         static var emailReadOnlyHint: String { text("profile.email_read_only_hint", "Your email address is managed through account sign-in and cannot be changed here yet.") }
         static var telegramUsername: String { text("profile.telegram", "Telegram username") }
         static var region: String { text("profile.region", "Region") }
         static var saveProfile: String { text("profile.save", "Save") }
+        static var saveChanges: String { text("profile.save_changes", "Зберегти зміни") }
         static var savingProfile: String { text("profile.saving", "Saving…") }
         static var savingProfileMessage: String { text("profile.saving_message", "Saving your profile and applying updates…") }
         static var noProfileChanges: String { text("profile.no_changes", "Make a change before saving.") }
@@ -406,6 +520,300 @@ enum AppStrings {
         static var signOutFailed: String { text("profile.sign_out.failed", "We couldn’t sign you out right now.") }
         static var accountSectionSummary: String { text("profile.account.section_summary", "Your personal details, account state, and photo live here.") }
         static var guestSectionSummary: String { text("profile.guest.section_summary", "Browse publicly now, then sign in only when you need an account feature.") }
+        static var guestPlatformDescription: String { text("profile.guest.platform_description", "Новини, події, організації та довідник доступні для перегляду. Акаунт відкриває збереження, реєстрації та участь у спільнотах.") }
+        static var guestWelcomeTitle: String { text("profile.guest.welcome_title", "Ласкаво просимо") }
+        static var guestWelcomeSubtitle: String { text("profile.guest.welcome_subtitle", "Створіть акаунт, щоб зберігати події, підписуватись на організації та отримувати сповіщення.") }
+        static var continueAsGuest: String { text("profile.guest.continue", "Продовжити як гість") }
+        static var afterRegistrationTitle: String { text("profile.guest.after_registration.title", "Після реєстрації") }
+        static var afterRegistrationSubtitle: String { text("profile.guest.after_registration.subtitle", "Особистий профіль відкриває збереження, підписки та персональні оновлення.") }
+        static var afterRegistrationEventsSubtitle: String { text("profile.guest.after_registration.events", "Реєстрації та історія участі в одному місці.") }
+        static var afterRegistrationSavedSubtitle: String { text("profile.guest.after_registration.saved", "Новини, події та довідник для швидкого повернення.") }
+        static var personalRegion: String { text("profile.guest.personal_region", "Персональний регіон") }
+        static var personalRegionSubtitle: String { text("profile.guest.personal_region.subtitle", "Локальні події та організації за вашим Bundesland.") }
+        static var guestAvailableTitle: String { text("profile.guest.available.title", "Доступно без акаунта") }
+        static var guestAvailableSubtitle: String { text("profile.guest.available.subtitle", "Основний контент можна переглядати одразу.") }
+        static var guestBrowseNews: String { text("profile.guest.available.news", "Перегляд новин") }
+        static var guestBrowseEvents: String { text("profile.guest.available.events", "Перегляд подій") }
+        static var guestBrowseOrganizations: String { text("profile.guest.available.organizations", "Перегляд організацій") }
+        static var guestSettingsSupportTitle: String { text("profile.guest.settings_support.title", "Налаштування і підтримка") }
+        static var guestSettingsSupportSubtitle: String { text("profile.guest.settings_support.subtitle", "Базові параметри застосунку та юридична інформація.") }
+        static var platformPreviewTitle: String { text("profile.platform_preview.title", "Платформа") }
+        static var platformPreviewSubtitle: String { text("profile.platform_preview.subtitle", "Основні розділи залишаються доступними для перегляду.") }
+        static var previewNewsSubtitle: String { text("profile.preview.news", "Оновлення громади та важливі повідомлення.") }
+        static var previewEventsSubtitle: String { text("profile.preview.events", "Зустрічі, консультації та події поруч.") }
+        static var previewOrganizationsSubtitle: String { text("profile.preview.organizations", "Перевірені організації та ініціативи.") }
+        static var previewGuideSubtitle: String { text("profile.preview.guide", "Практичний довідник для життя в Австрії.") }
+        static var statRegistrations: String { text("profile.stat.registrations", "Реєстрації") }
+        static var statLiked: String { text("profile.stat.liked", "Вподобано") }
+        static var statOrganizations: String { text("profile.stat.organizations", "Організації") }
+        static var statSaved: String { text("profile.stat.saved", "Збережене") }
+        static var notAvailableValue: String { text("profile.stat.not_available", "—") }
+        static var loadingStatValue: String { text("profile.stat.loading", "…") }
+        static var myEvents: String { text("profile.my_events", "Мої події") }
+        static var myEventsSubtitle: String { text("profile.my_events.subtitle", "Реєстрації, найближчі події та історія участі.") }
+        static var quickActionSavedSubtitle: String { text("profile.quick_action.saved.subtitle", "Новини, події та довідник.") }
+        static var quickActionNotificationsSubtitle: String { text("profile.quick_action.notifications.subtitle", "Важливі оновлення спільноти.") }
+        static var organizationRoleDashboardSubtitle: String { text("profile.organization_roles.dashboard.subtitle", "Організації, де ви маєте роль у команді керування.") }
+        static var organizationEditOrganization: String { text("profile.organization_roles.edit_organization", "Редагувати організацію") }
+        static var organizationEditInfo: String { text("profile.organization_roles.edit_info", "Редагувати інформацію") }
+        static var organizationCreateEvent: String { text("profile.organization_roles.create_event", "Створити подію") }
+        static var organizationCreateNews: String { text("profile.organization_roles.create_news", "Створити новину") }
+        static var organizationTeamRoles: String { text("profile.organization_roles.team_roles", "Команда та ролі") }
+        static var organizationTeamRolesSubtitle: String { text("profile.organization_roles.team_roles.subtitle", "Адміністратори, модератори та доступ команди.") }
+        static var organizationModeration: String { text("profile.organization_roles.moderation", "Модерація") }
+        static var organizationModerationScopedSubtitle: String { text("profile.organization_roles.moderation.subtitle", "Черга перевірки саме для цієї організації.") }
+        static var organizationRequestsMessages: String { text("profile.organization_roles.requests_messages", "Заявки / повідомлення") }
+        static var organizationRequestsMessagesSubtitle: String { text("profile.organization_roles.requests_messages.subtitle", "Звернення, заявки та майбутні inbox flows.") }
+        static var organizationAnalytics: String { text("profile.organization_roles.analytics", "Аналітика") }
+        static var organizationSettings: String { text("profile.organization_roles.settings", "Налаштування організації") }
+        static var organizationSettingsSubtitle: String { text("profile.organization_roles.settings.subtitle", "Критичні параметри будуть доступні окремим flow.") }
+        static var organizationScopedFutureSubtitle: String { text("profile.organization_roles.scoped_future.subtitle", "Scoped organization flow буде додано пізніше.") }
+        static var organizationEventReview: String { text("profile.organization_roles.event_review", "Перевірка подій") }
+        static var organizationNewsReview: String { text("profile.organization_roles.news_review", "Перевірка новин") }
+        static var activityTitle: String { text("profile.activity.title", "Моя активність") }
+        static var registeredEvents: String { text("profile.activity.registered_events", "Зареєстровані події") }
+        static var likedNews: String { text("profile.activity.liked_news", "Вподобані новини") }
+        static var likedNewsSubtitle: String { text("profile.activity.liked_news.subtitle", "Матеріали, які ви позначили як важливі.") }
+        static var likedEvents: String { text("profile.activity.liked_events", "Вподобані події") }
+        static var likedEventsSubtitle: String { text("profile.activity.liked_events.subtitle", "Події, до яких хочеться повернутися.") }
+        static var recentlyViewed: String { text("profile.activity.recently_viewed", "Нещодавно переглянуте") }
+        static var recentlyViewedSubtitle: String { text("profile.activity.recently_viewed.subtitle", "Останні відкриті новини, події та довідник.") }
+        static var recentlyViewedIntro: String { text("profile.activity.recently_viewed.intro", "Останні матеріали, які ви відкривали.") }
+        static var recentlyViewedEmptyTitle: String { text("profile.activity.recently_viewed.empty_title", "Тут поки немає переглянутих матеріалів.") }
+        static var recentlyViewedEmptyMessage: String { text("profile.activity.recently_viewed.empty_message", "Відкривайте новини, події та організації, щоб швидко повертатися до них.") }
+        static var activityHistoryIntro: String { text("profile.activity_history.intro", "Ваші останні дії у застосунку.") }
+        static var activityHistoryEmptyTitle: String { text("profile.activity_history.empty_title", "Історія активності поки порожня.") }
+        static var activityHistoryEmptyMessage: String { text("profile.activity_history.empty_message", "Тут з’являтимуться ваші реєстрації, підписки та збереження.") }
+        static var activityHistorySavedFilter: String { text("profile.activity_history.filter.saved", "Збережене") }
+        static var upcomingRegistrations: String { text("profile.upcoming_registrations", "Найближчі реєстрації") }
+        static var recentEvents: String { text("profile.recent_events", "Останні події") }
+        static var viewAll: String { text("profile.view_all", "Переглянути все") }
+        static var emptyBioStatus: String { text("profile.bio.empty_status", "Додайте інформацію про себе.") }
+        static var visitHistory: String { text("profile.visit_history", "Історія відвідувань") }
+        static var visitHistorySubtitle: String { text("profile.visit_history.subtitle", "Минулі події та участь з’являться тут.") }
+        static var organizationSubscriptions: String { text("profile.organization_subscriptions", "Підписки") }
+        static var organizationSubscriptionsSubtitle: String { text("profile.organization_subscriptions.subtitle", "Оновлення від організацій, за якими ви стежите.") }
+        static var organizationMemberships: String { text("profile.organization_memberships", "Участь") }
+        static var communitySection: String { text("profile.community.section", "Спільнота") }
+        static var communitySectionSubtitle: String { text("profile.community.section_subtitle", "Організації, участь та майбутні можливості спільноти.") }
+        static var participationRequests: String { text("profile.community.participation_requests", "Заявки / участь") }
+        static var communityBadges: String { text("profile.community.badges", "Значки спільноти") }
+        static var savedContent: String { text("profile.saved_content", "Збережене") }
+        static var savedContentSubtitle: String { text("profile.saved_content.subtitle", "Новини, події та довідкові матеріали, до яких ви повернетеся пізніше.") }
+        static var savedNews: String { text("profile.saved.news", "Збережені новини") }
+        static var savedNewsSubtitle: String { text("profile.saved.news.subtitle", "Підбірка новин буде доступна після запуску збережень.") }
+        static var savedEvents: String { text("profile.saved.events", "Збережені події") }
+        static var savedEventsSubtitle: String { text("profile.saved.events.subtitle", "Події для швидкого повернення з’являться тут.") }
+        static var savedGuides: String { text("profile.saved.guides", "Збережений довідник") }
+        static var savedGuidesSubtitle: String { text("profile.saved.guides.subtitle", "Корисні статті та категорії будуть доступні тут.") }
+        static var organizationEventActionSubtitle: String { text("profile.organization.event_action.subtitle", "Опублікувати подію від імені організації.") }
+        static var organizationNewsActionSubtitle: String { text("profile.organization.news_action.subtitle", "Опублікувати новину від імені організації.") }
+        static var organizationMembers: String { text("profile.organization.members", "Керування учасниками") }
+        static var organizationMembersSubtitle: String { text("profile.organization.members.subtitle", "Ролі, запити та доступ команди.") }
+        static var organizationModerationQueue: String { text("profile.organization.moderation_queue", "Черга модерації") }
+        static var organizationModerationSubtitle: String { text("profile.organization.moderation.subtitle", "Матеріали організації, які очікують перевірки.") }
+        static var platformDashboard: String { text("profile.platform_dashboard", "Адміністрування платформи") }
+        static var platformDashboardSubtitle: String { text("profile.platform_dashboard.subtitle", "Користувачі, контент, модерація та системні модулі відповідно до вашого доступу.") }
+        static var platformUsers: String { text("profile.platform.users", "Користувачі") }
+        static var platformUsersSubtitle: String { text("profile.platform.users.subtitle", "Ролі, блокування та стан акаунтів.") }
+        static var platformOrganizations: String { text("profile.platform.organizations", "Організації") }
+        static var platformOrganizationsSubtitle: String { text("profile.platform.organizations.subtitle", "Погодження, керування та передача власності.") }
+        static var platformEvents: String { text("profile.platform.events", "Події") }
+        static var platformEventsSubtitle: String { text("profile.platform.events.subtitle", "Керування всіма подіями платформи.") }
+        static var platformNews: String { text("profile.platform.news", "Новини") }
+        static var platformNewsSubtitle: String { text("profile.platform.news.subtitle", "Керування новинами та редакційними матеріалами.") }
+        static var platformGuide: String { text("profile.platform.guide", "Довідник") }
+        static var platformGuideSubtitle: String { text("profile.platform.guide.subtitle", "Статті, категорії та регіональні матеріали.") }
+        static var platformModeration: String { text("profile.platform.moderation", "Модерація") }
+        static var platformModerationSubtitle: String { text("profile.platform.moderation.subtitle", "Pending review, reports and rejected content.") }
+        static var platformFeedbackQueue: String { text("profile.platform.feedback_queue", "Підтримка / feedback") }
+        static var platformFeedbackSubtitle: String { text("profile.platform.feedback.subtitle", "Черга звернень користувачів.") }
+        static var platformConfiguration: String { text("profile.platform.configuration", "Платформа") }
+        static var platformConfigurationSubtitle: String { text("profile.platform.configuration.subtitle", "Банери, категорії, регіони та app configuration.") }
+        static var platformAuditLog: String { text("profile.platform.audit_log", "Журнал дій") }
+        static var platformAuditLogSubtitle: String { text("profile.platform.audit_log.subtitle", "Історія модерації та admin actions.") }
+        static var platformStatUsers: String { text("profile.platform.stat.users", "Users") }
+        static var platformStatOrganizations: String { text("profile.platform.stat.organizations", "Organizations") }
+        static var platformStatEvents: String { text("profile.platform.stat.events", "Events") }
+        static var platformStatQueue: String { text("profile.platform.stat.queue", "Queue") }
+        static var platformOwnerBadge: String { text("profile.owner.badge", "Власник платформи") }
+        static var platformAdminBadge: String { text("profile.admin.badge", "Адміністратор") }
+        static var platformModeratorBadge: String { text("profile.moderator.badge", "Модератор") }
+        static var ownerHeroStatus: String { text("profile.owner.hero_status", "Повний доступ до керування застосунком.") }
+        static var adminHeroStatus: String { text("profile.admin.hero_status", "Операційне керування контентом, організаціями та модерацією.") }
+        static var moderatorHeroStatus: String { text("profile.moderator.hero_status", "Фокус на перевірці матеріалів і роботі зі скаргами.") }
+        static var ownerFullAccess: String { text("profile.owner.full_access", "Повний доступ") }
+        static var adminOperationalAccess: String { text("profile.admin.operational_access", "Операційний доступ") }
+        static var moderatorContentAccess: String { text("profile.moderator.content_access", "Модерація контенту") }
+        static var ownerCreateNews: String { text("profile.owner.quick.create_news", "Створити новину") }
+        static var ownerCreateNewsSubtitle: String { text("profile.owner.quick.create_news.subtitle", "Редакційний центр новин.") }
+        static var ownerCreateEvent: String { text("profile.owner.quick.create_event", "Створити подію") }
+        static var ownerCreateEventSubtitle: String { text("profile.owner.quick.create_event.subtitle", "Керування подіями платформи.") }
+        static var ownerCreateOrganization: String { text("profile.owner.quick.create_organization", "Створити організацію") }
+        static var ownerCreateOrganizationSubtitle: String { text("profile.owner.quick.create_organization.subtitle", "Організації та власники.") }
+        static var ownerOpenModeration: String { text("profile.owner.quick.open_moderation", "Відкрити модерацію") }
+        static var ownerOpenModerationSubtitle: String { text("profile.owner.quick.open_moderation.subtitle", "Матеріали, що очікують перевірки.") }
+        static var ownerSendPush: String { text("profile.owner.quick.send_push", "Надіслати push") }
+        static var ownerAddGuideArticle: String { text("profile.owner.quick.add_guide_article", "Додати статтю в довідник") }
+        static var ownerPlatformManagement: String { text("profile.owner.platform_management", "Керування платформою") }
+        static var ownerPlatformManagementSubtitle: String { text("profile.owner.platform_management.subtitle", "Основні модулі керування контентом і доступом.") }
+        static var adminPlatformManagement: String { text("profile.admin.platform_management", "Операційне керування") }
+        static var adminPlatformManagementSubtitle: String { text("profile.admin.platform_management.subtitle", "Контент, організації, довідник і частина user management.") }
+        static var ownerUsers: String { text("profile.owner.users", "Користувачі") }
+        static var ownerUsersSubtitle: String { text("profile.owner.users.subtitle", "Ролі, блокування, статус акаунтів.") }
+        static var adminUsersSubtitle: String { text("profile.admin.users.subtitle", "Статуси акаунтів і базова модерація користувачів.") }
+        static var ownerOrganizations: String { text("profile.owner.organizations", "Організації") }
+        static var ownerOrganizationsSubtitle: String { text("profile.owner.organizations.subtitle", "Створення, редагування, власники, модерація.") }
+        static var ownerNews: String { text("profile.owner.news", "Новини") }
+        static var ownerNewsSubtitle: String { text("profile.owner.news.subtitle", "Публікація, редагування, видалення.") }
+        static var ownerEvents: String { text("profile.owner.events", "Події") }
+        static var ownerEventsSubtitle: String { text("profile.owner.events.subtitle", "Створення, редагування, реєстрації.") }
+        static var ownerGuide: String { text("profile.owner.guide", "Довідник") }
+        static var ownerGuideSubtitle: String { text("profile.owner.guide.subtitle", "Категорії, статті, корисна інформація.") }
+        static var ownerModeration: String { text("profile.owner.moderation", "Модерація") }
+        static var ownerModerationSubtitle: String { text("profile.owner.moderation.subtitle", "Перевірка матеріалів і майбутня робота зі скаргами.") }
+        static var ownerPendingReview: String { text("profile.owner.pending_review", "Очікують перевірки") }
+        static var ownerPendingReviewSubtitle: String { text("profile.owner.pending_review.subtitle", "Новини, події та організації на перевірці.") }
+        static var ownerUserReports: String { text("profile.owner.user_reports", "Скарги користувачів") }
+        static var ownerUserReportsSubtitle: String { text("profile.owner.user_reports.subtitle", "Майбутній центр user reports.") }
+        static var ownerComments: String { text("profile.owner.comments", "Коментарі") }
+        static var ownerCommentsSubtitle: String { text("profile.owner.comments.subtitle", "Модерація коментарів буде додана пізніше.") }
+        static var ownerRejectedContent: String { text("profile.owner.rejected_content", "Заблокований контент") }
+        static var ownerRejectedContentSubtitle: String { text("profile.owner.rejected_content.subtitle", "Відхилені та архівні матеріали.") }
+        static var ownerAccessRoles: String { text("profile.owner.access_roles", "Доступ і ролі") }
+        static var ownerAccessRolesSubtitle: String { text("profile.owner.access_roles.subtitle", "Адміністратори, модератори та перевірка прав.") }
+        static var ownerManageUsers: String { text("profile.owner.manage_users", "Керування користувачами") }
+        static var ownerManageUsersSubtitle: String { text("profile.owner.manage_users.subtitle", "Акаунти, статуси та блокування.") }
+        static var ownerAssignAdmin: String { text("profile.owner.assign_admin", "Призначити адміністратора") }
+        static var ownerAssignAdminSubtitle: String { text("profile.owner.assign_admin.subtitle", "Окремий flow буде додано пізніше.") }
+        static var ownerAssignModerator: String { text("profile.owner.assign_moderator", "Призначити модератора") }
+        static var ownerAssignModeratorSubtitle: String { text("profile.owner.assign_moderator.subtitle", "Розподіл модерації по секціях.") }
+        static var ownerCheckPermissions: String { text("profile.owner.check_permissions", "Перевірити права доступу") }
+        static var ownerCheckPermissionsSubtitle: String { text("profile.owner.check_permissions.subtitle", "Валідація ролей і доступу.") }
+        static var ownerBlockedUsers: String { text("profile.owner.blocked_users", "Заблоковані користувачі") }
+        static var ownerBlockedUsersSubtitle: String { text("profile.owner.blocked_users.subtitle", "Окремий список блокувань буде доступний пізніше.") }
+        static var ownerOrganizationTools: String { text("profile.owner.organization_tools", "Організації") }
+        static var ownerOrganizationToolsSubtitle: String { text("profile.owner.organization_tools.subtitle", "Власники, заявки, верифікація та архів.") }
+        static var ownerOrganizationRequests: String { text("profile.owner.organization_requests", "Заявки на організації") }
+        static var ownerOrganizationOwnerAssignment: String { text("profile.owner.organization_owner_assignment", "Призначення власника організації") }
+        static var ownerOrganizationsWithoutOwner: String { text("profile.owner.organizations_without_owner", "Організації без власника") }
+        static var ownerVerifiedOrganizations: String { text("profile.owner.verified_organizations", "Верифіковані організації") }
+        static var ownerOrganizationArchive: String { text("profile.owner.organization_archive", "Архів організацій") }
+        static var ownerContentControl: String { text("profile.owner.content_control", "Контент") }
+        static var ownerContentControlSubtitle: String { text("profile.owner.content_control.subtitle", "Банери, рекомендації, категорії та регіони.") }
+        static var ownerHomeBanners: String { text("profile.owner.home_banners", "Банери головної сторінки") }
+        static var ownerHomeBannersSubtitle: String { text("profile.owner.home_banners.subtitle", "Редагуються у відповідних розділах застосунку.") }
+        static var ownerFeaturedNews: String { text("profile.owner.featured_news", "Рекомендовані новини") }
+        static var ownerFeaturedEvents: String { text("profile.owner.featured_events", "Рекомендовані події") }
+        static var ownerFeaturedOrganizations: String { text("profile.owner.featured_organizations", "Рекомендовані організації") }
+        static var adminContentControlSubtitle: String { text("profile.admin.content_control.subtitle", "Операційні рекомендації та банери без critical platform configuration.") }
+        static var ownerCategories: String { text("profile.owner.categories", "Категорії") }
+        static var ownerRegions: String { text("profile.owner.regions", "Регіони / Bundesländer") }
+        static var ownerContentLanguages: String { text("profile.owner.content_languages", "Мови контенту") }
+        static var ownerUserSupport: String { text("profile.owner.user_support", "Підтримка користувачів") }
+        static var ownerUserSupportSubtitle: String { text("profile.owner.user_support.subtitle", "Відгуки, проблеми та FAQ.") }
+        static var ownerUserFeedback: String { text("profile.owner.user_feedback", "Відгуки користувачів") }
+        static var ownerProblemReports: String { text("profile.owner.problem_reports", "Повідомлення про проблеми") }
+        static var ownerHelpRequests: String { text("profile.owner.help_requests", "Запити на допомогу") }
+        static var ownerFAQ: String { text("profile.owner.faq", "FAQ / часті питання") }
+        static var ownerAppSettings: String { text("profile.owner.app_settings", "Налаштування застосунку") }
+        static var ownerAppSettingsSubtitle: String { text("profile.owner.app_settings.subtitle", "Правові документи, правила модерації та базові platform policies.") }
+        static var ownerDefaultLanguage: String { text("profile.owner.default_language", "Мова за замовчуванням") }
+        static var ownerAvailableRegions: String { text("profile.owner.available_regions", "Доступні регіони") }
+        static var ownerEventCategories: String { text("profile.owner.event_categories", "Категорії подій") }
+        static var ownerOrganizationCategories: String { text("profile.owner.organization_categories", "Категорії організацій") }
+        static var ownerModerationRules: String { text("profile.owner.moderation_rules", "Правила модерації") }
+        static var ownerPrivacyPlatformRules: String { text("profile.owner.privacy_platform_rules", "Приватність і правила платформи") }
+        static var ownerPrivacyPlatformRulesSubtitle: String { text("profile.owner.privacy_platform_rules.subtitle", "Політики приватності та правила використання платформи.") }
+        static var ownerLegalDocuments: String { text("profile.owner.legal_documents", "Правові документи") }
+        static var ownerLegalDocumentsSubtitle: String { text("profile.owner.legal_documents.subtitle", "Умови користування та політика конфіденційності.") }
+        static var ownerAnalytics: String { text("profile.owner.analytics", "Аналітика") }
+        static var ownerAnalyticsSubtitle: String { text("profile.owner.analytics.subtitle", "Аналітичні модулі без fake numbers, поки backend не готовий.") }
+        static var ownerAnalyticsAdvancedSubtitle: String { text("profile.owner.analytics.advanced_subtitle", "Активні користувачі, події, організації, регіони та retention.") }
+        static var ownerActiveUsers: String { text("profile.owner.analytics.active_users", "Активні користувачі") }
+        static var ownerPopularEvents: String { text("profile.owner.analytics.popular_events", "Популярні події") }
+        static var ownerOrganizationActivity: String { text("profile.owner.analytics.organization_activity", "Активність організацій") }
+        static var ownerRegionalStats: String { text("profile.owner.analytics.regional_stats", "Регіональна статистика") }
+        static var ownerRetention: String { text("profile.owner.analytics.retention", "Утримання користувачів") }
+        static var ownerAdvancedSystems: String { text("profile.owner.advanced_systems", "Розширені системи платформи") }
+        static var ownerAdvancedSystemsSubtitle: String { text("profile.owner.advanced_systems.subtitle", "Аналітика, журнал дій, безпека, інтеграції та backup systems.") }
+        static var ownerAuditSecurity: String { text("profile.owner.audit_security", "Безпека і журнал дій") }
+        static var ownerAuditSecuritySubtitle: String { text("profile.owner.audit_security.subtitle", "Audit, moderation history та security modules.") }
+        static var ownerAuditLogs: String { text("profile.owner.audit_logs", "Журнал дій") }
+        static var ownerAuditLogsSubtitle: String { text("profile.owner.audit_logs.subtitle", "Admin actions, moderation history, role changes та deleted materials.") }
+        static var ownerSecurityCenter: String { text("profile.owner.security_center", "Центр безпеки") }
+        static var ownerSecurityCenterSubtitle: String { text("profile.owner.security_center.subtitle", "Безпека акаунтів, доступу та platform safeguards.") }
+        static var ownerIntegrationsAPI: String { text("profile.owner.integrations_api", "Integrations/API") }
+        static var ownerIntegrationsAPISubtitle: String { text("profile.owner.integrations_api.subtitle", "Майбутні інтеграції та API-доступ платформи.") }
+        static var ownerBackupSystems: String { text("profile.owner.backup_systems", "Backup systems") }
+        static var ownerBackupSystemsSubtitle: String { text("profile.owner.backup_systems.subtitle", "Backup, restore та operational safety modules.") }
+        static var moderatorModerationQueue: String { text("profile.moderator.moderation_queue", "Черга модерації") }
+        static var moderatorReviewQueues: String { text("profile.moderator.review_queues", "Review queues") }
+        static var moderatorReviewQueuesSubtitle: String { text("profile.moderator.review_queues.subtitle", "Матеріали, які можуть потребувати перевірки за вашими секціями.") }
+        static var moderatorNewsReviewSubtitle: String { text("profile.moderator.news_review.subtitle", "Перевірка новин і редакційних матеріалів.") }
+        static var moderatorEventsReviewSubtitle: String { text("profile.moderator.events_review.subtitle", "Перевірка подій і пов’язаного контенту.") }
+        static var moderatorOrganizationsReviewSubtitle: String { text("profile.moderator.organizations_review.subtitle", "Перевірка організацій і профілів спільнот.") }
+        static var ownerAdminActionLog: String { text("profile.owner.admin_action_log", "Журнал дій адміністраторів") }
+        static var ownerModerationHistory: String { text("profile.owner.moderation_history", "Історія модерації") }
+        static var ownerRoleChanges: String { text("profile.owner.role_changes", "Зміни ролей") }
+        static var ownerDeletedMaterials: String { text("profile.owner.deleted_materials", "Видалені матеріали") }
+        static var ownerPersonalSettings: String { text("profile.owner.personal_settings", "Особисті налаштування") }
+        static var ownerPersonalSettingsSubtitle: String { text("profile.owner.personal_settings.subtitle", "Профіль власника, мова, тема та особисті сповіщення.") }
+        static var notificationSettings: String { text("profile.notifications.settings", "Сповіщення") }
+        static var notificationSettingsSubtitle: String { text("profile.notifications.settings.subtitle", "Email, push та важливі оновлення.") }
+        static var notificationsSectionSubtitle: String { text("profile.notifications.section_subtitle", "Майбутній центр push, email та важливих повідомлень.") }
+        static var organizationNewsNotifications: String { text("profile.notifications.organization_news", "Новини від організацій") }
+        static var organizationNewsNotificationsSubtitle: String { text("profile.notifications.organization_news.subtitle", "Оновлення від організацій, на які ви підписані.") }
+        static var eventReminders: String { text("profile.notifications.event_reminders", "Нагадування про події") }
+        static var eventRemindersSubtitle: String { text("profile.notifications.event_reminders.subtitle", "Нагадування перед зареєстрованими подіями.") }
+        static var importantMessages: String { text("profile.notifications.important_messages", "Важливі повідомлення") }
+        static var importantMessagesSubtitle: String { text("profile.notifications.important_messages.subtitle", "Системні та безпекові повідомлення платформи.") }
+        static var settingsSection: String { text("profile.settings.section", "Налаштування") }
+        static var mainInformation: String { text("profile.edit.main_information", "Основна інформація") }
+        static var contactsSection: String { text("profile.edit.contacts", "Контакти") }
+        static var preferencesSection: String { text("profile.edit.preferences", "Preferences") }
+        static var appLanguage: String { text("profile.settings.app_language", "Мова застосунку") }
+        static var languageSettingsSubtitle: String { text("profile.settings.language.subtitle", "Мова інтерфейсу застосунку.") }
+        static var appAppearance: String { text("profile.settings.app_appearance", "Тема оформлення") }
+        static var appearanceSettingsSubtitle: String { text("profile.settings.appearance.subtitle", "Системна, світла або темна тема.") }
+        static var regionSettings: String { text("profile.settings.region", "Регіон / Bundesland") }
+        static var regionSettingsSubtitle: String { text("profile.settings.region.subtitle", "Регіон використовується для локального контенту.") }
+        static var privacySettingsSubtitle: String { text("profile.settings.privacy.subtitle", "Політика приватності та обробка даних.") }
+        static var accountSecurity: String { text("profile.settings.account_security", "Безпека акаунта") }
+        static var accountSecuritySubtitle: String { text("profile.settings.account_security.subtitle", "Додаткові параметри безпеки з’являться пізніше.") }
+        static var deleteAccount: String { text("profile.settings.delete_account", "Видалити акаунт") }
+        static var deleteAccountSubtitle: String { text("profile.settings.delete_account.subtitle", "Backend flow для видалення акаунта ще не активний.") }
+        static var supportSectionSubtitle: String { text("profile.support.subtitle", "Зв’язок з командою, довідка та юридична інформація.") }
+        static var sendFeedback: String { text("profile.support.send_feedback", "Надіслати відгук") }
+        static var sendFeedbackSubtitle: String { text("profile.support.send_feedback.subtitle", "Коротке повідомлення команді застосунку.") }
+        static var reportProblem: String { text("profile.support.report_problem", "Повідомити про проблему") }
+        static var reportProblemSubtitle: String { text("profile.support.report_problem.subtitle", "Технічні помилки та проблеми з контентом.") }
+        static var helpFAQ: String { text("profile.support.help_faq", "Допомога / FAQ") }
+        static var helpCenter: String { text("profile.help_center", "Допомога") }
+        static var helpCenterSubtitle: String { text("profile.help_center.subtitle", "Питання, інструкції та підтримка користувачів.") }
+        static var aboutApp: String { text("profile.about_app", "Про застосунок") }
+        static var aboutAppSubtitle: String { text("profile.about_app.subtitle", "Версія, команда та інформація про платформу.") }
+        static var futureModules: String { text("profile.future_modules", "Майбутні модулі") }
+        static var futureModulesSubtitle: String { text("profile.future_modules.subtitle", "Видимі в структурі профілю, але ще не активні.") }
+        static var userFutureModulesSubtitle: String { text("profile.future_modules.user_subtitle", "Особисті модулі вже закладені в профіль і відкриються пізніше.") }
+        static var futureModuleSubtitle: String { text("profile.future_module.subtitle", "Незабаром.") }
+        static var accountRequiredBadge: String { text("profile.account_required_badge", "Після входу") }
+        static var volunteeringModule: String { text("profile.future.volunteering", "Волонтерство") }
+        static var communityAchievementsModule: String { text("profile.future.community_achievements", "Досягнення спільноти") }
+        static var activityHistoryModule: String { text("profile.future.activity_history", "Історія активності") }
+        static var analyticsModule: String { text("profile.future.analytics", "Analytics") }
+        static var notificationsCenterModule: String { text("profile.future.notifications_center", "Notifications center") }
+        static var reportsModule: String { text("profile.future.reports", "Reports") }
+        static var integrationsModule: String { text("profile.future.integrations", "Integrations/API") }
+        static var systemHealthModule: String { text("profile.future.system_health", "System health") }
+        static var securityModule: String { text("profile.future.security", "Backup/security center") }
+        static var accessLocked: String { text("profile.access_locked", "Недоступно") }
+        static var verifiedAccess: String { text("profile.verified_access", "Verified") }
+        static var systemAccessLevel: String { text("profile.system_access_level", "System access") }
+        static var communityOwner: String { text("profile.community_role.owner", "Власник") }
+        static var communityAdmin: String { text("profile.community_role.admin", "Адміністратор") }
+        static var communityModerator: String { text("profile.community_role.moderator", "Модератор") }
+        static var communityMember: String { text("profile.community_role.member", "Учасник") }
     }
 
     enum Feedback {
@@ -421,6 +829,16 @@ enum AppStrings {
         static var typeSuggestion: String { text("feedback.type.suggestion", "Suggestion") }
         static var typeBug: String { text("feedback.type.bug", "Bug") }
         static var typeReport: String { text("feedback.type.report", "Report") }
+        static var inboxTitle: String { text("feedback.inbox.title", "Відгуки користувачів") }
+        static var inboxSubtitle: String { text("feedback.inbox.subtitle", "Повідомлення, пропозиції та проблеми від користувачів.") }
+        static var inboxEmpty: String { text("feedback.inbox.empty", "Нових відгуків поки немає") }
+        static var markReviewed: String { text("feedback.action.mark_reviewed", "Позначити переглянутим") }
+        static var archive: String { text("feedback.action.archive", "Архівувати") }
+        static var statusOpen: String { text("feedback.status.open", "Новий") }
+        static var statusReviewed: String { text("feedback.status.reviewed", "Переглянуто") }
+        static var statusArchived: String { text("feedback.status.archived", "Архів") }
+        static var loadFailed: String { text("feedback.error.load_failed", "Не вдалося завантажити відгуки.") }
+        static var updateFailed: String { text("feedback.error.update_failed", "Не вдалося оновити статус відгуку.") }
     }
 
     enum Moderation {
@@ -444,16 +862,34 @@ enum AppStrings {
     }
 
     enum UserManagement {
-        static var title: String { text("user_management.title", "User Management") }
-        static var subtitle: String { text("user_management.subtitle", "Review user role records that still need roles migration backfill.") }
+        static var title: String { text("user_management.title", "Користувачі") }
+        static var subtitle: String { text("user_management.subtitle", "Пошук, статуси та ролі користувачів.") }
         static var viewUsers: String { text("user_management.view_users", "View users") }
         static var blockUser: String { text("user_management.block_user", "Block user") }
         static var assignModerator: String { text("user_management.assign_moderator", "Assign moderator") }
         static var assignAdmin: String { text("user_management.assign_admin", "Assign admin") }
         static var retry: String { text("user_management.retry", "Retry") }
         static var empty: String { text("user_management.empty", "No roles backfill issues found.") }
-        static var permission: String { text("user_management.permission", "You do not have permission to view roles audit diagnostics.") }
-        static var loadError: String { text("user_management.load_error", "Unable to load user diagnostics right now.") }
+        static var permission: String { text("user_management.permission", "У вас немає доступу до керування користувачами.") }
+        static var loadError: String { text("user_management.load_error", "Не вдалося завантажити користувачів.") }
+        static var searchPlaceholder: String { text("user_management.search.placeholder", "Пошук за імʼям, email, Telegram або UID") }
+        static var organizationSearchPlaceholder: String { text("user_management.organization_search.placeholder", "Пошук організації") }
+        static var contentSubtitle: String { text("user_management.content.subtitle", "Пошук, статуси, блокування та ролі користувачів в організаціях.") }
+        static var registeredUsers: String { text("user_management.registered_users", "зареєстрованих користувачів") }
+        static var noResultsTitle: String { text("user_management.no_results.title", "Нічого не знайдено") }
+        static var noResultsMessage: String { text("user_management.no_results.message", "Змініть пошук або фільтр, щоб побачити користувачів.") }
+        static var organizationsNotLoaded: String { text("user_management.organizations.not_loaded", "Організації ще не завантажені.") }
+        static var organizationsNotFound: String { text("user_management.organizations.not_found", "Організацій за цим пошуком не знайдено.") }
+        static var organizationPicker: String { text("user_management.organization_picker", "Організація") }
+        static var rolePicker: String { text("user_management.role_picker", "Роль") }
+        static var reasonPlaceholder: String { text("user_management.reason.placeholder", "Причина / note") }
+        static var assignRoleButton: String { text("user_management.assign_role.button", "Призначити роль") }
+        static var statusPermissionDenied: String { text("user_management.status.permission_denied", "Недостатньо прав для зміни статусу користувача.") }
+        static var rolePermissionDenied: String { text("user_management.role.permission_denied", "Недостатньо прав для призначення ролі.") }
+        static var removeRolePermissionDenied: String { text("user_management.role.remove_permission_denied", "Недостатньо прав для зняття ролі.") }
+        static var changesSaved: String { text("user_management.changes_saved", "Зміни збережено.") }
+        static var changesFailed: String { text("user_management.changes_failed", "Не вдалося зберегти зміни.") }
+        static var ownerTransferOnly: String { text("user_management.owner_transfer_only", "Поточний власник може бути замінений лише через transfer owner: призначте власником іншого користувача в цій організації.") }
         static var uid: String { text("user_management.uid", "UID") }
         static var legacyRole: String { text("user_management.legacy_role", "Legacy Role") }
         static var globalRole: String { text("user_management.global_role", "Global Role") }
@@ -617,8 +1053,10 @@ enum AppStrings {
         static var organizationNameRequired: String { text("validation.organization.name_required", "Organization name is required.") }
         static var organizationDescriptionTooShort: String { text("validation.organization.description_too_short", "Organization description is too short.") }
         static var organizationCityRequired: String { text("validation.organization.city_required", "Organization city is required.") }
+        static var organizationRegionRequired: String { text("validation.organization.region_required", "Organization region is required.") }
         static var organizationEmailInvalid: String { text("validation.organization.email_invalid", "Contact email must be valid.") }
         static var organizationWebsiteInvalid: String { text("validation.organization.website_invalid", "Website must start with http:// or https://.") }
+        static var organizationFoundedYearInvalid: String { text("validation.organization.founded_year_invalid", "Founded year must be a valid year.") }
     }
 
     enum Auth {
@@ -708,6 +1146,70 @@ enum AppStrings {
             "profile.registrations.count",
             defaultValue: "%lld registered events",
             arguments: [count]
+        )
+    }
+
+    static func profileOrganizationsCount(_ count: Int) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.organizations.count",
+            defaultValue: "%lld memberships",
+            arguments: [count]
+        )
+    }
+
+    static func profileBioCounter(_ count: Int, _ limit: Int) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.bio.counter",
+            defaultValue: "%lld/%lld",
+            arguments: [count, limit]
+        )
+    }
+
+    static func profileOrganizationID(_ organizationID: String) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.organization.id",
+            defaultValue: "Organization %@",
+            arguments: [organizationID]
+        )
+    }
+
+    static func profileOrganizationRole(_ role: String) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.organization.role",
+            defaultValue: "Role: %@",
+            arguments: [role]
+        )
+    }
+
+    static func profileOrganizationScopedSubtitle(_ organizationID: String) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.organization.scoped_subtitle",
+            defaultValue: "Scoped to organization %@.",
+            arguments: [organizationID]
+        )
+    }
+
+    static func profileOrganizationTeamAssignConfirmation(userName: String, role: String) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.organization.team.confirm.assign",
+            defaultValue: "Призначити %@ як %@?",
+            arguments: [userName, role]
+        )
+    }
+
+    static func profileOrganizationTeamRemoveConfirmation(role: String, userName: String) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.organization.team.confirm.remove",
+            defaultValue: "Зняти роль %@ для %@?",
+            arguments: [role, userName]
+        )
+    }
+
+    static func profileOrganizationTeamMakeRole(_ role: String) -> String {
+        LocalizationStore.localizedFormat(
+            "profile.organization.team.make_role",
+            defaultValue: "Зробити %@",
+            arguments: [role]
         )
     }
 

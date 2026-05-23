@@ -10,11 +10,11 @@ struct RegisteredUserDocumentData: Equatable {
     let email: String
     let bio: String
     let telegramUsername: String?
-    let role: String
+    let role: String? = nil
     let isBlocked: Bool
     let blockState: String
     let globalRole: String
-    let moderatorSections: [String]
+    let canManageGuide: Bool
     let selectedFederalState: String
     let accountStatus: String
     let warningCount: Int
@@ -33,11 +33,10 @@ struct RegisteredUserDocumentData: Equatable {
             "email": email,
             "bio": bio,
             "telegramUsername": telegramUsername ?? NSNull(),
-            "role": role,
             "isBlocked": isBlocked,
             "blockState": blockState,
             "globalRole": globalRole,
-            "moderatorSections": moderatorSections,
+            "canManageGuide": canManageGuide,
             "selectedFederalState": selectedFederalState,
             "accountStatus": accountStatus,
             "warningCount": warningCount,
@@ -69,10 +68,10 @@ final class UserProfileService {
 
             try await document.setData([
                 "id": uid,
-                "role": "user",
                 "isBlocked": false,
+                "blockState": UserBlockState.active.rawValue,
                 "globalRole": GlobalRole.user.rawValue,
-                "moderatorSections": [],
+                "canManageGuide": false,
                 "selectedFederalState": AustrianFederalState.tirol.rawValue,
                 "displayName": "",
                 "telegramUsername": NSNull(),
@@ -121,7 +120,6 @@ final class UserProfileService {
             let isBlocked = data["isBlocked"] as? Bool ?? false
             let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? .now
             let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? createdAt
-            let moderatorSections = data["moderatorSections"] as? [String]
             let communityMemberships: [CommunityMembershipDTO]? = (data["communityMemberships"] as? [[String: Any]])?.compactMap { rawMembership in
                 guard
                     let organizationId = rawMembership["organizationId"] as? String,
@@ -142,10 +140,11 @@ final class UserProfileService {
                 avatarURL: data["avatarURL"] as? String,
                 bio: data["bio"] as? String ?? "",
                 telegramUsername: data["telegramUsername"] as? String,
-                role: data["role"] as? String ?? UserRole.user.rawValue,
-                blockState: data["blockState"] as? String ?? (isBlocked ? UserBlockState.blocked.rawValue : UserBlockState.active.rawValue),
+                role: data["role"] as? String,
+                blockState: data["blockState"] as? String ?? (isBlocked ? UserBlockState.suspendedUntil.rawValue : UserBlockState.active.rawValue),
                 globalRole: data["globalRole"] as? String,
-                moderatorSections: moderatorSections,
+                moderatorSections: data["moderatorSections"] as? [String],
+                canManageGuide: data["canManageGuide"] as? Bool,
                 accountStatus: data["accountStatus"] as? String,
                 banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
                 warningCount: data["warningCount"] as? Int,
@@ -183,11 +182,10 @@ extension UserProfileService {
             email: draft.email,
             bio: "",
             telegramUsername: draft.telegramUsername?.nilIfEmpty,
-            role: UserRole.user.rawValue,
             isBlocked: false,
             blockState: UserBlockState.active.rawValue,
             globalRole: GlobalRole.user.rawValue,
-            moderatorSections: [],
+            canManageGuide: false,
             selectedFederalState: draft.selectedFederalState.rawValue,
             accountStatus: AccountStatus.active.rawValue,
             warningCount: 0,
@@ -262,5 +260,36 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             "userId": feedback.userId,
             "userDisplayName": feedback.userDisplayName
         ])
+    }
+
+    func fetchFeedback() async throws -> [FeedbackItem] {
+        let snapshot = try await collection
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+
+        return snapshot.documents.map { document in
+            makeFeedbackItem(from: document)
+        }
+    }
+
+    func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {
+        try await collection.document(id).updateData([
+            "status": status.rawValue
+        ])
+    }
+
+    private func makeFeedbackItem(from document: QueryDocumentSnapshot) -> FeedbackItem {
+        let data = document.data()
+        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+
+        return FeedbackItem(
+            id: data["id"] as? String ?? document.documentID,
+            type: FeedbackType(rawValue: data["type"] as? String ?? "") ?? .question,
+            message: data["message"] as? String ?? "",
+            status: FeedbackStatus(rawValue: data["status"] as? String ?? "") ?? .open,
+            createdAt: createdAt,
+            userId: data["userId"] as? String ?? "",
+            userDisplayName: data["userDisplayName"] as? String ?? ""
+        )
     }
 }

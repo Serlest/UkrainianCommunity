@@ -11,10 +11,11 @@ struct HomeView: View {
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     let newsRepository: NewsRepository
     @State private var selectedBannerPhoto: PhotosPickerItem?
+    @State private var selectedContentType: HomeContentTypeFilter = .all
     @State private var selectedFeedFilter: HomeFeedFilter = .all
     @State private var selectedFederalState: AustrianFederalState?
+    @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
-    @State private var isShowingCreateNewsSheet = false
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -26,12 +27,13 @@ struct HomeView: View {
                     .padding(.bottom, AppTheme.homeSectionSpacing)
 
                 HomeFilterRow(
+                    selectedContentType: selectedContentType,
                     selectedFilter: selectedFeedFilter,
                     selectedFederalState: selectedFederalState,
-                    onSelectAll: selectAllFeed,
                     onSelectRegion: { isRegionPickerPresented = true },
-                    onSelectSaved: { selectedFeedFilter = .saved },
-                    onSelectSubscribed: { selectedFeedFilter = .subscribed }
+                    onSelectContentType: { selectedContentType = $0 },
+                    onToggleSaved: { toggleFeedFilter(.saved) },
+                    onToggleSubscribed: { toggleFeedFilter(.subscribed) }
                 )
                     .padding(.bottom, AppTheme.homeSectionSpacing)
 
@@ -47,12 +49,12 @@ struct HomeView: View {
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
             Button(AppStrings.Home.regionAllAustria) {
-                selectedFederalState = nil
+                selectRegion(nil)
             }
 
             ForEach(AustrianFederalState.allCases) { federalState in
                 Button(federalState.homeDisplayName) {
-                    selectedFederalState = federalState
+                    selectRegion(federalState)
                 }
             }
 
@@ -62,8 +64,13 @@ struct HomeView: View {
             await refreshAllContent()
         }
         .task {
+            applyDefaultRegion()
             await loadContentIfNeeded()
             await refreshContentIfStale()
+        }
+        .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
+            guard !didManuallyChangeRegion else { return }
+            selectedFederalState = newRegion
         }
         .onChange(of: selectedBannerPhoto) { _, newItem in
             Task {
@@ -85,12 +92,6 @@ struct HomeView: View {
             Button(AppStrings.News.dismissError, role: .cancel) {
                 viewModel.clearBannerError()
             }
-        }
-        .sheet(isPresented: $isShowingCreateNewsSheet) {
-            NavigationStack {
-                createNewsEditor
-            }
-            .environmentObject(authState)
         }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
@@ -135,46 +136,7 @@ struct HomeView: View {
 
     private var homeHeader: some View {
         AppBrandHeader {
-            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                if canCreateHomeNews {
-                    AppGlassIconButton(systemImage: "doc.badge.plus", accessibilityLabel: AppStrings.NewsEditor.addTitle) {
-                        isShowingCreateNewsSheet = true
-                    }
-                }
-
-                AppNotificationBellButton()
-            }
-        }
-    }
-
-    private var canCreateHomeNews: Bool {
-        PermissionService.canCreateNews(user: authState.user) || managedNewsOrganization != nil
-    }
-
-    private var managedNewsOrganization: Organization? {
-        guard let user = authState.user else { return nil }
-        guard !PermissionService.canCreateNews(user: user) else { return nil }
-
-        return organizationsViewModel.organizations.first { organization in
-            PermissionService.canCreateNews(for: organization.id, user: user)
-        }
-    }
-
-    @ViewBuilder
-    private var createNewsEditor: some View {
-        if PermissionService.canCreateNews(user: authState.user) {
-            NewsEditorView(repository: newsRepository, onPublished: refreshNewsAfterPublish)
-        } else if let organization = managedNewsOrganization {
-            NewsEditorView(
-                repository: newsRepository,
-                organizationId: organization.id,
-                organizationName: organization.name,
-                organizationImageURL: organization.imageURL,
-                organizationFederalState: organization.federalState,
-                onPublished: refreshNewsAfterPublish
-            )
-        } else {
-            EmptyView()
+            AppNotificationBellButton()
         }
     }
 
@@ -218,10 +180,16 @@ struct HomeView: View {
         }
     }
 
-    private var filteredFeedItems: [HomeFeedItem] {
+    private var filteredHomeItems: [HomeFeedItem] {
         viewModel.feedItems.filter { item in
-            matchesSelectedRegion(item) && matchesSelectedFilter(item)
+            matchesSelectedRegion(item)
+                && selectedContentType.matches(item)
+                && matchesSelectedFilter(item)
         }
+    }
+
+    private var filteredFeedItems: [HomeFeedItem] {
+        filteredHomeItems
     }
 
     private func matchesSelectedRegion(_ item: HomeFeedItem) -> Bool {
@@ -241,40 +209,60 @@ struct HomeView: View {
     }
 
     private func isSaved(_ item: HomeFeedItem) -> Bool {
-        if item.isSaved {
-            return true
-        }
+        guard authState.user != nil else { return false }
 
-        guard case let .news(id) = item.destination else {
-            return false
+        switch item.destination {
+        case let .news(id):
+            return bookmarkedNewsIDs.contains(id)
+        case let .event(id):
+            return bookmarkedEventIDs.contains(id)
+        case let .organization(id):
+            return bookmarkedOrganizationIDs.contains(id)
         }
+    }
 
-        return newsViewModel.post(for: id)?.isBookmarked == true
+    private var bookmarkedNewsIDs: Set<String> {
+        Set(newsViewModel.posts.filter(\.isBookmarked).map(\.id))
+    }
+
+    private var bookmarkedEventIDs: Set<String> {
+        Set(eventsViewModel.events.filter(\.isBookmarked).map(\.id))
+    }
+
+    private var bookmarkedOrganizationIDs: Set<String> {
+        Set(organizationsViewModel.organizations.filter(\.isBookmarked).map(\.id))
     }
 
     private func isSubscribedSource(_ item: HomeFeedItem) -> Bool {
-        guard item.sourceType == .organization else {
-            return true
-        }
-
-        guard let organizationId = item.organizationId else {
-            return false
-        }
-
+        guard authState.user != nil else { return false }
+        guard let organizationId = item.organizationId else { return false }
         return subscribedOrganizationIDs.contains(organizationId)
     }
 
     private var subscribedOrganizationIDs: Set<String> {
-        Set(authState.user?.communityMemberships.map(\.organizationId) ?? [])
+        Set(organizationsViewModel.organizations.filter(\.likeState.isLiked).map(\.id))
     }
 
-    private func selectAllFeed() {
-        selectedFeedFilter = .all
-        selectedFederalState = nil
+    private func toggleFeedFilter(_ filter: HomeFeedFilter) {
+        selectedFeedFilter = selectedFeedFilter == filter ? .all : filter
+    }
+
+    private func selectRegion(_ federalState: AustrianFederalState?) {
+        selectedFederalState = federalState
+        didManuallyChangeRegion = true
+    }
+
+    private func applyDefaultRegion() {
+        guard !didManuallyChangeRegion else { return }
+        selectedFederalState = authState.user?.selectedFederalState
     }
 
     private var emptyStateSystemImage: String {
-        switch selectedFeedFilter {
+        if selectedContentType != .all {
+            return selectedContentType.systemImage
+        }
+
+        return switch selectedFeedFilter {
         case .all:
             selectedFederalState == nil ? "tray" : "mappin.and.ellipse"
         case .saved:
@@ -322,13 +310,6 @@ struct HomeView: View {
         _ = await (homeRefresh, bannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
     }
 
-    @MainActor
-    private func refreshNewsAfterPublish() async {
-        async let homeRefresh: Void = viewModel.refresh()
-        async let newsRefresh: Void = newsViewModel.refresh()
-        _ = await (homeRefresh, newsRefresh)
-    }
-
     private func updateHomeBanner(from item: PhotosPickerItem?) async {
         guard let item else { return }
 
@@ -374,6 +355,52 @@ struct HomeView: View {
     }
 }
 
+private enum HomeContentTypeFilter: CaseIterable {
+    case all
+    case news
+    case events
+    case organizations
+
+    var title: String {
+        switch self {
+        case .all:
+            AppStrings.Home.filterAll
+        case .news:
+            AppStrings.Home.filterNews
+        case .events:
+            AppStrings.Home.filterEvents
+        case .organizations:
+            AppStrings.Home.filterOrganizations
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .all:
+            "square.grid.2x2"
+        case .news:
+            "newspaper"
+        case .events:
+            "calendar"
+        case .organizations:
+            "building.2"
+        }
+    }
+
+    func matches(_ item: HomeFeedItem) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .news:
+            return item.itemType == .news
+        case .events:
+            return item.itemType == .event
+        case .organizations:
+            return item.itemType == .organization
+        }
+    }
+}
+
 private enum HomeFeedFilter {
     case all
     case saved
@@ -381,17 +408,31 @@ private enum HomeFeedFilter {
 }
 
 private struct HomeFilterRow: View {
+    let selectedContentType: HomeContentTypeFilter
     let selectedFilter: HomeFeedFilter
     let selectedFederalState: AustrianFederalState?
-    let onSelectAll: () -> Void
     let onSelectRegion: () -> Void
-    let onSelectSaved: () -> Void
-    let onSelectSubscribed: () -> Void
+    let onSelectContentType: (HomeContentTypeFilter) -> Void
+    let onToggleSaved: () -> Void
+    let onToggleSubscribed: () -> Void
 
     var body: some View {
         AppHorizontalFilterRow {
-            Button(action: onSelectAll) {
-                AppFilterChip(title: AppStrings.Home.filterAll, systemImage: "square.grid.2x2", isSelected: selectedFilter == .all && selectedFederalState == nil)
+            Menu {
+                ForEach(HomeContentTypeFilter.allCases, id: \.self) { contentType in
+                    Button {
+                        onSelectContentType(contentType)
+                    } label: {
+                        Label(contentType.title, systemImage: contentType.systemImage)
+                    }
+                }
+            } label: {
+                AppFilterChip(
+                    title: selectedContentType.title,
+                    systemImage: selectedContentType.systemImage,
+                    isSelected: selectedContentType != .all,
+                    trailingSystemImage: "chevron.down"
+                )
             }
             .buttonStyle(.plain)
 
@@ -405,13 +446,13 @@ private struct HomeFilterRow: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: onSelectSaved) {
-                AppFilterChip(title: AppStrings.Home.filterSaved, systemImage: "bookmark", isSelected: selectedFilter == .saved)
+            Button(action: onToggleSubscribed) {
+                AppFilterChip(title: AppStrings.Home.filterSubscribed, systemImage: "person.2.fill", isSelected: selectedFilter == .subscribed)
             }
             .buttonStyle(.plain)
 
-            Button(action: onSelectSubscribed) {
-                AppFilterChip(title: AppStrings.Home.filterSubscribed, systemImage: "person.2.fill", isSelected: selectedFilter == .subscribed)
+            Button(action: onToggleSaved) {
+                AppFilterChip(title: AppStrings.Home.filterSaved, systemImage: "bookmark", isSelected: selectedFilter == .saved)
             }
             .buttonStyle(.plain)
         }
@@ -433,6 +474,11 @@ private struct HomeFeedCard: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
+
+                    if item.itemType == .organization {
+                        organizationMetadataLine
+                            .padding(.top, 1)
+                    }
 
                     if shouldShowPreview, !item.summary.isEmpty {
                         Text(item.summary)
@@ -465,9 +511,11 @@ private struct HomeFeedCard: View {
                     }
                 }
 
-                Spacer(minLength: 2)
+                if item.itemType != .organization {
+                    Spacer(minLength: 2)
 
-                rightAccessory
+                    rightAccessory
+                }
             }
         }
         .accessibilityElement(children: .ignore)
@@ -521,13 +569,6 @@ private struct HomeFeedCard: View {
                 }
                 .frame(minHeight: AppTheme.feedThumbnailSize + 12, alignment: .center)
             }
-        } else {
-            VStack(alignment: .trailing, spacing: 8) {
-                timestampText
-                Spacer(minLength: 8)
-                bookmarkIcon
-            }
-            .frame(minHeight: AppTheme.feedThumbnailSize)
         }
     }
 
@@ -539,15 +580,17 @@ private struct HomeFeedCard: View {
             .minimumScaleFactor(0.82)
     }
 
-    private var bookmarkIcon: some View {
-        Image(systemName: "bookmark")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
-            .frame(width: 20, height: 20)
-    }
-
     private var metadataLine: some View {
         AppMetadataLine(title: primaryMetadataText, systemImage: primaryMetadataIcon)
+    }
+
+    private var organizationMetadataLine: some View {
+        Text(organizationMetadataText)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .minimumScaleFactor(0.82)
     }
 
     private var itemTypeTitle: String {
@@ -629,6 +672,57 @@ private struct HomeFeedCard: View {
         item.itemType == .event ? "clock" : "mappin.and.ellipse"
     }
 
+    private var organizationMetadataText: String {
+        [
+            organizationRegionText,
+            organizationCategoryText,
+            subscriberCountText
+        ]
+        .compactMap { value -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }
+        .joined(separator: " • ")
+    }
+
+    private var organizationRegionText: String? {
+        if let federalState = item.federalState {
+            return AppStrings.FederalStates.title(for: federalState)
+        }
+
+        if let city = item.city, !city.isEmpty {
+            return city
+        }
+
+        return nil
+    }
+
+    private var organizationCategoryText: String? {
+        guard let organizationType = item.organizationType,
+              let category = OrganizationEditorCategory(rawValue: organizationType) else {
+            return AppStrings.Organizations.detailBadge
+        }
+
+        return category.title
+    }
+
+    private var subscriberCountText: String {
+        let count = item.subscriberCount
+        let mod10 = count % 10
+        let mod100 = count % 100
+        let suffix: String
+
+        if mod10 == 1 && mod100 != 11 {
+            suffix = "підписник"
+        } else if (2...4).contains(mod10) && !(12...14).contains(mod100) {
+            suffix = "підписники"
+        } else {
+            suffix = "підписників"
+        }
+
+        return "\(count) \(suffix)"
+    }
+
     private var secondaryMetadataText: String? {
         guard item.itemType == .event else { return nil }
         if let city = item.city, !city.isEmpty {
@@ -641,7 +735,7 @@ private struct HomeFeedCard: View {
         guard item.itemType == .news || item.itemType == .event else { return nil }
 
         let authorName = normalizedPublisherName(item.authorName)
-        let sourceName = normalizedPublisherName(item.organizationName) ?? AppStrings.Home.brandTitle
+        let sourceName = normalizedPublisherName(item.organizationName) ?? (item.itemType == .news ? AppStrings.News.missingOrganization : AppStrings.Home.brandTitle)
 
         guard let authorName else {
             return sourceName
@@ -683,7 +777,11 @@ private struct HomeFeedCard: View {
 
         parts.append(primaryMetadataText)
 
-        parts.append("\(item.likeCount) \(AppStrings.Common.likes)")
+        if item.itemType == .organization {
+            parts.append(subscriberCountText)
+        } else {
+            parts.append("\(item.likeCount) \(AppStrings.Common.likes)")
+        }
         return parts.joined(separator: ", ")
     }
 }

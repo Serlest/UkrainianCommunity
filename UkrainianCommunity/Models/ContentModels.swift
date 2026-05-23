@@ -97,6 +97,24 @@ struct ContentSourceMetadata: Codable, Equatable {
         self.organizationName = organizationName
         self.organizationImageURL = organizationImageURL
     }
+
+    var displayOrganizationId: String? {
+        if sourceType == .app {
+            return Organization.systemOrganizationID
+        }
+        return organizationId
+    }
+
+    var displayOrganizationName: String? {
+        let trimmedName = organizationName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedName, !trimmedName.isEmpty {
+            return trimmedName
+        }
+        if sourceType == .app {
+            return Organization.systemOrganizationName
+        }
+        return nil
+    }
 }
 
 enum CommentParentType: String, Codable {
@@ -169,7 +187,7 @@ struct NewsPost: Identifiable, Codable {
     var likeState: LikeState
     var viewCount: Int
     var isBookmarked: Bool
-    var commentCount: Int { comments.filter { !$0.isDeleted }.count }
+    var commentCount: Int
 
     nonisolated init(
         id: String,
@@ -192,7 +210,8 @@ struct NewsPost: Identifiable, Codable {
         likeCount: Int,
         likeState: LikeState,
         viewCount: Int = 0,
-        isBookmarked: Bool = false
+        isBookmarked: Bool = false,
+        commentCount: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -215,6 +234,35 @@ struct NewsPost: Identifiable, Codable {
         self.likeState = likeState
         self.viewCount = viewCount
         self.isBookmarked = isBookmarked
+        self.commentCount = max(0, commentCount ?? comments.filter { !$0.isDeleted }.count)
+    }
+}
+
+struct OrganizationPhoto: Identifiable, Codable, Equatable {
+    let id: String
+    let organizationId: String
+    let imageURL: String
+    let caption: String?
+    let uploadedBy: String
+    let createdAt: Date
+    let updatedAt: Date?
+
+    nonisolated init(
+        id: String,
+        organizationId: String,
+        imageURL: String,
+        caption: String? = nil,
+        uploadedBy: String,
+        createdAt: Date,
+        updatedAt: Date? = nil
+    ) {
+        self.id = id
+        self.organizationId = organizationId
+        self.imageURL = imageURL
+        self.caption = caption
+        self.uploadedBy = uploadedBy
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
     }
 }
 
@@ -284,22 +332,6 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
     }
 }
 
-enum EventVisibility: String, CaseIterable, Codable, Identifiable {
-    case `public`
-    case `private`
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .public:
-            AppStrings.Events.visibilityPublic
-        case .private:
-            AppStrings.Events.visibilityPrivate
-        }
-    }
-}
-
 struct Event: Identifiable, Codable {
     let id: String
     let title: String
@@ -331,10 +363,9 @@ struct Event: Identifiable, Codable {
     var likeState: LikeState
     var viewCount: Int
     let category: EventCategory
-    let visibility: EventVisibility
     let isAllDay: Bool
     var isBookmarked: Bool
-    var commentCount: Int { comments.filter { !$0.isDeleted }.count }
+    var commentCount: Int
 
     nonisolated init(
         id: String,
@@ -367,9 +398,9 @@ struct Event: Identifiable, Codable {
         likeState: LikeState,
         viewCount: Int = 0,
         category: EventCategory = .meetups,
-        visibility: EventVisibility = .public,
         isAllDay: Bool = false,
-        isBookmarked: Bool = false
+        isBookmarked: Bool = false,
+        commentCount: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -402,9 +433,9 @@ struct Event: Identifiable, Codable {
         self.likeState = likeState
         self.viewCount = viewCount
         self.category = category
-        self.visibility = visibility
         self.isAllDay = isAllDay
         self.isBookmarked = isBookmarked
+        self.commentCount = max(0, commentCount ?? comments.filter { !$0.isDeleted }.count)
     }
 }
 
@@ -412,48 +443,153 @@ struct Organization: Identifiable, Codable {
     let id: String
     let name: String
     let description: String
+    let shortDescription: String
+    let fullDescription: String
     let regionScope: RegionScope?
     let federalState: AustrianFederalState?
     let city: String
     let imageURL: String?
+    let logoURL: String?
+    let coverURL: String?
     let contactEmail: String?
+    let email: String?
+    let phone: String?
     let website: String?
+    let address: String?
+    let latitude: Double?
+    let longitude: Double?
+    let organizationType: String?
+    let foundedYear: Int?
+    let foundedMonth: Int?
+    let languages: [String]
+    let socialLinks: [String: String]
+    let telegramURL: String?
+    let donationURL: String?
+    let missionStatement: String?
+    let contactPerson: String?
+    var subscriberCount: Int
+    let eventsHeldCount: Int
+    let volunteersCount: Int
+    let helpedPeopleCount: Int
+    let ownerId: String?
+    let adminIds: [String]
+    let moderatorIds: [String]
+    let isSystemManaged: Bool?
+    let sourceType: ContentSourceType?
+    let pinnedNewsId: String?
+    let pinnedEventId: String?
     let createdAt: Date
     let updatedAt: Date
     var moderationStatus: ModerationStatus
     var likeCount: Int
     var likeState: LikeState
+    var isBookmarked: Bool
 
     nonisolated init(
         id: String,
         name: String,
         description: String,
+        shortDescription: String? = nil,
+        fullDescription: String? = nil,
         regionScope: RegionScope? = .city,
         federalState: AustrianFederalState? = .tirol,
         city: String,
         imageURL: String? = nil,
+        logoURL: String? = nil,
+        coverURL: String? = nil,
         contactEmail: String? = nil,
+        email: String? = nil,
+        phone: String? = nil,
         website: String? = nil,
+        address: String? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        organizationType: String? = nil,
+        foundedYear: Int? = nil,
+        foundedMonth: Int? = nil,
+        languages: [String] = [],
+        socialLinks: [String: String] = [:],
+        telegramURL: String? = nil,
+        donationURL: String? = nil,
+        missionStatement: String? = nil,
+        contactPerson: String? = nil,
+        subscriberCount: Int = 0,
+        eventsHeldCount: Int = 0,
+        volunteersCount: Int = 0,
+        helpedPeopleCount: Int = 0,
+        ownerId: String? = nil,
+        adminIds: [String] = [],
+        moderatorIds: [String] = [],
+        isSystemManaged: Bool? = nil,
+        sourceType: ContentSourceType? = nil,
+        pinnedNewsId: String? = nil,
+        pinnedEventId: String? = nil,
         createdAt: Date,
         updatedAt: Date,
         moderationStatus: ModerationStatus,
         likeCount: Int,
-        likeState: LikeState
+        likeState: LikeState,
+        isBookmarked: Bool = false
     ) {
         self.id = id
         self.name = name
         self.description = description
+        self.shortDescription = Self.normalizedOptionalString(shortDescription) ?? description
+        self.fullDescription = Self.normalizedOptionalString(fullDescription) ?? description
         self.regionScope = regionScope
         self.federalState = federalState
         self.city = city
-        self.imageURL = imageURL
-        self.contactEmail = contactEmail
+        self.logoURL = Self.normalizedOptionalString(logoURL) ?? Self.normalizedOptionalString(imageURL)
+        self.coverURL = Self.normalizedOptionalString(coverURL) ?? Self.normalizedOptionalString(imageURL)
+        self.imageURL = Self.normalizedOptionalString(imageURL) ?? self.logoURL ?? self.coverURL
+        self.contactEmail = Self.normalizedOptionalString(contactEmail) ?? Self.normalizedOptionalString(email)
+        self.email = Self.normalizedOptionalString(email) ?? Self.normalizedOptionalString(contactEmail)
+        self.phone = Self.normalizedOptionalString(phone)
         self.website = website
+        self.address = Self.normalizedOptionalString(address)
+        self.latitude = latitude
+        self.longitude = longitude
+        self.organizationType = Self.normalizedOptionalString(organizationType)
+        self.foundedYear = foundedYear
+        self.foundedMonth = foundedMonth.flatMap { (1...12).contains($0) ? $0 : nil }
+        self.languages = languages
+        self.socialLinks = socialLinks
+        self.telegramURL = Self.normalizedOptionalString(telegramURL)
+        self.donationURL = Self.normalizedOptionalString(donationURL)
+        self.missionStatement = Self.normalizedOptionalString(missionStatement)
+        self.contactPerson = Self.normalizedOptionalString(contactPerson)
+        self.subscriberCount = max(0, subscriberCount)
+        self.eventsHeldCount = max(0, eventsHeldCount)
+        self.volunteersCount = max(0, volunteersCount)
+        self.helpedPeopleCount = max(0, helpedPeopleCount)
+        self.ownerId = Self.normalizedOptionalString(ownerId)
+        self.adminIds = adminIds
+        self.moderatorIds = moderatorIds
+        self.isSystemManaged = isSystemManaged
+        self.sourceType = sourceType
+        self.pinnedNewsId = Self.normalizedOptionalString(pinnedNewsId)
+        self.pinnedEventId = Self.normalizedOptionalString(pinnedEventId)
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.moderationStatus = moderationStatus
         self.likeCount = likeCount
         self.likeState = likeState
+        self.isBookmarked = isBookmarked
+    }
+
+    nonisolated private static func normalizedOptionalString(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+extension Organization {
+    static let systemOrganizationID = "ukrainian-community"
+    static let systemOrganizationName = "Ukrainian Community"
+
+    var isSystemOrganization: Bool {
+        isSystemManaged == true || id == Self.systemOrganizationID
     }
 }
 
@@ -520,9 +656,11 @@ struct HomeFeedItem: Identifiable, Equatable {
     let eventVenue: String?
     let organizationId: String?
     let organizationName: String?
+    let organizationType: String?
     let authorName: String?
     let isSaved: Bool
     let likeCount: Int
+    let subscriberCount: Int
     let destination: HomeFeedDestinationReference
 
     init(post: NewsPost) {
@@ -540,10 +678,12 @@ struct HomeFeedItem: Identifiable, Equatable {
         eventEndDate = nil
         eventVenue = nil
         organizationId = post.source.organizationId
-        organizationName = post.source.organizationName
+        organizationName = post.source.displayOrganizationName
+        organizationType = nil
         authorName = post.authorName
         isSaved = post.isBookmarked
         likeCount = post.likeCount
+        subscriberCount = 0
         destination = .news(id: post.id)
     }
 
@@ -562,10 +702,12 @@ struct HomeFeedItem: Identifiable, Equatable {
         eventEndDate = event.endDate
         eventVenue = event.venue
         organizationId = event.source.organizationId
-        organizationName = event.source.organizationName
+        organizationName = event.source.displayOrganizationName
+        organizationType = nil
         authorName = event.authorName
         isSaved = event.isBookmarked
         likeCount = event.likeCount
+        subscriberCount = 0
         destination = .event(id: event.id)
     }
 
@@ -585,9 +727,11 @@ struct HomeFeedItem: Identifiable, Equatable {
         eventVenue = nil
         organizationId = organization.id
         organizationName = organization.name
+        organizationType = organization.organizationType
         authorName = nil
         isSaved = false
         likeCount = organization.likeCount
+        subscriberCount = organization.subscriberCount
         destination = .organization(id: organization.id)
     }
 }
@@ -608,6 +752,8 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     let city: String?
     let eventStartDate: Date?
     let eventVenue: String?
+    let eventRegistrationState: EventRegistrationState?
+    let isBookmarked: Bool
     let organizationId: String
     let organizationName: String
     let destination: HomeFeedDestinationReference?
@@ -622,6 +768,8 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         city = organization.city
         eventStartDate = nil
         eventVenue = nil
+        eventRegistrationState = nil
+        isBookmarked = false
         organizationId = organization.id
         organizationName = organization.name
         destination = nil
@@ -637,8 +785,10 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         city = post.city
         eventStartDate = nil
         eventVenue = nil
-        organizationId = post.source.organizationId ?? ""
-        organizationName = post.source.organizationName ?? ""
+        eventRegistrationState = nil
+        isBookmarked = post.isBookmarked
+        organizationId = post.source.displayOrganizationId ?? ""
+        organizationName = post.source.displayOrganizationName ?? ""
         destination = .news(id: post.id)
     }
 
@@ -652,8 +802,10 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         city = event.city
         eventStartDate = event.startDate
         eventVenue = event.venue
-        organizationId = event.source.organizationId ?? ""
-        organizationName = event.source.organizationName ?? ""
+        eventRegistrationState = event.registrationState
+        isBookmarked = event.isBookmarked
+        organizationId = event.source.displayOrganizationId ?? ""
+        organizationName = event.source.displayOrganizationName ?? ""
         destination = .event(id: event.id)
     }
 }

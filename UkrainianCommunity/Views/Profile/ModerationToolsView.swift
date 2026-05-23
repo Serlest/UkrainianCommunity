@@ -44,6 +44,7 @@ private final class ModerationQueueViewModel: ObservableObject {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
+    private let organizationID: String?
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var allowedSections: Set<AppSection> = []
@@ -51,11 +52,13 @@ private final class ModerationQueueViewModel: ObservableObject {
     init(
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository
+        organizationRepository: OrganizationRepository,
+        organizationID: String? = nil
     ) {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
+        self.organizationID = organizationID
     }
 
     func loadIfNeeded() async {
@@ -141,6 +144,12 @@ private final class ModerationQueueViewModel: ObservableObject {
     private func loadAllowedItems() async throws -> [ModerationQueueItem] {
         var loadedItems: [ModerationQueueItem] = []
 
+        if let organizationID {
+            loadedItems.append(contentsOf: makeItems(from: try await newsRepository.fetchOrganizationModerationNews(organizationID: organizationID)))
+            loadedItems.append(contentsOf: makeItems(from: try await eventRepository.fetchOrganizationModerationEvents(organizationID: organizationID)))
+            return loadedItems.sorted { $0.createdAt > $1.createdAt }
+        }
+
         if allowedSections.contains(.news) {
             loadedItems.append(contentsOf: makeItems(from: try await newsRepository.fetchPendingNews()))
         }
@@ -195,21 +204,28 @@ private final class ModerationQueueViewModel: ObservableObject {
 struct ModerationToolsView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: ModerationQueueViewModel
+    private let organizationID: String?
 
     init(
+        organizationID: String? = nil,
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
+        self.organizationID = organizationID
         _viewModel = StateObject(wrappedValue: ModerationQueueViewModel(
             newsRepository: newsRepository,
             eventRepository: eventRepository,
-            organizationRepository: organizationRepository
+            organizationRepository: organizationRepository,
+            organizationID: organizationID
         ))
     }
 
     private var canAccessModeration: Bool {
         guard let user = authState.user else { return false }
+        if let organizationID {
+            return PermissionService.canModerateOrganizationContent(organizationId: organizationID, user: user)
+        }
         return PermissionService.canModerate(section: .news, user: user)
             || PermissionService.canModerate(section: .events, user: user)
             || PermissionService.canModerate(section: .organizations, user: user)
@@ -217,63 +233,44 @@ struct ModerationToolsView: View {
 
     private var allowedSections: Set<AppSection> {
         guard let user = authState.user else { return [] }
+        if organizationID != nil {
+            return [.news, .events]
+        }
         return PermissionService.moderatedSections(for: user)
             .intersection([.news, .events, .organizations])
     }
 
+    private var screenTitle: String {
+        organizationID == nil ? AppStrings.Moderation.title : "Модерація організації"
+    }
+
+    private var emptyMessage: String {
+        organizationID == nil ? AppStrings.Moderation.empty : "Немає матеріалів організації на перевірці"
+    }
+
     var body: some View {
-        Group {
-            if !canAccessModeration {
-                moderationStateView(message: AppStrings.Moderation.loadPermissionError)
-            } else if viewModel.isLoading && viewModel.items.isEmpty {
-                ProgressView(AppStrings.Profile.reviewPendingContent)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = viewModel.error, viewModel.items.isEmpty {
-                moderationErrorView(message: errorMessage(for: error))
-            } else if viewModel.items.isEmpty {
-                moderationStateView(message: AppStrings.Moderation.empty)
-            } else {
-                List {
-                    Section {
-                        Text(AppStrings.Moderation.subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
-                    }
-                    .listRowBackground(AppTheme.surfacePrimary)
+        ZStack {
+            AppBackgroundView()
+                .allowsHitTesting(false)
 
-                    if let error = viewModel.error {
-                        Section {
-                            Text(errorMessage(for: error))
-                                .font(.subheadline)
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                        .listRowBackground(AppTheme.surfacePrimary)
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    AppBrandHeader {
+                        AppNotificationBellButton()
                     }
 
-                    Section {
-                        ForEach(viewModel.items) { item in
-                            ModerationItemRow(
-                                item: item,
-                                isProcessing: viewModel.processingItemIDs.contains(item.id),
-                                approveAction: {
-                                    await viewModel.updateStatus(for: item, to: .approved)
-                                },
-                                rejectAction: {
-                                    await viewModel.updateStatus(for: item, to: .rejected)
-                                }
-                            )
-                        }
+                    AppGroupedContentPlane {
+                        moderationContent
                     }
-                    .listRowBackground(AppTheme.surfacePrimary)
                 }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
-                .background(AppTheme.pageBackground)
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
         }
-        .background(AppTheme.pageBackground)
         .tint(AppTheme.accentPrimary)
-        .navigationTitle(AppStrings.Moderation.title)
+        .navigationTitle(screenTitle)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             viewModel.setAllowedSections(allowedSections)
             await viewModel.loadIfNeeded()
@@ -284,37 +281,61 @@ struct ModerationToolsView: View {
         }
     }
 
-    private func moderationStateView(message: String) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "checkmark.shield")
-                .font(.system(size: 30))
-                .foregroundStyle(AppTheme.textSecondary)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
-        .background(AppTheme.pageBackground)
-    }
-
-    private func moderationErrorView(message: String) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 30))
-                .foregroundStyle(AppTheme.textSecondary)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-            Button(AppStrings.Moderation.retry) {
-                viewModel.reload()
+    @ViewBuilder
+    private var moderationContent: some View {
+        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+            AppEditorSectionCard {
+                SectionHeaderBlock(
+                    title: screenTitle,
+                    subtitle: AppStrings.Moderation.subtitle
+                )
             }
-            .buttonStyle(.borderedProminent)
+
+            if !canAccessModeration {
+                UnifiedEmptyStateCard(
+                    systemImage: "lock.shield",
+                    title: screenTitle,
+                    message: AppStrings.Moderation.loadPermissionError
+                )
+            } else if viewModel.isLoading && viewModel.items.isEmpty {
+                LoadingStateCard(title: AppStrings.Profile.reviewPendingContent)
+            } else if let error = viewModel.error, viewModel.items.isEmpty {
+                UnifiedEmptyStateCard(
+                    systemImage: "exclamationmark.triangle",
+                    title: screenTitle,
+                    message: errorMessage(for: error)
+                ) {
+                    PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
+                        viewModel.reload()
+                    }
+                }
+            } else if viewModel.items.isEmpty {
+                UnifiedEmptyStateCard(
+                    systemImage: "checkmark.shield",
+                    title: screenTitle,
+                    message: emptyMessage
+                )
+            } else {
+                if let error = viewModel.error {
+                    InlineMessageCard(style: .error, message: errorMessage(for: error))
+                }
+
+                VStack(spacing: AppTheme.feedRowSpacing) {
+                    ForEach(viewModel.items) { item in
+                        ModerationItemRow(
+                            item: item,
+                            isProcessing: viewModel.processingItemIDs.contains(item.id),
+                            approveAction: {
+                                await viewModel.updateStatus(for: item, to: .approved)
+                            },
+                            rejectAction: {
+                                await viewModel.updateStatus(for: item, to: .rejected)
+                            }
+                        )
+                    }
+                }
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 
     private func errorMessage(for error: AppError) -> String {
@@ -338,7 +359,8 @@ private struct ModerationItemRow: View {
     let rejectAction: () async -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(item.type.title)
                     .font(.caption.weight(.semibold))
@@ -358,24 +380,38 @@ private struct ModerationItemRow: View {
                 .lineLimit(3)
 
             HStack(spacing: 12) {
-                Button(AppStrings.Moderation.approve) {
+                PrimaryActionButton(
+                    title: AppStrings.Moderation.approve,
+                    isEnabled: !isProcessing,
+                    isLoading: isProcessing,
+                    systemImage: "checkmark"
+                ) {
                     Task {
                         await approveAction()
                     }
                 }
-                .buttonStyle(.borderedProminent)
 
-                Button(AppStrings.Moderation.reject) {
+                Button(role: .destructive) {
                     Task {
                         await rejectAction()
                     }
+                } label: {
+                    Label(AppStrings.Moderation.reject, systemImage: "xmark")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentDestructive)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: AppTheme.iconButtonSize)
+                        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                                .strokeBorder(AppTheme.accentDestructive.opacity(0.18))
+                        )
                 }
-                .buttonStyle(.bordered)
-                .tint(AppTheme.accentDestructive)
+                .buttonStyle(.plain)
+                .disabled(isProcessing)
             }
-            .disabled(isProcessing)
+            }
         }
-        .padding(.vertical, 6)
     }
 }
 

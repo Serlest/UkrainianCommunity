@@ -3,21 +3,31 @@ import SwiftUI
 
 enum GlobalRole: String, CaseIterable, Codable, Identifiable {
     case owner
+    // TODO: Remove legacy persisted values after Firestore user-role migration.
     case topAdmin
     case appModerator
     case user
 
+    static var allCases: [GlobalRole] { [.owner, .user] }
+
     var id: String { rawValue }
 
-    var title: String {
+    nonisolated var effectiveRole: GlobalRole {
         switch self {
         case .owner:
+            .owner
+        case .topAdmin, .appModerator, .user:
+            .user
+        }
+    }
+
+    var title: String {
+        switch effectiveRole {
+        case .owner:
             AppStrings.Roles.owner
-        case .topAdmin:
-            AppStrings.Roles.topAdmin
-        case .appModerator:
-            AppStrings.Roles.appModerator
         case .user:
+            AppStrings.Roles.user
+        case .topAdmin, .appModerator:
             AppStrings.Roles.user
         }
     }
@@ -26,11 +36,7 @@ enum GlobalRole: String, CaseIterable, Codable, Identifiable {
         switch legacyRole {
         case .owner:
             self = .owner
-        case .admin:
-            self = .topAdmin
-        case .moderator:
-            self = .appModerator
-        case .user:
+        case .admin, .moderator, .user:
             self = .user
         }
     }
@@ -48,6 +54,10 @@ enum AppSection: String, CaseIterable, Codable, Identifiable {
 enum AccountStatus: String, CaseIterable, Codable, Identifiable {
     case active
     case warned
+    case suspendedUntil
+    case bannedPermanent
+    case deactivated
+    // Legacy persisted values kept readable during migration.
     case temporarilyBanned
     case permanentlyBanned
 
@@ -58,11 +68,49 @@ enum AccountStatus: String, CaseIterable, Codable, Identifiable {
         case .active:
             AppStrings.Common.active
         case .warned:
-            AppStrings.Common.status
-        case .temporarilyBanned:
+            "Попередження"
+        case .suspendedUntil, .temporarilyBanned:
+            "Тимчасово заблоковано"
+        case .bannedPermanent, .permanentlyBanned:
+            "Заблоковано"
+        case .deactivated:
+            "Деактивовано"
+        }
+    }
+}
+
+enum UserBlockState: String, Codable, CaseIterable, Identifiable {
+    case active
+    case warned
+    case suspendedUntil
+    case bannedPermanent
+    case deactivated
+    // Legacy persisted value kept readable during migration.
+    case blocked
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .active:
+            AppStrings.Common.active
+        case .warned:
+            "Попередження"
+        case .suspendedUntil, .blocked:
+            "Тимчасово заблоковано"
+        case .bannedPermanent:
             AppStrings.Common.blocked
-        case .permanentlyBanned:
-            AppStrings.Common.blocked
+        case .deactivated:
+            "Деактивовано"
+        }
+    }
+
+    nonisolated var isRestricted: Bool {
+        switch self {
+        case .active, .warned:
+            return false
+        case .suspendedUntil, .bannedPermanent, .deactivated, .blocked:
+            return true
         }
     }
 }
@@ -110,20 +158,6 @@ enum UserRole: String, CaseIterable, Codable, Identifiable {
     var canEditContent: Bool { permissions.canEditContent }
     var canManageModerators: Bool { permissions.canManageModerators }
     var canManageUsers: Bool { permissions.canManageUsers }
-}
-
-enum UserBlockState: String, Codable {
-    case active
-    case blocked
-
-    var title: String {
-        switch self {
-        case .active:
-            AppStrings.Common.active
-        case .blocked:
-            AppStrings.Common.blocked
-        }
-    }
 }
 
 enum AppLanguage: String, CaseIterable, Codable, Identifiable {
@@ -263,6 +297,7 @@ struct AppUser: Identifiable, Codable {
     let role: UserRole
     let globalRole: GlobalRole
     let moderatorSections: [AppSection]
+    let canManageGuide: Bool
     let blockState: UserBlockState
     let accountStatus: AccountStatus
     let banExpiresAt: Date?
@@ -322,6 +357,7 @@ struct AppUser: Identifiable, Codable {
         role: UserRole,
         globalRole: GlobalRole? = nil,
         moderatorSections: [AppSection] = [],
+        canManageGuide: Bool = false,
         blockState: UserBlockState,
         accountStatus: AccountStatus? = nil,
         banExpiresAt: Date? = nil,
@@ -344,10 +380,11 @@ struct AppUser: Identifiable, Codable {
         self.bio = bio
         self.telegramUsername = telegramUsername
         self.role = role
-        self.globalRole = globalRole ?? GlobalRole(legacyRole: role)
-        self.moderatorSections = moderatorSections
+        self.globalRole = (globalRole ?? GlobalRole(legacyRole: role)).effectiveRole
+        self.moderatorSections = []
+        self.canManageGuide = canManageGuide
         self.blockState = blockState
-        self.accountStatus = accountStatus ?? (blockState == .blocked ? .temporarilyBanned : .active)
+        self.accountStatus = accountStatus ?? (blockState.isRestricted ? .suspendedUntil : .active)
         self.banExpiresAt = banExpiresAt
         self.warningCount = warningCount
         self.communityMemberships = communityMemberships
@@ -401,9 +438,21 @@ enum FeedbackType: String, CaseIterable, Codable, Identifiable {
 enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
     case open
     case reviewed
+    case archived
     case closed
 
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .open:
+            AppStrings.Feedback.statusOpen
+        case .reviewed:
+            AppStrings.Feedback.statusReviewed
+        case .archived, .closed:
+            AppStrings.Feedback.statusArchived
+        }
+    }
 }
 
 struct FeedbackItem: Identifiable, Codable {

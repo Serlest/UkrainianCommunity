@@ -11,28 +11,6 @@ private enum RemoteImageCache {
     }()
 }
 
-struct GradientHeroCard<Content: View>: View {
-    let title: String
-    let subtitle: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.title2.weight(.bold))
-            Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(AppTheme.textOnHero.opacity(0.85))
-            content
-        }
-        .padding(AppTheme.detailCardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.surfaceHero)
-        .foregroundStyle(AppTheme.textOnHero)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
-    }
-}
-
 struct BrandMarkView: View {
     enum ContentMode {
         case fit
@@ -666,44 +644,6 @@ struct AppEditorField<Content: View>: View {
     }
 }
 
-struct AppUploadPlaceholder: View {
-    let title: String
-    let helper: String
-    let systemImage: String
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(title: String, helper: String, systemImage: String = "photo.badge.plus") {
-        self.title = title
-        self.helper = helper
-        self.systemImage = systemImage
-    }
-
-    var body: some View {
-        VStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: systemImage)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
-
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textPrimary)
-
-            Text(helper)
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineSpacing(2)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(16 / 9, contentMode: .fit)
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
-                .stroke(AppTheme.glassBorder(for: colorScheme), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
-        )
-    }
-}
-
 struct AppEditorSubmitButton: View {
     let title: String
     let isEnabled: Bool
@@ -738,6 +678,239 @@ struct AppEditorSubmitButton: View {
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .accessibilityLabel(title)
+    }
+}
+
+struct PrimaryActionButton: View {
+    let title: String
+    let loadingTitle: String
+    let isEnabled: Bool
+    let isLoading: Bool
+    let systemImage: String?
+    let action: () -> Void
+
+    init(
+        title: String,
+        loadingTitle: String? = nil,
+        isEnabled: Bool = true,
+        isLoading: Bool = false,
+        systemImage: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.loadingTitle = loadingTitle ?? title
+        self.isEnabled = isEnabled
+        self.isLoading = isLoading
+        self.systemImage = systemImage
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.white)
+                } else if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.subheadline.weight(.semibold))
+                }
+
+                Text(isLoading ? loadingTitle : title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: AppTheme.iconButtonSize)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                    .fill(isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.36))
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled || isLoading)
+        .accessibilityLabel(title)
+    }
+}
+
+struct EditorTextField: View {
+    let title: String
+    @Binding var text: String
+    let systemImage: String
+    let keyboardType: UIKeyboardType
+    let textContentType: UITextContentType?
+    let autocapitalization: TextInputAutocapitalization
+    let autocorrectionDisabled: Bool
+
+    init(
+        _ title: String,
+        text: Binding<String>,
+        systemImage: String,
+        keyboardType: UIKeyboardType = .default,
+        textContentType: UITextContentType? = nil,
+        autocapitalization: TextInputAutocapitalization = .sentences,
+        autocorrectionDisabled: Bool = false
+    ) {
+        self.title = title
+        self._text = text
+        self.systemImage = systemImage
+        self.keyboardType = keyboardType
+        self.textContentType = textContentType
+        self.autocapitalization = autocapitalization
+        self.autocorrectionDisabled = autocorrectionDisabled
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: AppTheme.metadataIconSize)
+
+            TextField(title, text: $text)
+                .font(.subheadline)
+                .textInputAutocapitalization(autocapitalization)
+                .textContentType(textContentType)
+                .keyboardType(keyboardType)
+                .autocorrectionDisabled(autocorrectionDisabled)
+                .accessibilityLabel(title)
+        }
+        .padding(.horizontal, AppTheme.inputHorizontalPadding)
+        .frame(height: AppTheme.newsEditorInputHeight)
+        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
+        )
+    }
+}
+
+struct EditorSecureField: View {
+    let title: String
+    @Binding var text: String
+    let systemImage: String
+    let textContentType: UITextContentType?
+
+    init(
+        _ title: String,
+        text: Binding<String>,
+        systemImage: String = "lock",
+        textContentType: UITextContentType? = nil
+    ) {
+        self.title = title
+        self._text = text
+        self.systemImage = systemImage
+        self.textContentType = textContentType
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: AppTheme.metadataIconSize)
+
+            SecureField(title, text: $text)
+                .font(.subheadline)
+                .textContentType(textContentType)
+                .accessibilityLabel(title)
+        }
+        .padding(.horizontal, AppTheme.inputHorizontalPadding)
+        .frame(height: AppTheme.newsEditorInputHeight)
+        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
+        )
+    }
+}
+
+struct AuthHeaderView: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        AppEditorSectionCard {
+            HStack(alignment: .center, spacing: 14) {
+                BrandMarkView(size: 54, width: 54, assetName: "logo1")
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+
+private enum UnifiedEmptyStateMetrics {
+    static let minHeight: CGFloat = 180
+    static let verticalPadding: CGFloat = 24
+    static let horizontalPadding: CGFloat = 18
+    static let iconSize: CGFloat = 44
+    static let iconFontSize: CGFloat = 22
+    static let contentSpacing: CGFloat = 10
+    static let textSpacing: CGFloat = 6
+}
+
+struct UnifiedEmptyStateCard<ActionContent: View>: View {
+    let systemImage: String
+    let title: String
+    let message: String
+    @ViewBuilder let actionContent: ActionContent
+
+    init(
+        systemImage: String,
+        title: String,
+        message: String,
+        @ViewBuilder actionContent: () -> ActionContent = { EmptyView() }
+    ) {
+        self.systemImage = systemImage
+        self.title = title
+        self.message = message
+        self.actionContent = actionContent()
+    }
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .center, spacing: UnifiedEmptyStateMetrics.contentSpacing) {
+                Image(systemName: systemImage)
+                    .font(.system(size: UnifiedEmptyStateMetrics.iconFontSize, weight: .semibold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: UnifiedEmptyStateMetrics.iconSize, height: UnifiedEmptyStateMetrics.iconSize)
+                    .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+
+                VStack(spacing: UnifiedEmptyStateMetrics.textSpacing) {
+                    Text(title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                actionContent
+            }
+            .padding(.horizontal, UnifiedEmptyStateMetrics.horizontalPadding)
+            .padding(.vertical, UnifiedEmptyStateMetrics.verticalPadding)
+            .frame(maxWidth: .infinity, minHeight: UnifiedEmptyStateMetrics.minHeight)
+        }
     }
 }
 
@@ -796,34 +969,6 @@ struct AppHeroBannerEditButton: View {
         .buttonStyle(.plain)
         .disabled(isUploading)
         .accessibilityLabel(AppStrings.Home.changeBanner)
-    }
-}
-
-struct AppSearchBar: View {
-    let placeholder: String
-    @Binding var text: String
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.body.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
-
-            TextField(placeholder, text: $text)
-                .font(.subheadline.weight(.medium))
-                .textInputAutocapitalization(.sentences)
-                .autocorrectionDisabled(false)
-        }
-        .padding(.horizontal, 14)
-        .frame(height: AppTheme.searchControlHeight)
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-        )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 6, y: 2)
     }
 }
 
@@ -1089,48 +1234,6 @@ struct AppFeedThumbnail: View {
     }
 }
 
-struct AppDateBadge: View {
-    let date: Date
-    let calendar: Calendar
-
-    init(date: Date, calendar: Calendar = .current) {
-        self.date = date
-        self.calendar = calendar
-    }
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(dayText)
-                .font(.headline.weight(.bold))
-                .foregroundStyle(AppTheme.accentPrimary)
-                .lineLimit(1)
-
-            Text(monthText.uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(AppTheme.accentDestructive)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-        .frame(width: 42, height: 46)
-        .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
-        )
-    }
-
-    private var dayText: String {
-        "\(calendar.component(.day, from: date))"
-    }
-
-    private var monthText: String {
-        let formatter = DateFormatter()
-        formatter.locale = LocalizationStore.locale
-        formatter.setLocalizedDateFormatFromTemplate("MMM")
-        return formatter.string(from: date)
-    }
-}
-
 struct AppMetadataLine: View {
     let title: String
     let systemImage: String
@@ -1254,25 +1357,6 @@ struct DetailHeaderCard<MetadataContent: View>: View {
             }
 
             metadataContent
-        }
-    }
-}
-
-struct DetailImageCard: View {
-    let imageURL: String?
-    let height: CGFloat
-    let source: String
-
-    private var resolvedHeight: CGFloat {
-        RemoteImageView.normalizedHeight(for: height)
-    }
-
-    var body: some View {
-        DetailCard {
-            RemoteCardImage(imageURL: imageURL, height: height, cornerRadius: AppTheme.imageRadius, source: source)
-                .frame(maxWidth: .infinity)
-                .frame(height: resolvedHeight)
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
         }
     }
 }
@@ -1691,7 +1775,11 @@ struct EmptyStateView: View {
     let title: String
 
     var body: some View {
-        ContentUnavailableView(title, systemImage: "tray")
+        EmptyStateCard(
+            systemImage: "tray",
+            title: title,
+            message: AppStrings.Common.noItems
+        )
     }
 }
 struct LoadingStateCard: View {
@@ -1720,23 +1808,11 @@ struct EmptyStateCard: View {
     let message: String
 
     var body: some View {
-        CommunityCard {
-            VStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 24))
-                    .foregroundStyle(AppTheme.textSecondary)
-
-                Text(title)
-                    .font(.headline.weight(.semibold))
-
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 2)
-        }
+        UnifiedEmptyStateCard(
+            systemImage: systemImage,
+            title: title,
+            message: message
+        )
     }
 }
 

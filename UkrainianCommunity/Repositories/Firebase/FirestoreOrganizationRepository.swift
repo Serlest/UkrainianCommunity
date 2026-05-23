@@ -15,10 +15,28 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .getDocuments()
 
         let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
+        let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
 
         return try snapshot.documents.map { document in
-            try Organization(dto: makeOrganizationDTO(from: document, likedOrganizationIDs: likedOrganizationIDs))
+            try Organization(dto: makeOrganizationDTO(
+                from: document,
+                likedOrganizationIDs: likedOrganizationIDs,
+                bookmarkedOrganizationIDs: bookmarkedOrganizationIDs
+            ))
         }
+    }
+
+    func fetchOrganization(id: String) async throws -> Organization {
+        let document = try await collection.document(id).getDocument()
+        guard document.exists else { throw AppError.notFound }
+
+        let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
+        let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
+        return try Organization(dto: makeOrganizationDTO(
+            from: document,
+            likedOrganizationIDs: likedOrganizationIDs,
+            bookmarkedOrganizationIDs: bookmarkedOrganizationIDs
+        ))
     }
 
     func fetchPendingOrganizations() async throws -> [Organization] {
@@ -28,9 +46,14 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .getDocuments()
 
         let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
+        let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
 
         return try snapshot.documents.map { document in
-            try Organization(dto: makeOrganizationDTO(from: document, likedOrganizationIDs: likedOrganizationIDs))
+            try Organization(dto: makeOrganizationDTO(
+                from: document,
+                likedOrganizationIDs: likedOrganizationIDs,
+                bookmarkedOrganizationIDs: bookmarkedOrganizationIDs
+            ))
         }
     }
 
@@ -44,21 +67,49 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         _ = try ensureAuthenticatedUserID()
         let normalizedOrganization = normalizedOrganizationForWrite(organization, preserveCreatedAt: true)
 
-        try await collection.document(normalizedOrganization.id).updateData([
-            "name": normalizedOrganization.name,
-            "description": normalizedOrganization.description,
-            "regionScope": normalizedOrganization.regionScope?.rawValue as Any,
-            "federalState": normalizedOrganization.federalState?.rawValue as Any,
-            "city": normalizedOrganization.city,
-            "imageURL": normalizedOrganization.imageURL as Any,
-            "contactEmail": normalizedOrganization.contactEmail as Any,
-            "website": normalizedOrganization.website as Any,
-            "updatedAt": Timestamp(date: normalizedOrganization.updatedAt),
-            "moderationStatus": normalizedOrganization.moderationStatus.rawValue
-        ])
+        try await collection.document(normalizedOrganization.id).updateData(
+            makeSafeOrganizationInfoUpdateData(from: normalizedOrganization)
+        )
+    }
+
+    private func makeSafeOrganizationInfoUpdateData(from organization: Organization) -> [String: Any] {
+        var data: [String: Any] = [
+            "name": organization.name,
+            "description": organization.description,
+            "shortDescription": organization.shortDescription,
+            "fullDescription": organization.fullDescription,
+            "city": organization.city,
+            "languages": organization.languages,
+            "socialLinks": organization.socialLinks,
+            "updatedAt": Timestamp(date: organization.updatedAt)
+        ]
+
+        setUpdateValue(organization.federalState?.rawValue, forKey: "federalState", in: &data)
+        setUpdateValue(organization.imageURL, forKey: "imageURL", in: &data)
+        setUpdateValue(organization.logoURL, forKey: "logoURL", in: &data)
+        setUpdateValue(organization.coverURL, forKey: "coverURL", in: &data)
+        setUpdateValue(organization.contactEmail, forKey: "contactEmail", in: &data)
+        setUpdateValue(organization.email, forKey: "email", in: &data)
+        setUpdateValue(organization.phone, forKey: "phone", in: &data)
+        setUpdateValue(organization.website, forKey: "website", in: &data)
+        setUpdateValue(organization.address, forKey: "address", in: &data)
+        setUpdateValue(organization.latitude, forKey: "latitude", in: &data)
+        setUpdateValue(organization.longitude, forKey: "longitude", in: &data)
+        setUpdateValue(organization.organizationType, forKey: "organizationType", in: &data)
+        setUpdateValue(organization.foundedYear, forKey: "foundedYear", in: &data)
+        setUpdateValue(organization.foundedMonth, forKey: "foundedMonth", in: &data)
+        setUpdateValue(organization.telegramURL, forKey: "telegramURL", in: &data)
+        setUpdateValue(organization.donationURL, forKey: "donationURL", in: &data)
+        setUpdateValue(organization.missionStatement, forKey: "missionStatement", in: &data)
+        setUpdateValue(organization.contactPerson, forKey: "contactPerson", in: &data)
+
+        return data
     }
 
     func deleteOrganization(id: String) async throws {
+        guard id != Organization.systemOrganizationID else {
+            throw AppError.permissionDenied
+        }
         _ = try ensureAuthenticatedUserID()
         let imageReference = Storage.storage().reference().child("organizations/\(id)/cover.jpg")
 
@@ -83,33 +134,37 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let organizationReference = collection.document(id)
         let likeReference = likesCollection.document(likeDocumentID(organizationID: id, userID: uid))
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
-            do {
-                let organizationSnapshot = try transaction.getDocument(organizationReference)
-                guard organizationSnapshot.exists else {
-                    errorPointer?.pointee = AppError.notFound.asNSError
-                    return nil
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+                do {
+                    let organizationSnapshot = try transaction.getDocument(organizationReference)
+                    guard organizationSnapshot.exists else {
+                        errorPointer?.pointee = AppError.notFound.asNSError
+                        return nil
+                    }
+
+                    let likeSnapshot = try transaction.getDocument(likeReference)
+                    if likeSnapshot.exists {
+                        return nil
+                    }
+
+                    transaction.setData([
+                        "id": likeReference.documentID,
+                        "organizationId": id,
+                        "userId": uid,
+                        "createdAt": FieldValue.serverTimestamp()
+                    ], forDocument: likeReference)
+                    transaction.updateData([
+                        "subscriberCount": FieldValue.increment(Int64(1))
+                    ], forDocument: organizationReference)
+                } catch {
+                    errorPointer?.pointee = error as NSError
                 }
 
-                let likeSnapshot = try transaction.getDocument(likeReference)
-                if likeSnapshot.exists {
-                    return nil
-                }
-
-                transaction.setData([
-                    "id": likeReference.documentID,
-                    "organizationId": id,
-                    "userId": uid,
-                    "createdAt": FieldValue.serverTimestamp()
-                ], forDocument: likeReference)
-                transaction.updateData([
-                    "likeCount": FieldValue.increment(Int64(1))
-                ], forDocument: organizationReference)
-            } catch {
-                errorPointer?.pointee = error as NSError
+                return nil
             }
-
-            return nil
+        } catch {
+            throw error
         }
     }
 
@@ -121,30 +176,57 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let organizationReference = collection.document(id)
         let likeReference = likesCollection.document(likeDocumentID(organizationID: id, userID: uid))
 
-        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
-            do {
-                let organizationSnapshot = try transaction.getDocument(organizationReference)
-                guard organizationSnapshot.exists else {
-                    errorPointer?.pointee = AppError.notFound.asNSError
-                    return nil
+        do {
+            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+                do {
+                    let organizationSnapshot = try transaction.getDocument(organizationReference)
+                    guard organizationSnapshot.exists else {
+                        errorPointer?.pointee = AppError.notFound.asNSError
+                        return nil
+                    }
+
+                    let likeSnapshot = try transaction.getDocument(likeReference)
+                    guard likeSnapshot.exists else {
+                        return nil
+                    }
+
+                    let currentSubscriberCount = organizationSnapshot.data()?["subscriberCount"] as? Int ?? 0
+                    transaction.deleteDocument(likeReference)
+                    transaction.updateData([
+                        "subscriberCount": max(0, currentSubscriberCount - 1)
+                    ], forDocument: organizationReference)
+                } catch {
+                    errorPointer?.pointee = error as NSError
                 }
 
-                let likeSnapshot = try transaction.getDocument(likeReference)
-                guard likeSnapshot.exists else {
-                    return nil
-                }
-
-                let currentLikeCount = organizationSnapshot.data()?["likeCount"] as? Int ?? 0
-                transaction.deleteDocument(likeReference)
-                transaction.updateData([
-                    "likeCount": max(0, currentLikeCount - 1)
-                ], forDocument: organizationReference)
-            } catch {
-                errorPointer?.pointee = error as NSError
+                return nil
             }
-
-            return nil
+        } catch {
+            throw error
         }
+    }
+
+    func bookmarkOrganization(id: String) async throws {
+        let uid = try ensureAuthenticatedUserID()
+
+        try await organizationBookmarkReference(organizationID: id, userID: uid).setData([
+            "id": id,
+            "organizationId": id,
+            "userId": uid,
+            "createdAt": FieldValue.serverTimestamp()
+        ], merge: true)
+    }
+
+    func unbookmarkOrganization(id: String) async throws {
+        let uid = try ensureAuthenticatedUserID()
+
+        try await organizationBookmarkReference(organizationID: id, userID: uid).delete()
+    }
+
+    func isOrganizationBookmarked(id: String) async throws -> Bool {
+        let uid = try ensureAuthenticatedUserID()
+        let document = try await organizationBookmarkReference(organizationID: id, userID: uid).getDocument()
+        return document.exists
     }
 
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
@@ -166,15 +248,32 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         return Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
     }
 
+    func fetchBookmarkedOrganizationIDs() async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return []
+        }
+
+        let snapshot = try await Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .collection("organizationBookmarks")
+            .getDocuments()
+
+        return Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
+    }
+
     private func makeOrganizationDTO(
-        from document: QueryDocumentSnapshot,
-        likedOrganizationIDs: Set<String>
+        from document: DocumentSnapshot,
+        likedOrganizationIDs: Set<String>,
+        bookmarkedOrganizationIDs: Set<String>
     ) throws -> OrganizationDTO {
-        let data = document.data()
+        guard let data = document.data() else {
+            throw AppError.notFound
+        }
 
         guard
             let name = data["name"] as? String,
-            let description = data["description"] as? String,
+            let description = data["description"] as? String ?? data["shortDescription"] as? String ?? data["fullDescription"] as? String,
             let city = data["city"] as? String,
             let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),
             let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue(),
@@ -183,21 +282,63 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             throw AppError.notFound
         }
 
+        let documentID = document.documentID
+        let imageURL = (data["imageURL"] as? String)?.nilIfEmpty
+        let logoURL = (data["logoURL"] as? String)?.nilIfEmpty
+        let coverURL = (data["coverURL"] as? String)?.nilIfEmpty
+        let subscriberCount = data["subscriberCount"] as? Int ?? 0
+        let eventsHeldCount = data["eventsHeldCount"] as? Int ?? 0
+        let volunteersCount = data["volunteersCount"] as? Int ?? 0
+        let helpedPeopleCount = data["helpedPeopleCount"] as? Int ?? 0
+        let likeCount = data["likeCount"] as? Int ?? 0
+        let likeState = likedOrganizationIDs.contains(documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue
+        let isBookmarked = bookmarkedOrganizationIDs.contains(documentID)
+
         return OrganizationDTO(
-            id: data["id"] as? String ?? document.documentID,
+            id: data["id"] as? String ?? documentID,
             name: name,
             description: description,
+            shortDescription: data["shortDescription"] as? String,
+            fullDescription: data["fullDescription"] as? String,
             regionScope: data["regionScope"] as? String,
             federalState: data["federalState"] as? String,
             city: city,
-            imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
+            imageURL: imageURL,
+            logoURL: logoURL,
+            coverURL: coverURL,
             contactEmail: data["contactEmail"] as? String,
+            email: data["email"] as? String,
+            phone: data["phone"] as? String,
             website: data["website"] as? String,
+            address: data["address"] as? String,
+            latitude: data["latitude"] as? Double,
+            longitude: data["longitude"] as? Double,
+            organizationType: data["organizationType"] as? String,
+            foundedYear: data["foundedYear"] as? Int,
+            foundedMonth: data["foundedMonth"] as? Int,
+            languages: data["languages"] as? [String],
+            socialLinks: data["socialLinks"] as? [String: String],
+            telegramURL: data["telegramURL"] as? String,
+            donationURL: data["donationURL"] as? String,
+            missionStatement: data["missionStatement"] as? String,
+            contactPerson: data["contactPerson"] as? String,
+            subscriberCount: subscriberCount,
+            eventsHeldCount: eventsHeldCount,
+            volunteersCount: volunteersCount,
+            helpedPeopleCount: helpedPeopleCount,
+            ownerId: data["ownerId"] as? String,
+            adminIds: data["adminIds"] as? [String] ?? [],
+            moderatorIds: data["moderatorIds"] as? [String] ?? [],
+            isSystemManaged: data["isSystemManaged"] as? Bool,
+            sourceType: data["sourceType"] as? String,
+            pinnedNewsId: data["pinnedNewsId"] as? String,
+            pinnedEventId: data["pinnedEventId"] as? String,
             createdAt: createdAt,
             updatedAt: updatedAt,
             moderationStatus: moderationStatus,
-            likeCount: data["likeCount"] as? Int ?? 0,
-            likeState: likedOrganizationIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue
+            likeCount: likeCount,
+            likeState: likeState,
+            isBookmarked: isBookmarked
         )
     }
 
@@ -214,37 +355,116 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             id: organization.id,
             name: organization.name,
             description: organization.description,
+            shortDescription: organization.shortDescription,
+            fullDescription: organization.fullDescription,
             regionScope: organization.regionScope,
             federalState: organization.federalState,
             city: organization.city,
             imageURL: organization.imageURL,
+            logoURL: organization.logoURL,
+            coverURL: organization.coverURL,
             contactEmail: organization.contactEmail,
+            email: organization.email,
+            phone: organization.phone,
             website: organization.website,
+            address: organization.address,
+            latitude: organization.latitude,
+            longitude: organization.longitude,
+            organizationType: organization.organizationType,
+            foundedYear: organization.foundedYear,
+            foundedMonth: organization.foundedMonth,
+            languages: organization.languages,
+            socialLinks: organization.socialLinks,
+            telegramURL: organization.telegramURL,
+            donationURL: organization.donationURL,
+            missionStatement: organization.missionStatement,
+            contactPerson: organization.contactPerson,
+            subscriberCount: organization.subscriberCount,
+            eventsHeldCount: organization.eventsHeldCount,
+            volunteersCount: organization.volunteersCount,
+            helpedPeopleCount: organization.helpedPeopleCount,
+            ownerId: organization.ownerId,
+            adminIds: organization.adminIds,
+            moderatorIds: organization.moderatorIds,
+            isSystemManaged: organization.isSystemManaged,
+            sourceType: organization.sourceType,
+            pinnedNewsId: organization.pinnedNewsId,
+            pinnedEventId: organization.pinnedEventId,
             createdAt: createdAt,
             updatedAt: now,
             moderationStatus: moderationStatus,
             likeCount: organization.likeCount,
-            likeState: organization.likeState
+            likeState: organization.likeState,
+            isBookmarked: organization.isBookmarked
         )
     }
 
     private func makeOrganizationData(from organization: Organization) -> [String: Any] {
-        [
+        var data: [String: Any] = [
             "id": organization.id,
             "name": organization.name,
             "description": organization.description,
-            "regionScope": organization.regionScope?.rawValue as Any,
-            "federalState": organization.federalState?.rawValue as Any,
+            "shortDescription": organization.shortDescription,
+            "fullDescription": organization.fullDescription,
             "city": organization.city,
-            "imageURL": organization.imageURL as Any,
-            "contactEmail": organization.contactEmail as Any,
-            "website": organization.website as Any,
+            "languages": organization.languages,
+            "socialLinks": organization.socialLinks,
+            "subscriberCount": organization.subscriberCount,
+            "eventsHeldCount": organization.eventsHeldCount,
+            "volunteersCount": organization.volunteersCount,
+            "helpedPeopleCount": organization.helpedPeopleCount,
+            "adminIds": organization.adminIds,
+            "moderatorIds": organization.moderatorIds,
             "createdAt": Timestamp(date: organization.createdAt),
             "updatedAt": Timestamp(date: organization.updatedAt),
             "moderationStatus": organization.moderationStatus.rawValue,
             "likeCount": organization.likeCount,
             "likeState": organization.likeState.rawValue
         ]
+
+        setCreateValue(organization.regionScope?.rawValue, forKey: "regionScope", in: &data)
+        setCreateValue(organization.federalState?.rawValue, forKey: "federalState", in: &data)
+        setCreateValue(organization.imageURL, forKey: "imageURL", in: &data)
+        setCreateValue(organization.logoURL, forKey: "logoURL", in: &data)
+        setCreateValue(organization.coverURL, forKey: "coverURL", in: &data)
+        setCreateValue(organization.contactEmail, forKey: "contactEmail", in: &data)
+        setCreateValue(organization.email, forKey: "email", in: &data)
+        setCreateValue(organization.phone, forKey: "phone", in: &data)
+        setCreateValue(organization.website, forKey: "website", in: &data)
+        setCreateValue(organization.address, forKey: "address", in: &data)
+        setCreateValue(organization.latitude, forKey: "latitude", in: &data)
+        setCreateValue(organization.longitude, forKey: "longitude", in: &data)
+        setCreateValue(organization.organizationType, forKey: "organizationType", in: &data)
+        setCreateValue(organization.foundedYear, forKey: "foundedYear", in: &data)
+        setCreateValue(organization.foundedMonth, forKey: "foundedMonth", in: &data)
+        setCreateValue(organization.telegramURL, forKey: "telegramURL", in: &data)
+        setCreateValue(organization.donationURL, forKey: "donationURL", in: &data)
+        setCreateValue(organization.missionStatement, forKey: "missionStatement", in: &data)
+        setCreateValue(organization.contactPerson, forKey: "contactPerson", in: &data)
+        setCreateValue(organization.ownerId, forKey: "ownerId", in: &data)
+        setCreateValue(organization.isSystemManaged, forKey: "isSystemManaged", in: &data)
+        setCreateValue(organization.sourceType?.rawValue, forKey: "sourceType", in: &data)
+        setCreateValue(organization.pinnedNewsId, forKey: "pinnedNewsId", in: &data)
+        setCreateValue(organization.pinnedEventId, forKey: "pinnedEventId", in: &data)
+
+        return data
+    }
+
+    private func setCreateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {
+        guard let value else { return }
+        data[key] = value
+    }
+
+    private func setUpdateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {
+        data[key] = value ?? FieldValue.delete()
+    }
+
+    private func organizationBookmarkReference(organizationID: String, userID: String) -> DocumentReference {
+        Firestore.firestore()
+            .collection("users")
+            .document(userID)
+            .collection("organizationBookmarks")
+            .document(organizationID)
     }
 
     private func deleteRelatedLikes(organizationID: String) async throws {

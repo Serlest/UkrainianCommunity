@@ -4,6 +4,8 @@ import Foundation
 
 @MainActor
 final class EventEditorViewModel: ObservableObject {
+    static let locationNoteCharacterLimit = 160
+
     struct CreateContext {
         let organizationId: String?
         let organizationName: String?
@@ -54,14 +56,18 @@ final class EventEditorViewModel: ObservableObject {
     @Published var city = ""
     @Published var venue = ""
     @Published var address = ""
-    @Published var locationNote = ""
+    @Published var locationNote = "" {
+        didSet {
+            guard locationNote.count > Self.locationNoteCharacterLimit else { return }
+            locationNote = String(locationNote.prefix(Self.locationNoteCharacterLimit))
+        }
+    }
     @Published var latitude: Double?
     @Published var longitude: Double?
     @Published var selectedFederalState: AustrianFederalState = .tirol
     @Published var startDate = Date()
     @Published var endDate = Date().addingTimeInterval(60 * 60)
     @Published var selectedCategory: EventCategory = .meetups
-    @Published var visibility: EventVisibility = .public
     @Published var isAllDay = false
     @Published var priceText = ""
     @Published var capacityText = ""
@@ -71,6 +77,7 @@ final class EventEditorViewModel: ObservableObject {
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
+    @Published private var selectedCreateContext: CreateContext?
 
     private let repository: EventRepository
     private let imageUploadService = ImageUploadService.shared
@@ -80,6 +87,10 @@ final class EventEditorViewModel: ObservableObject {
         self.repository = repository
         self.mode = mode
 
+        if case let .create(context) = mode {
+            selectedCreateContext = context
+        }
+
         if case let .edit(existingEvent) = mode {
             title = existingEvent.title
             summary = existingEvent.summary
@@ -87,14 +98,13 @@ final class EventEditorViewModel: ObservableObject {
             city = existingEvent.city
             venue = existingEvent.venue
             address = existingEvent.address ?? ""
-            locationNote = existingEvent.locationNote ?? ""
+            locationNote = String((existingEvent.locationNote ?? "").prefix(Self.locationNoteCharacterLimit))
             latitude = existingEvent.latitude
             longitude = existingEvent.longitude
             selectedFederalState = existingEvent.federalState ?? .tirol
             startDate = existingEvent.startDate
             endDate = existingEvent.endDate
             selectedCategory = existingEvent.category
-            visibility = existingEvent.visibility
             isAllDay = existingEvent.isAllDay
             priceText = Self.priceText(from: existingEvent.price)
             capacityText = existingEvent.capacity.map(String.init) ?? ""
@@ -112,6 +122,7 @@ final class EventEditorViewModel: ObservableObject {
             && hasValidCapacity
             && hasValidDateRange
             && hasValidStartDate
+            && hasOrganizerForCreate
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
@@ -145,8 +156,8 @@ final class EventEditorViewModel: ObservableObject {
 
     var organizerName: String? {
         switch mode {
-        case let .create(context):
-            context.organizationName
+        case .create:
+            selectedCreateContext?.organizationName
         case let .edit(existingEvent):
             existingEvent.source.organizationName
         }
@@ -154,8 +165,8 @@ final class EventEditorViewModel: ObservableObject {
 
     var organizerImageURL: String? {
         switch mode {
-        case let .create(context):
-            guard let imageURL = context.organizationImageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty else {
+        case .create:
+            guard let imageURL = selectedCreateContext?.organizationImageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty else {
                 return nil
             }
             return imageURL
@@ -164,6 +175,15 @@ final class EventEditorViewModel: ObservableObject {
                 return nil
             }
             return imageURL
+        }
+    }
+
+    var selectedOrganizationId: String? {
+        switch mode {
+        case .create:
+            selectedCreateContext?.organizationId
+        case let .edit(existingEvent):
+            existingEvent.source.organizationId
         }
     }
 
@@ -200,6 +220,41 @@ final class EventEditorViewModel: ObservableObject {
 
     func setImageProcessing(_ isProcessing: Bool) {
         isProcessingImage = isProcessing
+    }
+
+    func setStartDateComponent(_ dateValue: Date) {
+        startDate = Self.combinedDate(dateFrom: dateValue, timeFrom: startDate)
+        correctDateRangeAfterStartChange()
+    }
+
+    func setStartTimeComponent(_ timeValue: Date) {
+        startDate = Self.combinedDate(dateFrom: startDate, timeFrom: timeValue)
+        correctDateRangeAfterStartChange()
+    }
+
+    func setEndDateComponent(_ dateValue: Date) {
+        endDate = Self.combinedDate(dateFrom: dateValue, timeFrom: endDate)
+        correctDateRangeAfterEndChange()
+    }
+
+    func setEndTimeComponent(_ timeValue: Date) {
+        endDate = Self.combinedDate(dateFrom: endDate, timeFrom: timeValue)
+        correctDateRangeAfterEndChange()
+    }
+
+    func setAllDay(_ isAllDay: Bool) {
+        self.isAllDay = isAllDay
+        correctDateRangeAfterEndChange()
+    }
+
+    func selectOrganizer(_ organization: Organization) {
+        guard case .create = mode else { return }
+        selectedCreateContext = CreateContext(
+            organizationId: organization.id,
+            organizationName: organization.name,
+            organizationImageURL: organization.imageURL,
+            organizationFederalState: organization.federalState
+        )
     }
 
     func applyLocation(
@@ -253,6 +308,7 @@ final class EventEditorViewModel: ObservableObject {
         let existingLikeState: LikeState
         let existingViewCount: Int
         let existingIsBookmarked: Bool
+        let existingCommentCount: Int
         let existingCapacity: Int?
         let existingRegionScope: RegionScope?
         var eventFederalState: AustrianFederalState?
@@ -260,7 +316,8 @@ final class EventEditorViewModel: ObservableObject {
         let existingAuthorId: String?
         let existingAuthorName: String?
         switch mode {
-        case let .create(context):
+        case .create:
+            let context = selectedCreateContext ?? .app
             eventID = UUID().uuidString
             createdAt = now
             existingImageURL = nil
@@ -272,10 +329,13 @@ final class EventEditorViewModel: ObservableObject {
             existingLikeState = .notLiked
             existingViewCount = 0
             existingIsBookmarked = false
+            existingCommentCount = 0
             existingCapacity = resolvedCapacity
             existingRegionScope = .federalState
             eventFederalState = context.isOrganizationEvent ? context.organizationFederalState : selectedFederalState
-            existingSource = ContentSourceMetadata(sourceType: .app, organizationName: AppStrings.Home.brandTitle)
+            existingSource = context.isOrganizationEvent
+                ? context.source
+                : ContentSourceMetadata(sourceType: .app, organizationName: AppStrings.Home.brandTitle)
             existingAuthorId = nil
             existingAuthorName = nil
         case let .edit(existingEvent):
@@ -290,6 +350,7 @@ final class EventEditorViewModel: ObservableObject {
             existingLikeState = existingEvent.likeState
             existingViewCount = existingEvent.viewCount
             existingIsBookmarked = existingEvent.isBookmarked
+            existingCommentCount = existingEvent.commentCount
             existingCapacity = resolvedCapacity
             existingRegionScope = existingEvent.regionScope
             eventFederalState = existingEvent.federalState
@@ -303,7 +364,6 @@ final class EventEditorViewModel: ObservableObject {
         if isAppLevelEvent {
             eventFederalState = selectedFederalState
         }
-        var resolvedImageURL: String?
         let newEvent = Event(
             id: eventID,
             title: trimmedTitle,
@@ -335,72 +395,48 @@ final class EventEditorViewModel: ObservableObject {
             likeState: existingLikeState,
             viewCount: existingViewCount,
             category: selectedCategory,
-            visibility: .public,
             isAllDay: isAllDay,
-            isBookmarked: existingIsBookmarked
+            isBookmarked: existingIsBookmarked,
+            commentCount: existingCommentCount
         )
 
         isPublishing = true
         defer { isPublishing = false }
 
         do {
-            if let selectedImageData {
-                isUploadingImage = true
-                logPublishStage("upload image", path: "storage/events/\(eventID)/cover.jpg")
-                let downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
-                resolvedImageURL = downloadURL.absoluteString
-                isUploadingImage = false
-            } else {
-                resolvedImageURL = existingImageURL
-            }
-
-            let eventToCreate = Event(
-                id: newEvent.id,
-                title: newEvent.title,
-                summary: newEvent.summary,
-                details: newEvent.details,
-                regionScope: newEvent.regionScope,
-                federalState: newEvent.federalState,
-                source: newEvent.source,
-                authorId: newEvent.authorId,
-                authorName: newEvent.authorName,
-                city: newEvent.city,
-                venue: newEvent.venue,
-                address: newEvent.address,
-                locationNote: newEvent.locationNote,
-                latitude: newEvent.latitude,
-                longitude: newEvent.longitude,
-                imageURL: resolvedImageURL,
-                startDate: newEvent.startDate,
-                endDate: newEvent.endDate,
-                createdAt: newEvent.createdAt,
-                updatedAt: newEvent.updatedAt,
-                price: newEvent.price,
-                capacity: newEvent.capacity,
-                registeredCount: newEvent.registeredCount,
-                comments: newEvent.comments,
-                moderationStatus: newEvent.moderationStatus,
-                registrationState: newEvent.registrationState,
-                likeCount: newEvent.likeCount,
-                likeState: newEvent.likeState,
-                viewCount: newEvent.viewCount,
-                category: newEvent.category,
-                visibility: .public,
-                isAllDay: newEvent.isAllDay,
-                isBookmarked: newEvent.isBookmarked
-            )
-
             switch mode {
             case .create:
-                logPublishStage("create event", path: "firestore/events/\(eventToCreate.id)")
-                try await repository.createEvent(eventToCreate)
+                try await repository.createEvent(newEvent)
+
+                if let selectedImageData {
+                    isUploadingImage = true
+                    do {
+                        let downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                        try await repository.updateEventImageURL(id: eventID, imageURL: downloadURL.absoluteString)
+                    } catch {
+                        isUploadingImage = false
+                        try? await repository.deleteEvent(id: newEvent.id)
+                        errorMessage = error.localizedDescription
+                        return false
+                    }
+                    isUploadingImage = false
+                }
+
                 successMessage = AppStrings.Events.publishedSuccessfully
             case .edit:
-                logPublishStage("update event", path: "firestore/events/\(eventToCreate.id)")
-                try await repository.updateEvent(eventToCreate)
+                var resolvedImageURL = existingImageURL
+                if let selectedImageData {
+                    isUploadingImage = true
+                    let downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                    resolvedImageURL = downloadURL.absoluteString
+                    isUploadingImage = false
+                }
+
+                try await repository.updateEvent(newEvent.settingImageURL(resolvedImageURL))
                 successMessage = AppStrings.Events.updatedSuccessfully
             }
-            AppContentChangeBus.postEventsChanged(organizationID: eventToCreate.source.organizationId)
+
+            AppContentChangeBus.postEventsChanged(organizationID: newEvent.source.organizationId)
             title = ""
             summary = ""
             details = ""
@@ -414,14 +450,12 @@ final class EventEditorViewModel: ObservableObject {
             startDate = now
             endDate = now.addingTimeInterval(60 * 60)
             selectedCategory = .meetups
-            visibility = .public
             isAllDay = false
             priceText = ""
             capacityText = ""
             return true
         } catch {
             isUploadingImage = false
-            logPublishFailure(error)
             errorMessage = error.localizedDescription
             return false
         }
@@ -471,7 +505,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private var resolvedLocationNote: String? {
-        trimmedLocationNote.isEmpty ? nil : trimmedLocationNote
+        trimmedLocationNote.isEmpty ? nil : String(trimmedLocationNote.prefix(Self.locationNoteCharacterLimit))
     }
 
     private var trimmedCapacityText: String {
@@ -522,14 +556,26 @@ final class EventEditorViewModel: ObservableObject {
         normalizedEnd > normalizedStart
     }
 
+    private var hasChronologicalDateRange: Bool {
+        guard !isAllDay else {
+            return Calendar.current.startOfDay(for: endDate) >= Calendar.current.startOfDay(for: startDate)
+        }
+
+        return endDate > startDate
+    }
+
     private var hasValidStartDate: Bool {
         isEditing || normalizedStart >= Date().addingTimeInterval(-60)
     }
 
+    private var hasOrganizerForCreate: Bool {
+        isEditing || (selectedCreateContext?.isOrganizationEvent ?? false)
+    }
+
     private var isOrganizationEvent: Bool {
         switch mode {
-        case let .create(context):
-            return context.isOrganizationEvent
+        case .create:
+            return selectedCreateContext?.isOrganizationEvent ?? false
         case let .edit(existingEvent):
             return existingEvent.source.sourceType == .organization
         }
@@ -541,8 +587,11 @@ final class EventEditorViewModel: ObservableObject {
 
     private var resolvedFederalState: AustrianFederalState? {
         switch mode {
-        case let .create(context):
-            return context.isOrganizationEvent ? context.organizationFederalState : selectedFederalState
+        case .create:
+            guard let selectedCreateContext, selectedCreateContext.isOrganizationEvent else {
+                return selectedFederalState
+            }
+            return selectedCreateContext.organizationFederalState
         case let .edit(existingEvent):
             return existingEvent.federalState
         }
@@ -579,8 +628,18 @@ final class EventEditorViewModel: ObservableObject {
             return false
         }
 
+        guard hasChronologicalDateRange else {
+            errorMessage = AppStrings.Events.invalidDateOrder
+            return false
+        }
+
         guard hasValidStartDate else {
             errorMessage = AppStrings.Events.startDateInPast
+            return false
+        }
+
+        guard hasOrganizerForCreate else {
+            errorMessage = "Оберіть організацію для події."
             return false
         }
 
@@ -632,13 +691,46 @@ final class EventEditorViewModel: ObservableObject {
         }
     }
 
-    private func logPublishStage(_ stage: String, path: String) {
-        print("Event publish stage=\(stage) path=\(path)")
+    private func correctDateRangeAfterStartChange() {
+        if isAllDay {
+            if Calendar.current.startOfDay(for: endDate) < Calendar.current.startOfDay(for: startDate) {
+                endDate = Self.combinedDate(dateFrom: startDate, timeFrom: endDate)
+            }
+            return
+        }
+
+        if endDate <= startDate {
+            endDate = Calendar.current.date(byAdding: .hour, value: 1, to: startDate) ?? startDate
+        }
     }
 
-    private func logPublishFailure(_ error: Error) {
-        let nsError = error as NSError
-        print("Event publish failed domain=\(nsError.domain) code=\(nsError.code) message=\(nsError.localizedDescription)")
+    private func correctDateRangeAfterEndChange() {
+        if isAllDay {
+            if Calendar.current.startOfDay(for: endDate) < Calendar.current.startOfDay(for: startDate) {
+                endDate = Self.combinedDate(dateFrom: startDate, timeFrom: endDate)
+            }
+            return
+        }
+
+        if endDate <= startDate {
+            endDate = Calendar.current.date(byAdding: .hour, value: 1, to: startDate) ?? startDate
+        }
+    }
+
+    private static func combinedDate(dateFrom dateValue: Date, timeFrom timeValue: Date) -> Date {
+        let calendar = Calendar.current
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: dateValue)
+        let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: timeValue)
+
+        var components = DateComponents()
+        components.year = dateComponents.year
+        components.month = dateComponents.month
+        components.day = dateComponents.day
+        components.hour = timeComponents.hour
+        components.minute = timeComponents.minute
+        components.second = timeComponents.second ?? 0
+
+        return calendar.date(from: components) ?? dateValue
     }
 
     private static func priceText(from price: Double) -> String {
@@ -649,6 +741,46 @@ final class EventEditorViewModel: ObservableObject {
         formatter.maximumFractionDigits = 2
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)"
+    }
+}
+
+private extension Event {
+    func settingImageURL(_ imageURL: String?) -> Event {
+        Event(
+            id: id,
+            title: title,
+            summary: summary,
+            details: details,
+            regionScope: regionScope,
+            federalState: federalState,
+            source: source,
+            authorId: authorId,
+            authorName: authorName,
+            city: city,
+            venue: venue,
+            address: address,
+            locationNote: locationNote,
+            latitude: latitude,
+            longitude: longitude,
+            imageURL: imageURL,
+            startDate: startDate,
+            endDate: endDate,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            price: price,
+            capacity: capacity,
+            registeredCount: registeredCount,
+            comments: comments,
+            moderationStatus: moderationStatus,
+            registrationState: registrationState,
+            likeCount: likeCount,
+            likeState: likeState,
+            viewCount: viewCount,
+            category: category,
+            isAllDay: isAllDay,
+            isBookmarked: isBookmarked,
+            commentCount: commentCount
+        )
     }
 }
 

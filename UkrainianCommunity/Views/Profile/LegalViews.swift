@@ -64,49 +64,61 @@ struct LegalDocumentView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                CommunityCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(document.title)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
+        ZStack {
+            AppBackgroundView()
+                .allowsHitTesting(false)
 
-                        Text(AppStrings.Legal.screenIntro)
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(AppStrings.legalVersionLabel(document.version))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimary)
-
-                        Text(lastUpdatedText)
-                            .font(.footnote)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    AppBrandHeader {
+                        AppNotificationBellButton()
                     }
-                }
 
-                ForEach(Array(document.sections.enumerated()), id: \.offset) { _, section in
-                    CommunityCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(section.title)
-                                .font(.headline)
-                                .foregroundStyle(AppTheme.textPrimary)
+                    AppGroupedContentPlane {
+                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                            AppEditorSectionCard {
+                                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                                    SectionHeaderBlock(
+                                        title: document.title,
+                                        subtitle: AppStrings.Legal.screenIntro
+                                    )
 
-                            Text(section.body)
-                                .font(.body)
-                                .foregroundStyle(AppTheme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                    ViewThatFits(in: .horizontal) {
+                                        HStack(spacing: 8) {
+                                            AppInfoChip(title: AppStrings.legalVersionLabel(document.version), systemImage: "doc.text")
+                                            AppInfoChip(title: lastUpdatedText, systemImage: "calendar")
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            AppInfoChip(title: AppStrings.legalVersionLabel(document.version), systemImage: "doc.text")
+                                            AppInfoChip(title: lastUpdatedText, systemImage: "calendar")
+                                        }
+                                    }
+                                }
+                            }
+
+                            ForEach(Array(document.sections.enumerated()), id: \.offset) { _, section in
+                                AppEditorSectionCard {
+                                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                                        Text(section.title)
+                                            .font(.headline.weight(.semibold))
+                                            .foregroundStyle(AppTheme.textPrimary)
+
+                                        Text(section.body)
+                                            .font(.subheadline)
+                                            .foregroundStyle(AppTheme.textSecondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(AppTheme.pageBackground)
         .navigationTitle(document.title)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier(document.accessibilityIdentifier)

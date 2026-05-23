@@ -16,6 +16,12 @@ private actor RecordingFeedbackRepository: FeedbackRepository {
         submittedItems.append(feedback)
     }
 
+    func fetchFeedback() async throws -> [FeedbackItem] {
+        submittedItems
+    }
+
+    func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {}
+
     func snapshot() async -> [FeedbackItem] {
         submittedItems
     }
@@ -44,6 +50,28 @@ struct UkrainianCommunityTests {
             communityMemberships: communityMemberships,
             createdAt: .now,
             updatedAt: .now
+        )
+    }
+
+    private func makeOrganization(
+        id: String = "org-1",
+        ownerId: String? = nil,
+        adminIds: [String] = [],
+        moderatorIds: [String] = []
+    ) -> Organization {
+        Organization(
+            id: id,
+            name: "Test Organization",
+            description: "Description",
+            city: "Innsbruck",
+            ownerId: ownerId,
+            adminIds: adminIds,
+            moderatorIds: moderatorIds,
+            createdAt: .now,
+            updatedAt: .now,
+            moderationStatus: .approved,
+            likeCount: 0,
+            likeState: .notLiked
         )
     }
 
@@ -103,34 +131,45 @@ struct UkrainianCommunityTests {
         #expect(authState.presentedAuthFlow == nil)
     }
 
-    @Test func permissionServiceSupportsOwnerTopAdminOrdinaryAndOrganizationManagerAccess() {
+    @Test func permissionServiceUsesOrganizationArraysForOrganizationScopedAccess() {
         let owner = makeUser(role: .owner)
-        let topAdmin = makeUser(role: .admin, globalRole: .topAdmin)
         let ordinaryUser = makeUser(role: .user, globalRole: .user)
-        let organizationManager = makeUser(
-            role: .user,
-            globalRole: .user,
-            communityMemberships: [CommunityMembership(organizationId: "org-1", role: .communityAdmin)]
+        let organizationOwner = makeUser(id: "org-owner", role: .user, globalRole: .user)
+        let organizationAdmin = makeUser(id: "org-admin", role: .user, globalRole: .user)
+        let organizationModerator = makeUser(id: "org-moderator", role: .user, globalRole: .user)
+        let organization = makeOrganization(
+            ownerId: organizationOwner.id,
+            adminIds: [organizationAdmin.id],
+            moderatorIds: [organizationModerator.id]
         )
 
         #expect(PermissionService.canDeleteNews(user: owner))
         #expect(PermissionService.canDeleteEvent(user: owner))
         #expect(PermissionService.canDeleteOrganization(user: owner))
 
-        #expect(PermissionService.canAccessAdminTools(user: topAdmin))
-        #expect(PermissionService.canAccessModerationTools(user: topAdmin))
-        #expect(PermissionService.canAccessContentManagement(user: topAdmin))
-
         #expect(PermissionService.canAccessContentManagement(user: ordinaryUser) == false)
         #expect(PermissionService.canAccessOrganizationManagement(user: ordinaryUser) == false)
         #expect(PermissionService.canCreateNews(user: ordinaryUser) == false)
         #expect(PermissionService.canCreateEvent(user: ordinaryUser) == false)
 
-        #expect(PermissionService.canAccessOrganizationManagement(user: organizationManager))
-        #expect(PermissionService.canCreateNews(for: "org-1", user: organizationManager))
-        #expect(PermissionService.canCreateEvent(for: "org-1", user: organizationManager))
-        #expect(PermissionService.canEditOrganization(organizationId: "org-1", user: organizationManager))
-        #expect(PermissionService.canCreateNews(for: "org-2", user: organizationManager) == false)
+        #expect(PermissionService.canAccessOrganizationManagement(user: organizationAdmin) == false)
+        #expect(PermissionService.canCreateNews(for: organization.id, user: organizationAdmin) == false)
+        #expect(PermissionService.canCreateEvent(for: organization.id, user: organizationAdmin) == false)
+
+        #expect(PermissionService.canEditOrganizationInfo(organization, user: organizationOwner))
+        #expect(PermissionService.canManageOrganizationRoles(organization, user: organizationOwner))
+        #expect(PermissionService.canCreateOrganizationNews(organization, user: organizationOwner))
+        #expect(PermissionService.canCreateOrganizationEvent(organization, user: organizationOwner))
+
+        #expect(PermissionService.canEditOrganizationInfo(organization, user: organizationAdmin))
+        #expect(PermissionService.canManageOrganizationRoles(organization, user: organizationAdmin) == false)
+        #expect(PermissionService.canCreateOrganizationNews(organization, user: organizationAdmin))
+        #expect(PermissionService.canCreateOrganizationEvent(organization, user: organizationAdmin))
+
+        #expect(PermissionService.canEditOrganizationInfo(organization, user: organizationModerator) == false)
+        #expect(PermissionService.canManageOrganizationRoles(organization, user: organizationModerator) == false)
+        #expect(PermissionService.canCreateOrganizationNews(organization, user: organizationModerator))
+        #expect(PermissionService.canCreateOrganizationEvent(organization, user: organizationModerator))
     }
 
     @Test func mockRepositoriesProvideFoundationContent() async throws {
@@ -256,7 +295,6 @@ struct UkrainianCommunityTests {
         #expect(payload.accountStatus == AccountStatus.active.rawValue)
         #expect(payload.blockState == UserBlockState.active.rawValue)
         #expect(payload.warningCount == 0)
-        #expect(payload.moderatorSections.isEmpty)
         #expect(payload.communityMemberships.isEmpty)
         #expect(payload.displayName == "New User")
         #expect(payload.fullName == "New User")

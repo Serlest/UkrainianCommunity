@@ -114,26 +114,29 @@ struct EventValidationService {
 struct OrganizationValidationService {
     func validate(
         name: String,
-        description: String,
+        shortDescription: String,
+        region: AustrianFederalState?,
         city: String,
-        contactEmail: String,
-        website: String
+        email: String,
+        website: String,
+        foundedYear: String
     ) -> [String] {
         var errors = [String]()
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedShortDescription = shortDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedEmail = contactEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedWebsite = website.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedFoundedYear = foundedYear.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmedName.isEmpty {
             errors.append(AppStrings.Validation.organizationNameRequired)
         }
-        if trimmedDescription.count < 20 {
+        if trimmedShortDescription.count < 20 {
             errors.append(AppStrings.Validation.organizationDescriptionTooShort)
         }
-        if trimmedCity.isEmpty {
-            errors.append(AppStrings.Validation.organizationCityRequired)
+        if region == nil {
+            errors.append(AppStrings.Validation.organizationRegionRequired)
         }
         if !trimmedEmail.isEmpty, !trimmedEmail.contains("@") {
             errors.append(AppStrings.Validation.organizationEmailInvalid)
@@ -142,6 +145,13 @@ struct OrganizationValidationService {
            URL(string: trimmedWebsite)?.scheme?.isEmpty != false {
             errors.append(AppStrings.Validation.organizationWebsiteInvalid)
         }
+        if !trimmedFoundedYear.isEmpty {
+            let currentYear = Calendar.current.component(.year, from: Date())
+            if Int(trimmedFoundedYear).map({ (1800...currentYear).contains($0) }) != true {
+                errors.append(AppStrings.Validation.organizationFoundedYearInvalid)
+            }
+        }
+        _ = trimmedCity
 
         return errors
     }

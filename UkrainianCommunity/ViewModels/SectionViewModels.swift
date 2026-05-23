@@ -134,6 +134,13 @@ final class HomeViewModel: ObservableObject {
         error = feedViewModel.error
     }
 
+    func resetForAuthChange() {
+        feedViewModel.resetForAuthChange()
+        feedItems = []
+        isLoading = false
+        error = nil
+    }
+
     func loadBannerIfNeeded() async {
         guard !hasLoadedBanner else { return }
         await refreshBanner()
@@ -232,6 +239,16 @@ final class HomeFeedViewModel: ObservableObject {
         await refresh()
     }
 
+    func resetForAuthChange() {
+        loadTask?.cancel()
+        loadTask = nil
+        items = []
+        isLoading = false
+        error = nil
+        hasLoaded = false
+        lastLoadedAt = nil
+    }
+
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
 
@@ -260,7 +277,8 @@ final class HomeFeedViewModel: ObservableObject {
 
             let newsItems = try await newsLoad.map(HomeFeedItem.init(post:))
             let eventItems = try await eventsLoad.map(HomeFeedItem.init(event:))
-            let organizationItems = try await organizationsLoad.map(HomeFeedItem.init(organization:))
+            let organizationItems = (try await organizationsLoad)
+                .map(HomeFeedItem.init(organization:))
 
             guard !Task.isCancelled else { return }
             items = (newsItems + eventItems + organizationItems)
@@ -330,11 +348,29 @@ final class NewsViewModel: ObservableObject {
         await refresh()
     }
 
+    func resetForAuthChange() {
+        loadTask?.cancel()
+        loadTask = nil
+        posts = []
+        isLoading = false
+        error = nil
+        contentVersion &+= 1
+        pendingNewsLikeIDs = []
+        pendingNewsBookmarkIDs = []
+        pendingNewsViewIDs = []
+        pendingNewsCommentIDs = []
+        hasLoaded = false
+        lastLoadedAt = nil
+    }
+
+    var bookmarkedPosts: [NewsPost] {
+        posts.filter(\.isBookmarked)
+    }
+
     func toggleLike(for postID: String) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         guard !pendingNewsLikeIDs.contains(postID) else { return }
         let shouldLike = posts[index].likeState == .notLiked
-        let organizationID = posts[index].source.organizationId
 
         Task {
             pendingNewsLikeIDs.insert(postID)
@@ -350,7 +386,6 @@ final class NewsViewModel: ObservableObject {
                 posts[index].likeState = shouldLike ? .liked : .notLiked
                 posts[index].likeCount += shouldLike ? 1 : -1
                 error = nil
-                AppContentChangeBus.postNewsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 error = appError
             } catch {
@@ -384,6 +419,7 @@ final class NewsViewModel: ObservableObject {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         guard !pendingNewsBookmarkIDs.contains(postID) else { return }
         let shouldBookmark = !posts[index].isBookmarked
+        let post = posts[index]
 
         posts[index].isBookmarked = shouldBookmark
 
@@ -397,8 +433,8 @@ final class NewsViewModel: ObservableObject {
                 } else {
                     try await repository.unbookmarkNews(id: postID)
                 }
+                ActivityLogRecorder.recordNews(post, actionType: shouldBookmark ? .savedNews : .unsavedNews)
                 error = nil
-                AppContentChangeBus.postNewsChanged(organizationID: posts[index].source.organizationId)
             } catch let appError as AppError {
                 posts[index].isBookmarked.toggle()
                 error = appError
@@ -406,6 +442,21 @@ final class NewsViewModel: ObservableObject {
                 posts[index].isBookmarked.toggle()
                 self.error = .unknown
             }
+        }
+    }
+
+    func loadComments(for postID: String) async {
+        guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
+
+        do {
+            let comments = try await repository.fetchNewsComments(newsID: postID)
+            posts[index].comments = comments
+            posts[index].commentCount = comments.filter { !$0.isDeleted }.count
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
         }
     }
 
@@ -418,8 +469,8 @@ final class NewsViewModel: ObservableObject {
         do {
             let comment = try await repository.addNewsComment(newsID: postID, text: text, author: author)
             posts[index].comments.append(comment)
+            posts[index].commentCount += 1
             error = nil
-            AppContentChangeBus.postNewsChanged(organizationID: posts[index].source.organizationId)
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -441,7 +492,6 @@ final class NewsViewModel: ObservableObject {
             let comment = try await repository.updateNewsComment(newsID: postID, commentID: commentID, text: text)
             posts[postIndex].comments[commentIndex] = comment
             error = nil
-            AppContentChangeBus.postNewsChanged(organizationID: posts[postIndex].source.organizationId)
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -459,8 +509,8 @@ final class NewsViewModel: ObservableObject {
         do {
             try await repository.deleteNewsComment(newsID: postID, commentID: commentID)
             posts[index].comments.removeAll { $0.id == commentID }
+            posts[index].commentCount = max(0, posts[index].commentCount - 1)
             error = nil
-            AppContentChangeBus.postNewsChanged(organizationID: posts[index].source.organizationId)
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -588,11 +638,30 @@ final class EventsViewModel: ObservableObject {
         await refresh()
     }
 
+    func resetForAuthChange() {
+        loadTask?.cancel()
+        loadTask = nil
+        events = []
+        isLoading = false
+        error = nil
+        contentVersion &+= 1
+        pendingEventLikeIDs = []
+        pendingEventRegistrationIDs = []
+        pendingEventBookmarkIDs = []
+        pendingEventViewIDs = []
+        pendingEventCommentIDs = []
+        hasLoaded = false
+        lastLoadedAt = nil
+    }
+
+    var bookmarkedEvents: [Event] {
+        events.filter(\.isBookmarked)
+    }
+
     func toggleLike(for eventID: String) {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingEventLikeIDs.contains(eventID) else { return }
         let shouldLike = events[index].likeState == .notLiked
-        let organizationID = events[index].source.organizationId
 
         Task {
             pendingEventLikeIDs.insert(eventID)
@@ -608,7 +677,6 @@ final class EventsViewModel: ObservableObject {
                 events[index].likeState = shouldLike ? .liked : .notLiked
                 events[index].likeCount += shouldLike ? 1 : -1
                 error = nil
-                AppContentChangeBus.postEventsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 error = appError
             } catch {
@@ -621,6 +689,7 @@ final class EventsViewModel: ObservableObject {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingEventRegistrationIDs.contains(eventID) else { return }
         let shouldRegister = events[index].registrationState != .registered
+        let event = events[index]
         let organizationID = events[index].source.organizationId
 
         Task {
@@ -669,12 +738,12 @@ final class EventsViewModel: ObservableObject {
                     likeState: events[index].likeState,
                     viewCount: events[index].viewCount,
                     category: events[index].category,
-                    visibility: events[index].visibility,
                     isAllDay: events[index].isAllDay,
-                    isBookmarked: events[index].isBookmarked
+                    isBookmarked: events[index].isBookmarked,
+                    commentCount: events[index].commentCount
                 )
+                ActivityLogRecorder.recordEvent(event, actionType: shouldRegister ? .registeredForEvent : .canceledEventRegistration)
                 error = nil
-                AppContentChangeBus.postEventsChanged(organizationID: organizationID)
                 AppContentChangeBus.postRegistrationsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 error = appError
@@ -688,7 +757,7 @@ final class EventsViewModel: ObservableObject {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingEventBookmarkIDs.contains(eventID) else { return }
         let shouldBookmark = !events[index].isBookmarked
-        let organizationID = events[index].source.organizationId
+        let event = events[index]
 
         Task {
             pendingEventBookmarkIDs.insert(eventID)
@@ -701,8 +770,8 @@ final class EventsViewModel: ObservableObject {
                 } else {
                     try await repository.unbookmarkEvent(id: eventID)
                 }
+                ActivityLogRecorder.recordEvent(event, actionType: shouldBookmark ? .savedEvent : .unsavedEvent)
                 error = nil
-                AppContentChangeBus.postEventsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 events[index].isBookmarked.toggle()
                 error = appError
@@ -734,6 +803,21 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
+    func loadComments(for eventID: String) async {
+        guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+
+        do {
+            let comments = try await repository.fetchEventComments(eventID: eventID)
+            events[index].comments = comments
+            events[index].commentCount = comments.filter { !$0.isDeleted }.count
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
     func addComment(to eventID: String, text: String, author: AppUser) async {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingEventCommentIDs.contains(eventID) else { return }
@@ -743,8 +827,8 @@ final class EventsViewModel: ObservableObject {
         do {
             let comment = try await repository.addEventComment(eventID: eventID, text: text, author: author)
             events[index].comments.append(comment)
+            events[index].commentCount += 1
             error = nil
-            AppContentChangeBus.postEventsChanged(organizationID: events[index].source.organizationId)
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -766,7 +850,6 @@ final class EventsViewModel: ObservableObject {
             let comment = try await repository.updateEventComment(eventID: eventID, commentID: commentID, text: text)
             events[eventIndex].comments[commentIndex] = comment
             error = nil
-            AppContentChangeBus.postEventsChanged(organizationID: events[eventIndex].source.organizationId)
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -784,8 +867,8 @@ final class EventsViewModel: ObservableObject {
         do {
             try await repository.deleteEventComment(eventID: eventID, commentID: commentID)
             events[index].comments.removeAll { $0.id == commentID }
+            events[index].commentCount = max(0, events[index].commentCount - 1)
             error = nil
-            AppContentChangeBus.postEventsChanged(organizationID: events[index].source.organizationId)
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -915,16 +998,25 @@ final class MyRegistrationsViewModel: ObservableObject {
         pendingCancellationIDs = []
     }
 
+    func resetForAuthChange() {
+        resetForGuest()
+        loadTask?.cancel()
+        loadTask = nil
+        isLoading = false
+    }
+
     func cancelRegistration(for eventID: String) async {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingCancellationIDs.contains(eventID) else { return }
 
+        let event = events[index]
         let organizationID = events[index].source.organizationId
         pendingCancellationIDs.insert(eventID)
         defer { pendingCancellationIDs.remove(eventID) }
 
         do {
             try await repository.cancelEventRegistration(id: eventID)
+            ActivityLogRecorder.recordEvent(event, actionType: .canceledEventRegistration)
             events.removeAll { $0.id == eventID }
             error = nil
             AppContentChangeBus.postEventsChanged(organizationID: organizationID)
@@ -982,6 +1074,7 @@ final class OrganizationsViewModel: ObservableObject {
     @Published private(set) var error: AppError?
     @Published private(set) var contentVersion = 0
     @Published private(set) var pendingOrganizationLikeIDs = Set<String>()
+    @Published private(set) var pendingOrganizationBookmarkIDs = Set<String>()
     @Published private(set) var pendingOrganizationDeleteIDs = Set<String>()
     @Published private(set) var isSavingOrganization = false
     @Published private(set) var isUploadingOrganizationImage = false
@@ -1027,10 +1120,33 @@ final class OrganizationsViewModel: ObservableObject {
         await refresh()
     }
 
+    func resetForAuthChange() {
+        loadTask?.cancel()
+        loadTask = nil
+        organizations = []
+        isLoading = false
+        error = nil
+        contentVersion &+= 1
+        pendingOrganizationLikeIDs = []
+        pendingOrganizationBookmarkIDs = []
+        pendingOrganizationDeleteIDs = []
+        isSavingOrganization = false
+        isUploadingOrganizationImage = false
+        validationErrorMessage = nil
+        hasLoaded = false
+        lastLoadedAt = nil
+    }
+
     func toggleLike(for organizationID: String) {
         guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
         guard !pendingOrganizationLikeIDs.contains(organizationID) else { return }
         let shouldLike = organizations[index].likeState == .notLiked
+        let organization = organizations[index]
+        let previousLikeState = organizations[index].likeState
+        let previousSubscriberCount = organizations[index].subscriberCount
+
+        organizations[index].likeState = shouldLike ? .liked : .notLiked
+        organizations[index].subscriberCount = max(0, previousSubscriberCount + (shouldLike ? 1 : -1))
 
         Task {
             pendingOrganizationLikeIDs.insert(organizationID)
@@ -1043,20 +1159,56 @@ final class OrganizationsViewModel: ObservableObject {
                     try await repository.unlikeOrganization(id: organizationID)
                 }
 
-                organizations[index].likeState = shouldLike ? .liked : .notLiked
-                organizations[index].likeCount += shouldLike ? 1 : -1
+                ActivityLogRecorder.recordOrganization(organization, actionType: shouldLike ? .followedOrganization : .unfollowedOrganization)
                 error = nil
                 AppContentChangeBus.postOrganizationsChanged(organizationID: organizationID)
             } catch let appError as AppError {
+                organizations[index].likeState = previousLikeState
+                organizations[index].subscriberCount = previousSubscriberCount
                 error = appError
             } catch {
+                organizations[index].likeState = previousLikeState
+                organizations[index].subscriberCount = previousSubscriberCount
+                self.error = .unknown
+            }
+        }
+    }
+
+    func toggleBookmark(for organizationID: String) {
+        guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+        guard !pendingOrganizationBookmarkIDs.contains(organizationID) else { return }
+        let shouldBookmark = !organizations[index].isBookmarked
+        let organization = organizations[index]
+        let previousBookmarkState = organizations[index].isBookmarked
+
+        pendingOrganizationBookmarkIDs.insert(organizationID)
+        organizations[index].isBookmarked = shouldBookmark
+
+        Task {
+            defer { pendingOrganizationBookmarkIDs.remove(organizationID) }
+
+            do {
+                if shouldBookmark {
+                    try await repository.bookmarkOrganization(id: organizationID)
+                } else {
+                    try await repository.unbookmarkOrganization(id: organizationID)
+                }
+
+                ActivityLogRecorder.recordOrganization(organization, actionType: shouldBookmark ? .savedOrganization : .unsavedOrganization)
+                error = nil
+                AppContentChangeBus.postOrganizationsChanged(organizationID: organizationID)
+            } catch let appError as AppError {
+                organizations[index].isBookmarked = previousBookmarkState
+                error = appError
+            } catch {
+                organizations[index].isBookmarked = previousBookmarkState
                 self.error = .unknown
             }
         }
     }
 
     func organization(for organizationID: String) -> Organization? {
-        organizations.first(where: { $0.id == organizationID })
+        return organizations.first(where: { $0.id == organizationID })
     }
 
     var editorRepository: OrganizationRepository {
@@ -1081,7 +1233,7 @@ final class OrganizationsViewModel: ObservableObject {
         imageData: Data?,
         user: AppUser?
     ) async throws {
-        guard PermissionService.canEditOrganization(organizationId: organization.id, user: user) else {
+        guard PermissionService.canEditOrganizationInfo(organization, user: user) else {
             validationErrorMessage = AppStrings.Organizations.actionPermissionError
             throw AppError.permissionDenied
         }
@@ -1090,6 +1242,10 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func deleteOrganization(id: String, user: AppUser?) async throws {
+        guard id != Organization.systemOrganizationID else {
+            validationErrorMessage = AppStrings.Organizations.actionPermissionError
+            throw AppError.permissionDenied
+        }
         guard PermissionService.canDeleteOrganization(user: user) else {
             validationErrorMessage = AppStrings.Organizations.actionPermissionError
             throw AppError.permissionDenied
@@ -1114,6 +1270,7 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func removeDeletedOrganization(id: String) {
+        guard id != Organization.systemOrganizationID else { return }
         organizations.removeAll { $0.id == id }
         contentVersion &+= 1
     }
@@ -1182,17 +1339,47 @@ final class OrganizationsViewModel: ObservableObject {
                 id: organization.id,
                 name: organization.name,
                 description: organization.description,
+                shortDescription: organization.shortDescription,
+                fullDescription: organization.fullDescription,
                 regionScope: organization.regionScope,
                 federalState: organization.federalState,
                 city: organization.city,
                 imageURL: resolvedImageURL,
+                logoURL: resolvedImageURL ?? organization.logoURL,
+                coverURL: organization.coverURL,
                 contactEmail: organization.contactEmail,
+                email: organization.email,
+                phone: organization.phone,
                 website: organization.website,
+                address: organization.address,
+                latitude: organization.latitude,
+                longitude: organization.longitude,
+                organizationType: organization.organizationType,
+                foundedYear: organization.foundedYear,
+                foundedMonth: organization.foundedMonth,
+                languages: organization.languages,
+                socialLinks: organization.socialLinks,
+                telegramURL: organization.telegramURL,
+                donationURL: organization.donationURL,
+                missionStatement: organization.missionStatement,
+                contactPerson: organization.contactPerson,
+                subscriberCount: organization.subscriberCount,
+                eventsHeldCount: organization.eventsHeldCount,
+                volunteersCount: organization.volunteersCount,
+                helpedPeopleCount: organization.helpedPeopleCount,
+                ownerId: organization.ownerId,
+                adminIds: organization.adminIds,
+                moderatorIds: organization.moderatorIds,
+                isSystemManaged: organization.isSystemManaged,
+                sourceType: organization.sourceType,
+                pinnedNewsId: organization.pinnedNewsId,
+                pinnedEventId: organization.pinnedEventId,
                 createdAt: organization.createdAt,
                 updatedAt: organization.updatedAt,
                 moderationStatus: organization.moderationStatus,
                 likeCount: organization.likeCount,
-                likeState: organization.likeState
+                likeState: organization.likeState,
+                isBookmarked: organization.isBookmarked
             )
 
             if isEditing {
@@ -1358,6 +1545,20 @@ final class ProfileViewModel: ObservableObject {
         await refresh()
     }
 
+    func resetForAuthChange() {
+        loadTask?.cancel()
+        loadTask = nil
+        user = .placeholder
+        error = nil
+        isSavingProfile = false
+        isSubmittingFeedback = false
+        isLoading = false
+        profileMessage = nil
+        feedbackMessage = nil
+        hasLoaded = false
+        lastLoadedAt = nil
+    }
+
     func saveProfile(_ profile: EditableUserProfileDraft, avatarImageData: Data? = nil) async -> AppUser? {
         guard !isSavingProfile else { return nil }
 
@@ -1486,6 +1687,78 @@ final class ProfileViewModel: ObservableObject {
             error = appError
         } catch {
             guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
+    }
+}
+
+@MainActor
+final class FeedbackInboxViewModel: ObservableObject {
+    @Published private(set) var items: [FeedbackItem] = []
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: AppError?
+    @Published private(set) var updatingFeedbackIDs = Set<String>()
+
+    private let repository: FeedbackRepository
+    private var hasLoaded = false
+
+    init(repository: FeedbackRepository) {
+        self.repository = repository
+    }
+
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await refresh()
+    }
+
+    func refresh() async {
+        isLoading = true
+        error = nil
+        defer {
+            isLoading = false
+            hasLoaded = true
+        }
+
+        do {
+            items = try await repository.fetchFeedback()
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func markReviewed(_ item: FeedbackItem) async {
+        await update(item, status: .reviewed)
+    }
+
+    func archive(_ item: FeedbackItem) async {
+        await update(item, status: .archived)
+    }
+
+    private func update(_ item: FeedbackItem, status: FeedbackStatus) async {
+        guard !updatingFeedbackIDs.contains(item.id) else { return }
+        updatingFeedbackIDs.insert(item.id)
+        defer { updatingFeedbackIDs.remove(item.id) }
+
+        do {
+            try await repository.updateFeedbackStatus(id: item.id, status: status)
+            items = items.map { current in
+                guard current.id == item.id else { return current }
+                return FeedbackItem(
+                    id: current.id,
+                    type: current.type,
+                    message: current.message,
+                    status: status,
+                    createdAt: current.createdAt,
+                    userId: current.userId,
+                    userDisplayName: current.userDisplayName
+                )
+            }
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
             self.error = .unknown
         }
     }

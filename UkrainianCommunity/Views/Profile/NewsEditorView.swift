@@ -7,7 +7,12 @@ struct NewsEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: NewsEditorViewModel
+    @StateObject private var organizerOrganizationsViewModel: OrganizationsViewModel
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedPreviewImage: UIImage?
+    @State private var imageProcessingTask: Task<Void, Never>?
+    @State private var imageProcessingToken = UUID()
+    @State private var isShowingOrganizerPicker = false
     private let onPublished: @MainActor () async -> Void
 
     private let titleLimit = 120
@@ -25,9 +30,15 @@ struct NewsEditorView: View {
     private let detailIconSize: CGFloat = 16
     private let uploadMinHeight: CGFloat = 124
     private let headerLogoSize = CGSize(width: 118, height: 42)
+    private let organizerLogoSize: CGFloat = 48
 
-    init(repository: NewsRepository, onPublished: @escaping @MainActor () async -> Void = {}) {
+    init(
+        repository: NewsRepository,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onPublished: @escaping @MainActor () async -> Void = {}
+    ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create()))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -37,6 +48,7 @@ struct NewsEditorView: View {
         organizationName: String,
         organizationImageURL: String?,
         organizationFederalState: AustrianFederalState? = nil,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
         onPublished: @escaping @MainActor () async -> Void = {}
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(
@@ -48,11 +60,18 @@ struct NewsEditorView: View {
                 organizationFederalState: organizationFederalState
             ))
         ))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
-    init(repository: NewsRepository, news: NewsPost, onPublished: @escaping @MainActor () async -> Void = {}) {
+    init(
+        repository: NewsRepository,
+        news: NewsPost,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onPublished: @escaping @MainActor () async -> Void = {}
+    ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .edit(existing: news)))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -66,19 +85,27 @@ struct NewsEditorView: View {
 
                 statusContent
 
-                mainInformationCard
+                if showsNoOrganizerAccessState {
+                    noOrganizerAccessCard
+                } else {
+                    mainInformationCard
 
-                coverImageCard
+                    coverImageCard
 
-                bodyContentCard
+                    if !viewModel.isEditing {
+                        organizerCard
+                    }
 
-                tagsCard
+                    bodyContentCard
 
-                if viewModel.showsRegionPicker {
-                    settingsCard
+                    tagsCard
+
+                    if viewModel.showsRegionPicker {
+                        settingsCard
+                    }
+
+                    bottomPublishButton
                 }
-
-                bottomPublishButton
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.bottom, AppTheme.homeBottomContentPadding)
@@ -88,13 +115,35 @@ struct NewsEditorView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .scrollDismissesKeyboard(.interactively)
+        .sheet(isPresented: $isShowingOrganizerPicker) {
+            NewsOrganizerPickerSheet(
+                organizations: availableOrganizerOrganizations,
+                selectedOrganizationID: viewModel.selectedOrganizationId
+            ) { organization in
+                viewModel.selectOrganizer(organization)
+                isShowingOrganizerPicker = false
+            }
+        }
         .onChange(of: selectedPhoto) { _, newItem in
-            Task {
-                await loadSelectedPhoto(item: newItem)
+            dismissKeyboard()
+            imageProcessingTask?.cancel()
+            let token = UUID()
+            imageProcessingToken = token
+            imageProcessingTask = Task {
+                await loadSelectedPhoto(item: newItem, token: token)
             }
         }
         .task(id: authState.user?.id) {
             viewModel.setAuthState(authState)
+            guard !viewModel.isEditing else { return }
+            await organizerOrganizationsViewModel.loadIfNeeded()
+            applyDefaultOrganizerIfNeeded()
+        }
+        .onChange(of: organizerOrganizationsViewModel.contentVersion) { _, _ in
+            applyDefaultOrganizerIfNeeded()
+        }
+        .onDisappear {
+            imageProcessingTask?.cancel()
         }
     }
 
@@ -138,13 +187,13 @@ struct NewsEditorView: View {
     private var bottomPublishButton: some View {
         Button(action: submit) {
             HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if viewModel.isPublishing || viewModel.isUploadingImage {
+                if viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage {
                     ProgressView()
                         .controlSize(.small)
                         .tint(.white)
                 }
 
-                Text(viewModel.isPublishing || viewModel.isUploadingImage ? statusMessage : viewModel.primarySubmitButtonTitle)
+                Text(viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage ? statusMessage : viewModel.primarySubmitButtonTitle)
                     .font(.headline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
@@ -159,7 +208,7 @@ struct NewsEditorView: View {
             .shadow(color: AppTheme.accentPrimary.opacity(viewModel.canPublish ? 0.18 : 0), radius: 12, y: 6)
         }
         .buttonStyle(.plain)
-        .disabled(!viewModel.canPublish || viewModel.isPublishing || viewModel.isUploadingImage)
+        .disabled(!viewModel.canPublish || viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage)
         .accessibilityLabel(viewModel.primarySubmitButtonTitle)
     }
 
@@ -232,6 +281,40 @@ struct NewsEditorView: View {
         return AppStrings.NewsEditor.publishing
     }
 
+    private var availableOrganizerOrganizations: [Organization] {
+        guard let user = authState.user else { return [] }
+
+        let organizations = organizerOrganizationsViewModel.organizations
+            .filter { $0.id != Organization.systemOrganizationID }
+            .sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+
+        switch user.globalRole.effectiveRole {
+        case .owner:
+            return organizations
+        case .user, .topAdmin, .appModerator:
+            return PermissionService.manageableOrganizations(from: organizations, user: user)
+        }
+    }
+
+    private var canSelectOrganizer: Bool {
+        !viewModel.isEditing && availableOrganizerOrganizations.count > 1
+    }
+
+    private var showsNoOrganizerAccessState: Bool {
+        !viewModel.isEditing
+            && !organizerOrganizationsViewModel.isLoading
+            && availableOrganizerOrganizations.isEmpty
+    }
+
+    private func applyDefaultOrganizerIfNeeded() {
+        guard !viewModel.isEditing else { return }
+        guard viewModel.selectedOrganizationId == nil else { return }
+        guard availableOrganizerOrganizations.count == 1, let organization = availableOrganizerOrganizations.first else { return }
+        viewModel.selectOrganizer(organization)
+    }
+
     private var mainInformationCard: some View {
         editorCard {
             VStack(alignment: .leading, spacing: editorCardSpacing) {
@@ -274,6 +357,14 @@ struct NewsEditorView: View {
         }
     }
 
+    private var noOrganizerAccessCard: some View {
+        EmptyStateCard(
+            systemImage: "building.2.crop.circle",
+            title: AppStrings.NewsEditor.addTitle,
+            message: AppStrings.NewsEditor.noOrganizerAccess
+        )
+    }
+
     private var coverImageCard: some View {
         editorCard {
             VStack(alignment: .leading, spacing: editorCardSpacing) {
@@ -284,19 +375,116 @@ struct NewsEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.isProcessingImage || viewModel.isPublishing)
+                .simultaneousGesture(TapGesture().onEnded(dismissKeyboard))
+                .overlay {
+                    if viewModel.isProcessingImage {
+                        imageProcessingOverlay
+                    }
+                }
             }
+        }
+    }
+
+    private var organizerCard: some View {
+        editorCard {
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                editorSectionTitle(AppStrings.NewsEditor.organizerSectionTitle)
+
+                Button {
+                    guard canSelectOrganizer else { return }
+                    isShowingOrganizerPicker = true
+                } label: {
+                    HStack(spacing: AppTheme.dashboardSpacing) {
+                        AppFeedThumbnail(
+                            imageURL: viewModel.organizerImageURL,
+                            fallbackSystemImage: "building.2",
+                            tint: AppTheme.accentPrimary,
+                            fill: AppTheme.accentPrimarySoft,
+                            size: organizerLogoSize,
+                            cornerRadius: AppTheme.feedThumbnailRadius,
+                            source: "NewsEditorOrganizer"
+                        )
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(viewModel.organizerName ?? organizerPlaceholderTitle)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+                                .lineLimit(2)
+
+                            AppInfoChip(
+                                title: organizerStatusTitle,
+                                systemImage: "building.2",
+                                tint: AppTheme.accentPrimary,
+                                fill: AppTheme.accentPrimarySoft,
+                                size: .small
+                            )
+                        }
+
+                        Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                        organizerAccessory
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSelectOrganizer)
+            }
+        }
+    }
+
+    private var organizerPlaceholderTitle: String {
+        if organizerOrganizationsViewModel.isLoading {
+            return AppStrings.Profile.loadingUserProfile
+        }
+
+        return AppStrings.NewsEditor.selectOrganizer
+    }
+
+    private var organizerStatusTitle: String {
+        if viewModel.organizerName != nil {
+            return AppStrings.Organizations.detailBadge
+        }
+
+        if availableOrganizerOrganizations.isEmpty {
+            return AppStrings.Common.notAvailable
+        }
+
+        return AppStrings.NewsEditor.selectOrganizer
+    }
+
+    @ViewBuilder
+    private var organizerAccessory: some View {
+        if canSelectOrganizer {
+            Image(systemName: "chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
+        } else if organizerOrganizationsViewModel.isLoading {
+            ProgressView()
+                .controlSize(.small)
+                .tint(AppTheme.accentPrimary)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
+        } else {
+            Label(AppStrings.Common.notAvailable, systemImage: "lock.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.7))
+                .labelStyle(.iconOnly)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
         }
     }
 
     @ViewBuilder
     private var coverPickerContent: some View {
-        if let selectedImageData = viewModel.selectedImageData,
-           let image = UIImage(data: selectedImageData) {
+        if let selectedPreviewImage {
+            let image = selectedPreviewImage
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
                 .frame(maxWidth: .infinity)
                 .frame(height: uploadMinHeight)
+                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
@@ -322,6 +510,16 @@ struct NewsEditorView: View {
         } else {
             uploadPlaceholder
         }
+    }
+
+    private var imageProcessingOverlay: some View {
+        ProgressView()
+            .controlSize(.regular)
+            .tint(AppTheme.accentPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: uploadMinHeight)
+            .background(.black.opacity(0.08), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+            .allowsHitTesting(false)
     }
 
     private var uploadPlaceholder: some View {
@@ -530,41 +728,141 @@ struct NewsEditorView: View {
         "\(count)/\(limit)"
     }
 
-    private func loadSelectedPhoto(item: PhotosPickerItem?) async {
+    private func loadSelectedPhoto(item: PhotosPickerItem?, token: UUID) async {
         guard let item else {
             await MainActor.run {
+                guard imageProcessingToken == token else { return }
                 viewModel.setImageProcessing(false)
                 viewModel.setSelectedImageData(nil)
+                selectedPreviewImage = nil
             }
             return
         }
 
         await MainActor.run {
+            guard imageProcessingToken == token else { return }
             viewModel.setImageProcessing(true)
         }
 
         do {
-            let data = try await item.loadTransferable(type: Data.self)
-            guard let data else {
+            let originalData = try await item.loadTransferable(type: Data.self)
+            guard !Task.isCancelled else { return }
+            guard let originalData else {
                 await MainActor.run {
+                    guard imageProcessingToken == token else { return }
                     selectedPhoto = nil
                     viewModel.setImageProcessing(false)
                     viewModel.setSelectedImageData(nil)
+                    selectedPreviewImage = nil
                     viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
                 }
                 return
             }
+            let preparedImage = try await ImageUploadService.shared.prepareEditorImageSelection(from: originalData)
+            guard !Task.isCancelled else { return }
 
             await MainActor.run {
+                guard imageProcessingToken == token else { return }
                 viewModel.setImageProcessing(false)
-                viewModel.setSelectedImageData(data)
+                viewModel.setSelectedImageData(preparedImage.data)
+                selectedPreviewImage = preparedImage.previewImage
             }
         } catch {
+            guard !Task.isCancelled else { return }
             await MainActor.run {
+                guard imageProcessingToken == token else { return }
                 selectedPhoto = nil
                 viewModel.setImageProcessing(false)
                 viewModel.setSelectedImageData(nil)
+                selectedPreviewImage = nil
                 viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
+            }
+        }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
+private struct NewsOrganizerPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let organizations: [Organization]
+    let selectedOrganizationID: String?
+    let onSelect: (Organization) -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+                    ForEach(organizations) { organization in
+                        Button {
+                            onSelect(organization)
+                        } label: {
+                            organizerRow(for: organization)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
+            }
+            .background(AppBackgroundView())
+            .navigationTitle(AppStrings.NewsEditor.organizerSectionTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppStrings.Common.cancel) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func organizerRow(for organization: Organization) -> some View {
+        SoftContentCard(padding: AppTheme.organizationsCardPadding) {
+            HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
+                AppFeedThumbnail(
+                    imageURL: organization.imageURL,
+                    fallbackSystemImage: "building.2",
+                    tint: AppTheme.accentPrimary,
+                    fill: AppTheme.badgeBlueFill,
+                    size: AppTheme.organizationsThumbnailSize,
+                    cornerRadius: AppTheme.feedThumbnailRadius,
+                    source: "NewsOrganizerPickerSheet"
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(organization.name)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(2)
+
+                    if !organization.shortDescription.isEmpty {
+                        Text(organization.shortDescription)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
+                            .lineLimit(2)
+                    }
+
+                    AppInfoChip(
+                        title: organization.city,
+                        systemImage: "mappin.and.ellipse",
+                        tint: AppTheme.textSecondary,
+                        fill: AppTheme.surfaceControl.opacity(0.62),
+                        size: .small
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if organization.id == selectedOrganizationID {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
             }
         }
     }

@@ -1,6 +1,7 @@
 import FirebaseAuth
 import FirebaseCore
 import SwiftUI
+import UIKit
 
 private enum FirebaseBootstrap {
     private static var isConfigured = false
@@ -13,8 +14,11 @@ private enum FirebaseBootstrap {
     }
 }
 
+private final class AppDelegate: NSObject, UIApplicationDelegate {}
+
 @main
 struct UkrainianCommunityApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var authState = AuthService.shared.authState
     private let container: AppContainer
 

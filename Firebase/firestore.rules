@@ -28,28 +28,8 @@ service cloud.firestore {
     function isOwner() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && (
-          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'owner')
-          || (('role' in currentUserData()) && currentUserData().role == 'owner')
-        );
-    }
-
-    function isTopAdmin() {
-      return isSignedIn()
-        && existsUser(request.auth.uid)
-        && (
-          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'topAdmin')
-          || (('role' in currentUserData()) && currentUserData().role == 'admin')
-        );
-    }
-
-    function isAppModerator() {
-      return isSignedIn()
-        && existsUser(request.auth.uid)
-        && (
-          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'appModerator')
-          || (('role' in currentUserData()) && currentUserData().role == 'moderator')
-        );
+        && ('globalRole' in currentUserData())
+        && currentUserData().globalRole == 'owner';
     }
 
     function isActiveUser() {
@@ -59,19 +39,24 @@ service cloud.firestore {
           !('accountStatus' in currentUserData())
           || currentUserData().accountStatus == 'active'
           || currentUserData().accountStatus == 'warned'
+        )
+        && (
+          !('blockState' in currentUserData())
+          || currentUserData().blockState == 'active'
+          || currentUserData().blockState == 'warned'
         );
     }
 
-    function moderatorSections() {
-      return isAppModerator() && ('moderatorSections' in currentUserData())
-        ? currentUserData().moderatorSections
-        : [];
+    function canModerateSection(section) {
+      return section is string && isOwner();
     }
 
-    function canModerateSection(section) {
+    function canManageGuide() {
       return isOwner()
-        || isTopAdmin()
-        || (isAppModerator() && moderatorSections().hasAny([section]));
+        || (isSignedIn()
+          && existsUser(request.auth.uid)
+          && ('canManageGuide' in currentUserData())
+          && currentUserData().canManageGuide == true);
     }
 
     function isApprovedContent() {
@@ -82,6 +67,52 @@ service cloud.firestore {
       return ['fullName', 'displayName', 'telegramUsername', 'city', 'bio', 'email', 'selectedFederalState', 'avatarURL', 'updatedAt'];
     }
 
+    function recentViewFields() {
+      return ['itemId', 'itemType', 'title', 'subtitle', 'imageURL', 'viewedAt'];
+    }
+
+    function activityLogFields() {
+      return ['id', 'actionType', 'targetId', 'targetType', 'title', 'subtitle', 'imageURL', 'createdAt'];
+    }
+
+    function safeRecentViewWrite(uid, recentViewId) {
+      return isActiveUser()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(recentViewFields())
+        && request.resource.data.itemId is string
+        && request.resource.data.itemType in ['news', 'event', 'organization', 'guide']
+        && request.resource.data.title is string
+        && (!('subtitle' in request.resource.data) || request.resource.data.subtitle is string || request.resource.data.subtitle == null)
+        && (!('imageURL' in request.resource.data) || request.resource.data.imageURL is string || request.resource.data.imageURL == null)
+        && request.resource.data.viewedAt is timestamp
+        && recentViewId == request.resource.data.itemType + '_' + request.resource.data.itemId;
+    }
+
+    function safeActivityLogWrite(uid, activityLogId) {
+      return isActiveUser()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(activityLogFields())
+        && request.resource.data.id == activityLogId
+        && request.resource.data.actionType in [
+          'registeredForEvent',
+          'canceledEventRegistration',
+          'followedOrganization',
+          'unfollowedOrganization',
+          'savedNews',
+          'unsavedNews',
+          'savedEvent',
+          'unsavedEvent',
+          'savedOrganization',
+          'unsavedOrganization'
+        ]
+        && request.resource.data.targetId is string
+        && request.resource.data.targetType in ['news', 'event', 'organization']
+        && request.resource.data.title is string
+        && (!('subtitle' in request.resource.data) || request.resource.data.subtitle is string || request.resource.data.subtitle == null)
+        && (!('imageURL' in request.resource.data) || request.resource.data.imageURL is string || request.resource.data.imageURL == null)
+        && request.resource.data.createdAt is timestamp;
+    }
+
     function safeUserCreate(uid) {
       return isSelf(uid)
         && request.resource.data.id == uid
@@ -90,10 +121,12 @@ service cloud.firestore {
         && request.resource.data.city is string
         && request.resource.data.email is string
         && request.resource.data.bio is string
-        && request.resource.data.role == 'user'
+        && !('role' in request.resource.data)
+        && !('moderatorSections' in request.resource.data)
         && request.resource.data.isBlocked == false
         && request.resource.data.blockState == 'active'
         && request.resource.data.globalRole == 'user'
+        && request.resource.data.canManageGuide == false
         && request.resource.data.selectedFederalState is string
         && request.resource.data.accountStatus == 'active'
         && request.resource.data.warningCount == 0
@@ -101,8 +134,6 @@ service cloud.firestore {
         && request.resource.data.acceptedPrivacyAt is timestamp
         && request.resource.data.termsVersion is string
         && request.resource.data.privacyVersion is string
-        && request.resource.data.moderatorSections is list
-        && request.resource.data.moderatorSections.size() == 0
         && request.resource.data.communityMemberships is list
         && request.resource.data.communityMemberships.size() == 0;
     }
@@ -113,26 +144,19 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfEditableFields());
     }
 
-    function targetUserIsOwner() {
-      return resource.data.role == 'owner'
-        || ('globalRole' in resource.data && resource.data.globalRole == 'owner');
+    function ownerUserEditableFields() {
+      return ['accountStatus', 'blockState', 'warningCount', 'updatedAt', 'isBlocked', 'banExpiresAt'];
     }
 
-    function incomingUserBecomesOwner() {
-      return request.resource.data.role == 'owner'
-        || ('globalRole' in request.resource.data && request.resource.data.globalRole == 'owner');
-    }
-
-    function incomingUserBecomesPermanentlyBanned() {
-      return ('accountStatus' in request.resource.data)
-        && request.resource.data.accountStatus == 'permanentlyBanned';
-    }
-
-    function topAdminUserUpdateAllowed() {
-      return !targetUserIsOwner()
-        && !incomingUserBecomesOwner()
-        && !incomingUserBecomesPermanentlyBanned()
-        && request.resource.data.id == resource.data.id;
+    function safeOwnerUserUpdate(uid) {
+      return isOwner()
+        && request.resource.data.id == resource.data.id
+        && ('globalRole' in resource.data)
+        && request.resource.data.globalRole == resource.data.globalRole
+        && (!('role' in resource.data) || request.resource.data.role == resource.data.role)
+        && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
+        && (!('communityMemberships' in resource.data) || request.resource.data.communityMemberships == resource.data.communityMemberships)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(ownerUserEditableFields());
     }
 
     function canWriteContent(section) {
@@ -140,19 +164,213 @@ service cloud.firestore {
     }
 
     function canModerateAppContent(section) {
-      return isOwner() || isTopAdmin() || isAppModerator() || canModerateSection(section);
+      return canModerateSection(section);
     }
 
-    function canManageOrganizationContent(organizationId) {
+    function hasOrganizationRole(organizationId, role) {
       return isSignedIn()
-        && existsUser(request.auth.uid)
         && organizationId is string
-        && ('communityMemberships' in currentUserData())
-        && currentUserData().communityMemberships.hasAny([
-          {'organizationId': organizationId, 'role': 'communityOwner'},
-          {'organizationId': organizationId, 'role': 'communityAdmin'},
-          {'organizationId': organizationId, 'role': 'communityModerator'}
-        ]);
+        && (
+          (
+            role == 'communityOwner'
+            && ('ownerId' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
+            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.ownerId == request.auth.uid
+          )
+          || (
+            role == 'communityAdmin'
+            && ('adminIds' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
+            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.adminIds.hasAny([request.auth.uid])
+          )
+          || (
+            role == 'communityModerator'
+            && ('moderatorIds' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
+            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderatorIds.hasAny([request.auth.uid])
+          )
+        );
+    }
+
+    function isOrganizationOwner(organizationId) {
+      return hasOrganizationRole(organizationId, 'communityOwner');
+    }
+
+    function isOrganizationAdmin(organizationId) {
+      return hasOrganizationRole(organizationId, 'communityAdmin');
+    }
+
+    function isOrganizationModerator(organizationId) {
+      return hasOrganizationRole(organizationId, 'communityModerator');
+    }
+
+    function canEditOrganizationContent(organizationId) {
+      return isOrganizationOwner(organizationId)
+        || isOrganizationAdmin(organizationId)
+        || isOrganizationModerator(organizationId);
+    }
+
+    function canManageOrganizationPhotos(organizationId) {
+      return isOwner() || canEditOrganizationContent(organizationId);
+    }
+
+    function canReadOrganizationByLookup(organizationId) {
+      return exists(/databases/$(database)/documents/organizations/$(organizationId))
+        && (
+          get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus == 'approved'
+          || isOwner()
+          || canEditOrganizationContent(organizationId)
+        );
+    }
+
+    function canReadOrganization(organizationId) {
+      return (('moderationStatus' in resource.data) && resource.data.moderationStatus == 'approved')
+        || canReadOrganizationByLookup(organizationId);
+    }
+
+    function organizationPhotoFields() {
+      return ['id', 'organizationId', 'imageURL', 'caption', 'uploadedBy', 'createdAt', 'updatedAt'];
+    }
+
+    function safeOrganizationPhotoCreate(organizationId, photoId) {
+      return canManageOrganizationPhotos(organizationId)
+        && request.resource.data.keys().hasOnly(organizationPhotoFields())
+        && request.resource.data.id == photoId
+        && request.resource.data.organizationId == organizationId
+        && request.resource.data.imageURL is string
+        && request.resource.data.uploadedBy == request.auth.uid
+        && request.resource.data.createdAt is timestamp
+        && (!('caption' in request.resource.data) || request.resource.data.caption is string || request.resource.data.caption == null)
+        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt == null);
+    }
+
+    function canModerateOrganizationContent(organizationId) {
+      return isOrganizationOwner(organizationId)
+        || isOrganizationAdmin(organizationId)
+        || isOrganizationModerator(organizationId);
+    }
+
+    function canEditOrganizationInfo(organizationId) {
+      return isOwner() || isOrganizationOwner(organizationId) || isOrganizationAdmin(organizationId);
+    }
+
+    function canManageOrganizationRoles(organizationId) {
+      return isOwner() || isOrganizationOwner(organizationId);
+    }
+
+    function organizationRoleFields() {
+      return ['ownerId', 'adminIds', 'moderatorIds', 'updatedAt'];
+    }
+
+    // TODO: Move organization membership storage out of users.communityMemberships
+    // into organizationMemberships/{organizationId_userId} or
+    // organizations/{organizationId}/members/{userId}. Until then, organizations
+    // ownerId/adminIds/moderatorIds are the writable role source of truth.
+    function safeOrganizationRoleUpdate(organizationId) {
+      return canManageOrganizationRoles(organizationId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationRoleFields())
+        && (!('ownerId' in resource.data) || ('ownerId' in request.resource.data))
+        && (!('ownerId' in request.resource.data) || request.resource.data.ownerId is string)
+        && (isOwner() || request.resource.data.ownerId == resource.data.ownerId);
+    }
+
+    function safeOrganizationRoleAuditCreate() {
+      return isActiveUser()
+        && request.resource.data.actionType in ['organizationRoleAssigned', 'organizationRoleRemoved']
+        && request.resource.data.previousValue is map
+        && request.resource.data.newValue is map
+        && ('organizationId' in request.resource.data.previousValue)
+        && ('organizationId' in request.resource.data.newValue)
+        && ('role' in request.resource.data.previousValue)
+        && ('role' in request.resource.data.newValue)
+        && request.resource.data.previousValue.organizationId == request.resource.data.newValue.organizationId
+        && canManageOrganizationRoles(request.resource.data.previousValue.organizationId)
+        && (
+          isOwner()
+          || (
+            request.resource.data.previousValue.role in ['none', 'communityAdmin', 'communityModerator']
+            && request.resource.data.newValue.role in ['none', 'communityAdmin', 'communityModerator']
+          )
+        );
+    }
+
+    function organizationSafeInfoFields() {
+      return [
+        'name',
+        'description',
+        'shortDescription',
+        'fullDescription',
+        'imageURL',
+        'logoURL',
+        'coverURL',
+        'contactEmail',
+        'website',
+        'email',
+        'phone',
+        'address',
+        'latitude',
+        'longitude',
+        'city',
+        'federalState',
+        'organizationType',
+        'foundedYear',
+        'foundedMonth',
+        'languages',
+        'socialLinks',
+        'telegramURL',
+        'donationURL',
+        'missionStatement',
+        'contactPerson',
+        'updatedAt'
+      ];
+    }
+
+    function safeOrganizationInfoUpdate(organizationId) {
+      return canEditOrganizationInfo(organizationId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationSafeInfoFields());
+    }
+
+    function ownDocumentRead() {
+      return isActiveUser()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    function ownLikeDocumentRead(likeId) {
+      return isActiveUser()
+        && likeId.matches('^.+_' + request.auth.uid + '$');
+    }
+
+    function ownDocumentCreate() {
+      return isActiveUser()
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    function ownDocumentDelete() {
+      return isActiveUser()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    function isOrganizationContent(data) {
+      return ('sourceType' in data)
+        && data.sourceType == 'organization'
+        && ('organizationId' in data)
+        && data.organizationId is string
+        && data.organizationId.size() > 0;
+    }
+
+    function canCreateOrganizationContent() {
+      return isOrganizationContent(request.resource.data)
+        && (isOwner() || canEditOrganizationContent(request.resource.data.organizationId));
+    }
+
+    function canUpdateOrganizationContent() {
+      return isOrganizationContent(resource.data)
+        && isOrganizationContent(request.resource.data)
+        && request.resource.data.sourceType == resource.data.sourceType
+        && request.resource.data.organizationId == resource.data.organizationId
+        && (isOwner() || canEditOrganizationContent(resource.data.organizationId));
+    }
+
+    function canDeleteOrganizationContent() {
+      return isOrganizationContent(resource.data)
+        && isOrganizationOwner(resource.data.organizationId);
     }
 
     function canModerateNewsComment(newsId) {
@@ -160,7 +378,7 @@ service cloud.firestore {
         || canModerateSection('comments')
         || (
           get(/databases/$(database)/documents/news/$(newsId)).data.sourceType == 'organization'
-          && canManageOrganizationContent(get(/databases/$(database)/documents/news/$(newsId)).data.organizationId)
+          && canModerateOrganizationContent(get(/databases/$(database)/documents/news/$(newsId)).data.organizationId)
         );
     }
 
@@ -169,7 +387,7 @@ service cloud.firestore {
         || canModerateSection('comments')
         || (
           get(/databases/$(database)/documents/events/$(eventId)).data.sourceType == 'organization'
-          && canManageOrganizationContent(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId)
+          && canModerateOrganizationContent(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId)
         );
     }
 
@@ -184,10 +402,27 @@ service cloud.firestore {
       return canModerateSection(section);
     }
 
-    function onlyLikeCountChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
+    function canReadOrganizationModerationQueue(data) {
+      return isOrganizationContent(data)
+        && canModerateOrganizationContent(data.organizationId)
+        && (
+          data.moderationStatus == 'pendingReview'
+          || data.moderationStatus == 'rejected'
+          || data.moderationStatus == 'archived'
+        );
     }
 
+    function onlySubscriberCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscriberCount'])
+        && request.resource.data.subscriberCount is int
+        && request.resource.data.subscriberCount >= 0;
+    }
+
+    function onlyModerationStatusChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderationStatus']);
+    }
+
+    // TODO: Replace direct client counter writes with server-side aggregation or sharded counters.
     function onlyNewsEngagementCountersChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
     }
@@ -207,6 +442,7 @@ service cloud.firestore {
         );
     }
 
+    // TODO: Replace direct client counter writes with server-side aggregation or sharded counters.
     function onlyEventCountersChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount', 'registeredCount']);
     }
@@ -227,12 +463,11 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isSelf(uid) || isOwner() || isTopAdmin();
+      allow read: if isSelf(uid) || isOwner();
 
       allow create: if safeUserCreate(uid);
 
-      allow update: if isOwner()
-        || (isTopAdmin() && topAdminUserUpdateAllowed())
+      allow update: if safeOwnerUserUpdate(uid)
         || safeSelfUserUpdate(uid);
 
       allow delete: if isOwner() && uid != request.auth.uid;
@@ -271,6 +506,23 @@ service cloud.firestore {
           && resource.data.userId == uid;
       }
 
+      match /organizationBookmarks/{organizationId} {
+        allow read: if isSelf(uid);
+
+        allow create: if isActiveUser()
+          && request.auth.uid == uid
+          && request.resource.data.id == organizationId
+          && request.resource.data.organizationId == organizationId
+          && request.resource.data.userId == uid;
+
+        allow update: if false;
+
+        allow delete: if isActiveUser()
+          && request.auth.uid == uid
+          && resource.data.organizationId == organizationId
+          && resource.data.userId == uid;
+      }
+
       match /eventViews/{eventId} {
         allow read: if isSelf(uid);
 
@@ -294,12 +546,40 @@ service cloud.firestore {
 
         allow update, delete: if false;
       }
+
+      match /recentViews/{recentViewId} {
+        allow read: if isSelf(uid);
+
+        allow create, update: if safeRecentViewWrite(uid, recentViewId);
+
+        allow delete: if isActiveUser()
+          && request.auth.uid == uid;
+      }
+
+      match /activityLog/{activityLogId} {
+        allow read: if isSelf(uid);
+
+        allow create: if safeActivityLogWrite(uid, activityLogId);
+
+        allow update: if false;
+
+        allow delete: if isActiveUser()
+          && request.auth.uid == uid;
+      }
     }
 
     match /news/{newsId} {
-      allow read: if isApprovedContent() || canReadModerationQueue('news');
-      allow create, delete: if canWriteContent('news');
-      allow update: if canWriteContent('news')
+      allow read: if isApprovedContent()
+        || canReadModerationQueue('news')
+        || canReadOrganizationModerationQueue(resource.data);
+      allow create: if canCreateOrganizationContent();
+      allow delete: if canWriteContent('news') || canDeleteOrganizationContent();
+      allow update: if canUpdateOrganizationContent()
+        || (
+          isOrganizationContent(resource.data)
+          && canModerateOrganizationContent(resource.data.organizationId)
+          && onlyModerationStatusChanged()
+        )
         || (isActiveUser() && (onlyNewsEngagementCountersChanged() || onlyNewsViewCountIncremented() || onlyNewsCommentCountChanged()));
 
       match /comments/{commentId} {
@@ -334,9 +614,19 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow read: if isApprovedContent() || canReadModerationQueue('events');
-      allow create, delete: if canWriteContent('events');
-      allow update: if canWriteContent('events')
+      allow read: if isApprovedContent()
+        || canReadModerationQueue('events')
+        || canReadOrganizationModerationQueue(resource.data);
+      allow create: if isOwner() || canCreateOrganizationContent();
+      allow delete: if isOwner() || canDeleteOrganizationContent();
+      allow update: if isOwner()
+        || canUpdateOrganizationContent()
+        || (canModerateSection('events') && onlyModerationStatusChanged())
+        || (
+          isOrganizationContent(resource.data)
+          && canModerateOrganizationContent(resource.data.organizationId)
+          && onlyModerationStatusChanged()
+        )
         || (isActiveUser() && (onlyEventCountersChanged() || onlyEventViewCountIncremented() || onlyEventCommentCountChanged()));
 
       match /comments/{commentId} {
@@ -371,65 +661,94 @@ service cloud.firestore {
     }
 
     match /organizations/{organizationId} {
-      allow read: if isApprovedContent() || canReadModerationQueue('organizations');
-      allow create, delete: if canWriteContent('organizations');
-      allow update: if canWriteContent('organizations')
-        || (isActiveUser() && onlyLikeCountChanged());
+      allow read: if canReadOrganization(organizationId);
+      allow create: if isOwner();
+      allow delete: if isOwner();
+      allow update: if isOwner()
+        || safeOrganizationRoleUpdate(organizationId)
+        || safeOrganizationInfoUpdate(organizationId)
+        || (canModerateSection('organizations') && onlyModerationStatusChanged())
+        || (isActiveUser() && onlySubscriberCountChanged());
+
+      match /photos/{photoId} {
+        allow read: if canReadOrganization(organizationId);
+        allow create: if safeOrganizationPhotoCreate(organizationId, photoId);
+        allow update: if false;
+        allow delete: if canManageOrganizationPhotos(organizationId)
+          && resource.data.organizationId == organizationId;
+      }
     }
 
     match /likes/{likeId} {
-      allow read: if isActiveUser();
+      allow read: if ownDocumentRead()
+        || ownLikeDocumentRead(likeId)
+        || isOwner();
 
-      allow create: if isActiveUser()
-        && request.resource.data.userId == request.auth.uid;
+      allow create: if ownDocumentCreate();
 
       allow update: if false;
 
-      allow delete: if (isActiveUser() && resource.data.userId == request.auth.uid)
-        || isOwner()
-        || isTopAdmin();
+      allow delete: if ownDocumentDelete()
+        || isOwner();
     }
 
     match /registrations/{registrationId} {
-      allow read: if isActiveUser();
+      allow read: if ownDocumentRead()
+        || isOwner();
 
-      allow create: if isActiveUser()
-        && request.resource.data.userId == request.auth.uid;
+      allow create: if ownDocumentCreate();
 
       allow update: if false;
 
-      allow delete: if (isActiveUser() && resource.data.userId == request.auth.uid)
-        || isOwner()
-        || isTopAdmin();
+      allow delete: if ownDocumentDelete()
+        || isOwner();
     }
 
     match /feedback/{feedbackId} {
       allow read: if isOwner()
-        || isTopAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
 
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'open';
 
-      allow update, delete: if isOwner() || isTopAdmin();
+      allow update, delete: if isOwner();
+    }
+
+    match /auditLogs/{auditLogId} {
+      allow read: if isOwner();
+
+      allow create: if (isOwner() || safeOrganizationRoleAuditCreate())
+        && request.resource.data.actionType in [
+          'warningIssued',
+          'suspended',
+          'banned',
+          'unblocked',
+          'deactivated',
+          'organizationRoleAssigned',
+          'organizationRoleRemoved'
+        ]
+        && request.resource.data.targetUserId is string
+        && request.resource.data.performedBy == request.auth.uid
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.reason is string
+        && request.resource.data.previousValue is map
+        && request.resource.data.newValue is map;
+
+      allow update, delete: if false;
     }
 
     match /appConfig/{bannerId} {
-      allow read: if isAppManagedHeroBannerDocument(bannerId) && isSignedIn();
+      allow read: if isAppManagedHeroBannerDocument(bannerId);
       allow create, update, delete: if isAppManagedHeroBannerDocument(bannerId)
-        && (isOwner() || isTopAdmin());
+        && isOwner();
     }
 
     match /guideArticles/{articleId} {
       allow read: if resource.data.moderationStatus == 'approved'
-        || isOwner()
-        || isTopAdmin()
-        || isAppModerator();
+        || canManageGuide();
 
-      allow create, update, delete: if isOwner()
-        || isTopAdmin()
-        || isAppModerator();
+      allow create, update, delete: if canManageGuide();
     }
 
     match /{document=**} {

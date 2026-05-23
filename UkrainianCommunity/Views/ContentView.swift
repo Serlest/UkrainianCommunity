@@ -25,6 +25,7 @@ struct ContentView: View {
     @State private var organizationsNavigationRootID = UUID()
     @State private var guideNavigationRootID = UUID()
     @State private var profileNavigationRootID = UUID()
+    @State private var lastHandledAuthSessionKey: String?
 
     init(container: AppContainer) {
         self.container = container
@@ -53,6 +54,9 @@ struct ContentView: View {
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
         .onChange(of: selectedTab) { _, newTab in
             resetNavigationStack(for: newTab)
+        }
+        .onChange(of: authSessionKey) { _, newKey in
+            handleAuthIdentityChange(for: newKey)
         }
         .onChange(of: profileViewModel.settings.language) { _, newLanguage in
             selectedLanguageCode = newLanguage.rawValue
@@ -85,6 +89,21 @@ struct ContentView: View {
 
     private var selectedAppearance: AppAppearance {
         AppAppearance(rawValue: selectedAppearanceCode) ?? .system
+    }
+
+    private var authSessionKey: String {
+        if let userID = authState.user?.id, authState.isAuthenticated {
+            return "authenticated:\(userID)"
+        }
+
+        switch authState.sessionState {
+        case .guest:
+            return "guest"
+        case .restoring:
+            return "loading:restoring"
+        case .authenticated:
+            return "loading:authenticated"
+        }
     }
 
     @ViewBuilder
@@ -172,7 +191,9 @@ struct ContentView: View {
         NavigationStack {
             ProfileView(
                 viewModel: profileViewModel,
-                eventRepository: container.eventRepository
+                feedbackRepository: container.feedbackRepository,
+                eventRepository: container.eventRepository,
+                organizationRepository: container.organizationRepository
             )
         }
         .accessibilityIdentifier("screen.profile")
@@ -196,6 +217,39 @@ struct ContentView: View {
             guideNavigationRootID = UUID()
         case .profile:
             profileNavigationRootID = UUID()
+        }
+    }
+
+    private func resetAllNavigationStacks() {
+        homeNavigationRootID = UUID()
+        eventsNavigationRootID = UUID()
+        organizationsNavigationRootID = UUID()
+        guideNavigationRootID = UUID()
+        profileNavigationRootID = UUID()
+    }
+
+    private func handleAuthIdentityChange(for key: String) {
+        guard lastHandledAuthSessionKey != key else { return }
+        lastHandledAuthSessionKey = key
+
+        selectedTab = .home
+        resetAllNavigationStacks()
+        authState.dismissAuthFlow()
+
+        homeViewModel.resetForAuthChange()
+        newsViewModel.resetForAuthChange()
+        eventsViewModel.resetForAuthChange()
+        organizationsViewModel.resetForAuthChange()
+        profileViewModel.resetForAuthChange()
+
+        Task {
+            await homeViewModel.refresh()
+            await newsViewModel.refresh()
+            await eventsViewModel.refresh()
+            await organizationsViewModel.refresh()
+            if authState.isAuthenticated {
+                await profileViewModel.refresh()
+            }
         }
     }
 }

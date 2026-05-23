@@ -46,7 +46,7 @@ private enum EventCategoryFilter: CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .all:
-            AppStrings.Events.allCategories
+            AppStrings.Events.filterAll
         case .meetups:
             AppStrings.Events.categoryMeetups
         case .training:
@@ -57,6 +57,23 @@ private enum EventCategoryFilter: CaseIterable, Identifiable {
             AppStrings.Events.categoryEducation
         case .other:
             AppStrings.Events.categoryOther
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .all:
+            "tag"
+        case .meetups:
+            "person.2"
+        case .training:
+            "graduationcap"
+        case .culture:
+            "theatermasks"
+        case .education:
+            "book"
+        case .other:
+            "square.grid.2x2"
         }
     }
 
@@ -81,7 +98,7 @@ private enum EventCategoryFilter: CaseIterable, Identifiable {
 private enum EventFeedScope {
     case all
     case saved
-    case subscribed
+    case registered
 }
 
 private struct UpcomingEventDaySection: Identifiable {
@@ -131,13 +148,12 @@ struct EventsListView: View {
     @State private var pendingDeleteEventID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
-    @State private var isShowingCreateSheet = false
     @State private var selectedFilter: EventDiscoveryFilter = .all
     @State private var selectedCategory: EventCategoryFilter = .all
     @State private var selectedFederalState: AustrianFederalState?
     @State private var selectedFeedScope: EventFeedScope = .all
+    @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
-    @State private var isCategoryPickerPresented = false
     @State private var selectedBannerPhoto: PhotosPickerItem?
     @State private var guestAccessAction: GuestAccessAction?
 
@@ -175,10 +191,6 @@ struct EventsListView: View {
         case nil:
             ""
         }
-    }
-
-    private var canCreateEvent: Bool {
-        PermissionService.canCreateEvent(user: authState.user)
     }
 
     private func canDeleteEvent(_ event: Event) -> Bool {
@@ -224,8 +236,8 @@ struct EventsListView: View {
 
     private var filteredEvents: [Event] {
         viewModel.events.filter { event in
-            matchesSelectedRegion(event)
-                && matchesSelectedCategory(event)
+            matchesSelectedCategory(event)
+                && matchesSelectedRegion(event)
                 && matchesSelectedFeedScope(event)
         }
     }
@@ -245,20 +257,10 @@ struct EventsListView: View {
         case .all:
             return true
         case .saved:
-            return event.isBookmarked
-        case .subscribed:
-            guard event.source.sourceType == .organization else {
-                return true
-            }
-            guard let organizationId = event.source.organizationId else {
-                return false
-            }
-            return subscribedOrganizationIDs.contains(organizationId)
+            return authState.user != nil && event.isBookmarked
+        case .registered:
+            return authState.user != nil && event.registrationState == .registered
         }
-    }
-
-    private var subscribedOrganizationIDs: Set<String> {
-        Set(authState.user?.communityMemberships.map(\.organizationId) ?? [])
     }
 
     var body: some View {
@@ -274,11 +276,10 @@ struct EventsListView: View {
                     selectedFederalState: selectedFederalState,
                     selectedCategory: selectedCategory,
                     selectedFeedScope: selectedFeedScope,
-                    onSelectAll: resetEventFilters,
+                    onSelectCategory: { selectedCategory = $0 },
                     onSelectRegion: { isRegionPickerPresented = true },
-                    onSelectCategory: { isCategoryPickerPresented = true },
                     onSelectSaved: { selectedFeedScope = selectedFeedScope == .saved ? .all : .saved },
-                    onSelectSubscribed: { selectedFeedScope = selectedFeedScope == .subscribed ? .all : .subscribed }
+                    onSelectRegistered: { selectedFeedScope = selectedFeedScope == .registered ? .all : .registered }
                 )
                 .padding(.bottom, AppTheme.homeSectionSpacing)
 
@@ -293,6 +294,7 @@ struct EventsListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
         .task {
+            applyDefaultRegion()
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
             await heroBannerViewModel.loadIfNeeded()
@@ -307,6 +309,10 @@ struct EventsListView: View {
                 selectedBannerPhoto = nil
             }
         }
+        .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
+            guard !didManuallyChangeRegion else { return }
+            selectedFederalState = newRegion
+        }
         .onReceive(NotificationCenter.default.publisher(for: .eventsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
                 await viewModel.refresh()
@@ -315,21 +321,12 @@ struct EventsListView: View {
         .guestAccessAlert($guestAccessAction)
         .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
             Button(AppStrings.Home.regionAllAustria) {
-                selectedFederalState = nil
+                selectRegion(nil)
             }
 
             ForEach(AustrianFederalState.allCases) { federalState in
                 Button(federalState.eventFilterDisplayName) {
-                    selectedFederalState = federalState
-                }
-            }
-
-            Button(AppStrings.Events.cancel, role: .cancel) {}
-        }
-        .confirmationDialog(AppStrings.Events.categorySectionTitle, isPresented: $isCategoryPickerPresented, titleVisibility: .visible) {
-            ForEach(EventCategoryFilter.allCases) { category in
-                Button(category.title) {
-                    selectedCategory = category
+                    selectRegion(federalState)
                 }
             }
 
@@ -389,31 +386,21 @@ struct EventsListView: View {
                 heroBannerViewModel.clearError()
             }
         }
-        .sheet(isPresented: $isShowingCreateSheet) {
-            NavigationStack {
-                EventEditorView(repository: eventRepository, onPublished: onEventPublished)
-            }
-        }
     }
 
-    private func resetEventFilters() {
-        selectedFilter = .all
-        selectedFederalState = nil
-        selectedCategory = .all
-        selectedFeedScope = .all
+    private func selectRegion(_ federalState: AustrianFederalState?) {
+        selectedFederalState = federalState
+        didManuallyChangeRegion = true
+    }
+
+    private func applyDefaultRegion() {
+        guard !didManuallyChangeRegion else { return }
+        selectedFederalState = authState.user?.selectedFederalState
     }
 
     private var eventsHeader: some View {
         AppBrandHeader {
-            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                if canCreateEvent {
-                    AppGlassIconButton(systemImage: "calendar.badge.plus", accessibilityLabel: AppStrings.Events.editorTitle) {
-                        isShowingCreateSheet = true
-                    }
-                }
-
-                AppNotificationBellButton()
-            }
+            AppNotificationBellButton()
         }
     }
 
@@ -456,7 +443,7 @@ struct EventsListView: View {
     private var eventListContent: some View {
         if viewModel.events.isEmpty && viewModel.isLoading {
             LoadingStateCard(title: nil)
-                .frame(maxWidth: .infinity, minHeight: 240)
+                .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.events.isEmpty && viewModel.error != nil {
             ErrorStateCard(
                 systemImage: "calendar",
@@ -466,14 +453,21 @@ struct EventsListView: View {
             ) {
                 viewModel.reload()
             }
-            .frame(maxWidth: .infinity, minHeight: 240)
+            .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.events.isEmpty {
             EmptyStateCard(
                 systemImage: "calendar",
                 title: AppStrings.Events.title,
                 message: AppStrings.Events.empty
             )
-            .frame(maxWidth: .infinity, minHeight: 240)
+            .frame(maxWidth: .infinity, minHeight: 180)
+        } else if filteredEvents.isEmpty {
+            EmptyStateCard(
+                systemImage: filteredEventsEmptySystemImage,
+                title: AppStrings.Events.title,
+                message: filteredEventsEmptyMessage
+            )
+            .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             let content = discoveryContent
 
@@ -484,6 +478,28 @@ struct EventsListView: View {
                     pastContent(content)
                 }
             }
+        }
+    }
+
+    private var filteredEventsEmptySystemImage: String {
+        switch selectedFeedScope {
+        case .saved:
+            "bookmark"
+        case .registered:
+            "checkmark.circle"
+        case .all:
+            selectedCategory == .all ? "calendar.badge.exclamationmark" : selectedCategory.systemImage
+        }
+    }
+
+    private var filteredEventsEmptyMessage: String {
+        switch selectedFeedScope {
+        case .saved:
+            AppStrings.Events.emptySaved
+        case .registered:
+            AppStrings.Events.emptyRegistered
+        case .all:
+            selectedFederalState == nil ? AppStrings.Events.filteredUpcomingEmpty : AppStrings.Home.emptyRegion
         }
     }
 
@@ -543,7 +559,7 @@ struct EventsListView: View {
     }
 
     private func canManageEvent(_ event: Event) -> Bool {
-        authState.user?.globalRole == .owner
+        PermissionService.canDeleteEvent(event, user: authState.user)
     }
 
 }
@@ -576,19 +592,27 @@ private struct EventFilterRow: View {
     let selectedFederalState: AustrianFederalState?
     let selectedCategory: EventCategoryFilter
     let selectedFeedScope: EventFeedScope
-    let onSelectAll: () -> Void
+    let onSelectCategory: (EventCategoryFilter) -> Void
     let onSelectRegion: () -> Void
-    let onSelectCategory: () -> Void
     let onSelectSaved: () -> Void
-    let onSelectSubscribed: () -> Void
+    let onSelectRegistered: () -> Void
 
     var body: some View {
         AppHorizontalFilterRow {
-            Button(action: onSelectAll) {
+            Menu {
+                ForEach(EventCategoryFilter.allCases) { category in
+                    Button {
+                        onSelectCategory(category)
+                    } label: {
+                        Label(category.title, systemImage: category.systemImage)
+                    }
+                }
+            } label: {
                 AppFilterChip(
-                    title: AppStrings.Events.filterAll,
-                    systemImage: "square.grid.2x2",
-                    isSelected: selectedFederalState == nil && selectedCategory == .all && selectedFeedScope == .all
+                    title: selectedCategory.title,
+                    systemImage: selectedCategory.systemImage,
+                    isSelected: selectedCategory != .all,
+                    trailingSystemImage: "chevron.down"
                 )
             }
             .buttonStyle(.plain)
@@ -603,12 +627,11 @@ private struct EventFilterRow: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: onSelectCategory) {
+            Button(action: onSelectRegistered) {
                 AppFilterChip(
-                    title: selectedCategory.title,
-                    systemImage: "tag",
-                    isSelected: selectedCategory != .all,
-                    trailingSystemImage: "chevron.down"
+                    title: AppStrings.Events.filterRegistered,
+                    systemImage: "checkmark.circle.fill",
+                    isSelected: selectedFeedScope == .registered
                 )
             }
             .buttonStyle(.plain)
@@ -618,15 +641,6 @@ private struct EventFilterRow: View {
                     title: AppStrings.Home.filterSaved,
                     systemImage: "bookmark",
                     isSelected: selectedFeedScope == .saved
-                )
-            }
-            .buttonStyle(.plain)
-
-            Button(action: onSelectSubscribed) {
-                AppFilterChip(
-                    title: AppStrings.Home.filterSubscribed,
-                    systemImage: "person.2.fill",
-                    isSelected: selectedFeedScope == .subscribed
                 )
             }
             .buttonStyle(.plain)
@@ -701,21 +715,6 @@ private struct EventDiscoveryRow: View {
     }
 }
 
-private struct EventBookmarkButton: View {
-    let isSaved: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                .font(.callout.weight(.medium))
-                .foregroundStyle(isSaved ? AppTheme.accentSupport : AppTheme.textSecondary.opacity(0.72))
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 private func readableEventErrorText(_ error: AppError?) -> String {
     switch error {
@@ -849,6 +848,7 @@ struct EventDetailView: View {
     @ObservedObject var viewModel: EventsViewModel
     let eventID: String
     let onEventDeleted: @MainActor @Sendable () -> Void
+    private let organizationRepository: OrganizationRepository
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
     @State private var isDeleting = false
@@ -864,15 +864,37 @@ struct EventDetailView: View {
     @State private var editingCommentID: String?
     @State private var pendingCommentDeleteID: String?
     @State private var commentDeleteErrorMessage: String?
+    @State private var permissionOrganization: Organization?
     @FocusState private var isCommentFieldFocused: Bool
     private let calendarWriter = EventCalendarWriter()
+    private let commentsSectionID = "eventCommentsSection"
+
+    init(
+        viewModel: EventsViewModel,
+        eventID: String,
+        onEventDeleted: @escaping @MainActor @Sendable () -> Void,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
+    ) {
+        self.viewModel = viewModel
+        self.eventID = eventID
+        self.onEventDeleted = onEventDeleted
+        self.organizationRepository = organizationRepository
+    }
 
     private func canEditEvent(_ event: Event) -> Bool {
-        canManageEvent(event)
+        if let organizationID = event.source.organizationId,
+           let organization = organizationForPermissions(organizationID: organizationID) {
+            return PermissionService.canEditOrganizationEvent(organization, user: authState.user)
+        }
+        return PermissionService.canEditEvent(event, user: authState.user)
     }
 
     private func canDeleteEvent(_ event: Event) -> Bool {
-        canManageEvent(event)
+        if let organizationID = event.source.organizationId,
+           let organization = organizationForPermissions(organizationID: organizationID) {
+            return PermissionService.canManageOrganizationRoles(organization, user: authState.user)
+        }
+        return PermissionService.canDeleteEvent(event, user: authState.user)
     }
 
     @ViewBuilder
@@ -890,39 +912,41 @@ struct EventDetailView: View {
         Group {
             if let event = viewModel.event(for: eventID) {
                 GeometryReader { proxy in
-                    ScrollView(.vertical, showsIndicators: true) {
-                        VStack(alignment: .leading, spacing: AppTheme.detailSectionSpacing) {
-                            detailHeader
-                                .padding(.top, AppTheme.dashboardSpacing)
+                    ScrollViewReader { scrollProxy in
+                        ScrollView(.vertical, showsIndicators: true) {
+                            VStack(alignment: .leading, spacing: AppTheme.detailSectionSpacing) {
+                                detailHeader
+                                    .padding(.top, AppTheme.dashboardSpacing)
 
-                            heroSection(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            heroImageSection(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            primaryActions(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            aboutCard(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            organizerCard(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            detailsCard(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            locationCard(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            similarEventsSection(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            engagementCard(for: event)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            managementCard
-                                .onTapGesture { isCommentFieldFocused = false }
-                            commentsCard(for: event)
+                                heroSection(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                heroImageSection(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                primaryActions(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                aboutCard(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                organizerCard(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                detailsCard(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                locationCard(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                similarEventsSection(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                engagementCard(for: event, scrollProxy: scrollProxy)
+                                managementCard
+                                    .onTapGesture { isCommentFieldFocused = false }
+                                commentsCard(for: event)
+                                    .id(commentsSectionID)
+                            }
+                            .padding(.horizontal, AppTheme.pageHorizontal)
+                            .padding(.bottom, AppTheme.homeBottomContentPadding + 40)
+                            .frame(width: proxy.size.width, alignment: .leading)
                         }
-                        .padding(.horizontal, AppTheme.pageHorizontal)
-                        .padding(.bottom, AppTheme.homeBottomContentPadding + 40)
-                        .frame(width: proxy.size.width, alignment: .leading)
+                        .frame(width: proxy.size.width)
+                        .scrollDismissesKeyboard(.interactively)
                     }
-                    .frame(width: proxy.size.width)
-                    .scrollDismissesKeyboard(.interactively)
                 }
                 .background(AppBackgroundView())
                 .navigationBarBackButtonHidden(true)
@@ -996,16 +1020,20 @@ struct EventDetailView: View {
         }
         .task {
             await viewModel.loadIfNeeded()
-            guard viewModel.event(for: eventID) != nil else { return }
+            guard let event = viewModel.event(for: eventID) else { return }
+            await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
+            await viewModel.loadComments(for: eventID)
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
             recordedViewKeys.insert(eventViewTaskID)
             viewModel.recordView(for: eventID)
+            RecentViewRecorder.recordEvent(event)
         }
         .onChange(of: authState.user?.id) { _, _ in
-            guard viewModel.event(for: eventID) != nil else { return }
+            guard let event = viewModel.event(for: eventID) else { return }
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
             recordedViewKeys.insert(eventViewTaskID)
             viewModel.recordView(for: eventID)
+            RecentViewRecorder.recordEvent(event)
         }
         .onDisappear {
             guard let pendingRemovalEventID else { return }
@@ -1179,7 +1207,7 @@ struct EventDetailView: View {
         .opacity(isDisabled ? 0.68 : 1)
     }
 
-    private func engagementCard(for event: Event) -> some View {
+    private func engagementCard(for event: Event, scrollProxy: ScrollViewProxy) -> some View {
         SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
             HStack(spacing: 12) {
                 eventMetricButton(
@@ -1199,11 +1227,22 @@ struct EventDetailView: View {
                     count: event.commentCount,
                     accessibilityLabel: AppStrings.Common.comments
                 ) {
-                    // Comments are currently displayed below; composer can be added later.
+                    focusEventComments(using: scrollProxy)
                 }
 
                 Spacer(minLength: 0)
             }
+        }
+    }
+
+    private func focusEventComments(using scrollProxy: ScrollViewProxy) {
+        withAnimation(.easeInOut(duration: 0.32)) {
+            scrollProxy.scrollTo(commentsSectionID, anchor: .top)
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 260_000_000)
+            isCommentFieldFocused = true
         }
     }
 
@@ -1308,13 +1347,6 @@ struct EventDetailView: View {
                         )
                     }
 
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                    if event.source.sourceType == .organization {
-                        AppFilterChip(title: AppStrings.Events.viewOrganization, trailingSystemImage: "chevron.right")
-                            .opacity(0.58)
-                            .accessibilityHint(AppStrings.Action.comingSoon)
-                    }
                 }
             }
         }
@@ -1339,32 +1371,43 @@ struct EventDetailView: View {
                 if let coordinate = eventCoordinate(for: event) {
                     ViewThatFits(in: .horizontal) {
                         HStack(alignment: .center, spacing: AppTheme.dashboardSpacing) {
-                            locationTextBlock(for: event)
+                            locationMapPreviewBlock(coordinate: coordinate)
+
+                            locationVenueBlock(for: event, alignsWithMapPreview: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .layoutPriority(1)
-
-                            eventMapPreview(coordinate: coordinate)
-                                .frame(width: 136, height: 96)
                         }
 
                         VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                            locationTextBlock(for: event)
-
                             eventMapPreview(coordinate: coordinate)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 132)
+                                .frame(height: 144)
+
+                            locationVenueBlock(for: event)
                         }
                     }
                 } else {
-                    locationTextBlock(for: event)
+                    locationVenueBlock(for: event)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                eventActionButton(title: AppStrings.Events.showOnMap, systemImage: "location.north", isDisabled: !canOpenEventInMaps(event)) {
-                    openEventInMaps(event)
                 }
             }
         }
+    }
+
+    private func locationVenueBlock(for event: Event, alignsWithMapPreview: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            locationTextBlock(for: event)
+
+            if alignsWithMapPreview {
+                Spacer(minLength: AppTheme.eventsMetadataSpacing)
+            }
+
+            eventActionButton(title: AppStrings.Events.showOnMap, systemImage: "location.north", isDisabled: !canOpenEventInMaps(event)) {
+                openEventInMaps(event)
+            }
+            .padding(.top, 2)
+        }
+        .frame(minHeight: alignsWithMapPreview ? 124 : 0, alignment: .top)
     }
 
     private func locationTextBlock(for event: Event) -> some View {
@@ -1400,7 +1443,7 @@ struct EventDetailView: View {
                     Text(locationNote)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(3)
                 }
                 .padding(.top, 2)
             }
@@ -1410,6 +1453,17 @@ struct EventDetailView: View {
     private func locationNoteText(for event: Event) -> String? {
         let trimmedLocationNote = event.locationNote?.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedLocationNote?.isEmpty == true ? nil : trimmedLocationNote
+    }
+
+    private func locationMapPreviewBlock(coordinate: CLLocationCoordinate2D) -> some View {
+        VStack {
+            Spacer(minLength: 0)
+            eventMapPreview(coordinate: coordinate)
+                .frame(width: 158, height: 112)
+            Spacer(minLength: 0)
+        }
+        .frame(width: 158, alignment: .center)
+        .frame(minHeight: 124, alignment: .center)
     }
 
     private func eventMapPreview(coordinate: CLLocationCoordinate2D) -> some View {
@@ -1548,25 +1602,7 @@ struct EventDetailView: View {
                         .lineLimit(1)
 
                     if canEditComment(comment) || canDeleteComment(comment) {
-                        Menu {
-                            if canEditComment(comment) {
-                                Button(AppStrings.Action.edit, systemImage: "pencil") {
-                                    editingCommentID = comment.id
-                                    commentText = comment.text
-                                    isCommentFieldFocused = true
-                                }
-                            }
-                            if canDeleteComment(comment) {
-                                Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
-                                    pendingCommentDeleteID = comment.id
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(AppTheme.textSecondary)
-                                .frame(width: 28, height: 28)
-                        }
+                        eventCommentActionMenu(for: comment)
                     }
                 }
 
@@ -1576,6 +1612,33 @@ struct EventDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private func eventCommentActionMenu(for comment: Comment) -> some View {
+        Menu {
+            if canEditComment(comment) {
+                Button(AppStrings.Action.edit, systemImage: "pencil") {
+                    editingCommentID = comment.id
+                    commentText = comment.text
+                    isCommentFieldFocused = true
+                }
+            }
+            if canDeleteComment(comment) {
+                Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
+                    pendingCommentDeleteID = comment.id
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle.fill")
+                .font(.title3.weight(.semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: 34, height: 34)
+                .contentShape(Circle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.Action.delete)
     }
 
     @ViewBuilder
@@ -1720,7 +1783,30 @@ struct EventDetailView: View {
         guard let event = viewModel.event(for: eventID), let organizationId = event.source.organizationId else {
             return false
         }
-        return PermissionService.canManageCommunity(organizationId: organizationId, user: user)
+        if let organization = organizationForPermissions(organizationID: organizationId) {
+            return PermissionService.canModerateOrganizationContent(organization, user: user)
+        }
+        return PermissionService.canModerateOrganizationComments(organizationId: organizationId, user: user)
+    }
+
+    private func organizationForPermissions(organizationID: String) -> Organization? {
+        guard permissionOrganization?.id == organizationID else { return nil }
+        return permissionOrganization
+    }
+
+    @MainActor
+    private func loadPermissionOrganizationIfNeeded(organizationID: String?) async {
+        guard let organizationID else {
+            permissionOrganization = nil
+            return
+        }
+        guard permissionOrganization?.id != organizationID else { return }
+
+        do {
+            permissionOrganization = try await organizationRepository.fetchOrganization(id: organizationID)
+        } catch {
+            permissionOrganization = nil
+        }
     }
 
     @MainActor
@@ -1792,7 +1878,7 @@ struct EventDetailView: View {
     }
 
     private func eventSourceName(for event: Event) -> String {
-        let organizationName = event.source.organizationName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let organizationName = event.source.displayOrganizationName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return organizationName.isEmpty ? AppStrings.Home.brandTitle : organizationName
     }
 
@@ -1827,7 +1913,7 @@ struct EventDetailView: View {
     }
 
     private func canManageEvent(_ event: Event) -> Bool {
-        authState.user?.globalRole == .owner
+        PermissionService.canEditEvent(event, user: authState.user)
     }
 
     private func eventLocationText(for event: Event) -> String {

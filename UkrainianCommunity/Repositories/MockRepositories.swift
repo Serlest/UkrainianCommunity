@@ -45,6 +45,24 @@ private actor MockRepositoryStore {
         feedbackItems.insert(item, at: 0)
     }
 
+    func feedback() -> [FeedbackItem] {
+        feedbackItems.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func updateFeedbackStatus(id: String, status: FeedbackStatus) throws {
+        guard let index = feedbackItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        let item = feedbackItems[index]
+        feedbackItems[index] = FeedbackItem(
+            id: item.id,
+            type: item.type,
+            message: item.message,
+            status: status,
+            createdAt: item.createdAt,
+            userId: item.userId,
+            userDisplayName: item.userDisplayName
+        )
+    }
+
     func toggleNewsLike(id: String, isLiked: Bool) throws {
         guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         news[index].likeState = isLiked ? .liked : .notLiked
@@ -92,13 +110,29 @@ private actor MockRepositoryStore {
             likeCount: existingItem.likeCount,
             likeState: existingItem.likeState,
             viewCount: existingItem.viewCount,
-            isBookmarked: existingItem.isBookmarked
+            isBookmarked: existingItem.isBookmarked,
+            commentCount: existingItem.commentCount
         )
+    }
+
+    func updateNewsImageURL(id: String, imageURL: String?) throws {
+        guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        news[index] = news[index].settingImageURL(imageURL)
     }
 
     func pendingNews() -> [NewsPost] {
         news
             .filter { $0.moderationStatus == .pendingReview }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func organizationModerationNews(organizationID: String) -> [NewsPost] {
+        news
+            .filter {
+                $0.source.sourceType == .organization
+                    && $0.source.organizationId == organizationID
+                    && [.pendingReview, .rejected, .archived].contains($0.moderationStatus)
+            }
             .sorted { $0.createdAt > $1.createdAt }
     }
 
@@ -125,6 +159,7 @@ private actor MockRepositoryStore {
             createdAt: .now
         )
         news[index].comments.append(comment)
+        news[index].commentCount += 1
         return comment
     }
 
@@ -154,6 +189,12 @@ private actor MockRepositoryStore {
     func deleteNewsComment(newsID: String, commentID: String) throws {
         guard let index = news.firstIndex(where: { $0.id == newsID }) else { throw AppError.notFound }
         news[index].comments.removeAll { $0.id == commentID }
+        news[index].commentCount = max(0, news[index].commentCount - 1)
+    }
+
+    func newsComments(newsID: String) throws -> [Comment] {
+        guard let post = news.first(where: { $0.id == newsID }) else { throw AppError.notFound }
+        return post.comments.filter { !$0.isDeleted }
     }
 
     func toggleEventLike(id: String, isLiked: Bool) throws {
@@ -187,6 +228,7 @@ private actor MockRepositoryStore {
             city: events[index].city,
             venue: events[index].venue,
             address: events[index].address,
+            locationNote: events[index].locationNote,
             latitude: events[index].latitude,
             longitude: events[index].longitude,
             imageURL: events[index].imageURL,
@@ -204,9 +246,9 @@ private actor MockRepositoryStore {
             likeState: events[index].likeState,
             viewCount: events[index].viewCount,
             category: events[index].category,
-            visibility: events[index].visibility,
             isAllDay: events[index].isAllDay,
-            isBookmarked: events[index].isBookmarked
+            isBookmarked: events[index].isBookmarked,
+            commentCount: events[index].commentCount
         )
     }
 
@@ -242,6 +284,7 @@ private actor MockRepositoryStore {
             city: item.city,
             venue: item.venue,
             address: item.address,
+            locationNote: item.locationNote,
             latitude: item.latitude,
             longitude: item.longitude,
             imageURL: item.imageURL,
@@ -259,16 +302,31 @@ private actor MockRepositoryStore {
             likeState: existingItem.likeState,
             viewCount: existingItem.viewCount,
             category: item.category,
-            visibility: item.visibility,
             isAllDay: item.isAllDay,
-            isBookmarked: existingItem.isBookmarked
+            isBookmarked: existingItem.isBookmarked,
+            commentCount: existingItem.commentCount
         )
         events.sort { $0.startDate < $1.startDate }
+    }
+
+    func updateEventImageURL(id: String, imageURL: String?) throws {
+        guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        events[index] = events[index].settingImageURL(imageURL)
     }
 
     func pendingEvents() -> [Event] {
         events
             .filter { $0.moderationStatus == .pendingReview }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func organizationModerationEvents(organizationID: String) -> [Event] {
+        events
+            .filter {
+                $0.source.sourceType == .organization
+                    && $0.source.organizationId == organizationID
+                    && [.pendingReview, .rejected, .archived].contains($0.moderationStatus)
+            }
             .sorted { $0.createdAt > $1.createdAt }
     }
 
@@ -295,6 +353,7 @@ private actor MockRepositoryStore {
             createdAt: .now
         )
         events[index].comments.append(comment)
+        events[index].commentCount += 1
         return comment
     }
 
@@ -324,18 +383,40 @@ private actor MockRepositoryStore {
     func deleteEventComment(eventID: String, commentID: String) throws {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { throw AppError.notFound }
         events[index].comments.removeAll { $0.id == commentID }
+        events[index].commentCount = max(0, events[index].commentCount - 1)
+    }
+
+    func eventComments(eventID: String) throws -> [Comment] {
+        guard let event = events.first(where: { $0.id == eventID }) else { throw AppError.notFound }
+        return event.comments.filter { !$0.isDeleted }
     }
 
     func toggleOrganizationLike(id: String, isLiked: Bool) throws {
         guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         organizations[index].likeState = isLiked ? .liked : .notLiked
-        organizations[index].likeCount += isLiked ? 1 : -1
+        organizations[index].subscriberCount = max(0, organizations[index].subscriberCount + (isLiked ? 1 : -1))
+    }
+
+    func setOrganizationBookmark(id: String, isBookmarked: Bool) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        organizations[index].isBookmarked = isBookmarked
+    }
+
+    func bookmarkedOrganizationIDs() -> Set<String> {
+        Set(organizations.filter(\.isBookmarked).map(\.id))
     }
 
     func pendingOrganizations() -> [Organization] {
         organizations
             .filter { $0.moderationStatus == .pendingReview }
             .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func organization(id: String) throws -> Organization {
+        guard let organization = organizations.first(where: { $0.id == id }) else {
+            throw AppError.notFound
+        }
+        return organization
     }
 
     func createOrganization(_ item: Organization) {
@@ -349,17 +430,39 @@ private actor MockRepositoryStore {
             id: existingItem.id,
             name: item.name,
             description: item.description,
+            shortDescription: item.shortDescription,
+            fullDescription: item.fullDescription,
             regionScope: item.regionScope,
             federalState: item.federalState,
             city: item.city,
             imageURL: item.imageURL,
+            logoURL: item.logoURL,
+            coverURL: item.coverURL,
             contactEmail: item.contactEmail,
+            email: item.email,
+            phone: item.phone,
             website: item.website,
+            address: item.address,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            organizationType: item.organizationType,
+            foundedYear: item.foundedYear,
+            foundedMonth: item.foundedMonth,
+            languages: item.languages,
+            socialLinks: item.socialLinks,
+            subscriberCount: item.subscriberCount,
+            eventsHeldCount: item.eventsHeldCount,
+            volunteersCount: item.volunteersCount,
+            helpedPeopleCount: item.helpedPeopleCount,
+            ownerId: item.ownerId,
+            adminIds: item.adminIds,
+            moderatorIds: item.moderatorIds,
             createdAt: existingItem.createdAt,
             updatedAt: item.updatedAt,
             moderationStatus: existingItem.moderationStatus,
             likeCount: existingItem.likeCount,
-            likeState: existingItem.likeState
+            likeState: existingItem.likeState,
+            isBookmarked: existingItem.isBookmarked
         )
         organizations.sort { $0.createdAt > $1.createdAt }
     }
@@ -397,6 +500,14 @@ struct MockFeedbackRepository: FeedbackRepository {
     func submitFeedback(_ feedback: FeedbackItem) async throws {
         await store.createFeedback(feedback)
     }
+
+    func fetchFeedback() async throws -> [FeedbackItem] {
+        await store.feedback()
+    }
+
+    func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {
+        try await store.updateFeedbackStatus(id: id, status: status)
+    }
 }
 
 struct MockNewsRepository: NewsRepository {
@@ -412,12 +523,20 @@ struct MockNewsRepository: NewsRepository {
         await store.pendingNews()
     }
 
+    func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost] {
+        await store.organizationModerationNews(organizationID: organizationID)
+    }
+
     func createNews(_ news: NewsPost) async throws {
         await store.createNews(news)
     }
 
     func updateNews(_ news: NewsPost) async throws {
         try await store.updateNews(news)
+    }
+
+    func updateNewsImageURL(id: String, imageURL: String?) async throws {
+        try await store.updateNewsImageURL(id: id, imageURL: imageURL)
     }
 
     func deleteNews(id: String) async throws {
@@ -434,6 +553,10 @@ struct MockNewsRepository: NewsRepository {
 
     func recordNewsView(id: String) async throws -> Bool {
         try await store.recordNewsView(id: id)
+    }
+
+    func fetchNewsComments(newsID: String) async throws -> [Comment] {
+        try await store.newsComments(newsID: newsID)
     }
 
     func bookmarkNews(id: String) async throws {
@@ -480,12 +603,20 @@ struct MockEventRepository: EventRepository {
         await store.pendingEvents()
     }
 
+    func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event] {
+        await store.organizationModerationEvents(organizationID: organizationID)
+    }
+
     func createEvent(_ event: Event) async throws {
         await store.createEvent(event)
     }
 
     func updateEvent(_ event: Event) async throws {
         try await store.updateEvent(event)
+    }
+
+    func updateEventImageURL(id: String, imageURL: String?) async throws {
+        try await store.updateEventImageURL(id: id, imageURL: imageURL)
     }
 
     func deleteEvent(id: String) async throws {
@@ -502,6 +633,10 @@ struct MockEventRepository: EventRepository {
 
     func recordEventView(id: String) async throws -> Bool {
         try await store.recordEventView(id: id)
+    }
+
+    func fetchEventComments(eventID: String) async throws -> [Comment] {
+        try await store.eventComments(eventID: eventID)
     }
 
     func registerForEvent(id: String) async throws {
@@ -546,6 +681,10 @@ struct MockOrganizationRepository: OrganizationRepository {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    func fetchOrganization(id: String) async throws -> Organization {
+        try await store.organization(id: id)
+    }
+
     func fetchPendingOrganizations() async throws -> [Organization] {
         await store.pendingOrganizations()
     }
@@ -574,8 +713,93 @@ struct MockOrganizationRepository: OrganizationRepository {
         try await store.toggleOrganizationLike(id: id, isLiked: false)
     }
 
+    func bookmarkOrganization(id: String) async throws {
+        try await store.setOrganizationBookmark(id: id, isBookmarked: true)
+    }
+
+    func unbookmarkOrganization(id: String) async throws {
+        try await store.setOrganizationBookmark(id: id, isBookmarked: false)
+    }
+
+    func isOrganizationBookmarked(id: String) async throws -> Bool {
+        await store.bookmarkedOrganizationIDs().contains(id)
+    }
+
+    func fetchBookmarkedOrganizationIDs() async throws -> Set<String> {
+        await store.bookmarkedOrganizationIDs()
+    }
+
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
         try await store.updateOrganizationModerationStatus(id: id, newStatus: newStatus)
+    }
+}
+
+private extension NewsPost {
+    nonisolated func settingImageURL(_ imageURL: String?) -> NewsPost {
+        NewsPost(
+            id: id,
+            title: title,
+            subtitle: subtitle,
+            regionScope: regionScope,
+            federalState: federalState,
+            city: city,
+            category: category,
+            tags: tags,
+            source: source,
+            imageURL: imageURL,
+            body: body,
+            authorName: authorName,
+            publishedAt: publishedAt,
+            createdAt: createdAt,
+            updatedAt: Date(),
+            comments: comments,
+            moderationStatus: moderationStatus,
+            likeCount: likeCount,
+            likeState: likeState,
+            viewCount: viewCount,
+            isBookmarked: isBookmarked,
+            commentCount: commentCount
+        )
+    }
+}
+
+private extension Event {
+    nonisolated func settingImageURL(_ imageURL: String?) -> Event {
+        Event(
+            id: id,
+            title: title,
+            summary: summary,
+            details: details,
+            regionScope: regionScope,
+            federalState: federalState,
+            source: source,
+            authorId: authorId,
+            authorName: authorName,
+            city: city,
+            venue: venue,
+            address: address,
+            locationNote: locationNote,
+            latitude: latitude,
+            longitude: longitude,
+            imageURL: imageURL,
+            startDate: startDate,
+            endDate: endDate,
+            createdAt: createdAt,
+            updatedAt: Date(),
+            price: price,
+            capacity: capacity,
+            registeredCount: registeredCount,
+            comments: comments,
+            moderationStatus: moderationStatus,
+            registrationState: registrationState,
+            likeCount: likeCount,
+            likeState: likeState,
+            viewCount: viewCount,
+            category: category,
+            isAllDay: isAllDay,
+            isBookmarked: isBookmarked,
+            commentCount: commentCount
+        )
     }
 }
 

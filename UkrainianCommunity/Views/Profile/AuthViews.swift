@@ -33,48 +33,65 @@ struct AuthFlowContainerView: View {
     }
 }
 
+private struct AuthScreenScaffold<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                content
+            }
+            .padding(.horizontal, AppTheme.pageHorizontal)
+            .padding(.top, AppTheme.sectionSpacing)
+            .padding(.bottom, AppTheme.sectionSpacing * 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(AppBackgroundView().allowsHitTesting(false))
+    }
+}
+
 struct AuthLandingView: View {
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                CommunityCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(AppStrings.Auth.landingTitle)
-                            .font(.largeTitle.weight(.bold))
-                            .foregroundStyle(AppTheme.textPrimary)
+        AuthScreenScaffold {
+            AuthHeaderView(
+                title: AppStrings.Auth.landingTitle,
+                subtitle: AppStrings.Auth.landingSubtitle
+            )
 
-                        Text(AppStrings.Auth.landingSubtitle)
-                            .font(.body)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                VStack(spacing: 12) {
+            AppEditorSectionCard {
+                VStack(spacing: AppTheme.eventsMetadataSpacing) {
                     NavigationLink {
                         LoginView()
                     } label: {
                         Text(AppStrings.Auth.signIn)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
+                            .frame(height: AppTheme.iconButtonSize)
+                            .background(AppTheme.accentPrimary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accentPrimary)
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("auth.landing.signIn")
 
                     NavigationLink {
                         RegisterView()
                     } label: {
                         Text(AppStrings.Auth.createAccount)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentPrimary)
                             .frame(maxWidth: .infinity)
+                            .frame(height: AppTheme.iconButtonSize)
+                            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                                    .strokeBorder(AppTheme.borderSubtle)
+                            )
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("auth.landing.register")
                 }
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Auth.title)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.landing.screen")
@@ -89,76 +106,54 @@ struct LoginView: View {
     private let validationService = AuthValidationService()
 
     var body: some View {
-        Form {
-            Section {
-                TextField(AppStrings.Auth.email, text: $email)
-                    .textInputAutocapitalization(.never)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .autocorrectionDisabled()
-                    .accessibilityLabel(AppStrings.Auth.email)
+        AuthScreenScaffold {
+            AuthHeaderView(title: AppStrings.Auth.loginTitle, subtitle: AppStrings.Auth.loginSubtitle)
 
-                SecureField(AppStrings.Auth.password, text: $password)
-                    .textContentType(.password)
-                    .accessibilityLabel(AppStrings.Auth.password)
-            } header: {
-                SectionHeaderBlock(
-                    title: AppStrings.Auth.loginTitle,
-                    subtitle: AppStrings.Auth.loginSubtitle
-                )
-                .textCase(nil)
-            }
-            .listRowBackground(AppTheme.surfacePrimary)
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    EditorTextField(
+                        AppStrings.Auth.email,
+                        text: $email,
+                        systemImage: "envelope",
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress,
+                        autocapitalization: .never,
+                        autocorrectionDisabled: true
+                    )
 
-            if let errorMessage {
-                Section {
-                    InlineMessageCard(style: .error, message: errorMessage)
-                }
-                .listRowBackground(AppTheme.surfacePrimary)
-            }
+                    EditorSecureField(AppStrings.Auth.password, text: $password, textContentType: .password)
 
-            Section {
-                Button {
-                    submit()
-                } label: {
-                    HStack {
-                        Spacer()
-                        if isSubmitting {
-                            ProgressView()
-                            Text(AppStrings.Auth.signingIn)
-                                .fontWeight(.semibold)
-                        } else {
-                            Text(AppStrings.Auth.signInAction)
-                                .fontWeight(.semibold)
-                        }
-                        Spacer()
+                    if let errorMessage {
+                        InlineMessageCard(style: .error, message: errorMessage)
+                    } else if let validationHint {
+                        InlineMessageCard(style: .info, message: validationHint)
                     }
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(canSubmit ? AppTheme.accentPrimary : AppTheme.borderSubtle)
-                .disabled(isSubmitting || !canSubmit)
-                .accessibilityIdentifier("auth.login.submit")
 
-                NavigationLink(AppStrings.Auth.forgotPassword) {
-                    PasswordResetView(prefilledEmail: email)
-                }
+                    PrimaryActionButton(
+                        title: AppStrings.Auth.signInAction,
+                        loadingTitle: AppStrings.Auth.signingIn,
+                        isEnabled: canSubmit,
+                        isLoading: isSubmitting,
+                        systemImage: "arrow.right"
+                    ) {
+                        submit()
+                    }
+                    .accessibilityIdentifier("auth.login.submit")
 
-                NavigationLink(AppStrings.Auth.createAccountInstead) {
-                    RegisterView(prefilledEmail: email)
-                }
-            } footer: {
-                if let validationHint {
-                    Text(validationHint)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        NavigationLink(AppStrings.Auth.forgotPassword) {
+                            PasswordResetView(prefilledEmail: email)
+                        }
+
+                        NavigationLink(AppStrings.Auth.createAccountInstead) {
+                            RegisterView(prefilledEmail: email)
+                        }
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .frame(maxWidth: .infinity)
                 }
             }
-            .listRowBackground(AppTheme.surfacePrimary)
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Auth.loginTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.login.screen")
@@ -220,104 +215,65 @@ struct RegisterView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                TextField(AppStrings.Auth.displayName, text: $displayName)
-                    .textInputAutocapitalization(.words)
-                    .textContentType(.nickname)
-                    .accessibilityLabel(AppStrings.Auth.displayName)
+        AuthScreenScaffold {
+            AuthHeaderView(title: AppStrings.Auth.registerTitle, subtitle: AppStrings.Auth.registerSubtitle)
 
-                TextField(AppStrings.Auth.email, text: $email)
-                    .textInputAutocapitalization(.never)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .autocorrectionDisabled()
-                    .accessibilityLabel(AppStrings.Auth.email)
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    EditorTextField(AppStrings.Auth.displayName, text: $displayName, systemImage: "person", textContentType: .nickname, autocapitalization: .words)
+                    EditorTextField(
+                        AppStrings.Auth.email,
+                        text: $email,
+                        systemImage: "envelope",
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress,
+                        autocapitalization: .never,
+                        autocorrectionDisabled: true
+                    )
+                    EditorSecureField(AppStrings.Auth.password, text: $password, textContentType: .newPassword)
+                    EditorSecureField(AppStrings.Auth.passwordRepeat, text: $repeatedPassword, systemImage: "lock.fill", textContentType: .newPassword)
+                    EditorTextField(AppStrings.Auth.telegramUsername, text: $telegramUsername, systemImage: "paperplane", autocapitalization: .never, autocorrectionDisabled: true)
 
-                SecureField(AppStrings.Auth.password, text: $password)
-                    .textContentType(.newPassword)
-                    .accessibilityLabel(AppStrings.Auth.password)
-
-                SecureField(AppStrings.Auth.passwordRepeat, text: $repeatedPassword)
-                    .textContentType(.newPassword)
-                    .accessibilityLabel(AppStrings.Auth.passwordRepeat)
-
-                TextField(AppStrings.Auth.telegramUsername, text: $telegramUsername)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .accessibilityLabel(AppStrings.Auth.telegramUsername)
-
-                Picker(AppStrings.Auth.federalState, selection: $selectedFederalState) {
-                    ForEach(AustrianFederalState.allCases) { state in
-                        Text(AppStrings.FederalStates.title(for: state)).tag(state)
-                    }
-                }
-            } header: {
-                SectionHeaderBlock(
-                    title: AppStrings.Auth.registerTitle,
-                    subtitle: AppStrings.Auth.registerSubtitle
-                )
-                .textCase(nil)
-            }
-            .listRowBackground(AppTheme.surfacePrimary)
-
-            Section {
-                TermsPrivacyConsentView(
-                    acceptedTerms: $acceptedTerms,
-                    acceptedPrivacy: $acceptedPrivacy
-                )
-            }
-            .listRowBackground(AppTheme.surfacePrimary)
-
-            if let errorMessage {
-                Section {
-                    InlineMessageCard(style: .error, message: errorMessage)
-                }
-                .listRowBackground(AppTheme.surfacePrimary)
-            }
-
-            Section {
-                Button {
-                    submit()
-                } label: {
-                    HStack {
-                        Spacer()
-                        if isSubmitting {
-                            ProgressView()
-                                .tint(.white)
-                            Text(AppStrings.Auth.creatingAccount)
-                                .fontWeight(.semibold)
-                        } else {
-                            Text(AppStrings.Auth.createAccountAction)
-                                .fontWeight(.semibold)
+                    Picker(AppStrings.Auth.federalState, selection: $selectedFederalState) {
+                        ForEach(AustrianFederalState.allCases) { state in
+                            Text(AppStrings.FederalStates.title(for: state)).tag(state)
                         }
-                        Spacer()
                     }
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(canSubmit ? AppTheme.accentPrimary : AppTheme.borderSubtle)
-                .disabled(isSubmitting || !canSubmit)
-                .accessibilityIdentifier("auth.register.submit")
-            } footer: {
-                if let validationHint {
-                    Text(validationHint)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .font(.subheadline)
                 }
             }
-            .listRowBackground(AppTheme.surfacePrimary)
 
-            Section {
-                NavigationLink(AppStrings.Auth.signInInstead) {
-                    LoginView()
+            AppEditorSectionCard {
+                TermsPrivacyConsentView(acceptedTerms: $acceptedTerms, acceptedPrivacy: $acceptedPrivacy)
+            }
+
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    if let errorMessage {
+                        InlineMessageCard(style: .error, message: errorMessage)
+                    } else if let validationHint {
+                        InlineMessageCard(style: .info, message: validationHint)
+                    }
+
+                    PrimaryActionButton(
+                        title: AppStrings.Auth.createAccountAction,
+                        loadingTitle: AppStrings.Auth.creatingAccount,
+                        isEnabled: canSubmit,
+                        isLoading: isSubmitting,
+                        systemImage: "person.badge.plus"
+                    ) {
+                        submit()
+                    }
+                    .accessibilityIdentifier("auth.register.submit")
+
+                    NavigationLink(AppStrings.Auth.signInInstead) {
+                        LoginView()
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .frame(maxWidth: .infinity)
                 }
             }
-            .listRowBackground(AppTheme.surfacePrimary)
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Auth.registerTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.register.screen")
@@ -388,67 +344,43 @@ struct PasswordResetView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                TextField(AppStrings.Auth.email, text: $email)
-                    .textInputAutocapitalization(.never)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .autocorrectionDisabled()
-                    .accessibilityLabel(AppStrings.Auth.email)
-            } header: {
-                SectionHeaderBlock(
-                    title: AppStrings.Auth.resetPasswordTitle,
-                    subtitle: AppStrings.Auth.resetPasswordSubtitle
-                )
-                .textCase(nil)
-            }
-            .listRowBackground(AppTheme.surfacePrimary)
+        AuthScreenScaffold {
+            AuthHeaderView(title: AppStrings.Auth.resetPasswordTitle, subtitle: AppStrings.Auth.resetPasswordSubtitle)
 
-            if let message {
-                Section {
-                    InlineMessageCard(
-                        style: message == AppStrings.Auth.resetPasswordSuccess ? .success : .error,
-                        message: message
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    EditorTextField(
+                        AppStrings.Auth.email,
+                        text: $email,
+                        systemImage: "envelope",
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress,
+                        autocapitalization: .never,
+                        autocorrectionDisabled: true
                     )
-                }
-                .listRowBackground(AppTheme.surfacePrimary)
-            }
 
-            Section {
-                Button {
-                    submit()
-                } label: {
-                    HStack {
-                        Spacer()
-                        if isSubmitting {
-                            ProgressView()
-                            Text(AppStrings.Auth.resetPasswordSending)
-                                .fontWeight(.semibold)
-                        } else {
-                            Text(AppStrings.Auth.sendResetLink)
-                                .fontWeight(.semibold)
-                        }
-                        Spacer()
+                    if let message {
+                        InlineMessageCard(
+                            style: message == AppStrings.Auth.resetPasswordSuccess ? .success : .error,
+                            message: message
+                        )
+                    } else if let validationHint {
+                        InlineMessageCard(style: .info, message: validationHint)
                     }
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(canSubmit ? AppTheme.accentPrimary : AppTheme.borderSubtle)
-                .disabled(isSubmitting || !canSubmit)
-                .accessibilityIdentifier("auth.reset.submit")
-            } footer: {
-                if let validationHint {
-                    Text(validationHint)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+
+                    PrimaryActionButton(
+                        title: AppStrings.Auth.sendResetLink,
+                        loadingTitle: AppStrings.Auth.resetPasswordSending,
+                        isEnabled: canSubmit,
+                        isLoading: isSubmitting,
+                        systemImage: "envelope.badge"
+                    ) {
+                        submit()
+                    }
+                    .accessibilityIdentifier("auth.reset.submit")
                 }
             }
-            .listRowBackground(AppTheme.surfacePrimary)
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .background(AppTheme.pageBackground)
         .navigationTitle(AppStrings.Auth.resetPasswordTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.reset.screen")

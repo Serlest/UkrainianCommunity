@@ -9,10 +9,11 @@ struct UserDTO: Codable, Identifiable {
     let avatarURL: String?
     let bio: String
     let telegramUsername: String?
-    let role: String
+    let role: String?
     let blockState: String
     let globalRole: String?
     let moderatorSections: [String]?
+    let canManageGuide: Bool?
     let accountStatus: String?
     let banExpiresAt: Date?
     let warningCount: Int?
@@ -106,6 +107,7 @@ struct NewsPostDTO: Codable, Identifiable {
     let createdAt: Date
     let updatedAt: Date
     let comments: [CommentDTO]
+    let commentCount: Int?
     let moderationStatus: String
     let likeCount: Int
     let likeState: String
@@ -141,6 +143,7 @@ struct EventDTO: Codable, Identifiable {
     let capacity: Int?
     let registeredCount: Int
     let comments: [CommentDTO]
+    let commentCount: Int?
     let moderationStatus: String
     let registrationState: String
     let likeCount: Int
@@ -173,26 +176,56 @@ struct OrganizationDTO: Codable, Identifiable {
     let id: String
     let name: String
     let description: String
+    let shortDescription: String?
+    let fullDescription: String?
     let regionScope: String?
     let federalState: String?
     let city: String
     let imageURL: String?
+    let logoURL: String?
+    let coverURL: String?
     let contactEmail: String?
+    let email: String?
+    let phone: String?
     let website: String?
+    let address: String?
+    let latitude: Double?
+    let longitude: Double?
+    let organizationType: String?
+    let foundedYear: Int?
+    let foundedMonth: Int?
+    let languages: [String]?
+    let socialLinks: [String: String]?
+    let telegramURL: String?
+    let donationURL: String?
+    let missionStatement: String?
+    let contactPerson: String?
+    let subscriberCount: Int
+    let eventsHeldCount: Int
+    let volunteersCount: Int
+    let helpedPeopleCount: Int
+    let ownerId: String?
+    let adminIds: [String]
+    let moderatorIds: [String]
+    let isSystemManaged: Bool?
+    let sourceType: String?
+    let pinnedNewsId: String?
+    let pinnedEventId: String?
     let createdAt: Date
     let updatedAt: Date
     let moderationStatus: String
     let likeCount: Int
     let likeState: String
+    let isBookmarked: Bool
 }
 
 extension AppUser {
     init(dto: UserDTO) {
-        let legacyRole = UserRole(rawValue: dto.role) ?? .user
-        let resolvedGlobalRole = dto.globalRole.flatMap(GlobalRole.init(rawValue:)) ?? GlobalRole(legacyRole: legacyRole)
-        let resolvedModeratorSections = (dto.moderatorSections ?? []).compactMap(AppSection.init(rawValue:))
+        let legacyRole = UserRole(rawValue: dto.role ?? "") ?? .user
+        let resolvedGlobalRole = (dto.globalRole.flatMap(GlobalRole.init(rawValue:)) ?? GlobalRole(legacyRole: legacyRole)).effectiveRole
+        let resolvedBlockState = UserBlockState(rawValue: dto.blockState) ?? .active
         let resolvedAccountStatus = dto.accountStatus.flatMap(AccountStatus.init(rawValue:))
-            ?? (UserBlockState(rawValue: dto.blockState) == .blocked ? .temporarilyBanned : .active)
+            ?? (resolvedBlockState.isRestricted ? .suspendedUntil : .active)
 
         self.init(
             id: dto.id,
@@ -205,8 +238,9 @@ extension AppUser {
             telegramUsername: dto.telegramUsername,
             role: legacyRole,
             globalRole: resolvedGlobalRole,
-            moderatorSections: resolvedModeratorSections,
-            blockState: UserBlockState(rawValue: dto.blockState) ?? .active,
+            moderatorSections: [],
+            canManageGuide: dto.canManageGuide ?? false,
+            blockState: resolvedBlockState,
             accountStatus: resolvedAccountStatus,
             banExpiresAt: dto.banExpiresAt,
             warningCount: dto.warningCount ?? 0,
@@ -236,10 +270,11 @@ extension AppUser {
             avatarURL: avatarURL?.absoluteString,
             bio: bio,
             telegramUsername: telegramUsername,
-            role: role.rawValue,
+            role: nil,
             blockState: blockState.rawValue,
             globalRole: globalRole.rawValue,
-            moderatorSections: moderatorSections.map(\.rawValue),
+            moderatorSections: nil,
+            canManageGuide: canManageGuide,
             accountStatus: accountStatus.rawValue,
             banExpiresAt: banExpiresAt,
             warningCount: warningCount,
@@ -287,7 +322,7 @@ extension FeedbackItem {
 }
 
 extension Comment {
-    init(dto: CommentDTO) {
+    nonisolated init(dto: CommentDTO) {
         self.init(
             id: dto.id,
             parentType: dto.parentType.flatMap(CommentParentType.init(rawValue:)),
@@ -343,20 +378,13 @@ extension NewsPost {
             publishedAt: dto.publishedAt,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
-            comments: dto.comments.map {
-                Comment(
-                    id: $0.id,
-                    authorName: $0.authorName,
-                    body: $0.body,
-                    createdAt: $0.createdAt,
-                    updatedAt: $0.updatedAt
-                )
-            },
+            comments: dto.comments.map(Comment.init(dto:)),
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             likeCount: dto.likeCount,
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
             viewCount: dto.viewCount,
-            isBookmarked: dto.isBookmarked
+            isBookmarked: dto.isBookmarked,
+            commentCount: dto.commentCount
         )
     }
 
@@ -381,6 +409,7 @@ extension NewsPost {
             createdAt: createdAt,
             updatedAt: updatedAt,
             comments: comments.map(\.dto),
+            commentCount: commentCount,
             moderationStatus: moderationStatus.rawValue,
             likeCount: likeCount,
             likeState: likeState.rawValue,
@@ -421,24 +450,16 @@ extension Event {
             price: dto.price,
             capacity: dto.capacity,
             registeredCount: dto.registeredCount,
-            comments: dto.comments.map {
-                Comment(
-                    id: $0.id,
-                    authorName: $0.authorName,
-                    body: $0.body,
-                    createdAt: $0.createdAt,
-                    updatedAt: $0.updatedAt
-                )
-            },
+            comments: dto.comments.map(Comment.init(dto:)),
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             registrationState: EventRegistrationState(rawValue: dto.registrationState) ?? .notRegistered,
             likeCount: dto.likeCount,
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
             viewCount: dto.viewCount,
             category: dto.category.flatMap(EventCategory.init(rawValue:)) ?? .unspecified,
-            visibility: dto.visibility.flatMap(EventVisibility.init(rawValue:)) ?? .public,
             isAllDay: dto.isAllDay ?? false,
-            isBookmarked: dto.isBookmarked
+            isBookmarked: dto.isBookmarked,
+            commentCount: dto.commentCount
         )
     }
 
@@ -471,13 +492,14 @@ extension Event {
             capacity: capacity,
             registeredCount: registeredCount,
             comments: comments.map(\.dto),
+            commentCount: commentCount,
             moderationStatus: moderationStatus.rawValue,
             registrationState: registrationState.rawValue,
             likeCount: likeCount,
             likeState: likeState.rawValue,
             viewCount: viewCount,
             category: category.rawValue,
-            visibility: visibility.rawValue,
+            visibility: "public",
             isAllDay: isAllDay,
             isBookmarked: isBookmarked
         )
@@ -490,17 +512,47 @@ extension Organization {
             id: dto.id,
             name: dto.name,
             description: dto.description,
+            shortDescription: dto.shortDescription,
+            fullDescription: dto.fullDescription,
             regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .city,
             federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
             city: dto.city,
             imageURL: dto.imageURL,
+            logoURL: dto.logoURL,
+            coverURL: dto.coverURL,
             contactEmail: dto.contactEmail,
+            email: dto.email,
+            phone: dto.phone,
             website: dto.website,
+            address: dto.address,
+            latitude: dto.latitude,
+            longitude: dto.longitude,
+            organizationType: dto.organizationType,
+            foundedYear: dto.foundedYear,
+            foundedMonth: dto.foundedMonth,
+            languages: dto.languages ?? [],
+            socialLinks: dto.socialLinks ?? [:],
+            telegramURL: dto.telegramURL,
+            donationURL: dto.donationURL,
+            missionStatement: dto.missionStatement,
+            contactPerson: dto.contactPerson,
+            subscriberCount: dto.subscriberCount,
+            eventsHeldCount: dto.eventsHeldCount,
+            volunteersCount: dto.volunteersCount,
+            helpedPeopleCount: dto.helpedPeopleCount,
+            ownerId: dto.ownerId,
+            adminIds: dto.adminIds,
+            moderatorIds: dto.moderatorIds,
+            isSystemManaged: dto.isSystemManaged,
+            sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)),
+            pinnedNewsId: dto.pinnedNewsId,
+            pinnedEventId: dto.pinnedEventId,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             likeCount: dto.likeCount,
-            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked
+            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
+            isBookmarked: dto.isBookmarked
         )
     }
 
@@ -509,17 +561,47 @@ extension Organization {
             id: id,
             name: name,
             description: description,
+            shortDescription: shortDescription,
+            fullDescription: fullDescription,
             regionScope: regionScope?.rawValue,
             federalState: federalState?.rawValue,
             city: city,
             imageURL: imageURL,
+            logoURL: logoURL,
+            coverURL: coverURL,
             contactEmail: contactEmail,
+            email: email,
+            phone: phone,
             website: website,
+            address: address,
+            latitude: latitude,
+            longitude: longitude,
+            organizationType: organizationType,
+            foundedYear: foundedYear,
+            foundedMonth: foundedMonth,
+            languages: languages,
+            socialLinks: socialLinks,
+            telegramURL: telegramURL,
+            donationURL: donationURL,
+            missionStatement: missionStatement,
+            contactPerson: contactPerson,
+            subscriberCount: subscriberCount,
+            eventsHeldCount: eventsHeldCount,
+            volunteersCount: volunteersCount,
+            helpedPeopleCount: helpedPeopleCount,
+            ownerId: ownerId,
+            adminIds: adminIds,
+            moderatorIds: moderatorIds,
+            isSystemManaged: isSystemManaged,
+            sourceType: sourceType?.rawValue,
+            pinnedNewsId: pinnedNewsId,
+            pinnedEventId: pinnedEventId,
             createdAt: createdAt,
             updatedAt: updatedAt,
             moderationStatus: moderationStatus.rawValue,
             likeCount: likeCount,
-            likeState: likeState.rawValue
+            likeState: likeState.rawValue,
+            isBookmarked: isBookmarked
         )
     }
 }

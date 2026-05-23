@@ -9,9 +9,16 @@ struct OrganizationEditorView: View {
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     @StateObject private var viewModel: OrganizationEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
-    @State private var phone = ""
-    @State private var social = ""
     private let onSaved: @MainActor () async -> Void
+    private let editorSectionSpacing: CGFloat = 8
+    private let editorCardSpacing: CGFloat = 8
+    private let editorCardPadding: CGFloat = 10
+    private let editorCardRadius: CGFloat = 16
+    private let compactInputHeight: CGFloat = 40
+    private let summaryInputHeight: CGFloat = 78
+    private let summaryTextHeight: CGFloat = 60
+    private let uploadMinHeight: CGFloat = 124
+    private let headerLogoSize = CGSize(width: 118, height: 42)
 
     init(
         organizationsViewModel: OrganizationsViewModel,
@@ -34,19 +41,19 @@ struct OrganizationEditorView: View {
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+            VStack(alignment: .leading, spacing: editorSectionSpacing) {
                 editorHeader
                     .padding(.top, AppTheme.dashboardSpacing)
 
                 editorTitleBlock
                 statusContent
                 mainInfoCard
-                categoryCard
                 contactCard
                 locationCard
                 aboutCard
-                additionalSettingsCard
+                futureCapabilitiesCard
                 moderationNoticeCard
+                bottomSubmitButton
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.bottom, AppTheme.homeBottomContentPadding)
@@ -64,39 +71,90 @@ struct OrganizationEditorView: View {
     }
 
     private var editorHeader: some View {
-        AppCenteredBrandHeader {
-            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+        ZStack {
+            BrandMarkView(
+                size: headerLogoSize.height,
+                width: headerLogoSize.width,
+                assetName: "logo1",
+                contentMode: .fit
+            )
+            .allowsHitTesting(false)
+        }
+        .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
+        .overlay(alignment: .leading) {
+            AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
                 dismiss()
             }
-        } trailingContent: {
-            AppEditorSubmitButton(
-                title: viewModel.submitButtonTitle,
-                isEnabled: viewModel.canSubmit && !organizationsViewModel.isSavingOrganization,
-                isLoading: organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage,
-                loadingTitle: organizationsViewModel.isUploadingOrganizationImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Organizations.publishing
-            ) {
-                Task {
-                    let didSave = await viewModel.submit(
-                        with: organizationsViewModel,
-                        user: authState.user
-                    )
-                    guard didSave else { return }
-                    await onSaved()
-                    dismiss()
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var bottomSubmitButton: some View {
+        Button(action: submit) {
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                if isSaving {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.white)
                 }
+
+                Text(isSaving ? bottomLoadingTitle : bottomSubmitTitle)
+                    .font(.headline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
             }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                    .fill(canTapSubmit ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.26))
+            )
+            .shadow(color: AppTheme.accentPrimary.opacity(canTapSubmit ? 0.18 : 0), radius: 12, y: 6)
+        }
+        .buttonStyle(.plain)
+        .disabled(!canTapSubmit)
+        .accessibilityLabel(bottomSubmitTitle)
+    }
+
+    private var bottomSubmitTitle: String {
+        viewModel.isEditing ? "Зберегти зміни" : "Створити організацію"
+    }
+
+    private var bottomLoadingTitle: String {
+        organizationsViewModel.isUploadingOrganizationImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Organizations.publishing
+    }
+
+    private var isSaving: Bool {
+        organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage
+    }
+
+    private var canTapSubmit: Bool {
+        viewModel.canSubmit && !isSaving
+    }
+
+    private func submit() {
+        guard canTapSubmit else { return }
+        Task {
+            let didSave = await viewModel.submit(
+                with: organizationsViewModel,
+                user: authState.user
+            )
+            guard didSave else { return }
+            await onSaved()
+            dismiss()
         }
     }
 
     private var editorTitleBlock: some View {
         VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
             Text(viewModel.navigationTitle)
-                .font(.largeTitle.weight(.bold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(AppTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(AppStrings.Organizations.editorSubtitle)
-                .font(.subheadline.weight(.medium))
+                .font(.footnote.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -106,7 +164,7 @@ struct OrganizationEditorView: View {
     @ViewBuilder
     private var statusContent: some View {
         if organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage {
-            AppEditorSectionCard {
+            editorCard {
                 Label(
                     organizationsViewModel.isUploadingOrganizationImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Organizations.publishing,
                     systemImage: "arrow.triangle.2.circlepath"
@@ -117,7 +175,7 @@ struct OrganizationEditorView: View {
         }
 
         if let errorMessage = viewModel.errorMessage {
-            AppEditorSectionCard {
+            editorCard {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(AppTheme.accentDestructive)
@@ -125,7 +183,7 @@ struct OrganizationEditorView: View {
         }
 
         if let successMessage = viewModel.successMessage {
-            AppEditorSectionCard {
+            editorCard {
                 Label(successMessage, systemImage: "checkmark.circle.fill")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.green)
@@ -134,44 +192,50 @@ struct OrganizationEditorView: View {
     }
 
     private var mainInfoCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: AppTheme.sectionSpacing) {
-                        logoPicker
-                            .frame(width: 150)
+        editorCard {
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Organizations.detailsSectionTitle)
 
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
+                        logoPicker
+                            .frame(width: uploadMinHeight)
+
+                        VStack(alignment: .leading, spacing: editorCardSpacing) {
                             nameField
                             descriptionField
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    VStack(alignment: .leading, spacing: editorCardSpacing) {
                         logoPicker
                         nameField
                         descriptionField
                     }
                 }
+
+                categoryPicker
             }
         }
     }
 
     private var nameField: some View {
-        AppEditorField(title: AppStrings.Organizations.fieldName, counterText: "\(viewModel.name.count)/100") {
+        editorField(title: AppStrings.Organizations.fieldName, counterText: "\(viewModel.name.count)/100") {
             TextField(AppStrings.Organizations.fieldNamePlaceholder, text: $viewModel.name)
+                .font(.subheadline)
                 .textInputAutocapitalization(.words)
-                .appEditorInputStyle()
+                .organizationEditorCompactInputStyle(minHeight: compactInputHeight)
                 .accessibilityLabel(AppStrings.Organizations.fieldName)
         }
     }
 
     private var descriptionField: some View {
-        AppEditorField(title: AppStrings.Organizations.fieldDescription, counterText: "\(viewModel.description.count)/200") {
-            TextField(AppStrings.Organizations.fieldDescriptionPlaceholder, text: $viewModel.description, axis: .vertical)
+        editorField(title: AppStrings.Organizations.fieldDescription, counterText: "\(viewModel.shortDescription.count)/\(OrganizationEditorViewModel.shortDescriptionLimit)") {
+            TextField(AppStrings.Organizations.fieldDescriptionPlaceholder, text: $viewModel.shortDescription, axis: .vertical)
                 .lineLimit(3...6)
+                .font(.subheadline)
                 .textInputAutocapitalization(.sentences)
-                .appEditorInputStyle(minHeight: AppTheme.newsEditorSummaryInputHeight)
+                .organizationEditorCompactInputStyle(minHeight: summaryInputHeight)
                 .accessibilityLabel(AppStrings.Organizations.fieldDescription)
         }
     }
@@ -198,7 +262,7 @@ struct OrganizationEditorView: View {
         } else if let existingImageURL = viewModel.existingImageURL {
             RemoteImageView(
                 imageURL: existingImageURL,
-                height: 150,
+                height: uploadMinHeight,
                 cornerRadius: AppTheme.imageRadius,
                 source: "OrganizationEditorView",
                 placeholderStyle: .glassSkeleton
@@ -206,66 +270,72 @@ struct OrganizationEditorView: View {
             .aspectRatio(1, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
         } else {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+            VStack(spacing: 7) {
                 Image(systemName: "photo.badge.plus")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimary.opacity(0.78))
 
                 Text(AppStrings.Organizations.logoUploadTitle)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .multilineTextAlignment(.center)
 
                 Text(AppStrings.Organizations.logoUploadHelper)
-                    .font(.footnote.weight(.medium))
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineSpacing(2)
                     .multilineTextAlignment(.center)
             }
-            .padding(AppTheme.detailCardPadding)
+            .padding(editorCardPadding)
             .frame(maxWidth: .infinity)
             .aspectRatio(1, contentMode: .fit)
-            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+            .background(AppTheme.glassControlSurface(for: colorScheme).opacity(0.72), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
             .overlay(logoBorder)
         }
     }
 
     private var logoBorder: some View {
         RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
-            .stroke(AppTheme.glassBorder(for: colorScheme), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
+            .stroke(AppTheme.glassBorder(for: colorScheme).opacity(0.82), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
     }
 
-    private var categoryCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Organizations.categorySectionTitle)
+    private var categoryPicker: some View {
+        VStack(alignment: .leading, spacing: editorCardSpacing) {
+            editorSectionTitle(AppStrings.Organizations.categorySectionTitle)
 
-                AppHorizontalFilterRow {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
                     ForEach(OrganizationEditorCategory.allCases) { category in
-                        AppFilterChip(
-                            title: category.title,
-                            systemImage: category.systemImage
-                        )
-                        .opacity(0.58)
-                        .accessibilityHint(AppStrings.Action.comingSoon)
+                        Button {
+                            viewModel.organizationType = category.rawValue
+                        } label: {
+                            AppFilterChip(
+                                title: category.title,
+                                systemImage: category.systemImage,
+                                isSelected: viewModel.organizationType == category.rawValue
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
+                .padding(.vertical, 1)
             }
+            .clipShape(Rectangle())
         }
     }
 
     private var contactCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Organizations.contactSectionTitle)
+        editorCard {
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Organizations.contactSectionTitle)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.eventsMetadataSpacing) {
-                    iconTextField(systemImage: "envelope", placeholder: AppStrings.Organizations.fieldContactEmail, text: $viewModel.contactEmail)
+                    iconTextField(systemImage: "envelope", placeholder: AppStrings.Organizations.fieldContactEmail, text: $viewModel.email)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
-                    iconTextField(systemImage: "phone", placeholder: AppStrings.Organizations.phonePlaceholder, text: $phone, isDisabled: true)
+                    iconTextField(systemImage: "phone", placeholder: AppStrings.Organizations.phonePlaceholder, text: $viewModel.phone)
                         .keyboardType(.phonePad)
                 }
 
@@ -274,128 +344,290 @@ struct OrganizationEditorView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    iconTextField(systemImage: "point.3.connected.trianglepath.dotted", placeholder: AppStrings.Organizations.socialPlaceholder, text: $social, isDisabled: true)
+                iconTextField(systemImage: "paperplane", placeholder: AppStrings.Organizations.fieldTelegramURL, text: $viewModel.telegramURL)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
 
-                    AppGlassIconButton(systemImage: "plus", accessibilityLabel: AppStrings.Action.create, isPlaceholder: true)
+                iconTextField(systemImage: "heart", placeholder: AppStrings.Organizations.fieldDonationURL, text: $viewModel.donationURL)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                iconTextField(systemImage: "person.crop.circle", placeholder: AppStrings.Organizations.fieldContactPerson, text: $viewModel.contactPerson)
+                    .textInputAutocapitalization(.words)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(AppStrings.Organizations.socialLinksTitle)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+
+                    iconTextField(systemImage: "point.3.connected.trianglepath.dotted", placeholder: AppStrings.Organizations.socialPlaceholder, text: $viewModel.socialLinks)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
             }
         }
     }
 
     private var locationCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Organizations.locationSectionTitle)
+        editorCard {
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Organizations.locationSectionTitle)
 
-                iconTextField(systemImage: "mappin.circle", placeholder: AppStrings.Organizations.locationPlaceholder, text: $viewModel.city)
+                Menu {
+                    ForEach(AustrianFederalState.allCases) { federalState in
+                        Button(AppStrings.FederalStates.title(for: federalState)) {
+                            viewModel.selectedFederalState = federalState
+                        }
+                    }
+                } label: {
+                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        Image(systemName: "map")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
-                Button {} label: {
-                    Label(AppStrings.Organizations.chooseOnMap, systemImage: "map")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: AppTheme.searchControlHeight)
-                        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                        )
+                        Text(selectedRegionTitle)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(viewModel.selectedFederalState == nil ? AppTheme.textSecondary : AppTheme.textPrimary)
+
+                        Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                    .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+                    .frame(height: compactInputHeight)
+                    .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                            .strokeBorder(AppTheme.borderSubtle)
+                    )
                 }
                 .buttonStyle(.plain)
-                .disabled(true)
-                .opacity(0.66)
-                .accessibilityHint(AppStrings.Action.comingSoon)
+
+                iconTextField(systemImage: "building.2", placeholder: AppStrings.Organizations.fieldCity, text: $viewModel.city)
+
+                iconTextField(systemImage: "mappin.circle", placeholder: AppStrings.Organizations.fieldAddress, text: $viewModel.address)
             }
         }
     }
 
     private var aboutCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Organizations.aboutSectionTitle)
+        editorCard {
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Organizations.aboutSectionTitle)
 
-                richTextToolbar
-                    .opacity(0.54)
-                    .accessibilityHint(AppStrings.Action.comingSoon)
-
-                Text(AppStrings.Organizations.aboutPlaceholder)
+                TextField(AppStrings.Organizations.fieldMissionStatementPlaceholder, text: $viewModel.missionStatement, axis: .vertical)
+                    .lineLimit(2...4)
                     .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .lineSpacing(3)
-                    .frame(maxWidth: .infinity, minHeight: AppTheme.newsEditorSummaryTextHeight, alignment: .topLeading)
-                    .padding(AppTheme.inputHorizontalPadding)
-                    .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                            .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                    )
-            }
-        }
-    }
+                    .textInputAutocapitalization(.sentences)
+                    .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
+                    .accessibilityLabel(AppStrings.Organizations.fieldMissionStatement)
 
-    private var additionalSettingsCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Organizations.settingsSectionTitle)
-
-                HStack(spacing: AppTheme.dashboardSpacing) {
-                    Image(systemName: "lock")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(AppStrings.Organizations.visibilityTitle)
-                            .font(.subheadline.weight(.semibold))
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(AppStrings.Organizations.fieldFullDescription)
+                            .font(.footnote.weight(.semibold))
                             .foregroundStyle(AppTheme.textPrimary)
 
-                        Text(AppStrings.Organizations.visibilityHelper)
-                            .font(.footnote.weight(.medium))
+                        Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                        Text("\(viewModel.fullDescription.count)/\(OrganizationEditorViewModel.fullDescriptionLimit)")
+                            .font(.caption2.weight(.medium))
                             .foregroundStyle(AppTheme.textSecondary)
+                            .monospacedDigit()
                     }
 
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+                    TextField(AppStrings.Organizations.fieldFullDescriptionPlaceholder, text: $viewModel.fullDescription, axis: .vertical)
+                        .lineLimit(6...12)
+                        .font(.subheadline)
+                        .textInputAutocapitalization(.sentences)
+                        .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
+                        .accessibilityLabel(AppStrings.Organizations.fieldFullDescription)
+                }
 
-                    AppFilterChip(title: AppStrings.Organizations.visibilityPublic, trailingSystemImage: "chevron.down")
-                        .opacity(0.72)
+                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.eventsMetadataSpacing) {
+                        iconTextField(systemImage: "calendar", placeholder: AppStrings.Organizations.fieldFoundedYear, text: $viewModel.foundedYear)
+                            .keyboardType(.numberPad)
+
+                        foundedMonthPicker
+                    }
+
+                    iconTextField(systemImage: "globe.europe.africa", placeholder: AppStrings.Organizations.fieldLanguages, text: $viewModel.languages)
                 }
             }
         }
     }
 
-    private var moderationNoticeCard: some View {
-        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: "info.circle")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
-                .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
+    private var futureCapabilitiesCard: some View {
+        editorCard {
+            VStack(alignment: .leading, spacing: editorCardSpacing) {
+                editorSectionTitle(AppStrings.Organizations.futureSectionTitle)
 
-            Text(AppStrings.Organizations.moderationNotice)
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineSpacing(3)
-        }
-        .padding(AppTheme.detailCardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.surfaceGlass, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-    }
+                futureCapabilityRow(
+                    systemImage: "scope",
+                    title: AppStrings.Organizations.organizationSizeTitle,
+                    subtitle: AppStrings.Organizations.organizationSizeOptions
+                )
 
-    private var richTextToolbar: some View {
-        HStack(spacing: 0) {
-            ForEach(OrganizationEditorToolbarItem.allCases) { item in
-                Image(systemName: item.systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: AppTheme.searchControlHeight)
+                futureCapabilityRow(
+                    systemImage: "figure.2.and.child.holdinghands",
+                    title: AppStrings.Organizations.volunteersNeededTitle,
+                    subtitle: AppStrings.Organizations.volunteersNeededSubtitle
+                )
+
+                futureCapabilityRow(
+                    systemImage: "checkmark.seal",
+                    title: AppStrings.Organizations.verificationRequestTitle,
+                    subtitle: AppStrings.Organizations.verificationRequestSubtitle
+                )
+
+                futureCapabilityRow(
+                    systemImage: "person.3",
+                    title: AppStrings.Organizations.teamManagementTitle,
+                    subtitle: AppStrings.Organizations.teamManagementSubtitle
+                )
             }
         }
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+    }
+
+    private var selectedRegionTitle: String {
+        guard let selectedFederalState = viewModel.selectedFederalState else {
+            return AppStrings.Organizations.fieldRegionPlaceholder
+        }
+        return AppStrings.FederalStates.title(for: selectedFederalState)
+    }
+
+    private var foundedMonthPicker: some View {
+        Menu {
+            Button("Не вказано") {
+                viewModel.foundedMonth = nil
+            }
+
+            ForEach(1...12, id: \.self) { month in
+                Button(localizedMonthName(for: month)) {
+                    viewModel.foundedMonth = month
+                }
+            }
+        } label: {
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
+
+                Text(selectedFoundedMonthTitle)
+                    .font(.subheadline)
+                    .foregroundStyle(viewModel.foundedMonth == nil ? AppTheme.textSecondary : AppTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+            .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+            .frame(minHeight: compactInputHeight, alignment: .leading)
+            .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                    .strokeBorder(AppTheme.borderSubtle)
+            )
+            .opacity(viewModel.canSelectFoundedMonth ? 1 : 0.58)
+        }
+        .buttonStyle(.plain)
+        .disabled(!viewModel.canSelectFoundedMonth)
+        .accessibilityLabel("Місяць заснування")
+    }
+
+    private var selectedFoundedMonthTitle: String {
+        guard viewModel.canSelectFoundedMonth,
+              let foundedMonth = viewModel.foundedMonth else {
+            return "Не вказано"
+        }
+        return localizedMonthName(for: foundedMonth)
+    }
+
+    private func localizedMonthName(for month: Int) -> String {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.year = 2024
+        components.month = month
+        components.day = 1
+
+        guard let date = components.date else {
+            return "Не вказано"
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = LocalizationStore.locale
+        formatter.setLocalizedDateFormatFromTemplate("LLLL")
+        return formatter.string(from: date).capitalized(with: LocalizationStore.locale)
+    }
+
+    private func futureCapabilityRow(systemImage: String, title: String, subtitle: String) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                Text(subtitle)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+            Text(AppStrings.Organizations.comingSoon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .padding(.horizontal, 8)
+                .frame(height: 24)
+                .background(AppTheme.surfaceControl.opacity(0.34), in: Capsule())
+                .overlay(
+                    Capsule()
+                        .strokeBorder(AppTheme.borderSubtle)
+                )
+        }
+        .padding(AppTheme.eventsControlGroupSpacing)
+        .background(AppTheme.surfaceControl.opacity(0.22), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle.opacity(0.72))
         )
+        .opacity(0.68)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(AppStrings.Action.comingSoon)
+    }
+
+    private var moderationNoticeCard: some View {
+        editorCard {
+            HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+                Image(systemName: "info.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
+
+                Text(AppStrings.Organizations.moderationNotice)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineSpacing(3)
+            }
+        }
     }
 
     private func iconTextField(
@@ -411,19 +643,60 @@ struct OrganizationEditorView: View {
                 .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
             TextField(placeholder, text: text)
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline)
                 .foregroundStyle(AppTheme.textPrimary)
                 .disabled(isDisabled)
         }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.searchControlHeight)
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+        .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+        .frame(minHeight: compactInputHeight, alignment: .leading)
+        .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
         )
         .opacity(isDisabled ? 0.58 : 1)
         .accessibilityHint(isDisabled ? AppStrings.Action.comingSoon : "")
+    }
+
+    private func editorCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(editorCardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.55))
+        )
+        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.45), radius: 10, y: 5)
+    }
+
+    private func editorField<Content: View>(title: String, counterText: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                Text(counterText)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .monospacedDigit()
+            }
+
+            content()
+        }
+    }
+
+    private func editorSectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func loadSelectedPhoto(item: PhotosPickerItem?) async {
@@ -466,82 +739,17 @@ struct OrganizationEditorView: View {
     }
 }
 
-private enum OrganizationEditorCategory: String, CaseIterable, Identifiable {
-    case education
-    case culture
-    case support
-    case integration
-    case other
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .education:
-            AppStrings.Organizations.categoryEducation
-        case .culture:
-            AppStrings.Organizations.categoryCulture
-        case .support:
-            AppStrings.Organizations.categorySupport
-        case .integration:
-            AppStrings.Organizations.categoryIntegration
-        case .other:
-            AppStrings.Organizations.categoryOther
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .education:
-            "graduationcap"
-        case .culture:
-            "theatermasks"
-        case .support:
-            "hands.clap"
-        case .integration:
-            "person.2"
-        case .other:
-            "square.grid.2x2"
-        }
-    }
-}
-
-private enum OrganizationEditorToolbarItem: String, CaseIterable, Identifiable {
-    case text
-    case bold
-    case italic
-    case underline
-    case bulletList
-    case numberedList
-    case link
-    case image
-    case quote
-    case more
-
-    var id: String { rawValue }
-
-    var systemImage: String {
-        switch self {
-        case .text:
-            "textformat"
-        case .bold:
-            "bold"
-        case .italic:
-            "italic"
-        case .underline:
-            "underline"
-        case .bulletList:
-            "list.bullet"
-        case .numberedList:
-            "list.number"
-        case .link:
-            "link"
-        case .image:
-            "photo"
-        case .quote:
-            "quote.bubble"
-        case .more:
-            "ellipsis"
-        }
+private extension View {
+    func organizationEditorCompactInputStyle(minHeight: CGFloat) -> some View {
+        self
+            .font(.subheadline)
+            .foregroundStyle(AppTheme.textPrimary)
+            .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+            .frame(minHeight: minHeight, alignment: .leading)
+            .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                    .strokeBorder(AppTheme.borderSubtle)
+            )
     }
 }
