@@ -7,6 +7,7 @@ import UIKit
 struct EventEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: EventEditorViewModel
     @StateObject private var organizerOrganizationsViewModel: OrganizationsViewModel
@@ -188,8 +189,16 @@ struct EventEditorView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimary)
                 .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-                .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .background(
+                    reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                )
+                .background {
+                    if !reduceTransparency {
+                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    }
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                         .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -687,17 +696,13 @@ struct EventEditorView: View {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 editorSectionTitle(AppStrings.Events.categorySectionTitle)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                        ForEach(EventCategory.allCases) { category in
-                            EventEditorCategoryChip(category: category, isSelected: viewModel.selectedCategory == category) {
-                                viewModel.selectedCategory = category
-                            }
+                AppHorizontalFilterRow {
+                    ForEach(EventCategory.allCases) { category in
+                        EventEditorCategoryChip(category: category, isSelected: viewModel.selectedCategory == category) {
+                            viewModel.selectedCategory = category
                         }
                     }
-                    .padding(.vertical, 1)
                 }
-                .clipShape(Rectangle())
             }
         }
     }
@@ -811,8 +816,16 @@ struct EventEditorView: View {
         }
         .padding(editorCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
+        .background(
+            reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassSurface(for: colorScheme),
+            in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+        )
+        .background {
+            if !reduceTransparency {
+                RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
                 .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.55))
@@ -1001,7 +1014,7 @@ struct EventEditorView: View {
 
             Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-            Text(value.isEmpty ? "Оберіть регіон" : value)
+            Text(value.isEmpty ? AppStrings.Events.regionPlaceholder : value)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(value.isEmpty ? AppTheme.textSecondary.opacity(0.68) : AppTheme.textSecondary)
                 .lineLimit(1)

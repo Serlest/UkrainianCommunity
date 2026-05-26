@@ -59,7 +59,8 @@ private func organizationWebsiteURL(for organization: Organization) -> URL? {
 private func normalizedOrganizationURL(from value: String?) -> URL? {
     guard let rawValue = value?.trimmingCharacters(in: .whitespacesAndNewlines), !rawValue.isEmpty else { return nil }
     let normalized = rawValue.hasPrefix("http://") || rawValue.hasPrefix("https://") ? rawValue : "https://\(rawValue)"
-    return URL(string: normalized)
+    guard let url = URL(string: normalized), url.host?.isEmpty == false else { return nil }
+    return url
 }
 
 private func cleanURLDisplayText(_ url: URL) -> String {
@@ -554,6 +555,35 @@ private enum OrganizationDetailSection: CaseIterable, Identifiable {
     }
 }
 
+private enum OrganizationCommunityRole: Int {
+    case owner = 0
+    case admin = 1
+    case moderator = 2
+    case subscriber = 3
+
+    var title: String {
+        switch self {
+        case .owner:
+            AppStrings.Organizations.communityOwner
+        case .admin:
+            AppStrings.Organizations.communityAdmin
+        case .moderator:
+            AppStrings.Organizations.communityModerator
+        case .subscriber:
+            AppStrings.Organizations.communityMember
+        }
+    }
+}
+
+private struct OrganizationCommunityMember: Identifiable {
+    let profile: PublicUserProfile
+    let role: OrganizationCommunityRole
+    let followedAt: Date?
+    let isPlaceholder: Bool
+
+    var id: String { profile.id }
+}
+
 private enum OrganizationCategoryFilter: CaseIterable, Identifiable {
     case all
     case support
@@ -1010,7 +1040,7 @@ struct OrganizationsListView: View {
 
     private var filteredEmptyMessage: String {
         if savedFilterMode == .bookmarked {
-            return "У вас ще немає організацій у закладках."
+            return AppStrings.Organizations.emptyBookmarked
         }
         if savedFilterMode == .subscribed {
             return AppStrings.Home.emptySubscribed
@@ -1029,7 +1059,7 @@ struct OrganizationsListView: View {
             return true
         case .subscribed:
             guard authState.isAuthenticated else { return false }
-            return organization.likeState.isLiked
+            return organization.isSubscribed
         case .bookmarked:
             guard authState.isAuthenticated else { return false }
             return organization.isBookmarked
@@ -1096,16 +1126,17 @@ private struct OrganizationCard: View {
 
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
-            HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
+            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
                 AppFeedThumbnail(
                     imageURL: organization.imageURL,
                     fallbackSystemImage: "building.2",
                     tint: AppTheme.accentPrimary,
                     fill: AppTheme.badgeBlueFill,
-                    size: AppTheme.organizationsThumbnailSize,
+                    size: thumbnailSize,
                     cornerRadius: AppTheme.feedThumbnailRadius,
                     source: "OrganizationCard"
                 )
+                .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(organization.name)
@@ -1127,22 +1158,23 @@ private struct OrganizationCard: View {
         .accessibilityLabel(accessibilitySummary)
     }
 
+    private var thumbnailSize: CGFloat {
+        AppTheme.organizationsThumbnailSize + 12
+    }
+
     private var organizationMetadataChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(metadataItems, id: \.title) { item in
-                    AppInfoChip(
-                        title: item.title,
-                        systemImage: item.systemImage,
-                        tint: AppTheme.textSecondary,
-                        fill: AppTheme.surfaceControl.opacity(0.62),
-                        size: .small
-                    )
-                    .fixedSize(horizontal: true, vertical: false)
-                }
+        AppHorizontalChipRow(spacing: 6) {
+            ForEach(metadataItems, id: \.title) { item in
+                AppInfoChip(
+                    title: item.title,
+                    systemImage: item.systemImage,
+                    tint: AppTheme.textSecondary,
+                    fill: AppTheme.surfaceControl.opacity(0.62),
+                    size: .small
+                )
+                .fixedSize(horizontal: true, vertical: false)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var metadataItems: [(title: String, systemImage: String)] {
@@ -1237,7 +1269,7 @@ private struct OrganizationFiltersSection: View {
 
             Button(action: onToggleBookmarked) {
                 AppFilterChip(
-                    title: AppStrings.Home.filterSaved,
+                    title: AppStrings.Organizations.filterBookmarks,
                     systemImage: "bookmark",
                     isSelected: savedFilterMode == .bookmarked
                 )
@@ -1290,6 +1322,7 @@ struct OrganizationDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.organizationPresentationMode) private var presentationMode
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: OrganizationsViewModel
     let organizationID: String
@@ -1297,10 +1330,6 @@ struct OrganizationDetailView: View {
     let onOrganizationDeleted: @MainActor () -> Void
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
-    @State private var isShowingEditSheet = false
-    @State private var isShowingCreateEventSheet = false
-    @State private var isShowingCreateNewsSheet = false
-    @State private var isShowingModerationTools = false
     @State private var pendingRemovalOrganizationID: String?
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isAboutExpanded = false
@@ -1308,12 +1337,29 @@ struct OrganizationDetailView: View {
     @State private var recordedRecentViewKeys = Set<String>()
     @State private var previewPhotos: [OrganizationPhoto] = []
     @State private var loadedPreviewPhotoOrganizationID: String?
+    @State private var communityMembers: [OrganizationCommunityMember] = []
+    @State private var communitySubscriberReferences: [OrganizationSubscriberReference] = []
+    @State private var communitySubscriberCursor: OrganizationSubscriberCursor?
+    @State private var hasMoreCommunitySubscribers = false
+    @State private var isLoadingCommunityPage = false
+    @State private var loadedCommunityOrganizationID: String?
+    @State private var commentText = ""
+    @State private var editingCommentID: String?
+    @State private var pendingCommentDeleteID: String?
+    @State private var commentDeleteErrorMessage: String?
     @StateObject private var activityViewModel: OrganizationActivityViewModel
+    @StateObject private var newsDetailViewModel: NewsViewModel
+    @StateObject private var eventsDetailViewModel: EventsViewModel
+    @FocusState private var isCommentFieldFocused: Bool
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
     private let photoRepository: OrganizationPhotoRepository
     private let heroLogoSize: CGFloat = 104
+    private let detailCardPadding: CGFloat = 14
+    private let detailCardRadius: CGFloat = 18
+    private let detailSectionSpacing: CGFloat = 13
+    private let communityPageSize = 50
 
     init(
         viewModel: OrganizationsViewModel,
@@ -1339,45 +1385,8 @@ struct OrganizationDetailView: View {
             newsRepository: newsRepository,
             eventRepository: eventRepository
         ))
-    }
-
-    @ViewBuilder
-    private var editSheetContent: some View {
-        if let organization = viewModel.organization(for: organizationID) {
-            NavigationStack {
-                OrganizationEditorView(
-                    organizationsViewModel: viewModel,
-                    organization: organization,
-                    onSaved: onOrganizationSaved
-                )
-            }
-            .environmentObject(authState)
-        }
-    }
-
-    private var canCreateOrganizationEvent: Bool {
-        guard let organization = viewModel.organization(for: organizationID) else { return false }
-        return PermissionService.canCreateOrganizationEvent(organization, user: authState.user)
-    }
-
-    private var canCreateOrganizationNews: Bool {
-        guard let organization = viewModel.organization(for: organizationID) else { return false }
-        return PermissionService.canCreateOrganizationNews(organization, user: authState.user)
-    }
-
-    private var canModerateOrganization: Bool {
-        guard let organization = viewModel.organization(for: organizationID) else { return false }
-        return PermissionService.canModerateOrganizationContent(organization, user: authState.user)
-    }
-
-    private var canEditOrganization: Bool {
-        guard let organization = viewModel.organization(for: organizationID) else { return false }
-        return PermissionService.canEditOrganizationInfo(organization, user: authState.user)
-    }
-
-    private var canDeleteOrganization: Bool {
-        guard let organization = viewModel.organization(for: organizationID) else { return false }
-        return PermissionService.canDeleteOrganization(organization, user: authState.user)
+        _newsDetailViewModel = StateObject(wrappedValue: NewsViewModel(repository: newsRepository))
+        _eventsDetailViewModel = StateObject(wrappedValue: EventsViewModel(repository: eventRepository))
     }
 
     private var isDeletingCurrentOrganization: Bool {
@@ -1387,32 +1396,60 @@ struct OrganizationDetailView: View {
     var body: some View {
         Group {
             if let organization = viewModel.organization(for: organizationID) {
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                        detailHeader(for: organization)
-                            .padding(.top, AppTheme.dashboardSpacing)
-                            .zIndex(20)
+                GeometryReader { proxy in
+                    let contentHorizontalPadding = AppTheme.pageHorizontal
+                    let contentWidth = max(proxy.size.width - (contentHorizontalPadding * 2), 0)
 
-                        organizationHero(for: organization)
-                        heroMetadata(for: organization)
-                        actionButtons(for: organization)
-                        organizationSectionTabs
-                        selectedSectionContent(for: organization)
-                        managementCard
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                            detailHeader(for: organization)
+
+                            organizationHero(for: organization)
+                                .onTapGesture { isCommentFieldFocused = false }
+                            heroMetadata(for: organization)
+                                .onTapGesture { isCommentFieldFocused = false }
+                            supportCard(for: organization)
+                                .onTapGesture { isCommentFieldFocused = false }
+                            organizationSectionTabs
+                                .onTapGesture { isCommentFieldFocused = false }
+                            selectedSectionContent(for: organization)
+                                .onTapGesture { isCommentFieldFocused = false }
+                            actionButtons(for: organization)
+                                .onTapGesture { isCommentFieldFocused = false }
+                            commentsSection(for: organization)
+                                .id("organizationCommentsSection")
+                        }
+                        .frame(width: contentWidth, alignment: .leading)
+                        .padding(.horizontal, contentHorizontalPadding)
+                        .padding(.bottom, AppTheme.homeBottomContentPadding + 160)
                     }
-                    .padding(.horizontal, AppTheme.pageHorizontal)
-                    .padding(.bottom, AppTheme.homeBottomContentPadding + 160)
+                    .frame(width: proxy.size.width)
+                    .scrollDismissesKeyboard(.interactively)
+                    .refreshable {
+                        await refreshOrganizationDetail(for: organization)
+                    }
                 }
-                .background(AppBackgroundView().allowsHitTesting(false))
-                .navigationBarBackButtonHidden(true)
-                .toolbar(.hidden, for: .navigationBar)
                 .task(id: organization.id) {
                     await activityViewModel.loadIfNeeded(for: organization)
+                    await newsDetailViewModel.loadIfNeeded()
+                    await eventsDetailViewModel.loadIfNeeded()
+                    await viewModel.loadComments(for: organization.id)
                     await loadPreviewPhotosIfNeeded(for: organization.id)
+                    await loadCommunityMembersIfNeeded(for: organization)
                     recordRecentView(for: organization)
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)
+            }
+        }
+        .background(AppBackgroundView().allowsHitTesting(false))
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(AppStrings.Common.done) {
+                    isCommentFieldFocused = false
+                }
             }
         }
         .confirmationDialog(AppStrings.Organizations.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
@@ -1424,6 +1461,20 @@ struct OrganizationDetailView: View {
             }
             Button(AppStrings.Organizations.cancel, role: .cancel) {}
         }
+        .confirmationDialog(AppStrings.Common.deleteCommentConfirmation, isPresented: Binding(
+            get: { pendingCommentDeleteID != nil },
+            set: { if !$0 { pendingCommentDeleteID = nil } }
+        ), titleVisibility: .visible) {
+            Button(AppStrings.Action.delete, role: .destructive) {
+                guard let pendingCommentDeleteID else { return }
+                Task {
+                    await deleteComment(commentID: pendingCommentDeleteID)
+                }
+            }
+            Button(AppStrings.Organizations.cancel, role: .cancel) {
+                pendingCommentDeleteID = nil
+            }
+        }
         .alert(AppStrings.Organizations.deleteFailed, isPresented: Binding(
             get: { deleteErrorMessage != nil },
             set: { if !$0 { deleteErrorMessage = nil } }
@@ -1432,46 +1483,13 @@ struct OrganizationDetailView: View {
         } message: {
             Text(deleteErrorMessage ?? "")
         }
-        .sheet(isPresented: $isShowingEditSheet) {
-            editSheetContent
-        }
-        .sheet(isPresented: $isShowingCreateEventSheet) {
-            if let organization = viewModel.organization(for: organizationID) {
-                NavigationStack {
-                    EventEditorView(
-                        repository: eventRepository,
-                        organizationId: organization.id,
-                        organizationName: organization.name,
-                        organizationImageURL: organization.imageURL,
-                        organizationFederalState: organization.federalState
-                    ) {}
-                }
-            }
-        }
-        .sheet(isPresented: $isShowingCreateNewsSheet) {
-            if let organization = viewModel.organization(for: organizationID) {
-                NavigationStack {
-                    NewsEditorView(
-                        repository: newsRepository,
-                        organizationId: organization.id,
-                        organizationName: organization.name,
-                        organizationImageURL: organization.imageURL,
-                        organizationFederalState: organization.federalState
-                    ) {}
-                }
-                .environmentObject(authState)
-            }
-        }
-        .sheet(isPresented: $isShowingModerationTools) {
-            NavigationStack {
-                ModerationToolsView(
-                    organizationID: organizationID,
-                    newsRepository: newsRepository,
-                    eventRepository: eventRepository,
-                    organizationRepository: organizationRepository
-                )
-            }
-            .environmentObject(authState)
+        .alert(AppStrings.Common.deleteCommentFailed, isPresented: Binding(
+            get: { commentDeleteErrorMessage != nil },
+            set: { if !$0 { commentDeleteErrorMessage = nil } }
+        )) {
+            Button(AppStrings.Organizations.dismissError, role: .cancel) {}
+        } message: {
+            Text(commentDeleteErrorMessage ?? readableOrganizationErrorText(.unknown))
         }
         .guestAccessAlert($guestAccessAction)
         .onChange(of: authState.user?.id) { _, _ in
@@ -1484,6 +1502,7 @@ struct OrganizationDetailView: View {
                 await viewModel.refresh()
                 if let organization = viewModel.organization(for: organizationID) {
                     await activityViewModel.refresh(for: organization)
+                    await reloadCommunityMembers(for: organization)
                 }
             }
         }
@@ -1492,6 +1511,7 @@ struct OrganizationDetailView: View {
             guard let organization = viewModel.organization(for: organizationID) else { return }
             Task {
                 await activityViewModel.refresh(for: organization)
+                await newsDetailViewModel.refresh()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .eventsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { notification in
@@ -1499,6 +1519,7 @@ struct OrganizationDetailView: View {
             guard let organization = viewModel.organization(for: organizationID) else { return }
             Task {
                 await activityViewModel.refresh(for: organization)
+                await eventsDetailViewModel.refresh()
             }
         }
         .onDisappear {
@@ -1530,6 +1551,142 @@ struct OrganizationDetailView: View {
         }
     }
 
+    @MainActor
+    private func reloadPreviewPhotos(for organizationID: String) async {
+        loadedPreviewPhotoOrganizationID = nil
+        previewPhotos = []
+        await loadPreviewPhotosIfNeeded(for: organizationID)
+    }
+
+    @MainActor
+    private func refreshOrganizationDetail(for organization: Organization) async {
+        await viewModel.refresh()
+        let refreshedOrganization = viewModel.organization(for: organization.id) ?? organization
+        await activityViewModel.refresh(for: refreshedOrganization)
+        await newsDetailViewModel.refresh()
+        await eventsDetailViewModel.refresh()
+        await viewModel.loadComments(for: refreshedOrganization.id)
+        await reloadPreviewPhotos(for: refreshedOrganization.id)
+        await reloadCommunityMembers(for: refreshedOrganization)
+    }
+
+    @MainActor
+    private func loadCommunityMembersIfNeeded(for organization: Organization) async {
+        guard loadedCommunityOrganizationID != organization.id else { return }
+        loadedCommunityOrganizationID = organization.id
+        communityMembers = []
+        communitySubscriberReferences = []
+        communitySubscriberCursor = nil
+        hasMoreCommunitySubscribers = false
+        await loadCommunityMembersPage(for: organization, reset: true)
+    }
+
+    @MainActor
+    private func reloadCommunityMembers(for organization: Organization) async {
+        loadedCommunityOrganizationID = nil
+        communityMembers = []
+        communitySubscriberReferences = []
+        communitySubscriberCursor = nil
+        hasMoreCommunitySubscribers = false
+        await loadCommunityMembersIfNeeded(for: organization)
+    }
+
+    @MainActor
+    private func loadCommunityMembersPage(for organization: Organization, reset: Bool) async {
+        guard !isLoadingCommunityPage else { return }
+        isLoadingCommunityPage = true
+        defer { isLoadingCommunityPage = false }
+
+        let roleByUserID = communityRoleMap(for: organization)
+        let roleUserIDs = Array(roleByUserID.keys)
+
+        do {
+            let page = try await organizationRepository.fetchOrganizationSubscriberPage(
+                organizationID: organization.id,
+                limit: communityPageSize,
+                after: reset ? nil : communitySubscriberCursor
+            )
+            communitySubscriberCursor = page.nextCursor
+            hasMoreCommunitySubscribers = page.hasMore
+            mergeCommunitySubscriberReferences(page.items, reset: reset)
+        } catch {
+            if reset {
+                communitySubscriberReferences = []
+                communitySubscriberCursor = nil
+                hasMoreCommunitySubscribers = false
+            }
+        }
+
+        let followedAtByUserID = Dictionary(uniqueKeysWithValues: communitySubscriberReferences.map { ($0.userID, $0.followedAt) })
+        let userIDs = Array(Set(roleUserIDs + communitySubscriberReferences.map(\.userID)))
+
+        do {
+            let profiles = try await organizationRepository.fetchPublicUserProfiles(userIDs: userIDs)
+            var loadedProfileIDs = Set<String>()
+            var members: [OrganizationCommunityMember] = []
+            for profile in profiles {
+                loadedProfileIDs.insert(profile.id)
+                members.append(OrganizationCommunityMember(
+                    profile: profile,
+                    role: roleByUserID[profile.id] ?? .subscriber,
+                    followedAt: followedAtByUserID[profile.id] ?? nil,
+                    isPlaceholder: false
+                ))
+            }
+
+            let missingRoleMembers = roleByUserID
+                .filter { userID, _ in !loadedProfileIDs.contains(userID) }
+                .map { userID, role in
+                    OrganizationCommunityMember(
+                        profile: PublicUserProfile(
+                            id: userID,
+                            displayName: AppStrings.Organizations.communityProfileUnavailable,
+                            avatarURL: nil,
+                            city: "",
+                            federalState: nil,
+                            updatedAt: nil
+                        ),
+                        role: role,
+                        followedAt: followedAtByUserID[userID] ?? nil,
+                        isPlaceholder: true
+                    )
+                }
+
+            members.append(contentsOf: missingRoleMembers)
+            communityMembers = members.sorted(by: communityMemberSort)
+        } catch {
+            communityMembers = roleByUserID.map { userID, role in
+                OrganizationCommunityMember(
+                    profile: PublicUserProfile(
+                        id: userID,
+                        displayName: AppStrings.Organizations.communityProfileUnavailable,
+                        avatarURL: nil,
+                        city: "",
+                        federalState: nil,
+                        updatedAt: nil
+                    ),
+                    role: role,
+                    followedAt: nil,
+                    isPlaceholder: true
+                )
+            }
+            .sorted(by: communityMemberSort)
+        }
+    }
+
+    @MainActor
+    private func mergeCommunitySubscriberReferences(_ references: [OrganizationSubscriberReference], reset: Bool) {
+        if reset {
+            communitySubscriberReferences = []
+        }
+
+        var seenUserIDs = Set(communitySubscriberReferences.map(\.userID))
+        let newReferences = references.filter { reference in
+            seenUserIDs.insert(reference.userID).inserted
+        }
+        communitySubscriberReferences.append(contentsOf: newReferences)
+    }
+
     private func detailHeader(for organization: Organization) -> some View {
         AppCenteredBrandHeader {
             AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
@@ -1544,7 +1701,7 @@ struct OrganizationDetailView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.pendingOrganizationBookmarkIDs.contains(organization.id))
-                .accessibilityLabel(organization.isBookmarked ? "Прибрати із закладок" : "Додати в закладки")
+                .accessibilityLabel(organization.isBookmarked ? AppStrings.Organizations.removeBookmark : AppStrings.Organizations.addBookmark)
 
                 ShareLink(item: organizationShareText(for: organization)) {
                     organizationHeaderShareIcon
@@ -1560,8 +1717,16 @@ struct OrganizationDetailView: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppTheme.accentPrimary)
             .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+            .background(
+                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+            )
+            .background {
+                if !reduceTransparency {
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+            }
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                     .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -1574,8 +1739,16 @@ struct OrganizationDetailView: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppTheme.accentPrimary)
             .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+            .background(
+                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+            )
+            .background {
+                if !reduceTransparency {
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+            }
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                     .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -1604,46 +1777,17 @@ struct OrganizationDetailView: View {
     }
 
     private func organizationHero(for organization: Organization) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-            if let coverURL = visibleCoverURL(for: organization) {
-                RemoteImageView(
-                    imageURL: coverURL,
-                    height: 132,
-                    cornerRadius: AppTheme.imageRadius,
-                    source: "OrganizationDetailCover",
-                    placeholderStyle: .glassSkeleton
-                )
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
-                        .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                )
-                .accessibilityLabel(AppStrings.Organizations.imageSectionTitle)
-            }
-
-            HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 organizationLogo(for: organization)
                     .frame(width: heroLogoSize, height: heroLogoSize)
                     .layoutPriority(1)
 
                 heroText(for: organization)
-                    .frame(minHeight: heroLogoSize, alignment: .top)
+                    .frame(minHeight: heroLogoSize, alignment: .center)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-    }
-
-    private func visibleCoverURL(for organization: Organization) -> String? {
-        guard let coverURL = organization.coverURL?.trimmingCharacters(in: .whitespacesAndNewlines), !coverURL.isEmpty else {
-            return nil
-        }
-
-        let logoURL = organization.logoURL?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let imageURL = organization.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard coverURL != logoURL, coverURL != imageURL else {
-            return nil
-        }
-        return coverURL
     }
 
     private func organizationLogo(for organization: Organization) -> some View {
@@ -1680,25 +1824,24 @@ struct OrganizationDetailView: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {
                     if organization.isSystemOrganization {
-                        organizationHeroChip(title: "Офіційно", systemImage: "checkmark.seal.fill")
+                        organizationHeroChip(title: AppStrings.Organizations.officialBadge, systemImage: "checkmark.seal.fill")
                     }
                     organizationHeroChip(title: organizationTypeTitle(for: organization), systemImage: "building.2")
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     if organization.isSystemOrganization {
-                        organizationHeroChip(title: "Офіційно", systemImage: "checkmark.seal.fill")
+                        organizationHeroChip(title: AppStrings.Organizations.officialBadge, systemImage: "checkmark.seal.fill")
                     }
                     organizationHeroChip(title: organizationTypeTitle(for: organization), systemImage: "building.2")
                 }
             }
 
             Text(organization.name)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(AppTheme.textPrimary)
+                .font(.system(size: 28, weight: .bold, design: .default))
+                .foregroundStyle(AppTheme.accentPrimary)
                 .lineSpacing(1)
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let description = heroDescription(for: organization) {
                 Text(description)
@@ -1726,70 +1869,26 @@ struct OrganizationDetailView: View {
     }
 
     private func heroMetadata(for organization: Organization) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(heroMetadataItems(for: organization), id: \.0) { systemImage, text in
-                    ContentMetadataPill(systemImage: systemImage, text: text)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
+        AppHorizontalChipRow(spacing: 6) {
+            ForEach(heroMetadataItems(for: organization), id: \.0) { systemImage, text in
+                ContentMetadataPill(systemImage: systemImage, text: text)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            .padding(.vertical, 1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @MainActor
     private func heroMetadataItems(for organization: Organization) -> [(String, String)] {
         var items: [(String, String)] = [
+            ("hand.thumbsup", "\(organization.likeCount)"),
             ("person.2", subscriberCountText(for: organization.subscriberCount))
         ]
-
-        let upcomingCount = upcomingOrganizationEvents.count
-        if upcomingCount > 0 {
-            items.append(("calendar.badge.clock", compactCountText(upcomingCount, label: AppStrings.Organizations.activityEventsShort)))
-        }
-
-        let newsCount = organizationNewsItems.count
-        if newsCount > 0 {
-            items.append(("newspaper", compactCountText(newsCount, label: AppStrings.Organizations.activityNewsShort)))
-        }
-
-        if !previewPhotos.isEmpty {
-            items.append(("photo.on.rectangle", compactCountText(previewPhotos.count, label: AppStrings.Organizations.activityPhotosShort)))
-        }
 
         if let location = detailedLocationText(for: organization) {
             items.append(("mappin.and.ellipse", location))
         }
 
-        if let latestActivityDate = latestActivityDate(for: organization) {
-            items.append(("clock", "\(AppStrings.Organizations.latestActivityPrefix) \(relativeActivityText(from: latestActivityDate))"))
-        }
-
-        if let foundedText = foundedDateText(for: organization) {
-            items.append(("calendar", foundedText))
-        }
-
         return items
-    }
-
-    private func compactCountText(_ count: Int, label: String) -> String {
-        "\(count) \(label)"
-    }
-
-    private func latestActivityDate(for organization: Organization) -> Date? {
-        var dates = [organization.updatedAt]
-        dates.append(contentsOf: organizationNewsItems.map(\.publishedAt))
-        dates.append(contentsOf: organizationEventItems.map(\.publishedAt))
-        dates.append(contentsOf: previewPhotos.map { $0.updatedAt ?? $0.createdAt })
-        return dates.max()
-    }
-
-    private func relativeActivityText(from date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = LocalizationStore.locale
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
     }
 
     private func subscriberCountText(for count: Int) -> String {
@@ -1798,11 +1897,11 @@ struct OrganizationDetailView: View {
         let suffix: String
 
         if mod10 == 1 && mod100 != 11 {
-            suffix = "підписник"
+            suffix = AppStrings.Home.subscriberSuffixOne
         } else if (2...4).contains(mod10) && !(12...14).contains(mod100) {
-            suffix = "підписники"
+            suffix = AppStrings.Home.subscriberSuffixFew
         } else {
-            suffix = "підписників"
+            suffix = AppStrings.Home.subscriberSuffixMany
         }
 
         return "\(count) \(suffix)"
@@ -1841,47 +1940,142 @@ struct OrganizationDetailView: View {
     }
 
     private func actionButtons(for organization: Organization) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                organizationActionButtonsContent(for: organization)
-            }
+        detailGlassCard(padding: 9) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    engagementMetrics(for: organization)
+                    Spacer(minLength: 0)
+                    subscribeButton(for: organization)
+                }
 
-            VStack(alignment: .leading, spacing: AppTheme.eventsControlGroupSpacing) {
-                organizationActionButtonsContent(for: organization)
+                VStack(alignment: .leading, spacing: 10) {
+                    engagementMetrics(for: organization)
+                    subscribeButton(for: organization)
+                }
             }
         }
     }
 
     @ViewBuilder
-    private func organizationActionButtonsContent(for organization: Organization) -> some View {
-        organizationActionButton(
-            title: organization.likeState.isLiked ? "Підписано" : AppStrings.Organizations.follow,
-            systemImage: organization.likeState.isLiked ? "person.2.fill" : "person.2.badge.plus",
-            isPrimary: true,
-            isDisabled: viewModel.pendingOrganizationLikeIDs.contains(organization.id)
-        ) {
-            guard authState.isAuthenticated else {
-                guestAccessAction = .likes
-                return
-            }
-
-            viewModel.toggleLike(for: organization.id)
-        }
-        .frame(maxWidth: .infinity)
-
+    private func supportCard(for organization: Organization) -> some View {
         if let donationURL = normalizedOrganizationURL(from: organization.donationURL) {
-            organizationLinkButton(
-                title: AppStrings.Organizations.support,
-                systemImage: "hands.sparkles",
-                destination: donationURL
-            )
-        } else {
-            organizationActionButton(
-                title: AppStrings.Organizations.support,
-                systemImage: "hands.sparkles",
-                isPlaceholder: true
-            )
+            detailGlassCard(padding: 12) {
+                Link(destination: donationURL) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "heart.fill")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(AppTheme.accentPrimary)
+                            .frame(width: 36, height: 36)
+                            .background(
+                                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                            )
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(AppStrings.Organizations.supportOrganizationTitle)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+
+                            Text(AppStrings.Organizations.supportOrganizationSubtitle)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(AppStrings.Organizations.supportOrganizationTitle)
+            }
         }
+    }
+
+    private func engagementMetrics(for organization: Organization) -> some View {
+        HStack(spacing: 8) {
+            detailMetricButton(
+                systemImage: organization.likeState.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup",
+                count: organization.likeCount,
+                accessibilityLabel: organization.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like,
+                isSelected: organization.likeState.isLiked
+            ) {
+                toggleLike(for: organization)
+            }
+            .disabled(viewModel.pendingOrganizationLikeIDs.contains(organization.id))
+
+            detailMetricButton(
+                systemImage: "bubble.left",
+                count: viewModel.comments(for: organization.id).count,
+                accessibilityLabel: AppStrings.Common.comments
+            ) {
+                isCommentFieldFocused = true
+            }
+        }
+    }
+
+    private func subscribeButton(for organization: Organization) -> some View {
+        organizationActionButton(
+            title: organization.isSubscribed ? AppStrings.Organizations.unfollow : AppStrings.Organizations.follow,
+            systemImage: organization.isSubscribed ? "person.2.fill" : "person.2.badge.plus",
+            isPrimary: true,
+            isDestructive: organization.isSubscribed,
+            isDisabled: viewModel.pendingOrganizationSubscriptionIDs.contains(organization.id)
+        ) {
+            toggleSubscription(for: organization)
+        }
+        .frame(maxWidth: 180)
+    }
+
+    private func toggleLike(for organization: Organization) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = .likes
+            return
+        }
+
+        viewModel.toggleLike(for: organization.id)
+    }
+
+    private func toggleSubscription(for organization: Organization) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = .likes
+            return
+        }
+
+        viewModel.toggleSubscription(for: organization.id)
+    }
+
+    private func detailMetricButton(
+        systemImage: String,
+        count: Int,
+        accessibilityLabel: String,
+        isSelected: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isSelected ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+
+                Text("\(count)")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .monospacedDigit()
+            }
+            .frame(minWidth: 74, minHeight: 36)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue("\(count)")
     }
 
     private func organizationLinkButton(title: String, systemImage: String, destination: URL) -> some View {
@@ -1892,8 +2086,16 @@ struct OrganizationDetailView: View {
                 .padding(.horizontal, AppTheme.dashboardSpacing)
                 .frame(maxWidth: .infinity)
                 .frame(height: AppTheme.iconButtonSize)
-                .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .background(
+                    reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                )
+                .background {
+                    if !reduceTransparency {
+                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    }
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                         .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -1907,29 +2109,58 @@ struct OrganizationDetailView: View {
         title: String,
         systemImage: String,
         isPrimary: Bool = false,
+        isDestructive: Bool = false,
         isPlaceholder: Bool = false,
         isDisabled: Bool = false,
         action: @escaping () -> Void = {}
     ) -> some View {
-        Button(action: action) {
+        let isInteractionDisabled = isPlaceholder || isDisabled
+        let foregroundColor: Color = {
+            if isDestructive {
+                return AppTheme.accentDestructive
+            }
+            return isPrimary ? .white : AppTheme.textPrimary
+        }()
+        let backgroundColor: Color = {
+            if isDestructive {
+                return AppTheme.badgeRedFill.opacity(isInteractionDisabled ? 0.62 : 1)
+            }
+            if isPrimary {
+                return AppTheme.accentPrimary.opacity(isInteractionDisabled ? 0.78 : 1)
+            }
+            return reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme)
+        }()
+        let borderColor: Color = {
+            if isDestructive {
+                return AppTheme.accentDestructive.opacity(isInteractionDisabled ? 0.24 : 0.38)
+            }
+            return isPrimary ? Color.white.opacity(0.18) : AppTheme.glassBorder(for: colorScheme)
+        }()
+
+        return Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isPrimary ? Color.white : AppTheme.textPrimary)
+                .foregroundStyle(foregroundColor)
                 .padding(.horizontal, AppTheme.dashboardSpacing)
                 .frame(maxWidth: .infinity)
                 .frame(height: AppTheme.iconButtonSize)
                 .background(
-                    isPrimary ? AppTheme.accentPrimary.opacity(isPlaceholder || isDisabled ? 0.78 : 1) : AppTheme.glassControlSurface(for: colorScheme),
+                    backgroundColor,
                     in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                 )
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .background {
+                    if !reduceTransparency {
+                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    }
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                        .strokeBorder(isPrimary ? Color.white.opacity(0.18) : AppTheme.glassBorder(for: colorScheme))
+                        .strokeBorder(borderColor)
                 )
         }
         .buttonStyle(.plain)
-        .disabled(isPlaceholder || isDisabled)
+        .disabled(isInteractionDisabled)
         .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
     }
 
@@ -2060,28 +2291,221 @@ struct OrganizationDetailView: View {
 
     private var organizationTeamSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-            organizationCompactPlaceholder(
-                systemImage: "person.3",
-                title: AppStrings.Organizations.tabTeam,
-                message: AppStrings.Organizations.teamComingSoon,
-                badge: AppStrings.Organizations.comingSoon
-            )
+            detailGlassCard(padding: detailCardPadding) {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    sectionHeader(title: AppStrings.Organizations.tabTeam, systemImage: "person.3")
 
-            if canEditOrganization || canManageOrganizationRoles {
-                AppEditorSectionCard {
-                    disabledManagementRow(
-                        title: AppStrings.Organizations.teamManagementTitle,
-                        subtitle: AppStrings.Organizations.teamManagementSubtitle,
-                        systemImage: "person.3.sequence"
-                    )
+                    if communityMembers.isEmpty {
+                        communityEmptyState
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(communityMembers) { member in
+                                organizationCommunityRow(member)
+
+                                if member.id != communityMembers.last?.id {
+                                    Divider()
+                                        .overlay(AppTheme.borderSubtle.opacity(0.55))
+                                        .padding(.leading, 54)
+                                }
+                            }
+                        }
+
+                        if hasMoreCommunitySubscribers || isLoadingCommunityPage {
+                            communityLoadMoreButton
+                        }
+                    }
+
                 }
             }
         }
     }
 
-    private var canManageOrganizationRoles: Bool {
-        guard let organization = viewModel.organization(for: organizationID) else { return false }
-        return PermissionService.canManageOrganizationRoles(organization, user: authState.user)
+    private var communityEmptyState: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "person.3")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(width: 36, height: 36)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
+
+            Text(AppStrings.Organizations.communityEmpty)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var communityLoadMoreButton: some View {
+        Button {
+            guard let organization = viewModel.organization(for: organizationID) else { return }
+            Task {
+                await loadCommunityMembersPage(for: organization, reset: false)
+            }
+        } label: {
+            HStack(spacing: 8) {
+                if isLoadingCommunityPage {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.bold))
+                }
+
+                Text(AppStrings.Organizations.communityLoadMore)
+                    .font(.footnote.weight(.semibold))
+            }
+            .foregroundStyle(AppTheme.accentPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: AppTheme.iconButtonSize)
+            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoadingCommunityPage)
+        .padding(.top, 10)
+    }
+
+    private func organizationCommunityRow(_ member: OrganizationCommunityMember) -> some View {
+        HStack(spacing: 12) {
+            communityAvatar(for: member.profile)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(member.profile.preferredDisplayName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(member.isPlaceholder ? AppTheme.textSecondary : AppTheme.textPrimary)
+                    .lineLimit(1)
+
+                if member.isPlaceholder {
+                    Text(AppStrings.Organizations.communityPlaceholderProfileMessage)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(2)
+                } else if let location = communityLocationText(for: member.profile) {
+                    Text(location)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            communityRoleBadge(member.role)
+        }
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private func sectionHeader(title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+    }
+
+    private func communityAvatar(for profile: PublicUserProfile) -> some View {
+        Group {
+            if let avatarURL = profile.avatarURL {
+                AsyncImage(url: avatarURL) { phase in
+                    switch phase {
+                    case let .success(image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        communityInitialsAvatar(for: profile)
+                    }
+                }
+            } else {
+                communityInitialsAvatar(for: profile)
+            }
+        }
+        .frame(width: 42, height: 42)
+        .clipShape(Circle())
+        .overlay(Circle().strokeBorder(AppTheme.glassBorder(for: colorScheme)))
+    }
+
+    private func communityInitialsAvatar(for profile: PublicUserProfile) -> some View {
+        Circle()
+            .fill(AppTheme.glassControlSurface(for: colorScheme))
+            .overlay(
+                Text(communityInitials(for: profile))
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+            )
+    }
+
+    private func communityRoleBadge(_ role: OrganizationCommunityRole) -> some View {
+        Text(role.title)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(AppTheme.accentPrimary)
+            .padding(.horizontal, 7)
+            .frame(height: 22)
+            .background(AppTheme.accentPrimary.opacity(0.10), in: Capsule())
+            .overlay(Capsule().strokeBorder(AppTheme.accentPrimary.opacity(0.22)))
+    }
+
+    @MainActor
+    private func communityLocationText(for profile: PublicUserProfile) -> String? {
+        let city = profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
+        let region = profile.federalState.map(AppStrings.FederalStates.title(for:))
+
+        if !city.isEmpty, let region {
+            return "\(city), \(region)"
+        }
+        if !city.isEmpty {
+            return city
+        }
+        return region
+    }
+
+    private func communityInitials(for profile: PublicUserProfile) -> String {
+        if profile.displayName == AppStrings.Organizations.communityProfileUnavailable {
+            return "?"
+        }
+
+        let source = profile.preferredDisplayName
+        let parts = source
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+        let initials = String(parts).uppercased()
+        return initials.isEmpty ? "?" : initials
+    }
+
+    private func communityRoleMap(for organization: Organization) -> [String: OrganizationCommunityRole] {
+        var roles: [String: OrganizationCommunityRole] = [:]
+
+        func assign(_ userID: String?, role: OrganizationCommunityRole) {
+            guard let userID = userID?.trimmingCharacters(in: .whitespacesAndNewlines), !userID.isEmpty else { return }
+            guard let existingRole = roles[userID] else {
+                roles[userID] = role
+                return
+            }
+            if role.rawValue < existingRole.rawValue {
+                roles[userID] = role
+            }
+        }
+
+        assign(organization.ownerId, role: .owner)
+        organization.adminIds.forEach { assign($0, role: .admin) }
+        organization.moderatorIds.forEach { assign($0, role: .moderator) }
+
+        return roles
+    }
+
+    private func communityMemberSort(_ lhs: OrganizationCommunityMember, _ rhs: OrganizationCommunityMember) -> Bool {
+        if lhs.role.rawValue != rhs.role.rawValue {
+            return lhs.role.rawValue < rhs.role.rawValue
+        }
+        if lhs.role == .subscriber, lhs.followedAt != rhs.followedAt {
+            return (lhs.followedAt ?? .distantPast) > (rhs.followedAt ?? .distantPast)
+        }
+        return lhs.profile.preferredDisplayName.localizedCaseInsensitiveCompare(rhs.profile.preferredDisplayName) == .orderedAscending
     }
 
     private func organizationCompactPlaceholder(systemImage: String, title: String, message: String, badge: String? = nil) -> some View {
@@ -2107,7 +2531,7 @@ struct OrganizationDetailView: View {
             if let missionStatement = organization.missionStatement?.trimmingCharacters(in: .whitespacesAndNewlines), !missionStatement.isEmpty {
                 AppEditorSectionCard {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                        AppEditorSectionTitle(title: AppStrings.Organizations.fieldMissionStatement)
+                        AppEditorSectionTitle(title: AppStrings.Organizations.detailMissionStatementTitle)
                         Text(missionStatement)
                             .font(.body)
                             .foregroundStyle(AppTheme.textSecondary)
@@ -2199,11 +2623,11 @@ struct OrganizationDetailView: View {
                     NavigationLink {
                         activityDestinationView(for: destination)
                     } label: {
-                        highlightedNewsRow(item, isPinned: isPinnedNews(item, for: organization))
+                        OrganizationActivityCompactCard(item: item, isPinned: isPinnedNews(item, for: organization))
                     }
                     .buttonStyle(.plain)
                 } else {
-                    highlightedNewsRow(item, isPinned: isPinnedNews(item, for: organization))
+                    OrganizationActivityCompactCard(item: item, isPinned: isPinnedNews(item, for: organization))
                 }
             }
         }
@@ -2220,18 +2644,15 @@ struct OrganizationDetailView: View {
                 .buttonStyle(.plain)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(previewPhotos.prefix(5))) { photo in
-                        Button {
-                            switchToSection(.photos)
-                        } label: {
-                            highlightPhotoTile(photo)
-                        }
-                        .buttonStyle(.plain)
+            AppHorizontalChipRow {
+                ForEach(Array(previewPhotos.prefix(5))) { photo in
+                    Button {
+                        switchToSection(.photos)
+                    } label: {
+                        highlightPhotoTile(photo)
                     }
+                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 1)
             }
         }
     }
@@ -2261,38 +2682,6 @@ struct OrganizationDetailView: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(AppTheme.accentPrimary)
-    }
-
-    private func highlightedNewsRow(_ item: OrganizationActivityItem, isPinned: Bool) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    ContentMetadataPill(systemImage: "calendar", text: organizationActivityDateText(for: item))
-
-                    if isPinned {
-                        ContentMetadataPill(systemImage: "pin.fill", text: AppStrings.Organizations.pinnedLabel)
-                    }
-                }
-
-                Text(item.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(AppTheme.textSecondary)
-                .padding(.top, 4)
-        }
-        .padding(10)
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-        )
     }
 
     private func highlightPhotoTile(_ photo: OrganizationPhoto) -> some View {
@@ -2373,22 +2762,29 @@ struct OrganizationDetailView: View {
             AppEditorSectionTitle(title: AppStrings.Organizations.aboutSectionTitle)
 
             if let text {
+                let collapsedLineLimit = 4
+                let isLongText = text.count > 180
+
                 Text(text)
                     .font(.body)
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineSpacing(4)
-                    .lineLimit(isAboutExpanded ? nil : 5)
+                    .lineLimit(isAboutExpanded || !isLongText ? nil : collapsedLineLimit)
                     .fixedSize(horizontal: false, vertical: true)
+                    .animation(.snappy, value: isAboutExpanded)
 
-                if text.count > 180 {
+                if isLongText {
                     Button {
                         withAnimation(.snappy) {
                             isAboutExpanded.toggle()
                         }
                     } label: {
-                        Label(AppStrings.Organizations.showMore, systemImage: isAboutExpanded ? "chevron.up" : "chevron.down")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                        Label(
+                            isAboutExpanded ? AppStrings.Organizations.showLess : AppStrings.Organizations.showMore,
+                            systemImage: isAboutExpanded ? "chevron.up" : "chevron.down"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
                     }
                     .buttonStyle(.plain)
                 }
@@ -2657,99 +3053,232 @@ struct OrganizationDetailView: View {
     }
 
     @ViewBuilder
-    private var managementCard: some View {
-        if canEditOrganization || canDeleteOrganization || canCreateOrganizationEvent || canCreateOrganizationNews || canModerateOrganization {
-            AppEditorSectionCard {
-                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                    AppEditorSectionTitle(title: AppStrings.Profile.organizationManagement)
+    private func commentsSection(for organization: Organization) -> some View {
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppStrings.Common.comments)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
 
-                    if canEditOrganization {
-                        organizationManagementButton(
-                            title: AppStrings.Profile.editOrganizationDetails,
-                            subtitle: AppStrings.Organizations.editorSubtitle,
-                            systemImage: "pencil"
-                        ) {
-                            guard !isDeletingCurrentOrganization else { return }
-                            isShowingEditSheet = true
-                        }
-                        .disabled(isDeletingCurrentOrganization)
-                    }
+                commentComposer(parentID: organization.id)
 
-                    if canCreateOrganizationNews {
-                        organizationManagementButton(
-                            title: AppStrings.Profile.createOrganizationNews,
-                            subtitle: AppStrings.NewsEditor.editorSubtitle,
-                            systemImage: "newspaper"
-                        ) {
-                            isShowingCreateNewsSheet = true
-                        }
-                    }
+                let comments = viewModel.comments(for: organization.id)
+                if comments.isEmpty {
+                    Text(AppStrings.Common.noCommentsYet)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(comments.enumerated()), id: \.element.id) { index, comment in
+                            commentRow(comment, organization: organization)
 
-                    if canCreateOrganizationEvent {
-                        organizationManagementButton(
-                            title: AppStrings.Profile.createOrganizationEvent,
-                            subtitle: AppStrings.Events.editorSubtitle,
-                            systemImage: "calendar.badge.plus"
-                        ) {
-                            isShowingCreateEventSheet = true
+                            if index < comments.count - 1 {
+                                Divider()
+                                    .padding(.vertical, AppTheme.eventsControlGroupSpacing)
+                            }
                         }
-                    }
-
-                    if canModerateOrganization {
-                        organizationManagementButton(
-                            title: AppStrings.Profile.organizationModerationQueue,
-                            subtitle: AppStrings.Profile.organizationModerationSubtitle,
-                            systemImage: "checkmark.shield"
-                        ) {
-                            isShowingModerationTools = true
-                        }
-                    }
-
-                    if canDeleteOrganization {
-                        organizationManagementButton(
-                            title: AppStrings.Action.delete,
-                            subtitle: AppStrings.Organizations.deleteConfirmation,
-                            systemImage: "trash",
-                            role: .destructive
-                        ) {
-                            guard !isDeletingCurrentOrganization else { return }
-                            showDeleteConfirmation = true
-                        }
-                        .disabled(isDeletingCurrentOrganization)
                     }
                 }
             }
         }
     }
 
-    private func organizationManagementButton(
-        title: String,
-        subtitle: String? = nil,
-        systemImage: String,
-        role: ButtonRole? = nil,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(role: role, action: action) {
-            AppNavigationRow(
-                title: title,
-                subtitle: subtitle,
-                systemImage: systemImage,
-                tint: role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary
-            )
+    private func commentComposer(parentID: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if authState.isAuthenticated {
+                HStack(alignment: .bottom, spacing: 8) {
+                    TextField(AppStrings.Common.commentInputPlaceholder, text: $commentText, axis: .vertical)
+                        .focused($isCommentFieldFocused)
+                        .lineLimit(1...4)
+                        .textInputAutocapitalization(.sentences)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                        )
+
+                    Button {
+                        submitComment(parentID: parentID)
+                    } label: {
+                        Image(systemName: editingCommentID == nil ? "paperplane.fill" : "checkmark")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(AppTheme.accentPrimary, in: Circle())
+                    }
+                    .disabled(trimmedCommentText.isEmpty || viewModel.pendingOrganizationCommentIDs.contains(parentID))
+                    .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
+                }
+
+                Text("\(commentText.count)/1000")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            } else {
+                Button {
+                    guestAccessAction = .comments
+                } label: {
+                    Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
     }
 
-    private func disabledManagementRow(title: String, subtitle: String, systemImage: String) -> some View {
-        AppNavigationRow(
-            title: title,
-            subtitle: subtitle,
-            systemImage: systemImage,
-            tint: AppTheme.textSecondary
+    private func commentRow(_ comment: Comment, organization: Organization) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            commentAvatar(comment)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    Text(sanitizedAuthorName(comment.authorName))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                    Text(LocalizationStore.dateString(from: comment.createdAt, dateStyle: .short, timeStyle: .short))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(1)
+
+                    if canEditComment(comment) || canDeleteComment(comment, organization: organization) {
+                        commentActionMenu(for: comment)
+                    }
+                }
+
+                Text(comment.text)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func commentActionMenu(for comment: Comment) -> some View {
+        Menu {
+            if canEditComment(comment) {
+                Button(AppStrings.Action.edit, systemImage: "pencil") {
+                    editingCommentID = comment.id
+                    commentText = comment.text
+                    isCommentFieldFocused = true
+                }
+            }
+            Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
+                pendingCommentDeleteID = comment.id
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle.fill")
+                .font(.title3.weight(.semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: 34, height: 34)
+                .contentShape(Circle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.Action.delete)
+    }
+
+    private var trimmedCommentText: String {
+        commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func submitComment(parentID: String) {
+        guard let user = authState.user else {
+            guestAccessAction = .comments
+            return
+        }
+        let text = String(trimmedCommentText.prefix(1000))
+        guard !text.isEmpty else { return }
+        let editingID = editingCommentID
+        Task {
+            if let editingID {
+                await viewModel.updateComment(organizationID: parentID, commentID: editingID, text: text)
+            } else {
+                await viewModel.addComment(to: parentID, text: text, author: user)
+            }
+            await MainActor.run {
+                commentText = ""
+                editingCommentID = nil
+                isCommentFieldFocused = false
+            }
+        }
+    }
+
+    @MainActor
+    private func deleteComment(commentID: String) async {
+        await viewModel.deleteComment(organizationID: organizationID, commentID: commentID)
+        pendingCommentDeleteID = nil
+    }
+
+    private func commentAvatar(_ comment: Comment) -> some View {
+        ZStack {
+            Circle()
+                .fill(AppTheme.accentPrimarySoft)
+            if let authorPhotoURL = comment.authorPhotoURL, !authorPhotoURL.isEmpty {
+                AsyncImage(url: URL(string: authorPhotoURL)) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Text(commentInitials(comment))
+                            .font(.caption.weight(.bold))
+                    }
+                }
+            } else {
+                Text(commentInitials(comment))
+                    .font(.caption.weight(.bold))
+            }
+        }
+        .foregroundStyle(AppTheme.accentPrimary)
+        .frame(width: 32, height: 32)
+        .clipShape(Circle())
+    }
+
+    private func commentInitials(_ comment: Comment) -> String {
+        let name = sanitizedAuthorName(comment.authorName)
+        return String(name.prefix(1)).uppercased()
+    }
+
+    private func sanitizedAuthorName(_ authorName: String) -> String {
+        let trimmed = authorName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? AppStrings.Organizations.userFallback : trimmed
+    }
+
+    private func canEditComment(_ comment: Comment) -> Bool {
+        guard let user = authState.user else { return false }
+        return comment.authorId == user.id
+    }
+
+    private func canDeleteComment(_ comment: Comment, organization: Organization) -> Bool {
+        guard let user = authState.user else { return false }
+        if comment.authorId == user.id {
+            return true
+        }
+        return PermissionService.canModerateOrganizationContent(organization, user: user)
+    }
+
+    private func detailGlassCard<Content: View>(padding: CGFloat = 14, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appGlassCard(
+            cornerRadius: detailCardRadius,
+            material: .ultraThinMaterial,
+            surface: AppTheme.glassSurface(for: colorScheme),
+            borderOpacity: 0.62,
+            shadowRadius: 8,
+            shadowY: 4
         )
-        .opacity(0.62)
-        .accessibilityHint(AppStrings.Action.comingSoon)
     }
 
     private func activitySection(for organization: Organization) -> some View {
@@ -2831,13 +3360,13 @@ struct OrganizationDetailView: View {
         switch destination {
         case let .news(id):
             NewsDetailView(
-                viewModel: NewsViewModel(repository: FirestoreNewsRepository()),
+                viewModel: newsDetailViewModel,
                 postID: id,
                 onNewsDeleted: {}
             )
         case let .event(id):
             EventDetailView(
-                viewModel: EventsViewModel(repository: FirestoreEventRepository()),
+                viewModel: eventsDetailViewModel,
                 eventID: id,
                 onEventDeleted: {}
             )
@@ -2855,46 +3384,23 @@ struct OrganizationDetailView: View {
 
 private struct OrganizationActivityCompactCard: View {
     let item: OrganizationActivityItem
+    var isPinned = false
+
+    private let thumbnailSize: CGFloat = 58
 
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
-            HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
+            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
                 thumbnail
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 6) {
-                        ContentMetadataPill(systemImage: itemTypeSystemImage, text: itemTypeTitle)
-
-                        if item.isBookmarked {
-                            ContentMetadataPill(systemImage: "bookmark.fill", text: AppStrings.Home.filterSaved)
-                        }
-
-                        if let eventText = organizationActivityEventText(for: item) {
-                            ContentMetadataPill(systemImage: "clock", text: eventText)
-                        } else {
-                            ContentMetadataPill(systemImage: "calendar", text: organizationActivityDateText(for: item))
-                        }
-                    }
-
+                VStack(alignment: .leading, spacing: 6) {
                     Text(item.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text(item.summary)
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if let locationText = organizationActivityLocationText(for: item) {
-                        ContentMetadataPill(systemImage: "mappin.and.ellipse", text: locationText)
-                    }
-
-                    if let registrationState = item.eventRegistrationState {
-                        ContentMetadataPill(systemImage: "person.crop.circle.badge.checkmark", text: registrationState.title)
-                    }
+                    metadataRow
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -2905,26 +3411,40 @@ private struct OrganizationActivityCompactCard: View {
 
     @ViewBuilder
     private var thumbnail: some View {
-        if let imageURL = item.imageURL {
-            RemoteImageView(
-                imageURL: imageURL,
-                height: 72,
-                cornerRadius: AppTheme.imageRadius,
-                source: "OrganizationActivityCompactCard",
-                placeholderStyle: .glassSkeleton
-            )
-            .frame(width: 72, height: 72)
-            .clipped()
-        } else {
-            RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
-                .fill(AppTheme.surfaceControl.opacity(0.46))
-                .frame(width: 72, height: 72)
-                .overlay {
-                    Image(systemName: itemTypeSystemImage)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
-                }
+        AppFeedThumbnail(
+            imageURL: item.imageURL,
+            fallbackSystemImage: itemTypeSystemImage,
+            tint: AppTheme.accentPrimary,
+            fill: AppTheme.accentPrimary.opacity(0.10),
+            size: thumbnailSize,
+            cornerRadius: AppTheme.feedThumbnailRadius,
+            source: "OrganizationActivityCompactCard"
+        )
+        .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
+    }
+
+    private var metadataRow: some View {
+        HStack(spacing: 6) {
+            ContentMetadataPill(systemImage: itemTypeSystemImage, text: itemTypeTitle)
+                .fixedSize(horizontal: true, vertical: false)
+
+            if let eventText = organizationActivityEventText(for: item) {
+                ContentMetadataPill(systemImage: "clock", text: eventText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            } else {
+                ContentMetadataPill(systemImage: "calendar", text: organizationActivityDateText(for: item))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            if isPinned {
+                ContentMetadataPill(systemImage: "pin.fill", text: AppStrings.Organizations.pinnedLabel)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
     }
 
     private var itemTypeTitle: String {

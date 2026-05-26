@@ -51,25 +51,25 @@ enum ActivityLogActionType: String, CaseIterable, Codable, Identifiable {
     var title: String {
         switch self {
         case .registeredForEvent:
-            return "Зареєструвався на подію"
+            return AppStrings.ActivityLog.registeredForEvent
         case .canceledEventRegistration:
-            return "Скасував реєстрацію на подію"
+            return AppStrings.ActivityLog.canceledEventRegistration
         case .followedOrganization:
-            return "Підписався на організацію"
+            return AppStrings.ActivityLog.followedOrganization
         case .unfollowedOrganization:
-            return "Відписався від організації"
+            return AppStrings.ActivityLog.unfollowedOrganization
         case .savedNews:
-            return "Зберіг новину"
+            return AppStrings.ActivityLog.savedNews
         case .unsavedNews:
-            return "Прибрав новину зі збереженого"
+            return AppStrings.ActivityLog.unsavedNews
         case .savedEvent:
-            return "Зберіг подію"
+            return AppStrings.ActivityLog.savedEvent
         case .unsavedEvent:
-            return "Прибрав подію зі збереженого"
+            return AppStrings.ActivityLog.unsavedEvent
         case .savedOrganization:
-            return "Зберіг організацію"
+            return AppStrings.ActivityLog.savedOrganization
         case .unsavedOrganization:
-            return "Прибрав організацію зі збереженого"
+            return AppStrings.ActivityLog.unsavedOrganization
         }
     }
 

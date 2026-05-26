@@ -28,6 +28,8 @@ private struct ModerationQueueItem: Identifiable {
     let title: String
     let summary: String
     let createdAt: Date
+    let submittedBy: String?
+    let organization: Organization?
 
     var id: String {
         "\(type.rawValue)-\(contentID)"
@@ -84,7 +86,7 @@ private final class ModerationQueueViewModel: ObservableObject {
         }
     }
 
-    func updateStatus(for item: ModerationQueueItem, to newStatus: ModerationStatus) async {
+    func updateStatus(for item: ModerationQueueItem, to newStatus: ModerationStatus, reviewerID: String?) async {
         processingItemIDs.insert(item.id)
         defer { processingItemIDs.remove(item.id) }
 
@@ -95,11 +97,49 @@ private final class ModerationQueueViewModel: ObservableObject {
             case .event:
                 try await eventRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
             case .organization:
-                try await organizationRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
+                guard newStatus == .approved, let reviewerID else { throw AppError.permissionDenied }
+                try await organizationRepository.approveOrganizationRequest(id: item.contentID, reviewerID: reviewerID)
+                AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             }
 
             items.removeAll { $0.id == item.id }
             error = nil
+            NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func requestRevision(for item: ModerationQueueItem, message: String, reviewerID: String?) async {
+        guard item.type == .organization, let reviewerID else { return }
+        processingItemIDs.insert(item.id)
+        defer { processingItemIDs.remove(item.id) }
+
+        do {
+            try await organizationRepository.requestOrganizationRevision(id: item.contentID, message: message, reviewerID: reviewerID)
+            items.removeAll { $0.id == item.id }
+            error = nil
+            AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
+            NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func rejectOrganizationRequest(for item: ModerationQueueItem, reason: String, reviewerID: String?) async {
+        guard item.type == .organization, let reviewerID else { return }
+        processingItemIDs.insert(item.id)
+        defer { processingItemIDs.remove(item.id) }
+
+        do {
+            try await organizationRepository.rejectOrganizationRequest(id: item.contentID, reason: reason, reviewerID: reviewerID)
+            items.removeAll { $0.id == item.id }
+            error = nil
+            AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
         } catch let appError as AppError {
             error = appError
@@ -170,7 +210,9 @@ private final class ModerationQueueViewModel: ObservableObject {
                 type: .news,
                 title: $0.title,
                 summary: $0.subtitle,
-                createdAt: $0.createdAt
+                createdAt: $0.createdAt,
+                submittedBy: nil,
+                organization: nil
             )
         }
     }
@@ -182,7 +224,9 @@ private final class ModerationQueueViewModel: ObservableObject {
                 type: .event,
                 title: $0.title,
                 summary: $0.summary,
-                createdAt: $0.createdAt
+                createdAt: $0.createdAt,
+                submittedBy: nil,
+                organization: nil
             )
         }
     }
@@ -194,7 +238,9 @@ private final class ModerationQueueViewModel: ObservableObject {
                 type: .organization,
                 title: $0.name,
                 summary: $0.description,
-                createdAt: $0.createdAt
+                createdAt: $0.createdAt,
+                submittedBy: $0.submittedByDisplayName ?? $0.submittedByUserId,
+                organization: $0
             )
         }
     }
@@ -202,8 +248,10 @@ private final class ModerationQueueViewModel: ObservableObject {
 }
 
 struct ModerationToolsView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: ModerationQueueViewModel
+    @State private var selectedOrganizationRequest: ModerationQueueItem?
     private let organizationID: String?
 
     init(
@@ -241,11 +289,11 @@ struct ModerationToolsView: View {
     }
 
     private var screenTitle: String {
-        organizationID == nil ? AppStrings.Moderation.title : "Модерація організації"
+        organizationID == nil ? AppStrings.Moderation.title : AppStrings.Moderation.organizationTitle
     }
 
     private var emptyMessage: String {
-        organizationID == nil ? AppStrings.Moderation.empty : "Немає матеріалів організації на перевірці"
+        organizationID == nil ? AppStrings.Moderation.empty : AppStrings.Moderation.organizationEmpty
     }
 
     var body: some View {
@@ -255,7 +303,11 @@ struct ModerationToolsView: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppBrandHeader {
+                    AppCenteredBrandHeader {
+                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                            dismiss()
+                        }
+                    } trailingContent: {
                         AppNotificationBellButton()
                     }
 
@@ -267,10 +319,14 @@ struct ModerationToolsView: View {
                 .padding(.top, AppTheme.sectionSpacing)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
+            .refreshable {
+                await viewModel.refresh()
+            }
         }
         .tint(AppTheme.accentPrimary)
         .navigationTitle(screenTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             viewModel.setAllowedSections(allowedSections)
             await viewModel.loadIfNeeded()
@@ -278,6 +334,24 @@ struct ModerationToolsView: View {
         .onChange(of: allowedSections) { _, newSections in
             viewModel.setAllowedSections(newSections)
             viewModel.reload()
+        }
+        .sheet(item: $selectedOrganizationRequest) { item in
+            ModerationOrganizationRequestSheet(
+                item: item,
+                isProcessing: viewModel.processingItemIDs.contains(item.id),
+                approveAction: {
+                    await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
+                    selectedOrganizationRequest = nil
+                },
+                revisionAction: { message in
+                    await viewModel.requestRevision(for: item, message: message, reviewerID: authState.user?.id)
+                    selectedOrganizationRequest = nil
+                },
+                rejectAction: { reason in
+                    await viewModel.rejectOrganizationRequest(for: item, reason: reason, reviewerID: authState.user?.id)
+                    selectedOrganizationRequest = nil
+                }
+            )
         }
     }
 
@@ -326,11 +400,18 @@ struct ModerationToolsView: View {
                             item: item,
                             isProcessing: viewModel.processingItemIDs.contains(item.id),
                             approveAction: {
-                                await viewModel.updateStatus(for: item, to: .approved)
+                                await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
                             },
                             rejectAction: {
-                                await viewModel.updateStatus(for: item, to: .rejected)
-                            }
+                                if item.type == .organization {
+                                    selectedOrganizationRequest = item
+                                } else {
+                                    await viewModel.updateStatus(for: item, to: .rejected, reviewerID: authState.user?.id)
+                                }
+                            },
+                            detailsAction: item.type == .organization ? {
+                                selectedOrganizationRequest = item
+                            } : nil
                         )
                     }
                 }
@@ -357,6 +438,7 @@ private struct ModerationItemRow: View {
     let isProcessing: Bool
     let approveAction: () async -> Void
     let rejectAction: () async -> Void
+    let detailsAction: (() -> Void)?
 
     var body: some View {
         AppEditorSectionCard {
@@ -379,7 +461,24 @@ private struct ModerationItemRow: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(3)
 
+            if let submittedBy = item.submittedBy {
+                Text("\(AppStrings.Moderation.submittedBy): \(submittedBy)")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+
             HStack(spacing: 12) {
+                if let detailsAction {
+                    Button(action: detailsAction) {
+                        Label(AppStrings.Moderation.openRequest, systemImage: "doc.text.magnifyingglass")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: AppTheme.iconButtonSize)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isProcessing)
+                }
+
                 PrimaryActionButton(
                     title: AppStrings.Moderation.approve,
                     isEnabled: !isProcessing,
@@ -411,6 +510,223 @@ private struct ModerationItemRow: View {
                 .disabled(isProcessing)
             }
             }
+        }
+    }
+}
+
+private struct ModerationOrganizationRequestSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let item: ModerationQueueItem
+    let isProcessing: Bool
+    let approveAction: () async -> Void
+    let revisionAction: (String) async -> Void
+    let rejectAction: (String) async -> Void
+    @State private var reviewMessage = ""
+    @State private var rejectionReason = ""
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    if let organization = item.organization {
+                        requestSummaryCard(for: organization)
+                        mainInformationCard(for: organization)
+                        descriptionCard(for: organization)
+                        contactsCard(for: organization)
+                        applicantCard(for: organization)
+                    } else {
+                        requestFallbackCard
+                    }
+
+                    AppEditorSectionCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            AppEditorSectionTitle(title: AppStrings.Moderation.revisionMessage)
+                            TextField(AppStrings.Moderation.revisionMessage, text: $reviewMessage, axis: .vertical)
+                                .lineLimit(3...6)
+                                .textFieldStyle(.roundedBorder)
+                            PrimaryActionButton(
+                                title: AppStrings.Moderation.requestRevision,
+                                isEnabled: !isProcessing && !reviewMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                                isLoading: isProcessing,
+                                systemImage: "arrow.uturn.backward"
+                            ) {
+                                Task { await revisionAction(reviewMessage) }
+                            }
+                        }
+                    }
+
+                    AppEditorSectionCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            AppEditorSectionTitle(title: AppStrings.Moderation.rejectionReason)
+                            TextField(AppStrings.Moderation.rejectionReason, text: $rejectionReason, axis: .vertical)
+                                .lineLimit(3...6)
+                                .textFieldStyle(.roundedBorder)
+                            Button(role: .destructive) {
+                                Task { await rejectAction(rejectionReason) }
+                            } label: {
+                                Label(AppStrings.Moderation.reject, systemImage: "trash")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: AppTheme.iconButtonSize)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(isProcessing || rejectionReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                    }
+
+                    PrimaryActionButton(
+                        title: AppStrings.Moderation.approve,
+                        isEnabled: !isProcessing,
+                        isLoading: isProcessing,
+                        systemImage: "checkmark.seal"
+                    ) {
+                        Task { await approveAction() }
+                    }
+                }
+                .padding(AppTheme.pageHorizontal)
+            }
+            .background(AppBackgroundView())
+            .navigationTitle(AppStrings.Moderation.organizationRequest)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppStrings.Common.cancel) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func requestSummaryCard(for organization: Organization) -> some View {
+        AppEditorSectionCard {
+            HStack(alignment: .top, spacing: 12) {
+                AppFeedThumbnail(
+                    imageURL: organization.coverURL ?? organization.imageURL,
+                    fallbackSystemImage: "building.2",
+                    tint: AppTheme.accentPrimary,
+                    fill: AppTheme.accentPrimary.opacity(0.10),
+                    size: 64,
+                    source: "ModerationOrganizationRequestSheet.cover"
+                )
+
+                if let logoURL = organization.logoURL, logoURL != organization.coverURL {
+                    AppFeedThumbnail(
+                        imageURL: logoURL,
+                        fallbackSystemImage: "photo",
+                        tint: AppTheme.accentPrimary,
+                        fill: AppTheme.accentPrimary.opacity(0.10),
+                        size: 48,
+                        source: "ModerationOrganizationRequestSheet.logo"
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: 7) {
+                    AppEditorSectionTitle(title: organization.name)
+                    Text(organization.shortDescription)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    if let reviewMessage = organization.reviewMessage {
+                        InlineMessageCard(style: .info, message: reviewMessage)
+                    }
+                    if let rejectionReason = organization.rejectionReason {
+                        InlineMessageCard(style: .error, message: rejectionReason)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func mainInformationCard(for organization: Organization) -> some View {
+        detailSection(title: AppStrings.Moderation.requestMainInformation) {
+            detailRow(AppStrings.Organizations.categoryTitle, organization.organizationType)
+            detailRow(AppStrings.Common.city, organization.city)
+            detailRow(AppStrings.Moderation.federalState, organization.federalState?.rawValue)
+            detailRow(AppStrings.Organizations.fieldAddress, organization.address)
+            if !organization.languages.isEmpty {
+                detailRow(AppStrings.Organizations.languagesTitle, organization.languages.joined(separator: ", "))
+            }
+        }
+    }
+
+    private func descriptionCard(for organization: Organization) -> some View {
+        detailSection(title: AppStrings.Moderation.requestDescription) {
+            detailRow(AppStrings.Moderation.shortDescription, organization.shortDescription)
+            detailRow(AppStrings.Moderation.fullDescription, organization.fullDescription)
+            detailRow(AppStrings.Organizations.fieldMissionStatement, organization.missionStatement)
+        }
+    }
+
+    private func contactsCard(for organization: Organization) -> some View {
+        detailSection(title: AppStrings.Moderation.requestContacts) {
+            detailRow(AppStrings.Organizations.fieldContactEmail, organization.contactEmail ?? organization.email)
+            detailRow(AppStrings.Organizations.phonePlaceholder, organization.phone)
+            detailRow(AppStrings.Common.website, organization.website)
+            detailRow(AppStrings.Organizations.fieldTelegramURL, organization.telegramURL)
+            detailRow(AppStrings.Organizations.fieldDonationURL, organization.donationURL)
+            detailRow(AppStrings.Organizations.fieldContactPersonDisplay, organization.contactPerson)
+            if !organization.socialLinks.isEmpty {
+                detailRow(
+                    AppStrings.Moderation.socialLinks,
+                    organization.socialLinks
+                        .sorted { $0.key < $1.key }
+                        .map { "\($0.key): \($0.value)" }
+                        .joined(separator: "\n")
+                )
+            }
+        }
+    }
+
+    private func applicantCard(for organization: Organization) -> some View {
+        detailSection(title: AppStrings.Moderation.requestApplicant) {
+            detailRow(AppStrings.Moderation.submittedBy, organization.submittedByDisplayName ?? item.submittedBy)
+            detailRow(AppStrings.Moderation.submittedAt, organization.submittedAt.map { LocalizationStore.dateString(from: $0) })
+            detailRow(AppStrings.Moderation.submittedByUserId, organization.submittedByUserId)
+        }
+    }
+
+    private var requestFallbackCard: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                AppEditorSectionTitle(title: item.title)
+                Text(item.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+                if let submittedBy = item.submittedBy {
+                    Text("\(AppStrings.Moderation.submittedBy): \(submittedBy)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+        }
+    }
+
+    private func detailSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                AppEditorSectionTitle(title: title)
+                content()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func detailRow(_ title: String, _ value: String?) -> some View {
+        if let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                Text(value)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

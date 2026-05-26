@@ -6,6 +6,7 @@ struct NewsEditorView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @StateObject private var viewModel: NewsEditorViewModel
     @StateObject private var organizerOrganizationsViewModel: OrganizationsViewModel
     @State private var selectedPhoto: PhotosPickerItem?
@@ -172,8 +173,16 @@ struct NewsEditorView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimary)
                 .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-                .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .background(
+                    reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                )
+                .background {
+                    if !reduceTransparency {
+                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    }
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                         .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -689,8 +698,16 @@ struct NewsEditorView: View {
         }
         .padding(editorCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
+        .background(
+            reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassSurface(for: colorScheme),
+            in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+        )
+        .background {
+            if !reduceTransparency {
+                RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
                 .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.55))

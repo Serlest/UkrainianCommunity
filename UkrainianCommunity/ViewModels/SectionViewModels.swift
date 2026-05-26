@@ -1074,8 +1074,12 @@ final class OrganizationsViewModel: ObservableObject {
     @Published private(set) var error: AppError?
     @Published private(set) var contentVersion = 0
     @Published private(set) var pendingOrganizationLikeIDs = Set<String>()
+    @Published private(set) var pendingOrganizationSubscriptionIDs = Set<String>()
     @Published private(set) var pendingOrganizationBookmarkIDs = Set<String>()
     @Published private(set) var pendingOrganizationDeleteIDs = Set<String>()
+    @Published private(set) var organizationRequests: [Organization] = []
+    @Published private(set) var organizationCommentsByID: [String: [Comment]] = [:]
+    @Published private(set) var pendingOrganizationCommentIDs = Set<String>()
     @Published private(set) var isSavingOrganization = false
     @Published private(set) var isUploadingOrganizationImage = false
     @Published private(set) var validationErrorMessage: String?
@@ -1128,8 +1132,12 @@ final class OrganizationsViewModel: ObservableObject {
         error = nil
         contentVersion &+= 1
         pendingOrganizationLikeIDs = []
+        pendingOrganizationSubscriptionIDs = []
         pendingOrganizationBookmarkIDs = []
         pendingOrganizationDeleteIDs = []
+        organizationRequests = []
+        organizationCommentsByID = [:]
+        pendingOrganizationCommentIDs = []
         isSavingOrganization = false
         isUploadingOrganizationImage = false
         validationErrorMessage = nil
@@ -1141,12 +1149,11 @@ final class OrganizationsViewModel: ObservableObject {
         guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
         guard !pendingOrganizationLikeIDs.contains(organizationID) else { return }
         let shouldLike = organizations[index].likeState == .notLiked
-        let organization = organizations[index]
         let previousLikeState = organizations[index].likeState
-        let previousSubscriberCount = organizations[index].subscriberCount
+        let previousLikeCount = organizations[index].likeCount
 
         organizations[index].likeState = shouldLike ? .liked : .notLiked
-        organizations[index].subscriberCount = max(0, previousSubscriberCount + (shouldLike ? 1 : -1))
+        organizations[index].likeCount = max(0, previousLikeCount + (shouldLike ? 1 : -1))
 
         Task {
             pendingOrganizationLikeIDs.insert(organizationID)
@@ -1159,16 +1166,55 @@ final class OrganizationsViewModel: ObservableObject {
                     try await repository.unlikeOrganization(id: organizationID)
                 }
 
-                ActivityLogRecorder.recordOrganization(organization, actionType: shouldLike ? .followedOrganization : .unfollowedOrganization)
                 error = nil
                 AppContentChangeBus.postOrganizationsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 organizations[index].likeState = previousLikeState
-                organizations[index].subscriberCount = previousSubscriberCount
+                organizations[index].likeCount = previousLikeCount
                 error = appError
             } catch {
                 organizations[index].likeState = previousLikeState
+                organizations[index].likeCount = previousLikeCount
+                self.error = .unknown
+            }
+        }
+    }
+
+    func toggleSubscription(for organizationID: String) {
+        guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+        guard !pendingOrganizationSubscriptionIDs.contains(organizationID) else { return }
+        let shouldSubscribe = !organizations[index].isSubscribed
+        let organization = organizations[index]
+        let previousSubscriptionState = organizations[index].isSubscribed
+        let previousSubscriberCount = organizations[index].subscriberCount
+
+        pendingOrganizationSubscriptionIDs.insert(organizationID)
+        organizations[index].isSubscribed = shouldSubscribe
+        organizations[index].subscriberCount = max(0, previousSubscriberCount + (shouldSubscribe ? 1 : -1))
+        contentVersion &+= 1
+
+        Task {
+            defer { pendingOrganizationSubscriptionIDs.remove(organizationID) }
+
+            do {
+                if shouldSubscribe {
+                    try await repository.subscribeOrganization(id: organizationID)
+                } else {
+                    try await repository.unsubscribeOrganization(id: organizationID)
+                }
+
+                ActivityLogRecorder.recordOrganization(organization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
+                error = nil
+                AppContentChangeBus.postOrganizationsChanged(organizationID: organizationID)
+            } catch let appError as AppError {
+                organizations[index].isSubscribed = previousSubscriptionState
                 organizations[index].subscriberCount = previousSubscriberCount
+                contentVersion &+= 1
+                error = appError
+            } catch {
+                organizations[index].isSubscribed = previousSubscriptionState
+                organizations[index].subscriberCount = previousSubscriberCount
+                contentVersion &+= 1
                 self.error = .unknown
             }
         }
@@ -1211,6 +1257,71 @@ final class OrganizationsViewModel: ObservableObject {
         return organizations.first(where: { $0.id == organizationID })
     }
 
+    func comments(for organizationID: String) -> [Comment] {
+        organizationCommentsByID[organizationID] ?? []
+    }
+
+    func loadComments(for organizationID: String) async {
+        do {
+            organizationCommentsByID[organizationID] = try await repository.fetchOrganizationComments(organizationID: organizationID)
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func addComment(to organizationID: String, text: String, author: AppUser) async {
+        guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+        pendingOrganizationCommentIDs.insert(organizationID)
+        defer { pendingOrganizationCommentIDs.remove(organizationID) }
+
+        do {
+            let comment = try await repository.addOrganizationComment(organizationID: organizationID, text: text, author: author)
+            organizationCommentsByID[organizationID, default: []].append(comment)
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func updateComment(organizationID: String, commentID: String, text: String) async {
+        guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+        pendingOrganizationCommentIDs.insert(organizationID)
+        defer { pendingOrganizationCommentIDs.remove(organizationID) }
+
+        do {
+            let updated = try await repository.updateOrganizationComment(organizationID: organizationID, commentID: commentID, text: text)
+            if let index = organizationCommentsByID[organizationID]?.firstIndex(where: { $0.id == commentID }) {
+                organizationCommentsByID[organizationID]?[index] = updated
+            }
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func deleteComment(organizationID: String, commentID: String) async {
+        guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+        pendingOrganizationCommentIDs.insert(organizationID)
+        defer { pendingOrganizationCommentIDs.remove(organizationID) }
+
+        do {
+            try await repository.deleteOrganizationComment(organizationID: organizationID, commentID: commentID)
+            organizationCommentsByID[organizationID]?.removeAll { $0.id == commentID }
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
     var editorRepository: OrganizationRepository {
         repository
     }
@@ -1226,6 +1337,22 @@ final class OrganizationsViewModel: ObservableObject {
         }
 
         try await saveOrganization(organization, imageData: imageData, isEditing: false)
+    }
+
+    func loadOrganizationRequests(for user: AppUser?) async {
+        guard let user else {
+            organizationRequests = []
+            return
+        }
+
+        do {
+            organizationRequests = try await repository.fetchOrganizationRequests(submittedByUserID: user.id)
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
     }
 
     func updateOrganization(
@@ -1259,6 +1386,7 @@ final class OrganizationsViewModel: ObservableObject {
             try await repository.deleteOrganization(id: id)
             error = nil
             validationErrorMessage = nil
+            organizationRequests.removeAll { $0.id == id }
             AppContentChangeBus.postOrganizationsChanged(organizationID: id)
         } catch let appError as AppError {
             error = appError
@@ -1325,6 +1453,29 @@ final class OrganizationsViewModel: ObservableObject {
         }
 
         do {
+            if isEditing {
+                try await ensureOrganizationRequestIsStillEditable(organization)
+            }
+
+            if !isEditing && organization.moderationStatus != .approved {
+                try await repository.createOrganization(organization)
+                var organizationToInsert = organization
+
+                if let imageData {
+                    isUploadingOrganizationImage = true
+                    let uploadedURL = try await repository.uploadOrganizationImage(data: imageData, organizationID: organization.id)
+                    isUploadingOrganizationImage = false
+                    organizationToInsert = organization.settingOrganizationImageURL(uploadedURL.absoluteString)
+                    try await repository.updateOrganization(organizationToInsert)
+                }
+
+                organizationRequests.insert(organizationToInsert, at: 0)
+                contentVersion &+= 1
+                error = nil
+                AppContentChangeBus.postOrganizationsChanged(organizationID: organizationToInsert.id)
+                return
+            }
+
             let resolvedImageURL: String?
             if let imageData {
                 isUploadingOrganizationImage = true
@@ -1374,20 +1525,33 @@ final class OrganizationsViewModel: ObservableObject {
                 sourceType: organization.sourceType,
                 pinnedNewsId: organization.pinnedNewsId,
                 pinnedEventId: organization.pinnedEventId,
+                submittedByUserId: organization.submittedByUserId,
+                submittedByDisplayName: organization.submittedByDisplayName,
+                submittedAt: organization.submittedAt,
+                reviewMessage: organization.reviewMessage,
+                reviewedByUserId: organization.reviewedByUserId,
+                reviewedAt: organization.reviewedAt,
+                rejectionReason: organization.rejectionReason,
                 createdAt: organization.createdAt,
                 updatedAt: organization.updatedAt,
                 moderationStatus: organization.moderationStatus,
                 likeCount: organization.likeCount,
                 likeState: organization.likeState,
+                isSubscribed: organization.isSubscribed,
                 isBookmarked: organization.isBookmarked
             )
 
             if isEditing {
                 try await repository.updateOrganization(organizationToSave)
                 replaceOrganization(organizationToSave)
+                replaceOrganizationRequest(organizationToSave)
             } else {
                 try await repository.createOrganization(organizationToSave)
-                organizations.insert(organizationToSave, at: 0)
+                if organizationToSave.moderationStatus == .approved {
+                    organizations.insert(organizationToSave, at: 0)
+                } else {
+                    organizationRequests.insert(organizationToSave, at: 0)
+                }
             }
 
             contentVersion &+= 1
@@ -1403,9 +1567,111 @@ final class OrganizationsViewModel: ObservableObject {
         }
     }
 
+    private func ensureOrganizationRequestIsStillEditable(_ organization: Organization) async throws {
+        guard organization.submittedByUserId != nil else { return }
+        guard [.pendingReview, .needsRevision, .rejected].contains(organization.moderationStatus) else { return }
+
+        do {
+            let latest = try await repository.fetchOrganization(id: organization.id)
+            guard latest.submittedByUserId == organization.submittedByUserId,
+                  [.pendingReview, .needsRevision, .rejected].contains(latest.moderationStatus) else {
+                validationErrorMessage = AppStrings.Organizations.requestAlreadyReviewed
+                throw AppError.validationFailed
+            }
+        } catch AppError.notFound {
+            validationErrorMessage = AppStrings.Organizations.requestAlreadyReviewed
+            throw AppError.validationFailed
+        }
+    }
+
     private func replaceOrganization(_ organization: Organization) {
         guard let index = organizations.firstIndex(where: { $0.id == organization.id }) else { return }
         organizations[index] = organization
+    }
+
+    private func replaceOrganizationRequest(_ organization: Organization) {
+        guard let index = organizationRequests.firstIndex(where: { $0.id == organization.id }) else { return }
+        if organization.moderationStatus == .approved {
+            organizationRequests.remove(at: index)
+        } else {
+            organizationRequests[index] = organization
+        }
+    }
+
+    func approveOrganizationRequest(id: String, reviewerID: String) async throws {
+        try await repository.approveOrganizationRequest(id: id, reviewerID: reviewerID)
+        organizationRequests.removeAll { $0.id == id }
+        AppContentChangeBus.postOrganizationsChanged(organizationID: id)
+    }
+
+    func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
+        try await repository.requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
+        AppContentChangeBus.postOrganizationsChanged(organizationID: id)
+    }
+
+    func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
+        try await repository.rejectOrganizationRequest(id: id, reason: reason, reviewerID: reviewerID)
+        organizationRequests.removeAll { $0.id == id }
+        AppContentChangeBus.postOrganizationsChanged(organizationID: id)
+    }
+}
+
+private extension Organization {
+    func settingOrganizationImageURL(_ imageURL: String?) -> Organization {
+        Organization(
+            id: id,
+            name: name,
+            description: description,
+            shortDescription: shortDescription,
+            fullDescription: fullDescription,
+            regionScope: regionScope,
+            federalState: federalState,
+            city: city,
+            imageURL: imageURL,
+            logoURL: imageURL ?? logoURL,
+            coverURL: coverURL,
+            contactEmail: contactEmail,
+            email: email,
+            phone: phone,
+            website: website,
+            address: address,
+            latitude: latitude,
+            longitude: longitude,
+            organizationType: organizationType,
+            foundedYear: foundedYear,
+            foundedMonth: foundedMonth,
+            languages: languages,
+            socialLinks: socialLinks,
+            telegramURL: telegramURL,
+            donationURL: donationURL,
+            missionStatement: missionStatement,
+            contactPerson: contactPerson,
+            subscriberCount: subscriberCount,
+            eventsHeldCount: eventsHeldCount,
+            volunteersCount: volunteersCount,
+            helpedPeopleCount: helpedPeopleCount,
+            ownerId: ownerId,
+            adminIds: adminIds,
+            moderatorIds: moderatorIds,
+            isSystemManaged: isSystemManaged,
+            sourceType: sourceType,
+            pinnedNewsId: pinnedNewsId,
+            pinnedEventId: pinnedEventId,
+            submittedByUserId: submittedByUserId,
+            submittedByDisplayName: submittedByDisplayName,
+            submittedAt: submittedAt,
+            reviewMessage: reviewMessage,
+            reviewedByUserId: reviewedByUserId,
+            reviewedAt: reviewedAt,
+            rejectionReason: rejectionReason,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            moderationStatus: moderationStatus,
+            likeCount: likeCount,
+            likeState: likeState,
+            isSubscribed: isSubscribed,
+            isBookmarked: isBookmarked
+        )
     }
 }
 
@@ -1499,6 +1765,7 @@ final class ProfileViewModel: ObservableObject {
     @Published private(set) var error: AppError?
     @Published private(set) var isSavingProfile = false
     @Published private(set) var isSubmittingFeedback = false
+    @Published private(set) var isDeletingAccount = false
     @Published private(set) var isLoading = false
     @Published var profileMessage: String?
     @Published var feedbackMessage: String?
@@ -1552,6 +1819,7 @@ final class ProfileViewModel: ObservableObject {
         error = nil
         isSavingProfile = false
         isSubmittingFeedback = false
+        isDeletingAccount = false
         isLoading = false
         profileMessage = nil
         feedbackMessage = nil
@@ -1647,6 +1915,50 @@ final class ProfileViewModel: ObservableObject {
             self.error = .unknown
             feedbackMessage = AppStrings.Feedback.submitFailed
             return false
+        }
+    }
+
+    func deleteAccount(currentUser: AppUser) async -> String? {
+        guard !isDeletingAccount else { return nil }
+
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+
+        do {
+            try await repository.deleteAccount(currentUser: currentUser)
+            _ = AuthService.shared.signOut()
+            resetForAuthChange()
+            return nil
+        } catch let deletionError as AccountDeletionError {
+            switch deletionError {
+            case .platformOwner:
+                return AppStrings.Profile.deleteAccountPlatformOwnerBlocked
+            case .ownsOrganization:
+                return AppStrings.Profile.deleteAccountOrganizationOwnerBlocked
+            case .requiresRecentLogin:
+                return AppStrings.Profile.deleteAccountRequiresRecentLogin
+            case .stageFailed(let stage, let permissionDenied):
+                if permissionDenied {
+                    return AppStrings.Profile.deleteAccountPermissionFailed
+                }
+
+                switch stage {
+                case .privateDataCleanup,
+                        .interactionCleanup,
+                        .registrationCleanup,
+                        .avatarCleanup,
+                        .publicProfileDelete:
+                    return AppStrings.Profile.deleteAccountCleanupFailed
+                case .userDocumentDelete, .authUserDelete:
+                    return AppStrings.Profile.deleteAccountFailed
+                }
+            }
+        } catch let appError as AppError {
+            error = appError
+            return AppStrings.Profile.deleteAccountFailed
+        } catch {
+            self.error = .unknown
+            return AppStrings.Profile.deleteAccountFailed
         }
     }
 

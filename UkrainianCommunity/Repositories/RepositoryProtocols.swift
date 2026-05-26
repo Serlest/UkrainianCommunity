@@ -4,6 +4,7 @@ protocol UserRepository {
     func fetchCurrentUser() async throws -> AppUser
     func fetchSettings() async throws -> UserSettings
     func updateProfile(_ profile: EditableUserProfileDraft) async throws -> AppUser
+    func deleteAccount(currentUser: AppUser) async throws
 }
 
 protocol FeedbackRepository {
@@ -59,17 +60,29 @@ protocol OrganizationRepository {
     func fetchOrganizations() async throws -> [Organization]
     func fetchOrganization(id: String) async throws -> Organization
     func fetchPendingOrganizations() async throws -> [Organization]
+    func fetchOrganizationRequests(submittedByUserID: String) async throws -> [Organization]
     func createOrganization(_ organization: Organization) async throws
     func updateOrganization(_ organization: Organization) async throws
     func deleteOrganization(id: String) async throws
     func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL
     func likeOrganization(id: String) async throws
     func unlikeOrganization(id: String) async throws
+    func subscribeOrganization(id: String) async throws
+    func unsubscribeOrganization(id: String) async throws
+    func fetchOrganizationSubscriberPage(organizationID: String, limit: Int, after cursor: OrganizationSubscriberCursor?) async throws -> OrganizationSubscriberPage
+    func fetchPublicUserProfiles(userIDs: [String]) async throws -> [PublicUserProfile]
+    func fetchOrganizationComments(organizationID: String) async throws -> [Comment]
+    func addOrganizationComment(organizationID: String, text: String, author: AppUser) async throws -> Comment
+    func updateOrganizationComment(organizationID: String, commentID: String, text: String) async throws -> Comment
+    func deleteOrganizationComment(organizationID: String, commentID: String) async throws
     func bookmarkOrganization(id: String) async throws
     func unbookmarkOrganization(id: String) async throws
     func isOrganizationBookmarked(id: String) async throws -> Bool
     func fetchBookmarkedOrganizationIDs() async throws -> Set<String>
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
+    func approveOrganizationRequest(id: String, reviewerID: String) async throws
+    func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws
+    func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws
 }
 
 protocol OrganizationPhotoRepository {

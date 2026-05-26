@@ -114,36 +114,45 @@ enum AppTheme {
     static func glassSurface(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color(red: 0.108, green: 0.124, blue: 0.168).opacity(0.48)
+            Color(red: 0.112, green: 0.128, blue: 0.172).opacity(0.50)
         default:
-            Color.white.opacity(0.36)
+            Color.white.opacity(0.42)
         }
     }
 
     static func glassControlSurface(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color(red: 0.132, green: 0.152, blue: 0.198).opacity(0.54)
+            Color(red: 0.132, green: 0.152, blue: 0.198).opacity(0.58)
         default:
-            Color.white.opacity(0.44)
+            Color.white.opacity(0.50)
         }
     }
 
     static func groupedPlaneSurface(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color(red: 0.075, green: 0.090, blue: 0.128).opacity(0.36)
+            Color(red: 0.075, green: 0.090, blue: 0.128).opacity(0.42)
         default:
-            Color.white.opacity(0.16)
+            Color.white.opacity(0.24)
+        }
+    }
+
+    static func glassFallbackSurface(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .dark:
+            Color(red: 0.092, green: 0.108, blue: 0.148).opacity(0.96)
+        default:
+            Color.white.opacity(0.94)
         }
     }
 
     static func glassBorder(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color.white.opacity(0.075)
+            Color.white.opacity(0.11)
         default:
-            accentPrimary.opacity(0.075)
+            accentPrimary.opacity(0.09)
         }
     }
 

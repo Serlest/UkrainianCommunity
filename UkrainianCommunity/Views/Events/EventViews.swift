@@ -868,6 +868,10 @@ struct EventDetailView: View {
     @FocusState private var isCommentFieldFocused: Bool
     private let calendarWriter = EventCalendarWriter()
     private let commentsSectionID = "eventCommentsSection"
+    private let detailImageHeight: CGFloat = 220
+    private let detailCardPadding: CGFloat = 14
+    private let detailCardRadius: CGFloat = 18
+    private let detailSectionSpacing: CGFloat = 13
 
     init(
         viewModel: EventsViewModel,
@@ -912,49 +916,72 @@ struct EventDetailView: View {
         Group {
             if let event = viewModel.event(for: eventID) {
                 GeometryReader { proxy in
+                    let contentHorizontalPadding = AppTheme.pageHorizontal
+                    let contentWidth = max(proxy.size.width - (contentHorizontalPadding * 2), 0)
+
                     ScrollViewReader { scrollProxy in
                         ScrollView(.vertical, showsIndicators: true) {
-                            VStack(alignment: .leading, spacing: AppTheme.detailSectionSpacing) {
+                            VStack(alignment: .leading, spacing: detailSectionSpacing) {
                                 detailHeader
-                                    .padding(.top, AppTheme.dashboardSpacing)
 
-                                heroSection(for: event)
+                                articleHeader(for: event)
                                     .onTapGesture { isCommentFieldFocused = false }
+
                                 heroImageSection(for: event)
                                     .onTapGesture { isCommentFieldFocused = false }
-                                primaryActions(for: event)
+
+                                if !event.summary.isEmpty {
+                                    leadBlock(for: event)
+                                        .onTapGesture { isCommentFieldFocused = false }
+                                }
+
+                                eventScheduleCard(for: event)
                                     .onTapGesture { isCommentFieldFocused = false }
+
+                                primaryActionsCard(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+
                                 aboutCard(for: event)
                                     .onTapGesture { isCommentFieldFocused = false }
+
                                 organizerCard(for: event)
                                     .onTapGesture { isCommentFieldFocused = false }
-                                detailsCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
+
                                 locationCard(for: event)
                                     .onTapGesture { isCommentFieldFocused = false }
+
+                                detailsCard(for: event)
+                                    .onTapGesture { isCommentFieldFocused = false }
+
                                 similarEventsSection(for: event)
                                     .onTapGesture { isCommentFieldFocused = false }
+
                                 engagementCard(for: event, scrollProxy: scrollProxy)
+
                                 managementCard
                                     .onTapGesture { isCommentFieldFocused = false }
+
                                 commentsCard(for: event)
                                     .id(commentsSectionID)
                             }
-                            .padding(.horizontal, AppTheme.pageHorizontal)
-                            .padding(.bottom, AppTheme.homeBottomContentPadding + 40)
-                            .frame(width: proxy.size.width, alignment: .leading)
+                            .frame(width: contentWidth, alignment: .leading)
+                            .padding(.horizontal, contentHorizontalPadding)
+                            .padding(.bottom, AppTheme.homeBottomContentPadding + 160)
                         }
                         .frame(width: proxy.size.width)
                         .scrollDismissesKeyboard(.interactively)
+                        .refreshable {
+                            await refreshEventDetail()
+                        }
                     }
                 }
-                .background(AppBackgroundView())
-                .navigationBarBackButtonHidden(true)
-                .toolbar(.hidden, for: .navigationBar)
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .background(AppBackgroundView().allowsHitTesting(false))
+        .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog(AppStrings.Events.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.Events.delete, role: .destructive) {
                 Task {
@@ -1044,20 +1071,32 @@ struct EventDetailView: View {
         }
     }
 
+    private func refreshEventDetail() async {
+        await viewModel.refresh()
+        guard let event = viewModel.event(for: eventID) else { return }
+        await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
+        await viewModel.loadComments(for: eventID)
+    }
+
     private var detailHeader: some View {
         AppCenteredBrandHeader {
-            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+            detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                isCommentFieldFocused = false
                 dismiss()
             }
         } trailingContent: {
-            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                AppGlassIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
+            HStack(spacing: 10) {
+                detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
                     if let event = viewModel.event(for: eventID) {
                         sharePayload = EventSharePayload(event: event)
                     }
                 }
+
                 if let event = viewModel.event(for: eventID) {
-                    AppGlassIconButton(systemImage: event.isBookmarked ? "bookmark.fill" : "bookmark", accessibilityLabel: AppStrings.Action.save) {
+                    detailIconButton(
+                        systemImage: event.isBookmarked ? "bookmark.fill" : "bookmark",
+                        accessibilityLabel: AppStrings.Action.save
+                    ) {
                         handleBookmark(for: event)
                     }
                     .disabled(viewModel.pendingEventBookmarkIDs.contains(event.id))
@@ -1066,8 +1105,21 @@ struct EventDetailView: View {
         }
     }
 
-    private func heroSection(for event: Event) -> some View {
-        heroText(for: event)
+    private func detailIconButton(
+        systemImage: String,
+        accessibilityLabel: String,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        AppGlassIconButton(
+            systemImage: systemImage,
+            accessibilityLabel: accessibilityLabel,
+            role: role
+        ) {
+            action()
+        }
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -1077,56 +1129,87 @@ struct EventDetailView: View {
         }
     }
 
-    private func heroText(for event: Event) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-            AppInfoChip(
-                title: eventDetailCategoryTitle(for: event.category).uppercased(),
-                systemImage: event.category.systemImage,
-                tint: Color.purple,
-                fill: AppTheme.badgePurpleFill,
-                size: .small
-            )
-            .padding(.bottom, 6)
+    private func articleHeader(for event: Event) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            eventBadge(for: event)
 
             Text(event.title)
-                .font(.title.weight(.bold))
-                .foregroundStyle(AppTheme.textPrimary)
+                .font(.system(size: 28, weight: .bold, design: .default))
+                .foregroundStyle(AppTheme.accentPrimary)
                 .lineSpacing(1)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(event.summary)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 8) {
-                eventMetadataLine(systemImage: "calendar", text: LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .none))
-                eventMetadataLine(systemImage: "clock", text: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate))
-                eventMetadataLine(systemImage: "mappin.circle", text: eventLocationText(for: event))
-                eventMetadataLine(systemImage: "eye", text: eventViewCountText(for: event))
-            }
-            .padding(.top, 8)
+            metadataRow(for: event)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func eventBadge(for event: Event) -> some View {
+        Label {
+            Text(eventDetailCategoryTitle(for: event.category).uppercased())
+                .font(.caption2.weight(.bold))
+        } icon: {
+            Image(systemName: event.category.systemImage)
+                .font(.caption2.weight(.bold))
+        }
+        .foregroundStyle(.purple)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(AppTheme.badgePurpleFill, in: Capsule())
+    }
+
+    private func metadataRow(for event: Event) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) {
+                metadataItems(for: event)
+            }
+
+            VStack(alignment: .leading, spacing: 7) {
+                metadataItems(for: event)
+            }
+        }
+    }
+
+    private func metadataItems(for event: Event) -> some View {
+        Group {
+            detailMetadataItem(systemImage: "calendar", text: LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .none))
+            detailMetadataItem(systemImage: "clock", text: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate))
+            detailMetadataItem(systemImage: "eye", text: eventViewCountText(for: event))
+        }
+    }
+
+    private func detailMetadataItem(systemImage: String, text: String) -> some View {
+        Label {
+            Text(text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.semibold))
+                .frame(width: 15, height: 15)
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(AppTheme.accentPrimary.opacity(0.88))
     }
 
     private func eventHeroImage(imageURL: String, size: CGFloat?) -> some View {
         RemoteImageView(
             imageURL: imageURL,
-            height: size ?? AppTheme.detailHeroImageHeight,
+            height: size ?? detailImageHeight,
             cornerRadius: AppTheme.imageRadius,
             source: "EventDetailView",
             placeholderStyle: .glassSkeleton
         )
         .frame(width: size, height: size)
+        .frame(minHeight: size == nil ? detailImageHeight : nil, maxHeight: size == nil ? detailImageHeight : nil)
         .frame(maxWidth: size == nil ? .infinity : size)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.78))
         )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 12, y: 6)
+        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.55), radius: 8, y: 4)
     }
 
     private func eventImageURL(for event: Event) -> String? {
@@ -1153,37 +1236,62 @@ struct EventDetailView: View {
         }
     }
 
-    private func eventMetadataLine(systemImage: String, text: String) -> some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
-                .frame(width: 18, height: 18)
+    private func leadBlock(for event: Event) -> some View {
+        detailGlassCard(padding: 12) {
+            HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
+                Image(systemName: "info.circle")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: 24)
 
-            Text(text)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.86)
-                .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(AppStrings.Events.aboutSectionTitle)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppTheme.textPrimary)
+
+                    Text(event.summary)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 
-    private func primaryActions(for event: Event) -> some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            registrationButton(for: event)
-                .frame(maxWidth: .infinity)
+    private func eventScheduleCard(for event: Event) -> some View {
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppStrings.Events.detailsSectionTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
 
-            eventActionButton(
-                title: AppStrings.Events.addToCalendar,
-                systemImage: calendarEventIDs.contains(event.id) ? "checkmark.circle.fill" : "calendar.badge.plus",
-                isDisabled: isAddingToCalendar
-            ) {
-                addToCalendar(event)
+                EventDetailRow(systemImage: "calendar", title: AppStrings.Events.fieldStartDate, value: LocalizationStore.dateString(from: event.startDate, dateStyle: .full, timeStyle: .none))
+                EventDetailRow(systemImage: "clock", title: AppStrings.Events.startTime, value: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate))
+
+                if Calendar.current.startOfDay(for: event.endDate) != Calendar.current.startOfDay(for: event.startDate) {
+                    EventDetailRow(systemImage: "calendar.badge.clock", title: AppStrings.Events.fieldEndDate, value: LocalizationStore.dateString(from: event.endDate, dateStyle: .full, timeStyle: .short))
+                }
             }
-            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private func primaryActionsCard(for event: Event) -> some View {
+        detailGlassCard(padding: 9) {
+            HStack(spacing: 12) {
+                registrationButton(for: event)
+                    .frame(maxWidth: .infinity)
+
+                eventActionButton(
+                    title: AppStrings.Events.addToCalendar,
+                    systemImage: calendarEventIDs.contains(event.id) ? "checkmark.circle.fill" : "calendar.badge.plus",
+                    isDisabled: isAddingToCalendar
+                ) {
+                    addToCalendar(event)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
     }
 
     private func eventActionButton(title: String, systemImage: String, isDisabled: Bool = false, action: @escaping () -> Void = {}) -> some View {
@@ -1208,7 +1316,7 @@ struct EventDetailView: View {
     }
 
     private func engagementCard(for event: Event, scrollProxy: ScrollViewProxy) -> some View {
-        SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
+        detailGlassCard(padding: 9) {
             HStack(spacing: 12) {
                 eventMetricButton(
                     systemImage: event.likeState.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup",
@@ -1231,6 +1339,8 @@ struct EventDetailView: View {
                 }
 
                 Spacer(minLength: 0)
+
+                publisherLine(for: event)
             }
         }
     }
@@ -1272,6 +1382,16 @@ struct EventDetailView: View {
         .accessibilityValue("\(count)")
     }
 
+    private func publisherLine(for event: Event) -> some View {
+        Label(eventPublisherText(for: event), systemImage: "person.crop.circle")
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .frame(maxWidth: 190, alignment: .trailing)
+            .accessibilityLabel(eventPublisherText(for: event))
+    }
+
     @ViewBuilder
     private func infoCard(for event: Event) -> some View {
         if let capacity = event.capacity ?? (event.registeredCount > 0 ? event.registeredCount : nil) {
@@ -1296,14 +1416,16 @@ struct EventDetailView: View {
     }
 
     private func aboutCard(for event: Event) -> some View {
-        SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
-            VStack(alignment: .leading, spacing: AppTheme.detailInnerSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.aboutSectionTitle)
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppStrings.Events.aboutSectionTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
 
                 Text(event.details)
-                    .font(AppTheme.detailBodyFont)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .lineSpacing(AppTheme.detailBodyLineSpacing)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1311,9 +1433,11 @@ struct EventDetailView: View {
 
     @ViewBuilder
     private func organizerCard(for event: Event) -> some View {
-        SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
-            VStack(alignment: .leading, spacing: AppTheme.detailInnerSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.detailOrganizerSectionTitle)
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppStrings.Events.detailOrganizerSectionTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
 
                 HStack(spacing: AppTheme.dashboardSpacing) {
                     AppFeedThumbnail(
@@ -1353,9 +1477,11 @@ struct EventDetailView: View {
     }
 
     private func detailsCard(for event: Event) -> some View {
-        SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
-            VStack(alignment: .leading, spacing: AppTheme.detailInnerSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.detailsSectionTitle)
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppStrings.Events.detailsSectionTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
                 EventDetailRow(systemImage: "tag", title: AppStrings.Events.priceTitle, value: eventPriceText(for: event))
                 EventDetailRow(systemImage: "person.2", title: AppStrings.Events.expectedParticipants, value: eventParticipantsText(for: event))
                 EventDetailRow(systemImage: "calendar", title: AppStrings.Events.addedDate, value: LocalizationStore.dateString(from: event.createdAt, dateStyle: .medium, timeStyle: .none))
@@ -1364,9 +1490,11 @@ struct EventDetailView: View {
     }
 
     private func locationCard(for event: Event) -> some View {
-        SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
+        detailGlassCard(padding: detailCardPadding) {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Events.locationSectionTitle)
+                Text(AppStrings.Events.locationSectionTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
 
                 if let coordinate = eventCoordinate(for: event) {
                     ViewThatFits(in: .horizontal) {
@@ -1518,9 +1646,11 @@ struct EventDetailView: View {
     }
 
     private func commentsCard(for event: Event) -> some View {
-        SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
-            VStack(alignment: .leading, spacing: AppTheme.detailInnerSpacing) {
-                AppEditorSectionTitle(title: AppStrings.Common.comments)
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppStrings.Common.comments)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
 
                 eventCommentComposer(eventID: event.id)
 
@@ -1644,8 +1774,8 @@ struct EventDetailView: View {
     @ViewBuilder
     private var managementCard: some View {
         if let event = viewModel.event(for: eventID), canEditEvent(event) || canDeleteEvent(event) {
-            SoftContentCard(padding: AppTheme.detailCompactCardPadding) {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+            detailGlassCard(padding: 9) {
+                HStack(spacing: AppTheme.eventsControlGroupSpacing) {
                     if canEditEvent(event) {
                         eventManagementButton(title: AppStrings.Action.edit, systemImage: "pencil") {
                             isShowingEditSheet = true
@@ -1665,15 +1795,16 @@ struct EventDetailView: View {
 
     private func eventManagementButton(title: String, systemImage: String, role: ButtonRole? = nil, action: @escaping () -> Void) -> some View {
         Button(role: role, action: action) {
-            DetailActionRow {
-                Label(title, systemImage: systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.textPrimary)
-            } trailingContent: {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
+            Label(title, systemImage: systemImage)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 40)
+                .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+                )
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -1869,6 +2000,22 @@ struct EventDetailView: View {
         }
     }
 
+    private func detailGlassCard<Content: View>(padding: CGFloat = 14, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appGlassCard(
+            cornerRadius: detailCardRadius,
+            material: .ultraThinMaterial,
+            surface: AppTheme.glassSurface(for: colorScheme),
+            borderOpacity: 0.62,
+            shadowRadius: 8,
+            shadowY: 4
+        )
+    }
+
     private func eventParticipantsText(for event: Event) -> String {
         if let capacity = event.capacity {
             "\(event.registeredCount) / \(capacity)"
@@ -1894,7 +2041,7 @@ struct EventDetailView: View {
 
     private func eventPriceText(for event: Event) -> String {
         guard event.price > 0 else {
-            return "Безкоштовно"
+            return AppStrings.Events.freePrice
         }
 
         if event.price.rounded(.down) == event.price {
@@ -1909,7 +2056,7 @@ struct EventDetailView: View {
     }
 
     private func eventViewCountText(for event: Event) -> String {
-        "\(event.viewCount) переглядів"
+        AppStrings.Events.viewCount(event.viewCount)
     }
 
     private func canManageEvent(_ event: Event) -> Bool {

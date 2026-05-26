@@ -120,6 +120,7 @@ struct ContentSourceMetadata: Codable, Equatable {
 enum CommentParentType: String, Codable {
     case news
     case event
+    case organization
 }
 
 struct Comment: Identifiable, Codable {
@@ -478,11 +479,19 @@ struct Organization: Identifiable, Codable {
     let sourceType: ContentSourceType?
     let pinnedNewsId: String?
     let pinnedEventId: String?
+    let submittedByUserId: String?
+    let submittedByDisplayName: String?
+    let submittedAt: Date?
+    let reviewMessage: String?
+    let reviewedByUserId: String?
+    let reviewedAt: Date?
+    let rejectionReason: String?
     let createdAt: Date
     let updatedAt: Date
     var moderationStatus: ModerationStatus
     var likeCount: Int
     var likeState: LikeState
+    var isSubscribed: Bool
     var isBookmarked: Bool
 
     nonisolated init(
@@ -524,11 +533,19 @@ struct Organization: Identifiable, Codable {
         sourceType: ContentSourceType? = nil,
         pinnedNewsId: String? = nil,
         pinnedEventId: String? = nil,
+        submittedByUserId: String? = nil,
+        submittedByDisplayName: String? = nil,
+        submittedAt: Date? = nil,
+        reviewMessage: String? = nil,
+        reviewedByUserId: String? = nil,
+        reviewedAt: Date? = nil,
+        rejectionReason: String? = nil,
         createdAt: Date,
         updatedAt: Date,
         moderationStatus: ModerationStatus,
         likeCount: Int,
         likeState: LikeState,
+        isSubscribed: Bool = false,
         isBookmarked: Bool = false
     ) {
         self.id = id
@@ -569,11 +586,19 @@ struct Organization: Identifiable, Codable {
         self.sourceType = sourceType
         self.pinnedNewsId = Self.normalizedOptionalString(pinnedNewsId)
         self.pinnedEventId = Self.normalizedOptionalString(pinnedEventId)
+        self.submittedByUserId = Self.normalizedOptionalString(submittedByUserId)
+        self.submittedByDisplayName = Self.normalizedOptionalString(submittedByDisplayName)
+        self.submittedAt = submittedAt
+        self.reviewMessage = Self.normalizedOptionalString(reviewMessage)
+        self.reviewedByUserId = Self.normalizedOptionalString(reviewedByUserId)
+        self.reviewedAt = reviewedAt
+        self.rejectionReason = Self.normalizedOptionalString(rejectionReason)
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.moderationStatus = moderationStatus
         self.likeCount = likeCount
         self.likeState = likeState
+        self.isSubscribed = isSubscribed
         self.isBookmarked = isBookmarked
     }
 
@@ -593,9 +618,29 @@ extension Organization {
     }
 }
 
+struct OrganizationSubscriberReference: Identifiable, Hashable {
+    let userID: String
+    let followedAt: Date?
+    let documentID: String
+
+    var id: String { userID }
+}
+
+struct OrganizationSubscriberCursor: Hashable {
+    let followedAt: Date
+    let documentID: String
+}
+
+struct OrganizationSubscriberPage: Hashable {
+    let items: [OrganizationSubscriberReference]
+    let nextCursor: OrganizationSubscriberCursor?
+    let hasMore: Bool
+}
+
 enum ModerationStatus: String, Codable {
     case draft
     case pendingReview
+    case needsRevision
     case approved
     case rejected
     case archived
@@ -606,6 +651,8 @@ enum ModerationStatus: String, Codable {
             AppStrings.Common.draft
         case .pendingReview:
             AppStrings.Common.pendingReview
+        case .needsRevision:
+            AppStrings.Common.needsRevision
         case .approved:
             AppStrings.Common.approved
         case .rejected:

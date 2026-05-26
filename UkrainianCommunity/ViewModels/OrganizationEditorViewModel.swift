@@ -138,8 +138,11 @@ final class OrganizationEditorViewModel: ObservableObject {
         return nil
     }
 
-    var submitButtonTitle: String {
-        mode.isEditing ? AppStrings.Organizations.saveChanges : AppStrings.Organizations.publish
+    func submitButtonTitle(for user: AppUser?) -> String {
+        if mode.isEditing {
+            return shouldResubmitRequest(user: user) ? AppStrings.Organizations.resubmitRequest : AppStrings.Organizations.saveChanges
+        }
+        return isPlatformOwner(user) ? AppStrings.Organizations.publish : AppStrings.Organizations.submitRequest
     }
 
     var canSubmit: Bool {
@@ -182,6 +185,7 @@ final class OrganizationEditorViewModel: ObservableObject {
         switch mode {
         case .create:
             let legacyImageURL: String? = nil
+            let isOwnerCreate = isPlatformOwner(user)
             organization = Organization(
                 id: UUID().uuidString,
                 name: trimmedName,
@@ -208,13 +212,17 @@ final class OrganizationEditorViewModel: ObservableObject {
                 donationURL: normalizedDonationURL.nilIfEmpty,
                 missionStatement: trimmedMissionStatement.nilIfEmpty,
                 contactPerson: trimmedContactPerson.nilIfEmpty,
+                submittedByUserId: isOwnerCreate ? nil : user?.id,
+                submittedByDisplayName: isOwnerCreate ? nil : displayName(for: user),
+                submittedAt: isOwnerCreate ? nil : now,
                 createdAt: now,
                 updatedAt: now,
-                moderationStatus: .approved,
+                moderationStatus: isOwnerCreate ? .approved : .pendingReview,
                 likeCount: 0,
                 likeState: .notLiked
             )
         case let .edit(existing):
+            let shouldResubmit = shouldResubmitRequest(user: user)
             organization = Organization(
                 id: existing.id,
                 name: trimmedName,
@@ -252,11 +260,19 @@ final class OrganizationEditorViewModel: ObservableObject {
                 moderatorIds: existing.moderatorIds,
                 pinnedNewsId: existing.pinnedNewsId,
                 pinnedEventId: existing.pinnedEventId,
+                submittedByUserId: existing.submittedByUserId,
+                submittedByDisplayName: existing.submittedByDisplayName,
+                submittedAt: shouldResubmit ? now : existing.submittedAt,
+                reviewMessage: shouldResubmit ? nil : existing.reviewMessage,
+                reviewedByUserId: existing.reviewedByUserId,
+                reviewedAt: existing.reviewedAt,
+                rejectionReason: shouldResubmit ? nil : existing.rejectionReason,
                 createdAt: existing.createdAt,
                 updatedAt: now,
-                moderationStatus: existing.moderationStatus,
+                moderationStatus: shouldResubmit ? .pendingReview : existing.moderationStatus,
                 likeCount: existing.likeCount,
                 likeState: existing.likeState,
+                isSubscribed: existing.isSubscribed,
                 isBookmarked: existing.isBookmarked
             )
         }
@@ -269,7 +285,9 @@ final class OrganizationEditorViewModel: ObservableObject {
                     imageData: selectedImageData,
                     user: user
                 )
-                successMessage = AppStrings.Organizations.publishedSuccessfully
+                successMessage = isPlatformOwner(user)
+                    ? AppStrings.Organizations.publishedSuccessfully
+                    : AppStrings.Organizations.requestSubmittedSuccessfully
                 resetForm()
             case .edit:
                 try await organizationsViewModel.updateOrganization(
@@ -434,6 +452,24 @@ final class OrganizationEditorViewModel: ObservableObject {
     private func readableErrorMessage(for error: Error) -> String {
         let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return message.isEmpty ? AppStrings.Organizations.actionUnknownError : message
+    }
+
+    private func isPlatformOwner(_ user: AppUser?) -> Bool {
+        user?.globalRole.effectiveRole == .owner
+    }
+
+    private func shouldResubmitRequest(user: AppUser?) -> Bool {
+        guard case let .edit(existing) = mode else { return false }
+        guard existing.submittedByUserId == user?.id else { return false }
+        return existing.moderationStatus == .needsRevision || existing.moderationStatus == .rejected
+    }
+
+    private func displayName(for user: AppUser?) -> String? {
+        guard let user else { return nil }
+        let displayName = user.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !displayName.isEmpty { return displayName }
+        let fullName = user.fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return fullName.isEmpty ? user.email : fullName
     }
 
     private static func socialLinksText(from links: [String: String]) -> String {

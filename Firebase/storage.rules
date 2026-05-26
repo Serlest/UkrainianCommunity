@@ -42,10 +42,14 @@ service firebase.storage {
       return canModerateSection(section);
     }
 
+    function organizationExists(organizationId) {
+      return organizationId is string
+        && firestore.exists(/databases/(default)/documents/organizations/$(organizationId));
+    }
+
     function existsOrganization(organizationId) {
       return isSignedIn()
-        && organizationId is string
-        && firestore.exists(/databases/(default)/documents/organizations/$(organizationId));
+        && organizationExists(organizationId);
     }
 
     function organizationData(organizationId) {
@@ -70,6 +74,13 @@ service firebase.storage {
         && organizationData(organizationId).moderatorIds.hasAny([request.auth.uid]);
     }
 
+    function isOrganizationRequestCreator(organizationId) {
+      return existsOrganization(organizationId)
+        && ('submittedByUserId' in organizationData(organizationId))
+        && organizationData(organizationId).submittedByUserId == request.auth.uid
+        && organizationData(organizationId).moderationStatus in ['pendingReview', 'needsRevision', 'rejected'];
+    }
+
     function canEditOrganizationContent(organizationId) {
       return isOwner()
         || isOrganizationOwner(organizationId)
@@ -80,6 +91,18 @@ service firebase.storage {
       return isOwner()
         || canEditOrganizationContent(organizationId)
         || isOrganizationModerator(organizationId);
+    }
+
+    function canReadOrganizationMedia(organizationId) {
+      return organizationExists(organizationId)
+        && (
+          organizationData(organizationId).moderationStatus == 'approved'
+          || isOwner()
+          || isOrganizationRequestCreator(organizationId)
+          || isOrganizationOwner(organizationId)
+          || isOrganizationAdmin(organizationId)
+          || isOrganizationModerator(organizationId)
+        );
     }
 
     function isSafeImageUpload() {
@@ -135,13 +158,14 @@ service firebase.storage {
     }
 
     match /organizations/{organizationId}/cover.jpg {
-      allow read: if true;
+      allow read: if canReadOrganizationMedia(organizationId);
       allow write: if canManageContentImages('organizations')
-        || canEditOrganizationContent(organizationId);
+        || canEditOrganizationContent(organizationId)
+        || isOrganizationRequestCreator(organizationId);
     }
 
     match /organizations/{organizationId}/photos/{fileName} {
-      allow read: if true;
+      allow read: if canReadOrganizationMedia(organizationId);
       allow create: if canManageOrganizationPhotos(organizationId)
         && fileName.matches('^.+\\.jpg$')
         && isSafeImageUpload();
@@ -161,8 +185,8 @@ service firebase.storage {
         && isSafeImageUpload();
     }
 
-    match /organizations/{filePath=**} {
-      allow read: if true;
+    match /organizations/{organizationId}/{filePath=**} {
+      allow read: if canReadOrganizationMedia(organizationId);
       allow write: if false;
     }
 

@@ -240,7 +240,7 @@ struct HomeView: View {
     }
 
     private var subscribedOrganizationIDs: Set<String> {
-        Set(organizationsViewModel.organizations.filter(\.likeState.isLiked).map(\.id))
+        Set(organizationsViewModel.organizations.filter(\.isSubscribed).map(\.id))
     }
 
     private func toggleFeedFilter(_ filter: HomeFeedFilter) {
@@ -464,7 +464,7 @@ private struct HomeFeedCard: View {
 
     var body: some View {
         SoftContentCard(padding: AppTheme.homeFeedCardPadding) {
-            HStack(alignment: cardVerticalAlignment, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 leadingMedia
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -531,11 +531,7 @@ private struct HomeFeedCard: View {
             size: thumbnailSize,
             source: "HomeFeedCard"
         )
-        .frame(width: thumbnailSize, alignment: .top)
-    }
-
-    private var cardVerticalAlignment: VerticalAlignment {
-        item.itemType == .event ? .center : .top
+        .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
     }
 
     private var typeChip: some View {
@@ -567,7 +563,7 @@ private struct HomeFeedCard: View {
                     HomeEventDateBadge(date: eventStartDate)
                     Spacer(minLength: 0)
                 }
-                .frame(minHeight: AppTheme.feedThumbnailSize + 12, alignment: .center)
+                .frame(minHeight: thumbnailSize + 12, alignment: .center)
             }
         }
     }
@@ -638,7 +634,7 @@ private struct HomeFeedCard: View {
     }
 
     private var thumbnailSize: CGFloat {
-        item.itemType == .event ? AppTheme.feedThumbnailSize + 2 : AppTheme.feedThumbnailSize + 8
+        AppTheme.feedThumbnailSize + 14
     }
 
     private var shouldShowPreview: Bool {
@@ -713,11 +709,11 @@ private struct HomeFeedCard: View {
         let suffix: String
 
         if mod10 == 1 && mod100 != 11 {
-            suffix = "підписник"
+            suffix = AppStrings.Home.subscriberSuffixOne
         } else if (2...4).contains(mod10) && !(12...14).contains(mod100) {
-            suffix = "підписники"
+            suffix = AppStrings.Home.subscriberSuffixFew
         } else {
-            suffix = "підписників"
+            suffix = AppStrings.Home.subscriberSuffixMany
         }
 
         return "\(count) \(suffix)"

@@ -211,18 +211,26 @@ struct OrganizationDTO: Codable, Identifiable {
     let sourceType: String?
     let pinnedNewsId: String?
     let pinnedEventId: String?
+    let submittedByUserId: String?
+    let submittedByDisplayName: String?
+    let submittedAt: Date?
+    let reviewMessage: String?
+    let reviewedByUserId: String?
+    let reviewedAt: Date?
+    let rejectionReason: String?
     let createdAt: Date
     let updatedAt: Date
     let moderationStatus: String
     let likeCount: Int
     let likeState: String
+    let isSubscribed: Bool
     let isBookmarked: Bool
 }
 
 extension AppUser {
     init(dto: UserDTO) {
         let legacyRole = UserRole(rawValue: dto.role ?? "") ?? .user
-        let resolvedGlobalRole = (dto.globalRole.flatMap(GlobalRole.init(rawValue:)) ?? GlobalRole(legacyRole: legacyRole)).effectiveRole
+        let resolvedGlobalRole = (dto.globalRole.flatMap(GlobalRole.init(rawValue:)) ?? .user).effectiveRole
         let resolvedBlockState = UserBlockState(rawValue: dto.blockState) ?? .active
         let resolvedAccountStatus = dto.accountStatus.flatMap(AccountStatus.init(rawValue:))
             ?? (resolvedBlockState.isRestricted ? .suspendedUntil : .active)
@@ -547,11 +555,19 @@ extension Organization {
             sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)),
             pinnedNewsId: dto.pinnedNewsId,
             pinnedEventId: dto.pinnedEventId,
+            submittedByUserId: dto.submittedByUserId,
+            submittedByDisplayName: dto.submittedByDisplayName,
+            submittedAt: dto.submittedAt,
+            reviewMessage: dto.reviewMessage,
+            reviewedByUserId: dto.reviewedByUserId,
+            reviewedAt: dto.reviewedAt,
+            rejectionReason: dto.rejectionReason,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
             moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
             likeCount: dto.likeCount,
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
+            isSubscribed: dto.isSubscribed,
             isBookmarked: dto.isBookmarked
         )
     }
@@ -596,11 +612,19 @@ extension Organization {
             sourceType: sourceType?.rawValue,
             pinnedNewsId: pinnedNewsId,
             pinnedEventId: pinnedEventId,
+            submittedByUserId: submittedByUserId,
+            submittedByDisplayName: submittedByDisplayName,
+            submittedAt: submittedAt,
+            reviewMessage: reviewMessage,
+            reviewedByUserId: reviewedByUserId,
+            reviewedAt: reviewedAt,
+            rejectionReason: rejectionReason,
             createdAt: createdAt,
             updatedAt: updatedAt,
             moderationStatus: moderationStatus.rawValue,
             likeCount: likeCount,
             likeState: likeState.rawValue,
+            isSubscribed: isSubscribed,
             isBookmarked: isBookmarked
         )
     }

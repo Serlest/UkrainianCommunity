@@ -165,6 +165,10 @@ struct PermissionService {
         case .owner:
             return true
         case .user, .topAdmin, .appModerator:
+            if organization.submittedByUserId == user.id
+                && (organization.moderationStatus == .pendingReview || organization.moderationStatus == .needsRevision) {
+                return true
+            }
             return isOrganizationOwner(organization, user: user)
                 || isOrganizationAdmin(organization, user: user)
         }
@@ -347,7 +351,7 @@ struct PermissionService {
 
     static func canCreateOrganization(user: AppUser?) -> Bool {
         guard let user else { return false }
-        return user.globalRole.effectiveRole == .owner
+        return hasUsableAccount(user)
     }
 
     static func canManageGuide(user: AppUser?) -> Bool {

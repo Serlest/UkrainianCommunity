@@ -17,21 +17,21 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .all:
-            "Усі"
+            AppStrings.UserManagement.filterAll
         case .active:
-            "Активні"
+            AppStrings.UserManagement.filterActive
         case .warned:
-            "Попередження"
+            AppStrings.UserManagement.filterWarned
         case .suspended:
-            "Тимчасово заблоковані"
+            AppStrings.UserManagement.filterSuspended
         case .banned:
-            "Заблоковані"
+            AppStrings.UserManagement.filterBanned
         case .organizationOwners:
-            "Власники організацій"
+            AppStrings.UserManagement.filterOrganizationOwners
         case .organizationAdmins:
-            "Адміни організацій"
+            AppStrings.UserManagement.filterOrganizationAdmins
         case .organizationModerators:
-            "Модератори організацій"
+            AppStrings.UserManagement.filterOrganizationModerators
         }
     }
 
@@ -88,15 +88,15 @@ private enum UserAdminAction: String {
     var title: String {
         switch self {
         case .warningIssued:
-            "Видати попередження"
+            AppStrings.UserManagement.actionWarn
         case .suspended:
-            "Тимчасово заблокувати"
+            AppStrings.UserManagement.actionSuspend
         case .banned:
-            "Заблокувати назавжди"
+            AppStrings.UserManagement.actionBan
         case .unblocked:
-            "Зняти блокування"
+            AppStrings.UserManagement.actionUnblock
         case .deactivated:
-            "Деактивувати користувача"
+            AppStrings.UserManagement.actionDeactivate
         }
     }
 
@@ -274,6 +274,11 @@ private final class UserManagementViewModel: ObservableObject {
             return
         }
 
+        if role == .communityOwner {
+            await changeOwner(in: organization, to: target, actor: actor, reason: reason)
+            return
+        }
+
         guard role != .member else { return }
 
         await updateUser(target, actor: actor) {
@@ -284,6 +289,27 @@ private final class UserManagementViewModel: ObservableObject {
                 actor: actor,
                 reason: reason,
                 isRemoval: false
+            )
+        }
+    }
+
+    func changeOwner(in organization: ManagedOrganization, to target: AppUser, actor: AppUser, reason: String) async {
+        guard canManage(target: target, actor: actor), isOwner(actor) else {
+            statusMessage = AppStrings.UserManagement.ownerChangePermissionDenied
+            return
+        }
+
+        guard organization.ownerId != target.id else {
+            statusMessage = AppStrings.UserManagement.ownerChangeSelectNewOwner
+            return
+        }
+
+        await updateUser(target, actor: actor) {
+            try await updateOrganizationOwner(
+                organization: organization,
+                newOwner: target,
+                actor: actor,
+                reason: reason
             )
         }
     }
@@ -426,6 +452,67 @@ private final class UserManagementViewModel: ObservableObject {
         }
     }
 
+    private func updateOrganizationOwner(
+        organization: ManagedOrganization,
+        newOwner: AppUser,
+        actor: AppUser,
+        reason: String
+    ) async throws {
+        let organizationReference = organizationsCollection.document(organization.id)
+        let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalReason = trimmedReason.isEmpty ? "Organization owner changed" : trimmedReason
+
+        _ = try await db.runTransaction { transaction, errorPointer in
+            do {
+                let organizationSnapshot = try transaction.getDocument(organizationReference)
+                guard let organizationData = organizationSnapshot.data() else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let currentOwnerId = organizationData["ownerId"] as? String
+                let currentAdminIds = organizationData["adminIds"] as? [String] ?? []
+                let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
+                let oldOwnerId = currentOwnerId ?? ""
+
+                guard actor.globalRole.effectiveRole == .owner,
+                      !newOwner.id.isEmpty,
+                      currentOwnerId != newOwner.id else {
+                    errorPointer?.pointee = AppError.permissionDenied.asNSError
+                    return nil
+                }
+
+                transaction.updateData([
+                    "ownerId": newOwner.id,
+                    "adminIds": currentAdminIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
+                    "moderatorIds": currentModeratorIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
+                    "updatedAt": FieldValue.serverTimestamp()
+                ], forDocument: organizationReference)
+
+                transaction.setData([
+                    "actionType": "organizationOwnerChanged",
+                    "targetUserId": newOwner.id,
+                    "performedBy": actor.id,
+                    "createdAt": FieldValue.serverTimestamp(),
+                    "reason": finalReason,
+                    "note": NSNull(),
+                    "previousValue": [
+                        "organizationId": organization.id,
+                        "ownerId": currentOwnerId ?? "none"
+                    ],
+                    "newValue": [
+                        "organizationId": organization.id,
+                        "ownerId": newOwner.id
+                    ]
+                ], forDocument: self.auditCollection.document())
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+
+            return nil
+        }
+    }
+
     private func writeAuditLog(
         actionType: String,
         targetUserId: String,
@@ -557,7 +644,6 @@ struct UserManagementView: View {
         .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.UserManagement.title)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -573,7 +659,7 @@ struct UserManagementView: View {
         .refreshable {
             await viewModel.refresh(actor: actor)
         }
-        .alert("Керування користувачами", isPresented: Binding(
+        .alert(AppStrings.UserManagement.title, isPresented: Binding(
             get: { viewModel.statusMessage != nil },
             set: { if !$0 { viewModel.statusMessage = nil } }
         )) {
@@ -767,7 +853,7 @@ private struct ManagedUserRow: View {
                         }
 
                         if organizationRoles.count > 1 {
-                            UserStatusBadge(title: "\(organizationRoles.count) орг.", tint: AppTheme.accentPrimary)
+                            UserStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimary)
                         }
                     }
                 }
@@ -800,9 +886,9 @@ private struct ManagedUserRow: View {
     }
 
     private var primaryOrganizationRole: String? {
-        if organizationRoles.contains(where: { $0.role == .communityOwner }) { return "Власник організації" }
-        if organizationRoles.contains(where: { $0.role == .communityAdmin }) { return "Адмін організації" }
-        if organizationRoles.contains(where: { $0.role == .communityModerator }) { return "Модератор організації" }
+        if organizationRoles.contains(where: { $0.role == .communityOwner }) { return AppStrings.UserManagement.organizationOwnerRole }
+        if organizationRoles.contains(where: { $0.role == .communityAdmin }) { return AppStrings.UserManagement.organizationAdminRole }
+        if organizationRoles.contains(where: { $0.role == .communityModerator }) { return AppStrings.UserManagement.organizationModeratorRole }
         return nil
     }
 }
@@ -857,7 +943,13 @@ private struct UserDetailView: View {
     private var canAssignSelectedOrganizationRole: Bool {
         guard let selectedOrganization else { return false }
         let query = organizationSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return query.isEmpty || filteredOrganizations.contains { $0.id == selectedOrganization.id }
+        guard query.isEmpty || filteredOrganizations.contains(where: { $0.id == selectedOrganization.id }) else {
+            return false
+        }
+        if selectedRole == .communityOwner {
+            return selectedOrganization.ownerId != user.id
+        }
+        return true
     }
 
     private var assignableRoles: [CommunityRole] {
@@ -905,6 +997,11 @@ private struct UserDetailView: View {
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
             .scrollDismissesKeyboard(.interactively)
+            .refreshable {
+                await viewModel.refresh(actor: actor)
+                ensureSelectedOrganization()
+                ensureSelectedRole()
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -912,7 +1009,6 @@ private struct UserDetailView: View {
         }
         .navigationTitle(user.preferredDisplayName)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -941,7 +1037,7 @@ private struct UserDetailView: View {
             ensureSelectedRole()
         }
         .confirmationDialog(
-            pendingAction?.title ?? "Дія",
+            pendingAction?.title ?? AppStrings.UserManagement.actionFallbackTitle,
             isPresented: Binding(
                 get: { pendingAction != nil },
                 set: { if !$0 { pendingAction = nil } }
@@ -958,10 +1054,10 @@ private struct UserDetailView: View {
             }
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
-            Text("Дія буде записана в audit log. За потреби вкажіть причину в полі нижче перед підтвердженням.")
+            Text(AppStrings.UserManagement.actionAuditNotice)
         }
         .confirmationDialog(
-            "Зняти роль в організації?",
+            AppStrings.UserManagement.removeOrganizationRoleTitle,
             isPresented: Binding(
                 get: { pendingRoleRemoval != nil },
                 set: { if !$0 { pendingRoleRemoval = nil } }
@@ -969,7 +1065,7 @@ private struct UserDetailView: View {
             titleVisibility: .visible
         ) {
             if let pendingRoleRemoval {
-                Button("Зняти роль", role: .destructive) {
+                Button(AppStrings.UserManagement.removeOrganizationRoleButton, role: .destructive) {
                     guard let actor else { return }
                     let currentUser = user
                     Task { await viewModel.removeRole(in: pendingRoleRemoval, from: currentUser, actor: actor, reason: reason) }
@@ -978,7 +1074,7 @@ private struct UserDetailView: View {
             }
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
-            Text("Роль owner не знімається напряму, щоб не залишити організацію без власника.")
+            Text(AppStrings.UserManagement.removeOwnerRoleWarning)
         }
     }
 
@@ -1017,11 +1113,11 @@ private struct UserDetailView: View {
 
                 UserManagementMetadataRow(systemImage: "number", title: "UID", value: user.id)
                 UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: user.telegramUsername ?? AppStrings.Common.notAvailable)
-                UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: "Місто / регіон", value: locationText)
+                UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
                 UserManagementMetadataRow(systemImage: "calendar", title: "Joined", value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
-                UserManagementMetadataRow(systemImage: "building.2", title: "Ролі в організаціях", value: String(organizationRoles.count))
+                UserManagementMetadataRow(systemImage: "building.2", title: AppStrings.UserManagement.organizationRolesTitle, value: String(organizationRoles.count))
                 if let banExpiresAt = user.banExpiresAt {
-                    UserManagementMetadataRow(systemImage: "clock", title: "Блокування до", value: LocalizationStore.dateString(from: banExpiresAt, dateStyle: .medium, timeStyle: .short))
+                    UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.blockedUntil, value: LocalizationStore.dateString(from: banExpiresAt, dateStyle: .medium, timeStyle: .short))
                 }
             }
         }
@@ -1030,10 +1126,10 @@ private struct UserDetailView: View {
     private var organizationRolesCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                SectionHeaderBlock(title: "Ролі в організаціях", subtitle: "Організаційні ролі керують доступом до створення та модерації контенту.")
+                SectionHeaderBlock(title: AppStrings.UserManagement.organizationRolesTitle, subtitle: AppStrings.UserManagement.organizationRolesSubtitle)
 
                 if organizationRoles.isEmpty {
-                    Text("Ролей в організаціях немає.")
+                    Text(AppStrings.UserManagement.organizationRolesEmpty)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                 } else {
@@ -1074,7 +1170,10 @@ private struct UserDetailView: View {
     private var roleAssignmentCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                SectionHeaderBlock(title: "Призначити роль", subtitle: "Owner платформи може призначити роль тільки в конкретній організації.")
+                SectionHeaderBlock(
+                    title: AppStrings.UserManagement.assignRoleSectionTitle,
+                    subtitle: AppStrings.UserManagement.assignRoleSectionSubtitle
+                )
 
                 HStack(spacing: AppTheme.eventsMetadataSpacing) {
                     Image(systemName: "magnifyingglass")
@@ -1152,15 +1251,19 @@ private struct UserDetailView: View {
                     .onSubmit { focusedField = nil }
 
                 PrimaryActionButton(
-                    title: AppStrings.UserManagement.assignRoleButton,
+                    title: selectedRole == .communityOwner ? AppStrings.UserManagement.changeOwnerButton : AppStrings.UserManagement.assignRoleButton,
                     isEnabled: canManage && canAssignSelectedOrganizationRole,
                     isLoading: isUpdating,
-                    systemImage: "person.badge.key"
+                    systemImage: selectedRole == .communityOwner ? "person.crop.circle.badge.checkmark" : "person.badge.key"
                 ) {
                     guard let selectedOrganization else { return }
                     guard let actor else { return }
                     let currentUser = user
-                    Task { await viewModel.assignRole(selectedRole, in: selectedOrganization, to: currentUser, actor: actor, reason: reason) }
+                    if selectedRole == .communityOwner {
+                        Task { await viewModel.changeOwner(in: selectedOrganization, to: currentUser, actor: actor, reason: reason) }
+                    } else {
+                        Task { await viewModel.assignRole(selectedRole, in: selectedOrganization, to: currentUser, actor: actor, reason: reason) }
+                    }
                     reason = ""
                 }
             }
@@ -1170,7 +1273,10 @@ private struct UserDetailView: View {
     private var accountActionsCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                SectionHeaderBlock(title: "Дії з акаунтом", subtitle: "Фізичне видалення користувача не виконується. Деактивація зберігає авторство старого контенту.")
+                SectionHeaderBlock(
+                    title: AppStrings.UserManagement.accountActionsTitle,
+                    subtitle: AppStrings.UserManagement.accountActionsSubtitle
+                )
 
                 Button { pendingAction = .warningIssued } label: {
                     actionLabel(.warningIssued, tint: AppTheme.accentSupport)
@@ -1246,13 +1352,13 @@ private struct UserDetailView: View {
     private func roleTitle(_ role: CommunityRole) -> String {
         switch role {
         case .communityOwner:
-            "Власник"
+            AppStrings.Organizations.communityOwner
         case .communityAdmin:
-            "Адмін"
+            AppStrings.Organizations.communityAdmin
         case .communityModerator:
-            "Модератор"
+            AppStrings.Organizations.communityModerator
         case .member:
-            "Учасник"
+            AppStrings.Organizations.communityMember
         }
     }
 
@@ -1279,15 +1385,15 @@ private struct UserAuditHistoryCard: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 SectionHeaderBlock(
-                    title: "Історія дій",
-                    subtitle: "Попередження, блокування, деактивації та зміни ролей."
+                    title: AppStrings.UserManagement.auditHistoryTitle,
+                    subtitle: AppStrings.UserManagement.auditHistorySubtitle
                 )
 
                 if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else if items.isEmpty {
-                    Text("Історії дій поки немає.")
+                    Text(AppStrings.UserManagement.auditHistoryEmpty)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                 } else {

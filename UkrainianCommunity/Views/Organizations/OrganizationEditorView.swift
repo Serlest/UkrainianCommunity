@@ -6,6 +6,7 @@ struct OrganizationEditorView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     @StateObject private var viewModel: OrganizationEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
@@ -118,7 +119,7 @@ struct OrganizationEditorView: View {
     }
 
     private var bottomSubmitTitle: String {
-        viewModel.isEditing ? "Зберегти зміни" : "Створити організацію"
+        viewModel.submitButtonTitle(for: authState.user)
     }
 
     private var bottomLoadingTitle: String {
@@ -303,24 +304,20 @@ struct OrganizationEditorView: View {
         VStack(alignment: .leading, spacing: editorCardSpacing) {
             editorSectionTitle(AppStrings.Organizations.categorySectionTitle)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    ForEach(OrganizationEditorCategory.allCases) { category in
-                        Button {
-                            viewModel.organizationType = category.rawValue
-                        } label: {
-                            AppFilterChip(
-                                title: category.title,
-                                systemImage: category.systemImage,
-                                isSelected: viewModel.organizationType == category.rawValue
-                            )
-                        }
-                        .buttonStyle(.plain)
+            AppHorizontalFilterRow {
+                ForEach(OrganizationEditorCategory.allCases) { category in
+                    Button {
+                        viewModel.organizationType = category.rawValue
+                    } label: {
+                        AppFilterChip(
+                            title: category.title,
+                            systemImage: category.systemImage,
+                            isSelected: viewModel.organizationType == category.rawValue
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 1)
             }
-            .clipShape(Rectangle())
         }
     }
 
@@ -504,7 +501,7 @@ struct OrganizationEditorView: View {
 
     private var foundedMonthPicker: some View {
         Menu {
-            Button("Не вказано") {
+            Button(AppStrings.Organizations.fieldFoundedMonthNone) {
                 viewModel.foundedMonth = nil
             }
 
@@ -543,13 +540,13 @@ struct OrganizationEditorView: View {
         }
         .buttonStyle(.plain)
         .disabled(!viewModel.canSelectFoundedMonth)
-        .accessibilityLabel("Місяць заснування")
+        .accessibilityLabel(AppStrings.Organizations.fieldFoundedMonth)
     }
 
     private var selectedFoundedMonthTitle: String {
         guard viewModel.canSelectFoundedMonth,
               let foundedMonth = viewModel.foundedMonth else {
-            return "Не вказано"
+            return AppStrings.Organizations.fieldFoundedMonthNone
         }
         return localizedMonthName(for: foundedMonth)
     }
@@ -562,7 +559,7 @@ struct OrganizationEditorView: View {
         components.day = 1
 
         guard let date = components.date else {
-            return "Не вказано"
+            return AppStrings.Organizations.fieldFoundedMonthNone
         }
 
         let formatter = DateFormatter()
@@ -664,8 +661,16 @@ struct OrganizationEditorView: View {
         }
         .padding(editorCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous))
+        .background(
+            reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassSurface(for: colorScheme),
+            in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+        )
+        .background {
+            if !reduceTransparency {
+                RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
                 .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.55))

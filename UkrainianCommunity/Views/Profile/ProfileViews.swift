@@ -51,10 +51,14 @@ struct ProfileView: View {
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
     @EnvironmentObject var authState: AuthState
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @StateObject private var registrationsViewModel: MyRegistrationsViewModel
     @StateObject private var ownerOrganizationsViewModel: OrganizationsViewModel
     @State private var isShowingEditProfileSheet = false
     @State private var isShowingOwnerCreateOrganizationSheet = false
+    @State private var isShowingCreateNewsSheet = false
+    @State private var isShowingCreateEventSheet = false
     @State private var fullNameDraft = ""
     @State private var displayNameDraft = ""
     @State private var telegramUsernameDraft = ""
@@ -70,6 +74,10 @@ struct ProfileView: View {
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isShowingLogoutConfirmation = false
     @State private var logoutErrorMessage: String?
+    @State private var isShowingDeleteAccountConfirmation = false
+    @State private var isShowingDeleteAccountSheet = false
+    @State private var deleteAccountConfirmationText = ""
+    @State private var deleteAccountErrorMessage: String?
 
     init(
         viewModel: ProfileViewModel,
@@ -100,12 +108,26 @@ struct ProfileView: View {
     }
 
     private var canShowContentManagement: Bool {
-        PermissionService.canAccessContentManagement(user: permissionUser)
+        !manageableContentOrganizations.isEmpty
+    }
+
+    private var manageableContentOrganizations: [Organization] {
+        guard let user = permissionUser else { return [] }
+        return PermissionService.manageableOrganizations(
+            from: ownerOrganizationsViewModel.organizations,
+            user: user
+        )
+        .sorted { lhs, rhs in
+            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
     }
 
     private var canShowOrganizationManagement: Bool {
         guard let user = permissionUser else { return false }
         if user.globalRole.effectiveRole == .owner {
+            return true
+        }
+        if PermissionService.canCreateOrganization(user: user) {
             return true
         }
         if !PermissionService.manageableOrganizations(
@@ -462,7 +484,6 @@ struct ProfileView: View {
                 ScrollView(.vertical, showsIndicators: true) {
                     VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                         profileHeader
-                            .frame(maxWidth: .infinity, alignment: .leading)
 
                         profileTitleBlock
 
@@ -483,7 +504,6 @@ struct ProfileView: View {
                     .frame(width: proxy.size.width, alignment: .topLeading)
                 }
                 .frame(width: proxy.size.width)
-                .clipped()
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -575,6 +595,38 @@ struct ProfileView: View {
         } message: {
             Text(logoutErrorMessage ?? "")
         }
+        .confirmationDialog(
+            AppStrings.Profile.deleteAccountConfirmTitle,
+            isPresented: $isShowingDeleteAccountConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Profile.deleteAccount, role: .destructive) {
+                deleteAccountConfirmationText = ""
+                isShowingDeleteAccountSheet = true
+            }
+
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.Profile.deleteAccountConfirmMessage)
+        }
+        .sheet(isPresented: $isShowingDeleteAccountSheet) {
+            deleteAccountConfirmationSheet
+                .presentationDragIndicator(.visible)
+        }
+        .alert(AppStrings.Profile.deleteAccount, isPresented: Binding(
+            get: { deleteAccountErrorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    deleteAccountErrorMessage = nil
+                }
+            }
+        )) {
+            Button(AppStrings.Common.ok, role: .cancel) {
+                deleteAccountErrorMessage = nil
+            }
+        } message: {
+            Text(deleteAccountErrorMessage ?? "")
+        }
         .sheet(isPresented: $isShowingOwnerCreateOrganizationSheet) {
             NavigationStack {
                 OrganizationEditorView(
@@ -583,6 +635,22 @@ struct ProfileView: View {
                         await ownerOrganizationsViewModel.refresh()
                     }
                 )
+            }
+            .environmentObject(authState)
+        }
+        .sheet(isPresented: $isShowingCreateNewsSheet) {
+            NavigationStack {
+                NewsEditorView(repository: newsRepository) {
+                    await ownerOrganizationsViewModel.refresh()
+                }
+            }
+            .environmentObject(authState)
+        }
+        .sheet(isPresented: $isShowingCreateEventSheet) {
+            NavigationStack {
+                EventEditorView(repository: eventRepository) {
+                    await ownerOrganizationsViewModel.refresh()
+                }
             }
             .environmentObject(authState)
         }
@@ -603,6 +671,66 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    private var deleteAccountConfirmationSheet: some View {
+        NavigationStack {
+            ZStack {
+                AppBackgroundView()
+                    .allowsHitTesting(false)
+
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    SectionHeaderBlock(
+                        title: AppStrings.Profile.deleteAccountConfirmTitle,
+                        subtitle: AppStrings.Profile.deleteAccountConfirmMessage
+                    )
+
+                    AppEditorSectionCard {
+                        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                            Text(AppStrings.Profile.deleteAccountTypePrompt)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+
+                            TextField(AppStrings.Profile.deleteAccountConfirmationKeyword, text: $deleteAccountConfirmationText)
+                                .textInputAutocapitalization(.characters)
+                                .autocorrectionDisabled()
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(AppTheme.surfacePrimary, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+
+                            Button(role: .destructive) {
+                                Task {
+                                    await performAccountDeletion()
+                                }
+                            } label: {
+                                if viewModel.isDeletingAccount {
+                                    Label(AppStrings.Profile.deleteAccountInProgress, systemImage: "hourglass")
+                                } else {
+                                    Label(AppStrings.Profile.deleteAccountFinalAction, systemImage: "trash")
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(AppTheme.accentDestructive)
+                            .disabled(!canConfirmAccountDeletion || viewModel.isDeletingAccount)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(AppTheme.pageHorizontal)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppStrings.Common.cancel) {
+                        isShowingDeleteAccountSheet = false
+                    }
+                }
+            }
+        }
+    }
+
+    private var canConfirmAccountDeletion: Bool {
+        deleteAccountConfirmationText.trimmingCharacters(in: .whitespacesAndNewlines) == AppStrings.Profile.deleteAccountConfirmationKeyword
     }
 
     private var editProfileContent: some View {
@@ -659,7 +787,14 @@ struct ProfileView: View {
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.top, AppTheme.eventsMetadataSpacing)
                 .padding(.bottom, AppTheme.eventsMetadataSpacing)
-                .background(.ultraThinMaterial)
+                .background {
+                    if reduceTransparency {
+                        AppTheme.glassFallbackSurface(for: colorScheme)
+                    } else {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                    }
+                }
             }
         }
         .navigationTitle(AppStrings.Profile.editProfile)
@@ -791,10 +926,14 @@ struct ProfileView: View {
             )
 
             quickActionsSection(for: user)
+            if canShowContentManagement {
+                contentManagementSection
+            }
             communitySection(for: user)
             notificationsSection
             settingsSection
             supportSection(for: user)
+            accountDeletionSection
             logoutSection
         }
     }
@@ -803,6 +942,9 @@ struct ProfileView: View {
     private func ownerControlCenterContent(for user: AppUser) -> some View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: .owner)
         quickActionsSection(for: user)
+        if canShowContentManagement {
+            contentManagementSection
+        }
         ownerPlatformManagementSection(for: user)
         ownerPlannedSection
         ownerPersonalSettingsSection
@@ -818,30 +960,28 @@ struct ProfileView: View {
             spacing: AppTheme.eventsMetadataSpacing
         ) {
             NavigationLink {
-                MyRegistrationsView(viewModel: registrationsViewModel, eventRepository: eventRepository)
+                OrganizationManagementHubView()
             } label: {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
-                    title: AppStrings.Profile.myEvents,
-                    subtitle: "Зареєстровані події",
-                    systemImage: "calendar",
+                    title: AppStrings.Profile.myOrganizations,
+                    subtitle: AppStrings.Profile.organizationManagementIntro,
+                    systemImage: "building.2",
                     status: .available
                 ))
             }
             .buttonStyle(.plain)
 
-            if canShowOrganizationManagement {
-                NavigationLink {
-                    OrganizationManagementHubView()
-                } label: {
-                    ProfileQuickActionCard(item: ProfileQuickActionItem(
-                        title: AppStrings.Profile.myOrganizations,
-                        subtitle: "Ролі в організаціях",
-                        systemImage: "building.2",
-                        status: .available
-                    ))
-                }
-                .buttonStyle(.plain)
+            NavigationLink {
+                MyRegistrationsView(viewModel: registrationsViewModel, eventRepository: eventRepository)
+            } label: {
+                ProfileQuickActionCard(item: ProfileQuickActionItem(
+                    title: AppStrings.Profile.myEvents,
+                    subtitle: AppStrings.Profile.quickActionRegisteredEventsSubtitle,
+                    systemImage: "calendar",
+                    status: .available
+                ))
             }
+            .buttonStyle(.plain)
 
             NavigationLink {
                 SavedContentView(
@@ -852,7 +992,7 @@ struct ProfileView: View {
             } label: {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.savedContent,
-                    subtitle: "Новини, події та організації",
+                    subtitle: AppStrings.Profile.quickActionSavedContentSubtitle,
                     systemImage: "bookmark",
                     status: .available
                 ))
@@ -864,7 +1004,7 @@ struct ProfileView: View {
             } label: {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.organizationSubscriptions,
-                    subtitle: "Організації, за якими ви стежите.",
+                    subtitle: AppStrings.Profile.quickActionSubscriptionsSubtitle,
                     systemImage: "person.2",
                     status: .available
                 ))
@@ -896,13 +1036,105 @@ struct ProfileView: View {
             } label: {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.activityHistoryModule,
-                    subtitle: "Ваші дії у застосунку.",
+                    subtitle: AppStrings.Profile.quickActionActivitySubtitle,
                     systemImage: "list.bullet.rectangle",
                     status: .available
                 ))
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var contentManagementSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.contentSectionTitle,
+            subtitle: AppStrings.Profile.contentSectionSubtitle
+        ) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                Button {
+                    isShowingCreateNewsSheet = true
+                } label: {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.createNews,
+                        subtitle: contentOrganizationAccessSubtitle,
+                        systemImage: "newspaper",
+                        status: .active
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    isShowingCreateEventSheet = true
+                } label: {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.createEvent,
+                        subtitle: contentOrganizationAccessSubtitle,
+                        systemImage: "calendar.badge.plus",
+                        status: .active
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    ManagedNewsContentView(
+                        repository: newsRepository,
+                        organizationRepository: organizationRepository,
+                        manageableOrganizations: manageableContentOrganizations
+                    )
+                } label: {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.managedNewsTitle,
+                        subtitle: AppStrings.Profile.managedNewsSubtitle,
+                        systemImage: "doc.text",
+                        status: .available
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    ManagedEventsContentView(
+                        repository: eventRepository,
+                        organizationRepository: organizationRepository,
+                        manageableOrganizations: manageableContentOrganizations
+                    )
+                } label: {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.managedEventsTitle,
+                        subtitle: AppStrings.Profile.managedEventsSubtitle,
+                        systemImage: "calendar",
+                        status: .available
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var organizationDashboardSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.myOrganizations,
+            subtitle: AppStrings.Profile.organizationsSectionSummary
+        ) {
+            NavigationLink {
+                OrganizationManagementHubView()
+            } label: {
+                ProfileModuleRow(
+                    title: AppStrings.Profile.organizationManagement,
+                    subtitle: AppStrings.Profile.organizationManagementSubtitle,
+                    systemImage: "building.2.crop.circle",
+                    status: .available
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var contentOrganizationAccessSubtitle: String {
+        let count = manageableContentOrganizations.count
+        if count == 1, let organization = manageableContentOrganizations.first {
+            return organization.name
+        }
+        return AppStrings.Profile.manageableOrganizationsAvailable(count)
     }
 
     private func adminQuickActionsSection(for user: AppUser) -> some View {
@@ -972,9 +1204,9 @@ struct ProfileView: View {
             subtitle: AppStrings.Profile.communitySectionSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileModuleRow(title: AppStrings.Profile.volunteeringModule, subtitle: "Можливість відгукуватися на потреби організацій.", systemImage: "hands.sparkles", status: .soon, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.participationRequests, subtitle: "Майбутні заявки на участь у спільноті.", systemImage: "person.badge.plus", status: .soon, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.communityBadges, subtitle: "Досягнення та внесок у спільноту.", systemImage: "seal", status: .soon, accessory: .none)
+                ProfileModuleRow(title: AppStrings.Profile.volunteeringModule, subtitle: AppStrings.Profile.volunteeringSubtitle, systemImage: "hands.sparkles", status: .soon, accessory: .none)
+                ProfileModuleRow(title: AppStrings.Profile.participationRequests, subtitle: AppStrings.Profile.participationRequestsSubtitle, systemImage: "person.badge.plus", status: .soon, accessory: .none)
+                ProfileModuleRow(title: AppStrings.Profile.communityBadges, subtitle: AppStrings.Profile.communityBadgesSubtitle, systemImage: "seal", status: .soon, accessory: .none)
             }
         }
     }
@@ -985,7 +1217,7 @@ struct ProfileView: View {
             subtitle: AppStrings.Profile.notificationsSectionSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileModuleRow(title: AppStrings.Profile.notificationSettings, subtitle: "Push, email та важливі оновлення.", systemImage: "bell.badge", status: .soon, accessory: .none)
+                ProfileModuleRow(title: AppStrings.Profile.notificationSettings, subtitle: AppStrings.Profile.notificationSettingsRowSubtitle, systemImage: "bell.badge", status: .soon, accessory: .none)
                 ProfileModuleRow(title: AppStrings.Profile.organizationNewsNotifications, subtitle: AppStrings.Profile.organizationNewsNotificationsSubtitle, systemImage: "building.2", status: .soon, accessory: .none)
                 ProfileModuleRow(title: AppStrings.Profile.eventReminders, subtitle: AppStrings.Profile.eventRemindersSubtitle, systemImage: "calendar.badge.clock", status: .soon, accessory: .none)
             }
@@ -1001,7 +1233,7 @@ struct ProfileView: View {
                     ProfileModuleRow(
                         title: AppStrings.Profile.ownerCreateOrganization,
                         subtitle: AppStrings.Profile.ownerCreateOrganizationSubtitle,
-                        systemImage: "building.2.badge.plus",
+                        systemImage: "building.2.crop.circle",
                         status: PermissionService.canCreateOrganization(user: user) ? .active : .locked
                     )
                 }
@@ -1110,7 +1342,10 @@ struct ProfileView: View {
         ProfileSectionCard(title: AppStrings.Profile.ownerPersonalSettings, subtitle: AppStrings.Profile.ownerPersonalSettingsSubtitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 Button(action: beginEditingProfile) {
-                    ProfileModuleRow(title: AppStrings.Profile.myProfile, subtitle: AppStrings.Profile.editProfileSubtitle, systemImage: "person.crop.circle", status: .available)
+                    ProfileTextModuleRow(
+                        title: AppStrings.Profile.myProfile,
+                        subtitle: AppStrings.Profile.editProfileSubtitle
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -1205,8 +1440,7 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
 
-                ProfileModuleRow(title: AppStrings.Profile.accountSecurity, subtitle: "Пароль, сесії та додатковий захист.", systemImage: "lock.shield", status: .soon, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.deleteAccount, subtitle: "Повне видалення профілю та даних.", systemImage: "trash", tint: AppTheme.accentDestructive, status: .soon, accessory: .none)
+                ProfileModuleRow(title: AppStrings.Profile.accountSecurity, subtitle: AppStrings.Profile.accountSecuritySubtitle, systemImage: "lock.shield", status: .soon, accessory: .none)
             }
         }
     }
@@ -1319,18 +1553,18 @@ struct ProfileView: View {
                 NavigationLink {
                     LegalDocumentView(document: .terms)
                 } label: {
-                    ProfileModuleRow(title: "Умови користування", subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
+                    ProfileModuleRow(title: AppStrings.Profile.termsOfUse, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
                 }
                 .buttonStyle(.plain)
 
                 NavigationLink {
                     LegalDocumentView(document: .privacy)
                 } label: {
-                    ProfileModuleRow(title: "Політика конфіденційності", subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion), systemImage: "lock.doc", status: .available)
+                    ProfileModuleRow(title: AppStrings.Profile.privacyPolicy, subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion), systemImage: "lock.doc", status: .available)
                 }
                 .buttonStyle(.plain)
 
-                ProfileModuleRow(title: "Допомога", subtitle: AppStrings.Profile.helpCenterSubtitle, systemImage: "questionmark.circle", status: .soon, accessory: .none)
+                ProfileModuleRow(title: AppStrings.Profile.helpCenter, subtitle: AppStrings.Profile.helpCenterSubtitle, systemImage: "questionmark.circle", status: .soon, accessory: .none)
             }
         }
     }
@@ -1385,6 +1619,37 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("profile.logout.button")
+        }
+    }
+
+    private var accountDeletionSection: some View {
+        ProfileSectionCard(title: AppStrings.Profile.deleteAccount) {
+            Button(role: .destructive) {
+                isShowingDeleteAccountConfirmation = true
+            } label: {
+                ProfileModuleRow(
+                    title: AppStrings.Profile.deleteAccount,
+                    subtitle: AppStrings.Profile.deleteAccountSubtitle,
+                    systemImage: "trash",
+                    tint: AppTheme.accentDestructive,
+                    status: .available,
+                    accessory: .none
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("profile.delete_account.button")
+        }
+    }
+
+    private func performAccountDeletion() async {
+        guard let user = displayUser else { return }
+        let message = await viewModel.deleteAccount(currentUser: user)
+
+        if let message {
+            deleteAccountErrorMessage = message
+        } else {
+            deleteAccountConfirmationText = ""
+            isShowingDeleteAccountSheet = false
         }
     }
 
@@ -1674,13 +1939,13 @@ private struct GuestPlatformHeroCard: View {
                 }
 
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Button("Увійти", action: onSignIn)
+                    Button(AppStrings.Auth.signIn, action: onSignIn)
                         .frame(maxWidth: .infinity)
                         .appActionButtonStyle(.primary)
                         .accessibilityIdentifier("profile.guest.signIn")
 
                     Button(action: onCreateAccount) {
-                        Text("Створити обліковий запис")
+                        Text(AppStrings.Auth.createAccount)
                             .frame(maxWidth: .infinity)
                     }
                     .appActionButtonStyle(.secondary)
@@ -1828,6 +2093,304 @@ private struct ProfileHeroCard: View {
                         systemImage: "calendar"
                     )
                 }
+            }
+        }
+    }
+}
+
+private struct ManagedNewsContentView: View {
+    @EnvironmentObject private var authState: AuthState
+    @StateObject private var viewModel: NewsViewModel
+    @State private var editingPost: NewsPost?
+    private let repository: NewsRepository
+    private let organizationRepository: OrganizationRepository
+    private let manageableOrganizations: [Organization]
+
+    init(
+        repository: NewsRepository,
+        organizationRepository: OrganizationRepository,
+        manageableOrganizations: [Organization]
+    ) {
+        self.repository = repository
+        self.organizationRepository = organizationRepository
+        self.manageableOrganizations = manageableOrganizations
+        _viewModel = StateObject(wrappedValue: NewsViewModel(repository: repository))
+    }
+
+    private var organizationsByID: [String: Organization] {
+        Dictionary(uniqueKeysWithValues: manageableOrganizations.map { ($0.id, $0) })
+    }
+
+    private var managedPosts: [NewsPost] {
+        viewModel.posts
+            .filter { post in
+                guard let organizationID = post.source.organizationId,
+                      let organization = organizationsByID[organizationID] else {
+                    return false
+                }
+                return PermissionService.canEditOrganizationNews(organization, user: authState.user)
+            }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    var body: some View {
+        ZStack {
+            AppBackgroundView()
+                .allowsHitTesting(false)
+
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    SectionHeaderBlock(
+                        title: AppStrings.Profile.managedNewsTitle,
+                        subtitle: AppStrings.Profile.managedNewsSubtitle
+                    )
+
+                    if viewModel.isLoading && managedPosts.isEmpty {
+                        LoadingStateCard(title: nil)
+                    } else if managedPosts.isEmpty {
+                        EmptyStateCard(
+                            systemImage: "newspaper",
+                            title: AppStrings.Profile.managedNewsEmptyTitle,
+                            message: AppStrings.Profile.managedNewsEmptyMessage
+                        )
+                    } else {
+                        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            ForEach(managedPosts) { post in
+                                ManagedContentCard(
+                                    title: post.title,
+                                    subtitle: organizationTitle(for: post.source.organizationId),
+                                    metadata: managedNewsMetadata(for: post),
+                                    status: post.moderationStatus.title,
+                                    systemImage: "newspaper"
+                                ) {
+                                    NavigationLink {
+                                        NewsDetailView(
+                                            viewModel: viewModel,
+                                            postID: post.id,
+                                            onNewsDeleted: {
+                                                viewModel.reload()
+                                            },
+                                            organizationRepository: organizationRepository
+                                        )
+                                        .environment(\.newsPresentationMode, .management)
+                                    } label: {
+                                        Label(AppStrings.Action.open, systemImage: "arrow.up.right")
+                                    }
+
+                                    Button {
+                                        editingPost = post
+                                    } label: {
+                                        Label(AppStrings.Action.edit, systemImage: "pencil")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.vertical, AppTheme.sectionSpacing)
+            }
+        }
+        .navigationTitle(AppStrings.Profile.managedNewsTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await viewModel.loadIfNeeded()
+        }
+        .refreshable {
+            await viewModel.refresh()
+        }
+        .sheet(item: $editingPost) { post in
+            NavigationStack {
+                NewsEditorView(repository: repository, news: post) {
+                    await viewModel.refresh()
+                }
+            }
+            .environmentObject(authState)
+        }
+    }
+
+    private func organizationTitle(for organizationID: String?) -> String {
+        guard let organizationID else { return AppStrings.News.missingOrganization }
+        return organizationsByID[organizationID]?.name ?? AppStrings.News.missingOrganization
+    }
+
+    private func managedNewsMetadata(for post: NewsPost) -> String {
+        LocalizationStore.dateString(from: post.createdAt, dateStyle: .medium, timeStyle: .none)
+    }
+}
+
+private struct ManagedEventsContentView: View {
+    @EnvironmentObject private var authState: AuthState
+    @StateObject private var viewModel: EventsViewModel
+    @State private var editingEvent: Event?
+    private let repository: EventRepository
+    private let organizationRepository: OrganizationRepository
+    private let manageableOrganizations: [Organization]
+
+    init(
+        repository: EventRepository,
+        organizationRepository: OrganizationRepository,
+        manageableOrganizations: [Organization]
+    ) {
+        self.repository = repository
+        self.organizationRepository = organizationRepository
+        self.manageableOrganizations = manageableOrganizations
+        _viewModel = StateObject(wrappedValue: EventsViewModel(repository: repository))
+    }
+
+    private var organizationsByID: [String: Organization] {
+        Dictionary(uniqueKeysWithValues: manageableOrganizations.map { ($0.id, $0) })
+    }
+
+    private var managedEvents: [Event] {
+        viewModel.events
+            .filter { event in
+                guard let organizationID = event.source.organizationId,
+                      let organization = organizationsByID[organizationID] else {
+                    return false
+                }
+                return PermissionService.canEditOrganizationEvent(organization, user: authState.user)
+            }
+            .sorted { $0.startDate > $1.startDate }
+    }
+
+    var body: some View {
+        ZStack {
+            AppBackgroundView()
+                .allowsHitTesting(false)
+
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    SectionHeaderBlock(
+                        title: AppStrings.Profile.managedEventsTitle,
+                        subtitle: AppStrings.Profile.managedEventsSubtitle
+                    )
+
+                    if viewModel.isLoading && managedEvents.isEmpty {
+                        LoadingStateCard(title: nil)
+                    } else if managedEvents.isEmpty {
+                        EmptyStateCard(
+                            systemImage: "calendar",
+                            title: AppStrings.Profile.managedEventsEmptyTitle,
+                            message: AppStrings.Profile.managedEventsEmptyMessage
+                        )
+                    } else {
+                        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            ForEach(managedEvents) { event in
+                                ManagedContentCard(
+                                    title: event.title,
+                                    subtitle: organizationTitle(for: event.source.organizationId),
+                                    metadata: managedEventMetadata(for: event),
+                                    status: event.moderationStatus.title,
+                                    systemImage: "calendar"
+                                ) {
+                                    NavigationLink {
+                                        EventDetailView(
+                                            viewModel: viewModel,
+                                            eventID: event.id,
+                                            onEventDeleted: {
+                                                viewModel.reload()
+                                            },
+                                            organizationRepository: organizationRepository
+                                        )
+                                        .environment(\.eventPresentationMode, .management)
+                                    } label: {
+                                        Label(AppStrings.Action.open, systemImage: "arrow.up.right")
+                                    }
+
+                                    Button {
+                                        editingEvent = event
+                                    } label: {
+                                        Label(AppStrings.Action.edit, systemImage: "pencil")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.vertical, AppTheme.sectionSpacing)
+            }
+        }
+        .navigationTitle(AppStrings.Profile.managedEventsTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await viewModel.loadIfNeeded()
+        }
+        .refreshable {
+            await viewModel.refresh()
+        }
+        .sheet(item: $editingEvent) { event in
+            NavigationStack {
+                EventEditorView(repository: repository, event: event) {
+                    await viewModel.refresh()
+                }
+            }
+            .environmentObject(authState)
+        }
+    }
+
+    private func organizationTitle(for organizationID: String?) -> String {
+        guard let organizationID else { return AppStrings.News.missingOrganization }
+        return organizationsByID[organizationID]?.name ?? AppStrings.News.missingOrganization
+    }
+
+    private func managedEventMetadata(for event: Event) -> String {
+        LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
+    }
+}
+
+private struct ManagedContentCard<Actions: View>: View {
+    let title: String
+    let subtitle: String
+    let metadata: String
+    let status: String
+    let systemImage: String
+    @ViewBuilder let actions: Actions
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+                    Image(systemName: systemImage)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                        .frame(width: 34, height: 34)
+                        .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(title)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineLimit(2)
+
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .lineLimit(1)
+
+                        Text(metadata)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                    Text(status)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(AppTheme.accentPrimarySoft, in: Capsule())
+                        .lineLimit(1)
+                }
+
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    actions
+                }
+                .font(.footnote.weight(.semibold))
+                .buttonStyle(.bordered)
+                .tint(AppTheme.accentPrimary)
             }
         }
     }
@@ -2377,6 +2940,7 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
 }
 
 private struct ProfileDestinationLayout<Content: View>: View {
+    @Environment(\.dismiss) private var dismiss
     let title: String
     let introSubtitle: String
     @ViewBuilder let content: Content
@@ -2388,7 +2952,11 @@ private struct ProfileDestinationLayout<Content: View>: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppBrandHeader {
+                    AppCenteredBrandHeader {
+                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                            dismiss()
+                        }
+                    } trailingContent: {
                         AppNotificationBellButton()
                     }
 
@@ -2411,6 +2979,7 @@ private struct ProfileDestinationLayout<Content: View>: View {
         .tint(AppTheme.accentPrimary)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
@@ -2959,7 +3528,7 @@ private struct SavedContentView: View {
     var body: some View {
         ProfileDestinationLayout(
             title: AppStrings.Profile.savedContent,
-            introSubtitle: "Новини, події та організації, які ви зберегли."
+            introSubtitle: AppStrings.Profile.savedContentIntro
         ) {
             AppHorizontalFilterRow {
                 ForEach(SavedContentSegment.allCases) { segment in
@@ -3077,13 +3646,13 @@ private struct SavedContentView: View {
     private var emptyStateMessage: String {
         switch selectedSegment {
         case .all:
-            return "Тут з’являться збережені новини, події та організації."
+            return AppStrings.Profile.savedEmptyAll
         case .news:
-            return "Тут з’являться збережені новини."
+            return AppStrings.Profile.savedEmptyNews
         case .events:
-            return "Тут з’являться збережені події."
+            return AppStrings.Profile.savedEmptyEvents
         case .organizations:
-            return "Тут з’являться збережені організації."
+            return AppStrings.Profile.savedEmptyOrganizations
         }
     }
 
@@ -3173,7 +3742,7 @@ private struct FollowedOrganizationsView: View {
 
     private var followedOrganizations: [Organization] {
         organizationsViewModel.organizations
-            .filter { $0.likeState.isLiked }
+            .filter { $0.isSubscribed }
             .sorted { lhs, rhs in
                 lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
@@ -3186,7 +3755,7 @@ private struct FollowedOrganizationsView: View {
     var body: some View {
         ProfileDestinationLayout(
             title: AppStrings.Profile.organizationSubscriptions,
-            introSubtitle: "Організації, на які ви підписані."
+            introSubtitle: AppStrings.Profile.subscriptionsIntro
         ) {
             followedOrganizationsContent
         }
@@ -3215,7 +3784,7 @@ private struct FollowedOrganizationsView: View {
             ProfileDestinationEmptyStateCard(
                 systemImage: "person.2",
                 title: AppStrings.Profile.organizationSubscriptions,
-                message: "Ви ще не підписані на організації. Підписуйтесь, щоб швидко знаходити їхні новини та події."
+                message: AppStrings.Profile.subscriptionsEmpty
             )
         } else {
             VStack(spacing: AppTheme.feedRowSpacing) {
@@ -3333,15 +3902,16 @@ private struct ProfileOrganizationListCard: View {
 
     var body: some View {
         AppEditorSectionCard {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 AppFeedThumbnail(
                     imageURL: organization.imageURL,
                     fallbackSystemImage: "building.2",
                     tint: AppTheme.accentPrimary,
                     fill: AppTheme.accentPrimary.opacity(0.10),
-                    size: 38,
+                    size: thumbnailSize,
                     source: "ProfileOrganizationListCard"
                 )
+                .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(organization.name)
@@ -3369,6 +3939,10 @@ private struct ProfileOrganizationListCard: View {
         }
     }
 
+    private var thumbnailSize: CGFloat {
+        50
+    }
+
     @MainActor private var metadataText: String {
         let region = organization.federalState.map(AppStrings.FederalStates.title(for:)) ?? organization.city
         if organization.city.isEmpty || organization.city == region {
@@ -3379,6 +3953,7 @@ private struct ProfileOrganizationListCard: View {
 }
 
 private struct FeedbackInboxView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: FeedbackInboxViewModel
     @State private var selectedFeedback: FeedbackItem?
 
@@ -3393,7 +3968,11 @@ private struct FeedbackInboxView: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppBrandHeader {
+                    AppCenteredBrandHeader {
+                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                            dismiss()
+                        }
+                    } trailingContent: {
                         AppNotificationBellButton()
                     }
 
@@ -3418,6 +3997,7 @@ private struct FeedbackInboxView: View {
         .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.Feedback.inboxTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadIfNeeded()
         }
@@ -3501,7 +4081,7 @@ private struct FeedbackInboxRow: View {
         if !item.userId.isEmpty {
             return item.userId
         }
-        return "Невідомий користувач"
+        return AppStrings.Profile.unknownUser
     }
 
     var body: some View {
@@ -3564,7 +4144,7 @@ private struct FeedbackDetailSheet: View {
         if !item.userId.isEmpty {
             return item.userId
         }
-        return "Невідомий користувач"
+        return AppStrings.Profile.unknownUser
     }
 
     var body: some View {
@@ -3725,7 +4305,7 @@ private enum ProfileModuleStatus {
         case .accountRequired:
             return AppStrings.Profile.accountRequiredBadge
         case .soon:
-            return "Скоро"
+            return AppStrings.Profile.comingSoon
         case .locked:
             return AppStrings.Profile.accessLocked
         }
@@ -3749,6 +4329,52 @@ private enum ProfileModuleStatus {
         case .available, .active:
             return false
         }
+    }
+}
+
+private struct ProfileTextModuleRow: View {
+    let title: String
+    let subtitle: String?
+    let accessory: AppNavigationRowAccessory
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        accessory: AppNavigationRowAccessory = .chevron
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.accessory = accessory
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 12)
+
+            if accessory == .chevron {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .center)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -4029,9 +4655,9 @@ private enum MyEventsSegment: String, CaseIterable, Identifiable {
         case .all:
             return AppStrings.Home.filterAll
         case .upcoming:
-            return "Майбутні"
+            return AppStrings.Profile.myEventsUpcoming
         case .past:
-            return "Минулі"
+            return AppStrings.Profile.myEventsPast
         }
     }
 
@@ -4083,33 +4709,33 @@ private struct MyRegistrationsView: View {
     private var emptyStateTitle: String {
         switch selectedSegment {
         case .all:
-            return "У вас ще немає зареєстрованих подій."
+            return AppStrings.Profile.myEventsEmptyAllTitle
         case .upcoming:
-            return "У вас ще немає майбутніх подій."
+            return AppStrings.Profile.myEventsEmptyUpcomingTitle
         case .past:
-            return "Немає минулих подій."
+            return AppStrings.Profile.myEventsEmptyPastTitle
         }
     }
 
     private var emptyStateMessage: String {
         switch selectedSegment {
         case .all:
-            return "Зареєструйтесь на події, щоб бачити їх тут."
+            return AppStrings.Profile.myEventsEmptyRegisterMessage
         case .upcoming:
             return viewModel.events.isEmpty
-                ? "Зареєструйтесь на події, щоб бачити їх тут."
-                : "Ваші майбутні реєстрації з’являться тут."
+                ? AppStrings.Profile.myEventsEmptyRegisterMessage
+                : AppStrings.Profile.myEventsEmptyUpcomingMessage
         case .past:
             return viewModel.events.isEmpty
-                ? "Зареєструйтесь на події, щоб бачити їх тут."
-                : "Після завершення події вона з’явиться в цьому розділі."
+                ? AppStrings.Profile.myEventsEmptyRegisterMessage
+                : AppStrings.Profile.myEventsEmptyPastMessage
         }
     }
 
     var body: some View {
         ProfileDestinationLayout(
             title: AppStrings.Profile.myRegistrations,
-            introSubtitle: "Ваші зареєстровані події в одному місці."
+            introSubtitle: AppStrings.Profile.myEventsIntro
         ) {
             filtersRow
             registrationsContent
@@ -4491,6 +5117,7 @@ private struct OrganizationManagementHubView: View {
     private let repository: OrganizationRepository
     @StateObject private var organizationsViewModel: OrganizationsViewModel
     @State private var isShowingCreateOrganization = false
+    @State private var editingOrganizationRequest: Organization?
 
     private var authorityUser: AppUser? {
         authState.user
@@ -4513,6 +5140,10 @@ private struct OrganizationManagementHubView: View {
         )
         guard let focusedOrganizationID else { return organizations }
         return organizations.filter { $0.id == focusedOrganizationID }
+    }
+
+    private var organizationRequests: [Organization] {
+        focusedOrganizationID == nil ? organizationsViewModel.organizationRequests : []
     }
 
     private func organizationRole(for organization: Organization) -> ManagedOrganizationRole? {
@@ -4550,13 +5181,16 @@ private struct OrganizationManagementHubView: View {
         .task {
             await organizationsViewModel.loadIfNeeded()
             await organizationsViewModel.refreshIfStale()
+            await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
         }
         .refreshable {
             await organizationsViewModel.refresh()
+            await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
                 await organizationsViewModel.refresh()
+                await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
             }
         }
         .onChange(of: authState.user?.id) { _, newUserID in
@@ -4567,6 +5201,7 @@ private struct OrganizationManagementHubView: View {
                 Task {
                     organizationsViewModel.resetForAuthChange()
                     await organizationsViewModel.refresh()
+                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                 }
             }
         }
@@ -4576,6 +5211,19 @@ private struct OrganizationManagementHubView: View {
                     organizationsViewModel: organizationsViewModel,
                     onSaved: {
                         await organizationsViewModel.refresh()
+                        await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                    }
+                )
+            }
+            .environmentObject(authState)
+        }
+        .sheet(item: $editingOrganizationRequest) { organization in
+            NavigationStack {
+                OrganizationEditorView(
+                    organizationsViewModel: organizationsViewModel,
+                    organization: organization,
+                    onSaved: {
+                        await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                     }
                 )
             }
@@ -4589,7 +5237,7 @@ private struct OrganizationManagementHubView: View {
         } label: {
             AppEditorSectionCard {
                 AppNavigationRow(
-                    title: AppStrings.Organizations.editorTitle,
+                    title: AppStrings.Profile.ownerCreateOrganization,
                     subtitle: AppStrings.Profile.organizationManagementSubtitle,
                     systemImage: "plus.circle",
                     accessory: .none
@@ -4598,14 +5246,14 @@ private struct OrganizationManagementHubView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("organization.management.create")
-        .accessibilityLabel(AppStrings.Organizations.editorTitle)
+        .accessibilityLabel(AppStrings.Profile.ownerCreateOrganization)
     }
 
     @ViewBuilder
     private var managedOrganizationsContent: some View {
-        if organizationsViewModel.isLoading && manageableOrganizations.isEmpty {
+        if organizationsViewModel.isLoading && manageableOrganizations.isEmpty && organizationRequests.isEmpty {
             LoadingStateCard(title: nil)
-        } else if manageableOrganizations.isEmpty {
+        } else if manageableOrganizations.isEmpty && organizationRequests.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "building.2",
                 title: AppStrings.Profile.myOrganizations,
@@ -4621,6 +5269,119 @@ private struct OrganizationManagementHubView: View {
                     )
                 }
             }
+
+            if !organizationRequests.isEmpty {
+                AppEditorSectionCard {
+                    AppEditorSectionTitle(title: AppStrings.Profile.organizationRequests)
+                }
+
+                VStack(spacing: AppTheme.feedRowSpacing) {
+                    ForEach(organizationRequests) { organization in
+                        OrganizationRequestCard(organization: organization) {
+                            editingOrganizationRequest = organization
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct OrganizationRequestCard: View {
+    let organization: Organization
+    let editAction: () -> Void
+
+    private var canEdit: Bool {
+        organization.moderationStatus == .needsRevision || organization.moderationStatus == .rejected
+    }
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                HStack(alignment: .top, spacing: 12) {
+                    AppFeedThumbnail(
+                        imageURL: organization.imageURL,
+                        fallbackSystemImage: "building.2",
+                        tint: statusTint,
+                        fill: statusTint.opacity(0.10),
+                        size: 46,
+                        source: "OrganizationRequestCard"
+                    )
+
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(organization.name)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+                                .lineLimit(2)
+
+                            statusBadge
+                        }
+
+                        Text(organization.shortDescription)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .lineLimit(2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if let reviewMessage = organization.reviewMessage ?? organization.rejectionReason {
+                    InlineMessageCard(style: .info, message: reviewMessage)
+                }
+
+                if canEdit {
+                    Button(action: editAction) {
+                        Label(AppStrings.Organizations.resubmitRequest, systemImage: "arrow.clockwise")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 36)
+                            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var statusBadge: some View {
+        Text(statusTitle)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(statusTint)
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .background(statusTint.opacity(0.12), in: Capsule())
+            .overlay(Capsule().strokeBorder(statusTint.opacity(0.22)))
+    }
+
+    private var statusTitle: String {
+        switch organization.moderationStatus {
+        case .pendingReview:
+            AppStrings.Common.pendingReview
+        case .needsRevision:
+            AppStrings.Common.needsRevision
+        case .rejected:
+            AppStrings.Common.rejected
+        case .approved:
+            AppStrings.Common.approved
+        case .draft:
+            AppStrings.Common.draft
+        case .archived:
+            AppStrings.Common.archived
+        }
+    }
+
+    private var statusTint: Color {
+        switch organization.moderationStatus {
+        case .pendingReview:
+            .orange
+        case .needsRevision:
+            AppTheme.accentPrimary
+        case .rejected:
+            AppTheme.accentDestructive
+        default:
+            AppTheme.textSecondary
         }
     }
 }
@@ -4705,26 +5466,23 @@ private struct ManagedOrganizationCard: View {
     }
 
     private var metadataChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                AppInfoChip(
-                    title: regionText,
-                    systemImage: "mappin.and.ellipse",
-                    tint: AppTheme.textSecondary,
-                    fill: AppTheme.surfaceControl.opacity(0.62),
-                    size: .small
-                )
+        AppHorizontalChipRow(spacing: 6) {
+            AppInfoChip(
+                title: regionText,
+                systemImage: "mappin.and.ellipse",
+                tint: AppTheme.textSecondary,
+                fill: AppTheme.surfaceControl.opacity(0.62),
+                size: .small
+            )
 
-                AppInfoChip(
-                    title: categoryText,
-                    systemImage: "building.2",
-                    tint: AppTheme.textSecondary,
-                    fill: AppTheme.surfaceControl.opacity(0.62),
-                    size: .small
-                )
-            }
+            AppInfoChip(
+                title: categoryText,
+                systemImage: "building.2",
+                tint: AppTheme.textSecondary,
+                fill: AppTheme.surfaceControl.opacity(0.62),
+                size: .small
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var statsRow: some View {
@@ -4859,12 +5617,15 @@ private struct OrganizationTeamMember: Identifiable {
 
 private enum OrganizationTeamAction: Identifiable {
     case assign(user: AppUser, role: OrganizationTeamRole)
+    case changeOwner(user: AppUser)
     case remove(member: OrganizationTeamMember)
 
     var id: String {
         switch self {
         case let .assign(user, role):
             "assign-\(user.id)-\(role.rawValue)"
+        case let .changeOwner(user):
+            "change-owner-\(user.id)"
         case let .remove(member):
             "remove-\(member.userID)-\(member.role.rawValue)"
         }
@@ -4874,6 +5635,8 @@ private enum OrganizationTeamAction: Identifiable {
         switch self {
         case let .assign(user, role):
             AppStrings.profileOrganizationTeamAssignConfirmation(userName: user.preferredDisplayName, role: role.title.lowercased())
+        case .changeOwner:
+            AppStrings.Profile.organizationTeamTransferOwnerConfirmation
         case let .remove(member):
             AppStrings.profileOrganizationTeamRemoveConfirmation(role: member.role.title.lowercased(), userName: member.displayName)
         }
@@ -4883,6 +5646,8 @@ private enum OrganizationTeamAction: Identifiable {
         switch self {
         case .assign:
             AppStrings.Profile.organizationTeamSaveRole
+        case .changeOwner:
+            AppStrings.Profile.organizationTeamChangeOwner
         case .remove:
             AppStrings.Profile.organizationTeamRemoveRole
         }
@@ -4920,7 +5685,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
         }
     }
 
-    func loadCandidateUsers(excluding organization: Organization) async {
+    func loadCandidateUsers(excluding organization: Organization, allowsExistingTeamMembers: Bool = false) async {
         isLoadingCandidates = true
         defer { isLoadingCandidates = false }
 
@@ -4930,9 +5695,15 @@ private final class OrganizationTeamViewModel: ObservableObject {
                 .limit(to: 100)
                 .getDocuments()
             let teamIDs = Self.teamIDs(for: organization)
+            let excludedIDs: Set<String>
+            if allowsExistingTeamMembers {
+                excludedIDs = Set([organization.ownerId].compactMap { $0 }.filter { !$0.isEmpty })
+            } else {
+                excludedIDs = Set(teamIDs)
+            }
             candidateUsers = snapshot.documents
                 .map(Self.makeUser(from:))
-                .filter { !teamIDs.contains($0.id) }
+                .filter { !excludedIDs.contains($0.id) }
         } catch {
             candidateUsers = []
             errorMessage = AppStrings.Profile.organizationTeamUserSearchFailed
@@ -4952,6 +5723,8 @@ private final class OrganizationTeamViewModel: ObservableObject {
         switch action {
         case let .assign(user, role):
             return await assign(role, to: user, organization: organization, actor: actor)
+        case let .changeOwner(user):
+            return await changeOwner(to: user, organization: organization, actor: actor)
         case let .remove(member):
             return await remove(member, organization: organization, actor: actor)
         }
@@ -5008,6 +5781,30 @@ private final class OrganizationTeamViewModel: ObservableObject {
                 target: user,
                 actor: actor,
                 isRemoval: true
+            )
+        }
+    }
+
+    private func changeOwner(
+        to target: AppUser,
+        organization: Organization,
+        actor: AppUser
+    ) async -> Bool {
+        guard actor.globalRole.effectiveRole == .owner else {
+            errorMessage = AppStrings.Profile.organizationTeamOwnerChangePlatformOnly
+            return false
+        }
+
+        guard !target.id.isEmpty else {
+            errorMessage = AppStrings.Profile.organizationTeamUserProfileMissing
+            return false
+        }
+
+        return await update(target: target, organization: organization) {
+            try await updateOwner(
+                organization: organization,
+                newOwner: target,
+                actor: actor
             )
         }
     }
@@ -5119,6 +5916,62 @@ private final class OrganizationTeamViewModel: ObservableObject {
         }
     }
 
+    private func updateOwner(
+        organization: Organization,
+        newOwner: AppUser,
+        actor: AppUser
+    ) async throws {
+        let organizationReference = organizationsCollection.document(organization.id)
+
+        _ = try await database.runTransaction { transaction, errorPointer in
+            do {
+                let organizationSnapshot = try transaction.getDocument(organizationReference)
+                guard let organizationData = organizationSnapshot.data() else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+
+                let currentOwnerId = organizationData["ownerId"] as? String
+                let currentAdminIds = organizationData["adminIds"] as? [String] ?? []
+                let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
+                let oldOwnerId = currentOwnerId ?? ""
+
+                guard actor.globalRole.effectiveRole == .owner, !newOwner.id.isEmpty else {
+                    errorPointer?.pointee = AppError.permissionDenied.asNSError
+                    return nil
+                }
+
+                transaction.updateData([
+                    "ownerId": newOwner.id,
+                    "adminIds": currentAdminIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
+                    "moderatorIds": currentModeratorIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
+                    "updatedAt": FieldValue.serverTimestamp()
+                ], forDocument: organizationReference)
+
+                transaction.setData([
+                    "actionType": "organizationOwnerChanged",
+                    "targetUserId": newOwner.id,
+                    "performedBy": actor.id,
+                    "createdAt": FieldValue.serverTimestamp(),
+                    "reason": "Organization management hub",
+                    "note": NSNull(),
+                    "previousValue": [
+                        "organizationId": organization.id,
+                        "ownerId": currentOwnerId ?? "none"
+                    ],
+                    "newValue": [
+                        "organizationId": organization.id,
+                        "ownerId": newOwner.id
+                    ]
+                ], forDocument: self.auditCollection.document())
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+
+            return nil
+        }
+    }
+
     private func fetchUsers(ids: [String]) async throws -> [AppUser] {
         var users: [AppUser] = []
         for id in ids {
@@ -5187,7 +6040,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
 
     private static func makeUser(id: String, data: [String: Any]) -> AppUser {
         let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
-        let globalRole = ((data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? GlobalRole(legacyRole: legacyRole)).effectiveRole
+        let globalRole = ((data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user).effectiveRole
         let isBlocked = data["isBlocked"] as? Bool ?? false
         let blockState = UserBlockState(rawValue: data["blockState"] as? String ?? "") ?? (isBlocked ? .suspendedUntil : .active)
         let memberships = memberships(from: data).compactMap { item -> CommunityMembership? in
@@ -5310,6 +6163,8 @@ private struct OrganizationTeamMemberRow: View {
 
 private struct OrganizationTeamCandidateRow: View {
     let user: AppUser
+    let role: OrganizationTeamRole?
+    let isOwnerTransfer: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -5321,16 +6176,28 @@ private struct OrganizationTeamCandidateRow: View {
                     .foregroundStyle(AppTheme.textPrimary)
                     .lineLimit(1)
 
-                if !user.email.isEmpty {
-                    Text(user.email)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    if !user.email.isEmpty {
+                        Text(user.email)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    if let role {
+                        Text(role.title)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(role.tint)
+                    } else if isOwnerTransfer {
+                        Text(AppStrings.Profile.organizationTeamNoCurrentRole)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Image(systemName: "plus.circle.fill")
+            Image(systemName: isOwnerTransfer ? "person.crop.circle.badge.checkmark" : "plus.circle.fill")
                 .font(.title3)
                 .foregroundStyle(AppTheme.accentPrimary)
         }
@@ -5396,6 +6263,7 @@ private struct ManagedOrganizationView: View {
     @State private var pendingTeamAction: OrganizationTeamAction?
     @State private var selectedTeamRole: OrganizationTeamRole = .moderator
     @State private var teamSearchText = ""
+    @State private var isChangingOwner = false
 
     private var currentOrganization: Organization {
         organizationsViewModel.organization(for: organization.id) ?? organization
@@ -5499,7 +6367,7 @@ private struct ManagedOrganizationView: View {
         .sheet(isPresented: $isShowingTeamSearch) {
             NavigationStack {
                 teamSearchSheet
-                    .navigationTitle(AppStrings.Profile.organizationTeamAddMember)
+                    .navigationTitle(isChangingOwner ? AppStrings.Profile.organizationTeamChangeOwner : AppStrings.Profile.organizationTeamAddMember)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -5509,8 +6377,11 @@ private struct ManagedOrganizationView: View {
                         }
                     }
             }
-            .task {
-                await teamViewModel.loadCandidateUsers(excluding: currentOrganization)
+            .task(id: isChangingOwner) {
+                await teamViewModel.loadCandidateUsers(
+                    excluding: currentOrganization,
+                    allowsExistingTeamMembers: isChangingOwner
+                )
             }
         }
         .confirmationDialog(
@@ -5657,18 +6528,42 @@ private struct ManagedOrganizationView: View {
                     AppEditorSectionTitle(title: AppStrings.Profile.organizationTeamSection)
 
                     if canManageTeam {
-                        Button {
-                            teamSearchText = ""
-                            selectedTeamRole = availableAssignableRoles.first ?? .moderator
-                            isShowingTeamSearch = true
-                        } label: {
-                            Label(AppStrings.Profile.organizationTeamAddMember, systemImage: "plus")
-                                .font(.caption.weight(.semibold))
+                        HStack(spacing: 8) {
+                            if isPlatformOwner {
+                                Button {
+                                    teamSearchText = ""
+                                    selectedTeamRole = .owner
+                                    isChangingOwner = true
+                                    isShowingTeamSearch = true
+                                } label: {
+                                    Label(AppStrings.Profile.organizationTeamChangeOwner, systemImage: "person.crop.circle.badge.checkmark")
+                                        .font(.caption.weight(.semibold))
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .tint(AppTheme.accentPrimary)
+                            }
+
+                            Button {
+                                teamSearchText = ""
+                                selectedTeamRole = .moderator
+                                isChangingOwner = false
+                                isShowingTeamSearch = true
+                            } label: {
+                                Label(AppStrings.Profile.organizationTeamAddMember, systemImage: "plus")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(AppTheme.accentPrimary)
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(AppTheme.accentPrimary)
                     }
+                }
+
+                if isPlatformOwner {
+                    Text(AppStrings.Profile.organizationTeamOwnerRequiredExplanation)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
 
                 if teamViewModel.isLoading && teamViewModel.members.isEmpty {
@@ -5734,9 +6629,15 @@ private struct ManagedOrganizationView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
 
-                Picker(AppStrings.Profile.organizationTeamRolePicker, selection: $selectedTeamRole) {
-                    ForEach(availableAssignableRoles) { role in
-                        Text(role.title).tag(role)
+                if isChangingOwner {
+                    Text(AppStrings.Profile.organizationTeamOwnerRequiredExplanation)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                } else {
+                    Picker(AppStrings.Profile.organizationTeamRolePicker, selection: $selectedTeamRole) {
+                        ForEach(addMemberAssignableRoles) { role in
+                            Text(role.title).tag(role)
+                        }
                     }
                 }
             }
@@ -5750,10 +6651,16 @@ private struct ManagedOrganizationView: View {
                 } else {
                     ForEach(filteredTeamCandidateUsers) { user in
                         Button {
-                            pendingTeamAction = .assign(user: user, role: selectedTeamRole)
+                            pendingTeamAction = isChangingOwner
+                                ? .changeOwner(user: user)
+                                : .assign(user: user, role: selectedTeamRole)
                             isShowingTeamSearch = false
                         } label: {
-                            OrganizationTeamCandidateRow(user: user)
+                            OrganizationTeamCandidateRow(
+                                user: user,
+                                role: teamRole(for: user),
+                                isOwnerTransfer: isChangingOwner
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -5781,8 +6688,33 @@ private struct ManagedOrganizationView: View {
         return [.admin, .moderator]
     }
 
+    private var addMemberAssignableRoles: [OrganizationTeamRole] {
+        availableAssignableRoles.filter { $0 != .owner }
+    }
+
+    private var roleManagementAssignableRoles: [OrganizationTeamRole] {
+        availableAssignableRoles.filter { $0 != .owner }
+    }
+
+    private var isPlatformOwner: Bool {
+        authState.user?.globalRole.effectiveRole == .owner
+    }
+
+    private func teamRole(for user: AppUser) -> OrganizationTeamRole? {
+        if currentOrganization.ownerId == user.id {
+            return .owner
+        }
+        if currentOrganization.adminIds.contains(user.id) {
+            return .admin
+        }
+        if currentOrganization.moderatorIds.contains(user.id) {
+            return .moderator
+        }
+        return nil
+    }
+
     private func availableRoles(for member: OrganizationTeamMember) -> [OrganizationTeamRole] {
-        availableAssignableRoles.filter { $0 != member.role }
+        roleManagementAssignableRoles.filter { $0 != member.role }
     }
 
     private func canChangeRole(for member: OrganizationTeamMember) -> Bool {
@@ -5796,7 +6728,7 @@ private struct ManagedOrganizationView: View {
 
     private func destructiveRole(for action: OrganizationTeamAction) -> ButtonRole? {
         switch action {
-        case .assign:
+        case .assign, .changeOwner:
             nil
         case .remove:
             .destructive
@@ -5821,6 +6753,10 @@ private struct ManagedOrganizationView: View {
         switch action {
         case let .assign(user, _):
             if user.id == actor.id {
+                await authState.loadUser(uid: actor.id)
+            }
+        case let .changeOwner(user):
+            if user.id == actor.id || currentOrganization.ownerId == actor.id {
                 await authState.loadUser(uid: actor.id)
             }
         case let .remove(member):

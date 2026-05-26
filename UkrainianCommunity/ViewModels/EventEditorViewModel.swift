@@ -639,7 +639,7 @@ final class EventEditorViewModel: ObservableObject {
         }
 
         guard hasOrganizerForCreate else {
-            errorMessage = "Оберіть організацію для події."
+            errorMessage = AppStrings.Events.organizationRequired
             return false
         }
 

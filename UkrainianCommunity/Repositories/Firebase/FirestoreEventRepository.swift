@@ -911,6 +911,6 @@ private extension AppUser {
         let display = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !display.isEmpty { return display }
         let full = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return full.isEmpty ? "Користувач" : full
+        return full.isEmpty ? "User" : full
     }
 }

@@ -33,12 +33,7 @@ enum GlobalRole: String, CaseIterable, Codable, Identifiable {
     }
 
     nonisolated init(legacyRole: UserRole) {
-        switch legacyRole {
-        case .owner:
-            self = .owner
-        case .admin, .moderator, .user:
-            self = .user
-        }
+        self = .user
     }
 }
 
@@ -68,13 +63,13 @@ enum AccountStatus: String, CaseIterable, Codable, Identifiable {
         case .active:
             AppStrings.Common.active
         case .warned:
-            "Попередження"
+            AppStrings.Common.warned
         case .suspendedUntil, .temporarilyBanned:
-            "Тимчасово заблоковано"
+            AppStrings.Common.temporarilyBlocked
         case .bannedPermanent, .permanentlyBanned:
-            "Заблоковано"
+            AppStrings.Common.blocked
         case .deactivated:
-            "Деактивовано"
+            AppStrings.Common.deactivated
         }
     }
 }
@@ -95,13 +90,13 @@ enum UserBlockState: String, Codable, CaseIterable, Identifiable {
         case .active:
             AppStrings.Common.active
         case .warned:
-            "Попередження"
+            AppStrings.Common.warned
         case .suspendedUntil, .blocked:
-            "Тимчасово заблоковано"
+            AppStrings.Common.temporarilyBlocked
         case .bannedPermanent:
             AppStrings.Common.blocked
         case .deactivated:
-            "Деактивовано"
+            AppStrings.Common.deactivated
         }
     }
 
@@ -380,7 +375,7 @@ struct AppUser: Identifiable, Codable {
         self.bio = bio
         self.telegramUsername = telegramUsername
         self.role = role
-        self.globalRole = (globalRole ?? GlobalRole(legacyRole: role)).effectiveRole
+        self.globalRole = (globalRole ?? .user).effectiveRole
         self.moderatorSections = []
         self.canManageGuide = canManageGuide
         self.blockState = blockState
@@ -411,6 +406,20 @@ struct AppUser: Identifiable, Codable {
         createdAt: .now,
         updatedAt: .now
     )
+}
+
+struct PublicUserProfile: Identifiable, Codable, Hashable {
+    let id: String
+    let displayName: String
+    let avatarURL: URL?
+    let city: String
+    let federalState: AustrianFederalState?
+    let updatedAt: Date?
+
+    var preferredDisplayName: String {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? AppStrings.Common.communityMemberFallback : trimmed
+    }
 }
 
 enum FeedbackType: String, CaseIterable, Codable, Identifiable {

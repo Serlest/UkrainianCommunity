@@ -65,7 +65,12 @@ struct NewsListView: View {
 
     var body: some View {
         ScrollView {
-            if viewModel.posts.isEmpty && viewModel.isLoading {
+            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                newsHeader
+                    .padding(.horizontal, AppTheme.pageHorizontal)
+
+                Group {
+                    if viewModel.posts.isEmpty && viewModel.isLoading {
                 VStack {
                     LoadingStateCard(title: nil)
                 }
@@ -118,10 +123,13 @@ struct NewsListView: View {
                     }
                     .padding()
                 }
+                }
             }
         }
+        }
         .background(AppTheme.groupedBackground.ignoresSafeArea())
-        .navigationTitle(AppStrings.News.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadIfNeeded()
         }
@@ -188,6 +196,12 @@ struct NewsListView: View {
             NavigationStack {
                 NewsEditorView(repository: newsRepository, onPublished: onNewsPublished)
             }
+        }
+    }
+
+    private var newsHeader: some View {
+        AppBrandHeader {
+            AppNotificationBellButton()
         }
     }
 
@@ -286,6 +300,7 @@ struct NewsDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.newsPresentationMode) private var presentationMode
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
@@ -376,6 +391,8 @@ struct NewsDetailView: View {
 
                     ScrollView(.vertical, showsIndicators: true) {
                         VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                            newsDetailHeader()
+
                             articleHeader(for: post)
                                 .onTapGesture { isCommentFieldFocused = false }
 
@@ -410,6 +427,9 @@ struct NewsDetailView: View {
                     }
                     .frame(width: proxy.size.width)
                     .scrollDismissesKeyboard(.interactively)
+                    .refreshable {
+                        await refreshNewsDetail()
+                    }
                 }
             } else {
                 EmptyStateView(title: AppStrings.Common.noItems)
@@ -417,10 +437,6 @@ struct NewsDetailView: View {
             }
         }
         .background(AppBackgroundView().allowsHitTesting(false))
-        .safeAreaInset(edge: .top, spacing: 0) {
-            newsDetailHeaderInset
-        }
-        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -501,13 +517,11 @@ struct NewsDetailView: View {
         }
     }
 
-    private var newsDetailHeaderInset: some View {
-        newsDetailHeader()
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.top, AppTheme.dashboardSpacing)
-            .padding(.bottom, 6)
-            .background(Color.clear.allowsHitTesting(false))
-            .zIndex(50)
+    private func refreshNewsDetail() async {
+        await viewModel.refresh()
+        guard let post = viewModel.post(for: postID) else { return }
+        await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
+        await viewModel.loadComments(for: postID)
     }
 
     private func newsDetailHeader() -> some View {
@@ -670,18 +684,19 @@ struct NewsDetailView: View {
     }
 
     private func articleBody(for post: NewsPost) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(AppStrings.News.bodySectionTitle)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(AppTheme.accentPrimary)
+        detailGlassCard(padding: detailCardPadding) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(AppStrings.News.bodySectionTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
 
-            Text(post.body)
-                .font(.footnote)
-                .foregroundStyle(AppTheme.accentPrimary)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(post.body)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -692,16 +707,14 @@ struct NewsDetailView: View {
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(AppTheme.accentPrimary)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(post.tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(AppTheme.accentPrimary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(AppTheme.accentPrimarySoft, in: Capsule())
-                        }
+                AppHorizontalChipRow {
+                    ForEach(post.tags, id: \.self) { tag in
+                        Text(tag)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentPrimary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(AppTheme.accentPrimarySoft, in: Capsule())
                     }
                 }
             }
@@ -877,7 +890,16 @@ struct NewsDetailView: View {
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
                         .padding(8)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                        .background(
+                            reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassSurface(for: colorScheme),
+                            in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        )
+                        .background {
+                            if !reduceTransparency {
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .fill(.ultraThinMaterial)
+                            }
+                        }
                         .padding(7)
                 }
             }
@@ -1153,7 +1175,7 @@ struct NewsDetailView: View {
     }
 
     private func viewCountText(for post: NewsPost) -> String {
-        "\(post.viewCount) переглядів"
+        AppStrings.News.viewCount(post.viewCount)
     }
 
     private func newsSourceText(for post: NewsPost) -> String {
@@ -1170,13 +1192,14 @@ struct NewsDetailView: View {
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: detailCardRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: detailCardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: detailCardRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.62))
+        .appGlassCard(
+            cornerRadius: detailCardRadius,
+            material: .ultraThinMaterial,
+            surface: AppTheme.glassSurface(for: colorScheme),
+            borderOpacity: 0.62,
+            shadowRadius: 8,
+            shadowY: 4
         )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.45), radius: 8, y: 4)
     }
 
     private func sanitizedImageURL(_ imageURL: String?) -> String? {

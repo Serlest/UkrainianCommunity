@@ -7,6 +7,7 @@ private actor MockRepositoryStore {
     var news = MockContentBuilder.newsPosts()
     var events = MockContentBuilder.events()
     var organizations = MockContentBuilder.organizations()
+    var organizationComments: [String: [Comment]] = [:]
     var infoItems = MockContentBuilder.infoItems()
     var guideArticles = MockContentBuilder.guideArticles()
     var feedbackItems: [FeedbackItem] = []
@@ -394,7 +395,69 @@ private actor MockRepositoryStore {
     func toggleOrganizationLike(id: String, isLiked: Bool) throws {
         guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         organizations[index].likeState = isLiked ? .liked : .notLiked
-        organizations[index].subscriberCount = max(0, organizations[index].subscriberCount + (isLiked ? 1 : -1))
+        organizations[index].likeCount = max(0, organizations[index].likeCount + (isLiked ? 1 : -1))
+    }
+
+    func toggleOrganizationSubscription(id: String, isSubscribed: Bool) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        organizations[index].isSubscribed = isSubscribed
+        organizations[index].subscriberCount = max(0, organizations[index].subscriberCount + (isSubscribed ? 1 : -1))
+    }
+
+    func organizationSubscriberPage(organizationID: String, limit: Int, after cursor: OrganizationSubscriberCursor?) throws -> OrganizationSubscriberPage {
+        guard organizations.contains(where: { $0.id == organizationID }) else { throw AppError.notFound }
+        return OrganizationSubscriberPage(items: [], nextCursor: nil, hasMore: false)
+    }
+
+    func organizationComments(organizationID: String) throws -> [Comment] {
+        guard organizations.contains(where: { $0.id == organizationID }) else { throw AppError.notFound }
+        return (organizationComments[organizationID] ?? []).filter { !$0.isDeleted }
+    }
+
+    func addOrganizationComment(organizationID: String, text: String, author: AppUser) throws -> Comment {
+        guard organizations.contains(where: { $0.id == organizationID }) else { throw AppError.notFound }
+        let comment = Comment(
+            id: UUID().uuidString,
+            parentType: .organization,
+            parentId: organizationID,
+            authorId: author.id,
+            authorName: author.commentDisplayName,
+            authorPhotoURL: author.avatarURL?.absoluteString,
+            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            createdAt: .now
+        )
+        organizationComments[organizationID, default: []].append(comment)
+        return comment
+    }
+
+    func updateOrganizationComment(organizationID: String, commentID: String, text: String) throws -> Comment {
+        guard var comments = organizationComments[organizationID],
+              let index = comments.firstIndex(where: { $0.id == commentID }) else {
+            throw AppError.notFound
+        }
+        let existing = comments[index]
+        let updated = Comment(
+            id: existing.id,
+            parentType: existing.parentType,
+            parentId: existing.parentId,
+            authorId: existing.authorId,
+            authorName: existing.authorName,
+            authorPhotoURL: existing.authorPhotoURL,
+            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            createdAt: existing.createdAt,
+            updatedAt: .now,
+            moderationStatus: existing.moderationStatus,
+            isDeleted: existing.isDeleted
+        )
+        comments[index] = updated
+        organizationComments[organizationID] = comments
+        return updated
+    }
+
+    func deleteOrganizationComment(organizationID: String, commentID: String) throws {
+        guard var comments = organizationComments[organizationID] else { throw AppError.notFound }
+        comments.removeAll { $0.id == commentID }
+        organizationComments[organizationID] = comments
     }
 
     func setOrganizationBookmark(id: String, isBookmarked: Bool) throws {
@@ -410,6 +473,15 @@ private actor MockRepositoryStore {
         organizations
             .filter { $0.moderationStatus == .pendingReview }
             .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func organizationRequests(submittedByUserID: String) -> [Organization] {
+        organizations
+            .filter {
+                $0.submittedByUserId == submittedByUserID
+                    && $0.moderationStatus != .approved
+            }
+            .sorted { ($0.submittedAt ?? $0.createdAt) > ($1.submittedAt ?? $1.createdAt) }
     }
 
     func organization(id: String) throws -> Organization {
@@ -457,9 +529,16 @@ private actor MockRepositoryStore {
             ownerId: item.ownerId,
             adminIds: item.adminIds,
             moderatorIds: item.moderatorIds,
+            submittedByUserId: item.submittedByUserId,
+            submittedByDisplayName: item.submittedByDisplayName,
+            submittedAt: item.submittedAt,
+            reviewMessage: item.reviewMessage,
+            reviewedByUserId: item.reviewedByUserId,
+            reviewedAt: item.reviewedAt,
+            rejectionReason: item.rejectionReason,
             createdAt: existingItem.createdAt,
             updatedAt: item.updatedAt,
-            moderationStatus: existingItem.moderationStatus,
+            moderationStatus: item.moderationStatus,
             likeCount: existingItem.likeCount,
             likeState: existingItem.likeState,
             isBookmarked: existingItem.isBookmarked
@@ -476,6 +555,29 @@ private actor MockRepositoryStore {
         guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         organizations[index].moderationStatus = newStatus
     }
+
+    func approveOrganizationRequest(id: String, reviewerID: String) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        guard let submittedByUserId = organizations[index].submittedByUserId else { throw AppError.validationFailed }
+        organizations[index].moderationStatus = .approved
+        organizations[index] = organizations[index].updatingReview(
+            ownerId: submittedByUserId,
+            status: .approved,
+            reviewMessage: nil,
+            reviewedByUserId: reviewerID,
+            rejectionReason: nil
+        )
+    }
+
+    func requestOrganizationRevision(id: String, message: String, reviewerID: String) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        organizations[index] = organizations[index].updatingReview(
+            status: .needsRevision,
+            reviewMessage: message,
+            reviewedByUserId: reviewerID,
+            rejectionReason: nil
+        )
+    }
 }
 
 struct MockUserRepository: UserRepository {
@@ -491,6 +593,9 @@ struct MockUserRepository: UserRepository {
 
     func updateProfile(_ profile: EditableUserProfileDraft) async throws -> AppUser {
         await store.updateUserProfile(profile)
+    }
+
+    func deleteAccount(currentUser: AppUser) async throws {
     }
 }
 
@@ -689,6 +794,10 @@ struct MockOrganizationRepository: OrganizationRepository {
         await store.pendingOrganizations()
     }
 
+    func fetchOrganizationRequests(submittedByUserID: String) async throws -> [Organization] {
+        await store.organizationRequests(submittedByUserID: submittedByUserID)
+    }
+
     func createOrganization(_ organization: Organization) async throws {
         await store.createOrganization(organization)
     }
@@ -713,6 +822,42 @@ struct MockOrganizationRepository: OrganizationRepository {
         try await store.toggleOrganizationLike(id: id, isLiked: false)
     }
 
+    func subscribeOrganization(id: String) async throws {
+        try await store.toggleOrganizationSubscription(id: id, isSubscribed: true)
+    }
+
+    func unsubscribeOrganization(id: String) async throws {
+        try await store.toggleOrganizationSubscription(id: id, isSubscribed: false)
+    }
+
+    func fetchOrganizationSubscriberPage(
+        organizationID: String,
+        limit: Int,
+        after cursor: OrganizationSubscriberCursor?
+    ) async throws -> OrganizationSubscriberPage {
+        try await store.organizationSubscriberPage(organizationID: organizationID, limit: limit, after: cursor)
+    }
+
+    func fetchPublicUserProfiles(userIDs: [String]) async throws -> [PublicUserProfile] {
+        []
+    }
+
+    func fetchOrganizationComments(organizationID: String) async throws -> [Comment] {
+        try await store.organizationComments(organizationID: organizationID)
+    }
+
+    func addOrganizationComment(organizationID: String, text: String, author: AppUser) async throws -> Comment {
+        try await store.addOrganizationComment(organizationID: organizationID, text: text, author: author)
+    }
+
+    func updateOrganizationComment(organizationID: String, commentID: String, text: String) async throws -> Comment {
+        try await store.updateOrganizationComment(organizationID: organizationID, commentID: commentID, text: text)
+    }
+
+    func deleteOrganizationComment(organizationID: String, commentID: String) async throws {
+        try await store.deleteOrganizationComment(organizationID: organizationID, commentID: commentID)
+    }
+
     func bookmarkOrganization(id: String) async throws {
         try await store.setOrganizationBookmark(id: id, isBookmarked: true)
     }
@@ -731,6 +876,18 @@ struct MockOrganizationRepository: OrganizationRepository {
 
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
         try await store.updateOrganizationModerationStatus(id: id, newStatus: newStatus)
+    }
+
+    func approveOrganizationRequest(id: String, reviewerID: String) async throws {
+        try await store.approveOrganizationRequest(id: id, reviewerID: reviewerID)
+    }
+
+    func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
+        try await store.requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
+    }
+
+    func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
+        try await store.deleteOrganization(id: id)
     }
 }
 
@@ -759,6 +916,71 @@ private extension NewsPost {
             viewCount: viewCount,
             isBookmarked: isBookmarked,
             commentCount: commentCount
+        )
+    }
+}
+
+private extension Organization {
+    nonisolated func updatingReview(
+        ownerId: String? = nil,
+        status: ModerationStatus,
+        reviewMessage: String?,
+        reviewedByUserId: String,
+        rejectionReason: String?
+    ) -> Organization {
+        Organization(
+            id: id,
+            name: name,
+            description: description,
+            shortDescription: shortDescription,
+            fullDescription: fullDescription,
+            regionScope: regionScope,
+            federalState: federalState,
+            city: city,
+            imageURL: imageURL,
+            logoURL: logoURL,
+            coverURL: coverURL,
+            contactEmail: contactEmail,
+            email: email,
+            phone: phone,
+            website: website,
+            address: address,
+            latitude: latitude,
+            longitude: longitude,
+            organizationType: organizationType,
+            foundedYear: foundedYear,
+            foundedMonth: foundedMonth,
+            languages: languages,
+            socialLinks: socialLinks,
+            telegramURL: telegramURL,
+            donationURL: donationURL,
+            missionStatement: missionStatement,
+            contactPerson: contactPerson,
+            subscriberCount: subscriberCount,
+            eventsHeldCount: eventsHeldCount,
+            volunteersCount: volunteersCount,
+            helpedPeopleCount: helpedPeopleCount,
+            ownerId: ownerId ?? self.ownerId,
+            adminIds: adminIds,
+            moderatorIds: moderatorIds,
+            isSystemManaged: isSystemManaged,
+            sourceType: sourceType,
+            pinnedNewsId: pinnedNewsId,
+            pinnedEventId: pinnedEventId,
+            submittedByUserId: submittedByUserId,
+            submittedByDisplayName: submittedByDisplayName,
+            submittedAt: submittedAt,
+            reviewMessage: reviewMessage,
+            reviewedByUserId: reviewedByUserId,
+            reviewedAt: .now,
+            rejectionReason: rejectionReason,
+            createdAt: createdAt,
+            updatedAt: .now,
+            moderationStatus: status,
+            likeCount: likeCount,
+            likeState: likeState,
+            isSubscribed: isSubscribed,
+            isBookmarked: isBookmarked
         )
     }
 }
@@ -823,6 +1045,6 @@ private extension AppUser {
         let display = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !display.isEmpty { return display }
         let full = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return full.isEmpty ? "Користувач" : full
+        return full.isEmpty ? "User" : full
     }
 }

@@ -175,6 +175,7 @@ struct AppBrandHeader<TrailingContent: View>: View {
     }
 }
 
+
 struct AppBackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -215,6 +216,104 @@ struct AppBackgroundView: View {
     }
 }
 
+struct AppGlassCardStyle: ViewModifier {
+    let cornerRadius: CGFloat
+    let material: Material
+    let surface: Color?
+    let borderOpacity: Double
+    let shadowRadius: CGFloat
+    let shadowY: CGFloat
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        content
+            .background {
+                shape.fill(
+                    reduceTransparency
+                    ? AppTheme.glassFallbackSurface(for: colorScheme)
+                    : (surface ?? AppTheme.glassSurface(for: colorScheme))
+                )
+            }
+            .background {
+                if !reduceTransparency {
+                    shape.fill(material)
+                }
+            }
+            .overlay {
+                shape.strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(borderOpacity))
+            }
+            .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: shadowRadius, y: shadowY)
+    }
+}
+
+extension View {
+    func appGlassCard(
+        cornerRadius: CGFloat = AppTheme.cardRadius,
+        material: Material = .ultraThinMaterial,
+        surface: Color? = nil,
+        borderOpacity: Double = 1,
+        shadowRadius: CGFloat = 12,
+        shadowY: CGFloat = 6
+    ) -> some View {
+        modifier(
+            AppGlassCardStyle(
+                cornerRadius: cornerRadius,
+                material: material,
+                surface: surface,
+                borderOpacity: borderOpacity,
+                shadowRadius: shadowRadius,
+                shadowY: shadowY
+            )
+        )
+    }
+}
+
+struct AppGlassCard<Content: View>: View {
+    let padding: CGFloat
+    let spacing: CGFloat
+    let cornerRadius: CGFloat
+    let material: Material
+    let shadowRadius: CGFloat
+    let shadowY: CGFloat
+    @ViewBuilder let content: Content
+
+    init(
+        padding: CGFloat = AppTheme.cardPadding,
+        spacing: CGFloat = 12,
+        cornerRadius: CGFloat = AppTheme.cardRadius,
+        material: Material = .ultraThinMaterial,
+        shadowRadius: CGFloat = 12,
+        shadowY: CGFloat = 6,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.padding = padding
+        self.spacing = spacing
+        self.cornerRadius = cornerRadius
+        self.material = material
+        self.shadowRadius = shadowRadius
+        self.shadowY = shadowY
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: spacing) {
+            content
+        }
+        .padding(padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appGlassCard(
+            cornerRadius: cornerRadius,
+            material: material,
+            shadowRadius: shadowRadius,
+            shadowY: shadowY
+        )
+    }
+}
+
 struct AppGroupedContentPlane<Content: View>: View {
     let padding: CGFloat
     @ViewBuilder let content: Content
@@ -231,13 +330,14 @@ struct AppGroupedContentPlane<Content: View>: View {
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.groupedPlaneSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.contentPlaneRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.contentPlaneRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.contentPlaneRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.72))
+        .appGlassCard(
+            cornerRadius: AppTheme.contentPlaneRadius,
+            material: .ultraThinMaterial,
+            surface: AppTheme.groupedPlaneSurface(for: colorScheme),
+            borderOpacity: 0.34,
+            shadowRadius: 6,
+            shadowY: 3
         )
-        .shadow(color: AppTheme.contentPlaneShadow(for: colorScheme), radius: 22, y: 11)
     }
 }
 
@@ -255,6 +355,7 @@ struct AppHeroBanner<FooterContent: View>: View {
     let displaysTextOverImage: Bool
     @ViewBuilder let footerContent: FooterContent
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(
         title: String,
@@ -321,8 +422,16 @@ struct AppHeroBanner<FooterContent: View>: View {
                 }
             }
         }
-        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
+        .background(
+            reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassSurface(for: colorScheme),
+            in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
+        )
+        .background {
+            if !reduceTransparency {
+                RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
                 .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -411,7 +520,6 @@ private struct AppHeroFallbackSurface: View {
 struct SoftContentCard<Content: View>: View {
     let padding: CGFloat
     @ViewBuilder let content: Content
-    @Environment(\.colorScheme) private var colorScheme
 
     init(padding: CGFloat = AppTheme.dashboardCardPadding, @ViewBuilder content: () -> Content) {
         self.padding = padding
@@ -419,18 +527,9 @@ struct SoftContentCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AppGlassCard(padding: padding, spacing: 12, shadowRadius: 13, shadowY: 6) {
             content
         }
-        .padding(padding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-        )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 13, y: 6)
     }
 }
 
@@ -515,6 +614,7 @@ struct AppGlassIconButton: View {
     let isPlaceholder: Bool
     let action: () -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(
         systemImage: String,
@@ -536,8 +636,16 @@ struct AppGlassIconButton: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
                 .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-                .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .background(
+                    reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                )
+                .background {
+                    if !reduceTransparency {
+                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    }
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                         .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -976,6 +1084,7 @@ struct AppEventDateBlock: View {
     let date: Date
     let calendar: Calendar
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(date: Date, calendar: Calendar = .current) {
         self.date = date
@@ -997,8 +1106,16 @@ struct AppEventDateBlock: View {
                     .minimumScaleFactor(0.75)
             }
             .frame(width: AppTheme.eventsDateRailWidth, height: 52)
-            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+            .background(
+                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+            )
+            .background {
+                if !reduceTransparency {
+                    RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+            }
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
                     .strokeBorder(AppTheme.glassBorder(for: colorScheme))
@@ -1081,6 +1198,7 @@ struct AppInfoChip: View {
     let trailingSystemImage: String?
     let size: Size
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(
         title: String,
@@ -1120,8 +1238,16 @@ struct AppInfoChip: View {
         .foregroundStyle(tint)
         .padding(.horizontal, size.horizontalPadding)
         .padding(.vertical, size.verticalPadding)
-        .background(fill, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+        .background(
+            reduceTransparency ? fill.opacity(0.95) : fill,
+            in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+        )
+        .background {
+            if !reduceTransparency {
+                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
         .overlay {
             if let border {
                 RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
@@ -1164,6 +1290,27 @@ struct AppFilterChip: View {
     }
 }
 
+struct AppHorizontalChipRow<Content: View>: View {
+    let spacing: CGFloat
+    @ViewBuilder let content: Content
+
+    init(spacing: CGFloat = AppTheme.eventsMetadataSpacing, @ViewBuilder content: () -> Content) {
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: spacing) {
+                content
+            }
+            .padding(.horizontal, AppTheme.eventsMetadataSpacing)
+            .padding(.vertical, 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct AppHorizontalFilterRow<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -1172,12 +1319,9 @@ struct AppHorizontalFilterRow<Content: View>: View {
     }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                content
-            }
+        AppHorizontalChipRow {
+            content
         }
-        .scrollClipDisabled()
     }
 }
 
@@ -1275,24 +1419,11 @@ struct AdaptiveCardGrid<Data: RandomAccessCollection, Content: View>: View where
 
 struct CommunityCard<Content: View>: View {
     @ViewBuilder let content: Content
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        AppGlassCard(padding: AppTheme.cardPadding, spacing: 12, shadowRadius: 8, shadowY: 3) {
             content
         }
-        .padding(AppTheme.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .fill(AppTheme.glassSurface(for: colorScheme))
-        )
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-        )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 8, y: 3)
     }
 }
 
@@ -1317,21 +1448,16 @@ struct DetailPageContainer<Content: View>: View {
 
 struct DetailCard<Content: View>: View {
     @ViewBuilder let content: Content
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+        AppGlassCard(
+            padding: AppTheme.detailCardPadding,
+            spacing: AppTheme.dashboardSpacing,
+            shadowRadius: 13,
+            shadowY: 6
+        ) {
             content
         }
-        .padding(AppTheme.detailCardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.glassSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-        )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 13, y: 6)
     }
 }
 
@@ -1388,6 +1514,7 @@ struct RemoteImageView: View {
     let source: String
     let placeholderStyle: RemoteImagePlaceholderStyle
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var loadedImage: UIImage?
     @State private var loadFailed = false
 
@@ -1465,8 +1592,13 @@ struct RemoteImageView: View {
             placeholder(systemImage: "photo")
         case .glassSkeleton:
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(AppTheme.glassControlSurface(for: colorScheme))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .fill(reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme))
+                .background {
+                    if !reduceTransparency {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    }
+                }
                 .overlay(
                     LinearGradient(
                         colors: [
@@ -1937,6 +2069,8 @@ struct AvatarArtworkView: View {
     let accessibilityLabel: String?
     let isLoading: Bool
     let isDecorative: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(
         avatarURL: URL?,
@@ -1964,7 +2098,13 @@ struct AvatarArtworkView: View {
 
             if isLoading {
                 Circle()
-                    .fill(.ultraThinMaterial)
+                    .fill(reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme))
+                    .background {
+                        if !reduceTransparency {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                        }
+                    }
                     .overlay {
                         ProgressView()
                             .controlSize(.regular)
