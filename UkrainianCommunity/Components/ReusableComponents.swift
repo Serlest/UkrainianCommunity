@@ -653,6 +653,7 @@ struct AppGlassIconButton: View {
                 .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 5, y: 2)
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
         .disabled(isPlaceholder)
         .opacity(isPlaceholder ? 0.58 : 1)
         .accessibilityLabel(accessibilityLabel)
@@ -688,6 +689,7 @@ struct AppCenteredBrandHeader<LeadingContent: View, TrailingContent: View>: View
                 assetName: "logo1",
                 contentMode: .fit
             )
+            .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)
         .accessibilityElement(children: .contain)

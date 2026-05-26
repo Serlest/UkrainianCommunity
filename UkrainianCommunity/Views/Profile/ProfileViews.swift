@@ -54,11 +54,9 @@ struct ProfileView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @StateObject private var registrationsViewModel: MyRegistrationsViewModel
+    @StateObject private var myFeedbackViewModel: MyFeedbackViewModel
     @StateObject private var ownerOrganizationsViewModel: OrganizationsViewModel
     @State private var isShowingEditProfileSheet = false
-    @State private var isShowingOwnerCreateOrganizationSheet = false
-    @State private var isShowingCreateNewsSheet = false
-    @State private var isShowingCreateEventSheet = false
     @State private var fullNameDraft = ""
     @State private var displayNameDraft = ""
     @State private var telegramUsernameDraft = ""
@@ -92,6 +90,7 @@ struct ProfileView: View {
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(repository: eventRepository))
+        _myFeedbackViewModel = StateObject(wrappedValue: MyFeedbackViewModel(repository: feedbackRepository))
         _ownerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
     }
 
@@ -105,21 +104,6 @@ struct ProfileView: View {
 
     private var canShowModerationTools: Bool {
         PermissionService.canAccessModerationTools(user: permissionUser)
-    }
-
-    private var canShowContentManagement: Bool {
-        !manageableContentOrganizations.isEmpty
-    }
-
-    private var manageableContentOrganizations: [Organization] {
-        guard let user = permissionUser else { return [] }
-        return PermissionService.manageableOrganizations(
-            from: ownerOrganizationsViewModel.organizations,
-            user: user
-        )
-        .sorted { lhs, rhs in
-            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-        }
     }
 
     private var canShowOrganizationManagement: Bool {
@@ -328,36 +312,6 @@ struct ProfileView: View {
             .prefix(2))
     }
 
-    private var organizationsSection: some View {
-        Section {
-            if canShowOrganizationManagement, permissionUser != nil {
-                NavigationLink {
-                    OrganizationManagementHubView()
-                } label: {
-                    AppNavigationRow(
-                        title: AppStrings.Profile.organizationManagement,
-                        subtitle: AppStrings.Profile.organizationManagementSubtitle,
-                        systemImage: "building.2.crop.circle"
-                    )
-                }
-                .accessibilityLabel(AppStrings.Profile.organizationManagement)
-            } else {
-                EmptyStateCard(
-                    systemImage: "building.2",
-                    title: AppStrings.Profile.myOrganizations,
-                    message: AppStrings.Profile.organizationsSectionSubtitle
-                )
-            }
-        } header: {
-            SectionHeaderBlock(
-                title: AppStrings.Profile.myOrganizations,
-                subtitle: AppStrings.Profile.organizationsSectionSummary
-            )
-            .textCase(nil)
-        }
-        .listRowBackground(AppTheme.surfacePrimary)
-    }
-
     private var appManagementSection: some View {
         Section {
             if canShowModerationTools {
@@ -514,16 +468,23 @@ struct ProfileView: View {
             if authState.isAuthenticated {
                 await registrationsViewModel.loadIfNeeded()
                 await registrationsViewModel.refreshIfStale()
+                if let userID = authState.user?.id {
+                    await myFeedbackViewModel.loadIfNeeded(userID: userID)
+                }
                 await ownerOrganizationsViewModel.loadIfNeeded()
                 await ownerOrganizationsViewModel.refreshIfStale()
             } else {
                 registrationsViewModel.resetForGuest()
+                myFeedbackViewModel.reset()
             }
         }
         .refreshable {
             await viewModel.refresh()
             if authState.isAuthenticated {
                 await registrationsViewModel.refresh()
+                if let userID = authState.user?.id {
+                    await myFeedbackViewModel.refresh(userID: userID)
+                }
                 await ownerOrganizationsViewModel.refresh()
             }
         }
@@ -531,19 +492,27 @@ struct ProfileView: View {
             Task {
                 if isAuthenticated {
                     await registrationsViewModel.refresh()
+                    if let userID = authState.user?.id {
+                        await myFeedbackViewModel.refresh(userID: userID)
+                    }
                     await ownerOrganizationsViewModel.refresh()
                 } else {
                     registrationsViewModel.resetForGuest()
+                    myFeedbackViewModel.reset()
                     ownerOrganizationsViewModel.resetForAuthChange()
+                    feedbackMessage = ""
+                    selectedFeedbackType = .question
                 }
             }
         }
         .onChange(of: authState.user?.id) { _, newUserID in
             Task {
                 registrationsViewModel.resetForAuthChange()
+                myFeedbackViewModel.reset()
                 ownerOrganizationsViewModel.resetForAuthChange()
-                guard newUserID != nil else { return }
+                guard let newUserID else { return }
                 await registrationsViewModel.refresh()
+                await myFeedbackViewModel.refresh(userID: newUserID)
                 await ownerOrganizationsViewModel.refresh()
             }
         }
@@ -626,33 +595,6 @@ struct ProfileView: View {
             }
         } message: {
             Text(deleteAccountErrorMessage ?? "")
-        }
-        .sheet(isPresented: $isShowingOwnerCreateOrganizationSheet) {
-            NavigationStack {
-                OrganizationEditorView(
-                    organizationsViewModel: ownerOrganizationsViewModel,
-                    onSaved: {
-                        await ownerOrganizationsViewModel.refresh()
-                    }
-                )
-            }
-            .environmentObject(authState)
-        }
-        .sheet(isPresented: $isShowingCreateNewsSheet) {
-            NavigationStack {
-                NewsEditorView(repository: newsRepository) {
-                    await ownerOrganizationsViewModel.refresh()
-                }
-            }
-            .environmentObject(authState)
-        }
-        .sheet(isPresented: $isShowingCreateEventSheet) {
-            NavigationStack {
-                EventEditorView(repository: eventRepository) {
-                    await ownerOrganizationsViewModel.refresh()
-                }
-            }
-            .environmentObject(authState)
         }
         .guestAccessAlert($guestAccessAction)
     }
@@ -926,9 +868,6 @@ struct ProfileView: View {
             )
 
             quickActionsSection(for: user)
-            if canShowContentManagement {
-                contentManagementSection
-            }
             communitySection(for: user)
             notificationsSection
             settingsSection
@@ -942,10 +881,7 @@ struct ProfileView: View {
     private func ownerControlCenterContent(for user: AppUser) -> some View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: .owner)
         quickActionsSection(for: user)
-        if canShowContentManagement {
-            contentManagementSection
-        }
-        ownerPlatformManagementSection(for: user)
+        ownerPlatformManagementSection
         ownerPlannedSection
         ownerPersonalSettingsSection
         logoutSection
@@ -1045,122 +981,6 @@ struct ProfileView: View {
         }
     }
 
-    private var contentManagementSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.contentSectionTitle,
-            subtitle: AppStrings.Profile.contentSectionSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                Button {
-                    isShowingCreateNewsSheet = true
-                } label: {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.createNews,
-                        subtitle: contentOrganizationAccessSubtitle,
-                        systemImage: "newspaper",
-                        status: .active
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    isShowingCreateEventSheet = true
-                } label: {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.createEvent,
-                        subtitle: contentOrganizationAccessSubtitle,
-                        systemImage: "calendar.badge.plus",
-                        status: .active
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    ManagedNewsContentView(
-                        repository: newsRepository,
-                        organizationRepository: organizationRepository,
-                        manageableOrganizations: manageableContentOrganizations
-                    )
-                } label: {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.managedNewsTitle,
-                        subtitle: AppStrings.Profile.managedNewsSubtitle,
-                        systemImage: "doc.text",
-                        status: .available
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    ManagedEventsContentView(
-                        repository: eventRepository,
-                        organizationRepository: organizationRepository,
-                        manageableOrganizations: manageableContentOrganizations
-                    )
-                } label: {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.managedEventsTitle,
-                        subtitle: AppStrings.Profile.managedEventsSubtitle,
-                        systemImage: "calendar",
-                        status: .available
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var organizationDashboardSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.myOrganizations,
-            subtitle: AppStrings.Profile.organizationsSectionSummary
-        ) {
-            NavigationLink {
-                OrganizationManagementHubView()
-            } label: {
-                ProfileModuleRow(
-                    title: AppStrings.Profile.organizationManagement,
-                    subtitle: AppStrings.Profile.organizationManagementSubtitle,
-                    systemImage: "building.2.crop.circle",
-                    status: .available
-                )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var contentOrganizationAccessSubtitle: String {
-        let count = manageableContentOrganizations.count
-        if count == 1, let organization = manageableContentOrganizations.first {
-            return organization.name
-        }
-        return AppStrings.Profile.manageableOrganizationsAvailable(count)
-    }
-
-    private func adminQuickActionsSection(for user: AppUser) -> some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-            ],
-            spacing: AppTheme.eventsMetadataSpacing
-        ) {
-            NavigationLink {
-                ModerationToolsView()
-            } label: {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(title: AppStrings.Profile.ownerOpenModeration, subtitle: AppStrings.Profile.ownerOpenModerationSubtitle, systemImage: "clock.badge.exclamationmark", status: canShowModerationTools ? .active : .locked))
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                OrganizationManagementHubView()
-            } label: {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(title: AppStrings.Profile.ownerOrganizations, subtitle: AppStrings.Profile.ownerOrganizationsSubtitle, systemImage: "building.2", status: canShowOrganizationManagement ? .active : .locked))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
     private var moderatorQuickActionsSection: some View {
         LazyVGrid(
             columns: [
@@ -1224,29 +1044,11 @@ struct ProfileView: View {
         }
     }
 
-    private func ownerPlatformManagementSection(for user: AppUser) -> some View {
+    private var ownerPlatformManagementSection: some View {
         ProfileSectionCard(title: AppStrings.Profile.ownerPlatformManagement, subtitle: AppStrings.Profile.ownerPlatformManagementSubtitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                Button {
-                    isShowingOwnerCreateOrganizationSheet = true
-                } label: {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.ownerCreateOrganization,
-                        subtitle: AppStrings.Profile.ownerCreateOrganizationSubtitle,
-                        systemImage: "building.2.crop.circle",
-                        status: PermissionService.canCreateOrganization(user: user) ? .active : .locked
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(!PermissionService.canCreateOrganization(user: user))
-
                 NavigationLink { UserManagementView() } label: {
                     ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.ownerUsersSubtitle, systemImage: "person.3", status: canShowAdminTools ? .active : .locked)
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink { OrganizationManagementHubView() } label: {
-                    ProfileModuleRow(title: AppStrings.Profile.ownerOrganizations, subtitle: AppStrings.Profile.ownerOrganizationsSubtitle, systemImage: "building.2", status: canShowOrganizationManagement ? .active : .locked)
                 }
                 .buttonStyle(.plain)
 
@@ -1277,24 +1079,6 @@ struct ProfileView: View {
                 ProfileModuleRow(title: AppStrings.Profile.ownerSendPush, subtitle: AppStrings.Profile.futureModuleSubtitle, systemImage: "bell.badge", status: .soon, accessory: .none)
                 ProfileModuleRow(title: AppStrings.Profile.ownerProblemReports, subtitle: AppStrings.Profile.futureModuleSubtitle, systemImage: "exclamationmark.bubble", status: .soon, accessory: .none)
                 ProfileModuleRow(title: AppStrings.Profile.ownerAuditLogs, subtitle: AppStrings.Profile.ownerAuditLogsSubtitle, systemImage: "list.bullet.clipboard", status: .soon, accessory: .none)
-            }
-        }
-    }
-
-    private func adminPlatformManagementSection(for user: AppUser) -> some View {
-        ProfileSectionCard(title: AppStrings.Profile.adminPlatformManagement, subtitle: AppStrings.Profile.adminPlatformManagementSubtitle) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink { UserManagementView() } label: {
-                    ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.adminUsersSubtitle, systemImage: "person.3", status: canShowAdminTools ? .active : .locked)
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink { OrganizationManagementHubView() } label: {
-                    ProfileModuleRow(title: AppStrings.Profile.ownerOrganizations, subtitle: AppStrings.Profile.ownerOrganizationsSubtitle, systemImage: "building.2", status: canShowOrganizationManagement ? .active : .locked)
-                }
-                .buttonStyle(.plain)
-
-                ProfileModuleRow(title: AppStrings.Profile.ownerGuide, subtitle: AppStrings.Profile.ownerGuideSubtitle, systemImage: "book.closed", status: .soon, accessory: .none)
             }
         }
     }
@@ -1372,27 +1156,6 @@ struct ProfileView: View {
         }
     }
 
-    private func organizationManagementSection(for user: AppUser) -> some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.organizationManagement,
-            subtitle: AppStrings.Profile.organizationManagementSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink {
-                    OrganizationManagementHubView()
-                } label: {
-                    ProfileModuleRow(title: AppStrings.Profile.manageOrganizations, subtitle: AppStrings.Profile.organizationManagementSubtitle, systemImage: "building.2.crop.circle", status: .active)
-                }
-                .buttonStyle(.plain)
-
-                ProfileModuleRow(title: AppStrings.Profile.createOrganizationEvent, subtitle: AppStrings.Profile.organizationEventActionSubtitle, systemImage: "calendar.badge.plus", status: .soon)
-                ProfileModuleRow(title: AppStrings.Profile.createOrganizationNews, subtitle: AppStrings.Profile.organizationNewsActionSubtitle, systemImage: "newspaper", status: .soon)
-                ProfileModuleRow(title: AppStrings.Profile.organizationMembers, subtitle: AppStrings.Profile.organizationMembersSubtitle, systemImage: "person.2.badge.gearshape", status: .soon)
-                ProfileModuleRow(title: AppStrings.Profile.organizationModerationQueue, subtitle: AppStrings.Profile.organizationModerationSubtitle, systemImage: "clock.badge.exclamationmark", status: .soon)
-            }
-        }
-    }
-
     private var settingsSection: some View {
         ProfileSectionCard(
             title: AppStrings.Profile.settingsSection,
@@ -1451,6 +1214,18 @@ struct ProfileView: View {
             subtitle: AppStrings.Profile.supportSectionSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                NavigationLink {
+                    MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: user.id)
+                } label: {
+                    ProfileModuleRow(
+                        title: AppStrings.Feedback.myFeedbackTitle,
+                        subtitle: AppStrings.Feedback.myFeedbackSubtitle,
+                        systemImage: "tray.full",
+                        status: .available
+                    )
+                }
+                .buttonStyle(.plain)
+
                 ProfileModuleRow(
                     title: AppStrings.Profile.sendFeedback,
                     subtitle: AppStrings.Profile.sendFeedbackSubtitle,
@@ -1770,6 +1545,7 @@ struct ProfileView: View {
             if didSubmit {
                 feedbackMessage = ""
                 selectedFeedbackType = .question
+                await myFeedbackViewModel.refresh(userID: user.id)
             }
         }
     }
@@ -3952,10 +3728,223 @@ private struct ProfileOrganizationListCard: View {
     }
 }
 
+private struct MyFeedbackView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
+    @ObservedObject var viewModel: MyFeedbackViewModel
+    let currentUserID: String
+    @State private var selectedFeedback: FeedbackItem?
+
+    var body: some View {
+        ZStack {
+            AppBackgroundView()
+                .allowsHitTesting(false)
+
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    AppCenteredBrandHeader {
+                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                            dismiss()
+                        }
+                    } trailingContent: {
+                        AppNotificationBellButton()
+                    }
+
+                    AppGroupedContentPlane {
+                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                            AppEditorSectionCard {
+                                SectionHeaderBlock(
+                                    title: AppStrings.Feedback.myFeedbackTitle,
+                                    subtitle: AppStrings.Feedback.myFeedbackSubtitle
+                                )
+                            }
+
+                            feedbackContent
+                        }
+                    }
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
+            }
+        }
+        .tint(AppTheme.accentPrimary)
+        .navigationTitle(AppStrings.Feedback.myFeedbackTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+        .task(id: currentUserID) {
+            await viewModel.loadIfNeeded(userID: currentUserID)
+        }
+        .refreshable {
+            await viewModel.refresh(userID: currentUserID)
+        }
+        .sheet(item: $selectedFeedback) { item in
+            let currentItem = currentFeedbackItem(for: item)
+            FeedbackConversationSheet(
+                item: currentItem,
+                messages: viewModel.messages(for: currentItem),
+                isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
+                isSending: viewModel.sendingMessageFeedbackIDs.contains(currentItem.id),
+                allowsClose: false,
+                onLoad: {
+                    Task { await viewModel.loadMessages(for: currentItem) }
+                },
+                onSend: { text in
+                    guard let user = authState.user else { return false }
+                    let latestItem = currentFeedbackItem(for: currentItem)
+                    let sent = await viewModel.sendMessage(text, feedback: latestItem, user: user)
+                    if sent, let updatedItem = viewModel.items.first(where: { $0.id == latestItem.id }) {
+                        selectedFeedback = updatedItem
+                    }
+                    return sent
+                },
+                onStop: {
+                    viewModel.stopListeningMessages(for: currentItem.id)
+                },
+                onClose: nil
+            )
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    @ViewBuilder
+    private var feedbackContent: some View {
+        if viewModel.isLoading && viewModel.items.isEmpty {
+            LoadingStateCard(title: AppStrings.Feedback.myFeedbackTitle)
+        } else if let error = viewModel.error, viewModel.items.isEmpty {
+            UnifiedEmptyStateCard(
+                systemImage: "exclamationmark.triangle",
+                title: AppStrings.Feedback.myFeedbackTitle,
+                message: feedbackErrorMessage(error)
+            ) {
+                PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
+                    Task { await viewModel.refresh(userID: currentUserID) }
+                }
+            }
+        } else if viewModel.items.isEmpty {
+            UnifiedEmptyStateCard(
+                systemImage: "tray",
+                title: AppStrings.Feedback.myFeedbackTitle,
+                message: AppStrings.Feedback.myFeedbackEmpty
+            )
+        } else {
+            VStack(spacing: AppTheme.feedRowSpacing) {
+                ForEach(viewModel.items) { item in
+                    Button {
+                        selectedFeedback = item
+                    } label: {
+                        FeedbackUserRequestCard(item: item)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func feedbackErrorMessage(_ error: AppError) -> String {
+        switch error {
+        case .permissionDenied:
+            return AppStrings.Moderation.loadPermissionError
+        case .network:
+            return AppStrings.Moderation.loadNetworkError
+        case .validationFailed, .notFound, .unknown:
+            return AppStrings.Feedback.loadFailed
+        }
+    }
+
+    private func currentFeedbackItem(for item: FeedbackItem) -> FeedbackItem {
+        viewModel.items.first { $0.id == item.id } ?? item
+    }
+}
+
+private struct FeedbackUserRequestCard: View {
+    let item: FeedbackItem
+
+    private var previewText: String {
+        if let lastMessageText = item.lastMessageText?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !lastMessageText.isEmpty {
+            return lastMessageText
+        }
+        return item.message
+    }
+
+    private var previewDate: Date {
+        item.lastMessageAt ?? item.updatedAt
+    }
+
+    private var previewRoleTitle: String? {
+        item.lastMessageByRole?.title
+    }
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(item.type.title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+
+                    FeedbackStatusBadge(status: item.status, userFacing: true)
+                }
+
+                Text(previewText)
+                    .font(.body)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let previewRoleTitle {
+                    FeedbackMetadataRow(systemImage: "person.crop.circle", title: previewRoleTitle)
+                }
+
+                FeedbackMetadataRow(systemImage: "calendar", title: LocalizationStore.dateString(from: previewDate, dateStyle: .medium, timeStyle: .short))
+            }
+        }
+    }
+}
+
+private enum FeedbackInboxFilter: String, CaseIterable, Identifiable {
+    case open
+    case answered
+    case closed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .open:
+            AppStrings.Feedback.filterOpen
+        case .answered:
+            AppStrings.Feedback.filterAnswered
+        case .closed:
+            AppStrings.Feedback.filterClosed
+        }
+    }
+
+    func includes(_ item: FeedbackItem) -> Bool {
+        switch self {
+        case .open:
+            item.status == .open
+        case .answered:
+            item.status.isAnswered
+        case .closed:
+            item.status.isClosed
+        }
+    }
+}
+
 private struct FeedbackInboxView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: FeedbackInboxViewModel
     @State private var selectedFeedback: FeedbackItem?
+    @State private var selectedFilter: FeedbackInboxFilter = .open
+
+    private var filteredItems: [FeedbackItem] {
+        viewModel.items.filter { selectedFilter.includes($0) }
+    }
 
     init(repository: FeedbackRepository) {
         _viewModel = StateObject(wrappedValue: FeedbackInboxViewModel(repository: repository))
@@ -3979,10 +3968,19 @@ private struct FeedbackInboxView: View {
                     AppGroupedContentPlane {
                         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                             AppEditorSectionCard {
-                                SectionHeaderBlock(
-                                    title: AppStrings.Feedback.inboxTitle,
-                                    subtitle: AppStrings.Feedback.inboxSubtitle
-                                )
+                                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                                    SectionHeaderBlock(
+                                        title: AppStrings.Feedback.inboxTitle,
+                                        subtitle: AppStrings.Feedback.inboxSubtitle
+                                    )
+
+                                    Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
+                                        ForEach(FeedbackInboxFilter.allCases) { filter in
+                                            Text(filter.title).tag(filter)
+                                        }
+                                    }
+                                    .pickerStyle(.segmented)
+                                }
                             }
 
                             inboxContent
@@ -4005,18 +4003,30 @@ private struct FeedbackInboxView: View {
             await viewModel.refresh()
         }
         .sheet(item: $selectedFeedback) { item in
+            let currentItem = currentFeedbackItem(for: item)
             FeedbackDetailSheet(
-                item: item,
-                isUpdating: viewModel.updatingFeedbackIDs.contains(item.id),
-                onMarkReviewed: {
-                    Task {
-                        await viewModel.markReviewed(item)
-                        selectedFeedback = nil
-                    }
+                item: currentItem,
+                messages: viewModel.messages(for: currentItem),
+                isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
+                isUpdating: viewModel.updatingFeedbackIDs.contains(currentItem.id),
+                onLoad: {
+                    Task { await viewModel.loadMessages(for: currentItem) }
                 },
-                onArchive: {
+                onSendReply: { reply in
+                    guard let owner = authState.user else { return false }
+                    let latestItem = currentFeedbackItem(for: currentItem)
+                    let sent = await viewModel.sendReply(reply, to: latestItem, owner: owner)
+                    if sent, let updatedItem = viewModel.items.first(where: { $0.id == latestItem.id }) {
+                        selectedFeedback = updatedItem
+                    }
+                    return sent
+                },
+                onStop: {
+                    viewModel.stopListeningMessages(for: currentItem.id)
+                },
+                onClose: {
                     Task {
-                        await viewModel.archive(item)
+                        await viewModel.close(currentFeedbackItem(for: currentItem))
                         selectedFeedback = nil
                     }
                 }
@@ -4045,9 +4055,19 @@ private struct FeedbackInboxView: View {
                 title: AppStrings.Feedback.inboxTitle,
                 message: AppStrings.Feedback.inboxEmpty
             )
+        } else if filteredItems.isEmpty {
+            UnifiedEmptyStateCard(
+                systemImage: "line.3.horizontal.decrease.circle",
+                title: selectedFilter.title,
+                message: AppStrings.Feedback.inboxFilterEmpty
+            )
         } else {
             VStack(spacing: AppTheme.feedRowSpacing) {
-                ForEach(viewModel.items) { item in
+                if let error = viewModel.error {
+                    InlineMessageCard(style: .error, message: feedbackErrorMessage(error))
+                }
+
+                ForEach(filteredItems) { item in
                     Button {
                         selectedFeedback = item
                     } label: {
@@ -4069,6 +4089,10 @@ private struct FeedbackInboxView: View {
             return AppStrings.Feedback.loadFailed
         }
     }
+
+    private func currentFeedbackItem(for item: FeedbackItem) -> FeedbackItem {
+        viewModel.items.first { $0.id == item.id } ?? item
+    }
 }
 
 private struct FeedbackInboxRow: View {
@@ -4082,6 +4106,22 @@ private struct FeedbackInboxRow: View {
             return item.userId
         }
         return AppStrings.Profile.unknownUser
+    }
+
+    private var previewText: String {
+        if let lastMessageText = item.lastMessageText?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !lastMessageText.isEmpty {
+            return lastMessageText
+        }
+        return item.message
+    }
+
+    private var previewDate: Date {
+        item.lastMessageAt ?? item.updatedAt
+    }
+
+    private var previewRoleTitle: String? {
+        item.lastMessageByRole?.title
     }
 
     var body: some View {
@@ -4105,7 +4145,7 @@ private struct FeedbackInboxRow: View {
                         FeedbackStatusBadge(status: item.status)
                     }
 
-                    Text(item.message)
+                    Text(previewText)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)
@@ -4114,8 +4154,13 @@ private struct FeedbackInboxRow: View {
                         Label(authorTitle, systemImage: "person")
                             .lineLimit(1)
                         Text("•")
-                        Text(LocalizationStore.dateString(from: item.createdAt, dateStyle: .short, timeStyle: .short))
+                        Text(LocalizationStore.dateString(from: previewDate, dateStyle: .short, timeStyle: .short))
                             .lineLimit(1)
+                        if let previewRoleTitle {
+                            Text("•")
+                            Text(previewRoleTitle)
+                                .lineLimit(1)
+                        }
                     }
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
@@ -4132,69 +4177,160 @@ private struct FeedbackInboxRow: View {
 
 private struct FeedbackDetailSheet: View {
     let item: FeedbackItem
+    let messages: [FeedbackMessage]
+    let isLoadingMessages: Bool
     let isUpdating: Bool
-    let onMarkReviewed: () -> Void
-    let onArchive: () -> Void
-    @Environment(\.dismiss) private var dismiss
+    let onLoad: () -> Void
+    let onSendReply: (String) async -> Bool
+    let onStop: () -> Void
+    let onClose: () -> Void
 
-    private var authorTitle: String {
-        if !item.userDisplayName.isEmpty {
-            return item.userDisplayName
-        }
-        if !item.userId.isEmpty {
-            return item.userId
-        }
-        return AppStrings.Profile.unknownUser
+    var body: some View {
+        FeedbackConversationSheet(
+            item: item,
+            messages: messages,
+            isLoadingMessages: isLoadingMessages,
+            isSending: isUpdating,
+            allowsClose: true,
+            onLoad: onLoad,
+            onSend: onSendReply,
+            onStop: onStop,
+            onClose: onClose
+        )
     }
+}
+
+private struct FeedbackConversationSheet: View {
+    let item: FeedbackItem
+    let messages: [FeedbackMessage]
+    let isLoadingMessages: Bool
+    let isSending: Bool
+    let allowsClose: Bool
+    let onLoad: () -> Void
+    let onSend: (String) async -> Bool
+    let onStop: () -> Void
+    let onClose: (() -> Void)?
+    @Environment(\.dismiss) private var dismiss
+    @State private var replyText = ""
+    @State private var validationMessage: String?
 
     var body: some View {
         NavigationStack {
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppEditorSectionCard {
-                        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text(item.type.title)
-                                    .font(.headline.weight(.semibold))
-                                    .foregroundStyle(AppTheme.textPrimary)
-                                Spacer(minLength: 0)
-                                FeedbackStatusBadge(status: item.status)
+            VStack(spacing: 0) {
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                            AppEditorSectionCard {
+                                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                                    HStack(alignment: .firstTextBaseline) {
+                                        Text(item.type.title)
+                                            .font(.headline.weight(.semibold))
+                                            .foregroundStyle(AppTheme.textPrimary)
+                                        Spacer(minLength: 0)
+                                        FeedbackStatusBadge(status: item.status, userFacing: true)
+                                    }
+
+                                    FeedbackMetadataRow(systemImage: "person", title: item.userDisplayName.isEmpty ? AppStrings.Profile.unknownUser : item.userDisplayName)
+                                    FeedbackMetadataRow(systemImage: "calendar", title: LocalizationStore.dateString(from: item.createdAt, dateStyle: .medium, timeStyle: .short))
+                                }
                             }
 
-                            Text(item.message)
-                                .font(.body)
-                                .foregroundStyle(AppTheme.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Divider()
-
-                            FeedbackMetadataRow(systemImage: "person", title: authorTitle)
-                            FeedbackMetadataRow(systemImage: "calendar", title: LocalizationStore.dateString(from: item.createdAt, dateStyle: .medium, timeStyle: .short))
+                            if isLoadingMessages && messages.isEmpty {
+                                LoadingStateCard(title: AppStrings.Feedback.messagesTitle)
+                            } else if messages.isEmpty {
+                                UnifiedEmptyStateCard(
+                                    systemImage: "bubble.left",
+                                    title: AppStrings.Feedback.messagesTitle,
+                                    message: AppStrings.Feedback.noMessages
+                                )
+                            } else {
+                                VStack(spacing: 10) {
+                                    ForEach(messages) { message in
+                                        FeedbackMessageBubble(message: message)
+                                            .id(message.id)
+                                    }
+                                }
+                            }
                         }
+                        .padding(AppTheme.pageHorizontal)
+                        .padding(.bottom, AppTheme.sectionSpacing)
                     }
+                    .onAppear {
+                        scrollToLastMessage(with: proxy, animated: false)
+                    }
+                    .onChange(of: messages.last?.id) {
+                        scrollToLastMessage(with: proxy)
+                    }
+                }
 
-                    VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                        PrimaryActionButton(
-                            title: AppStrings.Feedback.markReviewed,
-                            isEnabled: item.status != .reviewed,
-                            isLoading: isUpdating,
-                            systemImage: "checkmark.circle",
-                            action: onMarkReviewed
+                Divider()
+
+                VStack(alignment: .leading, spacing: 10) {
+                    if item.status.isClosed {
+                        Label(AppStrings.Feedback.closedMessage, systemImage: "lock")
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        ZStack(alignment: .topLeading) {
+                            if replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Text(AppStrings.Feedback.addReply)
+                                    .font(.body)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 14)
+                            }
+
+                            TextEditor(text: $replyText)
+                                .scrollContentBackground(.hidden)
+                                .frame(minHeight: 86, maxHeight: 120)
+                                .padding(8)
+                        }
+                        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(AppTheme.borderSubtle)
                         )
 
-                        Button(action: onArchive) {
-                            Label(AppStrings.Feedback.archive, systemImage: "archivebox")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(AppTheme.accentDestructive)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: AppTheme.iconButtonSize)
-                                .background(AppTheme.accentDestructive.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                        HStack {
+                            Text("\(replyText.count)/2000")
+                                .foregroundStyle(AppTheme.textSecondary)
+                            Spacer(minLength: 0)
+                            if let validationMessage {
+                                Text(validationMessage)
+                                    .foregroundStyle(AppTheme.accentDestructive)
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .disabled(isUpdating || item.status == .archived || item.status == .closed)
+                        .font(.caption)
+
+                        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            PrimaryActionButton(
+                                title: isSending ? AppStrings.Feedback.sending : AppStrings.Feedback.send,
+                                isEnabled: !isSending,
+                                isLoading: isSending,
+                                systemImage: "paperplane"
+                            ) {
+                                submitReply()
+                            }
+
+                            if allowsClose, let onClose {
+                                Button(action: onClose) {
+                                    Label(AppStrings.Feedback.closeFeedback, systemImage: "checkmark.seal")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AppTheme.accentDestructive)
+                                        .frame(height: AppTheme.iconButtonSize)
+                                        .padding(.horizontal, 12)
+                                        .background(AppTheme.accentDestructive.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isSending)
+                            }
+                        }
                     }
                 }
                 .padding(AppTheme.pageHorizontal)
+                .padding(.vertical, 12)
+                .background(AppTheme.pageBackground)
             }
             .background(AppTheme.pageBackground)
             .navigationTitle(AppStrings.Feedback.inboxTitle)
@@ -4206,26 +4342,124 @@ private struct FeedbackDetailSheet: View {
                     }
                 }
             }
+            .task {
+                onLoad()
+            }
+            .onDisappear {
+                onStop()
+            }
+        }
+    }
+
+    private func submitReply() {
+        let trimmedReply = replyText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedReply.isEmpty {
+            validationMessage = AppStrings.Feedback.replyRequired
+            return
+        }
+
+        if trimmedReply.count > 2000 {
+            validationMessage = AppStrings.Feedback.replyTooLong
+            return
+        }
+
+        validationMessage = nil
+        Task {
+            let sent = await onSend(trimmedReply)
+            if sent {
+                replyText = ""
+                validationMessage = nil
+            } else {
+                validationMessage = "\(AppStrings.Feedback.sendMessageFailed) \(AppStrings.Feedback.tryAgain)"
+            }
+        }
+    }
+
+    private func scrollToLastMessage(with proxy: ScrollViewProxy, animated: Bool = true) {
+        guard let lastMessageID = messages.last?.id else { return }
+        let action = {
+            proxy.scrollTo(lastMessageID, anchor: .bottom)
+        }
+
+        if animated {
+            withAnimation(.easeOut(duration: 0.2), action)
+        } else {
+            action()
+        }
+    }
+}
+
+private struct FeedbackMessageBubble: View {
+    let message: FeedbackMessage
+
+    private var isOwnerMessage: Bool {
+        message.senderRole == .owner
+    }
+
+    var body: some View {
+        HStack {
+            if isOwnerMessage {
+                Spacer(minLength: 32)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text(message.isSystem ? AppStrings.Feedback.supportLabel : message.senderRole.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(isOwnerMessage ? AppTheme.accentPrimary : AppTheme.textSecondary)
+
+                    Text(LocalizationStore.dateString(from: message.createdAt, dateStyle: .short, timeStyle: .short))
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
+                Text(message.text)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .background(
+                (isOwnerMessage ? AppTheme.accentPrimary.opacity(0.10) : AppTheme.surfaceSecondary),
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(AppTheme.borderSubtle)
+            )
+            .frame(maxWidth: 520, alignment: isOwnerMessage ? .trailing : .leading)
+
+            if !isOwnerMessage {
+                Spacer(minLength: 32)
+            }
         }
     }
 }
 
 private struct FeedbackStatusBadge: View {
     let status: FeedbackStatus
+    var userFacing = false
 
     private var tint: Color {
         switch status {
         case .open:
             return AppTheme.accentPrimary
-        case .reviewed:
+        case .answered, .reviewed:
             return AppTheme.textSecondary
         case .archived, .closed:
             return AppTheme.accentDestructive
         }
     }
 
+    private var title: String {
+        if userFacing && status == .open {
+            return AppStrings.Feedback.statusWaitingReply
+        }
+        return status.title
+    }
+
     var body: some View {
-        Text(status.title)
+        Text(title)
             .font(.caption.weight(.semibold))
             .foregroundStyle(tint)
             .padding(.horizontal, 9)
@@ -6229,14 +6463,10 @@ private struct OrganizationTeamMemberRow: View {
             TeamAvatarView(profile: member.profile, fallbackInitials: member.initials)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(member.displayName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(1)
-
-                    roleBadge
-                }
+                Text(member.displayName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .lineLimit(1)
 
                 if let locationText = member.locationText {
                     Text(locationText)
@@ -6251,6 +6481,8 @@ private struct OrganizationTeamMemberRow: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            roleBadge
 
             if isUpdating {
                 ProgressView()
@@ -6276,14 +6508,21 @@ private struct OrganizationTeamMemberRow: View {
                     Image(systemName: "ellipsis.circle")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(canChangeRole ? AppTheme.accentPrimary : AppTheme.textSecondary)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 34, height: 34)
+                        .background(AppTheme.surfaceControl.opacity(0.55), in: Circle())
                 }
                 .disabled(!canChangeRole)
                 .accessibilityLabel(AppStrings.Profile.organizationTeamRoleActions)
             }
         }
-        .padding(10)
-        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(minHeight: 64)
+        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle.opacity(0.55))
+        )
     }
 
     private var roleBadge: some View {
@@ -6291,8 +6530,9 @@ private struct OrganizationTeamMemberRow: View {
             .font(.caption2.weight(.bold))
             .foregroundStyle(member.role.tint)
             .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .frame(height: 22)
             .background(member.role.tint.opacity(0.12), in: Capsule())
+            .overlay(Capsule().strokeBorder(member.role.tint.opacity(0.22)))
     }
 
 }
@@ -6378,6 +6618,65 @@ private struct TeamAvatarView: View {
         Text(fallbackInitials)
             .font(.caption.weight(.bold))
             .foregroundStyle(AppTheme.accentPrimary)
+    }
+}
+
+private struct ManagementPill: View {
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        Text(title)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .background(tint.opacity(0.12), in: Capsule())
+            .overlay(Capsule().strokeBorder(tint.opacity(0.22)))
+    }
+}
+
+private struct OrganizationManagementRow: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let tint: Color
+    var isEnabled = true
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 38, height: 38)
+                .background(tint.opacity(0.12), in: Circle())
+                .overlay(Circle().strokeBorder(tint.opacity(0.18)))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isEnabled ? AppTheme.textPrimary : AppTheme.textSecondary)
+                    .lineLimit(1)
+
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary.opacity(isEnabled ? 0.75 : 0.35))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(minHeight: 66)
+        .background(AppTheme.surfaceSecondary.opacity(isEnabled ? 1 : 0.62), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle.opacity(0.55))
+        )
     }
 }
 
@@ -6561,6 +6860,17 @@ private struct ManagedOrganizationView: View {
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineLimit(2)
 
+                        HStack(spacing: 6) {
+                            if let role = currentManagementRole {
+                                ManagementPill(title: role.title, tint: role.tint)
+                            }
+
+                            ManagementPill(
+                                title: currentOrganization.moderationStatus.title,
+                                tint: currentOrganization.moderationStatus == .approved ? AppTheme.accentPrimary : AppTheme.textSecondary
+                            )
+                        }
+
                         Text(currentOrganization.shortDescription)
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(AppTheme.textSecondary)
@@ -6584,6 +6894,23 @@ private struct ManagedOrganizationView: View {
         }
     }
 
+    private var currentManagementRole: ManagedOrganizationRole? {
+        guard let user = authState.user else { return nil }
+        if currentOrganization.ownerId == user.id {
+            return .owner
+        }
+        if user.globalRole.effectiveRole == .owner {
+            return .platformOwner
+        }
+        if currentOrganization.adminIds.contains(user.id) {
+            return .admin
+        }
+        if currentOrganization.moderatorIds.contains(user.id) {
+            return .moderator
+        }
+        return nil
+    }
+
     private var managementHubCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
@@ -6593,7 +6920,7 @@ private struct ManagedOrganizationView: View {
                     managementHubButton(
                         title: AppStrings.Profile.organizationInfoSection,
                         subtitle: AppStrings.Organizations.editorSubtitle,
-                        systemImage: "building.2.crop.circle"
+                        systemImage: "building.2"
                     ) {
                         isShowingOrganizationEditor = true
                     }
@@ -6601,7 +6928,7 @@ private struct ManagedOrganizationView: View {
                     disabledManagementHubRow(
                         title: AppStrings.Profile.organizationInfoSection,
                         subtitle: AppStrings.Profile.organizationInfoLockedSubtitle,
-                        systemImage: "building.2.crop.circle"
+                        systemImage: "building.2"
                     )
                 }
 
@@ -6629,7 +6956,7 @@ private struct ManagedOrganizationView: View {
                     managementHubButton(
                         title: AppStrings.Organizations.delete,
                         subtitle: AppStrings.Organizations.deleteConfirmation,
-                        systemImage: "trash",
+                        systemImage: "trash.fill",
                         role: .destructive
                     ) {
                         isShowingDeleteConfirmation = true
@@ -6672,12 +6999,12 @@ private struct ManagedOrganizationView: View {
                                     isChangingOwner = true
                                     isShowingTeamSearch = true
                                 } label: {
-                                    Label(AppStrings.Profile.organizationTeamChangeOwner, systemImage: "person.crop.circle.badge.checkmark")
-                                        .font(.caption.weight(.semibold))
+                                    managementCompactActionLabel(
+                                        title: AppStrings.Profile.organizationTeamChangeOwner,
+                                        systemImage: "person.crop.circle.badge.checkmark"
+                                    )
                                 }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .tint(AppTheme.accentPrimary)
+                                .buttonStyle(.plain)
                             }
 
                             Button {
@@ -6686,12 +7013,12 @@ private struct ManagedOrganizationView: View {
                                 isChangingOwner = false
                                 isShowingTeamSearch = true
                             } label: {
-                                Label(AppStrings.Profile.organizationTeamAddMember, systemImage: "plus")
-                                    .font(.caption.weight(.semibold))
+                                managementCompactActionLabel(
+                                    title: AppStrings.Profile.organizationTeamAddMember,
+                                    systemImage: "plus"
+                                )
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(AppTheme.accentPrimary)
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -6913,12 +7240,11 @@ private struct ManagedOrganizationView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(role: role, action: action) {
-            AppNavigationRow(
+            OrganizationManagementRow(
                 title: title,
                 subtitle: subtitle,
                 systemImage: systemImage,
-                tint: role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary,
-                accessory: .none
+                tint: role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary
             )
         }
         .buttonStyle(.plain)
@@ -6926,15 +7252,25 @@ private struct ManagedOrganizationView: View {
     }
 
     private func disabledManagementHubRow(title: String, subtitle: String, systemImage: String) -> some View {
-        AppNavigationRow(
+        OrganizationManagementRow(
             title: title,
             subtitle: subtitle,
             systemImage: systemImage,
             tint: AppTheme.textSecondary,
-            accessory: .none
+            isEnabled: false
         )
-        .opacity(0.62)
         .accessibilityHint(AppStrings.Action.comingSoon)
+    }
+
+    private func managementCompactActionLabel(title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.accentPrimary)
+            .labelStyle(.iconOnly)
+            .frame(width: 34, height: 34)
+            .background(AppTheme.accentPrimarySoft, in: Circle())
+            .overlay(Circle().strokeBorder(AppTheme.accentPrimary.opacity(0.16)))
+            .accessibilityLabel(title)
     }
 
     @MainActor

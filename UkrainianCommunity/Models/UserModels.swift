@@ -446,6 +446,7 @@ enum FeedbackType: String, CaseIterable, Codable, Identifiable {
 
 enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
     case open
+    case answered
     case reviewed
     case archived
     case closed
@@ -456,10 +457,32 @@ enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .open:
             AppStrings.Feedback.statusOpen
-        case .reviewed:
-            AppStrings.Feedback.statusReviewed
+        case .answered, .reviewed:
+            AppStrings.Feedback.statusAnswered
         case .archived, .closed:
-            AppStrings.Feedback.statusArchived
+            AppStrings.Feedback.statusClosed
+        }
+    }
+
+    var isAnswered: Bool {
+        self == .answered || self == .reviewed
+    }
+
+    var isClosed: Bool {
+        self == .closed || self == .archived
+    }
+}
+
+enum FeedbackSenderRole: String, Codable {
+    case user
+    case owner
+
+    var title: String {
+        switch self {
+        case .user:
+            AppStrings.Feedback.userSender
+        case .owner:
+            AppStrings.Feedback.ownerSender
         }
     }
 }
@@ -467,9 +490,31 @@ enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
 struct FeedbackItem: Identifiable, Codable {
     let id: String
     let type: FeedbackType
+    let subject: String?
     let message: String
     let status: FeedbackStatus
     let createdAt: Date
+    let updatedAt: Date
     let userId: String
     let userDisplayName: String
+    let ownerReply: String?
+    let repliedAt: Date?
+    let repliedByUserId: String?
+    let lastMessageText: String?
+    let lastMessageAt: Date?
+    let lastMessageByUserId: String?
+    let lastMessageByRole: FeedbackSenderRole?
+    let unreadForOwner: Bool
+    let unreadForUser: Bool
+}
+
+struct FeedbackMessage: Identifiable, Codable, Equatable {
+    let id: String
+    let feedbackId: String
+    let senderId: String
+    let senderDisplayName: String
+    let senderRole: FeedbackSenderRole
+    let text: String
+    let createdAt: Date
+    let isSystem: Bool
 }

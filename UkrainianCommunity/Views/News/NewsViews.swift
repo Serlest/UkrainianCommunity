@@ -2,6 +2,10 @@ import Combine
 import SwiftUI
 import UIKit
 
+private struct NewsNavigationRoute: Hashable {
+    let postID: String
+}
+
 enum NewsPresentationMode {
     case `public`
     case management
@@ -98,10 +102,7 @@ struct NewsListView: View {
                 VStack(spacing: 16) {
                     AdaptiveCardGrid(items: viewModel.posts) { post in
                         ZStack(alignment: .bottomTrailing) {
-                            NavigationLink {
-                                NewsDetailView(viewModel: viewModel, postID: post.id, onNewsDeleted: onNewsChanged)
-                                    .environment(\.newsPresentationMode, presentationMode)
-                            } label: {
+                            NavigationLink(value: NewsNavigationRoute(postID: post.id)) {
                                 NewsCard(post: post)
                             }
                             .buttonStyle(.plain)
@@ -130,6 +131,10 @@ struct NewsListView: View {
         .background(AppTheme.groupedBackground.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(for: NewsNavigationRoute.self) { route in
+            NewsDetailView(viewModel: viewModel, postID: route.postID, onNewsDeleted: onNewsChanged)
+                .environment(\.newsPresentationMode, presentationMode)
+        }
         .task {
             await viewModel.loadIfNeeded()
         }
@@ -305,6 +310,7 @@ struct NewsDetailView: View {
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
     let onNewsDeleted: () -> Void
+    let onNavigateBack: (() -> Void)?
     private let organizationRepository: OrganizationRepository
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
@@ -331,11 +337,13 @@ struct NewsDetailView: View {
         viewModel: NewsViewModel,
         postID: String,
         onNewsDeleted: @escaping () -> Void,
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onNavigateBack: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.postID = postID
         self.onNewsDeleted = onNewsDeleted
+        self.onNavigateBack = onNavigateBack
         self.organizationRepository = organizationRepository
     }
 
@@ -509,6 +517,7 @@ struct NewsDetailView: View {
             RecentViewRecorder.recordNews(post)
         }
         .onDisappear {
+            viewModel.stopListeningComments(for: postID)
             guard let pendingRemovalPostID else { return }
             withTransaction(Transaction(animation: nil)) {
                 viewModel.removeDeletedNews(id: pendingRemovalPostID)
@@ -532,11 +541,15 @@ struct NewsDetailView: View {
         } trailingContent: {
             headerActions()
         }
+        .zIndex(10)
     }
 
     private func navigateBack() {
-        isCommentFieldFocused = false
-        dismiss()
+        if let onNavigateBack {
+            onNavigateBack()
+        } else {
+            dismiss()
+        }
     }
 
     private func headerActions() -> some View {
@@ -574,6 +587,7 @@ struct NewsDetailView: View {
         }
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
+        .zIndex(2)
     }
 
     private func articleHeader(for post: NewsPost) -> some View {

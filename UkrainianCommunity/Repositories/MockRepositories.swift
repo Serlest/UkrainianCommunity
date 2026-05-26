@@ -11,6 +11,7 @@ private actor MockRepositoryStore {
     var infoItems = MockContentBuilder.infoItems()
     var guideArticles = MockContentBuilder.guideArticles()
     var feedbackItems: [FeedbackItem] = []
+    var feedbackMessages: [String: [FeedbackMessage]] = [:]
     var viewedNewsIDs = Set<String>()
 
     func updateUserProfile(_ profile: EditableUserProfileDraft) -> AppUser {
@@ -50,17 +51,112 @@ private actor MockRepositoryStore {
         feedbackItems.sorted { $0.createdAt > $1.createdAt }
     }
 
+    func feedback(userID: String) -> [FeedbackItem] {
+        feedbackItems
+            .filter { $0.userId == userID }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     func updateFeedbackStatus(id: String, status: FeedbackStatus) throws {
         guard let index = feedbackItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         let item = feedbackItems[index]
         feedbackItems[index] = FeedbackItem(
             id: item.id,
             type: item.type,
+            subject: item.subject,
             message: item.message,
             status: status,
             createdAt: item.createdAt,
+            updatedAt: .now,
             userId: item.userId,
-            userDisplayName: item.userDisplayName
+            userDisplayName: item.userDisplayName,
+            ownerReply: item.ownerReply,
+            repliedAt: item.repliedAt,
+            repliedByUserId: item.repliedByUserId,
+            lastMessageText: item.lastMessageText,
+            lastMessageAt: item.lastMessageAt,
+            lastMessageByUserId: item.lastMessageByUserId,
+            lastMessageByRole: item.lastMessageByRole,
+            unreadForOwner: item.unreadForOwner,
+            unreadForUser: item.unreadForUser
+        )
+    }
+
+    func replyToFeedback(id: String, reply: String, repliedByUserID: String) throws {
+        guard let index = feedbackItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        let item = feedbackItems[index]
+        feedbackItems[index] = FeedbackItem(
+            id: item.id,
+            type: item.type,
+            subject: item.subject,
+            message: item.message,
+            status: .answered,
+            createdAt: item.createdAt,
+            updatedAt: .now,
+            userId: item.userId,
+            userDisplayName: item.userDisplayName,
+            ownerReply: reply,
+            repliedAt: .now,
+            repliedByUserId: repliedByUserID,
+            lastMessageText: reply,
+            lastMessageAt: .now,
+            lastMessageByUserId: repliedByUserID,
+            lastMessageByRole: .owner,
+            unreadForOwner: false,
+            unreadForUser: true
+        )
+    }
+
+    func feedbackMessages(for item: FeedbackItem) -> [FeedbackMessage] {
+        let storedMessages = feedbackMessages[item.id] ?? []
+        var messages: [FeedbackMessage] = []
+        if let initialMessage = item.legacyMessages.first,
+           !storedMessages.contains(where: { $0.isStoredInitialMessage(for: item) }) {
+            messages.append(initialMessage)
+        }
+        messages.append(contentsOf: storedMessages)
+        if !storedMessages.contains(where: { $0.senderRole == .owner }),
+           let legacyReply = item.legacyMessages.dropFirst().first {
+            messages.append(legacyReply)
+        }
+        return messages.deduplicatedByID().sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func addFeedbackMessage(feedback item: FeedbackItem, text: String, sender: AppUser, senderRole: FeedbackSenderRole) throws {
+        guard let index = feedbackItems.firstIndex(where: { $0.id == item.id }) else { throw AppError.notFound }
+        let now = Date()
+        let message = FeedbackMessage(
+            id: UUID().uuidString,
+            feedbackId: item.id,
+            senderId: sender.id,
+            senderDisplayName: sender.displayName,
+            senderRole: senderRole,
+            text: text,
+            createdAt: now,
+            isSystem: false
+        )
+        feedbackMessages[item.id, default: []].append(message)
+
+        let existing = feedbackItems[index]
+        feedbackItems[index] = FeedbackItem(
+            id: existing.id,
+            type: existing.type,
+            subject: existing.subject,
+            message: existing.message,
+            status: senderRole == .owner ? .answered : .open,
+            createdAt: existing.createdAt,
+            updatedAt: now,
+            userId: existing.userId,
+            userDisplayName: existing.userDisplayName,
+            ownerReply: senderRole == .owner ? text : existing.ownerReply,
+            repliedAt: senderRole == .owner ? now : existing.repliedAt,
+            repliedByUserId: senderRole == .owner ? sender.id : existing.repliedByUserId,
+            lastMessageText: text,
+            lastMessageAt: now,
+            lastMessageByUserId: sender.id,
+            lastMessageByRole: senderRole,
+            unreadForOwner: senderRole == .user,
+            unreadForUser: senderRole == .owner
         )
     }
 
@@ -159,8 +255,8 @@ private actor MockRepositoryStore {
             text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
             createdAt: .now
         )
-        news[index].comments.append(comment)
-        news[index].commentCount += 1
+        news[index].comments.upsertByID(comment)
+        news[index].commentCount = news[index].comments.filter { !$0.isDeleted }.count
         return comment
     }
 
@@ -353,8 +449,8 @@ private actor MockRepositoryStore {
             text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
             createdAt: .now
         )
-        events[index].comments.append(comment)
-        events[index].commentCount += 1
+        events[index].comments.upsertByID(comment)
+        events[index].commentCount = events[index].comments.filter { !$0.isDeleted }.count
         return comment
     }
 
@@ -426,7 +522,7 @@ private actor MockRepositoryStore {
             text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
             createdAt: .now
         )
-        organizationComments[organizationID, default: []].append(comment)
+        organizationComments[organizationID, default: []].upsertByID(comment)
         return comment
     }
 
@@ -610,8 +706,32 @@ struct MockFeedbackRepository: FeedbackRepository {
         await store.feedback()
     }
 
+    func fetchFeedback(userID: String) async throws -> [FeedbackItem] {
+        await store.feedback(userID: userID)
+    }
+
+    func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
+        await store.feedbackMessages(for: feedback)
+    }
+
+    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws {
+        try await store.addFeedbackMessage(feedback: feedback, text: text, sender: user, senderRole: .user)
+    }
+
+    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws {
+        try await store.addFeedbackMessage(feedback: feedback, text: text, sender: owner, senderRole: .owner)
+    }
+
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {
         try await store.updateFeedbackStatus(id: id, status: status)
+    }
+
+    func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws {
+        try await store.replyToFeedback(id: id, reply: reply, repliedByUserID: repliedByUserID)
+    }
+
+    func closeFeedback(id: String) async throws {
+        try await store.updateFeedbackStatus(id: id, status: .closed)
     }
 }
 
@@ -1046,5 +1166,33 @@ private extension AppUser {
         if !display.isEmpty { return display }
         let full = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
         return full.isEmpty ? "User" : full
+    }
+}
+
+private extension Array where Element == Comment {
+    nonisolated mutating func upsertByID(_ comment: Comment) {
+        if let index = firstIndex(where: { $0.id == comment.id }) {
+            self[index] = comment
+        } else {
+            append(comment)
+        }
+    }
+}
+
+private extension Array where Element == FeedbackMessage {
+    nonisolated func deduplicatedByID() -> [FeedbackMessage] {
+        var seenIDs = Set<String>()
+        return filter { message in
+            seenIDs.insert(message.id).inserted
+        }
+    }
+}
+
+private extension FeedbackMessage {
+    nonisolated func isStoredInitialMessage(for feedback: FeedbackItem) -> Bool {
+        senderRole == .user
+            && senderId == feedback.userId
+            && text == feedback.message
+            && abs(createdAt.timeIntervalSince(feedback.createdAt)) < 2
     }
 }

@@ -523,16 +523,27 @@ struct UkrainianCommunityTests {
 
     @Test func feedbackModelSupportsExpectedTypesAndOpenStatus() {
         #expect(Set(FeedbackType.allCases) == Set([.question, .suggestion, .bug, .report]))
-        #expect(Set(FeedbackStatus.allCases) == Set([.open, .reviewed, .closed]))
+        #expect(Set(FeedbackStatus.allCases) == Set([.open, .answered, .reviewed, .archived, .closed]))
 
         let item = FeedbackItem(
             id: "feedback-1",
             type: .bug,
+            subject: nil,
             message: "Example",
             status: .open,
             createdAt: .now,
+            updatedAt: .now,
             userId: "user-1",
-            userDisplayName: "Tester"
+            userDisplayName: "Tester",
+            ownerReply: nil,
+            repliedAt: nil,
+            repliedByUserId: nil,
+            lastMessageText: "Example",
+            lastMessageAt: .now,
+            lastMessageByUserId: "user-1",
+            lastMessageByRole: .user,
+            unreadForOwner: true,
+            unreadForUser: false
         )
 
         #expect(item.status == .open)

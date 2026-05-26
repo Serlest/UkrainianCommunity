@@ -180,16 +180,12 @@ struct OrganizationPhotoGallerySection: View {
         HStack(alignment: .center) {
             AppEditorSectionTitle(title: AppStrings.Organizations.tabPhoto)
 
-            if canManage {
-                PhotosPicker(selection: $selectedPickerItem, matching: .images, photoLibrary: .shared()) {
-                    Label(AppStrings.Organizations.photosAdd, systemImage: "plus")
-                        .font(.caption.weight(.semibold))
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(AppTheme.accentPrimary)
-                .disabled(viewModel.isUploading || isPreparingPhoto || !viewModel.canAddMorePhotos)
-            }
+            Text("\(viewModel.photos.count)/30")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .padding(.horizontal, 8)
+                .frame(height: 24)
+                .background(AppTheme.surfaceControl.opacity(0.55), in: Capsule())
         }
     }
 
@@ -200,18 +196,42 @@ struct OrganizationPhotoGallerySection: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, AppTheme.dashboardSpacing)
         } else if viewModel.photos.isEmpty {
-            compactEmptyState
+            VStack(alignment: .leading, spacing: 10) {
+                if canManage {
+                    photoGrid
+                }
+                compactEmptyState
+            }
         } else {
-            LazyVGrid(columns: gridColumns, spacing: 8) {
-                ForEach(viewModel.photos) { photo in
-                    OrganizationPhotoTile(
-                        photo: photo,
-                        canManage: canManage,
-                        isDeleting: viewModel.deletingPhotoIDs.contains(photo.id),
-                        onOpen: { selectedPreviewPhoto = photo },
-                        onDelete: { pendingDeletePhoto = photo }
+            photoGrid
+        }
+    }
+
+    private var photoGrid: some View {
+        let isPhotoPickingAllowed = canPickPhoto
+        let isPhotoPickerBusy = viewModel.isUploading || isPreparingPhoto
+
+        return LazyVGrid(columns: gridColumns, spacing: 8) {
+            if canManage {
+                PhotosPicker(selection: $selectedPickerItem, matching: .images, photoLibrary: .shared()) {
+                    OrganizationAddPhotoTile(
+                        isDisabled: !isPhotoPickingAllowed,
+                        isBusy: isPhotoPickerBusy
                     )
                 }
+                .buttonStyle(.plain)
+                .disabled(!isPhotoPickingAllowed)
+                .accessibilityLabel(AppStrings.Organizations.photosAdd)
+            }
+
+            ForEach(viewModel.photos) { photo in
+                OrganizationPhotoTile(
+                    photo: photo,
+                    canManage: canManage,
+                    isDeleting: viewModel.deletingPhotoIDs.contains(photo.id),
+                    onOpen: { selectedPreviewPhoto = photo },
+                    onDelete: { pendingDeletePhoto = photo }
+                )
             }
         }
     }
@@ -280,6 +300,10 @@ struct OrganizationPhotoGallerySection: View {
     private var gridColumns: [GridItem] {
         let columnCount = horizontalSizeClass == .compact ? 2 : 3
         return Array(repeating: GridItem(.flexible(), spacing: 8), count: columnCount)
+    }
+
+    private var canPickPhoto: Bool {
+        canManage && !viewModel.isUploading && !isPreparingPhoto && viewModel.canAddMorePhotos
     }
 
     private func prepareSelectedPhoto(_ item: PhotosPickerItem?) async {
@@ -383,6 +407,43 @@ private struct OrganizationPhotoTile: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
             )
+    }
+}
+
+private struct OrganizationAddPhotoTile: View {
+    let isDisabled: Bool
+    let isBusy: Bool
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(AppTheme.accentPrimarySoft)
+                    .frame(width: 38, height: 38)
+
+                if isBusy {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "plus")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                }
+            }
+
+            Text(AppStrings.Organizations.photosAdd)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
+        .background(AppTheme.surfaceSecondary.opacity(isDisabled ? 0.45 : 1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(AppTheme.accentPrimary.opacity(isDisabled ? 0.10 : 0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+        )
+        .opacity(isDisabled ? 0.65 : 1)
     }
 }
 

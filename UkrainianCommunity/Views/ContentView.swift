@@ -20,6 +20,7 @@ struct ContentView: View {
     @StateObject private var infoViewModel: InfoViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @State private var selectedTab: AppTab = .home
+    @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
     @State private var homeNavigationRootID = UUID()
     @State private var eventsNavigationRootID = UUID()
     @State private var organizationsNavigationRootID = UUID()
@@ -116,13 +117,14 @@ struct ContentView: View {
     }
 
     private var homeTab: some View {
-        NavigationStack {
+        NavigationStack(path: $homeNavigationPath) {
             HomeView(
                 viewModel: homeViewModel,
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel,
-                newsRepository: container.newsRepository
+                newsRepository: container.newsRepository,
+                navigationPath: $homeNavigationPath
             )
         }
         .accessibilityIdentifier("screen.home")
@@ -208,6 +210,7 @@ struct ContentView: View {
     private func resetNavigationStack(for tab: AppTab) {
         switch tab {
         case .home:
+            homeNavigationPath.removeAll()
             homeNavigationRootID = UUID()
         case .events:
             eventsNavigationRootID = UUID()

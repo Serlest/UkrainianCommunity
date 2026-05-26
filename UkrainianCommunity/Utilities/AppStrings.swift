@@ -929,6 +929,30 @@ enum AppStrings {
         static var submitted: String { text("feedback.submitted", "Feedback sent. Thank you.") }
         static var submitFailed: String { text("feedback.submit_failed", "Unable to send feedback right now.") }
         static var messageRequired: String { text("feedback.validation.message_required", "Please enter a message.") }
+        static var myFeedbackTitle: String { text("feedback.my.title", "Мої звернення") }
+        static var myFeedbackSubtitle: String { text("feedback.my.subtitle", "Ваші звернення та відповіді власника додатку.") }
+        static var myFeedbackEmpty: String { text("feedback.my.empty", "У вас поки немає звернень.") }
+        static var yourFeedback: String { text("feedback.your_feedback", "Ваше звернення") }
+        static var ownerReply: String { text("feedback.owner_reply", "Відповідь власника") }
+        static var sendReply: String { text("feedback.action.send_reply", "Надіслати відповідь") }
+        static var closeFeedback: String { text("feedback.action.close", "Закрити звернення") }
+        static var replySent: String { text("feedback.reply_sent", "Відповідь надіслано") }
+        static var replyPlaceholder: String { text("feedback.reply.placeholder", "Напишіть відповідь користувачу") }
+        static var replyRequired: String { text("feedback.validation.reply_required", "Введіть відповідь.") }
+        static var replyTooLong: String { text("feedback.validation.reply_too_long", "Відповідь має бути до 2000 символів.") }
+        static var messagesTitle: String { text("feedback.messages.title", "Повідомлення") }
+        static var noMessages: String { text("feedback.messages.empty", "Немає повідомлень.") }
+        static var addReply: String { text("feedback.reply.add", "Додати відповідь") }
+        static var reply: String { text("feedback.reply", "Відповісти") }
+        static var send: String { text("feedback.send", "Надіслати") }
+        static var sending: String { text("feedback.sending", "Надсилання...") }
+        static var sendMessageFailed: String { text("feedback.error.send_message_failed", "Не вдалося надіслати повідомлення.") }
+        static var tryAgain: String { text("feedback.try_again", "Спробуйте ще раз") }
+        static var closedMessage: String { text("feedback.closed.message", "Звернення закрито.") }
+        static var closedSystemMessage: String { text("feedback.closed.system_message", "Звернення закрито") }
+        static var userSender: String { text("feedback.sender.user", "Користувач") }
+        static var ownerSender: String { text("feedback.sender.owner", "Підтримка") }
+        static var supportLabel: String { text("feedback.sender.support", "Support") }
         static var typeQuestion: String { text("feedback.type.question", "Question") }
         static var typeSuggestion: String { text("feedback.type.suggestion", "Suggestion") }
         static var typeBug: String { text("feedback.type.bug", "Bug") }
@@ -936,9 +960,17 @@ enum AppStrings {
         static var inboxTitle: String { text("feedback.inbox.title", "Відгуки користувачів") }
         static var inboxSubtitle: String { text("feedback.inbox.subtitle", "Повідомлення, пропозиції та проблеми від користувачів.") }
         static var inboxEmpty: String { text("feedback.inbox.empty", "Нових відгуків поки немає") }
+        static var inboxFilter: String { text("feedback.inbox.filter", "Фільтр") }
+        static var inboxFilterEmpty: String { text("feedback.inbox.filter_empty", "У цьому фільтрі звернень немає.") }
+        static var filterOpen: String { text("feedback.filter.open", "Відкриті") }
+        static var filterAnswered: String { text("feedback.filter.answered", "Відповіді надано") }
+        static var filterClosed: String { text("feedback.filter.closed", "Закриті") }
         static var markReviewed: String { text("feedback.action.mark_reviewed", "Позначити переглянутим") }
         static var archive: String { text("feedback.action.archive", "Архівувати") }
-        static var statusOpen: String { text("feedback.status.open", "Новий") }
+        static var statusOpen: String { text("feedback.status.open", "Очікує відповіді") }
+        static var statusWaitingReply: String { text("feedback.status.waiting_reply", "Очікує відповіді") }
+        static var statusAnswered: String { text("feedback.status.answered", "Відповідь отримано") }
+        static var statusClosed: String { text("feedback.status.closed", "Закрито") }
         static var statusReviewed: String { text("feedback.status.reviewed", "Переглянуто") }
         static var statusArchived: String { text("feedback.status.archived", "Архів") }
         static var loadFailed: String { text("feedback.error.load_failed", "Не вдалося завантажити відгуки.") }
@@ -966,18 +998,32 @@ enum AppStrings {
         static var organizationTitle: String { text("moderation.organization.title", "Модерація організації") }
         static var organizationEmpty: String { text("moderation.organization.empty", "Немає матеріалів організації на перевірці") }
         static var organizationRequest: String { text("moderation.organization.request", "Заявка організації") }
+        static var organizationPreviewTitle: String { text("moderation.organization.preview.title", "Попередній перегляд організації") }
+        static var organizationPreviewSubtitle: String { text("moderation.organization.preview.subtitle", "Так організація виглядатиме після публікації") }
+        static var requestData: String { text("moderation.organization.request_data", "Дані заявки") }
         static var openRequest: String { text("moderation.organization.open_request", "Відкрити заявку") }
         static var submittedBy: String { text("moderation.organization.submitted_by", "Автор заявки") }
+        static var approveOrganization: String { text("moderation.organization.approve_organization", "Схвалити організацію") }
         static var requestRevision: String { text("moderation.organization.request_revision", "Повернути на доопрацювання") }
+        static var rejectRequest: String { text("moderation.organization.reject_request", "Відхилити заявку") }
         static var revisionMessage: String { text("moderation.organization.revision_message", "Повідомлення для автора") }
         static var rejectionReason: String { text("moderation.organization.rejection_reason", "Причина відхилення") }
         static var requestMainInformation: String { text("moderation.organization.section.main_information", "Основна інформація") }
         static var requestDescription: String { text("moderation.organization.section.description", "Опис") }
         static var requestContacts: String { text("moderation.organization.section.contacts", "Контакти") }
         static var requestApplicant: String { text("moderation.organization.section.applicant", "Заявник") }
+        static var requestAbout: String { text("moderation.organization.section.about", "Про організацію") }
+        static var requestActivities: String { text("moderation.organization.section.activities", "Чим ми займаємось") }
+        static var supportCard: String { text("moderation.organization.support_card", "Підтримати організацію") }
+        static var supportCardSubtitle: String { text("moderation.organization.support_card.subtitle", "Donation/support link буде показано після публікації.") }
+        static var eventsHeld: String { text("moderation.organization.metrics.events_held", "Проведено подій") }
+        static var volunteers: String { text("moderation.organization.metrics.volunteers", "Волонтери") }
+        static var helpedPeople: String { text("moderation.organization.metrics.helped_people", "Людей отримали допомогу") }
         static var shortDescription: String { text("moderation.organization.short_description", "Короткий опис") }
         static var fullDescription: String { text("moderation.organization.full_description", "Повний опис") }
         static var federalState: String { text("moderation.organization.federal_state", "Bundesland") }
+        static var austriaScope: String { text("moderation.organization.region_scope.austria", "Австрія") }
+        static var regionScope: String { text("moderation.organization.region_scope", "Охоплення") }
         static var socialLinks: String { text("moderation.organization.social_links", "Соцмережі") }
         static var submittedAt: String { text("moderation.organization.submitted_at", "Надіслано") }
         static var submittedByUserId: String { text("moderation.organization.submitted_by_user_id", "UID заявника") }

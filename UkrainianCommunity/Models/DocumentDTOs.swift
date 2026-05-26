@@ -30,11 +30,22 @@ struct UserDTO: Codable, Identifiable {
 struct FeedbackDTO: Codable, Identifiable {
     let id: String
     let type: String
+    let subject: String?
     let message: String
     let status: String
     let createdAt: Date
+    let updatedAt: Date?
     let userId: String
     let userDisplayName: String
+    let ownerReply: String?
+    let repliedAt: Date?
+    let repliedByUserId: String?
+    let lastMessageText: String?
+    let lastMessageAt: Date?
+    let lastMessageByUserId: String?
+    let lastMessageByRole: String?
+    let unreadForOwner: Bool?
+    let unreadForUser: Bool?
 }
 
 struct CommunityMembershipDTO: Codable, Identifiable {
@@ -308,11 +319,22 @@ extension FeedbackItem {
         self.init(
             id: dto.id,
             type: FeedbackType(rawValue: dto.type) ?? .question,
+            subject: dto.subject,
             message: dto.message,
             status: FeedbackStatus(rawValue: dto.status) ?? .open,
             createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt ?? dto.createdAt,
             userId: dto.userId,
-            userDisplayName: dto.userDisplayName
+            userDisplayName: dto.userDisplayName,
+            ownerReply: dto.ownerReply,
+            repliedAt: dto.repliedAt,
+            repliedByUserId: dto.repliedByUserId,
+            lastMessageText: dto.lastMessageText,
+            lastMessageAt: dto.lastMessageAt,
+            lastMessageByUserId: dto.lastMessageByUserId,
+            lastMessageByRole: dto.lastMessageByRole.flatMap(FeedbackSenderRole.init(rawValue:)),
+            unreadForOwner: dto.unreadForOwner ?? false,
+            unreadForUser: dto.unreadForUser ?? false
         )
     }
 
@@ -320,11 +342,22 @@ extension FeedbackItem {
         FeedbackDTO(
             id: id,
             type: type.rawValue,
+            subject: subject,
             message: message,
             status: status.rawValue,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             userId: userId,
-            userDisplayName: userDisplayName
+            userDisplayName: userDisplayName,
+            ownerReply: ownerReply,
+            repliedAt: repliedAt,
+            repliedByUserId: repliedByUserId,
+            lastMessageText: lastMessageText,
+            lastMessageAt: lastMessageAt,
+            lastMessageByUserId: lastMessageByUserId,
+            lastMessageByRole: lastMessageByRole?.rawValue,
+            unreadForOwner: unreadForOwner,
+            unreadForUser: unreadForUser
         )
     }
 }

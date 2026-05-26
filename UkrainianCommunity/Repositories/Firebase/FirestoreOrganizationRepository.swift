@@ -1019,6 +1019,107 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 }
 
+extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
+    func listenOrganizationComments(
+        organizationID: String,
+        onChange: @escaping @MainActor ([Comment]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let registration = collection.document(organizationID)
+            .collection("comments")
+            .whereField("isDeleted", isEqualTo: false)
+            .order(by: "createdAt", descending: false)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+
+                let comments = snapshot?.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
+                Task { @MainActor in onChange(comments) }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    func listenSubmittedOrganizationRequests(
+        userID: String,
+        onChange: @escaping @MainActor ([Organization]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let requestStatuses = [
+            ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.needsRevision.rawValue,
+            ModerationStatus.rejected.rawValue
+        ]
+        let registration = collection
+            .whereField("submittedByUserId", isEqualTo: userID)
+            .whereField("moderationStatus", in: requestStatuses)
+            .order(by: "submittedAt", descending: true)
+            .addSnapshotListener { snapshot, error in
+                handleOrganizationRequestSnapshot(snapshot, error: error, onChange: onChange, onError: onError)
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    func listenPendingOrganizationRequestsForOwner(
+        onChange: @escaping @MainActor ([Organization]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let registration = collection
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { snapshot, error in
+                handleOrganizationRequestSnapshot(snapshot, error: error, onChange: onChange, onError: onError)
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    private func handleOrganizationRequestSnapshot(
+        _ snapshot: QuerySnapshot?,
+        error: Error?,
+        onChange: @escaping @MainActor ([Organization]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) {
+        if let error {
+            Task { @MainActor in onError(Self.appError(from: error)) }
+            return
+        }
+
+        Task {
+            do {
+                let organizations = try snapshot?.documents.map { document in
+                    try Organization(dto: makeOrganizationDTO(
+                        from: document,
+                        likedOrganizationIDs: [],
+                        subscribedOrganizationIDs: [],
+                        bookmarkedOrganizationIDs: []
+                    ))
+                } ?? []
+                await MainActor.run {
+                    onChange(organizations)
+                }
+            } catch let appError as AppError {
+                await MainActor.run {
+                    onError(appError)
+                }
+            } catch {
+                await MainActor.run {
+                    onError(.unknown)
+                }
+            }
+        }
+    }
+
+    private static func appError(from error: Error) -> AppError {
+        let nsError = error as NSError
+        if nsError.domain == FirestoreErrorDomain,
+           nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
+            return .permissionDenied
+        }
+        return .network
+    }
+}
+
 private extension String {
     var nilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)

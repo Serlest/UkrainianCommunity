@@ -899,6 +899,38 @@ struct FirestoreEventRepository: EventRepository {
     }
 }
 
+extension FirestoreEventRepository: EventRealtimeRepository {
+    func listenEventComments(
+        eventID: String,
+        onChange: @escaping @MainActor ([Comment]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let registration = collection.document(eventID)
+            .collection("comments")
+            .whereField("isDeleted", isEqualTo: false)
+            .order(by: "createdAt", descending: false)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+
+                let comments = snapshot?.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
+                Task { @MainActor in onChange(comments) }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    private static func appError(from error: Error) -> AppError {
+        let nsError = error as NSError
+        if nsError.domain == FirestoreErrorDomain,
+           nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
+            return .permissionDenied
+        }
+        return .network
+    }
+}
+
 private extension String {
     var nilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)

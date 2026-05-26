@@ -5,6 +5,10 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
+private struct EventNavigationRoute: Hashable {
+    let eventID: String
+}
+
 enum EventPresentationMode {
     case `public`
     case management
@@ -293,6 +297,16 @@ struct EventsListView: View {
         .background(AppBackgroundView())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(for: EventNavigationRoute.self) { route in
+            EventDetailView(
+                viewModel: viewModel,
+                eventID: route.eventID,
+                onEventDeleted: { @MainActor @Sendable in
+                    onEventDeleted()
+                }
+            )
+            .environment(\.eventPresentationMode, presentationMode)
+        }
         .task {
             applyDefaultRegion()
             await viewModel.loadIfNeeded()
@@ -695,16 +709,7 @@ private struct EventDiscoveryRow: View {
     @Binding var pendingDeleteEventID: String?
 
     var body: some View {
-        NavigationLink {
-            EventDetailView(
-                viewModel: viewModel,
-                eventID: event.id,
-                onEventDeleted: { @MainActor @Sendable in
-                    onEventDeleted()
-                }
-            )
-            .environment(\.eventPresentationMode, presentationMode)
-        } label: {
+        NavigationLink(value: EventNavigationRoute(eventID: event.id)) {
             EventCard(event: event)
         }
         .buttonStyle(.plain)
@@ -848,6 +853,7 @@ struct EventDetailView: View {
     @ObservedObject var viewModel: EventsViewModel
     let eventID: String
     let onEventDeleted: @MainActor @Sendable () -> Void
+    let onNavigateBack: (() -> Void)?
     private let organizationRepository: OrganizationRepository
     @State private var showDeleteConfirmation = false
     @State private var deleteErrorMessage: String?
@@ -877,11 +883,13 @@ struct EventDetailView: View {
         viewModel: EventsViewModel,
         eventID: String,
         onEventDeleted: @escaping @MainActor @Sendable () -> Void,
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onNavigateBack: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.eventID = eventID
         self.onEventDeleted = onEventDeleted
+        self.onNavigateBack = onNavigateBack
         self.organizationRepository = organizationRepository
     }
 
@@ -1063,6 +1071,7 @@ struct EventDetailView: View {
             RecentViewRecorder.recordEvent(event)
         }
         .onDisappear {
+            viewModel.stopListeningComments(for: eventID)
             guard let pendingRemovalEventID else { return }
             withTransaction(Transaction(animation: nil)) {
                 viewModel.removeDeletedEvent(id: pendingRemovalEventID)
@@ -1081,8 +1090,11 @@ struct EventDetailView: View {
     private var detailHeader: some View {
         AppCenteredBrandHeader {
             detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                isCommentFieldFocused = false
-                dismiss()
+                if let onNavigateBack {
+                    onNavigateBack()
+                } else {
+                    dismiss()
+                }
             }
         } trailingContent: {
             HStack(spacing: 10) {
@@ -1103,6 +1115,7 @@ struct EventDetailView: View {
                 }
             }
         }
+        .zIndex(10)
     }
 
     private func detailIconButton(
@@ -1120,6 +1133,7 @@ struct EventDetailView: View {
         }
         .frame(width: 44, height: 44)
         .contentShape(Rectangle())
+        .zIndex(2)
     }
 
     @ViewBuilder

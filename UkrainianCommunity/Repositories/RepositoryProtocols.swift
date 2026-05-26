@@ -10,7 +10,70 @@ protocol UserRepository {
 protocol FeedbackRepository {
     func submitFeedback(_ feedback: FeedbackItem) async throws
     func fetchFeedback() async throws -> [FeedbackItem]
+    func fetchFeedback(userID: String) async throws -> [FeedbackItem]
+    func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage]
+    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws
+    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws
+    func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws
+    func closeFeedback(id: String) async throws
+}
+
+extension FeedbackRepository {
+    func fetchFeedback(userID: String) async throws -> [FeedbackItem] {
+        let items = try await fetchFeedback()
+        return items.filter { $0.userId == userID }
+    }
+
+    func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
+        feedback.legacyMessages
+    }
+
+    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws {}
+
+    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws {
+        try await replyToFeedback(id: feedback.id, reply: text, repliedByUserID: owner.id)
+    }
+
+    func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws {
+        try await updateFeedbackStatus(id: id, status: .answered)
+    }
+
+    func closeFeedback(id: String) async throws {
+        try await updateFeedbackStatus(id: id, status: .closed)
+    }
+}
+
+extension FeedbackItem {
+    nonisolated var legacyMessages: [FeedbackMessage] {
+        var messages = [
+            FeedbackMessage(
+                id: "\(id)_initial",
+                feedbackId: id,
+                senderId: userId,
+                senderDisplayName: userDisplayName,
+                senderRole: .user,
+                text: message,
+                createdAt: createdAt,
+                isSystem: false
+            )
+        ]
+
+        if let ownerReply, !ownerReply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            messages.append(FeedbackMessage(
+                id: "\(id)_legacy_owner_reply",
+                feedbackId: id,
+                senderId: repliedByUserId ?? "",
+                senderDisplayName: "Support",
+                senderRole: .owner,
+                text: ownerReply,
+                createdAt: repliedAt ?? updatedAt,
+                isSystem: false
+            ))
+        }
+
+        return messages
+    }
 }
 
 protocol NewsRepository {

@@ -91,6 +91,151 @@ service cloud.firestore {
       return ['id', 'actionType', 'targetId', 'targetType', 'title', 'subtitle', 'imageURL', 'createdAt'];
     }
 
+    function feedbackCreateFields() {
+      return [
+        'id',
+        'userId',
+        'userDisplayName',
+        'type',
+        'subject',
+        'message',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'lastMessageText',
+        'lastMessageAt',
+        'lastMessageByUserId',
+        'lastMessageByRole',
+        'unreadForOwner',
+        'unreadForUser'
+      ];
+    }
+
+    function feedbackOwnerUpdateFields() {
+      return [
+        'ownerReply',
+        'repliedAt',
+        'repliedByUserId',
+        'status',
+        'updatedAt',
+        'lastMessageText',
+        'lastMessageAt',
+        'lastMessageByUserId',
+        'lastMessageByRole',
+        'unreadForOwner',
+        'unreadForUser'
+      ];
+    }
+
+    function feedbackUserReplyUpdateFields() {
+      return [
+        'status',
+        'updatedAt',
+        'lastMessageText',
+        'lastMessageAt',
+        'lastMessageByUserId',
+        'lastMessageByRole',
+        'unreadForOwner',
+        'unreadForUser'
+      ];
+    }
+
+    function feedbackChangedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function feedbackMessageFields() {
+      return ['id', 'feedbackId', 'senderId', 'senderDisplayName', 'senderRole', 'text', 'createdAt', 'isSystem'];
+    }
+
+    function safeFeedbackCreate(feedbackId) {
+      return isActiveUser()
+        && request.resource.data.keys().hasOnly(feedbackCreateFields())
+        && request.resource.data.id == feedbackId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userDisplayName is string
+        && request.resource.data.type in ['question', 'suggestion', 'bug', 'report']
+        && (!('subject' in request.resource.data) || request.resource.data.subject is string)
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 2000
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.lastMessageText == request.resource.data.message
+        && request.resource.data.lastMessageAt is timestamp
+        && request.resource.data.lastMessageByUserId == request.auth.uid
+        && request.resource.data.lastMessageByRole == 'user'
+        && request.resource.data.unreadForOwner == true
+        && request.resource.data.unreadForUser == false;
+    }
+
+    function safeFeedbackOwnerUpdate() {
+      return isOwner()
+        && feedbackChangedKeys().hasOnly(feedbackOwnerUpdateFields())
+        && request.resource.data.status in ['open', 'answered', 'closed', 'reviewed', 'archived']
+        && request.resource.data.updatedAt is timestamp
+        && (!feedbackChangedKeys().hasAny(['lastMessageText']) || request.resource.data.lastMessageText is string)
+        && (!feedbackChangedKeys().hasAny(['lastMessageAt']) || request.resource.data.lastMessageAt is timestamp)
+        && (!feedbackChangedKeys().hasAny(['lastMessageByUserId']) || request.resource.data.lastMessageByUserId == request.auth.uid)
+        && (!feedbackChangedKeys().hasAny(['lastMessageByRole']) || request.resource.data.lastMessageByRole == 'owner')
+        && (!feedbackChangedKeys().hasAny(['unreadForOwner']) || request.resource.data.unreadForOwner is bool)
+        && (!feedbackChangedKeys().hasAny(['unreadForUser']) || request.resource.data.unreadForUser is bool)
+        && (!feedbackChangedKeys().hasAny(['ownerReply'])
+          || (request.resource.data.ownerReply is string
+            && request.resource.data.ownerReply.size() > 0
+            && request.resource.data.ownerReply.size() <= 2000))
+        && (!feedbackChangedKeys().hasAny(['repliedAt']) || request.resource.data.repliedAt is timestamp)
+        && (!feedbackChangedKeys().hasAny(['repliedByUserId']) || request.resource.data.repliedByUserId == request.auth.uid);
+    }
+
+    function safeFeedbackUserReplyUpdate() {
+      return isActiveUser()
+        && resource.data.userId == request.auth.uid
+        && resource.data.status != 'closed'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(feedbackUserReplyUpdateFields())
+        && request.resource.data.status == 'open'
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.lastMessageText is string
+        && request.resource.data.lastMessageText.size() > 0
+        && request.resource.data.lastMessageText.size() <= 2000
+        && request.resource.data.lastMessageAt is timestamp
+        && request.resource.data.lastMessageByUserId == request.auth.uid
+        && request.resource.data.lastMessageByRole == 'user'
+        && request.resource.data.unreadForOwner == true
+        && request.resource.data.unreadForUser == false;
+    }
+
+    function canReadFeedback(feedbackId) {
+      return isOwner()
+        || (isSignedIn()
+          && get(/databases/$(database)/documents/feedback/$(feedbackId)).data.userId == request.auth.uid);
+    }
+
+    function safeFeedbackMessageCreate(feedbackId, messageId) {
+      let parent = get(/databases/$(database)/documents/feedback/$(feedbackId)).data;
+      // TODO: Enforce message creation and parent summary updates as one logical
+      // operation with getAfter() or a server-side function in a later pass.
+      return isActiveUser()
+        && parent.status != 'closed'
+        && request.resource.data.keys().hasOnly(feedbackMessageFields())
+        && request.resource.data.id == messageId
+        && request.resource.data.feedbackId == feedbackId
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.senderDisplayName is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.createdAt is timestamp
+        && (!('isSystem' in request.resource.data) || request.resource.data.isSystem is bool)
+        && (
+          (parent.userId == request.auth.uid
+            && request.resource.data.senderRole == 'user'
+            && (!('isSystem' in request.resource.data) || request.resource.data.isSystem == false))
+          || (isOwner() && request.resource.data.senderRole == 'owner')
+        );
+    }
+
     function safeRecentViewWrite(uid, recentViewId) {
       return isActiveUser()
         && request.auth.uid == uid
@@ -1050,11 +1195,20 @@ service cloud.firestore {
       allow read: if isOwner()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
 
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.status == 'open';
+      allow create: if safeFeedbackCreate(feedbackId);
 
-      allow update, delete: if isOwner();
+      allow update: if safeFeedbackOwnerUpdate()
+        || safeFeedbackUserReplyUpdate();
+
+      allow delete: if isOwner();
+
+      match /messages/{messageId} {
+        allow read: if canReadFeedback(feedbackId);
+
+        allow create: if safeFeedbackMessageCreate(feedbackId, messageId);
+
+        allow update, delete: if false;
+      }
     }
 
     match /auditLogs/{auditLogId} {

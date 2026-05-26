@@ -52,7 +52,6 @@ struct OrganizationEditorView: View {
                 contactCard
                 locationCard
                 aboutCard
-                futureCapabilitiesCard
                 moderationNoticeCard
                 bottomSubmitButton
             }
@@ -460,38 +459,6 @@ struct OrganizationEditorView: View {
         }
     }
 
-    private var futureCapabilitiesCard: some View {
-        editorCard {
-            VStack(alignment: .leading, spacing: editorCardSpacing) {
-                editorSectionTitle(AppStrings.Organizations.futureSectionTitle)
-
-                futureCapabilityRow(
-                    systemImage: "scope",
-                    title: AppStrings.Organizations.organizationSizeTitle,
-                    subtitle: AppStrings.Organizations.organizationSizeOptions
-                )
-
-                futureCapabilityRow(
-                    systemImage: "figure.2.and.child.holdinghands",
-                    title: AppStrings.Organizations.volunteersNeededTitle,
-                    subtitle: AppStrings.Organizations.volunteersNeededSubtitle
-                )
-
-                futureCapabilityRow(
-                    systemImage: "checkmark.seal",
-                    title: AppStrings.Organizations.verificationRequestTitle,
-                    subtitle: AppStrings.Organizations.verificationRequestSubtitle
-                )
-
-                futureCapabilityRow(
-                    systemImage: "person.3",
-                    title: AppStrings.Organizations.teamManagementTitle,
-                    subtitle: AppStrings.Organizations.teamManagementSubtitle
-                )
-            }
-        }
-    }
-
     private var selectedRegionTitle: String {
         guard let selectedFederalState = viewModel.selectedFederalState else {
             return AppStrings.Organizations.fieldRegionPlaceholder
@@ -566,49 +533,6 @@ struct OrganizationEditorView: View {
         formatter.locale = LocalizationStore.locale
         formatter.setLocalizedDateFormatFromTemplate("LLLL")
         return formatter.string(from: date).capitalized(with: LocalizationStore.locale)
-    }
-
-    private func futureCapabilityRow(systemImage: String, title: String, subtitle: String) -> some View {
-        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-                .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-
-                Text(subtitle)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-            Text(AppStrings.Organizations.comingSoon)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-                .padding(.horizontal, 8)
-                .frame(height: 24)
-                .background(AppTheme.surfaceControl.opacity(0.34), in: Capsule())
-                .overlay(
-                    Capsule()
-                        .strokeBorder(AppTheme.borderSubtle)
-                )
-        }
-        .padding(AppTheme.eventsControlGroupSpacing)
-        .background(AppTheme.surfaceControl.opacity(0.22), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle.opacity(0.72))
-        )
-        .opacity(0.68)
-        .accessibilityElement(children: .combine)
-        .accessibilityHint(AppStrings.Action.comingSoon)
     }
 
     private var moderationNoticeCard: some View {

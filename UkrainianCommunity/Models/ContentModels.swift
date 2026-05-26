@@ -681,7 +681,7 @@ enum HomeFeedItemType: String, Codable {
     case organization
 }
 
-enum HomeFeedDestinationReference: Equatable {
+enum HomeFeedDestinationReference: Hashable {
     case news(id: String)
     case event(id: String)
     case organization(id: String)

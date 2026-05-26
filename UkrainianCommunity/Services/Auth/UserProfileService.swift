@@ -507,15 +507,28 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     private let collection = Firestore.firestore().collection("feedback")
 
     func submitFeedback(_ feedback: FeedbackItem) async throws {
-        try await collection.document(feedback.id).setData([
+        var data: [String: Any] = [
             "id": feedback.id,
             "type": feedback.type.rawValue,
             "message": feedback.message,
             "status": feedback.status.rawValue,
             "createdAt": Timestamp(date: feedback.createdAt),
+            "updatedAt": Timestamp(date: feedback.updatedAt),
+            "lastMessageText": feedback.message,
+            "lastMessageAt": Timestamp(date: feedback.createdAt),
+            "lastMessageByUserId": feedback.userId,
+            "lastMessageByRole": FeedbackSenderRole.user.rawValue,
+            "unreadForOwner": true,
+            "unreadForUser": false,
             "userId": feedback.userId,
             "userDisplayName": feedback.userDisplayName
-        ])
+        ]
+
+        if let subject = feedback.subject, !subject.isEmpty {
+            data["subject"] = subject
+        }
+
+        try await collection.document(feedback.id).setData(data)
     }
 
     func fetchFeedback() async throws -> [FeedbackItem] {
@@ -528,24 +541,301 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         }
     }
 
+    func fetchFeedback(userID: String) async throws -> [FeedbackItem] {
+        let snapshot = try await collection
+            .whereField("userId", isEqualTo: userID)
+            .getDocuments()
+
+        return snapshot.documents
+            .map { document in makeFeedbackItem(from: document) }
+            .sorted { lhs, rhs in lhs.createdAt > rhs.createdAt }
+    }
+
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {
         try await collection.document(id).updateData([
-            "status": status.rawValue
+            "status": status.rawValue,
+            "updatedAt": FieldValue.serverTimestamp()
         ])
+    }
+
+    func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
+        let snapshot = try await collection.document(feedback.id)
+            .collection("messages")
+            .order(by: "createdAt", descending: false)
+            .getDocuments()
+
+        let storedMessages = snapshot.documents.map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) }
+        return mergedFeedbackMessages(storedMessages: storedMessages, feedback: feedback)
+    }
+
+    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws {
+        guard !feedback.status.isClosed else {
+            throw AppError.validationFailed
+        }
+        try await sendFeedbackMessage(
+            feedbackID: feedback.id,
+            text: text,
+            senderID: user.id,
+            senderDisplayName: user.preferredDisplayName,
+            senderRole: .user,
+            status: .open,
+            unreadForOwner: true,
+            unreadForUser: false
+        )
+    }
+
+    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws {
+        guard !feedback.status.isClosed else {
+            throw AppError.validationFailed
+        }
+        try await sendFeedbackMessage(
+            feedbackID: feedback.id,
+            text: text,
+            senderID: owner.id,
+            senderDisplayName: owner.preferredDisplayName,
+            senderRole: .owner,
+            status: .answered,
+            unreadForOwner: false,
+            unreadForUser: true
+        )
+    }
+
+    func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws {
+        try await collection.document(id).updateData([
+            "ownerReply": reply,
+            "repliedAt": FieldValue.serverTimestamp(),
+            "repliedByUserId": repliedByUserID,
+            "status": FeedbackStatus.answered.rawValue,
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
+    func closeFeedback(id: String) async throws {
+        let feedbackReference = collection.document(id)
+        let messageReference = feedbackReference.collection("messages").document()
+        let now = Timestamp(date: Date())
+        let batch = Firestore.firestore().batch()
+        batch.setData([
+            "id": messageReference.documentID,
+            "feedbackId": id,
+            "senderId": Auth.auth().currentUser?.uid ?? "",
+            "senderDisplayName": AppStrings.Feedback.ownerSender,
+            "senderRole": FeedbackSenderRole.owner.rawValue,
+            "text": AppStrings.Feedback.closedSystemMessage,
+            "createdAt": now,
+            "isSystem": true
+        ], forDocument: messageReference)
+        batch.updateData([
+            "status": FeedbackStatus.closed.rawValue,
+            "updatedAt": now,
+            "lastMessageText": AppStrings.Feedback.closedSystemMessage,
+            "lastMessageAt": now,
+            "lastMessageByUserId": Auth.auth().currentUser?.uid ?? "",
+            "lastMessageByRole": FeedbackSenderRole.owner.rawValue,
+            "unreadForOwner": false,
+            "unreadForUser": true
+        ], forDocument: feedbackReference)
+        try await batch.commit()
     }
 
     private func makeFeedbackItem(from document: QueryDocumentSnapshot) -> FeedbackItem {
         let data = document.data()
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+        let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? createdAt
 
         return FeedbackItem(
             id: data["id"] as? String ?? document.documentID,
             type: FeedbackType(rawValue: data["type"] as? String ?? "") ?? .question,
+            subject: data["subject"] as? String,
             message: data["message"] as? String ?? "",
             status: FeedbackStatus(rawValue: data["status"] as? String ?? "") ?? .open,
             createdAt: createdAt,
+            updatedAt: updatedAt,
             userId: data["userId"] as? String ?? "",
-            userDisplayName: data["userDisplayName"] as? String ?? ""
+            userDisplayName: data["userDisplayName"] as? String ?? "",
+            ownerReply: data["ownerReply"] as? String,
+            repliedAt: (data["repliedAt"] as? Timestamp)?.dateValue(),
+            repliedByUserId: data["repliedByUserId"] as? String,
+            lastMessageText: data["lastMessageText"] as? String,
+            lastMessageAt: (data["lastMessageAt"] as? Timestamp)?.dateValue(),
+            lastMessageByUserId: data["lastMessageByUserId"] as? String,
+            lastMessageByRole: (data["lastMessageByRole"] as? String).flatMap(FeedbackSenderRole.init(rawValue:)),
+            unreadForOwner: data["unreadForOwner"] as? Bool ?? false,
+            unreadForUser: data["unreadForUser"] as? Bool ?? false
         )
+    }
+
+    private func sendFeedbackMessage(
+        feedbackID: String,
+        text: String,
+        senderID: String,
+        senderDisplayName: String,
+        senderRole: FeedbackSenderRole,
+        status: FeedbackStatus,
+        unreadForOwner: Bool,
+        unreadForUser: Bool
+    ) async throws {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty, trimmedText.count <= 2000 else {
+            throw AppError.validationFailed
+        }
+
+        let feedbackReference = collection.document(feedbackID)
+        let messageReference = feedbackReference.collection("messages").document()
+        let now = Timestamp(date: Date())
+        let batch = Firestore.firestore().batch()
+        batch.setData([
+            "id": messageReference.documentID,
+            "feedbackId": feedbackID,
+            "senderId": senderID,
+            "senderDisplayName": senderDisplayName,
+            "senderRole": senderRole.rawValue,
+            "text": trimmedText,
+            "createdAt": now,
+            "isSystem": false
+        ], forDocument: messageReference)
+
+        var summaryUpdate: [String: Any] = [
+            "status": status.rawValue,
+            "updatedAt": now,
+            "lastMessageText": trimmedText,
+            "lastMessageAt": now,
+            "lastMessageByUserId": senderID,
+            "lastMessageByRole": senderRole.rawValue,
+            "unreadForOwner": unreadForOwner,
+            "unreadForUser": unreadForUser
+        ]
+
+        if senderRole == .owner {
+            summaryUpdate["ownerReply"] = trimmedText
+            summaryUpdate["repliedAt"] = now
+            summaryUpdate["repliedByUserId"] = senderID
+        }
+
+        batch.updateData(summaryUpdate, forDocument: feedbackReference)
+        try await batch.commit()
+    }
+
+    private func makeFeedbackMessage(from document: QueryDocumentSnapshot, feedbackID: String) -> FeedbackMessage {
+        let data = document.data()
+        let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+
+        return FeedbackMessage(
+            id: data["id"] as? String ?? document.documentID,
+            feedbackId: data["feedbackId"] as? String ?? feedbackID,
+            senderId: data["senderId"] as? String ?? "",
+            senderDisplayName: data["senderDisplayName"] as? String ?? "",
+            senderRole: FeedbackSenderRole(rawValue: data["senderRole"] as? String ?? "") ?? .user,
+            text: data["text"] as? String ?? "",
+            createdAt: createdAt,
+            isSystem: data["isSystem"] as? Bool ?? false
+        )
+    }
+
+    private func mergedFeedbackMessages(storedMessages: [FeedbackMessage], feedback: FeedbackItem) -> [FeedbackMessage] {
+        var messages: [FeedbackMessage] = []
+
+        if let initialMessage = feedback.legacyMessages.first,
+           !storedMessages.contains(where: { $0.isStoredInitialMessage(for: feedback) }) {
+            messages.append(initialMessage)
+        }
+
+        messages.append(contentsOf: storedMessages)
+
+        if !storedMessages.contains(where: { $0.senderRole == .owner }),
+           let legacyOwnerMessage = feedback.legacyMessages.dropFirst().first {
+            messages.append(legacyOwnerMessage)
+        }
+
+        return messages.deduplicatedByID().sorted { lhs, rhs in lhs.createdAt < rhs.createdAt }
+    }
+}
+
+private extension Array where Element == FeedbackMessage {
+    func deduplicatedByID() -> [FeedbackMessage] {
+        var seenIDs = Set<String>()
+        return filter { message in
+            seenIDs.insert(message.id).inserted
+        }
+    }
+}
+
+private extension FeedbackMessage {
+    func isStoredInitialMessage(for feedback: FeedbackItem) -> Bool {
+        senderRole == .user
+            && senderId == feedback.userId
+            && text == feedback.message
+            && abs(createdAt.timeIntervalSince(feedback.createdAt)) < 2
+    }
+}
+
+extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
+    func listenMyFeedback(
+        userID: String,
+        onChange: @escaping @MainActor ([FeedbackItem]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let registration = collection
+            .whereField("userId", isEqualTo: userID)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+
+                let items = snapshot?.documents
+                    .map { makeFeedbackItem(from: $0) }
+                    .sorted { $0.createdAt > $1.createdAt } ?? []
+                Task { @MainActor in onChange(items) }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    func listenOwnerFeedbackInbox(
+        onChange: @escaping @MainActor ([FeedbackItem]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let registration = collection
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+
+                let items = snapshot?.documents.map { makeFeedbackItem(from: $0) } ?? []
+                Task { @MainActor in onChange(items) }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    func listenFeedbackMessages(
+        feedback: FeedbackItem,
+        onChange: @escaping @MainActor ([FeedbackMessage]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let registration = collection.document(feedback.id)
+            .collection("messages")
+            .order(by: "createdAt", descending: false)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+
+                let storedMessages = snapshot?.documents.map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) } ?? []
+                let messages = mergedFeedbackMessages(storedMessages: storedMessages, feedback: feedback)
+                Task { @MainActor in onChange(messages) }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    private static func appError(from error: Error) -> AppError {
+        let nsError = error as NSError
+        if nsError.domain == FirestoreErrorDomain,
+           nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
+            return .permissionDenied
+        }
+        return .network
     }
 }

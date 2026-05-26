@@ -10,6 +10,7 @@ struct HomeView: View {
     @ObservedObject var eventsViewModel: EventsViewModel
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     let newsRepository: NewsRepository
+    @Binding var navigationPath: [HomeFeedDestinationReference]
     @State private var selectedBannerPhoto: PhotosPickerItem?
     @State private var selectedContentType: HomeContentTypeFilter = .all
     @State private var selectedFeedFilter: HomeFeedFilter = .all
@@ -47,6 +48,9 @@ struct HomeView: View {
         .background(AppBackgroundView())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(for: HomeFeedDestinationReference.self) { destination in
+            destinationView(for: destination)
+        }
         .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
             Button(AppStrings.Home.regionAllAustria) {
                 selectRegion(nil)
@@ -170,9 +174,7 @@ struct HomeView: View {
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             DashboardFeedContainer(items: filteredFeedItems, spacing: AppTheme.feedRowSpacing) { item in
-                NavigationLink {
-                    destinationView(for: item)
-                } label: {
+                NavigationLink(value: item.destination) {
                     HomeFeedCard(item: item)
                 }
                 .buttonStyle(.plain)
@@ -344,14 +346,24 @@ struct HomeView: View {
 
     @ViewBuilder
     private func destinationView(for item: HomeFeedItem) -> some View {
-        switch item.destination {
+        destinationView(for: item.destination)
+    }
+
+    @ViewBuilder
+    private func destinationView(for destination: HomeFeedDestinationReference) -> some View {
+        switch destination {
         case let .news(id):
-            NewsDetailView(viewModel: newsViewModel, postID: id, onNewsDeleted: {})
+            NewsDetailView(viewModel: newsViewModel, postID: id, onNewsDeleted: {}, onNavigateBack: popHomeDetail)
         case let .event(id):
-            EventDetailView(viewModel: eventsViewModel, eventID: id, onEventDeleted: {})
+            EventDetailView(viewModel: eventsViewModel, eventID: id, onEventDeleted: {}, onNavigateBack: popHomeDetail)
         case let .organization(id):
-            OrganizationDetailView(viewModel: organizationsViewModel, organizationID: id)
+            OrganizationDetailView(viewModel: organizationsViewModel, organizationID: id, onNavigateBack: popHomeDetail)
         }
+    }
+
+    private func popHomeDetail() {
+        guard !navigationPath.isEmpty else { return }
+        navigationPath.removeLast()
     }
 }
 
@@ -852,7 +864,8 @@ private struct HomeEventDateBadge: View {
             newsViewModel: NewsViewModel(repository: MockNewsRepository()),
             eventsViewModel: EventsViewModel(repository: MockEventRepository()),
             organizationsViewModel: OrganizationsViewModel(repository: MockOrganizationRepository()),
-            newsRepository: MockNewsRepository()
+            newsRepository: MockNewsRepository(),
+            navigationPath: .constant([])
         )
     }
     .environmentObject(AuthState())

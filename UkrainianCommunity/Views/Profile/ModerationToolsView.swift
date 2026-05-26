@@ -46,6 +46,7 @@ private final class ModerationQueueViewModel: ObservableObject {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
+    private let listenerBag = RealtimeListenerBag()
     private let organizationID: String?
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -82,6 +83,9 @@ private final class ModerationQueueViewModel: ObservableObject {
         let normalizedSections = sections.intersection([.news, .events, .organizations])
         if allowedSections != normalizedSections {
             allowedSections = normalizedSections
+            if !normalizedSections.contains(.organizations) {
+                listenerBag.remove("pendingOrganizationRequests")
+            }
             hasLoaded = false
         }
     }
@@ -150,6 +154,7 @@ private final class ModerationQueueViewModel: ObservableObject {
 
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
+        startListeningPendingOrganizationRequestsIfNeeded()
 
         loadTask?.cancel()
         let task = Task { [weak self] in
@@ -201,6 +206,29 @@ private final class ModerationQueueViewModel: ObservableObject {
         }
 
         return loadedItems.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private func startListeningPendingOrganizationRequestsIfNeeded() {
+        let key = "pendingOrganizationRequests"
+        guard organizationID == nil,
+              allowedSections.contains(.organizations),
+              !listenerBag.contains(key),
+              let realtimeRepository = organizationRepository as? OrganizationRealtimeRepository else { return }
+
+        listenerBag.set(realtimeRepository.listenPendingOrganizationRequestsForOwner { [weak self] organizations in
+            guard let self else { return }
+            self.items.removeAll { $0.type == .organization }
+            self.items.append(contentsOf: self.makeItems(from: organizations))
+            self.items.sort { $0.createdAt > $1.createdAt }
+            self.error = nil
+            self.hasLoaded = true
+        } onError: { [weak self] appError in
+            self?.listenerBag.remove(key)
+            self?.error = appError
+            #if DEBUG
+            print("Realtime listener failed: purpose=pendingOrganizationRequests key=\(key) error=\(appError)")
+            #endif
+        }, for: key)
     }
 
     private func makeItems(from news: [NewsPost]) -> [ModerationQueueItem] {
@@ -529,11 +557,10 @@ private struct ModerationOrganizationRequestSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     if let organization = item.organization {
-                        requestSummaryCard(for: organization)
-                        mainInformationCard(for: organization)
-                        descriptionCard(for: organization)
-                        contactsCard(for: organization)
-                        applicantCard(for: organization)
+                        OrganizationRequestPreviewContent(
+                            organization: organization,
+                            item: item
+                        )
                     } else {
                         requestFallbackCard
                     }
@@ -543,7 +570,7 @@ private struct ModerationOrganizationRequestSheet: View {
                 .padding(AppTheme.pageHorizontal)
             }
             .background(AppBackgroundView())
-            .navigationTitle(AppStrings.Moderation.organizationRequest)
+            .navigationTitle(AppStrings.Moderation.organizationPreviewTitle)
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 reviewActionsBar
@@ -558,108 +585,11 @@ private struct ModerationOrganizationRequestSheet: View {
         }
     }
 
-    private func requestSummaryCard(for organization: Organization) -> some View {
-        AppEditorSectionCard {
-            HStack(alignment: .top, spacing: 12) {
-                AppFeedThumbnail(
-                    imageURL: organization.coverURL ?? organization.imageURL,
-                    fallbackSystemImage: "building.2",
-                    tint: AppTheme.accentPrimary,
-                    fill: AppTheme.accentPrimary.opacity(0.10),
-                    size: 64,
-                    source: "ModerationOrganizationRequestSheet.cover"
-                )
-
-                if let logoURL = organization.logoURL, logoURL != organization.coverURL {
-                    AppFeedThumbnail(
-                        imageURL: logoURL,
-                        fallbackSystemImage: "photo",
-                        tint: AppTheme.accentPrimary,
-                        fill: AppTheme.accentPrimary.opacity(0.10),
-                        size: 48,
-                        source: "ModerationOrganizationRequestSheet.logo"
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 7) {
-                    AppEditorSectionTitle(title: organization.name)
-                    Text(organization.moderationStatus.title)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(AppTheme.accentPrimary)
-                        .padding(.horizontal, 8)
-                        .frame(height: 22)
-                        .background(AppTheme.accentPrimary.opacity(0.12), in: Capsule())
-                        .overlay(Capsule().strokeBorder(AppTheme.accentPrimary.opacity(0.22)))
-                    Text(organization.shortDescription)
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
-                    if let reviewMessage = organization.reviewMessage {
-                        InlineMessageCard(style: .info, message: reviewMessage)
-                    }
-                    if let rejectionReason = organization.rejectionReason {
-                        InlineMessageCard(style: .error, message: rejectionReason)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    private func mainInformationCard(for organization: Organization) -> some View {
-        detailSection(title: AppStrings.Moderation.requestMainInformation) {
-            detailRow(AppStrings.Common.status, organization.moderationStatus.title)
-            detailRow(AppStrings.Organizations.categoryTitle, organization.organizationType)
-            detailRow(AppStrings.Common.city, organization.city)
-            detailRow(AppStrings.Moderation.federalState, organization.federalState?.rawValue)
-            detailRow(AppStrings.Organizations.fieldAddress, organization.address)
-            detailRow(AppStrings.Organizations.foundedTitle, foundedText(for: organization))
-            if !organization.languages.isEmpty {
-                detailRow(AppStrings.Organizations.languagesTitle, organization.languages.joined(separator: ", "))
-            }
-        }
-    }
-
-    private func descriptionCard(for organization: Organization) -> some View {
-        detailSection(title: AppStrings.Moderation.requestDescription) {
-            detailRow(AppStrings.Moderation.shortDescription, organization.shortDescription)
-            detailRow(AppStrings.Moderation.fullDescription, organization.fullDescription)
-            detailRow(AppStrings.Organizations.fieldMissionStatement, organization.missionStatement)
-        }
-    }
-
-    private func contactsCard(for organization: Organization) -> some View {
-        detailSection(title: AppStrings.Moderation.requestContacts) {
-            detailRow(AppStrings.Organizations.fieldContactEmail, organization.contactEmail ?? organization.email)
-            detailRow(AppStrings.Organizations.phonePlaceholder, organization.phone)
-            detailRow(AppStrings.Common.website, organization.website)
-            detailRow(AppStrings.Organizations.fieldTelegramURL, organization.telegramURL)
-            detailRow(AppStrings.Organizations.fieldDonationURL, organization.donationURL)
-            detailRow(AppStrings.Organizations.fieldContactPersonDisplay, organization.contactPerson)
-            if !organization.socialLinks.isEmpty {
-                detailRow(
-                    AppStrings.Moderation.socialLinks,
-                    organization.socialLinks
-                        .sorted { $0.key < $1.key }
-                        .map { "\($0.key): \($0.value)" }
-                        .joined(separator: "\n")
-                )
-            }
-        }
-    }
-
-    private func applicantCard(for organization: Organization) -> some View {
-        detailSection(title: AppStrings.Moderation.requestApplicant) {
-            detailRow(AppStrings.Moderation.submittedBy, organization.submittedByDisplayName ?? item.submittedBy)
-            detailRow(AppStrings.Moderation.submittedAt, organization.submittedAt.map { LocalizationStore.dateString(from: $0) })
-            detailRow(AppStrings.Moderation.submittedByUserId, organization.submittedByUserId)
-        }
-    }
-
     private var reviewActionsBar: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: 10) {
                 PrimaryActionButton(
-                    title: AppStrings.Moderation.approve,
+                    title: AppStrings.Moderation.approveOrganization,
                     isEnabled: !isProcessing,
                     isLoading: isProcessing,
                     systemImage: "checkmark.seal"
@@ -685,7 +615,7 @@ private struct ModerationOrganizationRequestSheet: View {
                 Button(role: .destructive) {
                     Task { await rejectAction(rejectionReason) }
                 } label: {
-                    Label(AppStrings.Moderation.reject, systemImage: "trash")
+                    Label(AppStrings.Moderation.rejectRequest, systemImage: "trash")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: AppTheme.iconButtonSize)
@@ -715,41 +645,91 @@ private struct ModerationOrganizationRequestSheet: View {
         }
     }
 
-    private func detailSection<Content: View>(
+}
+
+private struct OrganizationRequestPreviewContent: View {
+    let organization: Organization
+    let item: ModerationQueueItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+            OrganizationReadOnlyDetailContent(
+                organization: organization,
+                showsModerationStatus: true
+            )
+            requestDataCard
+            applicantCard
+        }
+    }
+
+    private var requestDataCard: some View {
+        previewSection(title: AppStrings.Moderation.requestData, systemImage: "doc.text.magnifyingglass") {
+            previewRow(AppStrings.Common.status, organization.moderationStatus.title, systemImage: "clock")
+            previewRow(AppStrings.Moderation.submittedBy, organization.submittedByDisplayName ?? item.submittedBy, systemImage: "person")
+            previewRow(AppStrings.Moderation.submittedAt, organization.submittedAt.map { LocalizationStore.dateString(from: $0) }, systemImage: "calendar")
+            if let reviewMessage = trimmed(organization.reviewMessage) {
+                InlineMessageCard(style: .info, message: reviewMessage)
+            }
+            if let rejectionReason = trimmed(organization.rejectionReason) {
+                InlineMessageCard(style: .error, message: rejectionReason)
+            }
+        }
+    }
+
+    private var applicantCard: some View {
+        previewSection(title: AppStrings.Moderation.requestApplicant, systemImage: "person.text.rectangle") {
+            previewRow(AppStrings.Moderation.submittedBy, organization.submittedByDisplayName ?? item.submittedBy, systemImage: "person")
+            previewRow(AppStrings.Moderation.submittedAt, organization.submittedAt.map { LocalizationStore.dateString(from: $0) }, systemImage: "calendar")
+            previewRow(AppStrings.Moderation.submittedByUserId, organization.submittedByUserId, systemImage: "number")
+        }
+    }
+
+    private func previewSection<Content: View>(
         title: String,
+        systemImage: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
         AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: 10) {
-                AppEditorSectionTitle(title: title)
+            VStack(alignment: .leading, spacing: 12) {
+                Label(title, systemImage: systemImage)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
                 content()
             }
         }
     }
 
     @ViewBuilder
-    private func detailRow(_ title: String, _ value: String?) -> some View {
-        if let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-                Text(value)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .textSelection(.enabled)
+    private func previewRow(_ title: String, _ value: String?, systemImage: String) -> some View {
+        if let value = trimmed(value) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: 24, height: 24)
+                    .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                    Text(value)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private func foundedText(for organization: Organization) -> String? {
-        guard let foundedYear = organization.foundedYear else { return nil }
-        if let foundedMonth = organization.foundedMonth {
-            return "\(foundedMonth)/\(foundedYear)"
+    private func trimmed(_ value: String?) -> String? {
+        guard let text = value?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            return nil
         }
-        return "\(foundedYear)"
+        return text
     }
+
 }
 
 #Preview {
