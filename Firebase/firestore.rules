@@ -257,6 +257,12 @@ service cloud.firestore {
         && (
           get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus == 'approved'
           || canEditOrganizationContent(organizationId)
+          || (
+            isActiveUser()
+            && ('submittedByUserId' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
+            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.submittedByUserId == request.auth.uid
+            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
+          )
         ));
     }
 
@@ -399,6 +405,7 @@ service cloud.firestore {
         'address',
         'latitude',
         'longitude',
+        'regionScope',
         'city',
         'federalState',
         'organizationType',
@@ -523,10 +530,11 @@ service cloud.firestore {
         );
     }
 
-    function safeOrganizationRequestCreate() {
+    function safeOrganizationRequestCreate(organizationId) {
       return isActiveUser()
         && request.resource.data.keys().hasOnly(organizationRequestCreateFields())
         && request.resource.data.id is string
+        && request.resource.data.id == organizationId
         && request.resource.data.name is string
         && request.resource.data.description is string
         && request.resource.data.city is string
@@ -956,8 +964,8 @@ service cloud.firestore {
     }
 
     match /organizations/{organizationId} {
-      allow read: if isOwner() || canReadOrganization(organizationId);
-      allow create: if isOwner() || safeOrganizationRequestCreate();
+      allow read: if canReadOrganization(organizationId);
+      allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
       allow delete: if isOwner();
       allow update: if isOwner()
         || safeOrganizationRoleUpdate(organizationId)
@@ -967,7 +975,7 @@ service cloud.firestore {
         || (isActiveUser() && onlyOrganizationEngagementCountersChanged());
 
       match /photos/{photoId} {
-        allow read: if canReadOrganization(organizationId);
+        allow read: if canReadOrganizationByLookup(organizationId);
         allow create: if safeOrganizationPhotoCreate(organizationId, photoId);
         allow update: if false;
         allow delete: if canManageOrganizationPhotos(organizationId)

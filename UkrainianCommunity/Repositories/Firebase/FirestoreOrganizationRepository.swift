@@ -65,8 +65,14 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func fetchOrganizationRequests(submittedByUserID: String) async throws -> [Organization] {
+        let requestStatuses = [
+            ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.needsRevision.rawValue,
+            ModerationStatus.rejected.rawValue
+        ]
         let snapshot = try await collection
             .whereField("submittedByUserId", isEqualTo: submittedByUserID)
+            .whereField("moderationStatus", in: requestStatuses)
             .order(by: "submittedAt", descending: true)
             .getDocuments()
 
@@ -74,21 +80,22 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let subscribedOrganizationIDs = try await fetchSubscribedOrganizationIDs()
         let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
 
-        return try snapshot.documents.compactMap { document in
-            let organization = try Organization(dto: makeOrganizationDTO(
+        return try snapshot.documents.map { document in
+            try Organization(dto: makeOrganizationDTO(
                 from: document,
                 likedOrganizationIDs: likedOrganizationIDs,
                 subscribedOrganizationIDs: subscribedOrganizationIDs,
                 bookmarkedOrganizationIDs: bookmarkedOrganizationIDs
             ))
-            return organization.moderationStatus == .approved ? nil : organization
         }
     }
 
     func createOrganization(_ organization: Organization) async throws {
-        _ = try ensureAuthenticatedUserID()
+        let uid = try ensureAuthenticatedUserID()
         let normalizedOrganization = normalizedOrganizationForWrite(organization, preserveCreatedAt: false)
-        try await collection.document(normalizedOrganization.id).setData(makeOrganizationData(from: normalizedOrganization))
+        let data = makeOrganizationData(from: normalizedOrganization)
+        debugLogOrganizationCreatePayload(uid: uid, organization: normalizedOrganization, data: data)
+        try await collection.document(normalizedOrganization.id).setData(data)
     }
 
     func updateOrganization(_ organization: Organization) async throws {
@@ -823,6 +830,18 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setCreateValue(organization.rejectionReason, forKey: "rejectionReason", in: &data)
 
         return data
+    }
+
+    private func debugLogOrganizationCreatePayload(uid: String, organization: Organization, data: [String: Any]) {
+        #if DEBUG
+        let redactedUID = uid.isEmpty ? "none" : "\(uid.prefix(6))..."
+        let isPlatformOwnerCreate = organization.moderationStatus == .approved && organization.submittedByUserId == nil
+        print(
+            """
+            [OrganizationCreatePayload] uid=\(redactedUID) platformOwnerCreate=\(isPlatformOwnerCreate) status=\(organization.moderationStatus.rawValue) submittedByMatchesAuth=\(organization.submittedByUserId == uid) ownerIdPresent=\(organization.ownerId != nil) adminCount=\(organization.adminIds.count) moderatorCount=\(organization.moderatorIds.count) counters=subscribers:\(organization.subscriberCount),likes:\(organization.likeCount),events:\(organization.eventsHeldCount),volunteers:\(organization.volunteersCount),helped:\(organization.helpedPeopleCount) keys=\(data.keys.sorted())
+            """
+        )
+        #endif
     }
 
     private func writeOrganizationReviewAudit(

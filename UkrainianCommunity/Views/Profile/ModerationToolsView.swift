@@ -538,56 +538,16 @@ private struct ModerationOrganizationRequestSheet: View {
                         requestFallbackCard
                     }
 
-                    AppEditorSectionCard {
-                        VStack(alignment: .leading, spacing: 10) {
-                            AppEditorSectionTitle(title: AppStrings.Moderation.revisionMessage)
-                            TextField(AppStrings.Moderation.revisionMessage, text: $reviewMessage, axis: .vertical)
-                                .lineLimit(3...6)
-                                .textFieldStyle(.roundedBorder)
-                            PrimaryActionButton(
-                                title: AppStrings.Moderation.requestRevision,
-                                isEnabled: !isProcessing && !reviewMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                                isLoading: isProcessing,
-                                systemImage: "arrow.uturn.backward"
-                            ) {
-                                Task { await revisionAction(reviewMessage) }
-                            }
-                        }
-                    }
-
-                    AppEditorSectionCard {
-                        VStack(alignment: .leading, spacing: 10) {
-                            AppEditorSectionTitle(title: AppStrings.Moderation.rejectionReason)
-                            TextField(AppStrings.Moderation.rejectionReason, text: $rejectionReason, axis: .vertical)
-                                .lineLimit(3...6)
-                                .textFieldStyle(.roundedBorder)
-                            Button(role: .destructive) {
-                                Task { await rejectAction(rejectionReason) }
-                            } label: {
-                                Label(AppStrings.Moderation.reject, systemImage: "trash")
-                                    .font(.subheadline.weight(.semibold))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: AppTheme.iconButtonSize)
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(isProcessing || rejectionReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        }
-                    }
-
-                    PrimaryActionButton(
-                        title: AppStrings.Moderation.approve,
-                        isEnabled: !isProcessing,
-                        isLoading: isProcessing,
-                        systemImage: "checkmark.seal"
-                    ) {
-                        Task { await approveAction() }
-                    }
+                    Color.clear.frame(height: 140)
                 }
                 .padding(AppTheme.pageHorizontal)
             }
             .background(AppBackgroundView())
             .navigationTitle(AppStrings.Moderation.organizationRequest)
             .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                reviewActionsBar
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel) {
@@ -623,6 +583,13 @@ private struct ModerationOrganizationRequestSheet: View {
 
                 VStack(alignment: .leading, spacing: 7) {
                     AppEditorSectionTitle(title: organization.name)
+                    Text(organization.moderationStatus.title)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background(AppTheme.accentPrimary.opacity(0.12), in: Capsule())
+                        .overlay(Capsule().strokeBorder(AppTheme.accentPrimary.opacity(0.22)))
                     Text(organization.shortDescription)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -640,10 +607,12 @@ private struct ModerationOrganizationRequestSheet: View {
 
     private func mainInformationCard(for organization: Organization) -> some View {
         detailSection(title: AppStrings.Moderation.requestMainInformation) {
+            detailRow(AppStrings.Common.status, organization.moderationStatus.title)
             detailRow(AppStrings.Organizations.categoryTitle, organization.organizationType)
             detailRow(AppStrings.Common.city, organization.city)
             detailRow(AppStrings.Moderation.federalState, organization.federalState?.rawValue)
             detailRow(AppStrings.Organizations.fieldAddress, organization.address)
+            detailRow(AppStrings.Organizations.foundedTitle, foundedText(for: organization))
             if !organization.languages.isEmpty {
                 detailRow(AppStrings.Organizations.languagesTitle, organization.languages.joined(separator: ", "))
             }
@@ -684,6 +653,50 @@ private struct ModerationOrganizationRequestSheet: View {
             detailRow(AppStrings.Moderation.submittedAt, organization.submittedAt.map { LocalizationStore.dateString(from: $0) })
             detailRow(AppStrings.Moderation.submittedByUserId, organization.submittedByUserId)
         }
+    }
+
+    private var reviewActionsBar: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                PrimaryActionButton(
+                    title: AppStrings.Moderation.approve,
+                    isEnabled: !isProcessing,
+                    isLoading: isProcessing,
+                    systemImage: "checkmark.seal"
+                ) {
+                    Task { await approveAction() }
+                }
+
+                TextField(AppStrings.Moderation.revisionMessage, text: $reviewMessage, axis: .vertical)
+                    .lineLimit(2...4)
+                    .textFieldStyle(.roundedBorder)
+                PrimaryActionButton(
+                    title: AppStrings.Moderation.requestRevision,
+                    isEnabled: !isProcessing && !reviewMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    isLoading: isProcessing,
+                    systemImage: "arrow.uturn.backward"
+                ) {
+                    Task { await revisionAction(reviewMessage) }
+                }
+
+                TextField(AppStrings.Moderation.rejectionReason, text: $rejectionReason, axis: .vertical)
+                    .lineLimit(2...4)
+                    .textFieldStyle(.roundedBorder)
+                Button(role: .destructive) {
+                    Task { await rejectAction(rejectionReason) }
+                } label: {
+                    Label(AppStrings.Moderation.reject, systemImage: "trash")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: AppTheme.iconButtonSize)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isProcessing || rejectionReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(.horizontal, AppTheme.pageHorizontal)
+        .padding(.top, 8)
+        .background(.regularMaterial)
     }
 
     private var requestFallbackCard: some View {
@@ -728,6 +741,14 @@ private struct ModerationOrganizationRequestSheet: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private func foundedText(for organization: Organization) -> String? {
+        guard let foundedYear = organization.foundedYear else { return nil }
+        if let foundedMonth = organization.foundedMonth {
+            return "\(foundedMonth)/\(foundedYear)"
+        }
+        return "\(foundedYear)"
     }
 }
 
