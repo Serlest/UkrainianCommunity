@@ -1,5 +1,6 @@
 import Combine
 import CoreLocation
+import FirebaseFirestore
 import Foundation
 
 @MainActor
@@ -410,13 +411,35 @@ final class EventEditorViewModel: ObservableObject {
 
                 if let selectedImageData {
                     isUploadingImage = true
+                    var uploadedDraftImage = false
+                    let organizationID = newEvent.source.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     do {
-                        let downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                        let downloadURL: URL
+                        if !organizationID.isEmpty {
+                            downloadURL = try await imageUploadService.uploadOrganizationEventDraftImage(
+                                data: selectedImageData,
+                                organizationID: organizationID,
+                                eventID: eventID
+                            )
+                            uploadedDraftImage = true
+                        } else {
+                            downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                        }
                         try await repository.updateEventImageURL(id: eventID, imageURL: downloadURL.absoluteString)
-                    } catch {
+                    } catch let uploadError {
                         isUploadingImage = false
-                        try? await repository.deleteEvent(id: newEvent.id)
-                        errorMessage = error.localizedDescription
+                        if uploadedDraftImage, !organizationID.isEmpty {
+                            try? await imageUploadService.deleteOrganizationEventDraftImage(
+                                organizationID: organizationID,
+                                eventID: eventID
+                            )
+                        }
+                        do {
+                            try await rollbackCreatedEvent(id: newEvent.id)
+                            errorMessage = uploadError.localizedDescription
+                        } catch {
+                            errorMessage = "\(uploadError.localizedDescription) \(error.localizedDescription)"
+                        }
                         return false
                     }
                     isUploadingImage = false
@@ -459,6 +482,10 @@ final class EventEditorViewModel: ObservableObject {
             errorMessage = error.localizedDescription
             return false
         }
+    }
+
+    private func rollbackCreatedEvent(id: String) async throws {
+        try await Firestore.firestore().collection("events").document(id).delete()
     }
 
     private var trimmedTitle: String {

@@ -1098,12 +1098,6 @@ struct EventDetailView: View {
             }
         } trailingContent: {
             HStack(spacing: 10) {
-                detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
-                    if let event = viewModel.event(for: eventID) {
-                        sharePayload = EventSharePayload(event: event)
-                    }
-                }
-
                 if let event = viewModel.event(for: eventID) {
                     detailIconButton(
                         systemImage: event.isBookmarked ? "bookmark.fill" : "bookmark",
@@ -1112,6 +1106,12 @@ struct EventDetailView: View {
                         handleBookmark(for: event)
                     }
                     .disabled(viewModel.pendingEventBookmarkIDs.contains(event.id))
+                }
+
+                detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
+                    if let event = viewModel.event(for: eventID) {
+                        sharePayload = EventSharePayload(event: event)
+                    }
                 }
             }
         }

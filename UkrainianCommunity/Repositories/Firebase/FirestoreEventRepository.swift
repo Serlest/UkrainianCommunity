@@ -300,15 +300,18 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func deleteEvent(id: String) async throws {
+        await deleteEventCoverImageIfPossible(id: id)
+        try await collection.document(id).delete()
+        await deleteRelatedLikesIfPossible(eventID: id)
+        await deleteRelatedRegistrationsIfPossible(eventID: id)
+    }
+
+    private func deleteEventCoverImageIfPossible(id: String) async {
         let imageReference = Storage.storage().reference().child("events/\(id)/cover.jpg")
 
         do {
             try await imageReference.delete()
         } catch {}
-
-        try await deleteRelatedLikes(eventID: id)
-        try await deleteRelatedRegistrations(eventID: id)
-        try await collection.document(id).delete()
     }
 
     func likeEvent(id: String) async throws {
@@ -768,10 +771,7 @@ struct FirestoreEventRepository: EventRepository {
     private var organizationContentStatusValues: [String] {
         [
             ModerationStatus.pendingReview.rawValue,
-            ModerationStatus.needsRevision.rawValue,
-            ModerationStatus.approved.rawValue,
-            ModerationStatus.rejected.rawValue,
-            ModerationStatus.archived.rawValue
+            ModerationStatus.approved.rawValue
         ]
     }
 
@@ -834,6 +834,12 @@ struct FirestoreEventRepository: EventRepository {
         }
     }
 
+    private func deleteRelatedLikesIfPossible(eventID: String) async {
+        do {
+            try await deleteRelatedLikes(eventID: eventID)
+        } catch {}
+    }
+
     private func deleteRelatedRegistrations(eventID: String) async throws {
         let snapshot = try await registrationsCollection
             .whereField("eventId", isEqualTo: eventID)
@@ -849,6 +855,12 @@ struct FirestoreEventRepository: EventRepository {
             }
             try await batch.commit()
         }
+    }
+
+    private func deleteRelatedRegistrationsIfPossible(eventID: String) async {
+        do {
+            try await deleteRelatedRegistrations(eventID: eventID)
+        } catch {}
     }
 
     private func fetchComments(eventID: String) async throws -> [Comment] {

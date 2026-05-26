@@ -192,14 +192,16 @@ service firebase.storage {
 
     match /organizations/{organizationId}/draftUploads/news/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
-      allow write: if canEditOrganizationContent(organizationId)
+      allow create, update: if canEditOrganizationContent(organizationId)
         && isSafeImageUpload();
+      allow delete: if canEditOrganizationContent(organizationId);
     }
 
     match /organizations/{organizationId}/draftUploads/events/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
-      allow write: if canEditOrganizationContent(organizationId)
+      allow create, update: if canEditOrganizationContent(organizationId)
         && isSafeImageUpload();
+      allow delete: if canEditOrganizationContent(organizationId);
     }
 
     match /organizations/{organizationId}/{filePath=**} {

@@ -554,11 +554,6 @@ struct NewsDetailView: View {
 
     private func headerActions() -> some View {
         HStack(spacing: 10) {
-            detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
-                guard let post = viewModel.post(for: postID) else { return }
-                sharePayload = NewsSharePayload(post: post)
-            }
-
             if let post = viewModel.post(for: postID) {
                 detailIconButton(
                     systemImage: post.isBookmarked ? "bookmark.fill" : "bookmark",
@@ -566,6 +561,11 @@ struct NewsDetailView: View {
                 ) {
                     handleBookmark(for: post.id)
                 }
+            }
+
+            detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
+                guard let post = viewModel.post(for: postID) else { return }
+                sharePayload = NewsSharePayload(post: post)
             }
         }
     }

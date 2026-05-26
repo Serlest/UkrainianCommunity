@@ -266,13 +266,33 @@ final class NewsEditorViewModel: ObservableObject {
 
                 if let selectedImageData {
                     isUploadingImage = true
+                    var uploadedDraftImage = false
+                    let organizationID = news.source.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     do {
-                        let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
+                        guard !organizationID.isEmpty else {
+                            throw AppError.validationFailed
+                        }
+                        let downloadURL = try await imageUploadService.uploadOrganizationNewsDraftImage(
+                            data: selectedImageData,
+                            organizationID: organizationID,
+                            newsID: newsID
+                        )
+                        uploadedDraftImage = true
                         try await repository.updateNewsImageURL(id: newsID, imageURL: downloadURL.absoluteString)
-                    } catch {
+                    } catch let uploadError {
                         isUploadingImage = false
-                        try? await repository.deleteNews(id: news.id)
-                        errorMessage = readableUploadErrorMessage(for: error)
+                        if uploadedDraftImage, !organizationID.isEmpty {
+                            try? await imageUploadService.deleteOrganizationNewsDraftImage(
+                                organizationID: organizationID,
+                                newsID: newsID
+                            )
+                        }
+                        do {
+                            try await repository.deleteNews(id: news.id)
+                            errorMessage = readableUploadErrorMessage(for: uploadError)
+                        } catch {
+                            errorMessage = readableRollbackErrorMessage(uploadError: uploadError)
+                        }
                         return false
                     }
                     isUploadingImage = false
@@ -422,6 +442,11 @@ final class NewsEditorViewModel: ObservableObject {
     private func readablePublishErrorMessage(for error: Error) -> String {
         let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return message.isEmpty ? AppStrings.News.actionUnknownError : message
+    }
+
+    private func readableRollbackErrorMessage(uploadError: Error) -> String {
+        let uploadMessage = readableUploadErrorMessage(for: uploadError)
+        return "\(uploadMessage) \(AppStrings.News.actionUnknownError)"
     }
 }
 

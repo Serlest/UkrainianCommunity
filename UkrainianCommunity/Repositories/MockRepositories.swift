@@ -308,7 +308,7 @@ private actor MockRepositoryStore {
         news.filter {
             $0.source.sourceType == .organization
                 && $0.source.organizationId == organizationID
-                && [.pendingReview, .needsRevision, .approved, .rejected, .archived].contains($0.moderationStatus)
+                && [.pendingReview, .approved].contains($0.moderationStatus)
         }.count
     }
 
@@ -510,7 +510,7 @@ private actor MockRepositoryStore {
         events.filter {
             $0.source.sourceType == .organization
                 && $0.source.organizationId == organizationID
-                && [.pendingReview, .needsRevision, .approved, .rejected, .archived].contains($0.moderationStatus)
+                && [.pendingReview, .approved].contains($0.moderationStatus)
         }.count
     }
 

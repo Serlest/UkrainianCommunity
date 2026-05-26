@@ -133,14 +133,16 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func deleteNews(id: String) async throws {
-        let imageReference = Storage.storage().reference().child("news/\(id)/cover.jpg")
+        await deleteNewsCoverImageIfPossible(id: id)
+        try await collection.document(id).delete()
+        await deleteRelatedLikesIfPossible(newsID: id)
+    }
 
+    private func deleteNewsCoverImageIfPossible(id: String) async {
+        let imageReference = Storage.storage().reference().child("news/\(id)/cover.jpg")
         do {
             try await imageReference.delete()
         } catch {}
-
-        try await deleteRelatedLikes(newsID: id)
-        try await collection.document(id).delete()
     }
 
     func likeNews(id: String) async throws {
@@ -495,10 +497,7 @@ struct FirestoreNewsRepository: NewsRepository {
     private var organizationContentStatusValues: [String] {
         [
             ModerationStatus.pendingReview.rawValue,
-            ModerationStatus.needsRevision.rawValue,
-            ModerationStatus.approved.rawValue,
-            ModerationStatus.rejected.rawValue,
-            ModerationStatus.archived.rawValue
+            ModerationStatus.approved.rawValue
         ]
     }
 
@@ -543,6 +542,12 @@ struct FirestoreNewsRepository: NewsRepository {
             }
             try await batch.commit()
         }
+    }
+
+    private func deleteRelatedLikesIfPossible(newsID: String) async {
+        do {
+            try await deleteRelatedLikes(newsID: newsID)
+        } catch {}
     }
 
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {

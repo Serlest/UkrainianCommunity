@@ -2527,7 +2527,8 @@ struct OrganizationDetailView: View {
         case .photos:
             OrganizationPhotoGallerySection(
                 organizationId: organization.id,
-                canManage: PermissionService.canModerateOrganizationContent(organization, user: authState.user),
+                canManage: presentationMode.allowsManagementControls
+                    && PermissionService.canModerateOrganizationContent(organization, user: authState.user),
                 currentUser: authState.user,
                 onPhotosChanged: { photos in
                     previewPhotos = photos

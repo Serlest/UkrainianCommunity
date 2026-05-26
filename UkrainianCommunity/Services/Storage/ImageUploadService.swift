@@ -19,8 +19,34 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "news/\(newsID)/cover.jpg")
     }
 
+    func uploadOrganizationNewsDraftImage(data: Data, organizationID: String, newsID: String) async throws -> URL {
+        try await uploadCoverImage(
+            data: data,
+            storagePath: organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID)
+        )
+    }
+
+    func deleteOrganizationNewsDraftImage(organizationID: String, newsID: String) async throws {
+        try await storage.reference()
+            .child(organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID))
+            .delete()
+    }
+
     func uploadEventCoverImage(data: Data, eventID: String) async throws -> URL {
         try await uploadCoverImage(data: data, storagePath: "events/\(eventID)/cover.jpg")
+    }
+
+    func uploadOrganizationEventDraftImage(data: Data, organizationID: String, eventID: String) async throws -> URL {
+        try await uploadCoverImage(
+            data: data,
+            storagePath: organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID)
+        )
+    }
+
+    func deleteOrganizationEventDraftImage(organizationID: String, eventID: String) async throws {
+        try await storage.reference()
+            .child(organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID))
+            .delete()
     }
 
     func uploadOrganizationLogoImage(data: Data, organizationID: String) async throws -> URL {
@@ -117,6 +143,14 @@ final class ImageUploadService {
 
         _ = try await reference.putDataAsync(processedImage.data, metadata: metadata)
         return try await reference.downloadURL()
+    }
+
+    private func organizationNewsDraftImagePath(organizationID: String, newsID: String) -> String {
+        "organizations/\(organizationID)/draftUploads/news/\(newsID)_cover.jpg"
+    }
+
+    private func organizationEventDraftImagePath(organizationID: String, eventID: String) -> String {
+        "organizations/\(organizationID)/draftUploads/events/\(eventID)_cover.jpg"
     }
 
     private func prepareImageDataForUpload(

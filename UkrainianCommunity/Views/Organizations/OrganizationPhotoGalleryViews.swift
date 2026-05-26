@@ -100,8 +100,6 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
 }
 
 struct OrganizationPhotoGallerySection: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
     let organizationId: String
     let canManage: Bool
     let currentUser: AppUser?
@@ -115,6 +113,9 @@ struct OrganizationPhotoGallerySection: View {
     @State private var isShowingCaptionSheet = false
     @State private var pendingDeletePhoto: OrganizationPhoto?
     @State private var selectedPreviewPhoto: OrganizationPhoto?
+    @State private var photoGridAvailableWidth: CGFloat = 0
+
+    private let photoGridSpacing: CGFloat = 12
 
     init(
         organizationId: String,
@@ -216,13 +217,15 @@ struct OrganizationPhotoGallerySection: View {
     private var photoGrid: some View {
         let isPhotoPickingAllowed = canPickPhoto
         let isPhotoPickerBusy = viewModel.isUploading || isPreparingPhoto
+        let metrics = photoGridMetrics(for: photoGridAvailableWidth)
 
-        return LazyVGrid(columns: gridColumns, spacing: 8) {
+        return LazyVGrid(columns: metrics.columns, alignment: .leading, spacing: photoGridSpacing) {
             if canManage {
                 PhotosPicker(selection: $selectedPickerItem, matching: .images, photoLibrary: .shared()) {
                     OrganizationAddPhotoTile(
                         isDisabled: !isPhotoPickingAllowed,
-                        isBusy: isPhotoPickerBusy
+                        isBusy: isPhotoPickerBusy,
+                        cellSize: metrics.cellSize
                     )
                 }
                 .buttonStyle(.plain)
@@ -235,9 +238,24 @@ struct OrganizationPhotoGallerySection: View {
                     photo: photo,
                     canManage: canManage,
                     isDeleting: viewModel.deletingPhotoIDs.contains(photo.id),
+                    cellSize: metrics.cellSize,
                     onOpen: { selectedPreviewPhoto = photo },
                     onDelete: { pendingDeletePhoto = photo }
                 )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+        .padding(.horizontal, 0)
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear {
+                        updatePhotoGridWidth(proxy.size.width)
+                    }
+                    .onChange(of: proxy.size.width) { _, width in
+                        updatePhotoGridWidth(width)
+                    }
             }
         }
     }
@@ -303,13 +321,26 @@ struct OrganizationPhotoGallerySection: View {
         }
     }
 
-    private var gridColumns: [GridItem] {
-        let columnCount = horizontalSizeClass == .compact ? 2 : 3
-        return Array(repeating: GridItem(.flexible(), spacing: 8), count: columnCount)
-    }
-
     private var canPickPhoto: Bool {
         canManage && !viewModel.isUploading && !isPreparingPhoto && viewModel.canAddMorePhotos
+    }
+
+    private func photoGridMetrics(for availableWidth: CGFloat) -> (columns: [GridItem], cellSize: CGFloat) {
+        let safeWidth = max(1, availableWidth)
+        let columnsCount = safeWidth >= 330 ? 3 : 2
+        let totalSpacing = photoGridSpacing * CGFloat(columnsCount - 1)
+        let cellSize = max(1, floor((safeWidth - totalSpacing) / CGFloat(columnsCount)))
+        let columns = Array(
+            repeating: GridItem(.fixed(cellSize), spacing: photoGridSpacing),
+            count: columnsCount
+        )
+        return (columns, cellSize)
+    }
+
+    private func updatePhotoGridWidth(_ width: CGFloat) {
+        let normalizedWidth = max(0, width)
+        guard abs(photoGridAvailableWidth - normalizedWidth) > 0.5 else { return }
+        photoGridAvailableWidth = normalizedWidth
     }
 
     private func prepareSelectedPhoto(_ item: PhotosPickerItem?) async {
@@ -356,32 +387,37 @@ private struct OrganizationPhotoTile: View {
     let photo: OrganizationPhoto
     let canManage: Bool
     let isDeleting: Bool
+    let cellSize: CGFloat
     let onOpen: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
-        OrganizationSquarePhotoCell {
-            ZStack(alignment: .topTrailing) {
-                Button(action: onOpen) {
-                    photoImage
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(photo.caption ?? AppStrings.Organizations.tabPhoto)
+        Button(action: onOpen) {
+            photoImage
+        }
+        .frame(width: cellSize, height: cellSize)
+        .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityLabel(photo.caption ?? AppStrings.Organizations.tabPhoto)
+        .overlay(alignment: .topTrailing) {
+            deleteButton
+        }
+    }
 
-                if canManage {
-                    Button(role: .destructive, action: onDelete) {
-                        Image(systemName: isDeleting ? "hourglass" : "trash")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.white)
-                            .frame(width: 28, height: 28)
-                            .background(AppTheme.accentDestructive.opacity(0.92), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isDeleting)
-                    .padding(6)
-                    .accessibilityLabel(AppStrings.Organizations.photosDelete)
-                }
+    @ViewBuilder
+    private var deleteButton: some View {
+        if canManage {
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: isDeleting ? "hourglass" : "trash")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.white)
+                    .frame(width: 28, height: 28)
+                    .background(AppTheme.accentDestructive.opacity(0.92), in: Circle())
             }
+            .buttonStyle(.plain)
+            .disabled(isDeleting)
+            .padding(6)
+            .accessibilityLabel(AppStrings.Organizations.photosDelete)
         }
     }
 
@@ -399,6 +435,8 @@ private struct OrganizationPhotoTile: View {
                     .overlay(ProgressView().controlSize(.small))
             }
         }
+        .frame(width: cellSize, height: cellSize)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -419,49 +457,36 @@ private struct OrganizationPhotoTile: View {
 private struct OrganizationAddPhotoTile: View {
     let isDisabled: Bool
     let isBusy: Bool
+    let cellSize: CGFloat
 
     var body: some View {
-        OrganizationSquarePhotoCell {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(AppTheme.accentPrimarySoft)
+        VStack(spacing: 8) {
+            Group {
+                if isBusy {
+                    ProgressView()
+                        .controlSize(.small)
                         .frame(width: 38, height: 38)
-
-                    if isBusy {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: "plus")
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundStyle(AppTheme.accentPrimary)
-                    }
+                } else {
+                    Image(systemName: "plus")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                        .frame(width: 38, height: 38)
+                        .background(AppTheme.accentPrimarySoft, in: Circle())
                 }
-
-                Text(AppStrings.Organizations.photosAdd)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
-                    .lineLimit(1)
             }
-            .background(AppTheme.surfaceSecondary.opacity(isDisabled ? 0.45 : 1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(AppTheme.accentPrimary.opacity(isDisabled ? 0.10 : 0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-            )
-            .opacity(isDisabled ? 0.65 : 1)
-        }
-    }
-}
 
-private struct OrganizationSquarePhotoCell<Content: View>: View {
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        GeometryReader { proxy in
-            content()
-                .frame(width: proxy.size.width, height: proxy.size.width)
+            Text(AppStrings.Organizations.photosAdd)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .lineLimit(1)
         }
-        .aspectRatio(1, contentMode: .fit)
+        .frame(width: cellSize, height: cellSize)
+        .background(AppTheme.surfaceSecondary.opacity(isDisabled ? 0.45 : 1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(AppTheme.accentPrimary.opacity(isDisabled ? 0.10 : 0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+        )
+        .opacity(isDisabled ? 0.65 : 1)
     }
 }
 
