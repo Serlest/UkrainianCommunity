@@ -5118,6 +5118,7 @@ private struct OrganizationManagementHubView: View {
     @StateObject private var organizationsViewModel: OrganizationsViewModel
     @State private var isShowingCreateOrganization = false
     @State private var editingOrganizationRequest: Organization?
+    @State private var previewingOrganizationRequest: Organization?
 
     private var authorityUser: AppUser? {
         authState.user
@@ -5144,6 +5145,24 @@ private struct OrganizationManagementHubView: View {
 
     private var organizationRequests: [Organization] {
         focusedOrganizationID == nil ? organizationsViewModel.organizationRequests : []
+    }
+
+    private var subscribedOrganizations: [Organization] {
+        guard focusedOrganizationID == nil else { return [] }
+        let managedIDs = Set(manageableOrganizations.map(\.id))
+        let requestIDs = Set(organizationRequests.map(\.id))
+        return organizationsViewModel.organizations
+            .filter {
+                $0.isSubscribed
+                    && $0.moderationStatus == .approved
+                    && !managedIDs.contains($0.id)
+                    && !requestIDs.contains($0.id)
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private var allOrganizationSectionsAreEmpty: Bool {
+        manageableOrganizations.isEmpty && organizationRequests.isEmpty && subscribedOrganizations.isEmpty
     }
 
     private func organizationRole(for organization: Organization) -> ManagedOrganizationRole? {
@@ -5229,6 +5248,11 @@ private struct OrganizationManagementHubView: View {
             }
             .environmentObject(authState)
         }
+        .sheet(item: $previewingOrganizationRequest) { organization in
+            NavigationStack {
+                OrganizationRequestPreviewView(organization: organization)
+            }
+        }
     }
 
     private var createOrganizationCard: some View {
@@ -5251,22 +5275,24 @@ private struct OrganizationManagementHubView: View {
 
     @ViewBuilder
     private var managedOrganizationsContent: some View {
-        if organizationsViewModel.isLoading && manageableOrganizations.isEmpty && organizationRequests.isEmpty {
+        if organizationsViewModel.isLoading && allOrganizationSectionsAreEmpty {
             LoadingStateCard(title: nil)
-        } else if manageableOrganizations.isEmpty && organizationRequests.isEmpty {
+        } else if allOrganizationSectionsAreEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "building.2",
                 title: AppStrings.Profile.myOrganizations,
-                message: AppStrings.Profile.noManagedOrganizations
+                message: AppStrings.Profile.noOrganizations
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
-                ForEach(manageableOrganizations) { organization in
-                    ManagedOrganizationCard(
-                        organization: organization,
-                        role: organizationRole(for: organization) ?? .moderator,
-                        organizationsViewModel: organizationsViewModel
-                    )
+            if !manageableOrganizations.isEmpty {
+                VStack(spacing: AppTheme.feedRowSpacing) {
+                    ForEach(manageableOrganizations) { organization in
+                        ManagedOrganizationCard(
+                            organization: organization,
+                            role: organizationRole(for: organization) ?? .moderator,
+                            organizationsViewModel: organizationsViewModel
+                        )
+                    }
                 }
             }
 
@@ -5277,9 +5303,35 @@ private struct OrganizationManagementHubView: View {
 
                 VStack(spacing: AppTheme.feedRowSpacing) {
                     ForEach(organizationRequests) { organization in
-                        OrganizationRequestCard(organization: organization) {
-                            editingOrganizationRequest = organization
+                        OrganizationRequestCard(
+                            organization: organization,
+                            previewAction: {
+                                previewingOrganizationRequest = organization
+                            },
+                            editAction: {
+                                editingOrganizationRequest = organization
+                            }
+                        )
+                    }
+                }
+            }
+
+            if !subscribedOrganizations.isEmpty {
+                AppEditorSectionCard {
+                    AppEditorSectionTitle(title: AppStrings.Profile.subscribedOrganizations)
+                }
+
+                VStack(spacing: AppTheme.feedRowSpacing) {
+                    ForEach(subscribedOrganizations) { organization in
+                        NavigationLink {
+                            OrganizationDetailView(
+                                viewModel: organizationsViewModel,
+                                organizationID: organization.id
+                            )
+                        } label: {
+                            ProfileOrganizationListCard(organization: organization)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -5287,8 +5339,100 @@ private struct OrganizationManagementHubView: View {
     }
 }
 
+private struct OrganizationRequestPreviewView: View {
+    @Environment(\.dismiss) private var dismiss
+    let organization: Organization
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                AppEditorSectionCard {
+                    HStack(alignment: .top, spacing: 12) {
+                        AppFeedThumbnail(
+                            imageURL: organization.imageURL,
+                            fallbackSystemImage: "building.2",
+                            tint: AppTheme.accentPrimary,
+                            fill: AppTheme.accentPrimary.opacity(0.10),
+                            size: 56,
+                            source: "OrganizationRequestPreviewView"
+                        )
+
+                        VStack(alignment: .leading, spacing: 7) {
+                            AppEditorSectionTitle(title: organization.name)
+                            Text(organization.moderationStatus.title)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(AppTheme.accentPrimary)
+                            Text(organization.shortDescription)
+                                .font(.subheadline)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+                    }
+                }
+
+                previewSection(title: AppStrings.Organizations.aboutSectionTitle) {
+                    previewRow(AppStrings.Moderation.shortDescription, organization.shortDescription)
+                    previewRow(AppStrings.Moderation.fullDescription, organization.fullDescription)
+                    previewRow(AppStrings.Organizations.fieldMissionStatement, organization.missionStatement)
+                }
+
+                previewSection(title: AppStrings.Profile.organizationContactsSection) {
+                    previewRow(AppStrings.Organizations.fieldContactEmail, organization.contactEmail ?? organization.email)
+                    previewRow(AppStrings.Organizations.phonePlaceholder, organization.phone)
+                    previewRow(AppStrings.Common.website, organization.website)
+                    previewRow(AppStrings.Organizations.fieldTelegramURL, organization.telegramURL)
+                    previewRow(AppStrings.Organizations.fieldDonationURL, organization.donationURL)
+                    previewRow(AppStrings.Organizations.fieldAddress, organization.address)
+                }
+
+                if let reviewMessage = organization.reviewMessage ?? organization.rejectionReason {
+                    InlineMessageCard(style: .info, message: reviewMessage)
+                }
+            }
+            .padding(AppTheme.pageHorizontal)
+        }
+        .background(AppBackgroundView())
+        .navigationTitle(AppStrings.Profile.previewOrganizationRequest)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(AppStrings.Common.done) {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private func previewSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                AppEditorSectionTitle(title: title)
+                content()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func previewRow(_ title: String, _ value: String?) -> some View {
+        if let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                Text(value)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
 private struct OrganizationRequestCard: View {
     let organization: Organization
+    let previewAction: () -> Void
     let editAction: () -> Void
 
     private var canEdit: Bool {
@@ -5332,9 +5476,19 @@ private struct OrganizationRequestCard: View {
 
                 if canEdit {
                     Button(action: editAction) {
-                        Label(AppStrings.Organizations.resubmitRequest, systemImage: "arrow.clockwise")
+                        Label(AppStrings.Action.edit, systemImage: "pencil")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(AppTheme.accentPrimary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 36)
+                            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: previewAction) {
+                        Label(AppStrings.Profile.previewOrganizationRequest, systemImage: "doc.text.magnifyingglass")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.textSecondary)
                             .frame(maxWidth: .infinity)
                             .frame(height: 36)
                             .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
@@ -5548,6 +5702,7 @@ private enum OrganizationTeamRole: String, CaseIterable, Identifiable {
     case owner
     case admin
     case moderator
+    case member
 
     var id: String { rawValue }
 
@@ -5559,6 +5714,8 @@ private enum OrganizationTeamRole: String, CaseIterable, Identifiable {
             AppStrings.Profile.organizationRoleAdmin
         case .moderator:
             AppStrings.Profile.organizationRoleModerator
+        case .member:
+            AppStrings.Profile.organizationRoleMember
         }
     }
 
@@ -5570,6 +5727,8 @@ private enum OrganizationTeamRole: String, CaseIterable, Identifiable {
             Color.blue
         case .moderator:
             Color.orange
+        case .member:
+            AppTheme.textSecondary
         }
     }
 
@@ -5581,6 +5740,8 @@ private enum OrganizationTeamRole: String, CaseIterable, Identifiable {
             .communityAdmin
         case .moderator:
             .communityModerator
+        case .member:
+            .member
         }
     }
 
@@ -5593,39 +5754,57 @@ private enum OrganizationTeamRole: String, CaseIterable, Identifiable {
         case .communityModerator:
             self = .moderator
         case .member:
-            return nil
+            self = .member
         }
     }
 }
 
 private struct OrganizationTeamMember: Identifiable {
-    let user: AppUser?
+    let profile: PublicUserProfile?
     let userID: String
     let role: OrganizationTeamRole
 
-    var id: String { "\(role.rawValue)-\(userID)" }
+    var id: String { userID }
 
     var displayName: String {
-        user?.preferredDisplayName ?? AppStrings.Profile.organizationTeamMissingProfile
+        profile?.preferredDisplayName ?? AppStrings.Profile.organizationTeamMissingProfile
     }
 
-    var emailText: String? {
-        guard let email = user?.email, !email.isEmpty else { return nil }
-        return email
+    @MainActor var locationText: String? {
+        guard let profile else { return nil }
+        let city = profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
+        let region = profile.federalState.map(AppStrings.FederalStates.title(for:))
+        if city.isEmpty {
+            return region
+        }
+        if let region, region != city {
+            return "\(city), \(region)"
+        }
+        return city
+    }
+
+    var initials: String {
+        guard let profile else { return "?" }
+        let parts = profile.preferredDisplayName
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+        let value = String(parts).uppercased()
+        return value.isEmpty ? "?" : value
     }
 }
 
 private enum OrganizationTeamAction: Identifiable {
-    case assign(user: AppUser, role: OrganizationTeamRole)
-    case changeOwner(user: AppUser)
+    case assign(member: OrganizationTeamMember, role: OrganizationTeamRole)
+    case changeOwner(member: OrganizationTeamMember)
     case remove(member: OrganizationTeamMember)
 
     var id: String {
         switch self {
-        case let .assign(user, role):
-            "assign-\(user.id)-\(role.rawValue)"
-        case let .changeOwner(user):
-            "change-owner-\(user.id)"
+        case let .assign(member, role):
+            "assign-\(member.userID)-\(role.rawValue)"
+        case let .changeOwner(member):
+            "change-owner-\(member.userID)"
         case let .remove(member):
             "remove-\(member.userID)-\(member.role.rawValue)"
         }
@@ -5633,10 +5812,10 @@ private enum OrganizationTeamAction: Identifiable {
 
     var title: String {
         switch self {
-        case let .assign(user, role):
-            AppStrings.profileOrganizationTeamAssignConfirmation(userName: user.preferredDisplayName, role: role.title.lowercased())
-        case .changeOwner:
-            AppStrings.Profile.organizationTeamTransferOwnerConfirmation
+        case let .assign(member, role):
+            AppStrings.profileOrganizationTeamAssignConfirmation(userName: member.displayName, role: role.title.lowercased())
+        case let .changeOwner(member):
+            AppStrings.profileOrganizationTeamChangeOwnerConfirmation(member.displayName)
         case let .remove(member):
             AppStrings.profileOrganizationTeamRemoveConfirmation(role: member.role.title.lowercased(), userName: member.displayName)
         }
@@ -5657,7 +5836,7 @@ private enum OrganizationTeamAction: Identifiable {
 @MainActor
 private final class OrganizationTeamViewModel: ObservableObject {
     @Published private(set) var members: [OrganizationTeamMember] = []
-    @Published private(set) var candidateUsers: [AppUser] = []
+    @Published private(set) var candidateMembers: [OrganizationTeamMember] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isLoadingCandidates = false
     @Published private(set) var updatingUserIDs = Set<String>()
@@ -5665,7 +5844,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
     @Published var statusMessage: String?
 
     private let database = Firestore.firestore()
-    private var usersCollection: CollectionReference { database.collection("users") }
+    private let organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     private var organizationsCollection: CollectionReference { database.collection("organizations") }
     private var auditCollection: CollectionReference { database.collection("auditLogs") }
 
@@ -5675,9 +5854,16 @@ private final class OrganizationTeamViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
+            let subscriberIDs = try await fetchSubscriberIDs(organizationID: organization.id)
             let teamIDs = Self.teamIDs(for: organization)
-            let users = try await fetchUsers(ids: teamIDs)
-            members = Self.makeMembers(organization: organization, users: users)
+            let profiles = try await organizationRepository.fetchPublicUserProfiles(
+                userIDs: Array(Set(teamIDs + subscriberIDs))
+            )
+            members = Self.makeMembers(
+                organization: organization,
+                profiles: profiles,
+                subscriberIDs: subscriberIDs
+            )
             statusMessage = nil
         } catch {
             members = []
@@ -5685,29 +5871,41 @@ private final class OrganizationTeamViewModel: ObservableObject {
         }
     }
 
+    private func fetchSubscriberIDs(organizationID: String) async throws -> [String] {
+        var cursor: OrganizationSubscriberCursor?
+        var userIDs: [String] = []
+
+        repeat {
+            let page = try await organizationRepository.fetchOrganizationSubscriberPage(
+                organizationID: organizationID,
+                limit: 100,
+                after: cursor
+            )
+            userIDs.append(contentsOf: page.items.map(\.userID))
+            cursor = page.nextCursor
+        } while cursor != nil
+
+        return Array(NSOrderedSet(array: userIDs)) as? [String] ?? userIDs
+    }
+
     func loadCandidateUsers(excluding organization: Organization, allowsExistingTeamMembers: Bool = false) async {
         isLoadingCandidates = true
         defer { isLoadingCandidates = false }
 
-        do {
-            let snapshot = try await usersCollection
-                .order(by: "createdAt", descending: true)
-                .limit(to: 100)
-                .getDocuments()
-            let teamIDs = Self.teamIDs(for: organization)
-            let excludedIDs: Set<String>
-            if allowsExistingTeamMembers {
-                excludedIDs = Set([organization.ownerId].compactMap { $0 }.filter { !$0.isEmpty })
-            } else {
-                excludedIDs = Set(teamIDs)
-            }
-            candidateUsers = snapshot.documents
-                .map(Self.makeUser(from:))
-                .filter { !excludedIDs.contains($0.id) }
-        } catch {
-            candidateUsers = []
-            errorMessage = AppStrings.Profile.organizationTeamUserSearchFailed
+        if members.isEmpty {
+            await load(organization: organization)
         }
+
+        let excludedIDs: Set<String>
+        if allowsExistingTeamMembers {
+            excludedIDs = Set([organization.ownerId].compactMap { $0 }.filter { !$0.isEmpty })
+        } else {
+            excludedIDs = Set(Self.teamIDs(for: organization))
+        }
+
+        candidateMembers = members
+            .filter { !excludedIDs.contains($0.userID) }
+            .filter { allowsExistingTeamMembers || $0.role == .member }
     }
 
     func apply(
@@ -5721,10 +5919,10 @@ private final class OrganizationTeamViewModel: ObservableObject {
         }
 
         switch action {
-        case let .assign(user, role):
-            return await assign(role, to: user, organization: organization, actor: actor)
-        case let .changeOwner(user):
-            return await changeOwner(to: user, organization: organization, actor: actor)
+        case let .assign(member, role):
+            return await assign(role, to: member, organization: organization, actor: actor)
+        case let .changeOwner(member):
+            return await changeOwner(to: member, organization: organization, actor: actor)
         case let .remove(member):
             return await remove(member, organization: organization, actor: actor)
         }
@@ -5732,7 +5930,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
 
     private func assign(
         _ role: OrganizationTeamRole,
-        to target: AppUser,
+        to target: OrganizationTeamMember,
         organization: Organization,
         actor: AppUser
     ) async -> Bool {
@@ -5742,11 +5940,11 @@ private final class OrganizationTeamViewModel: ObservableObject {
             return false
         }
 
-        return await update(target: target, organization: organization) {
+        return await update(targetUserID: target.userID, organization: organization) {
             try await updateRole(
                 role: role.communityRole,
                 organization: organization,
-                target: target,
+                targetUserID: target.userID,
                 actor: actor,
                 isRemoval: false
             )
@@ -5769,16 +5967,11 @@ private final class OrganizationTeamViewModel: ObservableObject {
             return false
         }
 
-        guard let user = member.user else {
-            errorMessage = AppStrings.Profile.organizationTeamUserProfileMissing
-            return false
-        }
-
-        return await update(target: user, organization: organization) {
+        return await update(targetUserID: member.userID, organization: organization) {
             try await updateRole(
                 role: .member,
                 organization: organization,
-                target: user,
+                targetUserID: member.userID,
                 actor: actor,
                 isRemoval: true
             )
@@ -5786,7 +5979,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
     }
 
     private func changeOwner(
-        to target: AppUser,
+        to target: OrganizationTeamMember,
         organization: Organization,
         actor: AppUser
     ) async -> Bool {
@@ -5795,30 +5988,30 @@ private final class OrganizationTeamViewModel: ObservableObject {
             return false
         }
 
-        guard !target.id.isEmpty else {
+        guard !target.userID.isEmpty else {
             errorMessage = AppStrings.Profile.organizationTeamUserProfileMissing
             return false
         }
 
-        return await update(target: target, organization: organization) {
+        return await update(targetUserID: target.userID, organization: organization) {
             try await updateOwner(
                 organization: organization,
-                newOwner: target,
+                newOwnerID: target.userID,
                 actor: actor
             )
         }
     }
 
     private func update(
-        target: AppUser,
+        targetUserID: String,
         organization: Organization,
         operation: () async throws -> Void
     ) async -> Bool {
-        guard !updatingUserIDs.contains(target.id) else { return false }
-        updatingUserIDs.insert(target.id)
+        guard !updatingUserIDs.contains(targetUserID) else { return false }
+        updatingUserIDs.insert(targetUserID)
         errorMessage = nil
         statusMessage = nil
-        defer { updatingUserIDs.remove(target.id) }
+        defer { updatingUserIDs.remove(targetUserID) }
 
         do {
             try await operation()
@@ -5834,12 +6027,12 @@ private final class OrganizationTeamViewModel: ObservableObject {
     private func updateRole(
         role: CommunityRole,
         organization: Organization,
-        target: AppUser,
+        targetUserID: String,
         actor: AppUser,
         isRemoval: Bool
     ) async throws {
         let organizationReference = organizationsCollection.document(organization.id)
-        let previousRole = Self.role(for: target.id, in: organization)
+        let previousRole = Self.role(for: targetUserID, in: organization)
         let actorIsPlatformOwner = actor.globalRole.effectiveRole == .owner
 
         _ = try await database.runTransaction { transaction, errorPointer in
@@ -5854,12 +6047,12 @@ private final class OrganizationTeamViewModel: ObservableObject {
                 let currentAdminIds = organizationData["adminIds"] as? [String] ?? []
                 let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
 
-                if isRemoval, currentOwnerId == target.id {
+                if isRemoval, currentOwnerId == targetUserID {
                     errorPointer?.pointee = AppError.permissionDenied.asNSError
                     return nil
                 }
 
-                if !isRemoval, currentOwnerId == target.id, role != .communityOwner {
+                if !isRemoval, currentOwnerId == targetUserID, role != .communityOwner {
                     errorPointer?.pointee = AppError.permissionDenied.asNSError
                     return nil
                 }
@@ -5869,8 +6062,8 @@ private final class OrganizationTeamViewModel: ObservableObject {
                     return nil
                 }
 
-                let updatedAdminIds = currentAdminIds.filter { $0 != target.id }
-                let updatedModeratorIds = currentModeratorIds.filter { $0 != target.id }
+                let updatedAdminIds = currentAdminIds.filter { $0 != targetUserID }
+                let updatedModeratorIds = currentModeratorIds.filter { $0 != targetUserID }
                 var organizationUpdate: [String: Any] = [
                     "adminIds": updatedAdminIds,
                     "moderatorIds": updatedModeratorIds,
@@ -5880,11 +6073,11 @@ private final class OrganizationTeamViewModel: ObservableObject {
                 if !isRemoval {
                     switch role {
                     case .communityOwner:
-                        organizationUpdate["ownerId"] = target.id
+                        organizationUpdate["ownerId"] = targetUserID
                     case .communityAdmin:
-                        organizationUpdate["adminIds"] = Array(Set(updatedAdminIds + [target.id])).sorted()
+                        organizationUpdate["adminIds"] = Array(Set(updatedAdminIds + [targetUserID])).sorted()
                     case .communityModerator:
-                        organizationUpdate["moderatorIds"] = Array(Set(updatedModeratorIds + [target.id])).sorted()
+                        organizationUpdate["moderatorIds"] = Array(Set(updatedModeratorIds + [targetUserID])).sorted()
                     case .member:
                         break
                     }
@@ -5894,7 +6087,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
 
                 transaction.setData([
                     "actionType": isRemoval ? "organizationRoleRemoved" : "organizationRoleAssigned",
-                    "targetUserId": target.id,
+                    "targetUserId": targetUserID,
                     "performedBy": actor.id,
                     "createdAt": FieldValue.serverTimestamp(),
                     "reason": "Organization management hub",
@@ -5918,7 +6111,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
 
     private func updateOwner(
         organization: Organization,
-        newOwner: AppUser,
+        newOwnerID: String,
         actor: AppUser
     ) async throws {
         let organizationReference = organizationsCollection.document(organization.id)
@@ -5936,21 +6129,21 @@ private final class OrganizationTeamViewModel: ObservableObject {
                 let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
                 let oldOwnerId = currentOwnerId ?? ""
 
-                guard actor.globalRole.effectiveRole == .owner, !newOwner.id.isEmpty else {
+                guard actor.globalRole.effectiveRole == .owner, !newOwnerID.isEmpty else {
                     errorPointer?.pointee = AppError.permissionDenied.asNSError
                     return nil
                 }
 
                 transaction.updateData([
-                    "ownerId": newOwner.id,
-                    "adminIds": currentAdminIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
-                    "moderatorIds": currentModeratorIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
+                    "ownerId": newOwnerID,
+                    "adminIds": currentAdminIds.filter { $0 != newOwnerID && $0 != oldOwnerId },
+                    "moderatorIds": currentModeratorIds.filter { $0 != newOwnerID && $0 != oldOwnerId },
                     "updatedAt": FieldValue.serverTimestamp()
                 ], forDocument: organizationReference)
 
                 transaction.setData([
                     "actionType": "organizationOwnerChanged",
-                    "targetUserId": newOwner.id,
+                    "targetUserId": newOwnerID,
                     "performedBy": actor.id,
                     "createdAt": FieldValue.serverTimestamp(),
                     "reason": "Organization management hub",
@@ -5961,7 +6154,7 @@ private final class OrganizationTeamViewModel: ObservableObject {
                     ],
                     "newValue": [
                         "organizationId": organization.id,
-                        "ownerId": newOwner.id
+                        "ownerId": newOwnerID
                     ]
                 ], forDocument: self.auditCollection.document())
             } catch {
@@ -5970,16 +6163,6 @@ private final class OrganizationTeamViewModel: ObservableObject {
 
             return nil
         }
-    }
-
-    private func fetchUsers(ids: [String]) async throws -> [AppUser] {
-        var users: [AppUser] = []
-        for id in ids {
-            let snapshot = try await usersCollection.document(id).getDocument()
-            guard snapshot.exists else { continue }
-            users.append(Self.makeUser(from: snapshot))
-        }
-        return users
     }
 
     private static func teamIDs(for organization: Organization) -> [String] {
@@ -5992,28 +6175,34 @@ private final class OrganizationTeamViewModel: ObservableObject {
         return Array(NSOrderedSet(array: orderedIDs)) as? [String] ?? orderedIDs
     }
 
-    private static func makeMembers(organization: Organization, users: [AppUser]) -> [OrganizationTeamMember] {
-        let usersByID = Dictionary(uniqueKeysWithValues: users.map { ($0.id, $0) })
+    private static func makeMembers(
+        organization: Organization,
+        profiles: [PublicUserProfile],
+        subscriberIDs: [String]
+    ) -> [OrganizationTeamMember] {
+        let profilesByID = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0) })
         var result: [OrganizationTeamMember] = []
-
         var renderedUserIDs = Set<String>()
 
         if let ownerId = organization.ownerId, !ownerId.isEmpty {
-            result.append(OrganizationTeamMember(user: usersByID[ownerId], userID: ownerId, role: .owner))
+            result.append(OrganizationTeamMember(profile: profilesByID[ownerId], userID: ownerId, role: .owner))
             renderedUserIDs.insert(ownerId)
         }
 
-        result.append(contentsOf: organization.adminIds.compactMap { userID in
-            guard !renderedUserIDs.contains(userID), let user = usersByID[userID] else { return nil }
+        for userID in organization.adminIds where !renderedUserIDs.contains(userID) {
+            result.append(OrganizationTeamMember(profile: profilesByID[userID], userID: userID, role: .admin))
             renderedUserIDs.insert(userID)
-            return OrganizationTeamMember(user: user, userID: userID, role: .admin)
-        })
+        }
 
-        result.append(contentsOf: organization.moderatorIds.compactMap { userID in
-            guard !renderedUserIDs.contains(userID), let user = usersByID[userID] else { return nil }
+        for userID in organization.moderatorIds where !renderedUserIDs.contains(userID) {
+            result.append(OrganizationTeamMember(profile: profilesByID[userID], userID: userID, role: .moderator))
             renderedUserIDs.insert(userID)
-            return OrganizationTeamMember(user: user, userID: userID, role: .moderator)
-        })
+        }
+
+        for userID in subscriberIDs where !renderedUserIDs.contains(userID) {
+            result.append(OrganizationTeamMember(profile: profilesByID[userID], userID: userID, role: .member))
+            renderedUserIDs.insert(userID)
+        }
 
         return result
     }
@@ -6023,58 +6212,6 @@ private final class OrganizationTeamViewModel: ObservableObject {
         if organization.adminIds.contains(userID) { return .communityAdmin }
         if organization.moderatorIds.contains(userID) { return .communityModerator }
         return nil
-    }
-
-    private static func memberships(from data: [String: Any]) -> [[String: Any]] {
-        data["communityMemberships"] as? [[String: Any]] ?? []
-    }
-
-    private static func makeUser(from snapshot: DocumentSnapshot) -> AppUser {
-        let data = snapshot.data() ?? [:]
-        return makeUser(id: data["id"] as? String ?? snapshot.documentID, data: data)
-    }
-
-    private static func makeUser(from snapshot: QueryDocumentSnapshot) -> AppUser {
-        makeUser(id: snapshot.data()["id"] as? String ?? snapshot.documentID, data: snapshot.data())
-    }
-
-    private static func makeUser(id: String, data: [String: Any]) -> AppUser {
-        let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
-        let globalRole = ((data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user).effectiveRole
-        let isBlocked = data["isBlocked"] as? Bool ?? false
-        let blockState = UserBlockState(rawValue: data["blockState"] as? String ?? "") ?? (isBlocked ? .suspendedUntil : .active)
-        let memberships = memberships(from: data).compactMap { item -> CommunityMembership? in
-            guard let organizationId = item["organizationId"] as? String else { return nil }
-            let role = CommunityRole(rawValue: item["role"] as? String ?? "") ?? .member
-            return CommunityMembership(organizationId: organizationId, role: role)
-        }
-
-        return AppUser(
-            id: id,
-            fullName: data["fullName"] as? String ?? "",
-            displayName: data["displayName"] as? String ?? data["fullName"] as? String ?? "",
-            city: data["city"] as? String ?? "",
-            email: data["email"] as? String ?? "",
-            avatarURL: (data["avatarURL"] as? String).flatMap(URL.init(string:)),
-            bio: data["bio"] as? String ?? "",
-            telegramUsername: data["telegramUsername"] as? String,
-            role: legacyRole,
-            globalRole: globalRole,
-            moderatorSections: [],
-            canManageGuide: data["canManageGuide"] as? Bool ?? false,
-            blockState: blockState,
-            accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:)) ?? (blockState.isRestricted ? .suspendedUntil : .active),
-            banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
-            warningCount: data["warningCount"] as? Int ?? 0,
-            communityMemberships: memberships,
-            selectedFederalState: (data["selectedFederalState"] as? String).flatMap(AustrianFederalState.init(rawValue:)),
-            acceptedTermsAt: (data["acceptedTermsAt"] as? Timestamp)?.dateValue(),
-            acceptedPrivacyAt: (data["acceptedPrivacyAt"] as? Timestamp)?.dateValue(),
-            termsVersion: data["termsVersion"] as? String,
-            privacyVersion: data["privacyVersion"] as? String,
-            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast,
-            updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? .distantPast
-        )
     }
 }
 
@@ -6089,7 +6226,7 @@ private struct OrganizationTeamMemberRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            TeamAvatarView(user: member.user, fallbackInitials: fallbackInitials)
+            TeamAvatarView(profile: member.profile, fallbackInitials: member.initials)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
@@ -6101,12 +6238,12 @@ private struct OrganizationTeamMemberRow: View {
                     roleBadge
                 }
 
-                if let emailText = member.emailText {
-                    Text(emailText)
+                if let locationText = member.locationText {
+                    Text(locationText)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
-                } else if member.user == nil {
+                } else if member.profile == nil {
                     Text(member.userID)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -6127,8 +6264,10 @@ private struct OrganizationTeamMemberRow: View {
                             }
                         }
 
-                        Button(AppStrings.Profile.organizationTeamRemoveRole, role: .destructive) {
-                            onRemove()
+                        if member.role != .member {
+                            Button(AppStrings.Profile.organizationTeamRemoveRole, role: .destructive) {
+                                onRemove()
+                            }
                         }
                     } else {
                         Text(AppStrings.Profile.organizationTeamUnavailable)
@@ -6156,29 +6295,26 @@ private struct OrganizationTeamMemberRow: View {
             .background(member.role.tint.opacity(0.12), in: Capsule())
     }
 
-    private var fallbackInitials: String {
-        member.user?.initials ?? "?"
-    }
 }
 
 private struct OrganizationTeamCandidateRow: View {
-    let user: AppUser
+    let member: OrganizationTeamMember
     let role: OrganizationTeamRole?
     let isOwnerTransfer: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            TeamAvatarView(user: user)
+            TeamAvatarView(profile: member.profile, fallbackInitials: member.initials)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(user.preferredDisplayName)
+                Text(member.displayName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .lineLimit(1)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    if !user.email.isEmpty {
-                        Text(user.email)
+                    if let locationText = member.locationText {
+                        Text(locationText)
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
@@ -6206,12 +6342,12 @@ private struct OrganizationTeamCandidateRow: View {
 }
 
 private struct TeamAvatarView: View {
-    let user: AppUser?
+    let profile: PublicUserProfile?
     let fallbackInitials: String
 
-    init(user: AppUser?, fallbackInitials: String? = nil) {
-        self.user = user
-        self.fallbackInitials = fallbackInitials ?? user?.initials ?? "?"
+    init(profile: PublicUserProfile?, fallbackInitials: String? = nil) {
+        self.profile = profile
+        self.fallbackInitials = fallbackInitials ?? "?"
     }
 
     var body: some View {
@@ -6219,7 +6355,7 @@ private struct TeamAvatarView: View {
             Circle()
                 .fill(AppTheme.accentPrimarySoft)
 
-            if let avatarURL = user?.avatarURL {
+            if let avatarURL = profile?.avatarURL {
                 AsyncImage(url: avatarURL) { phase in
                     switch phase {
                     case let .success(image):
@@ -6582,8 +6718,7 @@ private struct ManagedOrganizationView: View {
                                 availableRoles: availableRoles(for: member),
                                 isUpdating: teamViewModel.updatingUserIDs.contains(member.userID),
                                 onAssignRole: { role in
-                                    guard let user = member.user else { return }
-                                    pendingTeamAction = .assign(user: user, role: role)
+                                    pendingTeamAction = .assign(member: member, role: role)
                                 },
                                 onRemove: {
                                     pendingTeamAction = .remove(member: member)
@@ -6643,22 +6778,26 @@ private struct ManagedOrganizationView: View {
             }
 
             Section {
+                Text(AppStrings.Profile.organizationTeamSubscribeToAssign)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+
                 if teamViewModel.isLoadingCandidates {
                     ProgressView()
-                } else if filteredTeamCandidateUsers.isEmpty {
+                } else if filteredTeamCandidateMembers.isEmpty {
                     Text(AppStrings.Profile.organizationTeamNoUsers)
                         .foregroundStyle(AppTheme.textSecondary)
                 } else {
-                    ForEach(filteredTeamCandidateUsers) { user in
+                    ForEach(filteredTeamCandidateMembers) { member in
                         Button {
                             pendingTeamAction = isChangingOwner
-                                ? .changeOwner(user: user)
-                                : .assign(user: user, role: selectedTeamRole)
+                                ? .changeOwner(member: member)
+                                : .assign(member: member, role: selectedTeamRole)
                             isShowingTeamSearch = false
                         } label: {
                             OrganizationTeamCandidateRow(
-                                user: user,
-                                role: teamRole(for: user),
+                                member: member,
+                                role: teamRole(for: member),
                                 isOwnerTransfer: isChangingOwner
                             )
                         }
@@ -6669,14 +6808,14 @@ private struct ManagedOrganizationView: View {
         }
     }
 
-    private var filteredTeamCandidateUsers: [AppUser] {
+    private var filteredTeamCandidateMembers: [OrganizationTeamMember] {
         let query = teamSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return teamViewModel.candidateUsers }
+        guard !query.isEmpty else { return teamViewModel.candidateMembers }
 
-        return teamViewModel.candidateUsers.filter { user in
-            user.preferredDisplayName.lowercased().contains(query)
-                || user.email.lowercased().contains(query)
-                || (user.telegramUsername?.lowercased().contains(query) ?? false)
+        return teamViewModel.candidateMembers.filter { member in
+            member.displayName.lowercased().contains(query)
+                || member.userID.lowercased().contains(query)
+                || (member.locationText?.lowercased().contains(query) ?? false)
         }
     }
 
@@ -6700,17 +6839,17 @@ private struct ManagedOrganizationView: View {
         authState.user?.globalRole.effectiveRole == .owner
     }
 
-    private func teamRole(for user: AppUser) -> OrganizationTeamRole? {
-        if currentOrganization.ownerId == user.id {
+    private func teamRole(for member: OrganizationTeamMember) -> OrganizationTeamRole? {
+        if currentOrganization.ownerId == member.userID {
             return .owner
         }
-        if currentOrganization.adminIds.contains(user.id) {
+        if currentOrganization.adminIds.contains(member.userID) {
             return .admin
         }
-        if currentOrganization.moderatorIds.contains(user.id) {
+        if currentOrganization.moderatorIds.contains(member.userID) {
             return .moderator
         }
-        return nil
+        return .member
     }
 
     private func availableRoles(for member: OrganizationTeamMember) -> [OrganizationTeamRole] {
@@ -6723,7 +6862,7 @@ private struct ManagedOrganizationView: View {
         if user.globalRole.effectiveRole == .owner {
             return member.role != .owner
         }
-        return member.role != .owner && member.userID != user.id && member.user != nil
+        return member.role != .owner && member.userID != user.id
     }
 
     private func destructiveRole(for action: OrganizationTeamAction) -> ButtonRole? {
@@ -6751,12 +6890,12 @@ private struct ManagedOrganizationView: View {
         await teamViewModel.load(organization: refreshedOrganization)
 
         switch action {
-        case let .assign(user, _):
-            if user.id == actor.id {
+        case let .assign(member, _):
+            if member.userID == actor.id {
                 await authState.loadUser(uid: actor.id)
             }
-        case let .changeOwner(user):
-            if user.id == actor.id || currentOrganization.ownerId == actor.id {
+        case let .changeOwner(member):
+            if member.userID == actor.id || currentOrganization.ownerId == actor.id {
                 await authState.loadUser(uid: actor.id)
             }
         case let .remove(member):

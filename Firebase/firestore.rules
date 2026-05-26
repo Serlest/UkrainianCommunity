@@ -593,6 +593,13 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
+    function isOrganizationSubscriptionRead() {
+      // Query-compatible public read for organization subscriber lists.
+      // Strict shape validation stays on create; legacy docs may have extra fields.
+      return ('subscribedOrganizationId' in resource.data)
+        && resource.data.subscribedOrganizationId is string;
+    }
+
     function validOrganizationSubscriptionCreate(likeId) {
       return isActiveUser()
         && validOrganizationSubscriptionData(request.resource.data, likeId)
@@ -1015,7 +1022,7 @@ service cloud.firestore {
     match /likes/{likeId} {
       allow read: if ownDocumentRead()
         || ownLikeDocumentRead(likeId)
-        || validOrganizationSubscriptionData(resource.data, likeId)
+        || isOrganizationSubscriptionRead()
         || isOwner();
 
       allow create: if validOrganizationSubscriptionCreate(likeId)

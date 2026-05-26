@@ -345,7 +345,25 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             query = query.start(after: [Timestamp(date: cursor.followedAt), cursor.documentID])
         }
 
-        let snapshot = try await query.getDocuments()
+        let snapshot: QuerySnapshot
+        do {
+            snapshot = try await query.getDocuments()
+        } catch {
+            #if DEBUG
+            print(
+                """
+                OrganizationSubscriberQuery failed \
+                purpose=organizationTeamAndCommunitySubscribers \
+                path=likes \
+                filters=subscribedOrganizationId==\(organizationID) \
+                orderBy=createdAt(desc),__name__(desc) \
+                limit=\(limit + 1) \
+                uid=\(Auth.auth().currentUser?.uid ?? "nil")
+                """
+            )
+            #endif
+            throw error
+        }
         let documents: [QueryDocumentSnapshot] = Array(snapshot.documents.prefix(limit))
         let items: [OrganizationSubscriberReference] = documents.compactMap { document -> OrganizationSubscriberReference? in
             let data = document.data()

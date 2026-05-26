@@ -472,8 +472,11 @@ enum AppStrings {
         static var organizationRoleOwner: String { text("profile.organization.role.owner", "Власник") }
         static var organizationRoleAdmin: String { text("profile.organization.role.admin", "Адмін") }
         static var organizationRoleModerator: String { text("profile.organization.role.moderator", "Модератор") }
+        static var organizationRoleMember: String { text("profile.organization.role.member", "Учасник") }
         static var organizationRolePlatformOwner: String { text("profile.organization.role.platform_owner", "Власник платформи") }
         static var organizationRequests: String { text("profile.organization.requests", "Мої заявки") }
+        static var subscribedOrganizations: String { text("profile.organization.subscribed", "Підписані організації") }
+        static var previewOrganizationRequest: String { text("profile.organization.request.preview", "Переглянути заявку") }
         static var organizationOpen: String { text("profile.organization.open", "Відкрити") }
         static var organizationManage: String { text("profile.organization.manage", "Керувати") }
         static var organizationStatEvents: String { text("profile.organization.stat.events", "події") }
@@ -488,10 +491,11 @@ enum AppStrings {
         static var organizationTeamAddMember: String { text("profile.organization.team.add_member", "Додати учасника") }
         static var organizationTeamEmptyTitle: String { text("profile.organization.team.empty_title", "Команда не завантажена.") }
         static var organizationTeamEmptyMessage: String { text("profile.organization.team.empty_message", "Тут відображатимуться власник, адміни та модератори організації.") }
-        static var organizationTeamSearchPlaceholder: String { text("profile.organization.team.search_placeholder", "Пошук за іменем, email або nickname") }
+        static var organizationTeamSearchPlaceholder: String { text("profile.organization.team.search_placeholder", "Пошук за іменем або містом") }
         static var organizationTeamRolePicker: String { text("profile.organization.team.role_picker", "Роль") }
         static var organizationTeamNoUsers: String { text("profile.organization.team.no_users", "Користувачів не знайдено.") }
-        static var organizationTeamMissingProfile: String { text("profile.organization.team.missing_profile", "Профіль не знайдено") }
+        static var organizationTeamMissingProfile: String { text("profile.organization.team.missing_profile", "Профіль ще не доступний") }
+        static var organizationTeamSubscribeToAssign: String { text("profile.organization.team.subscribe_to_assign", "Щоб призначити користувача, він має підписатися на організацію.") }
         static var organizationTeamLoadFailed: String { text("profile.organization.team.error.load_failed", "Не вдалося завантажити команду організації.") }
         static var organizationTeamUserSearchFailed: String { text("profile.organization.team.error.user_search_failed", "Не вдалося завантажити користувачів для пошуку.") }
         static var organizationTeamPermissionDenied: String { text("profile.organization.team.error.permission_denied", "Недостатньо прав для керування командою.") }
@@ -520,6 +524,7 @@ enum AppStrings {
         static var createOrganizationEvent: String { text("profile.create_organization_event", "Create organization Event") }
         static var editOrganizationDetails: String { text("profile.edit_organization_details", "Edit organization details") }
         static var noManagedOrganizations: String { text("profile.no_managed_organizations", "У вас поки немає організацій для керування.") }
+        static var noOrganizations: String { text("profile.no_organizations", "У вас поки немає організацій.") }
         static var editProfile: String { text("profile.edit", "Edit Profile") }
         static var editProfileSubtitle: String { text("profile.edit.subtitle", "Keep your personal details up to date so your account card stays clear and trustworthy.") }
         static var fullName: String { text("profile.full_name", "Full name") }
