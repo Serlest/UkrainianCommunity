@@ -55,6 +55,16 @@ struct FirestoreNewsRepository: NewsRepository {
         }
     }
 
+    func fetchOrganizationNewsCount(organizationID: String) async throws -> Int {
+        let snapshot = try await collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", in: organizationContentStatusValues)
+            .getDocuments()
+
+        return snapshot.documents.count
+    }
+
     func createNews(_ news: NewsPost) async throws {
         guard news.isOrganizationNews else {
             throw AppError.validationFailed
@@ -477,6 +487,16 @@ struct FirestoreNewsRepository: NewsRepository {
     private var organizationModerationStatusValues: [String] {
         [
             ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.rejected.rawValue,
+            ModerationStatus.archived.rawValue
+        ]
+    }
+
+    private var organizationContentStatusValues: [String] {
+        [
+            ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.needsRevision.rawValue,
+            ModerationStatus.approved.rawValue,
             ModerationStatus.rejected.rawValue,
             ModerationStatus.archived.rawValue
         ]

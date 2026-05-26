@@ -116,6 +116,16 @@ struct FirestoreEventRepository: EventRepository {
         }
     }
 
+    func fetchOrganizationEventCount(organizationID: String) async throws -> Int {
+        let snapshot = try await collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", in: organizationContentStatusValues)
+            .getDocuments()
+
+        return snapshot.documents.count
+    }
+
     func fetchEventComments(eventID: String) async throws -> [Comment] {
         try await fetchComments(eventID: eventID)
     }
@@ -750,6 +760,16 @@ struct FirestoreEventRepository: EventRepository {
     private var organizationModerationStatusValues: [String] {
         [
             ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.rejected.rawValue,
+            ModerationStatus.archived.rawValue
+        ]
+    }
+
+    private var organizationContentStatusValues: [String] {
+        [
+            ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.needsRevision.rawValue,
+            ModerationStatus.approved.rawValue,
             ModerationStatus.rejected.rawValue,
             ModerationStatus.archived.rawValue
         ]

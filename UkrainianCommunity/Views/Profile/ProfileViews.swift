@@ -5344,15 +5344,24 @@ private enum ManagedOrganizationRole {
     }
 }
 
+private struct ManagedOrganizationContentStats {
+    let newsCount: Int
+    let eventCount: Int
+}
+
 private struct OrganizationManagementHubView: View {
     @EnvironmentObject private var authState: AuthState
     let focusedOrganizationID: String?
 
     private let repository: OrganizationRepository
+    private let newsRepository: NewsRepository
+    private let eventRepository: EventRepository
     @StateObject private var organizationsViewModel: OrganizationsViewModel
     @State private var isShowingCreateOrganization = false
     @State private var editingOrganizationRequest: Organization?
     @State private var previewingOrganizationRequest: Organization?
+    @State private var organizationContentStats: [String: ManagedOrganizationContentStats] = [:]
+    @State private var loadingContentStatOrganizationIDs = Set<String>()
 
     private var authorityUser: AppUser? {
         authState.user
@@ -5360,10 +5369,14 @@ private struct OrganizationManagementHubView: View {
 
     init(
         focusedOrganizationID: String? = nil,
-        repository: OrganizationRepository = FirestoreOrganizationRepository()
+        repository: OrganizationRepository = FirestoreOrganizationRepository(),
+        newsRepository: NewsRepository = FirestoreNewsRepository(),
+        eventRepository: EventRepository = FirestoreEventRepository()
     ) {
         self.focusedOrganizationID = focusedOrganizationID
         self.repository = repository
+        self.newsRepository = newsRepository
+        self.eventRepository = eventRepository
         _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: repository))
     }
 
@@ -5435,26 +5448,34 @@ private struct OrganizationManagementHubView: View {
             await organizationsViewModel.loadIfNeeded()
             await organizationsViewModel.refreshIfStale()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+            await loadManageableOrganizationContentStats()
         }
         .refreshable {
             await organizationsViewModel.refresh()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+            await loadManageableOrganizationContentStats(force: true)
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
                 await organizationsViewModel.refresh()
                 await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                await loadManageableOrganizationContentStats(force: true)
             }
         }
         .onChange(of: authState.user?.id) { _, newUserID in
             if newUserID == nil {
                 isShowingCreateOrganization = false
+                organizationContentStats = [:]
+                loadingContentStatOrganizationIDs = []
                 organizationsViewModel.resetForAuthChange()
             } else {
                 Task {
                     organizationsViewModel.resetForAuthChange()
+                    organizationContentStats = [:]
+                    loadingContentStatOrganizationIDs = []
                     await organizationsViewModel.refresh()
                     await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                    await loadManageableOrganizationContentStats(force: true)
                 }
             }
         }
@@ -5524,7 +5545,9 @@ private struct OrganizationManagementHubView: View {
                         ManagedOrganizationCard(
                             organization: organization,
                             role: organizationRole(for: organization) ?? .moderator,
-                            organizationsViewModel: organizationsViewModel
+                            organizationsViewModel: organizationsViewModel,
+                            contentStats: organizationContentStats[organization.id],
+                            isLoadingContentStats: loadingContentStatOrganizationIDs.contains(organization.id)
                         )
                     }
                 }
@@ -5569,6 +5592,34 @@ private struct OrganizationManagementHubView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func loadManageableOrganizationContentStats(force: Bool = false) async {
+        let organizationIDs = Set(manageableOrganizations.map(\.id))
+        organizationContentStats = organizationContentStats.filter { organizationIDs.contains($0.key) }
+        loadingContentStatOrganizationIDs = loadingContentStatOrganizationIDs.intersection(organizationIDs)
+
+        for organizationID in organizationIDs.sorted() {
+            if !force && organizationContentStats[organizationID] != nil {
+                continue
+            }
+            if loadingContentStatOrganizationIDs.contains(organizationID) {
+                continue
+            }
+
+            loadingContentStatOrganizationIDs.insert(organizationID)
+            do {
+                async let newsCount = newsRepository.fetchOrganizationNewsCount(organizationID: organizationID)
+                async let eventCount = eventRepository.fetchOrganizationEventCount(organizationID: organizationID)
+                organizationContentStats[organizationID] = ManagedOrganizationContentStats(
+                    newsCount: try await newsCount,
+                    eventCount: try await eventCount
+                )
+            } catch {
+                organizationContentStats[organizationID] = nil
+            }
+            loadingContentStatOrganizationIDs.remove(organizationID)
         }
     }
 }
@@ -5778,6 +5829,8 @@ private struct ManagedOrganizationCard: View {
     let organization: Organization
     let role: ManagedOrganizationRole
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
+    let contentStats: ManagedOrganizationContentStats?
+    let isLoadingContentStats: Bool
 
     var body: some View {
         AppEditorSectionCard {
@@ -5875,9 +5928,15 @@ private struct ManagedOrganizationCard: View {
 
     private var statsRow: some View {
         HStack(spacing: 8) {
-            managementStat(title: AppStrings.Profile.organizationStatEvents, value: "\(organization.eventsHeldCount)")
             managementStat(title: AppStrings.Profile.organizationStatSubscribers, value: "\(organization.subscriberCount)")
+            managementStat(title: AppStrings.Profile.organizationStatNews, value: contentStatValue(contentStats?.newsCount))
+            managementStat(title: AppStrings.Profile.organizationStatEvents, value: contentStatValue(contentStats?.eventCount))
         }
+    }
+
+    private func contentStatValue(_ value: Int?) -> String {
+        guard let value else { return isLoadingContentStats ? "..." : "—" }
+        return "\(value)"
     }
 
     private func managementStat(title: String, value: String) -> some View {

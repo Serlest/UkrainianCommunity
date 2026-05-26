@@ -480,6 +480,7 @@ enum AppStrings {
         static var organizationOpen: String { text("profile.organization.open", "Відкрити") }
         static var organizationManage: String { text("profile.organization.manage", "Керувати") }
         static var organizationStatEvents: String { text("profile.organization.stat.events", "події") }
+        static var organizationStatNews: String { text("profile.organization.stat.news", "новини") }
         static var organizationStatSubscribers: String { text("profile.organization.stat.subscribers", "підписники") }
         static var organizationInfoSection: String { text("profile.organization.info_section", "Інформація організації") }
         static var organizationInfoLockedSubtitle: String { text("profile.organization.info_locked.subtitle", "Доступно для власника та адміна організації.") }

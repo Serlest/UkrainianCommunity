@@ -80,6 +80,7 @@ protocol NewsRepository {
     func fetchNews() async throws -> [NewsPost]
     func fetchPendingNews() async throws -> [NewsPost]
     func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost]
+    func fetchOrganizationNewsCount(organizationID: String) async throws -> Int
     func createNews(_ news: NewsPost) async throws
     func updateNews(_ news: NewsPost) async throws
     func updateNewsImageURL(id: String, imageURL: String?) async throws
@@ -101,6 +102,7 @@ protocol EventRepository {
     func fetchRegisteredEvents() async throws -> [Event]
     func fetchPendingEvents() async throws -> [Event]
     func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event]
+    func fetchOrganizationEventCount(organizationID: String) async throws -> Int
     func createEvent(_ event: Event) async throws
     func updateEvent(_ event: Event) async throws
     func updateEventImageURL(id: String, imageURL: String?) async throws

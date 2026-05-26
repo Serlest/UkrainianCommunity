@@ -233,6 +233,14 @@ private actor MockRepositoryStore {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    func organizationNewsCount(organizationID: String) -> Int {
+        news.filter {
+            $0.source.sourceType == .organization
+                && $0.source.organizationId == organizationID
+                && [.pendingReview, .needsRevision, .approved, .rejected, .archived].contains($0.moderationStatus)
+        }.count
+    }
+
     func deleteNews(id: String) throws {
         guard let index = news.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         news.remove(at: index)
@@ -425,6 +433,14 @@ private actor MockRepositoryStore {
                     && [.pendingReview, .rejected, .archived].contains($0.moderationStatus)
             }
             .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func organizationEventCount(organizationID: String) -> Int {
+        events.filter {
+            $0.source.sourceType == .organization
+                && $0.source.organizationId == organizationID
+                && [.pendingReview, .needsRevision, .approved, .rejected, .archived].contains($0.moderationStatus)
+        }.count
     }
 
     func deleteEvent(id: String) throws {
@@ -752,6 +768,10 @@ struct MockNewsRepository: NewsRepository {
         await store.organizationModerationNews(organizationID: organizationID)
     }
 
+    func fetchOrganizationNewsCount(organizationID: String) async throws -> Int {
+        await store.organizationNewsCount(organizationID: organizationID)
+    }
+
     func createNews(_ news: NewsPost) async throws {
         await store.createNews(news)
     }
@@ -830,6 +850,10 @@ struct MockEventRepository: EventRepository {
 
     func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event] {
         await store.organizationModerationEvents(organizationID: organizationID)
+    }
+
+    func fetchOrganizationEventCount(organizationID: String) async throws -> Int {
+        await store.organizationEventCount(organizationID: organizationID)
     }
 
     func createEvent(_ event: Event) async throws {

@@ -15700,6 +15700,23 @@
         }
       }
     },
+    "profile.organization.stat.news" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuigkeiten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "новини"
+          }
+        }
+      }
+    },
     "profile.organization.stat.subscribers" : {
       "extractionState" : "manual",
       "localizations" : {
