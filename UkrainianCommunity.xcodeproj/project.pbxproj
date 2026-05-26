@@ -34,6 +34,10 @@
 		F347490C2FA0CF7400ED704A /* UkrainianCommunity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UkrainianCommunity.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F34749192FA0CF7500ED704A /* UkrainianCommunityTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UkrainianCommunityTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F34749232FA0CF7500ED704A /* UkrainianCommunityUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UkrainianCommunityUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F375C8372FC5F138005B5EFB /* firebase.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = firebase.json; sourceTree = "<group>"; };
+		F375C8382FC5F138005B5EFB /* firestore.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = firestore.rules; sourceTree = "<group>"; };
+		F375C8392FC5F138005B5EFB /* firestore.indexes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = firestore.indexes.json; sourceTree = "<group>"; };
+		F375C83A2FC5F138005B5EFB /* storage.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = storage.rules; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -86,6 +90,8 @@
 		F34749032FA0CF7400ED704A = {
 			isa = PBXGroup;
 			children = (
+				F375C8372FC5F138005B5EFB /* firebase.json */,
+				F375C83B2FC5F138005B5EFB /* Firebase */,
 				F347490E2FA0CF7400ED704A /* UkrainianCommunity */,
 				F347491C2FA0CF7500ED704A /* UkrainianCommunityTests */,
 				F34749262FA0CF7500ED704A /* UkrainianCommunityUITests */,
@@ -165,6 +171,16 @@
 			children = (
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		F375C83B2FC5F138005B5EFB /* Firebase */ = {
+			isa = PBXGroup;
+			children = (
+				F375C8382FC5F138005B5EFB /* firestore.rules */,
+				F375C8392FC5F138005B5EFB /* firestore.indexes.json */,
+				F375C83A2FC5F138005B5EFB /* storage.rules */,
+			);
+			path = Firebase;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

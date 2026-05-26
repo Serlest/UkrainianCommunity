@@ -455,7 +455,7 @@ final class OrganizationEditorViewModel: ObservableObject {
     }
 
     private func isPlatformOwner(_ user: AppUser?) -> Bool {
-        user?.globalRole.effectiveRole == .owner
+        user?.globalRole.authorizationRole == .owner
     }
 
     private func shouldResubmitRequest(user: AppUser?) -> Bool {

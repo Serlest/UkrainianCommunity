@@ -414,7 +414,7 @@ struct EventsListView: View {
 
     private var eventsHeader: some View {
         AppBrandHeader {
-            AppNotificationBellButton()
+            EmptyView()
         }
     }
 

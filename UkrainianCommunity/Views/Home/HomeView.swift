@@ -3,6 +3,12 @@ import Foundation
 import PhotosUI
 import SwiftUI
 
+private enum HomeContentRefreshReason: Hashable {
+    case news
+    case events
+    case organizations
+}
+
 struct HomeView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: HomeViewModel
@@ -17,6 +23,8 @@ struct HomeView: View {
     @State private var selectedFederalState: AustrianFederalState?
     @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
+    @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
+    @State private var pendingContentRefreshTask: Task<Void, Never>?
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -65,12 +73,10 @@ struct HomeView: View {
             Button(AppStrings.Events.cancel, role: .cancel) {}
         }
         .refreshable {
-            await refreshAllContent()
+            await refreshContentWhenAuthIsReady(force: true)
         }
-        .task {
-            applyDefaultRegion()
-            await loadContentIfNeeded()
-            await refreshContentIfStale()
+        .task(id: authBootstrapKey) {
+            await loadContentWhenAuthIsReady()
         }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }
@@ -97,26 +103,14 @@ struct HomeView: View {
                 viewModel.clearBannerError()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .newsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
-            Task {
-                async let homeRefresh: Void = viewModel.refresh()
-                async let newsRefresh: Void = newsViewModel.refresh()
-                _ = await (homeRefresh, newsRefresh)
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in
+            scheduleContentRefresh(for: .news)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .eventsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
-            Task {
-                async let homeRefresh: Void = viewModel.refresh()
-                async let eventsRefresh: Void = eventsViewModel.refresh()
-                _ = await (homeRefresh, eventsRefresh)
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .eventsChanged)) { _ in
+            scheduleContentRefresh(for: .events)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
-            Task {
-                async let homeRefresh: Void = viewModel.refresh()
-                async let organizationsRefresh: Void = organizationsViewModel.refresh()
-                _ = await (homeRefresh, organizationsRefresh)
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
+            scheduleContentRefresh(for: .organizations)
         }
     }
 
@@ -140,7 +134,7 @@ struct HomeView: View {
 
     private var homeHeader: some View {
         AppBrandHeader {
-            AppNotificationBellButton()
+            EmptyView()
         }
     }
 
@@ -259,6 +253,38 @@ struct HomeView: View {
         selectedFederalState = authState.user?.selectedFederalState
     }
 
+    private var authBootstrapKey: String {
+        switch authState.sessionState {
+        case .restoring:
+            "restoring"
+        case .guest:
+            "guest"
+        case .authenticated:
+            "authenticated:\(authState.user?.id ?? "pending")"
+        }
+    }
+
+    private var isAuthBootstrapReady: Bool {
+        authState.sessionState != .restoring
+    }
+
+    private func loadContentWhenAuthIsReady() async {
+        guard isAuthBootstrapReady else { return }
+        applyDefaultRegion()
+        await loadContentIfNeeded()
+        await refreshContentIfStale()
+    }
+
+    private func refreshContentWhenAuthIsReady(force: Bool) async {
+        guard isAuthBootstrapReady else { return }
+
+        if force {
+            await refreshAllContent()
+        } else {
+            await loadContentWhenAuthIsReady()
+        }
+    }
+
     private var emptyStateSystemImage: String {
         if selectedContentType != .all {
             return selectedContentType.systemImage
@@ -310,6 +336,44 @@ struct HomeView: View {
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
         _ = await (homeRefresh, bannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
+    }
+
+    private func scheduleContentRefresh(for reason: HomeContentRefreshReason) {
+        pendingContentRefreshReasons.insert(reason)
+        pendingContentRefreshTask?.cancel()
+        pendingContentRefreshTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+
+            let reasons = await MainActor.run {
+                let reasons = pendingContentRefreshReasons
+                pendingContentRefreshReasons.removeAll()
+                pendingContentRefreshTask = nil
+                return reasons
+            }
+
+            await refreshChangedContent(for: reasons)
+        }
+    }
+
+    private func refreshChangedContent(for reasons: Set<HomeContentRefreshReason>) async {
+        guard !reasons.isEmpty else { return }
+
+        async let homeRefresh: Void = viewModel.refresh()
+
+        if reasons.contains(.news) {
+            await newsViewModel.refresh()
+        }
+
+        if reasons.contains(.events) {
+            await eventsViewModel.refresh()
+        }
+
+        if reasons.contains(.organizations) {
+            await organizationsViewModel.refresh()
+        }
+
+        _ = await homeRefresh
     }
 
     private func updateHomeBanner(from item: PhotosPickerItem?) async {

@@ -392,7 +392,10 @@ struct UkrainianCommunityTests {
         let feedbackRepository = RecordingFeedbackRepository()
         let viewModel = ProfileViewModel(
             repository: MockUserRepository(),
-            feedbackRepository: feedbackRepository
+            feedbackRepository: feedbackRepository,
+            notificationPreferencesRepository: MockNotificationPreferencesRepository(),
+            notificationPermissionService: MockNotificationPermissionService(),
+            localEventReminderService: MockLocalEventReminderService()
         )
         let user = makeUser()
 
@@ -507,7 +510,10 @@ struct UkrainianCommunityTests {
     @Test func myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount() async throws {
         let repository = MockEventRepository()
         let targetEvent = try #require((try await repository.fetchEvents()).first(where: { $0.registrationState == .registered }))
-        let viewModel = MyRegistrationsViewModel(repository: repository)
+        let viewModel = MyRegistrationsViewModel(
+            repository: repository,
+            localEventReminderService: MockLocalEventReminderService()
+        )
 
         await viewModel.refresh()
         #expect(viewModel.events.contains(where: { $0.id == targetEvent.id }))

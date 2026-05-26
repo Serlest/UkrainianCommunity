@@ -95,7 +95,7 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
             "id": photo.id,
             "organizationId": photo.organizationId,
             "imageURL": photo.imageURL,
-            "caption": photo.caption as Any,
+            "caption": photo.caption ?? NSNull(),
             "uploadedBy": photo.uploadedBy,
             "createdAt": Timestamp(date: photo.createdAt),
             "updatedAt": photo.updatedAt.map { Timestamp(date: $0) } ?? NSNull()

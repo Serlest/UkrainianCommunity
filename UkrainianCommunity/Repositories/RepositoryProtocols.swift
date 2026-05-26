@@ -7,6 +7,24 @@ protocol UserRepository {
     func deleteAccount(currentUser: AppUser) async throws
 }
 
+protocol NotificationPreferencesRepository {
+    func fetchNotificationPreferences(userID: String) async throws -> NotificationPreferences
+    func saveNotificationPreferences(_ preferences: NotificationPreferences, userID: String) async throws
+}
+
+protocol NotificationInboxRepository {
+    func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification]
+    func listenNotifications(
+        userID: String,
+        limit: Int,
+        onChange: @escaping @MainActor ([AppNotification]) -> Void
+    ) -> AppRealtimeListener
+    func fetchUnreadCount(userID: String) async throws -> Int
+    func markNotificationRead(userID: String, notificationID: String) async throws
+    func markAllNotificationsRead(userID: String) async throws
+    func createNotification(userID: String, notification: AppNotification) async throws
+}
+
 protocol FeedbackRepository {
     func submitFeedback(_ feedback: FeedbackItem) async throws
     func fetchFeedback() async throws -> [FeedbackItem]

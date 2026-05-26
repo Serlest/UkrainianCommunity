@@ -1251,9 +1251,7 @@ struct OrganizationsListView: View {
 
     private var organizationsHeader: some View {
         AppBrandHeader {
-            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                AppNotificationBellButton()
-            }
+            EmptyView()
         }
     }
 
@@ -1813,6 +1811,7 @@ struct OrganizationDetailView: View {
                 await viewModel.refresh()
                 if let organization = viewModel.organization(for: organizationID) {
                     await activityViewModel.refresh(for: organization)
+                    await reloadPreviewPhotos(for: organization.id)
                     await reloadCommunityMembers(for: organization)
                 }
             }
@@ -2528,8 +2527,12 @@ struct OrganizationDetailView: View {
         case .photos:
             OrganizationPhotoGallerySection(
                 organizationId: organization.id,
-                canManage: false,
-                currentUser: authState.user
+                canManage: PermissionService.canModerateOrganizationContent(organization, user: authState.user),
+                currentUser: authState.user,
+                onPhotosChanged: { photos in
+                    previewPhotos = photos
+                    loadedPreviewPhotoOrganizationID = organization.id
+                }
             )
         }
     }

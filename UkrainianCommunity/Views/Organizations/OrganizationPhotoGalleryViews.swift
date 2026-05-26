@@ -105,6 +105,7 @@ struct OrganizationPhotoGallerySection: View {
     let organizationId: String
     let canManage: Bool
     let currentUser: AppUser?
+    let onPhotosChanged: ([OrganizationPhoto]) -> Void
 
     @StateObject private var viewModel: OrganizationPhotoGalleryViewModel
     @State private var selectedPickerItem: PhotosPickerItem?
@@ -119,11 +120,13 @@ struct OrganizationPhotoGallerySection: View {
         organizationId: String,
         canManage: Bool,
         currentUser: AppUser?,
-        repository: OrganizationPhotoRepository = FirestoreOrganizationPhotoRepository()
+        repository: OrganizationPhotoRepository = FirestoreOrganizationPhotoRepository(),
+        onPhotosChanged: @escaping ([OrganizationPhoto]) -> Void = { _ in }
     ) {
         self.organizationId = organizationId
         self.canManage = canManage
         self.currentUser = currentUser
+        self.onPhotosChanged = onPhotosChanged
         _viewModel = StateObject(wrappedValue: OrganizationPhotoGalleryViewModel(organizationId: organizationId, repository: repository))
     }
 
@@ -145,6 +148,9 @@ struct OrganizationPhotoGallerySection: View {
             Task {
                 await prepareSelectedPhoto(item)
             }
+        }
+        .onChange(of: viewModel.photos) { _, photos in
+            onPhotosChanged(photos)
         }
         .sheet(isPresented: $isShowingCaptionSheet) {
             NavigationStack {
@@ -354,25 +360,27 @@ private struct OrganizationPhotoTile: View {
     let onDelete: () -> Void
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Button(action: onOpen) {
-                photoImage
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(photo.caption ?? AppStrings.Organizations.tabPhoto)
-
-            if canManage {
-                Button(role: .destructive, action: onDelete) {
-                    Image(systemName: isDeleting ? "hourglass" : "trash")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.white)
-                        .frame(width: 28, height: 28)
-                        .background(AppTheme.accentDestructive.opacity(0.92), in: Circle())
+        OrganizationSquarePhotoCell {
+            ZStack(alignment: .topTrailing) {
+                Button(action: onOpen) {
+                    photoImage
                 }
                 .buttonStyle(.plain)
-                .disabled(isDeleting)
-                .padding(6)
-                .accessibilityLabel(AppStrings.Organizations.photosDelete)
+                .accessibilityLabel(photo.caption ?? AppStrings.Organizations.tabPhoto)
+
+                if canManage {
+                    Button(role: .destructive, action: onDelete) {
+                        Image(systemName: isDeleting ? "hourglass" : "trash")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.white)
+                            .frame(width: 28, height: 28)
+                            .background(AppTheme.accentDestructive.opacity(0.92), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isDeleting)
+                    .padding(6)
+                    .accessibilityLabel(AppStrings.Organizations.photosDelete)
+                }
             }
         }
     }
@@ -391,8 +399,6 @@ private struct OrganizationPhotoTile: View {
                     .overlay(ProgressView().controlSize(.small))
             }
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -415,35 +421,47 @@ private struct OrganizationAddPhotoTile: View {
     let isBusy: Bool
 
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(AppTheme.accentPrimarySoft)
-                    .frame(width: 38, height: 38)
+        OrganizationSquarePhotoCell {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.accentPrimarySoft)
+                        .frame(width: 38, height: 38)
 
-                if isBusy {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                    if isBusy {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "plus")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(AppTheme.accentPrimary)
+                    }
                 }
-            }
 
-            Text(AppStrings.Organizations.photosAdd)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
-                .lineLimit(1)
+                Text(AppStrings.Organizations.photosAdd)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .lineLimit(1)
+            }
+            .background(AppTheme.surfaceSecondary.opacity(isDisabled ? 0.45 : 1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(AppTheme.accentPrimary.opacity(isDisabled ? 0.10 : 0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+            )
+            .opacity(isDisabled ? 0.65 : 1)
         }
-        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct OrganizationSquarePhotoCell<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            content()
+                .frame(width: proxy.size.width, height: proxy.size.width)
+        }
         .aspectRatio(1, contentMode: .fit)
-        .background(AppTheme.surfaceSecondary.opacity(isDisabled ? 0.45 : 1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(AppTheme.accentPrimary.opacity(isDisabled ? 0.10 : 0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-        )
-        .opacity(isDisabled ? 0.65 : 1)
     }
 }
 

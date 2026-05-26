@@ -12,6 +12,8 @@ private actor MockRepositoryStore {
     var guideArticles = MockContentBuilder.guideArticles()
     var feedbackItems: [FeedbackItem] = []
     var feedbackMessages: [String: [FeedbackMessage]] = [:]
+    var notificationPreferencesByUserID: [String: NotificationPreferences] = [:]
+    var notificationsByUserID: [String: [AppNotification]] = [:]
     var viewedNewsIDs = Set<String>()
 
     func updateUserProfile(_ profile: EditableUserProfileDraft) -> AppUser {
@@ -45,6 +47,75 @@ private actor MockRepositoryStore {
 
     func createFeedback(_ item: FeedbackItem) {
         feedbackItems.insert(item, at: 0)
+    }
+
+    func notificationPreferences(userID: String) -> NotificationPreferences {
+        notificationPreferencesByUserID[userID] ?? .default
+    }
+
+    func saveNotificationPreferences(_ preferences: NotificationPreferences, userID: String) {
+        notificationPreferencesByUserID[userID] = NotificationPreferences(
+            notificationsEnabled: preferences.notificationsEnabled,
+            eventRemindersEnabled: preferences.eventRemindersEnabled,
+            reminderLeadMinutes: preferences.reminderLeadMinutes,
+            updatedAt: .now
+        )
+    }
+
+    func notifications(userID: String, limit: Int) -> [AppNotification] {
+        Array((notificationsByUserID[userID] ?? [])
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(max(1, limit)))
+    }
+
+    func unreadNotificationCount(userID: String) -> Int {
+        (notificationsByUserID[userID] ?? []).filter { !$0.isRead }.count
+    }
+
+    func createNotification(_ notification: AppNotification, userID: String) {
+        var notifications = notificationsByUserID[userID] ?? []
+        notifications.removeAll { $0.id == notification.id }
+        notifications.append(notification)
+        notificationsByUserID[userID] = notifications
+    }
+
+    func markNotificationRead(userID: String, notificationID: String) {
+        guard var notifications = notificationsByUserID[userID],
+              let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
+        let notification = notifications[index]
+        notifications[index] = AppNotification(
+            id: notification.id,
+            recipientUserId: notification.recipientUserId,
+            type: notification.type,
+            sourceType: notification.sourceType,
+            sourceId: notification.sourceId,
+            actorUserId: notification.actorUserId,
+            actorDisplayName: notification.actorDisplayName,
+            payload: notification.payload,
+            isRead: true,
+            readAt: .now,
+            createdAt: notification.createdAt
+        )
+        notificationsByUserID[userID] = notifications
+    }
+
+    func markAllNotificationsRead(userID: String) {
+        let notifications = (notificationsByUserID[userID] ?? []).map { notification in
+            AppNotification(
+                id: notification.id,
+                recipientUserId: notification.recipientUserId,
+                type: notification.type,
+                sourceType: notification.sourceType,
+                sourceId: notification.sourceId,
+                actorUserId: notification.actorUserId,
+                actorDisplayName: notification.actorDisplayName,
+                payload: notification.payload,
+                isRead: true,
+                readAt: notification.readAt ?? .now,
+                createdAt: notification.createdAt
+            )
+        }
+        notificationsByUserID[userID] = notifications
     }
 
     func feedback() -> [FeedbackItem] {
@@ -711,6 +782,60 @@ struct MockUserRepository: UserRepository {
     }
 }
 
+struct MockNotificationPreferencesRepository: NotificationPreferencesRepository {
+    private let store = MockRepositoryStore.shared
+
+    func fetchNotificationPreferences(userID: String) async throws -> NotificationPreferences {
+        await store.notificationPreferences(userID: userID)
+    }
+
+    func saveNotificationPreferences(_ preferences: NotificationPreferences, userID: String) async throws {
+        await store.saveNotificationPreferences(preferences, userID: userID)
+    }
+}
+
+private struct MockRealtimeListener: AppRealtimeListener {
+    func cancel() {}
+}
+
+struct MockNotificationInboxRepository: NotificationInboxRepository {
+    private let store = MockRepositoryStore.shared
+
+    func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification] {
+        await store.notifications(userID: userID, limit: limit)
+    }
+
+    func listenNotifications(
+        userID: String,
+        limit: Int,
+        onChange: @escaping @MainActor ([AppNotification]) -> Void
+    ) -> AppRealtimeListener {
+        Task {
+            let notifications = await store.notifications(userID: userID, limit: limit)
+            await MainActor.run {
+                onChange(notifications)
+            }
+        }
+        return MockRealtimeListener()
+    }
+
+    func fetchUnreadCount(userID: String) async throws -> Int {
+        await store.unreadNotificationCount(userID: userID)
+    }
+
+    func markNotificationRead(userID: String, notificationID: String) async throws {
+        await store.markNotificationRead(userID: userID, notificationID: notificationID)
+    }
+
+    func markAllNotificationsRead(userID: String) async throws {
+        await store.markAllNotificationsRead(userID: userID)
+    }
+
+    func createNotification(userID: String, notification: AppNotification) async throws {
+        await store.createNotification(notification, userID: userID)
+    }
+}
+
 struct MockFeedbackRepository: FeedbackRepository {
     private let store = MockRepositoryStore.shared
 
@@ -955,7 +1080,7 @@ struct MockOrganizationRepository: OrganizationRepository {
     }
 
     func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL {
-        URL(string: "https://example.com/organizations/\(organizationID)/cover.jpg")!
+        URL(string: "https://example.com/organizations/\(organizationID)/logo.jpg")!
     }
 
     func likeOrganization(id: String) async throws {

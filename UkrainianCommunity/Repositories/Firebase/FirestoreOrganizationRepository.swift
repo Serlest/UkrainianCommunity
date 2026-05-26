@@ -150,7 +150,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             throw AppError.permissionDenied
         }
         _ = try ensureAuthenticatedUserID()
-        let imageReference = Storage.storage().reference().child("organizations/\(id)/cover.jpg")
+        let imageReference = Storage.storage().reference().child("organizations/\(id)/logo.jpg")
 
         do {
             try await imageReference.delete()
@@ -167,7 +167,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
     func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL {
         _ = try ensureAuthenticatedUserID()
-        return try await imageUploadService.uploadOrganizationCoverImage(data: data, organizationID: organizationID)
+        return try await imageUploadService.uploadOrganizationLogoImage(data: data, organizationID: organizationID)
     }
 
     func likeOrganization(id: String) async throws {

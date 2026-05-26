@@ -299,7 +299,7 @@ struct NewsEditorView: View {
                 lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
 
-        switch user.globalRole.effectiveRole {
+        switch user.globalRole.authorizationRole {
         case .owner:
             return organizations
         case .user, .topAdmin, .appModerator:

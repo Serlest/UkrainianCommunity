@@ -46,6 +46,7 @@ private final class ModerationQueueViewModel: ObservableObject {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
+    private let notificationInboxRepository: NotificationInboxRepository?
     private let listenerBag = RealtimeListenerBag()
     private let organizationID: String?
     private var loadTask: Task<Void, Never>?
@@ -56,11 +57,13 @@ private final class ModerationQueueViewModel: ObservableObject {
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository,
+        notificationInboxRepository: NotificationInboxRepository?,
         organizationID: String? = nil
     ) {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
+        self.notificationInboxRepository = notificationInboxRepository
         self.organizationID = organizationID
     }
 
@@ -103,6 +106,14 @@ private final class ModerationQueueViewModel: ObservableObject {
             case .organization:
                 guard newStatus == .approved, let reviewerID else { throw AppError.permissionDenied }
                 try await organizationRepository.approveOrganizationRequest(id: item.contentID, reviewerID: reviewerID)
+                if let organization = item.organization {
+                    await createOrganizationRequestNotification(
+                        type: .organizationRequestApproved,
+                        organization: organization,
+                        reviewerID: reviewerID,
+                        message: nil
+                    )
+                }
                 AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             }
 
@@ -123,6 +134,14 @@ private final class ModerationQueueViewModel: ObservableObject {
 
         do {
             try await organizationRepository.requestOrganizationRevision(id: item.contentID, message: message, reviewerID: reviewerID)
+            if let organization = item.organization {
+                await createOrganizationRequestNotification(
+                    type: .organizationRequestNeedsRevision,
+                    organization: organization,
+                    reviewerID: reviewerID,
+                    message: message
+                )
+            }
             items.removeAll { $0.id == item.id }
             error = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
@@ -140,6 +159,14 @@ private final class ModerationQueueViewModel: ObservableObject {
         defer { processingItemIDs.remove(item.id) }
 
         do {
+            if let organization = item.organization {
+                await createOrganizationRequestNotification(
+                    type: .organizationRequestRejected,
+                    organization: organization,
+                    reviewerID: reviewerID,
+                    message: reason
+                )
+            }
             try await organizationRepository.rejectOrganizationRequest(id: item.contentID, reason: reason, reviewerID: reviewerID)
             items.removeAll { $0.id == item.id }
             error = nil
@@ -273,6 +300,46 @@ private final class ModerationQueueViewModel: ObservableObject {
         }
     }
 
+    private func createOrganizationRequestNotification(
+        type: AppNotificationType,
+        organization: Organization,
+        reviewerID: String,
+        message: String?
+    ) async {
+        guard let notificationInboxRepository,
+              let recipientUserId = organization.submittedByUserId else { return }
+        var payload = [
+            "organizationId": organization.id,
+            "organizationName": organization.name
+        ]
+        let trimmedMessage = message?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedMessage, !trimmedMessage.isEmpty {
+            payload[type == .organizationRequestRejected ? "rejectionReason" : "reviewMessage"] = trimmedMessage
+        }
+
+        let notification = AppNotification(
+            id: UUID().uuidString,
+            recipientUserId: recipientUserId,
+            type: type,
+            sourceType: .organization,
+            sourceId: organization.id,
+            actorUserId: reviewerID,
+            actorDisplayName: nil,
+            payload: payload,
+            isRead: false,
+            readAt: nil,
+            createdAt: Date()
+        )
+
+        do {
+            try await notificationInboxRepository.createNotification(userID: recipientUserId, notification: notification)
+        } catch {
+            #if DEBUG
+            print("Notification inbox create failed: type=\(type.rawValue) recipient=\(recipientUserId) source=\(organization.id) error=\(error)")
+            #endif
+        }
+    }
+
 }
 
 struct ModerationToolsView: View {
@@ -280,27 +347,35 @@ struct ModerationToolsView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: ModerationQueueViewModel
     @State private var selectedOrganizationRequest: ModerationQueueItem?
+    @State private var pendingRejectedItem: ModerationQueueItem?
+    @State private var isShowingRejectConfirmation = false
+    @State private var permissionOrganization: Organization?
     private let organizationID: String?
+    private let organizationRepository: OrganizationRepository
 
     init(
         organizationID: String? = nil,
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        notificationInboxRepository: NotificationInboxRepository? = nil
     ) {
         self.organizationID = organizationID
+        self.organizationRepository = organizationRepository
         _viewModel = StateObject(wrappedValue: ModerationQueueViewModel(
             newsRepository: newsRepository,
             eventRepository: eventRepository,
             organizationRepository: organizationRepository,
+            notificationInboxRepository: notificationInboxRepository,
             organizationID: organizationID
         ))
     }
 
     private var canAccessModeration: Bool {
         guard let user = authState.user else { return false }
-        if let organizationID {
-            return PermissionService.canModerateOrganizationContent(organizationId: organizationID, user: user)
+        if organizationID != nil {
+            guard let permissionOrganization else { return false }
+            return PermissionService.canModerateOrganizationContent(permissionOrganization, user: user)
         }
         return PermissionService.canModerate(section: .news, user: user)
             || PermissionService.canModerate(section: .events, user: user)
@@ -310,6 +385,10 @@ struct ModerationToolsView: View {
     private var allowedSections: Set<AppSection> {
         guard let user = authState.user else { return [] }
         if organizationID != nil {
+            guard let permissionOrganization,
+                  PermissionService.canModerateOrganizationContent(permissionOrganization, user: user) else {
+                return []
+            }
             return [.news, .events]
         }
         return PermissionService.moderatedSections(for: user)
@@ -336,7 +415,7 @@ struct ModerationToolsView: View {
                             dismiss()
                         }
                     } trailingContent: {
-                        AppNotificationBellButton()
+                        EmptyView()
                     }
 
                     AppGroupedContentPlane {
@@ -356,12 +435,30 @@ struct ModerationToolsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
         .task {
+            await loadPermissionOrganizationIfNeeded()
             viewModel.setAllowedSections(allowedSections)
             await viewModel.loadIfNeeded()
         }
         .onChange(of: allowedSections) { _, newSections in
             viewModel.setAllowedSections(newSections)
             viewModel.reload()
+        }
+        .confirmationDialog(
+            AppStrings.Moderation.rejectConfirmationTitle,
+            isPresented: $isShowingRejectConfirmation,
+            presenting: pendingRejectedItem
+        ) { item in
+            Button(AppStrings.Moderation.confirmReject, role: .destructive) {
+                Task {
+                    await viewModel.updateStatus(for: item, to: .rejected, reviewerID: authState.user?.id)
+                    pendingRejectedItem = nil
+                }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {
+                pendingRejectedItem = nil
+            }
+        } message: { item in
+            Text(AppStrings.Moderation.rejectConfirmationMessage(item.title))
         }
         .sheet(item: $selectedOrganizationRequest) { item in
             ModerationOrganizationRequestSheet(
@@ -381,6 +478,11 @@ struct ModerationToolsView: View {
                 }
             )
         }
+    }
+
+    private func loadPermissionOrganizationIfNeeded() async {
+        guard permissionOrganization == nil, let organizationID else { return }
+        permissionOrganization = try? await organizationRepository.fetchOrganization(id: organizationID)
     }
 
     @ViewBuilder
@@ -434,7 +536,8 @@ struct ModerationToolsView: View {
                                 if item.type == .organization {
                                     selectedOrganizationRequest = item
                                 } else {
-                                    await viewModel.updateStatus(for: item, to: .rejected, reviewerID: authState.user?.id)
+                                    pendingRejectedItem = item
+                                    isShowingRejectConfirmation = true
                                 }
                             },
                             detailsAction: item.type == .organization ? {
@@ -551,6 +654,8 @@ private struct ModerationOrganizationRequestSheet: View {
     let rejectAction: (String) async -> Void
     @State private var reviewMessage = ""
     @State private var rejectionReason = ""
+    @State private var isShowingApproveConfirmation = false
+    @State private var isShowingRejectConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -582,6 +687,28 @@ private struct ModerationOrganizationRequestSheet: View {
                     }
                 }
             }
+            .confirmationDialog(
+                AppStrings.Moderation.approveOrganizationConfirmationTitle,
+                isPresented: $isShowingApproveConfirmation
+            ) {
+                Button(AppStrings.Moderation.confirmApproveOrganization) {
+                    Task { await approveAction() }
+                }
+                Button(AppStrings.Common.cancel, role: .cancel) {}
+            } message: {
+                Text(AppStrings.Moderation.approveOrganizationConfirmationMessage)
+            }
+            .confirmationDialog(
+                AppStrings.Moderation.rejectOrganizationConfirmationTitle,
+                isPresented: $isShowingRejectConfirmation
+            ) {
+                Button(AppStrings.Moderation.confirmReject, role: .destructive) {
+                    Task { await rejectAction(rejectionReason) }
+                }
+                Button(AppStrings.Common.cancel, role: .cancel) {}
+            } message: {
+                Text(AppStrings.Moderation.rejectOrganizationConfirmationMessage)
+            }
         }
     }
 
@@ -594,7 +721,7 @@ private struct ModerationOrganizationRequestSheet: View {
                     isLoading: isProcessing,
                     systemImage: "checkmark.seal"
                 ) {
-                    Task { await approveAction() }
+                    isShowingApproveConfirmation = true
                 }
 
                 TextField(AppStrings.Moderation.revisionMessage, text: $reviewMessage, axis: .vertical)
@@ -613,7 +740,7 @@ private struct ModerationOrganizationRequestSheet: View {
                     .lineLimit(2...4)
                     .textFieldStyle(.roundedBorder)
                 Button(role: .destructive) {
-                    Task { await rejectAction(rejectionReason) }
+                    isShowingRejectConfirmation = true
                 } label: {
                     Label(AppStrings.Moderation.rejectRequest, systemImage: "trash")
                         .font(.subheadline.weight(.semibold))
@@ -737,7 +864,8 @@ private struct OrganizationRequestPreviewContent: View {
         ModerationToolsView(
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
-            organizationRepository: MockOrganizationRepository()
+            organizationRepository: MockOrganizationRepository(),
+            notificationInboxRepository: MockNotificationInboxRepository()
         )
     }
     .environmentObject(AuthState())

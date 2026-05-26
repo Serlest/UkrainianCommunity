@@ -9,6 +9,64 @@ enum AppStrings {
         static var profile: String { text("tab.profile", "Profile") }
     }
 
+    enum LocalNotifications {
+        static var eventReminderFallbackBody: String {
+            String(localized: "notifications.local.event_reminder.fallback_body", defaultValue: "Подія скоро почнеться", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var testTitle: String {
+            String(localized: "notifications.local.test.title", defaultValue: "Тестове сповіщення", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var testBody: String {
+            String(localized: "notifications.local.test.body", defaultValue: "Локальні сповіщення працюють.", bundle: .main, locale: LocalizationStore.locale)
+        }
+    }
+
+    enum NotificationInbox {
+        static var title: String { text("notifications.inbox.title", "Notifications") }
+        static var subtitle: String { text("notifications.inbox.subtitle", "Updates about your requests and support messages.") }
+        static var emptyTitle: String { text("notifications.inbox.empty.title", "No notifications yet") }
+        static var emptyMessage: String { text("notifications.inbox.empty.message", "New replies and request updates will appear here.") }
+        static var markAllRead: String { text("notifications.inbox.mark_all_read", "Mark all as read") }
+        static var feedbackReplyTitle: String { text("notifications.inbox.feedback_reply.title", "Support replied") }
+        static var feedbackReplyBody: String { text("notifications.inbox.feedback_reply.body", "You have a new reply to your message.") }
+        static var organizationApprovedTitle: String { text("notifications.inbox.organization_approved.title", "Organization approved") }
+        static var organizationNeedsRevisionTitle: String { text("notifications.inbox.organization_needs_revision.title", "Organization needs revision") }
+        static var organizationRejectedTitle: String { text("notifications.inbox.organization_rejected.title", "Organization rejected") }
+        static var genericBody: String { text("notifications.inbox.generic.body", "Open this notification for details.") }
+
+        static func organizationApprovedBody(_ organizationName: String) -> String {
+            LocalizationStore.localizedFormat(
+                "notifications.inbox.organization_approved.body",
+                defaultValue: "%@ was approved.",
+                arguments: [organizationName]
+            )
+        }
+
+        static func organizationNeedsRevisionBody(_ organizationName: String) -> String {
+            LocalizationStore.localizedFormat(
+                "notifications.inbox.organization_needs_revision.body",
+                defaultValue: "%@ needs changes before approval.",
+                arguments: [organizationName]
+            )
+        }
+
+        static func organizationRejectedBody(_ organizationName: String) -> String {
+            LocalizationStore.localizedFormat(
+                "notifications.inbox.organization_rejected.body",
+                defaultValue: "%@ was rejected.",
+                arguments: [organizationName]
+            )
+        }
+
+        static func unreadCount(_ count: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "notifications.inbox.unread_count",
+                defaultValue: "%lld unread",
+                arguments: [count]
+            )
+        }
+    }
+
     enum Home {
         static var brandTitle: String { text("home.brand_title", "Ukrainian Community") }
         static var brandSubtitle: String { text("home.brand_subtitle", "Austria") }
@@ -300,9 +358,9 @@ enum AppStrings {
         static var requestSubmittedSuccessfully: String { text("organizations.editor.request_success", "Заявку надіслано на перевірку.") }
         static var updatedSuccessfully: String { text("organizations.editor.updated_success", "Зміни збережено.") }
         static var requestAlreadyReviewed: String { text("organizations.editor.error.request_already_reviewed", "Заявку вже було розглянуто. Оновіть сторінку.") }
-        static var imageSectionTitle: String { text("organizations.editor.image_section", "Логотип або фото") }
-        static var logoUploadTitle: String { text("organizations.editor.logo_upload_title", "Додати логотип або фото") }
-        static var logoUploadHelper: String { text("organizations.editor.logo_upload_helper", "Квадратне зображення виглядатиме найкраще") }
+        static var imageSectionTitle: String { text("organizations.editor.image_section", "Логотип") }
+        static var logoUploadTitle: String { text("organizations.editor.logo_upload_title", "Додати логотип") }
+        static var logoUploadHelper: String { text("organizations.editor.logo_upload_helper", "Квадратний логотип виглядатиме найкраще") }
         static var detailsSectionTitle: String { text("organizations.editor.details_section", "Основне") }
         static var categorySectionTitle: String { text("organizations.editor.category_section", "Напрям діяльності *") }
         static var categoryIntegration: String { text("organizations.editor.category.integration", "Інтеграція") }
@@ -813,8 +871,47 @@ enum AppStrings {
         static var ownerPersonalSettings: String { text("profile.owner.personal_settings", "Особисті налаштування") }
         static var ownerPersonalSettingsSubtitle: String { text("profile.owner.personal_settings.subtitle", "Профіль власника, мова, тема та особисті сповіщення.") }
         static var notificationSettings: String { text("profile.notifications.settings", "Сповіщення") }
-        static var notificationSettingsSubtitle: String { text("profile.notifications.settings.subtitle", "Email, push та важливі оновлення.") }
-        static var notificationsSectionSubtitle: String { text("profile.notifications.section_subtitle", "Майбутній центр push, email та важливих повідомлень.") }
+        static var notificationSettingsSubtitle: String { text("profile.notifications.settings.subtitle", "Локальні нагадування про зареєстровані події.") }
+        static var notificationsSectionSubtitle: String { text("profile.notifications.section_subtitle", "Керуйте локальними нагадуваннями про події на цьому пристрої.") }
+        static var notificationsEnabled: String {
+            String(localized: "profile.notifications.enabled", defaultValue: "Увімкнути сповіщення", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationsEnabledSubtitle: String {
+            String(localized: "profile.notifications.enabled.subtitle", defaultValue: "Дозволяє застосунку показувати локальні нагадування.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var eventRemindersEnabled: String {
+            String(localized: "profile.notifications.event_reminders.enabled", defaultValue: "Нагадування про події", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var eventRemindersEnabledSubtitle: String {
+            String(localized: "profile.notifications.event_reminders.enabled.subtitle", defaultValue: "Надсилати нагадування перед зареєстрованими подіями.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var reminderLeadTime: String {
+            String(localized: "profile.notifications.reminder_lead_time", defaultValue: "Час нагадування", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var reminderLeadTimeSubtitle: String {
+            String(localized: "profile.notifications.reminder_lead_time.subtitle", defaultValue: "Коли нагадувати перед початком події.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationPermissionDenied: String {
+            String(localized: "profile.notifications.permission_denied", defaultValue: "Дозвіл на сповіщення не надано. Увімкніть його в налаштуваннях iOS.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationPreferencesLoadFailed: String {
+            String(localized: "profile.notifications.load_failed", defaultValue: "Не вдалося завантажити налаштування сповіщень.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationPreferencesSaveFailed: String {
+            String(localized: "profile.notifications.save_failed", defaultValue: "Не вдалося зберегти налаштування сповіщень.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationPreferencesSaved: String {
+            String(localized: "profile.notifications.saved", defaultValue: "Налаштування сповіщень збережено.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationTestButton: String {
+            String(localized: "profile.notifications.test_button", defaultValue: "Тестове сповіщення", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationTestSent: String {
+            String(localized: "profile.notifications.test_sent", defaultValue: "Тестове сповіщення буде показано за кілька секунд.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var notificationTestFailed: String {
+            String(localized: "profile.notifications.test_failed", defaultValue: "Не вдалося надіслати тестове сповіщення.", bundle: .main, locale: LocalizationStore.locale)
+        }
         static var organizationNewsNotifications: String { text("profile.notifications.organization_news", "Новини від організацій") }
         static var organizationNewsNotificationsSubtitle: String { text("profile.notifications.organization_news.subtitle", "Оновлення від організацій, на які ви підписані.") }
         static var eventReminders: String { text("profile.notifications.event_reminders", "Нагадування про події") }
@@ -895,7 +992,7 @@ enum AppStrings {
         static var volunteeringSubtitle: String { text("profile.future.volunteering.subtitle", "Можливість відгукуватися на потреби організацій.") }
         static var participationRequestsSubtitle: String { text("profile.community.participation_requests.subtitle", "Майбутні заявки на участь у спільноті.") }
         static var communityBadgesSubtitle: String { text("profile.community.badges.subtitle", "Досягнення та внесок у спільноту.") }
-        static var notificationSettingsRowSubtitle: String { text("profile.notifications.settings.row_subtitle", "Push, email та важливі оновлення.") }
+        static var notificationSettingsRowSubtitle: String { text("profile.notifications.settings.row_subtitle", "Локальні нагадування та сповіщення в застосунку.") }
         static var termsOfUse: String { text("profile.terms_of_use", "Умови користування") }
         static var privacyPolicy: String { text("profile.privacy_policy", "Політика конфіденційності") }
         static var savedContentIntro: String { text("profile.saved_content.intro", "Новини, події та організації, які ви зберегли.") }
@@ -985,6 +1082,16 @@ enum AppStrings {
         static var retry: String { text("moderation.retry", "Retry") }
         static var approve: String { text("moderation.approve", "Approve") }
         static var reject: String { text("moderation.reject", "Reject") }
+        static var confirmReject: String { text("moderation.confirm.reject", "Reject") }
+        static var rejectConfirmationTitle: String { text("moderation.reject.confirm.title", "Reject content?") }
+        static func rejectConfirmationMessage(_ title: String) -> String {
+            LocalizationStore.localizedFormat("moderation.reject.confirm.message", defaultValue: "This will reject “%@” and remove it from the moderation queue.", arguments: [title])
+        }
+        static var approveOrganizationConfirmationTitle: String { text("moderation.organization.approve.confirm.title", "Approve organization?") }
+        static var approveOrganizationConfirmationMessage: String { text("moderation.organization.approve.confirm.message", "This will publish the organization and notify the applicant.") }
+        static var confirmApproveOrganization: String { text("moderation.organization.approve.confirm.action", "Approve organization") }
+        static var rejectOrganizationConfirmationTitle: String { text("moderation.organization.reject.confirm.title", "Reject organization request?") }
+        static var rejectOrganizationConfirmationMessage: String { text("moderation.organization.reject.confirm.message", "The applicant will receive the rejection reason you entered.") }
         static var typeNews: String { text("moderation.type.news", "News") }
         static var typeEvent: String { text("moderation.type.event", "Event") }
         static var typeOrganization: String { text("moderation.type.organization", "Organization") }
@@ -1250,6 +1357,7 @@ enum AppStrings {
         static var create: String { text("action.create", "Create") }
         static var edit: String { text("action.edit", "Edit") }
         static var open: String { text("action.open", "Відкрити") }
+        static var retry: String { text("action.retry", "Спробувати ще раз") }
         static var delete: String { text("action.delete", "Delete") }
         static var share: String { text("action.share", "Share") }
         static var save: String { text("action.save", "Save") }
@@ -1374,6 +1482,26 @@ enum AppStrings {
             defaultValue: "%lld registered events",
             arguments: [count]
         )
+    }
+
+    static func profileNotificationReminderMinutes(_ count: Int) -> String {
+        let format = String(
+            localized: "profile.notifications.reminder.minutes",
+            defaultValue: "%lld min",
+            bundle: .main,
+            locale: LocalizationStore.locale
+        )
+        return String(format: format, locale: LocalizationStore.locale, arguments: [count])
+    }
+
+    static func profileNotificationReminderDays(_ count: Int) -> String {
+        let format = String(
+            localized: "profile.notifications.reminder.days",
+            defaultValue: "%lld day(s)",
+            bundle: .main,
+            locale: LocalizationStore.locale
+        )
+        return String(format: format, locale: LocalizationStore.locale, arguments: [count])
     }
 
     static func profileOrganizationsCount(_ count: Int) -> String {

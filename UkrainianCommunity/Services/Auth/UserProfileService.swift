@@ -74,35 +74,6 @@ final class UserProfileService {
 
     private init() {}
 
-    func ensureUserDocumentExists(for uid: String) async {
-        let document = Firestore.firestore().collection("users").document(uid)
-
-        do {
-            let snapshot = try await document.getDocument()
-
-            if snapshot.exists {
-                return
-            }
-
-            try await document.setData([
-                "id": uid,
-                "isBlocked": false,
-                "blockState": UserBlockState.active.rawValue,
-                "globalRole": GlobalRole.user.rawValue,
-                "canManageGuide": false,
-                "selectedFederalState": AustrianFederalState.tirol.rawValue,
-                "displayName": "",
-                "telegramUsername": NSNull(),
-                "accountStatus": AccountStatus.active.rawValue,
-                "warningCount": 0,
-                "communityMemberships": [],
-                "createdAt": FieldValue.serverTimestamp(),
-                "updatedAt": FieldValue.serverTimestamp()
-            ])
-        } catch {
-        }
-    }
-
     func createRegisteredUserDocument(for uid: String, draft: RegistrationProfileDraft) async throws {
         let document = Firestore.firestore().collection("users").document(uid)
         let payload = Self.makeRegisteredUserDocumentData(uid: uid, draft: draft)
@@ -132,14 +103,14 @@ final class UserProfileService {
         }
     }
 
-    func fetchUserProfile(uid: String) async -> AppUser? {
+    func fetchExistingUserProfile(uid: String) async throws -> AppUser {
         let document = Firestore.firestore().collection("users").document(uid)
 
         do {
             let snapshot = try await document.getDocument()
 
             guard snapshot.exists, let data = snapshot.data() else {
-                return nil
+                throw AppError.notFound
             }
 
             let isBlocked = data["isBlocked"] as? Bool ?? false
@@ -185,8 +156,12 @@ final class UserProfileService {
 
             return user
         } catch {
-            return nil
+            throw mapFirestoreReadError(error)
         }
+    }
+
+    func fetchUserProfile(uid: String) async -> AppUser? {
+        try? await fetchExistingUserProfile(uid: uid)
     }
 
     func upsertPublicProfile(for user: AppUser) async throws {
@@ -230,6 +205,21 @@ final class UserProfileService {
             .document(uid)
             .setData(data, merge: true)
     }
+
+    private func mapFirestoreReadError(_ error: Error) -> Error {
+        guard let nsError = error as NSError?, nsError.domain == FirestoreErrorDomain else {
+            return error
+        }
+
+        switch nsError.code {
+        case FirestoreErrorCode.permissionDenied.rawValue:
+            return AppError.permissionDenied
+        case FirestoreErrorCode.unavailable.rawValue, FirestoreErrorCode.deadlineExceeded.rawValue:
+            return AppError.network
+        default:
+            return error
+        }
+    }
 }
 
 private extension String {
@@ -271,9 +261,7 @@ struct FirestoreUserRepository: UserRepository {
             throw AppError.permissionDenied
         }
 
-        guard let user = await UserProfileService.shared.fetchUserProfile(uid: uid) else {
-            throw AppError.notFound
-        }
+        let user = try await UserProfileService.shared.fetchExistingUserProfile(uid: uid)
 
         try? await UserProfileService.shared.upsertPublicProfile(for: user)
         return user
@@ -307,9 +295,7 @@ struct FirestoreUserRepository: UserRepository {
             "updatedAt": FieldValue.serverTimestamp()
         ])
 
-        guard let updatedUser = await UserProfileService.shared.fetchUserProfile(uid: uid) else {
-            throw AppError.notFound
-        }
+        let updatedUser = try await UserProfileService.shared.fetchExistingUserProfile(uid: uid)
 
         try? await UserProfileService.shared.upsertPublicProfile(for: updatedUser)
         return updatedUser
@@ -325,7 +311,7 @@ struct FirestoreUserRepository: UserRepository {
             throw AccountDeletionError.requiresRecentLogin
         }
 
-        guard currentUser.globalRole.effectiveRole != .owner else {
+        guard currentUser.globalRole.authorizationRole != .owner else {
             throw AccountDeletionError.platformOwner
         }
 
@@ -414,6 +400,7 @@ struct FirestoreUserRepository: UserRepository {
             "newsBookmarks",
             "eventBookmarks",
             "organizationBookmarks",
+            "notificationPreferences",
             "eventViews",
             "newsViews"
         ]

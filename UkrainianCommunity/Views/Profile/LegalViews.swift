@@ -71,7 +71,7 @@ struct LegalDocumentView: View {
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     AppBrandHeader {
-                        AppNotificationBellButton()
+                        EmptyView()
                     }
 
                     AppGroupedContentPlane {

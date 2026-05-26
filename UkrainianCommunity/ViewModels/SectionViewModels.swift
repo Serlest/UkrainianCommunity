@@ -249,6 +249,7 @@ final class HomeFeedViewModel: ObservableObject {
         lastLoadedAt = nil
     }
 
+
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
 
@@ -627,13 +628,21 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var pendingEventViewIDs = Set<String>()
     @Published private(set) var pendingEventCommentIDs = Set<String>()
     private let repository: EventRepository
+    private let notificationPreferencesRepository: NotificationPreferencesRepository
+    private let localEventReminderService: LocalEventReminderServiceProtocol
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
 
-    init(repository: EventRepository) {
+    init(
+        repository: EventRepository,
+        notificationPreferencesRepository: NotificationPreferencesRepository? = nil,
+        localEventReminderService: LocalEventReminderServiceProtocol? = nil
+    ) {
         self.repository = repository
+        self.notificationPreferencesRepository = notificationPreferencesRepository ?? FirestoreNotificationPreferencesRepository()
+        self.localEventReminderService = localEventReminderService ?? LocalEventReminderService()
         events = []
         isLoading = false
     }
@@ -721,7 +730,6 @@ final class EventsViewModel: ObservableObject {
         guard !pendingEventRegistrationIDs.contains(eventID) else { return }
         let shouldRegister = events[index].registrationState != .registered
         let event = events[index]
-        let organizationID = events[index].source.organizationId
 
         Task {
             pendingEventRegistrationIDs.insert(eventID)
@@ -730,8 +738,10 @@ final class EventsViewModel: ObservableObject {
             do {
                 if shouldRegister {
                     try await repository.registerForEvent(id: eventID)
+                    await scheduleReminderIfNeeded(for: event)
                 } else {
                     try await repository.cancelEventRegistration(id: eventID)
+                    cancelReminder(for: eventID)
                 }
 
                 let updatedRegisteredCount = shouldRegister
@@ -775,13 +785,32 @@ final class EventsViewModel: ObservableObject {
                 )
                 ActivityLogRecorder.recordEvent(event, actionType: shouldRegister ? .registeredForEvent : .canceledEventRegistration)
                 error = nil
-                AppContentChangeBus.postRegistrationsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 error = appError
             } catch {
                 self.error = .unknown
             }
         }
+    }
+
+    private func scheduleReminderIfNeeded(for event: Event) async {
+        guard let userID = AuthService.shared.currentUser?.uid else { return }
+
+        do {
+            let preferences = try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            guard preferences.notificationsEnabled, preferences.eventRemindersEnabled else { return }
+            try await localEventReminderService.scheduleEventReminder(
+                event: event,
+                userID: userID,
+                leadMinutes: preferences.reminderLeadMinutes
+            )
+        } catch {
+        }
+    }
+
+    private func cancelReminder(for eventID: String) {
+        guard let userID = AuthService.shared.currentUser?.uid else { return }
+        localEventReminderService.cancelEventReminder(eventID: eventID, userID: userID)
     }
 
     func toggleBookmark(for eventID: String) {
@@ -1010,12 +1039,17 @@ final class MyRegistrationsViewModel: ObservableObject {
     @Published private(set) var pendingCancellationIDs = Set<String>()
 
     private let repository: EventRepository
+    private let localEventReminderService: LocalEventReminderServiceProtocol
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
 
-    init(repository: EventRepository) {
+    init(
+        repository: EventRepository,
+        localEventReminderService: LocalEventReminderServiceProtocol? = nil
+    ) {
         self.repository = repository
+        self.localEventReminderService = localEventReminderService ?? LocalEventReminderService()
         events = []
         isLoading = false
     }
@@ -1068,22 +1102,25 @@ final class MyRegistrationsViewModel: ObservableObject {
         guard !pendingCancellationIDs.contains(eventID) else { return }
 
         let event = events[index]
-        let organizationID = events[index].source.organizationId
         pendingCancellationIDs.insert(eventID)
         defer { pendingCancellationIDs.remove(eventID) }
 
         do {
             try await repository.cancelEventRegistration(id: eventID)
+            cancelReminder(for: eventID)
             ActivityLogRecorder.recordEvent(event, actionType: .canceledEventRegistration)
             events.removeAll { $0.id == eventID }
             error = nil
-            AppContentChangeBus.postEventsChanged(organizationID: organizationID)
-            AppContentChangeBus.postRegistrationsChanged(organizationID: organizationID)
         } catch let appError as AppError {
             error = appError
         } catch {
             self.error = .unknown
         }
+    }
+
+    private func cancelReminder(for eventID: String) {
+        guard let userID = AuthService.shared.currentUser?.uid else { return }
+        localEventReminderService.cancelEventReminder(eventID: eventID, userID: userID)
     }
 
     private func startLoad(force: Bool) async {
@@ -1142,13 +1179,18 @@ final class OrganizationsViewModel: ObservableObject {
     @Published private(set) var isUploadingOrganizationImage = false
     @Published private(set) var validationErrorMessage: String?
     private let repository: OrganizationRepository
+    private let notificationInboxRepository: NotificationInboxRepository?
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
 
-    init(repository: OrganizationRepository) {
+    init(
+        repository: OrganizationRepository,
+        notificationInboxRepository: NotificationInboxRepository? = nil
+    ) {
         self.repository = repository
+        self.notificationInboxRepository = notificationInboxRepository
         organizations = []
         isLoading = false
     }
@@ -1227,7 +1269,6 @@ final class OrganizationsViewModel: ObservableObject {
                 }
 
                 error = nil
-                AppContentChangeBus.postOrganizationsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 organizations[index].likeState = previousLikeState
                 organizations[index].likeCount = previousLikeCount
@@ -1265,7 +1306,6 @@ final class OrganizationsViewModel: ObservableObject {
 
                 ActivityLogRecorder.recordOrganization(organization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
                 error = nil
-                AppContentChangeBus.postOrganizationsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 organizations[index].isSubscribed = previousSubscriptionState
                 organizations[index].subscriberCount = previousSubscriberCount
@@ -1302,7 +1342,6 @@ final class OrganizationsViewModel: ObservableObject {
 
                 ActivityLogRecorder.recordOrganization(organization, actionType: shouldBookmark ? .savedOrganization : .unsavedOrganization)
                 error = nil
-                AppContentChangeBus.postOrganizationsChanged(organizationID: organizationID)
             } catch let appError as AppError {
                 organizations[index].isBookmarked = previousBookmarkState
                 error = appError
@@ -1432,7 +1471,7 @@ final class OrganizationsViewModel: ObservableObject {
         startListeningOrganizationRequests(for: user.id)
 
         do {
-            organizationRequests = try await repository.fetchOrganizationRequests(submittedByUserID: user.id)
+            organizationRequests = try await repository.fetchOrganizationRequests(submittedByUserID: user.id).deduplicatedByID()
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -1448,7 +1487,7 @@ final class OrganizationsViewModel: ObservableObject {
               let realtimeRepository = repository as? OrganizationRealtimeRepository else { return }
 
         listenerBag.set(realtimeRepository.listenSubmittedOrganizationRequests(userID: userID) { [weak self] requests in
-            self?.organizationRequests = requests
+            self?.organizationRequests = requests.deduplicatedByID()
             self?.error = nil
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
@@ -1566,14 +1605,22 @@ final class OrganizationsViewModel: ObservableObject {
                 var organizationToInsert = organization
 
                 if let imageData {
-                    isUploadingOrganizationImage = true
-                    let uploadedURL = try await repository.uploadOrganizationImage(data: imageData, organizationID: organization.id)
-                    isUploadingOrganizationImage = false
-                    organizationToInsert = organization.settingOrganizationImageURL(uploadedURL.absoluteString)
-                    try await repository.updateOrganization(organizationToInsert)
+                    do {
+                        isUploadingOrganizationImage = true
+                        let uploadedURL = try await repository.uploadOrganizationImage(data: imageData, organizationID: organization.id)
+                        isUploadingOrganizationImage = false
+                        organizationToInsert = organization.settingOrganizationImageURL(uploadedURL.absoluteString)
+                        try await repository.updateOrganization(organizationToInsert)
+                    } catch {
+                        isUploadingOrganizationImage = false
+                        do {
+                            try await repository.deleteOrganization(id: organization.id)
+                        } catch {}
+                        throw error
+                    }
                 }
 
-                organizationRequests.insert(organizationToInsert, at: 0)
+                organizationRequests.upsertByID(organizationToInsert)
                 contentVersion &+= 1
                 error = nil
                 AppContentChangeBus.postOrganizationsChanged(organizationID: organizationToInsert.id)
@@ -1654,7 +1701,7 @@ final class OrganizationsViewModel: ObservableObject {
                 if organizationToSave.moderationStatus == .approved {
                     organizations.insert(organizationToSave, at: 0)
                 } else {
-                    organizationRequests.insert(organizationToSave, at: 0)
+                    organizationRequests.upsertByID(organizationToSave)
                 }
             }
 
@@ -1703,20 +1750,94 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func approveOrganizationRequest(id: String, reviewerID: String) async throws {
+        let organization = await organizationRequestSnapshot(id: id)
         try await repository.approveOrganizationRequest(id: id, reviewerID: reviewerID)
+        if let organization {
+            await createOrganizationRequestNotification(
+                type: .organizationRequestApproved,
+                organization: organization,
+                reviewerID: reviewerID,
+                message: nil
+            )
+        }
         organizationRequests.removeAll { $0.id == id }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
     }
 
     func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
+        let organization = await organizationRequestSnapshot(id: id)
         try await repository.requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
+        if let organization {
+            await createOrganizationRequestNotification(
+                type: .organizationRequestNeedsRevision,
+                organization: organization,
+                reviewerID: reviewerID,
+                message: message
+            )
+        }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
     }
 
     func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
+        let organization = await organizationRequestSnapshot(id: id)
+        if let organization {
+            await createOrganizationRequestNotification(
+                type: .organizationRequestRejected,
+                organization: organization,
+                reviewerID: reviewerID,
+                message: reason
+            )
+        }
         try await repository.rejectOrganizationRequest(id: id, reason: reason, reviewerID: reviewerID)
         organizationRequests.removeAll { $0.id == id }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
+    }
+
+    private func createOrganizationRequestNotification(
+        type: AppNotificationType,
+        organization: Organization,
+        reviewerID: String,
+        message: String?
+    ) async {
+        guard let notificationInboxRepository,
+              let recipientUserId = organization.submittedByUserId else { return }
+        var payload = [
+            "organizationId": organization.id,
+            "organizationName": organization.name
+        ]
+        let trimmedMessage = message?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedMessage, !trimmedMessage.isEmpty {
+            payload[type == .organizationRequestRejected ? "rejectionReason" : "reviewMessage"] = trimmedMessage
+        }
+
+        let notification = AppNotification(
+            id: UUID().uuidString,
+            recipientUserId: recipientUserId,
+            type: type,
+            sourceType: .organization,
+            sourceId: organization.id,
+            actorUserId: reviewerID,
+            actorDisplayName: nil,
+            payload: payload,
+            isRead: false,
+            readAt: nil,
+            createdAt: Date()
+        )
+
+        do {
+            try await notificationInboxRepository.createNotification(userID: recipientUserId, notification: notification)
+        } catch {
+            #if DEBUG
+            print("Notification inbox create failed: type=\(type.rawValue) recipient=\(recipientUserId) source=\(organization.id) error=\(error)")
+            #endif
+        }
+    }
+
+    private func organizationRequestSnapshot(id: String) async -> Organization? {
+        if let organization = organizationRequests.first(where: { $0.id == id }) {
+            return organization
+        }
+        return try? await repository.fetchOrganization(id: id)
     }
 }
 
@@ -1871,17 +1992,35 @@ final class ProfileViewModel: ObservableObject {
     @Published private(set) var isSubmittingFeedback = false
     @Published private(set) var isDeletingAccount = false
     @Published private(set) var isLoading = false
+    @Published var notificationPreferences: NotificationPreferences = .default
+    @Published private(set) var isLoadingNotificationPreferences = false
+    @Published private(set) var isSavingNotificationPreferences = false
+    @Published private(set) var isSendingTestNotification = false
+    @Published var notificationPreferencesMessage: String?
     @Published var profileMessage: String?
     @Published var feedbackMessage: String?
     private let repository: UserRepository
     private let feedbackRepository: FeedbackRepository
+    private let notificationPreferencesRepository: NotificationPreferencesRepository
+    private let notificationPermissionService: NotificationPermissionServiceProtocol
+    private let localEventReminderService: LocalEventReminderServiceProtocol
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
+    private var loadedNotificationPreferencesUserID: String?
 
-    init(repository: UserRepository, feedbackRepository: FeedbackRepository) {
+    init(
+        repository: UserRepository,
+        feedbackRepository: FeedbackRepository,
+        notificationPreferencesRepository: NotificationPreferencesRepository,
+        notificationPermissionService: NotificationPermissionServiceProtocol,
+        localEventReminderService: LocalEventReminderServiceProtocol
+    ) {
         self.repository = repository
         self.feedbackRepository = feedbackRepository
+        self.notificationPreferencesRepository = notificationPreferencesRepository
+        self.notificationPermissionService = notificationPermissionService
+        self.localEventReminderService = localEventReminderService
         user = .placeholder
         settings = .stored
     }
@@ -1925,10 +2064,119 @@ final class ProfileViewModel: ObservableObject {
         isSubmittingFeedback = false
         isDeletingAccount = false
         isLoading = false
+        notificationPreferences = .default
+        isLoadingNotificationPreferences = false
+        isSavingNotificationPreferences = false
+        isSendingTestNotification = false
+        notificationPreferencesMessage = nil
+        loadedNotificationPreferencesUserID = nil
         profileMessage = nil
         feedbackMessage = nil
         hasLoaded = false
         lastLoadedAt = nil
+    }
+
+    func loadNotificationPreferencesIfNeeded(userID: String) async {
+        guard loadedNotificationPreferencesUserID != userID else { return }
+        await loadNotificationPreferences(userID: userID)
+    }
+
+    func refreshNotificationPreferences(userID: String) async {
+        await loadNotificationPreferences(userID: userID)
+    }
+
+    func setNotificationsEnabled(_ isEnabled: Bool, userID: String) async {
+        guard !isSavingNotificationPreferences else { return }
+
+        if isEnabled {
+            do {
+                guard try await notificationPermissionService.requestNotificationAuthorization() else {
+                    notificationPreferences.notificationsEnabled = false
+                    notificationPreferencesMessage = AppStrings.Profile.notificationPermissionDenied
+                    return
+                }
+            } catch {
+                notificationPreferences.notificationsEnabled = false
+                notificationPreferencesMessage = AppStrings.Profile.notificationPermissionDenied
+                return
+            }
+        }
+
+        var updatedPreferences = notificationPreferences
+        updatedPreferences.notificationsEnabled = isEnabled
+        await saveNotificationPreferences(updatedPreferences, userID: userID)
+    }
+
+    func setEventRemindersEnabled(_ isEnabled: Bool, userID: String) async {
+        guard !isSavingNotificationPreferences else { return }
+        var updatedPreferences = notificationPreferences
+        updatedPreferences.eventRemindersEnabled = isEnabled
+        await saveNotificationPreferences(updatedPreferences, userID: userID)
+    }
+
+    func setReminderLeadMinutes(_ minutes: Int, userID: String) async {
+        guard !isSavingNotificationPreferences else { return }
+        var updatedPreferences = notificationPreferences
+        updatedPreferences.reminderLeadMinutes = minutes
+        await saveNotificationPreferences(updatedPreferences, userID: userID)
+    }
+
+    func sendTestNotification(userID: String) async {
+        guard !isSendingTestNotification else { return }
+        guard notificationPreferences.notificationsEnabled else { return }
+
+        isSendingTestNotification = true
+        notificationPreferencesMessage = nil
+        defer { isSendingTestNotification = false }
+
+        do {
+            try await localEventReminderService.scheduleTestNotification(userID: userID)
+            notificationPreferencesMessage = AppStrings.Profile.notificationTestSent
+        } catch AppError.permissionDenied {
+            notificationPreferences.notificationsEnabled = false
+            notificationPreferencesMessage = AppStrings.Profile.notificationPermissionDenied
+        } catch {
+            notificationPreferencesMessage = AppStrings.Profile.notificationTestFailed
+        }
+    }
+
+    private func loadNotificationPreferences(userID: String) async {
+        isLoadingNotificationPreferences = true
+        defer { isLoadingNotificationPreferences = false }
+
+        do {
+            notificationPreferences = try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            notificationPreferencesMessage = nil
+            loadedNotificationPreferencesUserID = userID
+        } catch let appError as AppError {
+            error = appError
+            notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesLoadFailed
+        } catch {
+            self.error = .unknown
+            notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesLoadFailed
+        }
+    }
+
+    private func saveNotificationPreferences(_ updatedPreferences: NotificationPreferences, userID: String) async {
+        let previousPreferences = notificationPreferences
+        notificationPreferences = updatedPreferences
+        isSavingNotificationPreferences = true
+        notificationPreferencesMessage = nil
+        defer { isSavingNotificationPreferences = false }
+
+        do {
+            try await notificationPreferencesRepository.saveNotificationPreferences(updatedPreferences, userID: userID)
+            notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaved
+            loadedNotificationPreferencesUserID = userID
+        } catch let appError as AppError {
+            notificationPreferences = previousPreferences
+            error = appError
+            notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaveFailed
+        } catch {
+            notificationPreferences = previousPreferences
+            self.error = .unknown
+            notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaveFailed
+        }
     }
 
     func saveProfile(_ profile: EditableUserProfileDraft, avatarImageData: Data? = nil) async -> AppUser? {
@@ -2270,11 +2518,16 @@ final class FeedbackInboxViewModel: ObservableObject {
     @Published private(set) var updatingFeedbackIDs = Set<String>()
 
     private let repository: FeedbackRepository
+    private let notificationInboxRepository: NotificationInboxRepository?
     private let listenerBag = RealtimeListenerBag()
     private var hasLoaded = false
 
-    init(repository: FeedbackRepository) {
+    init(
+        repository: FeedbackRepository,
+        notificationInboxRepository: NotificationInboxRepository? = nil
+    ) {
         self.repository = repository
+        self.notificationInboxRepository = notificationInboxRepository
     }
 
     func loadIfNeeded() async {
@@ -2327,6 +2580,7 @@ final class FeedbackInboxViewModel: ObservableObject {
 
         do {
             try await repository.sendOwnerFeedbackReply(feedback: item, text: trimmedReply, owner: owner)
+            await createFeedbackReplyNotification(for: item, reply: trimmedReply, owner: owner)
             await refresh()
             if let updatedItem = items.first(where: { $0.id == item.id }) {
                 await loadMessages(for: updatedItem)
@@ -2420,6 +2674,39 @@ final class FeedbackInboxViewModel: ObservableObject {
         }, for: key)
     }
 
+    private func createFeedbackReplyNotification(for item: FeedbackItem, reply: String, owner: AppUser) async {
+        guard let notificationInboxRepository else { return }
+        var payload = [
+            "feedbackId": item.id,
+            "messagePreview": String(reply.prefix(160))
+        ]
+        if let subject = item.subject?.trimmingCharacters(in: .whitespacesAndNewlines), !subject.isEmpty {
+            payload["subject"] = subject
+        }
+
+        let notification = AppNotification(
+            id: UUID().uuidString,
+            recipientUserId: item.userId,
+            type: .feedbackReply,
+            sourceType: .feedback,
+            sourceId: item.id,
+            actorUserId: owner.id,
+            actorDisplayName: owner.preferredDisplayName,
+            payload: payload,
+            isRead: false,
+            readAt: nil,
+            createdAt: Date()
+        )
+
+        do {
+            try await notificationInboxRepository.createNotification(userID: item.userId, notification: notification)
+        } catch {
+            #if DEBUG
+            print("Notification inbox create failed: type=\(AppNotificationType.feedbackReply.rawValue) recipient=\(item.userId) source=\(item.id) error=\(error)")
+            #endif
+        }
+    }
+
     private func update(_ item: FeedbackItem, status: FeedbackStatus) async {
         guard !updatingFeedbackIDs.contains(item.id) else { return }
         updatingFeedbackIDs.insert(item.id)
@@ -2462,6 +2749,23 @@ private extension FeedbackItem {
             unreadForOwner: unreadForOwner,
             unreadForUser: unreadForUser
         )
+    }
+}
+
+private extension Array where Element == Organization {
+    func deduplicatedByID() -> [Organization] {
+        var seenIDs = Set<String>()
+        return filter { organization in
+            seenIDs.insert(organization.id).inserted
+        }
+    }
+
+    mutating func upsertByID(_ organization: Organization) {
+        if let index = firstIndex(where: { $0.id == organization.id }) {
+            self[index] = organization
+        } else {
+            insert(organization, at: 0)
+        }
     }
 }
 

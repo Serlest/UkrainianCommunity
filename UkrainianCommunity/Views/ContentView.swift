@@ -19,13 +19,10 @@ struct ContentView: View {
     @StateObject private var organizationsViewModel: OrganizationsViewModel
     @StateObject private var infoViewModel: InfoViewModel
     @StateObject private var profileViewModel: ProfileViewModel
+    @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @State private var selectedTab: AppTab = .home
+    @State private var isShowingNotificationInbox = false
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
-    @State private var homeNavigationRootID = UUID()
-    @State private var eventsNavigationRootID = UUID()
-    @State private var organizationsNavigationRootID = UUID()
-    @State private var guideNavigationRootID = UUID()
-    @State private var profileNavigationRootID = UUID()
     @State private var lastHandledAuthSessionKey: String?
 
     init(container: AppContainer) {
@@ -37,12 +34,25 @@ struct ContentView: View {
             homeBannerService: container.homeBannerService
         ))
         _newsViewModel = StateObject(wrappedValue: NewsViewModel(repository: container.newsRepository))
-        _eventsViewModel = StateObject(wrappedValue: EventsViewModel(repository: container.eventRepository))
-        _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: container.organizationRepository))
+        _eventsViewModel = StateObject(wrappedValue: EventsViewModel(
+            repository: container.eventRepository,
+            notificationPreferencesRepository: container.notificationPreferencesRepository,
+            localEventReminderService: container.localEventReminderService
+        ))
+        _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(
+            repository: container.organizationRepository,
+            notificationInboxRepository: container.notificationInboxRepository
+        ))
         _infoViewModel = StateObject(wrappedValue: InfoViewModel(repository: container.infoRepository))
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
             repository: container.userRepository,
-            feedbackRepository: container.feedbackRepository
+            feedbackRepository: container.feedbackRepository,
+            notificationPreferencesRepository: container.notificationPreferencesRepository,
+            notificationPermissionService: container.notificationPermissionService,
+            localEventReminderService: container.localEventReminderService
+        ))
+        _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
+            repository: container.notificationInboxRepository
         ))
     }
 
@@ -53,8 +63,9 @@ struct ContentView: View {
         .tint(AppTheme.primaryBlue)
         .preferredColorScheme(selectedAppearance.colorScheme)
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
-        .onChange(of: selectedTab) { _, newTab in
-            resetNavigationStack(for: newTab)
+        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
+        .task(id: authSessionKey) {
+            await notificationInboxViewModel.configure(userID: notificationInboxUserID)
         }
         .onChange(of: authSessionKey) { _, newKey in
             handleAuthIdentityChange(for: newKey)
@@ -86,6 +97,9 @@ struct ContentView: View {
             AuthFlowContainerView(initialDestination: destination)
                 .environmentObject(authState)
         }
+        .fullScreenCover(isPresented: $isShowingNotificationInbox) {
+            NotificationInboxView(viewModel: notificationInboxViewModel)
+        }
     }
 
     private var selectedAppearance: AppAppearance {
@@ -105,6 +119,21 @@ struct ContentView: View {
         case .authenticated:
             return "loading:authenticated"
         }
+    }
+
+    private var notificationInboxUserID: String? {
+        guard authState.isAuthenticated else { return nil }
+        return authState.user?.id
+    }
+
+    private var notificationBellConfiguration: AppNotificationBellConfiguration {
+        AppNotificationBellConfiguration(
+            isVisible: notificationInboxUserID != nil,
+            unreadCount: notificationInboxViewModel.unreadCount,
+            action: {
+                isShowingNotificationInbox = true
+            }
+        )
     }
 
     @ViewBuilder
@@ -127,8 +156,8 @@ struct ContentView: View {
                 navigationPath: $homeNavigationPath
             )
         }
+        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.home")
-        .id(homeNavigationRootID)
         .tabItem {
             Label(AppStrings.Tabs.home, systemImage: "house.fill")
                 .accessibilityIdentifier("tab.home")
@@ -146,8 +175,8 @@ struct ContentView: View {
                 onEventDeleted: {}
             )
         }
+        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.events")
-        .id(eventsNavigationRootID)
         .tabItem {
             Label(AppStrings.Tabs.events, systemImage: "calendar")
                 .accessibilityIdentifier("tab.events")
@@ -164,8 +193,8 @@ struct ContentView: View {
                 onOrganizationDeleted: {}
             )
         }
+        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.organizations")
-        .id(organizationsNavigationRootID)
         .tabItem {
             Label(AppStrings.Tabs.organizations, systemImage: "building.2.fill")
                 .accessibilityIdentifier("tab.organizations")
@@ -180,8 +209,8 @@ struct ContentView: View {
                 bannerService: container.homeBannerService
             )
         }
+        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.guide")
-        .id(guideNavigationRootID)
         .tabItem {
             Label(AppStrings.Tabs.info, systemImage: "info.circle.fill")
                 .accessibilityIdentifier("tab.guide")
@@ -195,11 +224,13 @@ struct ContentView: View {
                 viewModel: profileViewModel,
                 feedbackRepository: container.feedbackRepository,
                 eventRepository: container.eventRepository,
-                organizationRepository: container.organizationRepository
+                organizationRepository: container.organizationRepository,
+                notificationInboxRepository: container.notificationInboxRepository,
+                localEventReminderService: container.localEventReminderService
             )
         }
+        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.profile")
-        .id(profileNavigationRootID)
         .tabItem {
             Label(AppStrings.Tabs.profile, systemImage: "person.crop.circle.fill")
                 .accessibilityIdentifier("tab.profile")
@@ -207,36 +238,13 @@ struct ContentView: View {
         .tag(AppTab.profile)
     }
 
-    private func resetNavigationStack(for tab: AppTab) {
-        switch tab {
-        case .home:
-            homeNavigationPath.removeAll()
-            homeNavigationRootID = UUID()
-        case .events:
-            eventsNavigationRootID = UUID()
-        case .organizations:
-            organizationsNavigationRootID = UUID()
-        case .guide:
-            guideNavigationRootID = UUID()
-        case .profile:
-            profileNavigationRootID = UUID()
-        }
-    }
-
-    private func resetAllNavigationStacks() {
-        homeNavigationRootID = UUID()
-        eventsNavigationRootID = UUID()
-        organizationsNavigationRootID = UUID()
-        guideNavigationRootID = UUID()
-        profileNavigationRootID = UUID()
-    }
-
     private func handleAuthIdentityChange(for key: String) {
         guard lastHandledAuthSessionKey != key else { return }
         lastHandledAuthSessionKey = key
 
         selectedTab = .home
-        resetAllNavigationStacks()
+        isShowingNotificationInbox = false
+        homeNavigationPath.removeAll()
         authState.dismissAuthFlow()
 
         homeViewModel.resetForAuthChange()
@@ -246,6 +254,7 @@ struct ContentView: View {
         profileViewModel.resetForAuthChange()
 
         Task {
+            await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             await homeViewModel.refresh()
             await newsViewModel.refresh()
             await eventsViewModel.refresh()

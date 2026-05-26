@@ -23,8 +23,12 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "events/\(eventID)/cover.jpg")
     }
 
-    func uploadOrganizationCoverImage(data: Data, organizationID: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: "organizations/\(organizationID)/cover.jpg")
+    func uploadOrganizationLogoImage(data: Data, organizationID: String) async throws -> URL {
+        try await uploadCoverImage(
+            data: data,
+            storagePath: "organizations/\(organizationID)/logo.jpg",
+            rendersOpaqueJPEG: true
+        )
     }
 
     func uploadOrganizationPhoto(data: Data, organizationID: String, photoID: String) async throws -> URL {
@@ -81,8 +85,32 @@ final class ImageUploadService {
         }.value
     }
 
-    private func uploadCoverImage(data: Data, storagePath: String) async throws -> URL {
-        let processedImage = try await prepareImageDataForUpload(from: data)
+    func prepareOrganizationLogoSelection(from data: Data) async throws -> PreparedEditorImageSelection {
+        let preferredLogoWidths: [CGFloat] = [1024, 768]
+        let preferredLogoQualities: [CGFloat] = [0.82, 0.76, 0.70]
+        let maxLogoBytes = 1_500_000
+
+        return try await Task.detached(priority: .userInitiated) {
+            let processedImage = try ImageUploadService.processImageData(
+                data,
+                preferredImageWidths: preferredLogoWidths,
+                preferredCompressionQualities: preferredLogoQualities,
+                maxUploadBytes: maxLogoBytes,
+                rendersOpaqueJPEG: true
+            )
+            guard let previewImage = UIImage(data: processedImage.data) else {
+                throw ImageUploadError.invalidImageData
+            }
+            return PreparedEditorImageSelection(data: processedImage.data, previewImage: previewImage)
+        }.value
+    }
+
+    private func uploadCoverImage(
+        data: Data,
+        storagePath: String,
+        rendersOpaqueJPEG: Bool = false
+    ) async throws -> URL {
+        let processedImage = try await prepareImageDataForUpload(from: data, rendersOpaqueJPEG: rendersOpaqueJPEG)
         let reference = storage.reference().child(storagePath)
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
@@ -91,7 +119,10 @@ final class ImageUploadService {
         return try await reference.downloadURL()
     }
 
-    private func prepareImageDataForUpload(from data: Data) async throws -> ProcessedImageUploadData {
+    private func prepareImageDataForUpload(
+        from data: Data,
+        rendersOpaqueJPEG: Bool = false
+    ) async throws -> ProcessedImageUploadData {
         let preferredImageWidths = preferredImageWidths
         let preferredCompressionQualities = preferredCompressionQualities
         let maxUploadBytes = maxUploadBytes
@@ -101,7 +132,8 @@ final class ImageUploadService {
                 data,
                 preferredImageWidths: preferredImageWidths,
                 preferredCompressionQualities: preferredCompressionQualities,
-                maxUploadBytes: maxUploadBytes
+                maxUploadBytes: maxUploadBytes,
+                rendersOpaqueJPEG: rendersOpaqueJPEG
             )
         }.value
     }
@@ -110,7 +142,8 @@ final class ImageUploadService {
         _ data: Data,
         preferredImageWidths: [CGFloat],
         preferredCompressionQualities: [CGFloat],
-        maxUploadBytes: Int
+        maxUploadBytes: Int,
+        rendersOpaqueJPEG: Bool = false
     ) throws -> ProcessedImageUploadData {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             throw ImageUploadError.invalidImageData
@@ -118,15 +151,16 @@ final class ImageUploadService {
 
         for width in preferredImageWidths {
             let resizedImage = try normalizedImage(source: source, maxWidth: width)
+            let uploadImage = rendersOpaqueJPEG ? try opaqueRGBImage(from: resizedImage) : resizedImage
 
             for quality in preferredCompressionQualities {
-                guard let jpegData = jpegData(from: resizedImage, compressionQuality: quality) else {
+                guard let jpegData = jpegData(from: uploadImage, compressionQuality: quality) else {
                     throw ImageUploadError.invalidImageData
                 }
 
                 let attempt = ProcessedImageUploadData(
                     data: jpegData,
-                    width: CGFloat(resizedImage.width),
+                    width: CGFloat(uploadImage.width),
                     quality: quality
                 )
 
@@ -160,6 +194,35 @@ final class ImageUploadService {
         }
 
         return fallbackImage
+    }
+
+    nonisolated private static func opaqueRGBImage(from image: CGImage) throws -> CGImage {
+        let width = image.width
+        let height = image.height
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGImageAlphaInfo.noneSkipLast.rawValue
+
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
+        ) else {
+            throw ImageUploadError.invalidImageData
+        }
+
+        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        guard let opaqueImage = context.makeImage() else {
+            throw ImageUploadError.invalidImageData
+        }
+
+        return opaqueImage
     }
 
     nonisolated private static func jpegData(from image: CGImage, compressionQuality: CGFloat) -> Data? {

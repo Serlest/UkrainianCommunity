@@ -206,7 +206,7 @@ struct NewsListView: View {
 
     private var newsHeader: some View {
         AppBrandHeader {
-            AppNotificationBellButton()
+            EmptyView()
         }
     }
 
@@ -361,7 +361,7 @@ struct NewsDetailView: View {
             return PermissionService.canEditOrganizationNews(organization, user: authState.user)
         }
 
-        return PermissionService.canEditOrganizationNews(organizationId: organizationID, user: authState.user)
+        return false
     }
 
     private var canDeleteNews: Bool {
@@ -1148,7 +1148,7 @@ struct NewsDetailView: View {
         if let organization = organizationForPermissions(organizationID: organizationId) {
             return PermissionService.canModerateOrganizationContent(organization, user: user)
         }
-        return PermissionService.canModerateOrganizationComments(organizationId: organizationId, user: user)
+        return false
     }
 
     private func organizationForPermissions(organizationID: String) -> Organization? {

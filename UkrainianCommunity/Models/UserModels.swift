@@ -3,7 +3,8 @@ import SwiftUI
 
 enum GlobalRole: String, CaseIterable, Codable, Identifiable {
     case owner
-    // TODO: Remove legacy persisted values after Firestore user-role migration.
+    // Unsupported legacy/future values kept readable while persisted documents are migrated.
+    // They intentionally do not grant authorization in the current product model.
     case topAdmin
     case appModerator
     case user
@@ -12,17 +13,16 @@ enum GlobalRole: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
-    nonisolated var effectiveRole: GlobalRole {
-        switch self {
-        case .owner:
-            .owner
-        case .topAdmin, .appModerator, .user:
-            .user
-        }
+    nonisolated var isSupportedForAuthorization: Bool {
+        self == .owner || self == .user
+    }
+
+    nonisolated var authorizationRole: GlobalRole {
+        self == .owner ? .owner : .user
     }
 
     var title: String {
-        switch effectiveRole {
+        switch authorizationRole {
         case .owner:
             AppStrings.Roles.owner
         case .user:
@@ -375,8 +375,8 @@ struct AppUser: Identifiable, Codable {
         self.bio = bio
         self.telegramUsername = telegramUsername
         self.role = role
-        self.globalRole = (globalRole ?? .user).effectiveRole
-        self.moderatorSections = []
+        self.globalRole = globalRole ?? .user
+        self.moderatorSections = moderatorSections
         self.canManageGuide = canManageGuide
         self.blockState = blockState
         self.accountStatus = accountStatus ?? (blockState.isRestricted ? .suspendedUntil : .active)

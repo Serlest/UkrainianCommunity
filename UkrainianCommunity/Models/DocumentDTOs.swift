@@ -241,7 +241,8 @@ struct OrganizationDTO: Codable, Identifiable {
 extension AppUser {
     init(dto: UserDTO) {
         let legacyRole = UserRole(rawValue: dto.role ?? "") ?? .user
-        let resolvedGlobalRole = (dto.globalRole.flatMap(GlobalRole.init(rawValue:)) ?? .user).effectiveRole
+        let resolvedGlobalRole = dto.globalRole.flatMap(GlobalRole.init(rawValue:)) ?? .user
+        let resolvedModeratorSections = (dto.moderatorSections ?? []).compactMap(AppSection.init(rawValue:))
         let resolvedBlockState = UserBlockState(rawValue: dto.blockState) ?? .active
         let resolvedAccountStatus = dto.accountStatus.flatMap(AccountStatus.init(rawValue:))
             ?? (resolvedBlockState.isRestricted ? .suspendedUntil : .active)
@@ -257,7 +258,7 @@ extension AppUser {
             telegramUsername: dto.telegramUsername,
             role: legacyRole,
             globalRole: resolvedGlobalRole,
-            moderatorSections: [],
+            moderatorSections: resolvedModeratorSections,
             canManageGuide: dto.canManageGuide ?? false,
             blockState: resolvedBlockState,
             accountStatus: resolvedAccountStatus,
@@ -292,7 +293,7 @@ extension AppUser {
             role: nil,
             blockState: blockState.rawValue,
             globalRole: globalRole.rawValue,
-            moderatorSections: nil,
+            moderatorSections: moderatorSections.map(\.rawValue),
             canManageGuide: canManageGuide,
             accountStatus: accountStatus.rawValue,
             banExpiresAt: banExpiresAt,

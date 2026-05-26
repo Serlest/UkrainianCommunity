@@ -106,7 +106,7 @@ struct InfoView: View {
 
     private var guideHeader: some View {
         AppBrandHeader {
-            AppNotificationBellButton()
+            EmptyView()
         }
     }
 

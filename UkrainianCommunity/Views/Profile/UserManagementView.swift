@@ -475,7 +475,7 @@ private final class UserManagementViewModel: ObservableObject {
                 let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
                 let oldOwnerId = currentOwnerId ?? ""
 
-                guard actor.globalRole.effectiveRole == .owner,
+                guard actor.globalRole.authorizationRole == .owner,
                       !newOwner.id.isEmpty,
                       currentOwnerId != newOwner.id else {
                     errorPointer?.pointee = AppError.permissionDenied.asNSError
@@ -536,7 +536,7 @@ private final class UserManagementViewModel: ObservableObject {
     private func makeUser(from document: QueryDocumentSnapshot) -> AppUser {
         let data = document.data()
         let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
-        let globalRole = ((data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user).effectiveRole
+        let globalRole = (data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user
         let isBlocked = data["isBlocked"] as? Bool ?? false
         let blockState = UserBlockState(rawValue: data["blockState"] as? String ?? "") ?? (isBlocked ? .suspendedUntil : .active)
         return AppUser(
@@ -550,7 +550,7 @@ private final class UserManagementViewModel: ObservableObject {
             telegramUsername: data["telegramUsername"] as? String,
             role: legacyRole,
             globalRole: globalRole,
-            moderatorSections: [],
+            moderatorSections: (data["moderatorSections"] as? [String] ?? []).compactMap(AppSection.init(rawValue:)),
             canManageGuide: data["canManageGuide"] as? Bool ?? false,
             blockState: blockState,
             accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:)) ?? (blockState.isRestricted ? .suspendedUntil : .active),
@@ -581,7 +581,7 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     private func isOwner(_ user: AppUser?) -> Bool {
-        user?.globalRole.effectiveRole == .owner
+        user?.globalRole.authorizationRole == .owner
     }
 
     private static func role(
@@ -607,7 +607,7 @@ struct UserManagementView: View {
 
     private var actor: AppUser? { authState.user }
     private var canAccessUserManagement: Bool {
-        actor?.globalRole.effectiveRole == .owner
+        actor?.globalRole.authorizationRole == .owner
     }
 
     private var filteredUsers: [AppUser] {
@@ -628,7 +628,7 @@ struct UserManagementView: View {
                             dismiss()
                         }
                     } trailingContent: {
-                        AppNotificationBellButton()
+                        EmptyView()
                     }
 
                     AppGroupedContentPlane {
@@ -979,7 +979,7 @@ private struct UserDetailView: View {
                             dismiss()
                         }
                     } trailingContent: {
-                        AppNotificationBellButton()
+                        EmptyView()
                     }
 
                     AppGroupedContentPlane {
@@ -1096,7 +1096,7 @@ private struct UserDetailView: View {
 
                         HStack(spacing: 6) {
                             UserStatusBadge(title: user.blockState.title, tint: statusTint)
-                            UserStatusBadge(title: user.globalRole.title, tint: user.globalRole.effectiveRole == .owner ? AppTheme.accentSupport : AppTheme.textSecondary)
+                            UserStatusBadge(title: user.globalRole.title, tint: user.globalRole.authorizationRole == .owner ? AppTheme.accentSupport : AppTheme.textSecondary)
                         }
 
                         if !organizationRoles.isEmpty {

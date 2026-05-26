@@ -48,6 +48,7 @@ service cloud.firestore {
     }
 
     function canModerateSection(section) {
+      // topAdmin, appModerator, and moderatorSections are not active authorization sources.
       return section is string && isOwner();
     }
 
@@ -725,17 +726,63 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
+    function newsLikeFields() {
+      return ['id', 'userId', 'newsId', 'createdAt'];
+    }
+
+    function eventLikeFields() {
+      return ['id', 'userId', 'eventId', 'createdAt'];
+    }
+
+    function organizationLikeFields() {
+      return ['id', 'userId', 'organizationId', 'createdAt'];
+    }
+
     function organizationSubscriptionFields() {
       return ['id', 'userId', 'subscribedOrganizationId', 'createdAt'];
     }
 
-    function validOrganizationSubscriptionData(data, likeId) {
-      // TODO: Clean up legacy subscription docs that do not match this public schema.
-      return data.keys().hasOnly(organizationSubscriptionFields())
-        && data.id == likeId
-        && data.userId is string
-        && data.subscribedOrganizationId is string
-        && data.createdAt is timestamp;
+    function validBaseLikeCreate(likeId) {
+      return isActiveUser()
+        && request.resource.data.id == likeId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function validNewsLikeCreate(likeId) {
+      return validBaseLikeCreate(likeId)
+        && request.resource.data.keys().hasOnly(newsLikeFields())
+        && request.resource.data.newsId is string
+        && request.resource.data.newsId.size() > 0
+        && likeId == request.resource.data.newsId + '_' + request.auth.uid
+        && exists(/databases/$(database)/documents/news/$(request.resource.data.newsId));
+    }
+
+    function validEventLikeCreate(likeId) {
+      return validBaseLikeCreate(likeId)
+        && request.resource.data.keys().hasOnly(eventLikeFields())
+        && request.resource.data.eventId is string
+        && request.resource.data.eventId.size() > 0
+        && likeId == 'event_' + request.resource.data.eventId + '_' + request.auth.uid
+        && exists(/databases/$(database)/documents/events/$(request.resource.data.eventId));
+    }
+
+    function validOrganizationLikeCreate(likeId) {
+      return validBaseLikeCreate(likeId)
+        && request.resource.data.keys().hasOnly(organizationLikeFields())
+        && request.resource.data.organizationId is string
+        && request.resource.data.organizationId.size() > 0
+        && likeId == 'organization_' + request.resource.data.organizationId + '_' + request.auth.uid
+        && exists(/databases/$(database)/documents/organizations/$(request.resource.data.organizationId));
+    }
+
+    function validOrganizationSubscriptionCreate(likeId) {
+      return validBaseLikeCreate(likeId)
+        && request.resource.data.keys().hasOnly(organizationSubscriptionFields())
+        && request.resource.data.subscribedOrganizationId is string
+        && request.resource.data.subscribedOrganizationId.size() > 0
+        && likeId == 'organization_follow_' + request.resource.data.subscribedOrganizationId + '_' + request.auth.uid
+        && exists(/databases/$(database)/documents/organizations/$(request.resource.data.subscribedOrganizationId));
     }
 
     function isOrganizationSubscriptionRead() {
@@ -745,10 +792,11 @@ service cloud.firestore {
         && resource.data.subscribedOrganizationId is string;
     }
 
-    function validOrganizationSubscriptionCreate(likeId) {
-      return isActiveUser()
-        && validOrganizationSubscriptionData(request.resource.data, likeId)
-        && request.resource.data.userId == request.auth.uid;
+    function validLikeCreate(likeId) {
+      return validNewsLikeCreate(likeId)
+        || validEventLikeCreate(likeId)
+        || validOrganizationLikeCreate(likeId)
+        || validOrganizationSubscriptionCreate(likeId);
     }
 
     function isOrganizationContent(data) {
@@ -760,6 +808,7 @@ service cloud.firestore {
     }
 
     function canCreateOrganizationContent() {
+      // Current policy: organization team members create approved content within their organization.
       return isOrganizationContent(request.resource.data)
         && (isOwner() || canEditOrganizationContent(request.resource.data.organizationId));
     }
@@ -822,17 +871,31 @@ service cloud.firestore {
         );
     }
 
-    function onlyOrganizationEngagementCountersChanged() {
-      return (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
-          && request.resource.data.likeCount is int
-          && request.resource.data.likeCount >= 0
-        )
-        || (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscriberCount'])
-          && request.resource.data.subscriberCount is int
-          && request.resource.data.subscriberCount >= 0
+    function onlyOrganizationLikeCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && request.resource.data.likeCount is int
+        && resource.data.likeCount is int
+        && request.resource.data.likeCount >= 0
+        && (
+          request.resource.data.likeCount == resource.data.likeCount + 1
+          || (resource.data.likeCount > 0 && request.resource.data.likeCount == resource.data.likeCount - 1)
         );
+    }
+
+    function onlyOrganizationSubscriberCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscriberCount'])
+        && request.resource.data.subscriberCount is int
+        && resource.data.subscriberCount is int
+        && request.resource.data.subscriberCount >= 0
+        && (
+          request.resource.data.subscriberCount == resource.data.subscriberCount + 1
+          || (resource.data.subscriberCount > 0 && request.resource.data.subscriberCount == resource.data.subscriberCount - 1)
+        );
+    }
+
+    function onlyOrganizationEngagementCountersChanged() {
+      return onlyOrganizationLikeCountChanged()
+        || onlyOrganizationSubscriberCountChanged();
     }
 
     function onlyModerationStatusChanged() {
@@ -841,7 +904,14 @@ service cloud.firestore {
 
     // TODO: Replace direct client counter writes with server-side aggregation or sharded counters.
     function onlyNewsEngagementCountersChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && request.resource.data.likeCount is int
+        && resource.data.likeCount is int
+        && request.resource.data.likeCount >= 0
+        && (
+          request.resource.data.likeCount == resource.data.likeCount + 1
+          || (resource.data.likeCount > 0 && request.resource.data.likeCount == resource.data.likeCount - 1)
+        );
     }
 
     function onlyNewsViewCountIncremented() {
@@ -860,8 +930,31 @@ service cloud.firestore {
     }
 
     // TODO: Replace direct client counter writes with server-side aggregation or sharded counters.
+    function onlyEventLikeCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && request.resource.data.likeCount is int
+        && resource.data.likeCount is int
+        && request.resource.data.likeCount >= 0
+        && (
+          request.resource.data.likeCount == resource.data.likeCount + 1
+          || (resource.data.likeCount > 0 && request.resource.data.likeCount == resource.data.likeCount - 1)
+        );
+    }
+
+    function onlyEventRegisteredCountChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registeredCount'])
+        && request.resource.data.registeredCount is int
+        && resource.data.registeredCount is int
+        && request.resource.data.registeredCount >= 0
+        && (
+          request.resource.data.registeredCount == resource.data.registeredCount + 1
+          || (resource.data.registeredCount > 0 && request.resource.data.registeredCount == resource.data.registeredCount - 1)
+        );
+    }
+
     function onlyEventCountersChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount', 'registeredCount']);
+      return onlyEventLikeCountChanged()
+        || onlyEventRegisteredCountChanged();
     }
 
     function onlyEventViewCountIncremented() {
@@ -877,6 +970,127 @@ service cloud.firestore {
             && (request.resource.data.commentCount == resource.data.commentCount + 1
               || (resource.data.commentCount > 0 && request.resource.data.commentCount == resource.data.commentCount - 1)))
         );
+    }
+
+    function registrationFields() {
+      return ['id', 'eventId', 'userId', 'registeredAt', 'createdAt'];
+    }
+
+    function validRegistrationCreate(registrationId) {
+      let eventPath = /databases/$(database)/documents/events/$(request.resource.data.eventId);
+      return isActiveUser()
+        && request.resource.data.keys().hasOnly(registrationFields())
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.eventId is string
+        && request.resource.data.eventId.size() > 0
+        && request.resource.data.id == registrationId
+        && registrationId == 'event_' + request.resource.data.eventId + '_' + request.auth.uid
+        && request.resource.data.registeredAt is timestamp
+        && request.resource.data.createdAt is timestamp
+        && exists(eventPath)
+        && get(eventPath).data.moderationStatus == 'approved'
+        && get(eventPath).data.startDate is timestamp
+        && get(eventPath).data.startDate > request.time;
+    }
+
+    function notificationPreferenceFields() {
+      return ['notificationsEnabled', 'eventRemindersEnabled', 'reminderLeadMinutes', 'updatedAt'];
+    }
+
+    function notificationInboxFields() {
+      return [
+        'id',
+        'recipientUserId',
+        'type',
+        'sourceType',
+        'sourceId',
+        'actorUserId',
+        'actorDisplayName',
+        'payload',
+        'isRead',
+        'readAt',
+        'createdAt'
+      ];
+    }
+
+    function notificationCreateTypes() {
+      return [
+        'feedbackReply',
+        'organizationRequestApproved',
+        'organizationRequestNeedsRevision',
+        'organizationRequestRejected'
+      ];
+    }
+
+    function notificationStatusTypes() {
+      return [
+        'organizationRequestApproved',
+        'organizationRequestNeedsRevision',
+        'organizationRequestRejected'
+      ];
+    }
+
+    function validNotificationBase(uid, notificationId) {
+      return isOwner()
+        && request.resource.data.keys().hasOnly(notificationInboxFields())
+        && request.resource.data.id == notificationId
+        && request.resource.data.recipientUserId == uid
+        && request.resource.data.type in notificationCreateTypes()
+        && request.resource.data.sourceId is string
+        && request.resource.data.sourceId.size() > 0
+        && request.resource.data.actorUserId == request.auth.uid
+        && (!('actorDisplayName' in request.resource.data) || request.resource.data.actorDisplayName is string)
+        && request.resource.data.payload is map
+        && request.resource.data.isRead == false
+        && !('readAt' in request.resource.data)
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function validFeedbackReplyNotification(uid, notificationId) {
+      return validNotificationBase(uid, notificationId)
+        && request.resource.data.type == 'feedbackReply'
+        && request.resource.data.sourceType == 'feedback'
+        && exists(/databases/$(database)/documents/feedback/$(request.resource.data.sourceId))
+        && get(/databases/$(database)/documents/feedback/$(request.resource.data.sourceId)).data.userId == uid;
+    }
+
+    function validOrganizationRequestStatusNotification(uid, notificationId) {
+      return validNotificationBase(uid, notificationId)
+        && request.resource.data.type in notificationStatusTypes()
+        && request.resource.data.sourceType == 'organization'
+        && exists(/databases/$(database)/documents/organizations/$(request.resource.data.sourceId))
+        && ('submittedByUserId' in get(/databases/$(database)/documents/organizations/$(request.resource.data.sourceId)).data)
+        && get(/databases/$(database)/documents/organizations/$(request.resource.data.sourceId)).data.submittedByUserId == uid;
+    }
+
+    function validNotificationCreate(uid, notificationId) {
+      return validFeedbackReplyNotification(uid, notificationId)
+        || validOrganizationRequestStatusNotification(uid, notificationId);
+    }
+
+    function validNotificationReadUpdate(uid) {
+      return isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt'])
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.recipientUserId == resource.data.recipientUserId
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.sourceType == resource.data.sourceType
+        && request.resource.data.sourceId == resource.data.sourceId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.isRead is bool
+        && (!request.resource.data.isRead || request.resource.data.readAt is timestamp);
+    }
+
+    function validNotificationPreferencesWrite(uid) {
+      return isActiveUser()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(notificationPreferenceFields())
+        && request.resource.data.notificationsEnabled is bool
+        && request.resource.data.eventRemindersEnabled is bool
+        && request.resource.data.reminderLeadMinutes is int
+        && request.resource.data.reminderLeadMinutes >= 0
+        && request.resource.data.reminderLeadMinutes <= 10080
+        && request.resource.data.updatedAt is timestamp;
     }
 
     function validPublicProfileWrite(uid) {
@@ -920,6 +1134,27 @@ service cloud.firestore {
           && isActiveUser()
           && ('globalRole' in resource.data)
           && resource.data.globalRole != 'owner');
+
+      match /notificationPreferences/{docId} {
+        allow read: if isSelf(uid) && docId == 'settings';
+
+        allow create, update: if docId == 'settings'
+          && validNotificationPreferencesWrite(uid);
+
+        allow delete: if isActiveUser()
+          && request.auth.uid == uid
+          && docId == 'settings';
+      }
+
+      match /notificationInbox/{notificationId} {
+        allow read: if isSelf(uid);
+
+        allow create: if validNotificationCreate(uid, notificationId);
+
+        allow update: if validNotificationReadUpdate(uid);
+
+        allow delete: if isSelf(uid);
+      }
 
       match /newsBookmarks/{newsId} {
         allow read: if isSelf(uid);
@@ -1170,8 +1405,7 @@ service cloud.firestore {
         || isOrganizationSubscriptionRead()
         || isOwner();
 
-      allow create: if validOrganizationSubscriptionCreate(likeId)
-        || (ownDocumentCreate() && !('subscribedOrganizationId' in request.resource.data));
+      allow create: if validLikeCreate(likeId);
 
       allow update: if false;
 
@@ -1183,7 +1417,7 @@ service cloud.firestore {
       allow read: if ownDocumentRead()
         || isOwner();
 
-      allow create: if ownDocumentCreate();
+      allow create: if validRegistrationCreate(registrationId);
 
       allow update: if false;
 

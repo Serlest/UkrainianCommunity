@@ -59,27 +59,34 @@ final class AuthService {
             authState.user = user
             authState.setAuthenticatedSession()
         } catch {
-            do {
-                try Auth.auth().signOut()
-            } catch {
-                print("Session cleanup error: \(error.localizedDescription)")
+            if isMissingProfileError(error) {
+                do {
+                    try Auth.auth().signOut()
+                } catch {
+                    print("Missing profile sign-out error: \(error.localizedDescription)")
+                }
+
+                authState.setGuestSession()
+                return
             }
 
             authState.setGuestSession()
+            authState.errorMessage = error.localizedDescription
         }
     }
 
     @MainActor
     func signInAnonymously() async {
         if let currentUser {
-            await ensureUserProfileExists(for: currentUser.uid)
+            if currentUser.isAnonymous {
+                authState.setGuestSession()
+            }
             return
         }
 
         do {
-            let result = try await Auth.auth().signInAnonymously()
-            let uid = result.user.uid
-            await ensureUserProfileExists(for: uid)
+            _ = try await Auth.auth().signInAnonymously()
+            authState.setGuestSession()
         } catch {
             print("Auth error: \(error.localizedDescription)")
         }
@@ -158,23 +165,13 @@ final class AuthService {
         try await Auth.auth().sendPasswordReset(withEmail: email)
     }
 
-    @MainActor
-    private func ensureUserProfileExists(for uid: String) async {
-        await UserProfileService.shared.ensureUserDocumentExists(for: uid)
-        if let user = await UserProfileService.shared.fetchUserProfile(uid: uid) {
-            authState.user = user
-        } else {
-            authState.user = nil
-        }
-        authState.setAuthenticatedSession()
+    private func loadExistingUserProfile(uid: String) async throws -> AppUser {
+        try await UserProfileService.shared.fetchExistingUserProfile(uid: uid)
     }
 
-    private func loadExistingUserProfile(uid: String) async throws -> AppUser {
-        guard let user = await UserProfileService.shared.fetchUserProfile(uid: uid) else {
-            throw AppError.notFound
-        }
-
-        return user
+    private func isMissingProfileError(_ error: Error) -> Bool {
+        guard let appError = error as? AppError else { return false }
+        return appError == .notFound
     }
 
     private init() {}

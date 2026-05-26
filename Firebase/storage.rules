@@ -82,7 +82,8 @@ service firebase.storage {
     function canEditOrganizationContent(organizationId) {
       return isOwner()
         || isOrganizationOwner(organizationId)
-        || isOrganizationAdmin(organizationId);
+        || isOrganizationAdmin(organizationId)
+        || isOrganizationModerator(organizationId);
     }
 
     function canManageOrganizationPhotos(organizationId) {
@@ -159,7 +160,7 @@ service firebase.storage {
       allow write: if canManageContentImages('events');
     }
 
-    match /organizations/{organizationId}/cover.jpg {
+    match /organizations/{organizationId}/logo.jpg {
       allow read: if canReadOrganizationMedia(organizationId);
       allow create, update: if (
           canManageContentImages('organizations')
@@ -167,6 +168,14 @@ service firebase.storage {
           || isOrganizationRequestCreator(organizationId)
         )
         && isSafeImageUpload();
+      allow delete: if canManageContentImages('organizations')
+        || canEditOrganizationContent(organizationId)
+        || isOrganizationRequestCreator(organizationId);
+    }
+
+    match /organizations/{organizationId}/cover.jpg {
+      allow read: if canReadOrganizationMedia(organizationId);
+      allow create, update: if false;
       allow delete: if canManageContentImages('organizations')
         || canEditOrganizationContent(organizationId)
         || isOrganizationRequestCreator(organizationId);

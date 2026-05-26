@@ -653,9 +653,11 @@ struct OrganizationEditorView: View {
                 return
             }
 
+            let preparedSelection = try await ImageUploadService.shared.prepareOrganizationLogoSelection(from: data)
+
             await MainActor.run {
                 viewModel.setImageProcessing(false)
-                viewModel.setSelectedImageData(data)
+                viewModel.setSelectedImageData(preparedSelection.data)
             }
         } catch {
             await MainActor.run {
