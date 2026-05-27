@@ -44,6 +44,80 @@ private enum ProfileDashboardMode {
     }
 }
 
+@MainActor
+private final class OwnerProfileVisibilityViewModel: ObservableObject {
+    @Published private var ownerFeedbackItems: [FeedbackItem]?
+    @Published private var pendingOrganizationRequests: [Organization]?
+
+    private let feedbackRepository: FeedbackRepository
+    private let organizationRepository: OrganizationRepository
+    private let listenerBag = RealtimeListenerBag()
+    private var hasLoaded = false
+
+    init(
+        feedbackRepository: FeedbackRepository,
+        organizationRepository: OrganizationRepository
+    ) {
+        self.feedbackRepository = feedbackRepository
+        self.organizationRepository = organizationRepository
+    }
+
+    var unreadFeedbackCount: Int? {
+        ownerFeedbackItems?.filter(\.unreadForOwner).count
+    }
+
+    var pendingOrganizationRequestCount: Int? {
+        pendingOrganizationRequests?.count
+    }
+
+    func loadIfNeeded() async {
+        startListening()
+        guard !hasLoaded else { return }
+        await refresh()
+    }
+
+    func refresh() async {
+        startListening()
+
+        do {
+            ownerFeedbackItems = try await feedbackRepository.fetchFeedback()
+            pendingOrganizationRequests = try await organizationRepository.fetchPendingOrganizations()
+            hasLoaded = true
+        } catch {
+            hasLoaded = true
+        }
+    }
+
+    func reset() {
+        ownerFeedbackItems = nil
+        pendingOrganizationRequests = nil
+        listenerBag.removeAll()
+        hasLoaded = false
+    }
+
+    private func startListening() {
+        if !listenerBag.contains("ownerFeedback"),
+           let realtimeRepository = feedbackRepository as? FeedbackRealtimeRepository {
+            listenerBag.set(realtimeRepository.listenOwnerFeedbackInbox { [weak self] items in
+                self?.ownerFeedbackItems = items
+                self?.hasLoaded = true
+            } onError: { [weak self] _ in
+                self?.listenerBag.remove("ownerFeedback")
+            }, for: "ownerFeedback")
+        }
+
+        if !listenerBag.contains("pendingOrganizationRequests"),
+           let realtimeRepository = organizationRepository as? OrganizationRealtimeRepository {
+            listenerBag.set(realtimeRepository.listenPendingOrganizationRequestsForOwner { [weak self] organizations in
+                self?.pendingOrganizationRequests = organizations
+                self?.hasLoaded = true
+            } onError: { [weak self] _ in
+                self?.listenerBag.remove("pendingOrganizationRequests")
+            }, for: "pendingOrganizationRequests")
+        }
+    }
+}
+
 struct ProfileView: View {
     @ObservedObject var viewModel: ProfileViewModel
     private let feedbackRepository: FeedbackRepository
@@ -57,6 +131,7 @@ struct ProfileView: View {
     @StateObject private var registrationsViewModel: MyRegistrationsViewModel
     @StateObject private var myFeedbackViewModel: MyFeedbackViewModel
     @StateObject private var ownerOrganizationsViewModel: OrganizationsViewModel
+    @StateObject private var ownerVisibilityViewModel: OwnerProfileVisibilityViewModel
     @State private var isShowingEditProfileSheet = false
     @State private var fullNameDraft = ""
     @State private var displayNameDraft = ""
@@ -101,6 +176,10 @@ struct ProfileView: View {
         _ownerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(
             repository: organizationRepository,
             notificationInboxRepository: notificationInboxRepository
+        ))
+        _ownerVisibilityViewModel = StateObject(wrappedValue: OwnerProfileVisibilityViewModel(
+            feedbackRepository: feedbackRepository,
+            organizationRepository: organizationRepository
         ))
     }
 
@@ -161,6 +240,10 @@ struct ProfileView: View {
     private var profileDashboardMode: ProfileDashboardMode? {
         guard let user = permissionUser else { return nil }
         return ProfileDashboardMode(user: user)
+    }
+
+    private var shouldLoadOwnerVisibility: Bool {
+        permissionUser?.globalRole.authorizationRole == .owner
     }
 
     private var organizationRoleMemberships: [CommunityMembership] {
@@ -326,9 +409,15 @@ struct ProfileView: View {
                 }
                 await ownerOrganizationsViewModel.loadIfNeeded()
                 await ownerOrganizationsViewModel.refreshIfStale()
+                if shouldLoadOwnerVisibility {
+                    await ownerVisibilityViewModel.loadIfNeeded()
+                } else {
+                    ownerVisibilityViewModel.reset()
+                }
             } else {
                 registrationsViewModel.resetForGuest()
                 myFeedbackViewModel.reset()
+                ownerVisibilityViewModel.reset()
             }
         }
         .refreshable {
@@ -340,6 +429,11 @@ struct ProfileView: View {
                     await viewModel.refreshNotificationPreferences(userID: userID)
                 }
                 await ownerOrganizationsViewModel.refresh()
+                if shouldLoadOwnerVisibility {
+                    await ownerVisibilityViewModel.refresh()
+                } else {
+                    ownerVisibilityViewModel.reset()
+                }
             }
         }
         .onChange(of: authState.isAuthenticated) { _, isAuthenticated in
@@ -351,10 +445,16 @@ struct ProfileView: View {
                         await viewModel.refreshNotificationPreferences(userID: userID)
                     }
                     await ownerOrganizationsViewModel.refresh()
+                    if shouldLoadOwnerVisibility {
+                        await ownerVisibilityViewModel.refresh()
+                    } else {
+                        ownerVisibilityViewModel.reset()
+                    }
                 } else {
                     registrationsViewModel.resetForGuest()
                     myFeedbackViewModel.reset()
                     ownerOrganizationsViewModel.resetForAuthChange()
+                    ownerVisibilityViewModel.reset()
                     feedbackMessage = ""
                     selectedFeedbackType = .question
                 }
@@ -365,17 +465,24 @@ struct ProfileView: View {
                 registrationsViewModel.resetForAuthChange()
                 myFeedbackViewModel.reset()
                 ownerOrganizationsViewModel.resetForAuthChange()
+                ownerVisibilityViewModel.reset()
                 guard let newUserID else { return }
                 await registrationsViewModel.refresh()
                 await myFeedbackViewModel.refresh(userID: newUserID)
                 await viewModel.refreshNotificationPreferences(userID: newUserID)
                 await ownerOrganizationsViewModel.refresh()
+                if shouldLoadOwnerVisibility {
+                    await ownerVisibilityViewModel.refresh()
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             guard authState.isAuthenticated else { return }
             Task {
                 await ownerOrganizationsViewModel.refresh()
+                if shouldLoadOwnerVisibility {
+                    await ownerVisibilityViewModel.refresh()
+                }
             }
         }
         .sheet(isPresented: $isShowingEditProfileSheet) {
@@ -550,8 +657,8 @@ struct ProfileView: View {
                     )
 
                     editProfileMainInfoSection
-                    editProfileContactSection
-                    editProfilePreferencesSection
+                    editProfileAppSettingsSection
+                    notificationsSection
 
                     if let profileStatusMessage {
                         InlineMessageCard(style: profileStatusStyle, message: profileStatusMessage)
@@ -614,7 +721,6 @@ struct ProfileView: View {
             VStack(spacing: AppTheme.dashboardSpacing) {
                 EditorTextField(AppStrings.Profile.displayName, text: $displayNameDraft, systemImage: "person", autocapitalization: .words)
                 EditorTextField(AppStrings.Profile.fullName, text: $fullNameDraft, systemImage: "person.text.rectangle", autocapitalization: .words)
-                ProfileEditorTextArea(title: AppStrings.Profile.bio, text: $bioDraft, counterText: AppStrings.profileBioCounter(bioDraft.count, 240))
                 EditorTextField(AppStrings.Common.city, text: $cityDraft, systemImage: "mappin.and.ellipse", autocapitalization: .words)
                 ProfileEditorPickerRow(title: AppStrings.Auth.federalState, systemImage: "globe.europe.africa") {
                     Picker(AppStrings.Auth.federalState, selection: $selectedFederalStateDraft) {
@@ -624,13 +730,6 @@ struct ProfileView: View {
                     }
                     .labelsHidden()
                 }
-            }
-        }
-    }
-
-    private var editProfileContactSection: some View {
-        ProfileSectionCard(title: AppStrings.Profile.contactsSection) {
-            VStack(spacing: AppTheme.dashboardSpacing) {
                 EditorTextField(
                     AppStrings.Profile.telegramUsername,
                     text: $telegramUsernameDraft,
@@ -638,6 +737,7 @@ struct ProfileView: View {
                     autocapitalization: .never,
                     autocorrectionDisabled: true
                 )
+                ProfileEditorTextArea(title: AppStrings.Profile.bio, text: $bioDraft, counterText: AppStrings.profileBioCounter(bioDraft.count, 240))
 
                 ProfileReadOnlyField(
                     title: AppStrings.Auth.email,
@@ -649,16 +749,37 @@ struct ProfileView: View {
         }
     }
 
-    private var editProfilePreferencesSection: some View {
-        ProfileSectionCard(title: AppStrings.Profile.preferencesSection) {
+    private var editProfileAppSettingsSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.appSettings,
+            subtitle: AppStrings.Profile.appSettingsSubtitle
+        ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileModuleRow(
-                    title: AppStrings.Profile.regionSettings,
-                    subtitle: AppStrings.FederalStates.title(for: selectedFederalStateDraft),
-                    systemImage: "mappin.and.ellipse",
-                    status: .available,
-                    accessory: .none
-                )
+                ProfileSettingsPickerRow(
+                    title: AppStrings.Profile.appLanguage,
+                    subtitle: AppStrings.Profile.languageSettingsSubtitle,
+                    systemImage: "globe"
+                ) {
+                    Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.title).tag(language)
+                        }
+                    }
+                    .labelsHidden()
+                }
+
+                ProfileSettingsPickerRow(
+                    title: AppStrings.Profile.appAppearance,
+                    subtitle: AppStrings.Profile.appearanceSettingsSubtitle,
+                    systemImage: "circle.lefthalf.filled"
+                ) {
+                    Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
+                        ForEach(AppAppearance.allCases) { appearance in
+                            Text(appearance.title).tag(appearance)
+                        }
+                    }
+                    .labelsHidden()
+                }
             }
         }
     }
@@ -712,8 +833,6 @@ struct ProfileView: View {
             )
 
             quickActionsSection(for: user)
-            notificationsSection
-            settingsSection
             supportSection(for: user)
             accountDeletionSection
             logoutSection
@@ -725,8 +844,6 @@ struct ProfileView: View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: .owner)
         quickActionsSection(for: user)
         ownerPlatformManagementSection
-        ownerPersonalSettingsSection
-        notificationsSection
         logoutSection
     }
 
@@ -880,7 +997,13 @@ struct ProfileView: View {
                         notificationInboxRepository: notificationInboxRepository
                     )
                 } label: {
-                    ProfileModuleRow(title: AppStrings.Profile.ownerPendingReview, subtitle: AppStrings.Profile.ownerPendingReviewSubtitle, systemImage: "clock.badge.exclamationmark", status: canShowModerationTools ? .active : .locked)
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.ownerOrganizationRequests,
+                        subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
+                        systemImage: "clock.badge.exclamationmark",
+                        status: canShowModerationTools ? .available : .locked,
+                        countBadge: canShowModerationTools ? ownerVisibilityViewModel.pendingOrganizationRequestCount : nil
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -894,7 +1017,8 @@ struct ProfileView: View {
                         title: AppStrings.Profile.ownerUserFeedback,
                         subtitle: AppStrings.Feedback.inboxSubtitle,
                         systemImage: "bubble.left.and.bubble.right",
-                        status: .active
+                        status: .available,
+                        countBadge: ownerVisibilityViewModel.unreadFeedbackCount
                     )
                 }
                 .buttonStyle(.plain)
@@ -3626,6 +3750,7 @@ private struct ProfileModuleRow: View {
     let tint: Color?
     let status: ProfileModuleStatus
     let accessory: AppNavigationRowAccessory
+    let countBadge: Int?
 
     init(
         title: String,
@@ -3633,7 +3758,8 @@ private struct ProfileModuleRow: View {
         systemImage: String,
         tint: Color? = nil,
         status: ProfileModuleStatus = .available,
-        accessory: AppNavigationRowAccessory = .chevron
+        accessory: AppNavigationRowAccessory = .chevron,
+        countBadge: Int? = nil
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -3641,6 +3767,7 @@ private struct ProfileModuleRow: View {
         self.tint = tint
         self.status = status
         self.accessory = accessory
+        self.countBadge = countBadge
     }
 
     var body: some View {
@@ -3652,6 +3779,10 @@ private struct ProfileModuleRow: View {
                 tint: tint ?? status.tint,
                 accessory: status.title == nil && !status.isDisabled ? accessory : .none
             )
+
+            if let countBadge, countBadge > 0 {
+                OwnerVisibilityCountBadge(count: countBadge, tint: tint ?? status.tint)
+            }
 
             if let statusTitle = status.title {
                 Text(statusTitle)
@@ -3669,6 +3800,30 @@ private struct ProfileModuleRow: View {
         .opacity(status.isDisabled ? 0.72 : 1)
         .allowsHitTesting(!status.isDisabled)
         .accessibilityHint(status.isDisabled ? AppStrings.Action.comingSoon : "")
+    }
+}
+
+private struct OwnerVisibilityCountBadge: View {
+    let count: Int
+    let tint: Color
+
+    private var displayText: String {
+        count > 99 ? "99+" : "\(count)"
+    }
+
+    var body: some View {
+        Text(displayText)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(tint)
+            .monospacedDigit()
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(tint.opacity(0.12), in: Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(tint.opacity(0.24), lineWidth: 1)
+            )
+            .accessibilityLabel(displayText)
     }
 }
 
@@ -5578,33 +5733,17 @@ private struct TeamAvatarView: View {
     }
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(AppTheme.accentPrimarySoft)
-
-            if let avatarURL = profile?.avatarURL {
-                AsyncImage(url: avatarURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        initials
-                    }
-                }
-            } else {
-                initials
-            }
-        }
-        .frame(width: 42, height: 42)
-        .clipShape(Circle())
-    }
-
-    private var initials: some View {
-        Text(fallbackInitials)
-            .font(.caption.weight(.bold))
-            .foregroundStyle(AppTheme.accentPrimary)
+        AvatarArtworkView(
+            avatarURL: profile?.avatarURL,
+            initials: fallbackInitials,
+            size: 42,
+            showsBorder: false,
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            shadowY: 0,
+            initialsFont: .caption.weight(.bold),
+            placeholderFill: AppTheme.accentPrimarySoft
+        )
     }
 }
 

@@ -394,20 +394,26 @@ struct FirestoreUserRepository: UserRepository {
     }
 
     private func cleanupPrivateUserData(userID: String, database: Firestore) async throws {
+        let userDocument = database.collection("users").document(userID)
+        try await userDocument
+            .collection("notificationPreferences")
+            .document("settings")
+            .delete()
+
         let privateSubcollections = [
             "recentViews",
             "activityLog",
             "newsBookmarks",
             "eventBookmarks",
             "organizationBookmarks",
-            "notificationPreferences",
+            "notificationInbox",
             "eventViews",
             "newsViews"
         ]
 
         for subcollection in privateSubcollections {
             try await deleteDocuments(
-                in: database.collection("users").document(userID).collection(subcollection),
+                in: userDocument.collection(subcollection),
                 limit: 100
             )
         }

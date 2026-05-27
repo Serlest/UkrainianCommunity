@@ -223,23 +223,6 @@
         }
       }
     },
-    "action.retry" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erneut versuchen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Спробувати ще раз"
-          }
-        }
-      }
-    },
     "action.register" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -253,6 +236,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Зареєструватися"
+          }
+        }
+      }
+    },
+    "action.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спробувати ще раз"
           }
         }
       }
@@ -6626,6 +6626,29 @@
         }
       }
     },
+    "moderation.organization.approve_organization" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation genehmigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Approve organization"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Схвалити організацію"
+          }
+        }
+      }
+    },
     "moderation.organization.approve.confirm.action" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6691,29 +6714,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Схвалити організацію?"
-          }
-        }
-      }
-    },
-    "moderation.organization.approve_organization" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Organisation genehmigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Approve organization"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Схвалити організацію"
           }
         }
       }
@@ -6965,6 +6965,29 @@
         }
       }
     },
+    "moderation.organization.reject_request" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antrag ablehnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject request"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилити заявку"
+          }
+        }
+      }
+    },
     "moderation.organization.reject.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7007,29 +7030,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Відхилити заявку організації?"
-          }
-        }
-      }
-    },
-    "moderation.organization.reject_request" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Antrag ablehnen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reject request"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Відхилити заявку"
           }
         }
       }
@@ -7465,6 +7465,29 @@
         }
       }
     },
+    "moderation.reject" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ablehnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилити"
+          }
+        }
+      }
+    },
     "moderation.reject.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7507,29 +7530,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Відхилити контент?"
-          }
-        }
-      }
-    },
-    "moderation.reject" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ablehnen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reject"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Відхилити"
           }
         }
       }
@@ -13562,6 +13562,52 @@
         }
       }
     },
+    "profile.edit.app_settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Einstellungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App settings"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налаштування застосунку"
+          }
+        }
+      }
+    },
+    "profile.edit.app_settings.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprache und Darstellung der App."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App language and appearance."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мова та вигляд застосунку."
+          }
+        }
+      }
+    },
     "profile.edit.contacts" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15048,47 +15094,45 @@
       }
     },
     "profile.notifications.enabled" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Benachrichtigungen aktivieren"
+            "state" : "translated",
+            "value" : "In-App-Benachrichtigungen"
           }
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Увімкнути сповіщення"
+            "state" : "translated",
+            "value" : "In-app notifications"
           }
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Увімкнути сповіщення"
+            "state" : "translated",
+            "value" : "Внутрішні сповіщення"
           }
         }
       }
     },
     "profile.notifications.enabled.subtitle" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Erlaubt der App, lokale Erinnerungen anzuzeigen."
+            "state" : "translated",
+            "value" : "Erhalte Antworten und wichtige Updates im Benachrichtigungseingang der App."
           }
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Дозволяє застосунку показувати локальні нагадування."
+            "state" : "translated",
+            "value" : "Get replies and important updates in the app notification inbox."
           }
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Дозволяє застосунку показувати локальні нагадування."
+            "state" : "translated",
+            "value" : "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку."
           }
         }
       }
@@ -15431,19 +15475,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwalte lokale Erinnerungen für Veranstaltungen auf diesem Gerät."
+            "value" : "Erhalte Antworten und wichtige Updates im Benachrichtigungseingang der App."
           }
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Manage local event reminders on this device."
+            "state" : "translated",
+            "value" : "Get replies and important updates in the app notification inbox."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Керуйте локальними нагадуваннями про події на цьому пристрої."
+            "value" : "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку."
           }
         }
       }
@@ -15471,19 +15515,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lokale Erinnerungen und In-App-Mitteilungen."
+            "value" : "Erhalte Antworten und wichtige Updates im Benachrichtigungseingang der App."
           }
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Local reminders and in-app notifications."
+            "state" : "translated",
+            "value" : "Get replies and important updates in the app notification inbox."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Локальні нагадування та сповіщення в застосунку."
+            "value" : "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку."
           }
         }
       }
@@ -15494,19 +15538,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lokale Erinnerungen für registrierte Veranstaltungen."
+            "value" : "Erhalte Antworten und wichtige Updates im Benachrichtigungseingang der App."
           }
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Local reminders for registered events."
+            "state" : "translated",
+            "value" : "Get replies and important updates in the app notification inbox."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Локальні нагадування про зареєстровані події."
+            "value" : "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку."
           }
         }
       }

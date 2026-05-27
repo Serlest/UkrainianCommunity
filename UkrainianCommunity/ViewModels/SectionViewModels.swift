@@ -628,8 +628,6 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var pendingEventViewIDs = Set<String>()
     @Published private(set) var pendingEventCommentIDs = Set<String>()
     private let repository: EventRepository
-    private let notificationPreferencesRepository: NotificationPreferencesRepository
-    private let localEventReminderService: LocalEventReminderServiceProtocol
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -641,8 +639,6 @@ final class EventsViewModel: ObservableObject {
         localEventReminderService: LocalEventReminderServiceProtocol? = nil
     ) {
         self.repository = repository
-        self.notificationPreferencesRepository = notificationPreferencesRepository ?? FirestoreNotificationPreferencesRepository()
-        self.localEventReminderService = localEventReminderService ?? LocalEventReminderService()
         events = []
         isLoading = false
     }
@@ -738,10 +734,8 @@ final class EventsViewModel: ObservableObject {
             do {
                 if shouldRegister {
                     try await repository.registerForEvent(id: eventID)
-                    await scheduleReminderIfNeeded(for: event)
                 } else {
                     try await repository.cancelEventRegistration(id: eventID)
-                    cancelReminder(for: eventID)
                 }
 
                 let updatedRegisteredCount = shouldRegister
@@ -791,26 +785,6 @@ final class EventsViewModel: ObservableObject {
                 self.error = .unknown
             }
         }
-    }
-
-    private func scheduleReminderIfNeeded(for event: Event) async {
-        guard let userID = AuthService.shared.currentUser?.uid else { return }
-
-        do {
-            let preferences = try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
-            guard preferences.notificationsEnabled, preferences.eventRemindersEnabled else { return }
-            try await localEventReminderService.scheduleEventReminder(
-                event: event,
-                userID: userID,
-                leadMinutes: preferences.reminderLeadMinutes
-            )
-        } catch {
-        }
-    }
-
-    private func cancelReminder(for eventID: String) {
-        guard let userID = AuthService.shared.currentUser?.uid else { return }
-        localEventReminderService.cancelEventReminder(eventID: eventID, userID: userID)
     }
 
     func toggleBookmark(for eventID: String) {
@@ -1039,7 +1013,6 @@ final class MyRegistrationsViewModel: ObservableObject {
     @Published private(set) var pendingCancellationIDs = Set<String>()
 
     private let repository: EventRepository
-    private let localEventReminderService: LocalEventReminderServiceProtocol
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
@@ -1049,7 +1022,6 @@ final class MyRegistrationsViewModel: ObservableObject {
         localEventReminderService: LocalEventReminderServiceProtocol? = nil
     ) {
         self.repository = repository
-        self.localEventReminderService = localEventReminderService ?? LocalEventReminderService()
         events = []
         isLoading = false
     }
@@ -1107,7 +1079,6 @@ final class MyRegistrationsViewModel: ObservableObject {
 
         do {
             try await repository.cancelEventRegistration(id: eventID)
-            cancelReminder(for: eventID)
             ActivityLogRecorder.recordEvent(event, actionType: .canceledEventRegistration)
             events.removeAll { $0.id == eventID }
             error = nil
@@ -1116,11 +1087,6 @@ final class MyRegistrationsViewModel: ObservableObject {
         } catch {
             self.error = .unknown
         }
-    }
-
-    private func cancelReminder(for eventID: String) {
-        guard let userID = AuthService.shared.currentUser?.uid else { return }
-        localEventReminderService.cancelEventReminder(eventID: eventID, userID: userID)
     }
 
     private func startLoad(force: Bool) async {
@@ -1995,15 +1961,12 @@ final class ProfileViewModel: ObservableObject {
     @Published var notificationPreferences: NotificationPreferences = .default
     @Published private(set) var isLoadingNotificationPreferences = false
     @Published private(set) var isSavingNotificationPreferences = false
-    @Published private(set) var isSendingTestNotification = false
     @Published var notificationPreferencesMessage: String?
     @Published var profileMessage: String?
     @Published var feedbackMessage: String?
     private let repository: UserRepository
     private let feedbackRepository: FeedbackRepository
     private let notificationPreferencesRepository: NotificationPreferencesRepository
-    private let notificationPermissionService: NotificationPermissionServiceProtocol
-    private let localEventReminderService: LocalEventReminderServiceProtocol
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
@@ -2019,8 +1982,6 @@ final class ProfileViewModel: ObservableObject {
         self.repository = repository
         self.feedbackRepository = feedbackRepository
         self.notificationPreferencesRepository = notificationPreferencesRepository
-        self.notificationPermissionService = notificationPermissionService
-        self.localEventReminderService = localEventReminderService
         user = .placeholder
         settings = .stored
     }
@@ -2067,7 +2028,6 @@ final class ProfileViewModel: ObservableObject {
         notificationPreferences = .default
         isLoadingNotificationPreferences = false
         isSavingNotificationPreferences = false
-        isSendingTestNotification = false
         notificationPreferencesMessage = nil
         loadedNotificationPreferencesUserID = nil
         profileMessage = nil
@@ -2088,56 +2048,9 @@ final class ProfileViewModel: ObservableObject {
     func setNotificationsEnabled(_ isEnabled: Bool, userID: String) async {
         guard !isSavingNotificationPreferences else { return }
 
-        if isEnabled {
-            do {
-                guard try await notificationPermissionService.requestNotificationAuthorization() else {
-                    notificationPreferences.notificationsEnabled = false
-                    notificationPreferencesMessage = AppStrings.Profile.notificationPermissionDenied
-                    return
-                }
-            } catch {
-                notificationPreferences.notificationsEnabled = false
-                notificationPreferencesMessage = AppStrings.Profile.notificationPermissionDenied
-                return
-            }
-        }
-
         var updatedPreferences = notificationPreferences
         updatedPreferences.notificationsEnabled = isEnabled
         await saveNotificationPreferences(updatedPreferences, userID: userID)
-    }
-
-    func setEventRemindersEnabled(_ isEnabled: Bool, userID: String) async {
-        guard !isSavingNotificationPreferences else { return }
-        var updatedPreferences = notificationPreferences
-        updatedPreferences.eventRemindersEnabled = isEnabled
-        await saveNotificationPreferences(updatedPreferences, userID: userID)
-    }
-
-    func setReminderLeadMinutes(_ minutes: Int, userID: String) async {
-        guard !isSavingNotificationPreferences else { return }
-        var updatedPreferences = notificationPreferences
-        updatedPreferences.reminderLeadMinutes = minutes
-        await saveNotificationPreferences(updatedPreferences, userID: userID)
-    }
-
-    func sendTestNotification(userID: String) async {
-        guard !isSendingTestNotification else { return }
-        guard notificationPreferences.notificationsEnabled else { return }
-
-        isSendingTestNotification = true
-        notificationPreferencesMessage = nil
-        defer { isSendingTestNotification = false }
-
-        do {
-            try await localEventReminderService.scheduleTestNotification(userID: userID)
-            notificationPreferencesMessage = AppStrings.Profile.notificationTestSent
-        } catch AppError.permissionDenied {
-            notificationPreferences.notificationsEnabled = false
-            notificationPreferencesMessage = AppStrings.Profile.notificationPermissionDenied
-        } catch {
-            notificationPreferencesMessage = AppStrings.Profile.notificationTestFailed
-        }
     }
 
     private func loadNotificationPreferences(userID: String) async {

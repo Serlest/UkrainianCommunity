@@ -871,13 +871,13 @@ enum AppStrings {
         static var ownerPersonalSettings: String { text("profile.owner.personal_settings", "Особисті налаштування") }
         static var ownerPersonalSettingsSubtitle: String { text("profile.owner.personal_settings.subtitle", "Профіль власника, мова, тема та особисті сповіщення.") }
         static var notificationSettings: String { text("profile.notifications.settings", "Сповіщення") }
-        static var notificationSettingsSubtitle: String { text("profile.notifications.settings.subtitle", "Локальні нагадування про зареєстровані події.") }
-        static var notificationsSectionSubtitle: String { text("profile.notifications.section_subtitle", "Керуйте локальними нагадуваннями про події на цьому пристрої.") }
+        static var notificationSettingsSubtitle: String { text("profile.notifications.settings.subtitle", "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку.") }
+        static var notificationsSectionSubtitle: String { text("profile.notifications.section_subtitle", "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку.") }
         static var notificationsEnabled: String {
-            String(localized: "profile.notifications.enabled", defaultValue: "Увімкнути сповіщення", bundle: .main, locale: LocalizationStore.locale)
+            String(localized: "profile.notifications.enabled", defaultValue: "Внутрішні сповіщення", bundle: .main, locale: LocalizationStore.locale)
         }
         static var notificationsEnabledSubtitle: String {
-            String(localized: "profile.notifications.enabled.subtitle", defaultValue: "Дозволяє застосунку показувати локальні нагадування.", bundle: .main, locale: LocalizationStore.locale)
+            String(localized: "profile.notifications.enabled.subtitle", defaultValue: "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку.", bundle: .main, locale: LocalizationStore.locale)
         }
         static var eventRemindersEnabled: String {
             String(localized: "profile.notifications.event_reminders.enabled", defaultValue: "Нагадування про події", bundle: .main, locale: LocalizationStore.locale)
@@ -922,6 +922,8 @@ enum AppStrings {
         static var mainInformation: String { text("profile.edit.main_information", "Основна інформація") }
         static var contactsSection: String { text("profile.edit.contacts", "Контакти") }
         static var preferencesSection: String { text("profile.edit.preferences", "Preferences") }
+        static var appSettings: String { text("profile.edit.app_settings", "Налаштування застосунку") }
+        static var appSettingsSubtitle: String { text("profile.edit.app_settings.subtitle", "Мова та вигляд застосунку.") }
         static var appLanguage: String { text("profile.settings.app_language", "Мова застосунку") }
         static var languageSettingsSubtitle: String { text("profile.settings.language.subtitle", "Мова інтерфейсу застосунку.") }
         static var appAppearance: String { text("profile.settings.app_appearance", "Тема оформлення") }
@@ -992,7 +994,7 @@ enum AppStrings {
         static var volunteeringSubtitle: String { text("profile.future.volunteering.subtitle", "Можливість відгукуватися на потреби організацій.") }
         static var participationRequestsSubtitle: String { text("profile.community.participation_requests.subtitle", "Майбутні заявки на участь у спільноті.") }
         static var communityBadgesSubtitle: String { text("profile.community.badges.subtitle", "Досягнення та внесок у спільноту.") }
-        static var notificationSettingsRowSubtitle: String { text("profile.notifications.settings.row_subtitle", "Локальні нагадування та сповіщення в застосунку.") }
+        static var notificationSettingsRowSubtitle: String { text("profile.notifications.settings.row_subtitle", "Внутрішні сповіщення в застосунку.") }
         static var termsOfUse: String { text("profile.terms_of_use", "Умови користування") }
         static var privacyPolicy: String { text("profile.privacy_policy", "Політика конфіденційності") }
         static var savedContentIntro: String { text("profile.saved_content.intro", "Новини, події та організації, які ви зберегли.") }

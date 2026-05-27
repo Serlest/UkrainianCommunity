@@ -1102,26 +1102,18 @@ struct NewsDetailView: View {
     }
 
     private func commentAvatar(_ comment: Comment) -> some View {
-        ZStack {
-            Circle()
-                .fill(AppTheme.accentPrimarySoft)
-            if let authorPhotoURL = comment.authorPhotoURL, !authorPhotoURL.isEmpty {
-                AsyncImage(url: URL(string: authorPhotoURL)) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Text(commentInitials(comment))
-                            .font(.caption.weight(.bold))
-                    }
-                }
-            } else {
-                Text(commentInitials(comment))
-                    .font(.caption.weight(.bold))
-            }
-        }
-        .foregroundStyle(AppTheme.accentPrimary)
-        .frame(width: 32, height: 32)
-        .clipShape(Circle())
+        let avatarURL = comment.authorPhotoURL.flatMap { URL(string: $0) }
+        return AvatarArtworkView(
+            avatarURL: avatarURL,
+            initials: commentInitials(comment),
+            size: 32,
+            showsBorder: false,
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            shadowY: 0,
+            initialsFont: .caption.weight(.bold),
+            placeholderFill: AppTheme.accentPrimarySoft
+        )
     }
 
     private func commentInitials(_ comment: Comment) -> String {

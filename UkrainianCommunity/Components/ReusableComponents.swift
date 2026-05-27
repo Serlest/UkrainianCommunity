@@ -2112,8 +2112,17 @@ struct AvatarArtworkView: View {
     let accessibilityLabel: String?
     let isLoading: Bool
     let isDecorative: Bool
+    let showsBorder: Bool
+    let shadowOpacity: Double
+    let shadowRadius: CGFloat
+    let shadowY: CGFloat
+    let initialsFont: Font?
+    let placeholderFill: Color?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var cachedAvatarImage: UIImage?
+    @State private var cachedAvatarURL: String?
+    @State private var avatarLoadFailed = false
 
     init(
         avatarURL: URL?,
@@ -2122,7 +2131,13 @@ struct AvatarArtworkView: View {
         size: CGFloat,
         accessibilityLabel: String? = nil,
         isLoading: Bool = false,
-        isDecorative: Bool = false
+        isDecorative: Bool = false,
+        showsBorder: Bool = true,
+        shadowOpacity: Double = 0.06,
+        shadowRadius: CGFloat = 10,
+        shadowY: CGFloat = 4,
+        initialsFont: Font? = nil,
+        placeholderFill: Color? = nil
     ) {
         self.avatarURL = avatarURL
         self.previewImage = previewImage
@@ -2131,6 +2146,12 @@ struct AvatarArtworkView: View {
         self.accessibilityLabel = accessibilityLabel
         self.isLoading = isLoading
         self.isDecorative = isDecorative
+        self.showsBorder = showsBorder
+        self.shadowOpacity = shadowOpacity
+        self.shadowRadius = shadowRadius
+        self.shadowY = shadowY
+        self.initialsFont = initialsFont
+        self.placeholderFill = placeholderFill
     }
 
     var body: some View {
@@ -2156,10 +2177,17 @@ struct AvatarArtworkView: View {
             }
         }
         .frame(width: size, height: size)
-        .overlay(Circle().stroke(AppTheme.borderSubtle))
-        .shadow(color: Color.black.opacity(0.06), radius: 10, y: 4)
+        .overlay {
+            if showsBorder {
+                Circle().stroke(AppTheme.borderSubtle)
+            }
+        }
+        .shadow(color: Color.black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
         .accessibilityHidden(isDecorative)
         .accessibilityLabel(accessibilityLabel ?? initials)
+        .task(id: avatarURL?.absoluteString) {
+            await loadAvatarImage()
+        }
     }
 
     @ViewBuilder
@@ -2169,37 +2197,77 @@ struct AvatarArtworkView: View {
                 .resizable()
                 .scaledToFill()
                 .transition(.opacity)
-        } else if let avatarURL {
-            AsyncImage(url: avatarURL, transaction: Transaction(animation: .easeInOut(duration: 0.2))) { phase in
-                switch phase {
-                case .empty:
-                    avatarPlaceholder(showProgress: true)
-                case let .success(image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .transition(.opacity)
-                case .failure:
-                    avatarPlaceholder(showProgress: false)
-                @unknown default:
-                    avatarPlaceholder(showProgress: false)
-                }
+        } else if let avatarURLString = avatarURL?.absoluteString {
+            if let cachedAvatarImage, cachedAvatarURL == avatarURLString {
+                Image(uiImage: cachedAvatarImage)
+                    .resizable()
+                    .scaledToFill()
+                    .transition(.opacity)
+            } else {
+                avatarPlaceholder(showProgress: !avatarLoadFailed)
             }
         } else {
             avatarPlaceholder(showProgress: false)
         }
     }
 
+    @MainActor
+    private func loadAvatarImage() async {
+        guard let avatarURLString = avatarURL?.absoluteString,
+              let url = URL(string: avatarURLString) else {
+            cachedAvatarImage = nil
+            cachedAvatarURL = nil
+            avatarLoadFailed = false
+            return
+        }
+
+        let cacheKey = avatarURLString as NSString
+        if let image = RemoteImageCache.shared.object(forKey: cacheKey) {
+            cachedAvatarImage = image
+            cachedAvatarURL = avatarURLString
+            avatarLoadFailed = false
+            return
+        }
+
+        avatarLoadFailed = false
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let image = UIImage(data: data) else {
+                avatarLoadFailed = true
+                return
+            }
+
+            RemoteImageCache.shared.setObject(image, forKey: cacheKey, cost: data.count)
+            cachedAvatarImage = image
+            cachedAvatarURL = avatarURLString
+            avatarLoadFailed = false
+        } catch {
+            let nsError = error as NSError
+            if nsError.code != NSURLErrorCancelled {
+                avatarLoadFailed = true
+            }
+        }
+    }
+
+    private var placeholderBackground: AnyShapeStyle {
+        if let placeholderFill {
+            return AnyShapeStyle(placeholderFill)
+        }
+
+        return AnyShapeStyle(
+            LinearGradient(
+                colors: [AppTheme.accentPrimarySoft, AppTheme.surfaceSecondary],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+
     private func avatarPlaceholder(showProgress: Bool) -> some View {
         ZStack {
             Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [AppTheme.accentPrimarySoft, AppTheme.surfaceSecondary],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(placeholderBackground)
 
             if showProgress {
                 ProgressView()
@@ -2207,7 +2275,7 @@ struct AvatarArtworkView: View {
                     .tint(AppTheme.accentPrimary)
             } else {
                 Text(initials)
-                    .font(.system(size: size * 0.28, weight: .bold, design: .rounded))
+                    .font(initialsFont ?? .system(size: size * 0.28, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.accentPrimary)
             }
         }

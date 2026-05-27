@@ -1465,35 +1465,17 @@ private struct UserAvatarView: View {
     let size: CGFloat
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(AppTheme.accentPrimary.opacity(0.12))
-
-            if let avatarURL = user.avatarURL {
-                AsyncImage(url: avatarURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure, .empty:
-                        initials
-                    @unknown default:
-                        initials
-                    }
-                }
-            } else {
-                initials
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(Circle())
-    }
-
-    private var initials: some View {
-        Text(user.initials)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(AppTheme.accentPrimary)
+        AvatarArtworkView(
+            avatarURL: user.avatarURL,
+            initials: user.initials,
+            size: size,
+            showsBorder: false,
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            shadowY: 0,
+            initialsFont: .subheadline.weight(.semibold),
+            placeholderFill: AppTheme.accentPrimary.opacity(0.12)
+        )
     }
 }
 

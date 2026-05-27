@@ -2728,24 +2728,17 @@ struct OrganizationDetailView: View {
     }
 
     private func communityAvatar(for profile: PublicUserProfile) -> some View {
-        Group {
-            if let avatarURL = profile.avatarURL {
-                AsyncImage(url: avatarURL) { phase in
-                    switch phase {
-                    case let .success(image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        communityInitialsAvatar(for: profile)
-                    }
-                }
-            } else {
-                communityInitialsAvatar(for: profile)
-            }
-        }
-        .frame(width: 42, height: 42)
-        .clipShape(Circle())
+        AvatarArtworkView(
+            avatarURL: profile.avatarURL,
+            initials: communityInitials(for: profile),
+            size: 42,
+            showsBorder: false,
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            shadowY: 0,
+            initialsFont: .footnote.weight(.bold),
+            placeholderFill: AppTheme.glassControlSurface(for: colorScheme)
+        )
         .overlay(Circle().strokeBorder(AppTheme.glassBorder(for: colorScheme)))
     }
 
@@ -3540,26 +3533,18 @@ struct OrganizationDetailView: View {
     }
 
     private func commentAvatar(_ comment: Comment) -> some View {
-        ZStack {
-            Circle()
-                .fill(AppTheme.accentPrimarySoft)
-            if let authorPhotoURL = comment.authorPhotoURL, !authorPhotoURL.isEmpty {
-                AsyncImage(url: URL(string: authorPhotoURL)) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Text(commentInitials(comment))
-                            .font(.caption.weight(.bold))
-                    }
-                }
-            } else {
-                Text(commentInitials(comment))
-                    .font(.caption.weight(.bold))
-            }
-        }
-        .foregroundStyle(AppTheme.accentPrimary)
-        .frame(width: 32, height: 32)
-        .clipShape(Circle())
+        let avatarURL = comment.authorPhotoURL.flatMap { URL(string: $0) }
+        return AvatarArtworkView(
+            avatarURL: avatarURL,
+            initials: commentInitials(comment),
+            size: 32,
+            showsBorder: false,
+            shadowOpacity: 0,
+            shadowRadius: 0,
+            shadowY: 0,
+            initialsFont: .caption.weight(.bold),
+            placeholderFill: AppTheme.accentPrimarySoft
+        )
     }
 
     private func commentInitials(_ comment: Comment) -> String {
