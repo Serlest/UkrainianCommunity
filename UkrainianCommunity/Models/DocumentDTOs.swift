@@ -166,23 +166,6 @@ struct EventDTO: Codable, Identifiable {
     let isBookmarked: Bool
 }
 
-struct GuideArticleDTO: Codable, Identifiable {
-    let id: String
-    let title: String
-    let summary: String
-    let body: String
-    let category: String
-    let regionScope: String?
-    let federalState: String?
-    let city: String?
-    let officialSourceURL: String?
-    let sourceName: String?
-    let isPinned: Bool
-    let moderationStatus: String
-    let createdAt: Date
-    let updatedAt: Date
-}
-
 struct OrganizationDTO: Codable, Identifiable {
     let id: String
     let name: String
@@ -660,46 +643,6 @@ extension Organization {
             likeState: likeState.rawValue,
             isSubscribed: isSubscribed,
             isBookmarked: isBookmarked
-        )
-    }
-}
-
-extension GuideArticle {
-    init(dto: GuideArticleDTO) {
-        self.init(
-            id: dto.id,
-            title: dto.title,
-            summary: dto.summary,
-            body: dto.body,
-            category: GuideCategory(rawValue: dto.category) ?? .documents,
-            regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .austria,
-            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)),
-            city: dto.city,
-            officialSourceURL: dto.officialSourceURL,
-            sourceName: dto.sourceName,
-            isPinned: dto.isPinned,
-            moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .approved,
-            createdAt: dto.createdAt,
-            updatedAt: dto.updatedAt
-        )
-    }
-
-    var dto: GuideArticleDTO {
-        GuideArticleDTO(
-            id: id,
-            title: title,
-            summary: summary,
-            body: body,
-            category: category.rawValue,
-            regionScope: regionScope?.rawValue,
-            federalState: federalState?.rawValue,
-            city: city,
-            officialSourceURL: officialSourceURL,
-            sourceName: sourceName,
-            isPinned: isPinned,
-            moderationStatus: moderationStatus.rawValue,
-            createdAt: createdAt,
-            updatedAt: updatedAt
         )
     }
 }

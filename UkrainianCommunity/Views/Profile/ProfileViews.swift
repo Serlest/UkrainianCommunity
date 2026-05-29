@@ -124,6 +124,7 @@ struct ProfileView: View {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
+    private let guideRepository: GuideRepository
     private let notificationInboxRepository: NotificationInboxRepository
     @EnvironmentObject var authState: AuthState
     @Environment(\.colorScheme) private var colorScheme
@@ -159,6 +160,7 @@ struct ProfileView: View {
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        guideRepository: GuideRepository = FirestoreGuideRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService()
     ) {
@@ -167,6 +169,7 @@ struct ProfileView: View {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
+        self.guideRepository = guideRepository
         self.notificationInboxRepository = notificationInboxRepository
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(
             repository: eventRepository,
@@ -212,6 +215,10 @@ struct ProfileView: View {
         return false
     }
 
+    private var canShowGuideManagement: Bool {
+        PermissionService.canManageGuide(user: permissionUser)
+    }
+
     private var displayUser: AppUser? {
         guard authState.isAuthenticated else {
             return nil
@@ -234,7 +241,7 @@ struct ProfileView: View {
     }
 
     private var hasAdministrationSection: Bool {
-        canShowModerationTools || canShowAdminTools
+        canShowModerationTools || canShowAdminTools || canShowGuideManagement
     }
 
     private var profileDashboardMode: ProfileDashboardMode? {
@@ -811,7 +818,7 @@ struct ProfileView: View {
                 ProfileModuleRow(title: AppStrings.Profile.guestBrowseNews, subtitle: AppStrings.Profile.previewNewsSubtitle, systemImage: "newspaper", status: .available, accessory: .none)
                 ProfileModuleRow(title: AppStrings.Profile.guestBrowseEvents, subtitle: AppStrings.Profile.previewEventsSubtitle, systemImage: "calendar", status: .available, accessory: .none)
                 ProfileModuleRow(title: AppStrings.Profile.guestBrowseOrganizations, subtitle: AppStrings.Profile.previewOrganizationsSubtitle, systemImage: "building.2", status: .available, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Info.title, subtitle: AppStrings.Profile.previewGuideSubtitle, systemImage: "book.closed", status: .available, accessory: .none)
+                ProfileModuleRow(title: AppStrings.Guide.title, subtitle: AppStrings.Profile.previewGuideSubtitle, systemImage: "book.closed", status: .available, accessory: .none)
             }
         }
 
@@ -833,6 +840,7 @@ struct ProfileView: View {
             )
 
             quickActionsSection(for: user)
+            guideManagementSection
             supportSection(for: user)
             accountDeletionSection
             logoutSection
@@ -983,6 +991,23 @@ struct ProfileView: View {
         NotificationSettingsSectionView(viewModel: viewModel, userID: authState.user?.id)
     }
 
+    @ViewBuilder
+    private var guideManagementSection: some View {
+        if canShowGuideManagement {
+            ProfileSectionCard(title: AppStrings.GuideManagement.title, subtitle: AppStrings.GuideManagement.entrySubtitle) {
+                NavigationLink { GuideManagementView(guideRepository: guideRepository) } label: {
+                    ProfileModuleRow(
+                        title: AppStrings.GuideManagement.title,
+                        subtitle: AppStrings.GuideManagement.entrySubtitle,
+                        systemImage: "book.closed",
+                        status: .available
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     private var ownerPlatformManagementSection: some View {
         ProfileSectionCard(title: AppStrings.Profile.ownerPlatformManagement, subtitle: AppStrings.Profile.ownerPlatformManagementSubtitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
@@ -990,6 +1015,18 @@ struct ProfileView: View {
                     ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.ownerUsersSubtitle, systemImage: "person.3", status: canShowAdminTools ? .active : .locked)
                 }
                 .buttonStyle(.plain)
+
+                if canShowGuideManagement {
+                    NavigationLink { GuideManagementView(guideRepository: guideRepository) } label: {
+                        ProfileModuleRow(
+                            title: AppStrings.GuideManagement.title,
+                            subtitle: AppStrings.GuideManagement.entrySubtitle,
+                            systemImage: "book.closed",
+                            status: .available
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 NavigationLink {
                     ModerationToolsView(
@@ -6446,6 +6483,7 @@ private struct ManagedOrganizationView: View {
             ),
             feedbackRepository: MockFeedbackRepository(),
             eventRepository: MockEventRepository(),
+            guideRepository: MockGuideRepository(),
             notificationInboxRepository: MockNotificationInboxRepository()
         )
     }

@@ -373,6 +373,226 @@ private actor MockRepositoryStore {
         return post.comments.filter { !$0.isDeleted }
     }
 
+    func createGuideArticle(from draft: GuideArticleDraft, authorId: String) throws -> GuideArticle {
+        let trimmedAuthorId = authorId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedAuthorId.isEmpty else { throw AppError.permissionDenied }
+
+        let article = try draft.makeGuideArticle(createdBy: trimmedAuthorId)
+        guideArticles.insert(article, at: 0)
+        return article
+    }
+
+    func draftGuideArticles() -> [GuideArticle] {
+        guideArticles
+            .filter { $0.moderationStatus == .draft }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func inReviewGuideArticles() -> [GuideArticle] {
+        guideArticles
+            .filter { $0.moderationStatus == .pendingReview && $0.status == .review }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func approvedGuideArticles() -> [GuideArticle] {
+        guideArticles
+            .filter { $0.moderationStatus == .approved && $0.status == .approved }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func updateGuideArticle(id: String, from draft: GuideArticleDraft, editorId: String) throws -> GuideArticle {
+        let trimmedId = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEditorId = editorId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty, !trimmedEditorId.isEmpty else { throw AppError.permissionDenied }
+        guard let index = guideArticles.firstIndex(where: { $0.id == trimmedId }) else { throw AppError.notFound }
+
+        let existingArticle = guideArticles[index]
+        guard existingArticle.moderationStatus == .draft,
+              existingArticle.status == nil || existingArticle.status == .draft,
+              existingArticle.archivedAt == nil else {
+            throw AppError.validationFailed
+        }
+
+        let article = try draft.updatingGuideArticle(guideArticles[index], editorId: trimmedEditorId)
+        guideArticles[index] = article
+        return article
+    }
+
+    func submitGuideArticleForReview(id: String, submitterId: String) throws {
+        let trimmedId = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSubmitterId = submitterId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty, !trimmedSubmitterId.isEmpty else { throw AppError.permissionDenied }
+        guard let index = guideArticles.firstIndex(where: { $0.id == trimmedId }) else { throw AppError.notFound }
+
+        let existingArticle = guideArticles[index]
+        guard existingArticle.moderationStatus == .draft,
+              existingArticle.status == nil || existingArticle.status == .draft,
+              existingArticle.archivedAt == nil else {
+            throw AppError.validationFailed
+        }
+
+        guideArticles[index] = GuideArticle(
+            id: existingArticle.id,
+            title: existingArticle.title,
+            summary: existingArticle.summary,
+            body: existingArticle.body,
+            category: existingArticle.category,
+            regionScope: existingArticle.regionScope,
+            federalState: existingArticle.federalState,
+            city: existingArticle.city,
+            officialSourceURL: existingArticle.officialSourceURL,
+            sourceName: existingArticle.sourceName,
+            isPinned: existingArticle.isPinned,
+            moderationStatus: .pendingReview,
+            createdAt: existingArticle.createdAt,
+            updatedAt: .now,
+            contentType: existingArticle.contentType,
+            status: .review,
+            contentBlocks: existingArticle.contentBlocks,
+            audience: existingArticle.audience,
+            sourceLinks: existingArticle.sourceLinks,
+            officialSourcesRequired: existingArticle.officialSourcesRequired,
+            priority: existingArticle.priority,
+            isFeatured: existingArticle.isFeatured,
+            createdBy: existingArticle.createdBy,
+            updatedBy: trimmedSubmitterId,
+            reviewedBy: existingArticle.reviewedBy,
+            publishedAt: existingArticle.publishedAt,
+            lastReviewedAt: existingArticle.lastReviewedAt,
+            nextReviewAt: existingArticle.nextReviewAt,
+            reviewInterval: existingArticle.reviewInterval,
+            archivedAt: existingArticle.archivedAt
+        )
+    }
+
+    func approveGuideArticle(id: String, reviewerId: String) throws {
+        let trimmedId = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedReviewerId = reviewerId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty, !trimmedReviewerId.isEmpty else { throw AppError.permissionDenied }
+        guard let index = guideArticles.firstIndex(where: { $0.id == trimmedId }) else { throw AppError.notFound }
+
+        let existingArticle = guideArticles[index]
+        guard existingArticle.moderationStatus == .pendingReview,
+              existingArticle.status == .review,
+              existingArticle.archivedAt == nil else {
+            throw AppError.validationFailed
+        }
+
+        let reviewedAt = Date()
+        guideArticles[index] = GuideArticle(
+            id: existingArticle.id,
+            title: existingArticle.title,
+            summary: existingArticle.summary,
+            body: existingArticle.body,
+            category: existingArticle.category,
+            regionScope: existingArticle.regionScope,
+            federalState: existingArticle.federalState,
+            city: existingArticle.city,
+            officialSourceURL: existingArticle.officialSourceURL,
+            sourceName: existingArticle.sourceName,
+            isPinned: existingArticle.isPinned,
+            moderationStatus: .approved,
+            createdAt: existingArticle.createdAt,
+            updatedAt: reviewedAt,
+            contentType: existingArticle.contentType,
+            status: .approved,
+            contentBlocks: existingArticle.contentBlocks,
+            audience: existingArticle.audience,
+            sourceLinks: existingArticle.sourceLinks,
+            officialSourcesRequired: existingArticle.officialSourcesRequired,
+            priority: existingArticle.priority,
+            isFeatured: existingArticle.isFeatured,
+            createdBy: existingArticle.createdBy,
+            updatedBy: trimmedReviewerId,
+            reviewedBy: trimmedReviewerId,
+            publishedAt: existingArticle.publishedAt,
+            lastReviewedAt: reviewedAt,
+            nextReviewAt: existingArticle.nextReviewAt,
+            reviewInterval: existingArticle.reviewInterval,
+            archivedAt: existingArticle.archivedAt
+        )
+    }
+
+    func publishGuideArticle(id: String, publisherId: String) throws {
+        let trimmedId = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPublisherId = publisherId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty, !trimmedPublisherId.isEmpty else { throw AppError.permissionDenied }
+        guard let index = guideArticles.firstIndex(where: { $0.id == trimmedId }) else { throw AppError.notFound }
+
+        let existingArticle = guideArticles[index]
+        guard existingArticle.moderationStatus == .approved,
+              existingArticle.status == .approved,
+              existingArticle.archivedAt == nil else {
+            throw AppError.validationFailed
+        }
+
+        let publishedAt = Date()
+        let reviewInterval = existingArticle.reviewInterval ?? .normal
+        let reviewIntervalMonths: Int
+        switch reviewInterval {
+        case .critical:
+            reviewIntervalMonths = 3
+        case .normal:
+            reviewIntervalMonths = 6
+        case .stable:
+            reviewIntervalMonths = 12
+        }
+        let nextReviewAt = Calendar.current.date(
+            byAdding: .month,
+            value: reviewIntervalMonths,
+            to: publishedAt
+        ) ?? publishedAt
+
+        guideArticles[index] = GuideArticle(
+            id: existingArticle.id,
+            title: existingArticle.title,
+            summary: existingArticle.summary,
+            body: existingArticle.body,
+            category: existingArticle.category,
+            regionScope: existingArticle.regionScope,
+            federalState: existingArticle.federalState,
+            city: existingArticle.city,
+            officialSourceURL: existingArticle.officialSourceURL,
+            sourceName: existingArticle.sourceName,
+            isPinned: existingArticle.isPinned,
+            moderationStatus: .approved,
+            createdAt: existingArticle.createdAt,
+            updatedAt: publishedAt,
+            contentType: existingArticle.contentType,
+            status: .published,
+            contentBlocks: existingArticle.contentBlocks,
+            audience: existingArticle.audience,
+            sourceLinks: existingArticle.sourceLinks,
+            officialSourcesRequired: existingArticle.officialSourcesRequired,
+            priority: existingArticle.priority,
+            isFeatured: existingArticle.isFeatured,
+            createdBy: existingArticle.createdBy,
+            updatedBy: trimmedPublisherId,
+            reviewedBy: existingArticle.reviewedBy,
+            publishedAt: publishedAt,
+            lastReviewedAt: publishedAt,
+            nextReviewAt: nextReviewAt,
+            reviewInterval: existingArticle.reviewInterval,
+            archivedAt: existingArticle.archivedAt
+        )
+    }
+
+    func archiveGuideArticle(id: String, editorId: String) throws {
+        let trimmedId = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEditorId = editorId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty, !trimmedEditorId.isEmpty else { throw AppError.permissionDenied }
+        guard let index = guideArticles.firstIndex(where: { $0.id == trimmedId }) else { throw AppError.notFound }
+
+        let existingArticle = guideArticles[index]
+        guard existingArticle.moderationStatus == .draft,
+              existingArticle.status == nil || existingArticle.status == .draft,
+              existingArticle.archivedAt == nil else {
+            throw AppError.validationFailed
+        }
+
+        guideArticles[index] = existingArticle.archivedBy(editorId: trimmedEditorId)
+    }
+
     func toggleEventLike(id: String, isLiked: Bool) throws {
         guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         events[index].likeState = isLiked ? .liked : .notLiked
@@ -1294,12 +1514,12 @@ private extension Event {
     }
 }
 
-struct MockInfoRepository: InfoRepository {
+struct MockGuideRepository: GuideRepository {
     private let store = MockRepositoryStore.shared
 
     func fetchGuideArticles() async throws -> [GuideArticle] {
         await store.guideArticles
-            .filter { $0.moderationStatus == .approved }
+            .filter { $0.moderationStatus == .approved && $0.status == .published }
             .sorted { lhs, rhs in
                 if lhs.isPinned == rhs.isPinned {
                     return lhs.updatedAt > rhs.updatedAt
@@ -1307,7 +1527,45 @@ struct MockInfoRepository: InfoRepository {
                 return lhs.isPinned && !rhs.isPinned
             }
     }
+
+    func fetchDraftGuideArticles() async throws -> [GuideArticle] {
+        await store.draftGuideArticles()
+    }
+
+    func fetchInReviewGuideArticles() async throws -> [GuideArticle] {
+        await store.inReviewGuideArticles()
+    }
+
+    func fetchApprovedGuideArticles() async throws -> [GuideArticle] {
+        await store.approvedGuideArticles()
+    }
+
+    func createGuideArticle(from draft: GuideArticleDraft, authorId: String) async throws -> GuideArticle {
+        try await store.createGuideArticle(from: draft, authorId: authorId)
+    }
+
+    func updateGuideArticle(id: String, from draft: GuideArticleDraft, editorId: String) async throws -> GuideArticle {
+        try await store.updateGuideArticle(id: id, from: draft, editorId: editorId)
+    }
+
+    func submitGuideArticleForReview(id: String, submitterId: String) async throws {
+        try await store.submitGuideArticleForReview(id: id, submitterId: submitterId)
+    }
+
+    func approveGuideArticle(id: String, reviewerId: String) async throws {
+        try await store.approveGuideArticle(id: id, reviewerId: reviewerId)
+    }
+
+    func publishGuideArticle(id: String, publisherId: String) async throws {
+        try await store.publishGuideArticle(id: id, publisherId: publisherId)
+    }
+
+    func archiveGuideArticle(id: String, editorId: String) async throws {
+        try await store.archiveGuideArticle(id: id, editorId: editorId)
+    }
 }
+
+typealias MockInfoRepository = MockGuideRepository
 
 private extension AppUser {
     nonisolated var commentDisplayName: String {

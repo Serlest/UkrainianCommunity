@@ -20,7 +20,7 @@ enum RecentViewItemType: String, CaseIterable, Codable, Identifiable {
         case .organization:
             return AppStrings.Tabs.organizations
         case .guide:
-            return AppStrings.Info.title
+            return AppStrings.Guide.title
         }
     }
 

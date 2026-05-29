@@ -53,11 +53,228 @@ service cloud.firestore {
     }
 
     function canManageGuide() {
-      return isOwner()
-        || (isSignedIn()
-          && existsUser(request.auth.uid)
-          && ('canManageGuide' in currentUserData())
-          && currentUserData().canManageGuide == true);
+      return isActiveUser()
+        && (
+          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'owner')
+          || (('canManageGuide' in currentUserData()) && currentUserData().canManageGuide == true)
+        );
+    }
+
+    function guideArticleRequiredCreateFields() {
+      return [
+        'id',
+        'title',
+        'summary',
+        'body',
+        'category',
+        'regionScope',
+        'isPinned',
+        'moderationStatus',
+        'createdAt',
+        'updatedAt',
+        'status',
+        'createdBy'
+      ];
+    }
+
+    function guideArticleAllowedFields() {
+      return [
+        'id',
+        'title',
+        'summary',
+        'body',
+        'category',
+        'regionScope',
+        'federalState',
+        'city',
+        'officialSourceURL',
+        'sourceName',
+        'isPinned',
+        'moderationStatus',
+        'createdAt',
+        'updatedAt',
+        'contentType',
+        'status',
+        'contentBlocks',
+        'audience',
+        'sourceLinks',
+        'officialSourcesRequired',
+        'priority',
+        'isFeatured',
+        'createdBy',
+        'updatedBy',
+        'reviewedBy',
+        'publishedAt',
+        'lastReviewedAt',
+        'nextReviewAt',
+        'reviewInterval',
+        'archivedAt'
+      ];
+    }
+
+    function guideArticleEditableFields() {
+      return [
+        'title',
+        'summary',
+        'body',
+        'category',
+        'regionScope',
+        'federalState',
+        'city',
+        'officialSourceURL',
+        'sourceName',
+        'contentType',
+        'contentBlocks',
+        'audience',
+        'sourceLinks',
+        'officialSourcesRequired',
+        'priority',
+        'isFeatured',
+        'reviewInterval',
+        'updatedAt',
+        'updatedBy'
+      ];
+    }
+
+    function guideArticleArchiveFields() {
+      return ['moderationStatus', 'status', 'archivedAt', 'updatedAt', 'updatedBy'];
+    }
+
+    function guideArticleSubmitForReviewFields() {
+      return ['moderationStatus', 'status', 'updatedAt', 'updatedBy'];
+    }
+
+    function guideArticleApproveFields() {
+      return ['moderationStatus', 'status', 'reviewedBy', 'lastReviewedAt', 'updatedAt', 'updatedBy'];
+    }
+
+    function guideArticlePublishFields() {
+      return ['status', 'publishedAt', 'lastReviewedAt', 'nextReviewAt', 'updatedAt', 'updatedBy'];
+    }
+
+    function guideWorkflowFieldsAreEmptyOnCreate() {
+      return (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy == null)
+        && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == null)
+        && (!('publishedAt' in request.resource.data) || request.resource.data.publishedAt == null)
+        && (!('lastReviewedAt' in request.resource.data) || request.resource.data.lastReviewedAt == null)
+        && (!('nextReviewAt' in request.resource.data) || request.resource.data.nextReviewAt == null)
+        && (!('archivedAt' in request.resource.data) || request.resource.data.archivedAt == null);
+    }
+
+    function guideArticleIdentityFieldsArePreserved() {
+      return request.resource.data.id == resource.data.id
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
+    function guideArticleWorkflowFieldsArePreserved() {
+      return request.resource.data.moderationStatus == resource.data.moderationStatus
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.isPinned == resource.data.isPinned
+        && request.resource.data.reviewedBy == resource.data.reviewedBy
+        && request.resource.data.publishedAt == resource.data.publishedAt
+        && request.resource.data.lastReviewedAt == resource.data.lastReviewedAt
+        && request.resource.data.nextReviewAt == resource.data.nextReviewAt
+        && request.resource.data.archivedAt == resource.data.archivedAt;
+    }
+
+    function guideArticleIsArchived() {
+      return resource.data.moderationStatus == 'archived'
+        || (('status' in resource.data) && resource.data.status == 'archived');
+    }
+
+    function guideArticleIsEditableDraft() {
+      return resource.data.moderationStatus == 'draft'
+        && (
+          !('status' in resource.data)
+          || resource.data.status == null
+          || resource.data.status == 'draft'
+        )
+        && (!('archivedAt' in resource.data) || resource.data.archivedAt == null);
+    }
+
+    function validGuideArticleCreate(articleId) {
+      return canManageGuide()
+        && request.resource.data.keys().hasAll(guideArticleRequiredCreateFields())
+        && request.resource.data.keys().hasOnly(guideArticleAllowedFields())
+        && request.resource.data.id == articleId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.moderationStatus == 'draft'
+        && request.resource.data.status == 'draft'
+        && request.resource.data.isPinned == false
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && guideWorkflowFieldsAreEmptyOnCreate();
+    }
+
+    function validGuideArticleEditUpdate() {
+      return canManageGuide()
+        && guideArticleIsEditableDraft()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleEditableFields())
+        && guideArticleIdentityFieldsArePreserved()
+        && guideArticleWorkflowFieldsArePreserved()
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validGuideArticleArchiveUpdate() {
+      return canManageGuide()
+        && !guideArticleIsArchived()
+        && resource.data.moderationStatus == 'draft'
+        && (
+          !('status' in resource.data)
+          || resource.data.status == null
+          || resource.data.status == 'draft'
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleArchiveFields())
+        && request.resource.data.moderationStatus == 'archived'
+        && request.resource.data.status == 'archived'
+        && request.resource.data.archivedAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    function validGuideArticleSubmitForReviewUpdate() {
+      return canManageGuide()
+        && !guideArticleIsArchived()
+        && resource.data.moderationStatus == 'draft'
+        && (!('status' in resource.data) || resource.data.status == 'draft')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleSubmitForReviewFields())
+        && request.resource.data.moderationStatus == 'pendingReview'
+        && request.resource.data.status == 'review'
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    function validGuideArticleApproveUpdate() {
+      return isActiveUser()
+        && isOwner()
+        && !guideArticleIsArchived()
+        && resource.data.moderationStatus == 'pendingReview'
+        && (('status' in resource.data) && resource.data.status == 'review')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleApproveFields())
+        && request.resource.data.moderationStatus == 'approved'
+        && request.resource.data.status == 'approved'
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.lastReviewedAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    function validGuideArticlePublishUpdate() {
+      return isActiveUser()
+        && isOwner()
+        && !guideArticleIsArchived()
+        && resource.data.moderationStatus == 'approved'
+        && (('status' in resource.data) && resource.data.status == 'approved')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticlePublishFields())
+        && request.resource.data.moderationStatus == 'approved'
+        && request.resource.data.status == 'published'
+        && request.resource.data.publishedAt is timestamp
+        && request.resource.data.lastReviewedAt is timestamp
+        && request.resource.data.nextReviewAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid;
     }
 
     function isApprovedContent() {
@@ -1477,10 +1694,19 @@ service cloud.firestore {
     }
 
     match /guideArticles/{articleId} {
-      allow read: if resource.data.moderationStatus == 'approved'
+      allow read: if (
+          resource.data.moderationStatus == 'approved'
+          && (('status' in resource.data) && resource.data.status == 'published')
+        )
         || canManageGuide();
 
-      allow create, update, delete: if canManageGuide();
+      allow create: if validGuideArticleCreate(articleId);
+      allow update: if validGuideArticleEditUpdate()
+        || validGuideArticleArchiveUpdate()
+        || validGuideArticleSubmitForReviewUpdate()
+        || validGuideArticleApproveUpdate()
+        || validGuideArticlePublishUpdate();
+      allow delete: if false;
     }
 
     match /{document=**} {

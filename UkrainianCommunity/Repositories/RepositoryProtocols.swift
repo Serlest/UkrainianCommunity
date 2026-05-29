@@ -174,6 +174,3 @@ protocol OrganizationPhotoRepository {
     func deletePhoto(_ photo: OrganizationPhoto) async throws
 }
 
-protocol InfoRepository {
-    func fetchGuideArticles() async throws -> [GuideArticle]
-}

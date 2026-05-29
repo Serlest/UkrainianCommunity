@@ -92,8 +92,8 @@ struct PermissionService {
     }
 
     private static func isGuideManager(_ user: AppUser?) -> Bool {
-        guard let user else { return false }
-        return isOwner(user) || user.canManageGuide
+        guard let user, hasUsableAccount(user) else { return false }
+        return user.globalRole.authorizationRole == .owner || user.canManageGuide
     }
 
     static func canModerate(section: AppSection, user: AppUser) -> Bool {
@@ -344,6 +344,10 @@ struct PermissionService {
 
     static func canManageGuide(user: AppUser?) -> Bool {
         isGuideManager(user)
+    }
+
+    static func canApproveGuideArticle(user: AppUser?) -> Bool {
+        Self.isOwner(user)
     }
 
     static func canCreateNews(user: AppUser?) -> Bool {

@@ -128,7 +128,7 @@ final class UserProfileService {
             }
 
             let user = AppUser(dto: UserDTO(
-                id: data["id"] as? String ?? uid,
+                id: uid,
                 fullName: data["fullName"] as? String ?? "",
                 displayName: data["displayName"] as? String,
                 city: data["city"] as? String ?? "",

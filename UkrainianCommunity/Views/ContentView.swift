@@ -17,7 +17,7 @@ struct ContentView: View {
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
     @StateObject private var organizationsViewModel: OrganizationsViewModel
-    @StateObject private var infoViewModel: InfoViewModel
+    @StateObject private var guideViewModel: GuideListViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @State private var selectedTab: AppTab = .home
@@ -43,7 +43,7 @@ struct ContentView: View {
             repository: container.organizationRepository,
             notificationInboxRepository: container.notificationInboxRepository
         ))
-        _infoViewModel = StateObject(wrappedValue: InfoViewModel(repository: container.infoRepository))
+        _guideViewModel = StateObject(wrappedValue: GuideListViewModel(repository: container.guideRepository))
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
             repository: container.userRepository,
             feedbackRepository: container.feedbackRepository,
@@ -78,7 +78,7 @@ struct ContentView: View {
             newsViewModel.reload()
             eventsViewModel.reload()
             organizationsViewModel.reload()
-            infoViewModel.reload()
+            guideViewModel.reload()
             profileViewModel.reload()
         }
         .onChange(of: profileViewModel.settings.appearance) { _, newAppearance in
@@ -141,7 +141,7 @@ struct ContentView: View {
         homeTab
         eventsTab
         organizationsTab
-        infoTab
+        guideTab
         profileTab
     }
 
@@ -202,10 +202,10 @@ struct ContentView: View {
         .tag(AppTab.organizations)
     }
 
-    private var infoTab: some View {
+    private var guideTab: some View {
         NavigationStack {
             InfoView(
-                viewModel: infoViewModel,
+                viewModel: guideViewModel,
                 bannerService: container.homeBannerService
             )
         }
@@ -225,6 +225,7 @@ struct ContentView: View {
                 feedbackRepository: container.feedbackRepository,
                 eventRepository: container.eventRepository,
                 organizationRepository: container.organizationRepository,
+                guideRepository: container.guideRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 localEventReminderService: container.localEventReminderService
             )
