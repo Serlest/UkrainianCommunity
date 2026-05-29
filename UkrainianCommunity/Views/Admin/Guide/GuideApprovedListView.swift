@@ -21,7 +21,7 @@ struct GuideApprovedListView: View {
 
             content
         }
-        .background(AppTheme.subtleGradient.ignoresSafeArea())
+        .background(AppBackgroundView().allowsHitTesting(false))
         .navigationTitle(AppStrings.GuideManagement.approved)
         .navigationBarTitleDisplayMode(.inline)
         .task {

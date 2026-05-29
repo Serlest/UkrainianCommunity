@@ -46,7 +46,7 @@ struct GuideAdminReviewPreviewView: View {
                 legacyURL: article.officialSourceURL
             )
         }
-        .background(AppTheme.subtleGradient.ignoresSafeArea())
+        .background(AppBackgroundView().allowsHitTesting(false))
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .alert(

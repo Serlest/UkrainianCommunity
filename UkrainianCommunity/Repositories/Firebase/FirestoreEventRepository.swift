@@ -7,6 +7,7 @@ struct FirestoreEventRepository: EventRepository {
     private let collection = Firestore.firestore().collection("events")
     private let likesCollection = Firestore.firestore().collection("likes")
     private let registrationsCollection = Firestore.firestore().collection("registrations")
+    private let publicProfilesCollection = Firestore.firestore().collection("publicProfiles")
 
     func fetchEvents() async throws -> [Event] {
         let snapshot = try await collection
@@ -72,6 +73,51 @@ struct FirestoreEventRepository: EventRepository {
         }
 
         return registeredEvents.sorted { $0.startDate < $1.startDate }
+    }
+
+    func fetchEventRegistrations(eventID: String) async throws -> [EventRegistrationAttendee] {
+        let snapshot = try await registrationsCollection
+            .whereField("eventId", isEqualTo: eventID)
+            .getDocuments()
+
+        let registrationRows = snapshot.documents.compactMap { document -> (id: String, eventID: String, userID: String, registeredAt: Date?)? in
+            let data = document.data()
+            guard let eventID = data["eventId"] as? String,
+                  let userID = data["userId"] as? String else {
+                return nil
+            }
+
+            let registeredAt = (data["registeredAt"] as? Timestamp)?.dateValue()
+                ?? (data["createdAt"] as? Timestamp)?.dateValue()
+            return (document.documentID, eventID, userID, registeredAt)
+        }
+
+        let profilesByID = try await fetchPublicProfilesByID(userIDs: registrationRows.map(\.userID))
+        return registrationRows
+            .map { row in
+                let profile = profilesByID[row.userID]
+                return EventRegistrationAttendee(
+                    id: row.id,
+                    eventID: row.eventID,
+                    userID: row.userID,
+                    registeredAt: row.registeredAt,
+                    displayName: profile?.preferredDisplayName,
+                    email: nil,
+                    avatarURL: profile?.avatarURL
+                )
+            }
+            .sorted { lhs, rhs in
+                switch (lhs.registeredAt, rhs.registeredAt) {
+                case let (left?, right?):
+                    return left < right
+                case (.some, .none):
+                    return true
+                case (.none, .some):
+                    return false
+                case (.none, .none):
+                    return lhs.userID < rhs.userID
+                }
+            }
     }
 
     func fetchPendingEvents() async throws -> [Event] {
@@ -150,11 +196,17 @@ struct FirestoreEventRepository: EventRepository {
             locationNote: event.locationNote,
             latitude: event.latitude,
             longitude: event.longitude,
+            organizerName: event.organizerName,
+            organizerURL: event.organizerURL,
+            contactPhone: event.contactPhone,
+            contactEmail: event.contactEmail,
+            contactURL: event.contactURL,
             imageURL: event.imageURL,
             startDate: event.startDate,
             endDate: event.endDate,
             createdAt: now,
             updatedAt: now,
+            requiresRegistration: event.requiresRegistration,
             price: event.price,
             capacity: event.capacity,
             registeredCount: event.registeredCount,
@@ -165,6 +217,7 @@ struct FirestoreEventRepository: EventRepository {
             likeState: event.likeState,
             viewCount: event.viewCount,
             category: event.category,
+            tags: event.tags,
             isAllDay: event.isAllDay
         )
         let dto = normalizedEvent.dto
@@ -186,6 +239,7 @@ struct FirestoreEventRepository: EventRepository {
             "endDate": dto.endDate,
             "createdAt": dto.createdAt,
             "updatedAt": dto.updatedAt,
+            "requiresRegistration": dto.requiresRegistration ?? true,
             "price": dto.price,
             "registeredCount": dto.registeredCount,
             "moderationStatus": dto.moderationStatus,
@@ -195,6 +249,7 @@ struct FirestoreEventRepository: EventRepository {
             "viewCount": dto.viewCount,
             "commentCount": dto.commentCount ?? dto.comments.count,
             "category": dto.category as Any,
+            "tags": dto.tags ?? [],
             "visibility": "public",
             "isAllDay": dto.isAllDay as Any
         ]
@@ -220,6 +275,21 @@ struct FirestoreEventRepository: EventRepository {
         if let longitude = dto.longitude {
             data["longitude"] = longitude
         }
+        if let organizerName = dto.organizerName {
+            data["organizerName"] = organizerName
+        }
+        if let organizerURL = dto.organizerURL {
+            data["organizerURL"] = organizerURL
+        }
+        if let contactPhone = dto.contactPhone {
+            data["contactPhone"] = contactPhone
+        }
+        if let contactEmail = dto.contactEmail {
+            data["contactEmail"] = contactEmail
+        }
+        if let contactURL = dto.contactURL {
+            data["contactURL"] = contactURL
+        }
 
         try await collection.document(dto.id).setData(data)
     }
@@ -241,8 +311,10 @@ struct FirestoreEventRepository: EventRepository {
             "startDate": Timestamp(date: event.startDate),
             "endDate": Timestamp(date: event.endDate),
             "updatedAt": Timestamp(date: event.updatedAt),
+            "requiresRegistration": event.requiresRegistration,
             "price": event.price,
             "category": event.category.rawValue,
+            "tags": event.tags,
             "visibility": "public",
             "isAllDay": event.isAllDay
         ]
@@ -288,6 +360,11 @@ struct FirestoreEventRepository: EventRepository {
         } else {
             data["longitude"] = FieldValue.delete()
         }
+        data["organizerName"] = event.organizerName ?? FieldValue.delete()
+        data["organizerURL"] = event.organizerURL ?? FieldValue.delete()
+        data["contactPhone"] = event.contactPhone ?? FieldValue.delete()
+        data["contactEmail"] = event.contactEmail ?? FieldValue.delete()
+        data["contactURL"] = event.contactURL ?? FieldValue.delete()
 
         try await collection.document(event.id).updateData(data)
     }
@@ -730,11 +807,17 @@ struct FirestoreEventRepository: EventRepository {
             locationNote: data["locationNote"] as? String,
             latitude: data["latitude"] as? Double,
             longitude: data["longitude"] as? Double,
+            organizerName: (data["organizerName"] as? String)?.nilIfEmpty,
+            organizerURL: (data["organizerURL"] as? String)?.nilIfEmpty,
+            contactPhone: (data["contactPhone"] as? String)?.nilIfEmpty,
+            contactEmail: (data["contactEmail"] as? String)?.nilIfEmpty,
+            contactURL: (data["contactURL"] as? String)?.nilIfEmpty,
             imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            requiresRegistration: data["requiresRegistration"] as? Bool,
             price: (data["price"] as? NSNumber)?.doubleValue ?? 0,
             capacity: data["capacity"] as? Int,
             registeredCount: data["registeredCount"] as? Int ?? 0,
@@ -746,6 +829,7 @@ struct FirestoreEventRepository: EventRepository {
             likeState: likedEventIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue,
             viewCount: data["viewCount"] as? Int ?? 0,
             category: data["category"] as? String,
+            tags: data["tags"] as? [String],
             visibility: data["visibility"] as? String,
             isAllDay: data["isAllDay"] as? Bool,
             isBookmarked: bookmarkedEventIDs.contains(document.documentID)
@@ -789,6 +873,40 @@ struct FirestoreEventRepository: EventRepository {
             .document(userID)
             .collection("eventViews")
             .document(eventID)
+    }
+
+    private func fetchPublicProfilesByID(userIDs: [String]) async throws -> [String: PublicUserProfile] {
+        let uniqueIDs = Array(Set(userIDs)).filter { !$0.isEmpty }
+        guard !uniqueIDs.isEmpty else { return [:] }
+
+        var profilesByID: [String: PublicUserProfile] = [:]
+        for chunk in uniqueIDs.chunked(into: 10) {
+            let snapshot = try await publicProfilesCollection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .getDocuments()
+
+            for document in snapshot.documents {
+                guard let profile = makePublicUserProfile(from: document) else { continue }
+                profilesByID[profile.id] = profile
+            }
+        }
+
+        return profilesByID
+    }
+
+    private func makePublicUserProfile(from document: QueryDocumentSnapshot) -> PublicUserProfile? {
+        let data = document.data()
+        let displayName = (data["displayName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !displayName.isEmpty else { return nil }
+
+        return PublicUserProfile(
+            id: data["id"] as? String ?? document.documentID,
+            displayName: displayName,
+            avatarURL: (data["avatarURL"] as? String).flatMap(URL.init(string:)),
+            city: data["city"] as? String ?? "",
+            federalState: (data["federalState"] as? String).flatMap(AustrianFederalState.init(rawValue:)),
+            updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue()
+        )
     }
 
     private func resolvedCurrentUserAuthorName() async throws -> String? {

@@ -1061,6 +1061,21 @@ service cloud.firestore {
         );
     }
 
+    function canReadManagedEventRegistration() {
+      return isActiveUser()
+        && ('eventId' in resource.data)
+        && resource.data.eventId is string
+        && exists(/databases/$(database)/documents/events/$(resource.data.eventId))
+        && (
+          canModerateAppContent('events')
+          || (
+            get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.sourceType == 'organization'
+            && ('organizationId' in get(/databases/$(database)/documents/events/$(resource.data.eventId)).data)
+            && canModerateOrganizationContent(get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.organizationId)
+          )
+        );
+    }
+
     function canModerateOrganizationComment(organizationId) {
       return isOwner()
         || canModerateSection('comments')
@@ -1632,6 +1647,7 @@ service cloud.firestore {
 
     match /registrations/{registrationId} {
       allow read: if ownDocumentRead()
+        || canReadManagedEventRegistration()
         || isOwner();
 
       allow create: if validRegistrationCreate(registrationId);

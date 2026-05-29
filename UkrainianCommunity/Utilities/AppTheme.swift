@@ -21,7 +21,7 @@ enum AppTheme {
     static let surfaceElevated = Color(uiColor: .secondarySystemGroupedBackground)
     static let surfaceGrouped = Color(uiColor: .secondarySystemGroupedBackground)
     static let surfaceControl = Color(uiColor: .tertiarySystemGroupedBackground)
-    static let surfaceGlass = Color(uiColor: .secondarySystemGroupedBackground).opacity(0.88)
+    static let surfaceGlass = Color(uiColor: .secondarySystemGroupedBackground).opacity(0.64)
     static let surfaceHero = heroGradient
     static let borderSubtle = accentPrimary.opacity(0.06)
     static let shadowSoft = Color.black.opacity(0.035)
@@ -74,6 +74,16 @@ enum AppTheme {
     static let detailSectionSpacing: CGFloat = homeSectionSpacing
     static let detailInnerSpacing: CGFloat = dashboardSpacing
     static let detailCompactCardPadding: CGFloat = sectionSpacing
+    static let screenTitleFont: Font = .title2.weight(.bold)
+    static let sectionTitleFont: Font = .subheadline.weight(.bold)
+    static let cardTitleFont: Font = .headline.weight(.semibold)
+    static let cardSubtitleFont: Font = .caption.weight(.medium)
+    static let bodyFont: Font = .body
+    static let secondaryBodyFont: Font = .subheadline
+    static let metadataFont: Font = .caption2.weight(.medium)
+    static let metadataStrongFont: Font = .caption.weight(.semibold)
+    static let badgeFont: Font = .caption2.weight(.bold)
+    static let buttonLabelFont: Font = .subheadline.weight(.semibold)
     static let detailTitleFont: Font = .title.weight(.bold)
     static let detailSubtitleFont: Font = .callout.weight(.medium)
     static let detailBodyFont: Font = .callout
@@ -114,9 +124,9 @@ enum AppTheme {
     static func glassSurface(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color(red: 0.112, green: 0.128, blue: 0.172).opacity(0.50)
+            Color(red: 0.112, green: 0.128, blue: 0.172).opacity(0.38)
         default:
-            Color.white.opacity(0.42)
+            Color.white.opacity(0.28)
         }
     }
 
@@ -132,9 +142,9 @@ enum AppTheme {
     static func groupedPlaneSurface(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color(red: 0.075, green: 0.090, blue: 0.128).opacity(0.42)
+            Color(red: 0.075, green: 0.090, blue: 0.128).opacity(0.20)
         default:
-            Color.white.opacity(0.24)
+            Color.white.opacity(0.12)
         }
     }
 
@@ -150,29 +160,40 @@ enum AppTheme {
     static func glassBorder(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color.white.opacity(0.11)
+            Color.white.opacity(0.09)
         default:
-            accentPrimary.opacity(0.09)
+            accentPrimary.opacity(0.07)
         }
     }
 
     static func glassShadow(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color.black.opacity(0.30)
+            Color.black.opacity(0.22)
         default:
-            Color.black.opacity(0.075)
+            Color.black.opacity(0.045)
         }
     }
 
     static func contentPlaneShadow(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color.black.opacity(0.24)
+            Color.black.opacity(0.16)
         default:
-            Color.black.opacity(0.055)
+            Color.black.opacity(0.030)
         }
     }
+
+    static let glassCardBorderOpacity: Double = 0.78
+    static let groupedPlaneBorderOpacity: Double = 0.18
+    static let glassCardShadowRadius: CGFloat = 9
+    static let glassCardShadowY: CGFloat = 4
+    static let softContentCardShadowRadius: CGFloat = 10
+    static let softContentCardShadowY: CGFloat = 4
+    static let detailCardShadowRadius: CGFloat = 10
+    static let detailCardShadowY: CGFloat = 4
+    static let groupedPlaneShadowRadius: CGFloat = 3
+    static let groupedPlaneShadowY: CGFloat = 1
 
     // Backward-compatible aliases for the existing codebase. These should be
     // migrated gradually to semantic names in later design-system phases.

@@ -38,6 +38,7 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var title = ""
     @Published var summary = ""
     @Published var body = ""
+    @Published var sourceInput = ""
     @Published var tagsInput = ""
     @Published var selectedFederalState: AustrianFederalState = .tirol
     @Published var isPublishing = false
@@ -66,6 +67,7 @@ final class NewsEditorViewModel: ObservableObject {
             title = existingNews.title
             summary = existingNews.subtitle
             body = existingNews.body
+            sourceInput = existingNews.sourceName ?? existingNews.sourceURL ?? ""
             tagsInput = existingNews.tags.joined(separator: ", ")
             selectedFederalState = existingNews.federalState ?? .tirol
         }
@@ -231,6 +233,7 @@ final class NewsEditorViewModel: ObservableObject {
             existingIsBookmarked = existingNews.isBookmarked
             existingCommentCount = existingNews.commentCount
         }
+        let articleSource = resolvedArticleSource
         let news = NewsPost(
             id: newsID,
             title: trimmedTitle,
@@ -241,6 +244,8 @@ final class NewsEditorViewModel: ObservableObject {
             category: .news,
             tags: parsedTags,
             source: existingSource,
+            sourceName: articleSource.sourceName,
+            sourceURL: articleSource.sourceURL,
             imageURL: nil,
             body: trimmedBody,
             authorName: resolvedAuthorName,
@@ -317,6 +322,7 @@ final class NewsEditorViewModel: ObservableObject {
             title = ""
             summary = ""
             body = ""
+            sourceInput = ""
             tagsInput = ""
             selectedImageData = nil
             return true
@@ -337,6 +343,41 @@ final class NewsEditorViewModel: ObservableObject {
 
     private var trimmedBody: String {
         body.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var resolvedArticleSource: (sourceName: String?, sourceURL: String?) {
+        let source = sourceInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !source.isEmpty else {
+            return (nil, nil)
+        }
+
+        if let url = normalizedArticleSourceURL(from: source) {
+            return (nil, url.absoluteString)
+        }
+
+        return (source, nil)
+    }
+
+    private func normalizedArticleSourceURL(from value: String) -> URL? {
+        let source = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !source.contains(where: { $0.isWhitespace }) else {
+            return nil
+        }
+
+        if let url = URL(string: source),
+           let scheme = url.scheme?.lowercased(),
+           ["http", "https"].contains(scheme),
+           url.host?.isEmpty == false {
+            return url
+        }
+
+        guard !source.contains("://"), source.contains("."),
+              let url = URL(string: "https://\(source)"),
+              url.host?.isEmpty == false else {
+            return nil
+        }
+
+        return url
     }
 
     private var parsedTags: [String] {
@@ -462,6 +503,8 @@ private extension NewsPost {
             category: category,
             tags: tags,
             source: source,
+            sourceName: sourceName,
+            sourceURL: sourceURL,
             imageURL: imageURL,
             body: body,
             authorName: authorName,

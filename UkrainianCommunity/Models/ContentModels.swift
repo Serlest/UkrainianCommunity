@@ -176,6 +176,8 @@ struct NewsPost: Identifiable, Codable {
     let category: NewsCategory
     let tags: [String]
     let source: ContentSourceMetadata
+    let sourceName: String?
+    let sourceURL: String?
     let imageURL: String?
     let body: String
     let authorName: String
@@ -200,6 +202,8 @@ struct NewsPost: Identifiable, Codable {
         category: NewsCategory = .news,
         tags: [String] = [],
         source: ContentSourceMetadata = ContentSourceMetadata(),
+        sourceName: String? = nil,
+        sourceURL: String? = nil,
         imageURL: String? = nil,
         body: String,
         authorName: String,
@@ -223,6 +227,8 @@ struct NewsPost: Identifiable, Codable {
         self.category = category
         self.tags = tags
         self.source = source
+        self.sourceName = sourceName
+        self.sourceURL = sourceURL
         self.imageURL = imageURL
         self.body = body
         self.authorName = authorName
@@ -281,6 +287,52 @@ enum EventRegistrationState: String, Codable {
         case .waitlisted:
             AppStrings.Events.waitlisted
         }
+    }
+}
+
+struct EventRegistrationAttendee: Identifiable, Codable, Equatable {
+    let id: String
+    let eventID: String
+    let userID: String
+    let registeredAt: Date?
+    let displayName: String?
+    let email: String?
+    let avatarURL: URL?
+
+    nonisolated init(
+        id: String,
+        eventID: String,
+        userID: String,
+        registeredAt: Date? = nil,
+        displayName: String? = nil,
+        email: String? = nil,
+        avatarURL: URL? = nil
+    ) {
+        self.id = id
+        self.eventID = eventID
+        self.userID = userID
+        self.registeredAt = registeredAt
+        self.displayName = Self.trimmedOptional(displayName)
+        self.email = Self.trimmedOptional(email)
+        self.avatarURL = avatarURL
+    }
+
+    var displayTitle: String {
+        displayName ?? AppStrings.Events.registrationParticipantFallback
+    }
+
+    var displaySubtitle: String {
+        email ?? userID
+    }
+
+    var initials: String {
+        let source = displayName ?? userID
+        return String(source.prefix(1)).uppercased()
+    }
+
+    nonisolated private static func trimmedOptional(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == true ? nil : trimmed
     }
 }
 
@@ -349,11 +401,17 @@ struct Event: Identifiable, Codable {
     let locationNote: String?
     let latitude: Double?
     let longitude: Double?
+    let organizerName: String?
+    let organizerURL: String?
+    let contactPhone: String?
+    let contactEmail: String?
+    let contactURL: String?
     let imageURL: String?
     let startDate: Date
     let endDate: Date
     let createdAt: Date
     let updatedAt: Date
+    let requiresRegistration: Bool
     let price: Double
     let capacity: Int?
     let registeredCount: Int
@@ -364,6 +422,7 @@ struct Event: Identifiable, Codable {
     var likeState: LikeState
     var viewCount: Int
     let category: EventCategory
+    let tags: [String]
     let isAllDay: Bool
     var isBookmarked: Bool
     var commentCount: Int
@@ -384,11 +443,17 @@ struct Event: Identifiable, Codable {
         locationNote: String? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
+        organizerName: String? = nil,
+        organizerURL: String? = nil,
+        contactPhone: String? = nil,
+        contactEmail: String? = nil,
+        contactURL: String? = nil,
         imageURL: String? = nil,
         startDate: Date,
         endDate: Date,
         createdAt: Date,
         updatedAt: Date,
+        requiresRegistration: Bool = true,
         price: Double = 0,
         capacity: Int?,
         registeredCount: Int,
@@ -399,6 +464,7 @@ struct Event: Identifiable, Codable {
         likeState: LikeState,
         viewCount: Int = 0,
         category: EventCategory = .meetups,
+        tags: [String] = [],
         isAllDay: Bool = false,
         isBookmarked: Bool = false,
         commentCount: Int? = nil
@@ -419,11 +485,17 @@ struct Event: Identifiable, Codable {
         self.locationNote = trimmedLocationNote?.isEmpty == true ? nil : trimmedLocationNote
         self.latitude = latitude
         self.longitude = longitude
+        self.organizerName = Self.trimmedOptional(organizerName)
+        self.organizerURL = Self.trimmedOptional(organizerURL)
+        self.contactPhone = Self.trimmedOptional(contactPhone)
+        self.contactEmail = Self.trimmedOptional(contactEmail)
+        self.contactURL = Self.trimmedOptional(contactURL)
         self.imageURL = imageURL
         self.startDate = startDate
         self.endDate = endDate
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.requiresRegistration = requiresRegistration
         self.price = max(0, price)
         self.capacity = capacity
         self.registeredCount = registeredCount
@@ -434,9 +506,26 @@ struct Event: Identifiable, Codable {
         self.likeState = likeState
         self.viewCount = viewCount
         self.category = category
+        self.tags = Self.normalizedTags(tags)
         self.isAllDay = isAllDay
         self.isBookmarked = isBookmarked
         self.commentCount = max(0, commentCount ?? comments.filter { !$0.isDeleted }.count)
+    }
+
+    nonisolated private static func normalizedTags(_ tags: [String]) -> [String] {
+        var seen = Set<String>()
+        return tags.compactMap { tag in
+            let trimmed = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            let key = trimmed.lowercased()
+            guard seen.insert(key).inserted else { return nil }
+            return trimmed
+        }
+    }
+
+    nonisolated private static func trimmedOptional(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == true ? nil : trimmed
     }
 }
 

@@ -129,6 +129,7 @@ protocol EventRepository {
     func unlikeEvent(id: String) async throws
     func recordEventView(id: String) async throws -> Bool
     func fetchEventComments(eventID: String) async throws -> [Comment]
+    func fetchEventRegistrations(eventID: String) async throws -> [EventRegistrationAttendee]
     func addEventComment(eventID: String, text: String, author: AppUser) async throws -> Comment
     func updateEventComment(eventID: String, commentID: String, text: String) async throws -> Comment
     func deleteEventComment(eventID: String, commentID: String) async throws
@@ -173,4 +174,3 @@ protocol OrganizationPhotoRepository {
     func addPhoto(organizationId: String, imageData: Data, caption: String?, uploadedBy: String) async throws -> OrganizationPhoto
     func deletePhoto(_ photo: OrganizationPhoto) async throws
 }
-

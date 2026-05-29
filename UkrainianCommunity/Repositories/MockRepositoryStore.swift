@@ -1,6 +1,6 @@
 import Foundation
 
-private actor MockRepositoryStore {
+actor MockRepositoryStore {
     static let shared = MockRepositoryStore()
 
     var user = MockContentBuilder.currentUser()
@@ -267,6 +267,8 @@ private actor MockRepositoryStore {
             category: item.category,
             tags: item.tags,
             source: item.source,
+            sourceName: item.sourceName,
+            sourceURL: item.sourceURL,
             imageURL: item.imageURL,
             body: item.body,
             authorName: item.authorName,
@@ -627,11 +629,17 @@ private actor MockRepositoryStore {
             locationNote: events[index].locationNote,
             latitude: events[index].latitude,
             longitude: events[index].longitude,
+            organizerName: events[index].organizerName,
+            organizerURL: events[index].organizerURL,
+            contactPhone: events[index].contactPhone,
+            contactEmail: events[index].contactEmail,
+            contactURL: events[index].contactURL,
             imageURL: events[index].imageURL,
             startDate: events[index].startDate,
             endDate: events[index].endDate,
             createdAt: events[index].createdAt,
             updatedAt: events[index].updatedAt,
+            requiresRegistration: events[index].requiresRegistration,
             price: events[index].price,
             capacity: events[index].capacity,
             registeredCount: adjustedCount,
@@ -642,10 +650,43 @@ private actor MockRepositoryStore {
             likeState: events[index].likeState,
             viewCount: events[index].viewCount,
             category: events[index].category,
+            tags: events[index].tags,
             isAllDay: events[index].isAllDay,
             isBookmarked: events[index].isBookmarked,
             commentCount: events[index].commentCount
         )
+    }
+
+    func eventRegistrations(eventID: String) throws -> [EventRegistrationAttendee] {
+        guard let event = events.first(where: { $0.id == eventID }) else { throw AppError.notFound }
+
+        var attendees: [EventRegistrationAttendee] = []
+        if event.registrationState == .registered {
+            attendees.append(EventRegistrationAttendee(
+                id: "mock_registration_\(eventID)_\(user.id)",
+                eventID: eventID,
+                userID: user.id,
+                registeredAt: .now,
+                displayName: user.displayName.isEmpty ? user.fullName : user.displayName,
+                email: user.email,
+                avatarURL: user.avatarURL
+            ))
+        }
+
+        let remainingCount = max(0, event.registeredCount - attendees.count)
+        attendees += (0..<remainingCount).map { index in
+            EventRegistrationAttendee(
+                id: "mock_registration_\(eventID)_participant_\(index + 1)",
+                eventID: eventID,
+                userID: "participant-\(index + 1)",
+                registeredAt: nil,
+                displayName: nil,
+                email: nil,
+                avatarURL: nil
+            )
+        }
+
+        return attendees
     }
 
     func setEventBookmark(id: String, isBookmarked: Bool) throws {
@@ -683,11 +724,17 @@ private actor MockRepositoryStore {
             locationNote: item.locationNote,
             latitude: item.latitude,
             longitude: item.longitude,
+            organizerName: item.organizerName,
+            organizerURL: item.organizerURL,
+            contactPhone: item.contactPhone,
+            contactEmail: item.contactEmail,
+            contactURL: item.contactURL,
             imageURL: item.imageURL,
             startDate: item.startDate,
             endDate: item.endDate,
             createdAt: existingItem.createdAt,
             updatedAt: item.updatedAt,
+            requiresRegistration: item.requiresRegistration,
             price: item.price,
             capacity: item.capacity,
             registeredCount: existingItem.registeredCount,
@@ -698,6 +745,7 @@ private actor MockRepositoryStore {
             likeState: existingItem.likeState,
             viewCount: existingItem.viewCount,
             category: item.category,
+            tags: item.tags,
             isAllDay: item.isAllDay,
             isBookmarked: existingItem.isBookmarked,
             commentCount: existingItem.commentCount
@@ -983,403 +1031,6 @@ private actor MockRepositoryStore {
     }
 }
 
-struct MockUserRepository: UserRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchCurrentUser() async throws -> AppUser {
-        await store.user
-    }
-
-    func fetchSettings() async throws -> UserSettings {
-        .stored
-    }
-
-    func updateProfile(_ profile: EditableUserProfileDraft) async throws -> AppUser {
-        await store.updateUserProfile(profile)
-    }
-
-    func deleteAccount(currentUser: AppUser) async throws {
-    }
-}
-
-struct MockNotificationPreferencesRepository: NotificationPreferencesRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchNotificationPreferences(userID: String) async throws -> NotificationPreferences {
-        await store.notificationPreferences(userID: userID)
-    }
-
-    func saveNotificationPreferences(_ preferences: NotificationPreferences, userID: String) async throws {
-        await store.saveNotificationPreferences(preferences, userID: userID)
-    }
-}
-
-private struct MockRealtimeListener: AppRealtimeListener {
-    func cancel() {}
-}
-
-struct MockNotificationInboxRepository: NotificationInboxRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification] {
-        await store.notifications(userID: userID, limit: limit)
-    }
-
-    func listenNotifications(
-        userID: String,
-        limit: Int,
-        onChange: @escaping @MainActor ([AppNotification]) -> Void
-    ) -> AppRealtimeListener {
-        Task {
-            let notifications = await store.notifications(userID: userID, limit: limit)
-            await MainActor.run {
-                onChange(notifications)
-            }
-        }
-        return MockRealtimeListener()
-    }
-
-    func fetchUnreadCount(userID: String) async throws -> Int {
-        await store.unreadNotificationCount(userID: userID)
-    }
-
-    func markNotificationRead(userID: String, notificationID: String) async throws {
-        await store.markNotificationRead(userID: userID, notificationID: notificationID)
-    }
-
-    func markAllNotificationsRead(userID: String) async throws {
-        await store.markAllNotificationsRead(userID: userID)
-    }
-
-    func createNotification(userID: String, notification: AppNotification) async throws {
-        await store.createNotification(notification, userID: userID)
-    }
-}
-
-struct MockFeedbackRepository: FeedbackRepository {
-    private let store = MockRepositoryStore.shared
-
-    func submitFeedback(_ feedback: FeedbackItem) async throws {
-        await store.createFeedback(feedback)
-    }
-
-    func fetchFeedback() async throws -> [FeedbackItem] {
-        await store.feedback()
-    }
-
-    func fetchFeedback(userID: String) async throws -> [FeedbackItem] {
-        await store.feedback(userID: userID)
-    }
-
-    func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
-        await store.feedbackMessages(for: feedback)
-    }
-
-    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws {
-        try await store.addFeedbackMessage(feedback: feedback, text: text, sender: user, senderRole: .user)
-    }
-
-    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws {
-        try await store.addFeedbackMessage(feedback: feedback, text: text, sender: owner, senderRole: .owner)
-    }
-
-    func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {
-        try await store.updateFeedbackStatus(id: id, status: status)
-    }
-
-    func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws {
-        try await store.replyToFeedback(id: id, reply: reply, repliedByUserID: repliedByUserID)
-    }
-
-    func closeFeedback(id: String) async throws {
-        try await store.updateFeedbackStatus(id: id, status: .closed)
-    }
-}
-
-struct MockNewsRepository: NewsRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchNews() async throws -> [NewsPost] {
-        await store.news
-            .filter { $0.moderationStatus == .approved }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    func fetchPendingNews() async throws -> [NewsPost] {
-        await store.pendingNews()
-    }
-
-    func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost] {
-        await store.organizationModerationNews(organizationID: organizationID)
-    }
-
-    func fetchOrganizationNewsCount(organizationID: String) async throws -> Int {
-        await store.organizationNewsCount(organizationID: organizationID)
-    }
-
-    func createNews(_ news: NewsPost) async throws {
-        await store.createNews(news)
-    }
-
-    func updateNews(_ news: NewsPost) async throws {
-        try await store.updateNews(news)
-    }
-
-    func updateNewsImageURL(id: String, imageURL: String?) async throws {
-        try await store.updateNewsImageURL(id: id, imageURL: imageURL)
-    }
-
-    func deleteNews(id: String) async throws {
-        try await store.deleteNews(id: id)
-    }
-
-    func likeNews(id: String) async throws {
-        try await store.toggleNewsLike(id: id, isLiked: true)
-    }
-
-    func unlikeNews(id: String) async throws {
-        try await store.toggleNewsLike(id: id, isLiked: false)
-    }
-
-    func recordNewsView(id: String) async throws -> Bool {
-        try await store.recordNewsView(id: id)
-    }
-
-    func fetchNewsComments(newsID: String) async throws -> [Comment] {
-        try await store.newsComments(newsID: newsID)
-    }
-
-    func bookmarkNews(id: String) async throws {
-        try await store.setNewsBookmark(id: id, isBookmarked: true)
-    }
-
-    func unbookmarkNews(id: String) async throws {
-        try await store.setNewsBookmark(id: id, isBookmarked: false)
-    }
-
-    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
-        try await store.updateNewsModerationStatus(id: id, newStatus: newStatus)
-    }
-
-    func addNewsComment(newsID: String, text: String, author: AppUser) async throws -> Comment {
-        try await store.addNewsComment(newsID: newsID, text: text, author: author)
-    }
-
-    func updateNewsComment(newsID: String, commentID: String, text: String) async throws -> Comment {
-        try await store.updateNewsComment(newsID: newsID, commentID: commentID, text: text)
-    }
-
-    func deleteNewsComment(newsID: String, commentID: String) async throws {
-        try await store.deleteNewsComment(newsID: newsID, commentID: commentID)
-    }
-}
-
-struct MockEventRepository: EventRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchEvents() async throws -> [Event] {
-        await store.events
-            .filter { $0.moderationStatus == .approved }
-            .sorted { $0.startDate < $1.startDate }
-    }
-
-    func fetchRegisteredEvents() async throws -> [Event] {
-        await store.events
-            .filter { $0.moderationStatus == .approved && $0.registrationState == .registered }
-            .sorted { $0.startDate < $1.startDate }
-    }
-
-    func fetchPendingEvents() async throws -> [Event] {
-        await store.pendingEvents()
-    }
-
-    func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event] {
-        await store.organizationModerationEvents(organizationID: organizationID)
-    }
-
-    func fetchOrganizationEventCount(organizationID: String) async throws -> Int {
-        await store.organizationEventCount(organizationID: organizationID)
-    }
-
-    func createEvent(_ event: Event) async throws {
-        await store.createEvent(event)
-    }
-
-    func updateEvent(_ event: Event) async throws {
-        try await store.updateEvent(event)
-    }
-
-    func updateEventImageURL(id: String, imageURL: String?) async throws {
-        try await store.updateEventImageURL(id: id, imageURL: imageURL)
-    }
-
-    func deleteEvent(id: String) async throws {
-        try await store.deleteEvent(id: id)
-    }
-
-    func likeEvent(id: String) async throws {
-        try await store.toggleEventLike(id: id, isLiked: true)
-    }
-
-    func unlikeEvent(id: String) async throws {
-        try await store.toggleEventLike(id: id, isLiked: false)
-    }
-
-    func recordEventView(id: String) async throws -> Bool {
-        try await store.recordEventView(id: id)
-    }
-
-    func fetchEventComments(eventID: String) async throws -> [Comment] {
-        try await store.eventComments(eventID: eventID)
-    }
-
-    func registerForEvent(id: String) async throws {
-        try await store.setEventRegistration(id: id, isRegistered: true)
-    }
-
-    func cancelEventRegistration(id: String) async throws {
-        try await store.setEventRegistration(id: id, isRegistered: false)
-    }
-
-    func bookmarkEvent(id: String) async throws {
-        try await store.setEventBookmark(id: id, isBookmarked: true)
-    }
-
-    func unbookmarkEvent(id: String) async throws {
-        try await store.setEventBookmark(id: id, isBookmarked: false)
-    }
-
-    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
-        try await store.updateEventModerationStatus(id: id, newStatus: newStatus)
-    }
-
-    func addEventComment(eventID: String, text: String, author: AppUser) async throws -> Comment {
-        try await store.addEventComment(eventID: eventID, text: text, author: author)
-    }
-
-    func updateEventComment(eventID: String, commentID: String, text: String) async throws -> Comment {
-        try await store.updateEventComment(eventID: eventID, commentID: commentID, text: text)
-    }
-
-    func deleteEventComment(eventID: String, commentID: String) async throws {
-        try await store.deleteEventComment(eventID: eventID, commentID: commentID)
-    }
-}
-
-struct MockOrganizationRepository: OrganizationRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchOrganizations() async throws -> [Organization] {
-        await store.organizations
-            .filter { $0.moderationStatus == .approved }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
-
-    func fetchOrganization(id: String) async throws -> Organization {
-        try await store.organization(id: id)
-    }
-
-    func fetchPendingOrganizations() async throws -> [Organization] {
-        await store.pendingOrganizations()
-    }
-
-    func fetchOrganizationRequests(submittedByUserID: String) async throws -> [Organization] {
-        await store.organizationRequests(submittedByUserID: submittedByUserID)
-    }
-
-    func createOrganization(_ organization: Organization) async throws {
-        await store.createOrganization(organization)
-    }
-
-    func updateOrganization(_ organization: Organization) async throws {
-        try await store.updateOrganization(organization)
-    }
-
-    func deleteOrganization(id: String) async throws {
-        try await store.deleteOrganization(id: id)
-    }
-
-    func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL {
-        URL(string: "https://example.com/organizations/\(organizationID)/logo.jpg")!
-    }
-
-    func likeOrganization(id: String) async throws {
-        try await store.toggleOrganizationLike(id: id, isLiked: true)
-    }
-
-    func unlikeOrganization(id: String) async throws {
-        try await store.toggleOrganizationLike(id: id, isLiked: false)
-    }
-
-    func subscribeOrganization(id: String) async throws {
-        try await store.toggleOrganizationSubscription(id: id, isSubscribed: true)
-    }
-
-    func unsubscribeOrganization(id: String) async throws {
-        try await store.toggleOrganizationSubscription(id: id, isSubscribed: false)
-    }
-
-    func fetchOrganizationSubscriberPage(
-        organizationID: String,
-        limit: Int,
-        after cursor: OrganizationSubscriberCursor?
-    ) async throws -> OrganizationSubscriberPage {
-        try await store.organizationSubscriberPage(organizationID: organizationID, limit: limit, after: cursor)
-    }
-
-    func fetchPublicUserProfiles(userIDs: [String]) async throws -> [PublicUserProfile] {
-        []
-    }
-
-    func fetchOrganizationComments(organizationID: String) async throws -> [Comment] {
-        try await store.organizationComments(organizationID: organizationID)
-    }
-
-    func addOrganizationComment(organizationID: String, text: String, author: AppUser) async throws -> Comment {
-        try await store.addOrganizationComment(organizationID: organizationID, text: text, author: author)
-    }
-
-    func updateOrganizationComment(organizationID: String, commentID: String, text: String) async throws -> Comment {
-        try await store.updateOrganizationComment(organizationID: organizationID, commentID: commentID, text: text)
-    }
-
-    func deleteOrganizationComment(organizationID: String, commentID: String) async throws {
-        try await store.deleteOrganizationComment(organizationID: organizationID, commentID: commentID)
-    }
-
-    func bookmarkOrganization(id: String) async throws {
-        try await store.setOrganizationBookmark(id: id, isBookmarked: true)
-    }
-
-    func unbookmarkOrganization(id: String) async throws {
-        try await store.setOrganizationBookmark(id: id, isBookmarked: false)
-    }
-
-    func isOrganizationBookmarked(id: String) async throws -> Bool {
-        await store.bookmarkedOrganizationIDs().contains(id)
-    }
-
-    func fetchBookmarkedOrganizationIDs() async throws -> Set<String> {
-        await store.bookmarkedOrganizationIDs()
-    }
-
-    func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
-        try await store.updateOrganizationModerationStatus(id: id, newStatus: newStatus)
-    }
-
-    func approveOrganizationRequest(id: String, reviewerID: String) async throws {
-        try await store.approveOrganizationRequest(id: id, reviewerID: reviewerID)
-    }
-
-    func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
-        try await store.requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
-    }
-
-    func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
-        try await store.deleteOrganization(id: id)
-    }
-}
-
 private extension NewsPost {
     nonisolated func settingImageURL(_ imageURL: String?) -> NewsPost {
         NewsPost(
@@ -1392,6 +1043,8 @@ private extension NewsPost {
             category: category,
             tags: tags,
             source: source,
+            sourceName: sourceName,
+            sourceURL: sourceURL,
             imageURL: imageURL,
             body: body,
             authorName: authorName,
@@ -1492,11 +1145,17 @@ private extension Event {
             locationNote: locationNote,
             latitude: latitude,
             longitude: longitude,
+            organizerName: organizerName,
+            organizerURL: organizerURL,
+            contactPhone: contactPhone,
+            contactEmail: contactEmail,
+            contactURL: contactURL,
             imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,
             updatedAt: Date(),
+            requiresRegistration: requiresRegistration,
             price: price,
             capacity: capacity,
             registeredCount: registeredCount,
@@ -1507,65 +1166,13 @@ private extension Event {
             likeState: likeState,
             viewCount: viewCount,
             category: category,
+            tags: tags,
             isAllDay: isAllDay,
             isBookmarked: isBookmarked,
             commentCount: commentCount
         )
     }
 }
-
-struct MockGuideRepository: GuideRepository {
-    private let store = MockRepositoryStore.shared
-
-    func fetchGuideArticles() async throws -> [GuideArticle] {
-        await store.guideArticles
-            .filter { $0.moderationStatus == .approved && $0.status == .published }
-            .sorted { lhs, rhs in
-                if lhs.isPinned == rhs.isPinned {
-                    return lhs.updatedAt > rhs.updatedAt
-                }
-                return lhs.isPinned && !rhs.isPinned
-            }
-    }
-
-    func fetchDraftGuideArticles() async throws -> [GuideArticle] {
-        await store.draftGuideArticles()
-    }
-
-    func fetchInReviewGuideArticles() async throws -> [GuideArticle] {
-        await store.inReviewGuideArticles()
-    }
-
-    func fetchApprovedGuideArticles() async throws -> [GuideArticle] {
-        await store.approvedGuideArticles()
-    }
-
-    func createGuideArticle(from draft: GuideArticleDraft, authorId: String) async throws -> GuideArticle {
-        try await store.createGuideArticle(from: draft, authorId: authorId)
-    }
-
-    func updateGuideArticle(id: String, from draft: GuideArticleDraft, editorId: String) async throws -> GuideArticle {
-        try await store.updateGuideArticle(id: id, from: draft, editorId: editorId)
-    }
-
-    func submitGuideArticleForReview(id: String, submitterId: String) async throws {
-        try await store.submitGuideArticleForReview(id: id, submitterId: submitterId)
-    }
-
-    func approveGuideArticle(id: String, reviewerId: String) async throws {
-        try await store.approveGuideArticle(id: id, reviewerId: reviewerId)
-    }
-
-    func publishGuideArticle(id: String, publisherId: String) async throws {
-        try await store.publishGuideArticle(id: id, publisherId: publisherId)
-    }
-
-    func archiveGuideArticle(id: String, editorId: String) async throws {
-        try await store.archiveGuideArticle(id: id, editorId: editorId)
-    }
-}
-
-typealias MockInfoRepository = MockGuideRepository
 
 private extension AppUser {
     nonisolated var commentDisplayName: String {

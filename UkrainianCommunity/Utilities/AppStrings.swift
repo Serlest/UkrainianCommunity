@@ -98,10 +98,13 @@ enum AppStrings {
 
     enum News {
         static var title: String { text("news.title", "News") }
+        static var heroTitle: String { text("news.hero.title", "Новини громади") }
+        static var heroSubtitle: String { text("news.hero.subtitle", "Важливі оновлення, оголошення та історії українців в Австрії.") }
         static var detailTitle: String { text("news.detail.title", "Деталі новини") }
         static var detailBadge: String { text("news.detail.badge", "Новина") }
         static var summarySectionTitle: String { text("news.detail.summary_section", "Коротко") }
         static var bodySectionTitle: String { text("news.detail.body_section", "Про що йдеться") }
+        static var sourceSectionTitle: String { text("news.detail.source", "Source") }
         static var tagsSectionTitle: String { text("news.detail.tags_section", "Теги") }
         static var relatedSectionTitle: String { text("news.detail.related_section", "Вам також може бути цікаво") }
         static var relatedSectionAction: String { text("news.detail.related_action", "Дивитися всі") }
@@ -149,6 +152,9 @@ enum AppStrings {
         static var categoryOther: String { text("news.editor.category.other", "Інше") }
         static var bodySectionTitle: String { text("news.editor.body.title", "Зміст новини *") }
         static var bodyPlaceholder: String { text("news.editor.body.placeholder", "Напишіть основний текст новини...") }
+        static var sourceSectionTitle: String { text("news.editor.source.title", "Source") }
+        static var sourcePlaceholder: String { text("news.editor.source.placeholder", "Website or source name") }
+        static var sourceHelper: String { text("news.editor.source.helper", "Optional. Add a publication name or a link.") }
         static var tagsSectionTitle: String { text("news.editor.tags.title", "Теги (необов’язково)") }
         static var tagsPlaceholder: String { text("news.editor.tags.placeholder", "Додайте теги через кому") }
         static var tagsHelper: String { text("news.editor.tags.helper", "Наприклад: підтримка, освіта, інтеграція") }
@@ -197,6 +203,24 @@ enum AppStrings {
         static var filteredUpcomingEmpty: String { text("events.empty.filtered_upcoming", "No upcoming events match this time range right now.") }
         static var register: String { text("events.register", "Я піду") }
         static var registered: String { text("events.registered", "Я йду") }
+        static var confirmRegisterTitle: String { text("events.registration.confirm_register.title", "Register for this event?") }
+        static var confirmRegisterButton: String { text("events.registration.confirm_register.button", "Register") }
+        static var confirmCancelRegistrationTitle: String { text("events.registration.confirm_cancel.title", "Cancel your registration?") }
+        static var confirmCancelRegistrationButton: String { text("events.registration.confirm_cancel.button", "Cancel registration") }
+        static func confirmRegisterMessage(_ eventTitle: String) -> String {
+            LocalizationStore.localizedFormat(
+                "events.registration.confirm_register.message",
+                defaultValue: "You will be registered for “%@”.",
+                arguments: [eventTitle]
+            )
+        }
+        static func confirmCancelRegistrationMessage(_ eventTitle: String) -> String {
+            LocalizationStore.localizedFormat(
+                "events.registration.confirm_cancel.message",
+                defaultValue: "You will no longer be registered for “%@”.",
+                arguments: [eventTitle]
+            )
+        }
         static var waitlisted: String { text("events.waitlisted", "У списку очікування") }
         static var allDay: String { text("events.all_day", "Подія на весь день") }
         static var empty: String { text("events.empty", "No events available yet.") }
@@ -212,6 +236,7 @@ enum AppStrings {
         static var detailBadge: String { text("events.detail.badge", "Зустріч") }
         static var aboutSectionTitle: String { text("events.detail.about", "Про подію") }
         static var detailOrganizerSectionTitle: String { text("events.detail.organizer", "Організатор") }
+        static var organizerContactSectionTitle: String { text("events.detail.organizer_contact", "Organizer and contact") }
         static var detailsSectionTitle: String { text("events.detail.details", "Деталі") }
         static var locationSectionTitle: String { text("events.detail.location", "Місце проведення") }
         static var similarEvents: String { text("events.detail.similar_events", "Схожі події") }
@@ -228,6 +253,11 @@ enum AppStrings {
         static var viewOrganization: String { text("events.detail.view_organization", "Переглянути організацію") }
         static var genericEventBadge: String { text("events.detail.generic_badge", "Подія") }
         static var expectedParticipants: String { text("events.detail.expected_participants", "Очікувано учасників") }
+        static var registrationNotRequired: String { text("events.detail.registration_not_required", "Registration is not required") }
+        static var registrationManagementTitle: String { text("events.detail.registration_management.title", "Registered participants") }
+        static var registrationManagementEmpty: String { text("events.detail.registration_management.empty", "Поки немає зареєстрованих учасників.") }
+        static var registrationManagementLoading: String { text("events.detail.registration_management.loading", "Loading registered participants...") }
+        static var registrationParticipantFallback: String { text("events.detail.registration_management.participant_fallback", "Registered user") }
         static var addedDate: String { text("events.detail.added_date", "Додано") }
         static var showOnMap: String { text("events.detail.show_on_map", "Показати на карті") }
         static var editorTitle: String { text("events.editor.title", "Створити подію") }
@@ -258,9 +288,27 @@ enum AppStrings {
         static var fieldEndDate: String { text("events.editor.field.end_date", "Закінчення") }
         static var endTime: String { text("events.editor.end_time", "Завершення") }
         static var editorOrganizerSectionTitle: String { text("events.editor.organizer_section", "Організатор *") }
+        static var organizerNameField: String { text("events.editor.organizer_contact.name", "Organizer name") }
+        static var organizerNamePlaceholder: String { text("events.editor.organizer_contact.name_placeholder", "Organization or external organizer") }
+        static var organizerURLField: String { text("events.editor.organizer_contact.url", "Organizer website") }
+        static var organizerURLPlaceholder: String { text("events.editor.organizer_contact.url_placeholder", "https://example.org") }
+        static var contactPhoneField: String { text("events.editor.organizer_contact.phone", "Contact phone") }
+        static var contactPhonePlaceholder: String { text("events.editor.organizer_contact.phone_placeholder", "+43 ...") }
+        static var contactEmailField: String { text("events.editor.organizer_contact.email", "Contact email") }
+        static var contactEmailPlaceholder: String { text("events.editor.organizer_contact.email_placeholder", "name@example.org") }
+        static var contactURLField: String { text("events.editor.organizer_contact.contact_url", "Contact link") }
+        static var contactURLPlaceholder: String { text("events.editor.organizer_contact.contact_url_placeholder", "Registration or contact page") }
+        static var organizerContactHelper: String { text("events.editor.organizer_contact.helper", "Optional. Add external organizer or contact details if different from the publishing organization.") }
         static var categorySectionTitle: String { text("events.editor.category_section", "Категорія *") }
+        static var tagsSectionTitle: String { text("events.editor.tags_section", "Tags") }
+        static var tagPlaceholder: String { text("events.editor.tag_placeholder", "Add a tag") }
+        static var tagsHelper: String { text("events.editor.tags_helper", "Optional. Add short tags to help people understand the event topic.") }
+        static var addTag: String { text("events.editor.add_tag", "Add tag") }
+        static var removeTag: String { text("events.editor.remove_tag", "Remove tag") }
         static var categoryTraining: String { text("events.editor.category.training", "Навчання") }
         static var additionalSettingsTitle: String { text("events.editor.settings", "Додаткові налаштування") }
+        static var requiresRegistrationToggle: String { text("events.editor.requires_registration", "Потрібна реєстрація") }
+        static var requiresRegistrationHelper: String { text("events.editor.requires_registration_helper", "Turn on registration to manage price and participant capacity.") }
         static var priceTitle: String { text("events.editor.price", "Вартість") }
         static var pricePlaceholder: String { text("events.editor.price_placeholder", "0") }
         static var priceHelper: String { text("events.editor.price_helper", "0 = безкоштовно") }
@@ -395,6 +443,24 @@ enum AppStrings {
         static var moderationNotice: String { text("organizations.editor.moderation_notice", "Після створення ми перевіримо сторінку перед публікацією. Ви зможете оновлювати інформацію пізніше.") }
         static var follow: String { text("organizations.detail.follow", "Підписатися") }
         static var unfollow: String { text("organizations.detail.unfollow", "Відписатися") }
+        static var confirmSubscribeTitle: String { text("organizations.subscription.confirm_subscribe.title", "Subscribe to this organization?") }
+        static var confirmSubscribeButton: String { text("organizations.subscription.confirm_subscribe.button", "Subscribe") }
+        static var confirmUnsubscribeTitle: String { text("organizations.subscription.confirm_unsubscribe.title", "Unsubscribe from this organization?") }
+        static var confirmUnsubscribeButton: String { text("organizations.subscription.confirm_unsubscribe.button", "Unsubscribe") }
+        static func confirmSubscribeMessage(_ organizationName: String) -> String {
+            LocalizationStore.localizedFormat(
+                "organizations.subscription.confirm_subscribe.message",
+                defaultValue: "You will receive updates from “%@”.",
+                arguments: [organizationName]
+            )
+        }
+        static func confirmUnsubscribeMessage(_ organizationName: String) -> String {
+            LocalizationStore.localizedFormat(
+                "organizations.subscription.confirm_unsubscribe.message",
+                defaultValue: "You will stop receiving updates from “%@”.",
+                arguments: [organizationName]
+            )
+        }
         static var message: String { text("organizations.detail.message", "Повідомлення") }
         static var share: String { text("organizations.detail.share", "Поділитися") }
         static var support: String { text("organizations.detail.support", "Підтримати") }

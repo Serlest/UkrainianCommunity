@@ -72,7 +72,7 @@ struct FirestoreNewsRepository: NewsRepository {
 
         let dto = news.dto
 
-        try await collection.document(news.id).setData([
+        var data: [String: Any] = [
             "id": dto.id,
             "title": dto.title,
             "subtitle": dto.subtitle,
@@ -97,7 +97,14 @@ struct FirestoreNewsRepository: NewsRepository {
             "likeState": dto.likeState,
             "viewCount": dto.viewCount,
             "commentCount": dto.commentCount ?? dto.comments.count
-        ])
+        ]
+        if let sourceName = dto.sourceName {
+            data["sourceName"] = sourceName
+        }
+        if let sourceURL = dto.sourceURL {
+            data["sourceURL"] = sourceURL
+        }
+        try await collection.document(news.id).setData(data)
     }
 
     func updateNews(_ news: NewsPost) async throws {
@@ -105,7 +112,7 @@ struct FirestoreNewsRepository: NewsRepository {
             throw AppError.validationFailed
         }
 
-        try await collection.document(news.id).updateData([
+        var data: [String: Any] = [
             "title": news.title,
             "subtitle": news.subtitle,
             "summary": news.subtitle,
@@ -122,7 +129,10 @@ struct FirestoreNewsRepository: NewsRepository {
             "imageURL": news.imageURL as Any,
             "authorName": news.authorName,
             "updatedAt": Timestamp(date: news.updatedAt)
-        ])
+        ]
+        data["sourceName"] = news.sourceName ?? FieldValue.delete()
+        data["sourceURL"] = news.sourceURL ?? FieldValue.delete()
+        try await collection.document(news.id).updateData(data)
     }
 
     func updateNewsImageURL(id: String, imageURL: String?) async throws {
@@ -466,6 +476,8 @@ struct FirestoreNewsRepository: NewsRepository {
             organizationId: data["organizationId"] as? String,
             organizationName: data["organizationName"] as? String,
             organizationImageURL: data["organizationImageURL"] as? String,
+            sourceName: (data["sourceName"] as? String)?.nilIfEmpty,
+            sourceURL: (data["sourceURL"] as? String)?.nilIfEmpty,
             imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
             body: body,
             authorName: authorName,

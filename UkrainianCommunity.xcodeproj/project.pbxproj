@@ -96,14 +96,6 @@
 				F347491C2FA0CF7500ED704A /* UkrainianCommunityTests */,
 				F34749262FA0CF7500ED704A /* UkrainianCommunityUITests */,
 				F347490D2FA0CF7400ED704A /* Products */,
-				F34749372FA0DAAC00ED704A /* Models */,
-				F34749392FA0DAAD00ED704A /* ViewModels */,
-				F347493A2FA0DAAD00ED704A /* Services */,
-				F347493B2FA0DAAD00ED704A /* Repositories */,
-				F347493C2FA0DAAD00ED704A /* Components */,
-				F347493D2FA0DAAD00ED704A /* Resources */,
-				F347493E2FA0DAAD00ED704A /* Localization */,
-				F347493F2FA0DAAD00ED704A /* Utilities */,
 			);
 			sourceTree = "<group>";
 		};
@@ -115,62 +107,6 @@
 				F34749232FA0CF7500ED704A /* UkrainianCommunityUITests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		F34749372FA0DAAC00ED704A /* Models */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		F34749392FA0DAAD00ED704A /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		F347493A2FA0DAAD00ED704A /* Services */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-		F347493B2FA0DAAD00ED704A /* Repositories */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Repositories;
-			sourceTree = "<group>";
-		};
-		F347493C2FA0DAAD00ED704A /* Components */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		F347493D2FA0DAAD00ED704A /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		F347493E2FA0DAAD00ED704A /* Localization */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Localization;
-			sourceTree = "<group>";
-		};
-		F347493F2FA0DAAD00ED704A /* Utilities */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Utilities;
 			sourceTree = "<group>";
 		};
 		F375C83B2FC5F138005B5EFB /* Firebase */ = {

@@ -32,7 +32,7 @@ struct GuideEditorView: View {
                 submitForReviewAction: confirmSubmitForReview
             )
         }
-        .background(AppTheme.subtleGradient.ignoresSafeArea())
+        .background(AppBackgroundView().allowsHitTesting(false))
         .navigationTitle(AppStrings.GuideEditor.title)
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: viewModel.draft) { _, _ in

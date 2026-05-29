@@ -65,11 +65,19 @@ final class EventEditorViewModel: ObservableObject {
     }
     @Published var latitude: Double?
     @Published var longitude: Double?
+    @Published var eventOrganizerName = ""
+    @Published var organizerURL = ""
+    @Published var contactPhone = ""
+    @Published var contactEmail = ""
+    @Published var contactURL = ""
     @Published var selectedFederalState: AustrianFederalState = .tirol
     @Published var startDate = Date()
     @Published var endDate = Date().addingTimeInterval(60 * 60)
     @Published var selectedCategory: EventCategory = .meetups
+    @Published var tags: [String] = []
+    @Published var tagInput = ""
     @Published var isAllDay = false
+    @Published var requiresRegistration = true
     @Published var priceText = ""
     @Published var capacityText = ""
     @Published var isPublishing = false
@@ -90,6 +98,7 @@ final class EventEditorViewModel: ObservableObject {
 
         if case let .create(context) = mode {
             selectedCreateContext = context
+            eventOrganizerName = context.organizationName ?? ""
         }
 
         if case let .edit(existingEvent) = mode {
@@ -102,11 +111,18 @@ final class EventEditorViewModel: ObservableObject {
             locationNote = String((existingEvent.locationNote ?? "").prefix(Self.locationNoteCharacterLimit))
             latitude = existingEvent.latitude
             longitude = existingEvent.longitude
+            eventOrganizerName = existingEvent.organizerName ?? ""
+            organizerURL = existingEvent.organizerURL ?? ""
+            contactPhone = existingEvent.contactPhone ?? ""
+            contactEmail = existingEvent.contactEmail ?? ""
+            contactURL = existingEvent.contactURL ?? ""
             selectedFederalState = existingEvent.federalState ?? .tirol
             startDate = existingEvent.startDate
             endDate = existingEvent.endDate
             selectedCategory = existingEvent.category
+            tags = existingEvent.tags
             isAllDay = existingEvent.isAllDay
+            requiresRegistration = existingEvent.requiresRegistration
             priceText = Self.priceText(from: existingEvent.price)
             capacityText = existingEvent.capacity.map(String.init) ?? ""
         }
@@ -250,6 +266,9 @@ final class EventEditorViewModel: ObservableObject {
 
     func selectOrganizer(_ organization: Organization) {
         guard case .create = mode else { return }
+        if eventOrganizerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            eventOrganizerName = organization.name
+        }
         selectedCreateContext = CreateContext(
             organizationId: organization.id,
             organizationName: organization.name,
@@ -285,6 +304,22 @@ final class EventEditorViewModel: ObservableObject {
     func clearResolvedCoordinates() {
         latitude = nil
         longitude = nil
+    }
+
+    func addTagFromInput() {
+        addTag(tagInput)
+        tagInput = ""
+    }
+
+    func addTag(_ value: String) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !tags.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) else { return }
+        tags.append(trimmed)
+    }
+
+    func removeTag(_ tag: String) {
+        tags.removeAll { $0.caseInsensitiveCompare(tag) == .orderedSame }
     }
 
     func publish() async -> Bool {
@@ -365,6 +400,7 @@ final class EventEditorViewModel: ObservableObject {
         if isAppLevelEvent {
             eventFederalState = selectedFederalState
         }
+        let resolvedEventOrganizerName = resolvedOrganizerName()
         let newEvent = Event(
             id: eventID,
             title: trimmedTitle,
@@ -381,11 +417,17 @@ final class EventEditorViewModel: ObservableObject {
             locationNote: resolvedLocationNote,
             latitude: latitude,
             longitude: longitude,
+            organizerName: resolvedEventOrganizerName,
+            organizerURL: resolvedOrganizerURL,
+            contactPhone: resolvedContactPhone,
+            contactEmail: resolvedContactEmail,
+            contactURL: resolvedContactURL,
             imageURL: nil,
             startDate: normalizedStartDate,
             endDate: normalizedEndDate,
             createdAt: createdAt,
             updatedAt: now,
+            requiresRegistration: requiresRegistration,
             price: resolvedPrice,
             capacity: existingCapacity,
             registeredCount: existingRegisteredCount,
@@ -396,6 +438,7 @@ final class EventEditorViewModel: ObservableObject {
             likeState: existingLikeState,
             viewCount: existingViewCount,
             category: selectedCategory,
+            tags: tags,
             isAllDay: isAllDay,
             isBookmarked: existingIsBookmarked,
             commentCount: existingCommentCount
@@ -469,11 +512,19 @@ final class EventEditorViewModel: ObservableObject {
             locationNote = ""
             latitude = nil
             longitude = nil
+            eventOrganizerName = ""
+            organizerURL = ""
+            contactPhone = ""
+            contactEmail = ""
+            contactURL = ""
             selectedImageData = nil
             startDate = now
             endDate = now.addingTimeInterval(60 * 60)
             selectedCategory = .meetups
+            tags = []
+            tagInput = ""
             isAllDay = false
+            requiresRegistration = true
             priceText = ""
             capacityText = ""
             return true
@@ -535,6 +586,53 @@ final class EventEditorViewModel: ObservableObject {
         trimmedLocationNote.isEmpty ? nil : String(trimmedLocationNote.prefix(Self.locationNoteCharacterLimit))
     }
 
+    private func resolvedOrganizerName() -> String? {
+        let trimmedOrganizerName = eventOrganizerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedOrganizerName.isEmpty {
+            return trimmedOrganizerName
+        }
+
+        return nil
+    }
+
+    private var resolvedOrganizerURL: String? {
+        normalizedURLString(from: organizerURL)
+    }
+
+    private var resolvedContactPhone: String? {
+        contactPhone.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlankForEventEditor
+    }
+
+    private var resolvedContactEmail: String? {
+        contactEmail.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlankForEventEditor
+    }
+
+    private var resolvedContactURL: String? {
+        normalizedURLString(from: contactURL)
+    }
+
+    private func normalizedURLString(from value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains(where: { $0.isWhitespace }) else {
+            return nil
+        }
+
+        if let url = URL(string: trimmed),
+           let scheme = url.scheme?.lowercased(),
+           ["http", "https"].contains(scheme),
+           url.host?.isEmpty == false {
+            return url.absoluteString
+        }
+
+        guard !trimmed.contains("://"), trimmed.contains("."),
+              let url = URL(string: "https://\(trimmed)"),
+              url.host?.isEmpty == false else {
+            return trimmed
+        }
+
+        return url.absoluteString
+    }
+
     private var trimmedCapacityText: String {
         capacityText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -544,6 +642,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private var resolvedPrice: Double {
+        guard requiresRegistration else { return 0 }
         guard !trimmedPriceText.isEmpty else { return 0 }
         return parsedPrice ?? -1
     }
@@ -554,17 +653,20 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private var hasValidPrice: Bool {
+        guard requiresRegistration else { return true }
         guard !trimmedPriceText.isEmpty else { return true }
         guard let value = parsedPrice else { return false }
         return value >= 0
     }
 
     private var resolvedCapacity: Int? {
+        guard requiresRegistration else { return nil }
         guard !trimmedCapacityText.isEmpty else { return nil }
         return Int(trimmedCapacityText)
     }
 
     private var hasValidCapacity: Bool {
+        guard requiresRegistration else { return true }
         guard !trimmedCapacityText.isEmpty else { return true }
         guard let value = Int(trimmedCapacityText) else { return false }
         return value > 0
@@ -789,11 +891,17 @@ private extension Event {
             locationNote: locationNote,
             latitude: latitude,
             longitude: longitude,
+            organizerName: organizerName,
+            organizerURL: organizerURL,
+            contactPhone: contactPhone,
+            contactEmail: contactEmail,
+            contactURL: contactURL,
             imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            requiresRegistration: requiresRegistration,
             price: price,
             capacity: capacity,
             registeredCount: registeredCount,
@@ -804,10 +912,18 @@ private extension Event {
             likeState: likeState,
             viewCount: viewCount,
             category: category,
+            tags: tags,
             isAllDay: isAllDay,
             isBookmarked: isBookmarked,
             commentCount: commentCount
         )
+    }
+}
+
+private extension String {
+    var nilIfBlankForEventEditor: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

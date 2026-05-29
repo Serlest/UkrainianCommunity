@@ -44,17 +44,21 @@ struct GuideHomeView: View {
         let content = screenContent
 
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: AppTheme.eventsHeaderContentSpacing) {
+            VStack(alignment: .leading, spacing: 0) {
                 guideHeader
+                    .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                 guideHero
+                    .padding(.bottom, AppTheme.homeSectionSpacing)
 
                 GuideSearchAndFiltersView(viewModel: viewModel)
+                    .padding(.bottom, AppTheme.homeSectionSpacing)
 
                 GuidePopularCategoriesSection(
                     categories: content.availableCategories,
                     selectedCategory: $viewModel.selectedCategory
                 )
+                .padding(.bottom, AppTheme.homeSectionSpacing)
 
                 AppGroupedContentPlane {
                     guideArticlesContent(content)

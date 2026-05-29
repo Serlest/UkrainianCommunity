@@ -35,13 +35,13 @@ struct GuideDetailView: View {
 
             DetailCard {
                 Text(article.summary)
-                    .font(.headline)
+                    .font(AppTheme.cardTitleFont)
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if contentBlocks.isEmpty {
                     Text(article.body)
-                        .font(.body)
+                        .font(AppTheme.detailBodyFont)
                         .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -58,7 +58,7 @@ struct GuideDetailView: View {
                 legacyURL: article.officialSourceURL
             )
         }
-        .background(AppTheme.subtleGradient.ignoresSafeArea())
+        .background(AppBackgroundView().allowsHitTesting(false))
         .navigationTitle(AppStrings.Guide.articleDetailTitle)
         .navigationBarTitleDisplayMode(.inline)
     }

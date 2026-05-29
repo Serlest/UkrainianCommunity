@@ -21,7 +21,7 @@ struct GuideInReviewListView: View {
 
             content
         }
-        .background(AppTheme.subtleGradient.ignoresSafeArea())
+        .background(AppBackgroundView().allowsHitTesting(false))
         .navigationTitle(AppStrings.GuideManagement.inReview)
         .navigationBarTitleDisplayMode(.inline)
         .task {

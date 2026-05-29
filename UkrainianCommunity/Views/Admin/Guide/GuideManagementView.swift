@@ -74,7 +74,7 @@ struct GuideManagementView: View {
                 }
             }
         }
-        .background(AppTheme.subtleGradient.ignoresSafeArea())
+        .background(AppBackgroundView().allowsHitTesting(false))
         .navigationTitle(AppStrings.GuideManagement.title)
         .navigationBarTitleDisplayMode(.inline)
     }

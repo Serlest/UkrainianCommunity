@@ -111,6 +111,8 @@ struct NewsPostDTO: Codable, Identifiable {
     let organizationId: String?
     let organizationName: String?
     let organizationImageURL: String?
+    let sourceName: String?
+    let sourceURL: String?
     let imageURL: String?
     let body: String
     let authorName: String
@@ -145,11 +147,17 @@ struct EventDTO: Codable, Identifiable {
     let locationNote: String?
     let latitude: Double?
     let longitude: Double?
+    let organizerName: String?
+    let organizerURL: String?
+    let contactPhone: String?
+    let contactEmail: String?
+    let contactURL: String?
     let imageURL: String?
     let startDate: Date
     let endDate: Date
     let createdAt: Date
     let updatedAt: Date
+    let requiresRegistration: Bool?
     let price: Double
     let capacity: Int?
     let registeredCount: Int
@@ -161,6 +169,7 @@ struct EventDTO: Codable, Identifiable {
     let likeState: String
     let viewCount: Int
     let category: String?
+    let tags: [String]?
     let visibility: String?
     let isAllDay: Bool?
     let isBookmarked: Bool
@@ -397,6 +406,8 @@ extension NewsPost {
                 organizationName: dto.organizationName,
                 organizationImageURL: dto.organizationImageURL
             ),
+            sourceName: dto.sourceName,
+            sourceURL: dto.sourceURL,
             imageURL: dto.imageURL,
             body: dto.body,
             authorName: dto.authorName,
@@ -427,6 +438,8 @@ extension NewsPost {
             organizationId: source.organizationId,
             organizationName: source.organizationName,
             organizationImageURL: source.organizationImageURL,
+            sourceName: sourceName,
+            sourceURL: sourceURL,
             imageURL: imageURL,
             body: body,
             authorName: authorName,
@@ -467,11 +480,17 @@ extension Event {
             locationNote: dto.locationNote,
             latitude: dto.latitude,
             longitude: dto.longitude,
+            organizerName: dto.organizerName,
+            organizerURL: dto.organizerURL,
+            contactPhone: dto.contactPhone,
+            contactEmail: dto.contactEmail,
+            contactURL: dto.contactURL,
             imageURL: dto.imageURL,
             startDate: dto.startDate,
             endDate: dto.endDate,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
+            requiresRegistration: dto.requiresRegistration ?? true,
             price: dto.price,
             capacity: dto.capacity,
             registeredCount: dto.registeredCount,
@@ -482,6 +501,7 @@ extension Event {
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
             viewCount: dto.viewCount,
             category: dto.category.flatMap(EventCategory.init(rawValue:)) ?? .unspecified,
+            tags: dto.tags ?? [],
             isAllDay: dto.isAllDay ?? false,
             isBookmarked: dto.isBookmarked,
             commentCount: dto.commentCount
@@ -508,11 +528,17 @@ extension Event {
             locationNote: locationNote,
             latitude: latitude,
             longitude: longitude,
+            organizerName: organizerName,
+            organizerURL: organizerURL,
+            contactPhone: contactPhone,
+            contactEmail: contactEmail,
+            contactURL: contactURL,
             imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            requiresRegistration: requiresRegistration,
             price: price,
             capacity: capacity,
             registeredCount: registeredCount,
@@ -524,6 +550,7 @@ extension Event {
             likeState: likeState.rawValue,
             viewCount: viewCount,
             category: category.rawValue,
+            tags: tags,
             visibility: "public",
             isAllDay: isAllDay,
             isBookmarked: isBookmarked
