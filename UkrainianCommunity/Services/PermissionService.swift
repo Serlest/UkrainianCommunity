@@ -475,10 +475,6 @@ struct PermissionService {
         user.globalRole.authorizationRole == .owner
     }
 
-    static func canManageHomeBanner(user: AppUser?) -> Bool {
-        Self.isOwner(user)
-    }
-
     static func canTemporarilyBan(user: AppUser) -> Bool {
         user.globalRole.authorizationRole == .owner
     }

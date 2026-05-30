@@ -3,7 +3,6 @@ import CoreGraphics
 import FirebaseStorage
 import ImageIO
 import UniformTypeIdentifiers
-import UIKit
 
 final class ImageUploadService {
     static let shared = ImageUploadService()
@@ -19,9 +18,25 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "news/\(newsID)/cover.jpg")
     }
 
+    func uploadNewsCoverImage(processedImage: ProcessedImageSelection, newsID: String) async throws -> URL {
+        try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
+            storagePath: "news/\(newsID)/cover.jpg"
+        )
+    }
+
     func uploadOrganizationNewsDraftImage(data: Data, organizationID: String, newsID: String) async throws -> URL {
         try await uploadCoverImage(
             data: data,
+            storagePath: organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID)
+        )
+    }
+
+    func uploadOrganizationNewsDraftImage(processedImage: ProcessedImageSelection, organizationID: String, newsID: String) async throws -> URL {
+        try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
             storagePath: organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID)
         )
     }
@@ -36,9 +51,25 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "events/\(eventID)/cover.jpg")
     }
 
+    func uploadEventCoverImage(processedImage: ProcessedImageSelection, eventID: String) async throws -> URL {
+        try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
+            storagePath: "events/\(eventID)/cover.jpg"
+        )
+    }
+
     func uploadOrganizationEventDraftImage(data: Data, organizationID: String, eventID: String) async throws -> URL {
         try await uploadCoverImage(
             data: data,
+            storagePath: organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID)
+        )
+    }
+
+    func uploadOrganizationEventDraftImage(processedImage: ProcessedImageSelection, organizationID: String, eventID: String) async throws -> URL {
+        try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
             storagePath: organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID)
         )
     }
@@ -57,8 +88,24 @@ final class ImageUploadService {
         )
     }
 
+    func uploadOrganizationLogoImage(processedImage: ProcessedImageSelection, organizationID: String) async throws -> URL {
+        try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
+            storagePath: "organizations/\(organizationID)/logo.jpg"
+        )
+    }
+
     func uploadOrganizationPhoto(data: Data, organizationID: String, photoID: String) async throws -> URL {
         try await uploadCoverImage(data: data, storagePath: "organizations/\(organizationID)/photos/\(photoID).jpg")
+    }
+
+    func uploadOrganizationPhoto(processedImage: ProcessedImageSelection, organizationID: String, photoID: String) async throws -> URL {
+        try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
+            storagePath: "organizations/\(organizationID)/photos/\(photoID).jpg"
+        )
     }
 
     func deleteOrganizationPhoto(organizationID: String, photoID: String) async throws {
@@ -69,66 +116,25 @@ final class ImageUploadService {
         try await uploadCoverImage(data: data, storagePath: "profileImages/\(userID)/avatar.jpg")
     }
 
-    func uploadHomeBannerImage(data: Data) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: HomeBannerMetadata.storagePath)
+    func uploadProfileAvatarImage(processedImage: ProcessedImageSelection, userID: String) async throws -> URL {
+        try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
+            storagePath: "profileImages/\(userID)/avatar.jpg"
+        )
     }
 
-    func uploadAppConfigBannerImage(data: Data, storagePath: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: storagePath)
+    func uploadFeaturedBannerImage(bannerId: String, imageData: Data) async throws -> URL {
+        let processedImage = try await ImageProcessingService.process(data: imageData, profile: .hero16x9)
+        return try await uploadFeaturedBannerImage(bannerId: bannerId, processedImage: processedImage)
     }
 
-    func prepareEditorPreviewImageData(from data: Data) async throws -> Data {
-        let preferredPreviewWidths: [CGFloat] = [1600, 1400, 1200]
-        let preferredPreviewQualities: [CGFloat] = [0.82, 0.78, 0.75]
-        let maxPreviewBytes = 2_500_000
-
-        return try await Task.detached(priority: .userInitiated) {
-            try ImageUploadService.processImageData(
-                data,
-                preferredImageWidths: preferredPreviewWidths,
-                preferredCompressionQualities: preferredPreviewQualities,
-                maxUploadBytes: maxPreviewBytes
-            ).data
-        }.value
-    }
-
-    func prepareEditorImageSelection(from data: Data) async throws -> PreparedEditorImageSelection {
-        let preferredPreviewWidths: [CGFloat] = [1600, 1400, 1200]
-        let preferredPreviewQualities: [CGFloat] = [0.82, 0.78, 0.75]
-        let maxPreviewBytes = 2_500_000
-
-        return try await Task.detached(priority: .userInitiated) {
-            let processedImage = try ImageUploadService.processImageData(
-                data,
-                preferredImageWidths: preferredPreviewWidths,
-                preferredCompressionQualities: preferredPreviewQualities,
-                maxUploadBytes: maxPreviewBytes
-            )
-            guard let previewImage = UIImage(data: processedImage.data) else {
-                throw ImageUploadError.invalidImageData
-            }
-            return PreparedEditorImageSelection(data: processedImage.data, previewImage: previewImage)
-        }.value
-    }
-
-    func prepareOrganizationLogoSelection(from data: Data) async throws -> PreparedEditorImageSelection {
-        let preferredLogoWidths: [CGFloat] = [1024, 768]
-        let preferredLogoQualities: [CGFloat] = [0.82, 0.76, 0.70]
-        let maxLogoBytes = 1_500_000
-
-        return try await Task.detached(priority: .userInitiated) {
-            let processedImage = try ImageUploadService.processImageData(
-                data,
-                preferredImageWidths: preferredLogoWidths,
-                preferredCompressionQualities: preferredLogoQualities,
-                maxUploadBytes: maxLogoBytes,
-                rendersOpaqueJPEG: true
-            )
-            guard let previewImage = UIImage(data: processedImage.data) else {
-                throw ImageUploadError.invalidImageData
-            }
-            return PreparedEditorImageSelection(data: processedImage.data, previewImage: previewImage)
-        }.value
+    func uploadFeaturedBannerImage(bannerId: String, processedImage: ProcessedImageSelection) async throws -> URL {
+        return try await uploadProcessedImage(
+            data: processedImage.data,
+            contentType: processedImage.contentType,
+            storagePath: "featuredBanners/\(bannerId)/hero.jpg",
+        )
     }
 
     private func uploadCoverImage(
@@ -137,11 +143,15 @@ final class ImageUploadService {
         rendersOpaqueJPEG: Bool = false
     ) async throws -> URL {
         let processedImage = try await prepareImageDataForUpload(from: data, rendersOpaqueJPEG: rendersOpaqueJPEG)
+        return try await uploadProcessedImage(data: processedImage.data, contentType: "image/jpeg", storagePath: storagePath)
+    }
+
+    private func uploadProcessedImage(data: Data, contentType: String, storagePath: String) async throws -> URL {
         let reference = storage.reference().child(storagePath)
         let metadata = StorageMetadata()
-        metadata.contentType = "image/jpeg"
+        metadata.contentType = contentType
 
-        _ = try await reference.putDataAsync(processedImage.data, metadata: metadata)
+        _ = try await reference.putDataAsync(data, metadata: metadata)
         return try await reference.downloadURL()
     }
 
@@ -287,11 +297,6 @@ private struct ProcessedImageUploadData: Sendable {
     let data: Data
     let width: CGFloat
     let quality: CGFloat
-}
-
-struct PreparedEditorImageSelection: @unchecked Sendable {
-    let data: Data
-    let previewImage: UIImage
 }
 
 private enum ImageUploadError: LocalizedError {

@@ -66,7 +66,6 @@ extension OrganizationEditorView {
         guard let item else {
             await MainActor.run {
                 viewModel.setImageProcessing(false)
-                viewModel.setSelectedImageData(nil)
             }
             return
         }
@@ -79,27 +78,47 @@ extension OrganizationEditorView {
             let data = try await item.loadTransferable(type: Data.self)
             guard let data else {
                 await MainActor.run {
+                    ignoresNextPhotoClear = true
                     selectedPhoto = nil
                     viewModel.setImageProcessing(false)
-                    viewModel.setSelectedImageData(nil)
                     viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
                 }
                 return
             }
-
-            let preparedSelection = try await ImageUploadService.shared.prepareOrganizationLogoSelection(from: data)
+            guard let sourceImage = UIImage(data: data) else {
+                throw ImageProcessingError.invalidImageData
+            }
 
             await MainActor.run {
+                cropSourceLogoImage = sourceImage
+                isShowingLogoCrop = true
                 viewModel.setImageProcessing(false)
-                viewModel.setSelectedImageData(preparedSelection.data)
+                viewModel.errorMessage = nil
             }
         } catch {
             await MainActor.run {
+                ignoresNextPhotoClear = true
                 selectedPhoto = nil
                 viewModel.setImageProcessing(false)
-                viewModel.setSelectedImageData(nil)
                 viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
             }
         }
+    }
+
+    func applyCroppedLogoImage(_ processedImage: ProcessedImageSelection) {
+        guard UIImage(data: processedImage.data) != nil else {
+            viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
+            return
+        }
+
+        viewModel.setSelectedImageData(processedImage.data)
+        viewModel.errorMessage = nil
+    }
+
+    func resetLogoCropSelection() {
+        cropSourceLogoImage = nil
+        guard selectedPhoto != nil else { return }
+        ignoresNextPhotoClear = true
+        selectedPhoto = nil
     }
 }

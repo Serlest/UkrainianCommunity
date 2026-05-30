@@ -28,11 +28,15 @@ extension EventEditorView {
         var imagePickerContent: some View {
             if let selectedPreviewImage {
                 let image = selectedPreviewImage
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
+                Rectangle()
+                    .fill(AppTheme.glassControlSurface(for: colorScheme).opacity(0.72))
                     .frame(maxWidth: .infinity)
-                    .frame(height: uploadMinHeight)
+                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                    .overlay {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    }
                     .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
                     .overlay(
@@ -47,6 +51,8 @@ extension EventEditorView {
                     source: "EventEditorView",
                     placeholderStyle: .glassSkeleton
                 )
+                .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                .clipped()
             } else {
                 compactUploadPlaceholder
             }
@@ -57,7 +63,7 @@ extension EventEditorView {
                 .controlSize(.regular)
                 .tint(AppTheme.accentPrimary)
                 .frame(maxWidth: .infinity)
-                .frame(height: uploadMinHeight)
+                .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 .background(.black.opacity(0.08), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
                 .allowsHitTesting(false)
         }
@@ -78,7 +84,7 @@ extension EventEditorView {
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: uploadMinHeight)
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .background(AppTheme.glassControlSurface(for: colorScheme).opacity(0.72), in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
@@ -110,20 +116,21 @@ extension EventEditorView {
                         guard imageProcessingToken == token else { return }
                         selectedPhoto = nil
                         viewModel.setImageProcessing(false)
-                        viewModel.setSelectedImageData(nil)
-                        selectedPreviewImage = nil
                         viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
                     }
                     return
                 }
-                let preparedImage = try await ImageUploadService.shared.prepareEditorImageSelection(from: originalData)
+                guard let sourceImage = UIImage(data: originalData) else {
+                    throw ImageProcessingError.invalidImageData
+                }
                 guard !Task.isCancelled else { return }
 
                 await MainActor.run {
                     guard imageProcessingToken == token else { return }
+                    cropSourceImage = sourceImage
+                    isShowingImageCrop = true
                     viewModel.setImageProcessing(false)
-                    viewModel.setSelectedImageData(preparedImage.data)
-                    selectedPreviewImage = preparedImage.previewImage
+                    viewModel.errorMessage = nil
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -131,10 +138,26 @@ extension EventEditorView {
                     guard imageProcessingToken == token else { return }
                     selectedPhoto = nil
                     viewModel.setImageProcessing(false)
-                    viewModel.setSelectedImageData(nil)
-                    selectedPreviewImage = nil
                     viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
                 }
             }
+        }
+
+        func applyCroppedImage(_ processedImage: ProcessedImageSelection) {
+            guard let previewImage = UIImage(data: processedImage.data) else {
+                viewModel.errorMessage = AppStrings.NewsEditor.imageLoadFailed
+                return
+            }
+
+            selectedPreviewImage = previewImage
+            viewModel.setSelectedImageSelection(processedImage)
+            viewModel.errorMessage = nil
+        }
+
+        func resetCropSelection() {
+            cropSourceImage = nil
+            guard selectedPhoto != nil else { return }
+            ignoresNextPhotoClear = true
+            selectedPhoto = nil
         }
 }

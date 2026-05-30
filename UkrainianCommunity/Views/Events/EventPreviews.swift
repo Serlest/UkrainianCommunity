@@ -5,6 +5,7 @@ import SwiftUI
         EventsListView(
             viewModel: EventsViewModel(repository: MockEventRepository()),
             eventRepository: MockEventRepository(),
+            featuredBannerRepository: MockFeaturedBannerRepository(),
             onEventPublished: {},
             onEventDeleted: {},
             presentationMode: .management

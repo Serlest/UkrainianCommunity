@@ -47,6 +47,7 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
+    private var selectedProcessedImage: ProcessedImageSelection?
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: NewsRepository
@@ -151,12 +152,21 @@ final class NewsEditorViewModel: ObservableObject {
     func setSelectedImageData(_ data: Data?) {
         guard let data else {
             selectedImageData = nil
+            selectedProcessedImage = nil
             return
         }
 
         successMessage = nil
         errorMessage = nil
         selectedImageData = data
+        selectedProcessedImage = nil
+    }
+
+    func setSelectedImageSelection(_ selection: ProcessedImageSelection?) {
+        selectedProcessedImage = selection
+        selectedImageData = selection?.data
+        successMessage = nil
+        errorMessage = nil
     }
 
     func setImageProcessing(_ isProcessing: Bool) {
@@ -269,7 +279,7 @@ final class NewsEditorViewModel: ObservableObject {
             case .create:
                 try await repository.createNews(news)
 
-                if let selectedImageData {
+                if selectedImageData != nil {
                     isUploadingImage = true
                     var uploadedDraftImage = false
                     let organizationID = news.source.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -277,11 +287,22 @@ final class NewsEditorViewModel: ObservableObject {
                         guard !organizationID.isEmpty else {
                             throw AppError.validationFailed
                         }
-                        let downloadURL = try await imageUploadService.uploadOrganizationNewsDraftImage(
-                            data: selectedImageData,
-                            organizationID: organizationID,
-                            newsID: newsID
-                        )
+                        let downloadURL: URL
+                        if let selectedProcessedImage {
+                            downloadURL = try await imageUploadService.uploadOrganizationNewsDraftImage(
+                                processedImage: selectedProcessedImage,
+                                organizationID: organizationID,
+                                newsID: newsID
+                            )
+                        } else if let selectedImageData {
+                            downloadURL = try await imageUploadService.uploadOrganizationNewsDraftImage(
+                                data: selectedImageData,
+                                organizationID: organizationID,
+                                newsID: newsID
+                            )
+                        } else {
+                            throw AppError.validationFailed
+                        }
                         uploadedDraftImage = true
                         try await repository.updateNewsImageURL(id: newsID, imageURL: downloadURL.absoluteString)
                     } catch let uploadError {
@@ -307,9 +328,16 @@ final class NewsEditorViewModel: ObservableObject {
 
             case .edit:
                 var resolvedImageURL = existingImageURL
-                if let selectedImageData {
+                if selectedImageData != nil {
                     isUploadingImage = true
-                    let downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
+                    let downloadURL: URL
+                    if let selectedProcessedImage {
+                        downloadURL = try await imageUploadService.uploadNewsCoverImage(processedImage: selectedProcessedImage, newsID: newsID)
+                    } else if let selectedImageData {
+                        downloadURL = try await imageUploadService.uploadNewsCoverImage(data: selectedImageData, newsID: newsID)
+                    } else {
+                        throw AppError.validationFailed
+                    }
                     resolvedImageURL = downloadURL.absoluteString
                     isUploadingImage = false
                 }
@@ -325,6 +353,7 @@ final class NewsEditorViewModel: ObservableObject {
             sourceInput = ""
             tagsInput = ""
             selectedImageData = nil
+            selectedProcessedImage = nil
             return true
         } catch {
             isUploadingImage = false

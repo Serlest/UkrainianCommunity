@@ -1,9 +1,8 @@
 import Combine
 import MapKit
-import PhotosUI
 import SwiftUI
 
-private struct OrganizationNavigationRoute: Hashable {
+struct OrganizationNavigationRoute: Hashable {
     let organizationID: String
 }
 
@@ -89,9 +88,11 @@ private enum OrganizationSavedFilterMode {
 }
 
 struct OrganizationsListView: View {
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: OrganizationsViewModel
-    @StateObject private var heroBannerViewModel: AppHeroBannerViewModel
+    @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
+    @Binding var navigationPath: [OrganizationNavigationRoute]
     let onOrganizationSaved: @MainActor () async -> Void
     let onOrganizationDeleted: @MainActor () -> Void
     let presentationMode: OrganizationPresentationMode
@@ -103,11 +104,12 @@ struct OrganizationsListView: View {
     @State private var savedFilterMode: OrganizationSavedFilterMode = .none
     @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
-    @State private var selectedBannerPhoto: PhotosPickerItem?
+    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
         viewModel: OrganizationsViewModel,
-        bannerService: HomeBannerServiceProtocol = FirestoreHomeBannerService(),
+        featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        navigationPath: Binding<[OrganizationNavigationRoute]> = .constant([]),
         onOrganizationSaved: @escaping @MainActor () async -> Void = {},
         onOrganizationDeleted: @escaping @MainActor () -> Void = {},
         presentationMode: OrganizationPresentationMode = .public
@@ -116,10 +118,12 @@ struct OrganizationsListView: View {
         self.onOrganizationSaved = onOrganizationSaved
         self.onOrganizationDeleted = onOrganizationDeleted
         self.presentationMode = presentationMode
-        _heroBannerViewModel = StateObject(wrappedValue: AppHeroBannerViewModel(
-            section: .organizations,
-            bannerService: bannerService
-        ))
+        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
+        _navigationPath = navigationPath
+    }
+
+    private var featuredBannerLoadKey: String {
+        authState.user?.selectedFederalState?.rawValue ?? "allAustria"
     }
 
     private var errorText: String {
@@ -146,7 +150,7 @@ struct OrganizationsListView: View {
                     .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                 organizationsHero
-                    .padding(.bottom, AppTheme.homeSectionSpacing)
+                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
 
                 OrganizationFiltersSection(
                     selectedCategory: selectedCategory,
@@ -178,21 +182,15 @@ struct OrganizationsListView: View {
             )
             .environment(\.organizationPresentationMode, presentationMode)
         }
-        .task {
+        .task(id: featuredBannerLoadKey) {
             applyDefaultRegion()
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
-            await heroBannerViewModel.loadIfNeeded()
+            await loadFeaturedBanners()
         }
         .refreshable {
             await viewModel.refresh()
-            await heroBannerViewModel.refresh()
-        }
-        .onChange(of: selectedBannerPhoto) { _, newItem in
-            Task {
-                await updateOrganizationsBanner(from: newItem)
-                selectedBannerPhoto = nil
-            }
+            await loadFeaturedBanners()
         }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }
@@ -255,21 +253,6 @@ struct OrganizationsListView: View {
         } message: {
             Text(deleteErrorMessage ?? readableOrganizationErrorText(.unknown))
         }
-        .alert(
-            AppStrings.Home.bannerUploadFailed,
-            isPresented: Binding(
-                get: { heroBannerViewModel.error != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        heroBannerViewModel.clearError()
-                    }
-                }
-            )
-        ) {
-            Button(AppStrings.News.dismissError, role: .cancel) {
-                heroBannerViewModel.clearError()
-            }
-        }
     }
 
     private var organizationsHeader: some View {
@@ -278,38 +261,33 @@ struct OrganizationsListView: View {
         }
     }
 
+    @ViewBuilder
     private var organizationsHero: some View {
-        ZStack(alignment: .bottomTrailing) {
-            AppHeroBanner(
-                title: AppStrings.Organizations.heroTitle,
-                subtitle: AppStrings.Organizations.heroSubtitle,
-                imageSource: heroBannerViewModel.imageSource,
-                height: AppTheme.organizationsHeroHeight,
-                displaysTextOverImage: true
+        if !featuredBannerViewModel.banners.isEmpty {
+            FeaturedBannerCarouselView(
+                banners: featuredBannerViewModel.banners,
+                sizing: .fixedHeight(AppTheme.organizationsHeroHeight),
+                onBannerTap: handleFeaturedBannerTap
             )
-
-            if PermissionService.canManageHomeBanner(user: authState.user) {
-                AppHeroBannerEditButton(
-                    selectedItem: $selectedBannerPhoto,
-                    isUploading: heroBannerViewModel.isUploading
-                )
-                .padding(AppTheme.eventsControlGroupSpacing)
-            }
         }
     }
 
-    private func updateOrganizationsBanner(from item: PhotosPickerItem?) async {
-        guard let item else { return }
+    private func loadFeaturedBanners() async {
+        await featuredBannerViewModel.loadActiveBanners(
+            for: .organizations,
+            federalState: authState.user?.selectedFederalState
+        )
+    }
 
-        do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                heroBannerViewModel.setSelectionFailed()
-                return
-            }
-
-            await heroBannerViewModel.updateImage(data: data, user: authState.user)
-        } catch {
-            heroBannerViewModel.setSelectionFailed()
+    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
+        switch featuredBannerActionResolver.resolve(banner) {
+        case .noAction, .openNews, .openEvent, .openGuide:
+            return
+        case let .openURL(url):
+            openURL(url)
+        case let .openOrganization(id):
+            guard viewModel.organizations.contains(where: { $0.id == id }) else { return }
+            navigationPath.append(OrganizationNavigationRoute(organizationID: id))
         }
     }
 

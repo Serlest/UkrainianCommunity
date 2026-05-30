@@ -11,6 +11,9 @@ struct NewsEditorView: View {
     @StateObject var organizerOrganizationsViewModel: OrganizationsViewModel
     @State var selectedPhoto: PhotosPickerItem?
     @State var selectedPreviewImage: UIImage?
+    @State var cropSourceImage: UIImage?
+    @State var isShowingImageCrop = false
+    @State var ignoresNextPhotoClear = false
     @State var imageProcessingTask: Task<Void, Never>?
     @State var imageProcessingToken = UUID()
     @State var isShowingOrganizerPicker = false
@@ -127,7 +130,23 @@ struct NewsEditorView: View {
                 isShowingOrganizerPicker = false
             }
         }
+        .sheet(isPresented: $isShowingImageCrop, onDismiss: resetCropSelection) {
+            if let cropSourceImage {
+                ImageCropView(
+                    sourceImage: cropSourceImage,
+                    profile: .hero16x9,
+                    title: AppStrings.Images.Crop.title,
+                    instructions: AppStrings.NewsEditor.coverUploadHelper,
+                    onCancel: {},
+                    onApply: applyCroppedImage(_:)
+                )
+            }
+        }
         .onChange(of: selectedPhoto) { _, newItem in
+            if newItem == nil, ignoresNextPhotoClear {
+                ignoresNextPhotoClear = false
+                return
+            }
             dismissKeyboard()
             imageProcessingTask?.cancel()
             let token = UUID()

@@ -1,5 +1,4 @@
 import Combine
-import PhotosUI
 import SwiftUI
 
 struct EventNavigationRoute: Hashable {
@@ -130,10 +129,12 @@ private func eventMonthTitleText(for date: Date) -> String {
 }
 
 struct EventsListView: View {
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
-    @StateObject private var heroBannerViewModel: AppHeroBannerViewModel
+    @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     let eventRepository: EventRepository
+    @Binding var navigationPath: [EventNavigationRoute]
     let onEventPublished: @MainActor () async -> Void
     let onEventDeleted: @MainActor @Sendable () -> Void
     let presentationMode: EventPresentationMode
@@ -146,13 +147,14 @@ struct EventsListView: View {
     @State private var selectedFeedScope: EventFeedScope = .all
     @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
-    @State private var selectedBannerPhoto: PhotosPickerItem?
     @State private var guestAccessAction: GuestAccessAction?
+    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
         viewModel: EventsViewModel,
         eventRepository: EventRepository,
-        bannerService: HomeBannerServiceProtocol = FirestoreHomeBannerService(),
+        featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        navigationPath: Binding<[EventNavigationRoute]> = .constant([]),
         onEventPublished: @escaping @MainActor () async -> Void,
         onEventDeleted: @escaping @MainActor @Sendable () -> Void,
         presentationMode: EventPresentationMode = .public
@@ -162,10 +164,12 @@ struct EventsListView: View {
         self.onEventPublished = onEventPublished
         self.onEventDeleted = onEventDeleted
         self.presentationMode = presentationMode
-        _heroBannerViewModel = StateObject(wrappedValue: AppHeroBannerViewModel(
-            section: .events,
-            bannerService: bannerService
-        ))
+        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
+        _navigationPath = navigationPath
+    }
+
+    private var featuredBannerLoadKey: String {
+        authState.user?.selectedFederalState?.rawValue ?? "allAustria"
     }
 
     private var errorText: String {
@@ -262,7 +266,7 @@ struct EventsListView: View {
                     .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                 eventsHero
-                    .padding(.bottom, AppTheme.homeSectionSpacing)
+                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
 
                 EventFilterRow(
                     selectedFederalState: selectedFederalState,
@@ -295,21 +299,15 @@ struct EventsListView: View {
             )
             .environment(\.eventPresentationMode, presentationMode)
         }
-        .task {
+        .task(id: featuredBannerLoadKey) {
             applyDefaultRegion()
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
-            await heroBannerViewModel.loadIfNeeded()
+            await loadFeaturedBanners()
         }
         .refreshable {
             await viewModel.refresh()
-            await heroBannerViewModel.refresh()
-        }
-        .onChange(of: selectedBannerPhoto) { _, newItem in
-            Task {
-                await updateEventsBanner(from: newItem)
-                selectedBannerPhoto = nil
-            }
+            await loadFeaturedBanners()
         }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }
@@ -373,21 +371,6 @@ struct EventsListView: View {
         } message: {
             Text(deleteErrorMessage ?? AppStrings.Events.actionUnknownError)
         }
-        .alert(
-            AppStrings.Home.bannerUploadFailed,
-            isPresented: Binding(
-                get: { heroBannerViewModel.error != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        heroBannerViewModel.clearError()
-                    }
-                }
-            )
-        ) {
-            Button(AppStrings.News.dismissError, role: .cancel) {
-                heroBannerViewModel.clearError()
-            }
-        }
     }
 
     private func selectRegion(_ federalState: AustrianFederalState?) {
@@ -406,38 +389,33 @@ struct EventsListView: View {
         }
     }
 
+    @ViewBuilder
     private var eventsHero: some View {
-        ZStack(alignment: .bottomTrailing) {
-            AppHeroBanner(
-                title: AppStrings.Events.heroTitle,
-                subtitle: AppStrings.Events.heroSubtitle,
-                imageSource: heroBannerViewModel.imageSource,
-                height: AppTheme.eventsHeroHeight,
-                displaysTextOverImage: true
+        if !featuredBannerViewModel.banners.isEmpty {
+            FeaturedBannerCarouselView(
+                banners: featuredBannerViewModel.banners,
+                sizing: .fixedHeight(AppTheme.eventsHeroHeight),
+                onBannerTap: handleFeaturedBannerTap
             )
-
-            if PermissionService.canManageHomeBanner(user: authState.user) {
-                AppHeroBannerEditButton(
-                    selectedItem: $selectedBannerPhoto,
-                    isUploading: heroBannerViewModel.isUploading
-                )
-                .padding(10)
-            }
         }
     }
 
-    private func updateEventsBanner(from item: PhotosPickerItem?) async {
-        guard let item else { return }
+    private func loadFeaturedBanners() async {
+        await featuredBannerViewModel.loadActiveBanners(
+            for: .events,
+            federalState: authState.user?.selectedFederalState
+        )
+    }
 
-        do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                heroBannerViewModel.setSelectionFailed()
-                return
-            }
-
-            await heroBannerViewModel.updateImage(data: data, user: authState.user)
-        } catch {
-            heroBannerViewModel.setSelectionFailed()
+    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
+        switch featuredBannerActionResolver.resolve(banner) {
+        case .noAction, .openNews, .openOrganization, .openGuide:
+            return
+        case let .openURL(url):
+            openURL(url)
+        case let .openEvent(id):
+            guard viewModel.events.contains(where: { $0.id == id }) else { return }
+            navigationPath.append(EventNavigationRoute(eventID: id))
         }
     }
 

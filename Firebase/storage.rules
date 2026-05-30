@@ -110,6 +110,12 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    function isSafeFeaturedBannerImageUpload() {
+      return request.resource != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
     function canManageNewsCover(newsId) {
       return firestore.exists(/databases/(default)/documents/news/$(newsId))
         && firestore.get(/databases/(default)/documents/news/$(newsId)).data.sourceType == 'organization'
@@ -214,6 +220,13 @@ service firebase.storage {
       allow create, update: if (isSelf(uid) || isOwner())
         && isSafeImageUpload();
       allow delete: if isSelf(uid) || isOwner();
+    }
+
+    match /featuredBanners/{bannerId}/hero.jpg {
+      allow read: if true;
+      allow create, update: if isOwner()
+        && isSafeFeaturedBannerImageUpload();
+      allow delete: if isOwner();
     }
 
     match /appConfig/{bannerId}/{fileName} {

@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 
 enum AppHeroBannerImageSource: Equatable {
     case remoteURL(String)
@@ -174,37 +173,5 @@ private struct AppHeroFallbackSurface: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-    }
-}
-
-struct AppHeroBannerEditButton: View {
-    @Binding var selectedItem: PhotosPickerItem?
-    let isUploading: Bool
-
-    var body: some View {
-        PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Circle()
-                            .stroke(AppTheme.borderSubtle, lineWidth: 1)
-                    )
-
-                if isUploading {
-                    ProgressView()
-                        .controlSize(.mini)
-                } else {
-                    Image(systemName: "photo.badge.plus")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
-                }
-            }
-            .shadow(color: AppTheme.shadowSoft, radius: 4, y: 2)
-        }
-        .buttonStyle(.plain)
-        .disabled(isUploading)
-        .accessibilityLabel(AppStrings.Home.changeBanner)
     }
 }

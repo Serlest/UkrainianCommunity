@@ -115,6 +115,18 @@ enum AppTheme {
         endPoint: .bottomTrailing
     )
 
+    static func bannerOverlayGradient(for colorScheme: ColorScheme) -> LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.black.opacity(colorScheme == .dark ? 0.64 : 0.50),
+                Color.black.opacity(colorScheme == .dark ? 0.32 : 0.22),
+                Color.black.opacity(0.06)
+            ],
+            startPoint: .bottomLeading,
+            endPoint: .topTrailing
+        )
+    }
+
     static let subtleGradient = LinearGradient(
         colors: [pageBackground, accentPrimary.opacity(0.018), surfacePrimary.opacity(0.72)],
         startPoint: .topLeading,

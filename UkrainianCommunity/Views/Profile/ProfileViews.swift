@@ -9,6 +9,7 @@ struct ProfileView: View {
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
     private let guideRepository: GuideRepository
+    private let featuredBannerRepository: FeaturedBannerRepository
     private let notificationInboxRepository: NotificationInboxRepository
     @EnvironmentObject var authState: AuthState
     @Environment(\.colorScheme) private var colorScheme
@@ -27,6 +28,9 @@ struct ProfileView: View {
     @State private var selectedAvatarPhoto: PhotosPickerItem?
     @State private var selectedAvatarImageData: Data?
     @State private var avatarPreviewImage: UIImage?
+    @State private var cropSourceAvatarImage: UIImage?
+    @State private var isShowingAvatarCrop = false
+    @State private var ignoresNextAvatarPhotoClear = false
     @State private var isLoadingAvatarSelection = false
     @State private var selectedFeedbackType: FeedbackType = .question
     @State private var feedbackMessage = ""
@@ -45,6 +49,7 @@ struct ProfileView: View {
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
         guideRepository: GuideRepository = FirestoreGuideRepository(),
+        featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService()
     ) {
@@ -54,6 +59,7 @@ struct ProfileView: View {
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
         self.guideRepository = guideRepository
+        self.featuredBannerRepository = featuredBannerRepository
         self.notificationInboxRepository = notificationInboxRepository
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(
             repository: eventRepository,
@@ -600,7 +606,23 @@ struct ProfileView: View {
                 }
             }
         }
+        .sheet(isPresented: $isShowingAvatarCrop, onDismiss: resetAvatarCropSelection) {
+            if let cropSourceAvatarImage {
+                ImageCropView(
+                    sourceImage: cropSourceAvatarImage,
+                    profile: .squareAvatar,
+                    title: AppStrings.Images.Crop.title,
+                    instructions: AppStrings.Profile.avatarSubtitle,
+                    onCancel: {},
+                    onApply: applyCroppedAvatarImage(_:)
+                )
+            }
+        }
         .onChange(of: selectedAvatarPhoto) { _, newValue in
+            if newValue == nil, ignoresNextAvatarPhotoClear {
+                ignoresNextAvatarPhotoClear = false
+                return
+            }
             Task {
                 await loadSelectedAvatarPhoto(item: newValue)
             }
@@ -908,6 +930,18 @@ struct ProfileView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                NavigationLink {
+                    FeaturedBannerManagementView(repository: featuredBannerRepository)
+                } label: {
+                    ProfileModuleRow(
+                        title: AppStrings.FeaturedManagement.profileEntryTitle,
+                        subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
+                        systemImage: "sparkles.rectangle.stack",
+                        status: canShowAdminTools ? .active : .locked
+                    )
+                }
+                .buttonStyle(.plain)
 
                 NavigationLink {
                     ModerationToolsView(
@@ -1242,6 +1276,9 @@ struct ProfileView: View {
         selectedAvatarPhoto = nil
         selectedAvatarImageData = nil
         avatarPreviewImage = nil
+        cropSourceAvatarImage = nil
+        isShowingAvatarCrop = false
+        ignoresNextAvatarPhotoClear = false
         viewModel.profileMessage = nil
         isShowingEditProfileSheet = true
     }
@@ -1285,22 +1322,36 @@ struct ProfileView: View {
                 let image = UIImage(data: data)
             else {
                 viewModel.profileMessage = AppStrings.Profile.avatarSelectionFailed
-                selectedAvatarImageData = nil
-                avatarPreviewImage = nil
                 isLoadingAvatarSelection = false
                 return
             }
 
-            selectedAvatarImageData = data
-            avatarPreviewImage = image
+            cropSourceAvatarImage = image
+            isShowingAvatarCrop = true
             viewModel.profileMessage = nil
             isLoadingAvatarSelection = false
         } catch {
             viewModel.profileMessage = AppStrings.Profile.avatarSelectionFailed
-            selectedAvatarImageData = nil
-            avatarPreviewImage = nil
             isLoadingAvatarSelection = false
         }
+    }
+
+    private func applyCroppedAvatarImage(_ processedImage: ProcessedImageSelection) {
+        guard let previewImage = UIImage(data: processedImage.data) else {
+            viewModel.profileMessage = AppStrings.Profile.avatarSelectionFailed
+            return
+        }
+
+        avatarPreviewImage = previewImage
+        selectedAvatarImageData = processedImage.data
+        viewModel.profileMessage = nil
+    }
+
+    private func resetAvatarCropSelection() {
+        cropSourceAvatarImage = nil
+        guard selectedAvatarPhoto != nil else { return }
+        ignoresNextAvatarPhotoClear = true
+        selectedAvatarPhoto = nil
     }
 
     private func submitFeedback(for user: AppUser) {

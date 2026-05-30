@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import PhotosUI
 import SwiftUI
 
 private enum HomeContentRefreshReason: Hashable {
@@ -10,14 +9,16 @@ private enum HomeContentRefreshReason: Hashable {
 }
 
 struct HomeView: View {
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: HomeViewModel
     @ObservedObject var newsViewModel: NewsViewModel
     @ObservedObject var eventsViewModel: EventsViewModel
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
+    @ObservedObject var guideViewModel: GuideListViewModel
     let newsRepository: NewsRepository
     @Binding var navigationPath: [HomeFeedDestinationReference]
-    @State private var selectedBannerPhoto: PhotosPickerItem?
+    @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var selectedContentType: HomeContentTypeFilter = .all
     @State private var selectedFeedFilter: HomeFeedFilter = .all
     @State private var selectedFederalState: AustrianFederalState?
@@ -25,6 +26,27 @@ struct HomeView: View {
     @State private var isRegionPickerPresented = false
     @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
     @State private var pendingContentRefreshTask: Task<Void, Never>?
+    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
+
+    init(
+        viewModel: HomeViewModel,
+        newsViewModel: NewsViewModel,
+        eventsViewModel: EventsViewModel,
+        organizationsViewModel: OrganizationsViewModel,
+        guideViewModel: GuideListViewModel,
+        newsRepository: NewsRepository,
+        featuredBannerRepository: FeaturedBannerRepository,
+        navigationPath: Binding<[HomeFeedDestinationReference]>
+    ) {
+        self.viewModel = viewModel
+        self.newsViewModel = newsViewModel
+        self.eventsViewModel = eventsViewModel
+        self.organizationsViewModel = organizationsViewModel
+        self.guideViewModel = guideViewModel
+        self.newsRepository = newsRepository
+        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
+        _navigationPath = navigationPath
+    }
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -33,7 +55,7 @@ struct HomeView: View {
                     .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                 homeHero
-                    .padding(.bottom, AppTheme.homeSectionSpacing)
+                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
 
                 HomeFilterRow(
                     selectedContentType: selectedContentType,
@@ -82,27 +104,6 @@ struct HomeView: View {
             guard !didManuallyChangeRegion else { return }
             selectedFederalState = newRegion
         }
-        .onChange(of: selectedBannerPhoto) { _, newItem in
-            Task {
-                await updateHomeBanner(from: newItem)
-                selectedBannerPhoto = nil
-            }
-        }
-        .alert(
-            AppStrings.Home.bannerUploadFailed,
-            isPresented: Binding(
-                get: { viewModel.bannerError != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        viewModel.clearBannerError()
-                    }
-                }
-            )
-        ) {
-            Button(AppStrings.News.dismissError, role: .cancel) {
-                viewModel.clearBannerError()
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in
             scheduleContentRefresh(for: .news)
         }
@@ -114,21 +115,14 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
     private var homeHero: some View {
-        ZStack(alignment: .bottomTrailing) {
-            AppHeroBanner(
-                title: AppStrings.Home.bannerTitle,
-                subtitle: AppStrings.Home.bannerSubtitle,
-                imageSource: viewModel.bannerImageSource
+        if !featuredBannerViewModel.banners.isEmpty {
+            FeaturedBannerCarouselView(
+                banners: featuredBannerViewModel.banners,
+                sizing: .fixedHeight(AppTheme.heroBannerHeight),
+                onBannerTap: handleFeaturedBannerTap
             )
-
-            if PermissionService.canManageHomeBanner(user: authState.user) {
-                AppHeroBannerEditButton(
-                    selectedItem: $selectedBannerPhoto,
-                    isUploading: viewModel.isBannerUploading
-                )
-                .padding(10)
-            }
         }
     }
 
@@ -214,6 +208,8 @@ struct HomeView: View {
             return bookmarkedEventIDs.contains(id)
         case let .organization(id):
             return bookmarkedOrganizationIDs.contains(id)
+        case .guide:
+            return false
         }
     }
 
@@ -313,29 +309,32 @@ struct HomeView: View {
 
     private func loadContentIfNeeded() async {
         async let homeLoad: Void = viewModel.loadIfNeeded()
-        async let bannerLoad: Void = viewModel.loadBannerIfNeeded()
+        async let featuredBannerLoad: Void = loadFeaturedBanners()
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-        _ = await (homeLoad, bannerLoad, newsLoad, eventsLoad, organizationsLoad)
+        async let guideLoad: Void = guideViewModel.loadIfNeeded()
+        _ = await (homeLoad, featuredBannerLoad, newsLoad, eventsLoad, organizationsLoad, guideLoad)
     }
 
     private func refreshContentIfStale() async {
         async let homeRefresh: Void = viewModel.refreshIfStale()
-        async let bannerLoad: Void = viewModel.loadBannerIfNeeded()
+        async let featuredBannerLoad: Void = loadFeaturedBanners()
         async let newsRefresh: Void = newsViewModel.refreshIfStale()
         async let eventsRefresh: Void = eventsViewModel.refreshIfStale()
         async let organizationsRefresh: Void = organizationsViewModel.refreshIfStale()
-        _ = await (homeRefresh, bannerLoad, newsRefresh, eventsRefresh, organizationsRefresh)
+        async let guideRefresh: Void = guideViewModel.refreshIfStale()
+        _ = await (homeRefresh, featuredBannerLoad, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
     }
 
     private func refreshAllContent() async {
         async let homeRefresh: Void = viewModel.refresh()
-        async let bannerRefresh: Void = viewModel.refreshBanner()
+        async let featuredBannerRefresh: Void = loadFeaturedBanners()
         async let newsRefresh: Void = newsViewModel.refresh()
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
-        _ = await (homeRefresh, bannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
+        async let guideRefresh: Void = guideViewModel.refresh()
+        _ = await (homeRefresh, featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
     }
 
     private func scheduleContentRefresh(for reason: HomeContentRefreshReason) {
@@ -354,6 +353,13 @@ struct HomeView: View {
 
             await refreshChangedContent(for: reasons)
         }
+    }
+
+    private func loadFeaturedBanners() async {
+        await featuredBannerViewModel.loadActiveBanners(
+            for: .home,
+            federalState: authState.user?.selectedFederalState
+        )
     }
 
     private func refreshChangedContent(for reasons: Set<HomeContentRefreshReason>) async {
@@ -376,18 +382,26 @@ struct HomeView: View {
         _ = await homeRefresh
     }
 
-    private func updateHomeBanner(from item: PhotosPickerItem?) async {
-        guard let item else { return }
-
-        do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                viewModel.setBannerSelectionFailed()
-                return
+    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
+        switch featuredBannerActionResolver.resolve(banner) {
+        case .noAction:
+            return
+        case let .openURL(url):
+            openURL(url)
+        case let .openNews(id):
+            guard newsViewModel.posts.contains(where: { $0.id == id }) else { return }
+            navigationPath.append(.news(id: id))
+        case let .openEvent(id):
+            guard eventsViewModel.events.contains(where: { $0.id == id }) else { return }
+            navigationPath.append(.event(id: id))
+        case let .openOrganization(id):
+            guard organizationsViewModel.organizations.contains(where: { $0.id == id }) else { return }
+            navigationPath.append(.organization(id: id))
+        case let .openGuide(id):
+            Task {
+                guard await guideViewModel.resolveArticle(id: id) != nil else { return }
+                navigationPath.append(.guide(id: id))
             }
-
-            await viewModel.updateHomeBannerImage(data: data, user: authState.user)
-        } catch {
-            viewModel.setBannerSelectionFailed()
         }
     }
 
@@ -422,6 +436,10 @@ struct HomeView: View {
             EventDetailView(viewModel: eventsViewModel, eventID: id, onEventDeleted: {}, onNavigateBack: popHomeDetail)
         case let .organization(id):
             OrganizationDetailView(viewModel: organizationsViewModel, organizationID: id, onNavigateBack: popHomeDetail)
+        case let .guide(id):
+            if let article = guideViewModel.articles.first(where: { $0.id == id }) {
+                GuideDetailView(article: article)
+            }
         }
     }
 
@@ -922,13 +940,14 @@ private struct HomeEventDateBadge: View {
             viewModel: HomeViewModel(
                 newsRepository: MockNewsRepository(),
                 eventRepository: MockEventRepository(),
-                organizationRepository: MockOrganizationRepository(),
-                homeBannerService: MockHomeBannerService()
+                organizationRepository: MockOrganizationRepository()
             ),
             newsViewModel: NewsViewModel(repository: MockNewsRepository()),
             eventsViewModel: EventsViewModel(repository: MockEventRepository()),
             organizationsViewModel: OrganizationsViewModel(repository: MockOrganizationRepository()),
+            guideViewModel: GuideListViewModel(repository: MockGuideRepository()),
             newsRepository: MockNewsRepository(),
+            featuredBannerRepository: MockFeaturedBannerRepository(),
             navigationPath: .constant([])
         )
     }

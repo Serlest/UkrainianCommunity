@@ -492,6 +492,178 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
     }
 
+    function featuredBannerRequiredFields() {
+      return [
+        'id',
+        'title',
+        'imageURL',
+        'actionType',
+        'regionScope',
+        'visibleSections',
+        'displayDurationSeconds',
+        'priority',
+        'isActive',
+        'createdAt',
+        'updatedAt',
+        'createdBy'
+      ];
+    }
+
+    function featuredBannerAllowedFields() {
+      return [
+        'id',
+        'title',
+        'subtitle',
+        'imageURL',
+        'actionType',
+        'actionTargetID',
+        'externalURL',
+        'regionScope',
+        'federalState',
+        'visibleSections',
+        'displayDurationSeconds',
+        'priority',
+        'isActive',
+        'startsAt',
+        'endsAt',
+        'createdAt',
+        'updatedAt',
+        'createdBy',
+        'updatedBy'
+      ];
+    }
+
+    function featuredBannerActionTypes() {
+      return [
+        'none',
+        'news',
+        'event',
+        'organization',
+        'guide',
+        'externalURL',
+        'announcement',
+        'emergency',
+        'partner'
+      ];
+    }
+
+    function featuredBannerTargetActionTypes() {
+      return ['news', 'event', 'organization', 'guide'];
+    }
+
+    function featuredBannerExternalActionTypes() {
+      return ['externalURL', 'partner'];
+    }
+
+    function featuredBannerRegionScopes() {
+      return ['allAustria', 'federalState'];
+    }
+
+    function featuredBannerVisibleSections() {
+      return ['home', 'events', 'organizations', 'guide'];
+    }
+
+    function featuredBannerHasValidSections(data) {
+      return data.visibleSections is list
+        && data.visibleSections.size() > 0
+        && data.visibleSections.hasOnly(featuredBannerVisibleSections());
+    }
+
+    function featuredBannerHasValidActionPayload(data) {
+      return (
+          !(data.actionType in featuredBannerTargetActionTypes())
+          || (
+            ('actionTargetID' in data)
+            && data.actionTargetID is string
+            && data.actionTargetID.size() > 0
+          )
+        )
+        && (
+          !(data.actionType in featuredBannerExternalActionTypes())
+          || (
+            ('externalURL' in data)
+            && data.externalURL is string
+            && data.externalURL.size() > 0
+          )
+        );
+    }
+
+    function featuredBannerHasValidRegion(data) {
+      return data.regionScope in featuredBannerRegionScopes()
+        && (
+          data.regionScope == 'allAustria'
+          || (
+            ('federalState' in data)
+            && data.federalState is string
+            && data.federalState.size() > 0
+          )
+        );
+    }
+
+    function featuredBannerStructurallyValid(data, bannerId) {
+      return data.keys().hasAll(featuredBannerRequiredFields())
+        && data.keys().hasOnly(featuredBannerAllowedFields())
+        && data.id == bannerId
+        && data.id is string
+        && data.title is string
+        && data.title.size() > 0
+        && data.imageURL is string
+        && data.imageURL.size() > 0
+        && data.actionType in featuredBannerActionTypes()
+        && featuredBannerHasValidActionPayload(data)
+        && featuredBannerHasValidRegion(data)
+        && featuredBannerHasValidSections(data)
+        && data.displayDurationSeconds is int
+        && data.displayDurationSeconds >= 3
+        && data.displayDurationSeconds <= 12
+        && data.priority is int
+        && data.priority >= 0
+        && data.priority <= 1000
+        && data.isActive is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.createdBy is string
+        && data.createdBy.size() > 0
+        && (!('updatedBy' in data) || data.updatedBy == null || data.updatedBy is string)
+        && (!('subtitle' in data) || data.subtitle == null || data.subtitle is string)
+        && (!('actionTargetID' in data) || data.actionTargetID == null || data.actionTargetID is string)
+        && (!('externalURL' in data) || data.externalURL == null || data.externalURL is string)
+        && (!('federalState' in data) || data.federalState == null || data.federalState is string)
+        && (!('startsAt' in data) || data.startsAt == null || data.startsAt is timestamp)
+        && (!('endsAt' in data) || data.endsAt == null || data.endsAt is timestamp);
+    }
+
+    function validFeaturedBannerCreate(bannerId) {
+      return isActiveUser()
+        && isOwner()
+        && featuredBannerStructurallyValid(request.resource.data, bannerId)
+        && request.resource.data.createdBy == request.auth.uid
+        && (
+          !('updatedBy' in request.resource.data)
+          || request.resource.data.updatedBy == null
+          || request.resource.data.updatedBy == request.auth.uid
+        );
+    }
+
+    function featuredBannerIdentityFieldsArePreserved(bannerId) {
+      return request.resource.data.id == resource.data.id
+        && request.resource.data.id == bannerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
+    function validFeaturedBannerUpdate(bannerId) {
+      return isActiveUser()
+        && isOwner()
+        && featuredBannerStructurallyValid(request.resource.data, bannerId)
+        && featuredBannerIdentityFieldsArePreserved(bannerId)
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    function canReadFeaturedBanner(bannerId) {
+      return resource.data.isActive == true;
+    }
+
     function safeUserCreate(uid) {
       return isSelf(uid)
         && request.resource.data.id == uid
@@ -1707,6 +1879,13 @@ service cloud.firestore {
       allow read: if isAppManagedHeroBannerDocument(bannerId);
       allow create, update, delete: if isAppManagedHeroBannerDocument(bannerId)
         && isOwner();
+    }
+
+    match /featuredBanners/{bannerId} {
+      allow read: if isOwner() || canReadFeaturedBanner(bannerId);
+      allow create: if validFeaturedBannerCreate(bannerId);
+      allow update: if validFeaturedBannerUpdate(bannerId);
+      allow delete: if isActiveUser() && isOwner();
     }
 
     match /guideArticles/{articleId} {

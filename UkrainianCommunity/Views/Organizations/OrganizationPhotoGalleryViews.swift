@@ -356,7 +356,8 @@ struct OrganizationPhotoGallerySection: View {
                 viewModel.errorMessage = AppStrings.Organizations.photosSelectionFailed
                 return
             }
-            pendingPhotoData = data
+            let processedImage = try await ImageProcessingService.process(data: data, profile: .galleryPhoto)
+            pendingPhotoData = processedImage.data
             pendingCaption = ""
             isShowingCaptionSheet = true
         } catch {

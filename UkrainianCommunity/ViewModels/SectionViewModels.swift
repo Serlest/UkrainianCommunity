@@ -5,101 +5,19 @@ import Foundation
 nonisolated private let defaultRefreshStaleInterval: TimeInterval = 300
 
 @MainActor
-final class AppHeroBannerViewModel: ObservableObject {
-    @Published private(set) var imageSource: AppHeroBannerImageSource
-    @Published private(set) var isUploading = false
-    @Published private(set) var error: AppError?
-
-    private let section: AppHeroBannerSection
-    private let bannerService: HomeBannerServiceProtocol
-    private var hasLoaded = false
-
-    init(
-        section: AppHeroBannerSection,
-        bannerService: HomeBannerServiceProtocol,
-        fallbackImageSource: AppHeroBannerImageSource = .none
-    ) {
-        self.section = section
-        self.bannerService = bannerService
-        self.imageSource = fallbackImageSource
-    }
-
-    func loadIfNeeded() async {
-        guard !hasLoaded else { return }
-        await refresh()
-    }
-
-    func refresh() async {
-        do {
-            if let metadata = try await bannerService.fetchBanner(for: section) {
-                imageSource = .remoteURL(metadata.imageURL)
-            } else {
-                imageSource = .none
-            }
-            error = nil
-            hasLoaded = true
-        } catch let appError as AppError {
-            error = appError
-            hasLoaded = true
-        } catch {
-            self.error = .unknown
-            hasLoaded = true
-        }
-    }
-
-    func updateImage(data: Data, user: AppUser?) async {
-        guard PermissionService.canManageHomeBanner(user: user), let user else {
-            error = .permissionDenied
-            return
-        }
-
-        isUploading = true
-        defer { isUploading = false }
-
-        do {
-            let metadata = try await bannerService.updateBannerImage(data: data, for: section, updatedBy: user.id)
-            imageSource = .remoteURL(metadata.imageURL)
-            error = nil
-            hasLoaded = true
-        } catch let appError as AppError {
-            error = appError
-        } catch {
-            self.error = .unknown
-        }
-    }
-
-    func setSelectionFailed() {
-        error = .validationFailed
-    }
-
-    func clearError() {
-        error = nil
-    }
-}
-
-@MainActor
 final class HomeViewModel: ObservableObject {
     @Published private(set) var feedItems: [HomeFeedItem]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
-    @Published private(set) var bannerImageSource: AppHeroBannerImageSource
-    @Published private(set) var isBannerUploading: Bool
-    @Published private(set) var bannerError: AppError?
     private let feedViewModel: HomeFeedViewModel
-    private let homeBannerService: HomeBannerServiceProtocol
-    private var hasLoadedBanner = false
 
     init(
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository,
-        homeBannerService: HomeBannerServiceProtocol
+        organizationRepository: OrganizationRepository
     ) {
         feedItems = []
         isLoading = false
-        bannerImageSource = .none
-        isBannerUploading = false
-        self.homeBannerService = homeBannerService
         feedViewModel = HomeFeedViewModel(
             newsRepository: newsRepository,
             eventRepository: eventRepository,
@@ -139,54 +57,6 @@ final class HomeViewModel: ObservableObject {
         feedItems = []
         isLoading = false
         error = nil
-    }
-
-    func loadBannerIfNeeded() async {
-        guard !hasLoadedBanner else { return }
-        await refreshBanner()
-    }
-
-    func refreshBanner() async {
-        do {
-            if let metadata = try await homeBannerService.fetchHomeBanner() {
-                bannerImageSource = .remoteURL(metadata.imageURL)
-            } else {
-                bannerImageSource = .none
-            }
-            bannerError = nil
-            hasLoadedBanner = true
-        } catch {
-            hasLoadedBanner = true
-        }
-    }
-
-    func updateHomeBannerImage(data: Data, user: AppUser?) async {
-        guard PermissionService.canManageHomeBanner(user: user), let user else {
-            bannerError = .permissionDenied
-            return
-        }
-
-        isBannerUploading = true
-        defer { isBannerUploading = false }
-
-        do {
-            let metadata = try await homeBannerService.updateHomeBannerImage(data: data, updatedBy: user.id)
-            bannerImageSource = .remoteURL(metadata.imageURL)
-            bannerError = nil
-            hasLoadedBanner = true
-        } catch let appError as AppError {
-            bannerError = appError
-        } catch {
-            bannerError = .unknown
-        }
-    }
-
-    func setBannerSelectionFailed() {
-        bannerError = .validationFailed
-    }
-
-    func clearBannerError() {
-        bannerError = nil
     }
 }
 

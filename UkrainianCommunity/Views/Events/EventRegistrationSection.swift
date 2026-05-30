@@ -53,7 +53,7 @@ extension EventDetailView {
 
         @ViewBuilder
         func eventRegistrationManagementCard(for event: Event) -> some View {
-            if event.requiresRegistration && canManageEventRegistrations(event) {
+            if (event.requiresRegistration || event.registeredCount > 0) && canManageEventRegistrations(event) {
                 DetailCard {
                     VStack(alignment: .leading, spacing: AppTheme.detailInnerSpacing) {
                         HStack(alignment: .firstTextBaseline) {

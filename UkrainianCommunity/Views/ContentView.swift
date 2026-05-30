@@ -23,6 +23,8 @@ struct ContentView: View {
     @State private var selectedTab: AppTab = .home
     @State private var isShowingNotificationInbox = false
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
+    @State private var eventsNavigationPath: [EventNavigationRoute] = []
+    @State private var organizationsNavigationPath: [OrganizationNavigationRoute] = []
     @State private var lastHandledAuthSessionKey: String?
 
     init(container: AppContainer) {
@@ -30,8 +32,7 @@ struct ContentView: View {
         _homeViewModel = StateObject(wrappedValue: HomeViewModel(
             newsRepository: container.newsRepository,
             eventRepository: container.eventRepository,
-            organizationRepository: container.organizationRepository,
-            homeBannerService: container.homeBannerService
+            organizationRepository: container.organizationRepository
         ))
         _newsViewModel = StateObject(wrappedValue: NewsViewModel(repository: container.newsRepository))
         _eventsViewModel = StateObject(wrappedValue: EventsViewModel(
@@ -152,7 +153,9 @@ struct ContentView: View {
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel,
+                guideViewModel: guideViewModel,
                 newsRepository: container.newsRepository,
+                featuredBannerRepository: container.featuredBannerRepository,
                 navigationPath: $homeNavigationPath
             )
         }
@@ -166,11 +169,12 @@ struct ContentView: View {
     }
 
     private var eventsTab: some View {
-        NavigationStack {
+        NavigationStack(path: $eventsNavigationPath) {
             EventsListView(
                 viewModel: eventsViewModel,
                 eventRepository: container.eventRepository,
-                bannerService: container.homeBannerService,
+                featuredBannerRepository: container.featuredBannerRepository,
+                navigationPath: $eventsNavigationPath,
                 onEventPublished: {},
                 onEventDeleted: {}
             )
@@ -185,10 +189,11 @@ struct ContentView: View {
     }
 
     private var organizationsTab: some View {
-        NavigationStack {
+        NavigationStack(path: $organizationsNavigationPath) {
             OrganizationsListView(
                 viewModel: organizationsViewModel,
-                bannerService: container.homeBannerService,
+                featuredBannerRepository: container.featuredBannerRepository,
+                navigationPath: $organizationsNavigationPath,
                 onOrganizationSaved: {},
                 onOrganizationDeleted: {}
             )
@@ -206,7 +211,7 @@ struct ContentView: View {
         NavigationStack {
             InfoView(
                 viewModel: guideViewModel,
-                bannerService: container.homeBannerService
+                featuredBannerRepository: container.featuredBannerRepository
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -226,6 +231,7 @@ struct ContentView: View {
                 eventRepository: container.eventRepository,
                 organizationRepository: container.organizationRepository,
                 guideRepository: container.guideRepository,
+                featuredBannerRepository: container.featuredBannerRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 localEventReminderService: container.localEventReminderService
             )

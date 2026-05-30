@@ -154,6 +154,8 @@ extension OrganizationDetailView {
         switch destination {
         case let .news(id), let .event(id), let .organization(id):
             return id
+        case .guide:
+            return nil
         }
     }
 
@@ -240,6 +242,8 @@ extension OrganizationDetailView {
                 onOrganizationDeleted: onOrganizationDeleted
             )
             .environment(\.organizationPresentationMode, presentationMode)
+        case .guide:
+            EmptyView()
         }
     }
 }

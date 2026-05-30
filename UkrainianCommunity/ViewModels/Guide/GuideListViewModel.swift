@@ -91,6 +91,18 @@ final class GuideListViewModel: ObservableObject {
         selectedAudience = nil
     }
 
+    func resolveArticle(id articleID: String) async -> GuideArticle? {
+        let trimmedID = articleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedID.isEmpty else { return nil }
+
+        if let article = articles.first(where: { $0.id == trimmedID }) {
+            return article
+        }
+
+        await loadIfNeeded()
+        return articles.first(where: { $0.id == trimmedID })
+    }
+
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
 

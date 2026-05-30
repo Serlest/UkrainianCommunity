@@ -10,6 +10,9 @@ struct OrganizationEditorView: View {
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     @StateObject var viewModel: OrganizationEditorViewModel
     @State var selectedPhoto: PhotosPickerItem?
+    @State var cropSourceLogoImage: UIImage?
+    @State var isShowingLogoCrop = false
+    @State var ignoresNextPhotoClear = false
     let onSaved: @MainActor () async -> Void
     let editorSectionSpacing: CGFloat = 8
     let editorCardSpacing: CGFloat = 8
@@ -63,7 +66,23 @@ struct OrganizationEditorView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .scrollDismissesKeyboard(.interactively)
+        .sheet(isPresented: $isShowingLogoCrop, onDismiss: resetLogoCropSelection) {
+            if let cropSourceLogoImage {
+                ImageCropView(
+                    sourceImage: cropSourceLogoImage,
+                    profile: .squareLogo,
+                    title: AppStrings.Images.Crop.title,
+                    instructions: AppStrings.Organizations.logoUploadHelper,
+                    onCancel: {},
+                    onApply: applyCroppedLogoImage(_:)
+                )
+            }
+        }
         .onChange(of: selectedPhoto) { _, newItem in
+            if newItem == nil, ignoresNextPhotoClear {
+                ignoresNextPhotoClear = false
+                return
+            }
             Task {
                 await loadSelectedPhoto(item: newItem)
             }

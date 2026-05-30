@@ -86,6 +86,7 @@ final class EventEditorViewModel: ObservableObject {
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
+    private var selectedProcessedImage: ProcessedImageSelection?
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: EventRepository
@@ -227,12 +228,21 @@ final class EventEditorViewModel: ObservableObject {
     func setSelectedImageData(_ data: Data?) {
         guard let data else {
             selectedImageData = nil
+            selectedProcessedImage = nil
             return
         }
 
         successMessage = nil
         errorMessage = nil
         selectedImageData = data
+        selectedProcessedImage = nil
+    }
+
+    func setSelectedImageSelection(_ selection: ProcessedImageSelection?) {
+        selectedProcessedImage = selection
+        selectedImageData = selection?.data
+        successMessage = nil
+        errorMessage = nil
     }
 
     func setImageProcessing(_ isProcessing: Bool) {
@@ -452,21 +462,35 @@ final class EventEditorViewModel: ObservableObject {
             case .create:
                 try await repository.createEvent(newEvent)
 
-                if let selectedImageData {
+                if selectedImageData != nil {
                     isUploadingImage = true
                     var uploadedDraftImage = false
                     let organizationID = newEvent.source.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     do {
                         let downloadURL: URL
                         if !organizationID.isEmpty {
-                            downloadURL = try await imageUploadService.uploadOrganizationEventDraftImage(
-                                data: selectedImageData,
-                                organizationID: organizationID,
-                                eventID: eventID
-                            )
+                            if let selectedProcessedImage {
+                                downloadURL = try await imageUploadService.uploadOrganizationEventDraftImage(
+                                    processedImage: selectedProcessedImage,
+                                    organizationID: organizationID,
+                                    eventID: eventID
+                                )
+                            } else if let selectedImageData {
+                                downloadURL = try await imageUploadService.uploadOrganizationEventDraftImage(
+                                    data: selectedImageData,
+                                    organizationID: organizationID,
+                                    eventID: eventID
+                                )
+                            } else {
+                                throw AppError.validationFailed
+                            }
                             uploadedDraftImage = true
-                        } else {
+                        } else if let selectedProcessedImage {
+                            downloadURL = try await imageUploadService.uploadEventCoverImage(processedImage: selectedProcessedImage, eventID: eventID)
+                        } else if let selectedImageData {
                             downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                        } else {
+                            throw AppError.validationFailed
                         }
                         try await repository.updateEventImageURL(id: eventID, imageURL: downloadURL.absoluteString)
                     } catch let uploadError {
@@ -491,9 +515,16 @@ final class EventEditorViewModel: ObservableObject {
                 successMessage = AppStrings.Events.publishedSuccessfully
             case .edit:
                 var resolvedImageURL = existingImageURL
-                if let selectedImageData {
+                if selectedImageData != nil {
                     isUploadingImage = true
-                    let downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                    let downloadURL: URL
+                    if let selectedProcessedImage {
+                        downloadURL = try await imageUploadService.uploadEventCoverImage(processedImage: selectedProcessedImage, eventID: eventID)
+                    } else if let selectedImageData {
+                        downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                    } else {
+                        throw AppError.validationFailed
+                    }
                     resolvedImageURL = downloadURL.absoluteString
                     isUploadingImage = false
                 }
@@ -518,6 +549,7 @@ final class EventEditorViewModel: ObservableObject {
             contactEmail = ""
             contactURL = ""
             selectedImageData = nil
+            selectedProcessedImage = nil
             startDate = now
             endDate = now.addingTimeInterval(60 * 60)
             selectedCategory = .meetups

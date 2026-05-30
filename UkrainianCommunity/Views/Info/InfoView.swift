@@ -2,26 +2,29 @@ import SwiftUI
 
 struct InfoView: View {
     @ObservedObject var viewModel: InfoViewModel
-    let bannerService: HomeBannerServiceProtocol
+    let featuredBannerRepository: FeaturedBannerRepository
 
     init(
         viewModel: InfoViewModel,
-        bannerService: HomeBannerServiceProtocol = FirestoreHomeBannerService()
+        featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository()
     ) {
         self.viewModel = viewModel
-        self.bannerService = bannerService
+        self.featuredBannerRepository = featuredBannerRepository
     }
 
     var body: some View {
         GuideHomeView(
             viewModel: viewModel,
-            bannerService: bannerService
+            featuredBannerRepository: featuredBannerRepository
         )
     }
 }
 
 #Preview {
     NavigationStack {
-        InfoView(viewModel: InfoViewModel(repository: MockInfoRepository()))
+        InfoView(
+            viewModel: InfoViewModel(repository: MockInfoRepository()),
+            featuredBannerRepository: MockFeaturedBannerRepository()
+        )
     }
 }

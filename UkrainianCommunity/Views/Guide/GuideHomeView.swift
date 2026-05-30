@@ -1,4 +1,3 @@
-import PhotosUI
 import SwiftUI
 
 private struct GuideScreenContent {
@@ -9,19 +8,21 @@ private struct GuideScreenContent {
 }
 
 struct GuideHomeView: View {
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: GuideListViewModel
-    @StateObject private var heroBannerViewModel: AppHeroBannerViewModel
-    @State private var selectedBannerPhoto: PhotosPickerItem?
+    @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
+    @State private var routedGuideArticle: GuideArticle?
+    @State private var routedGuideArticleID: String?
+    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
         viewModel: GuideListViewModel,
-        bannerService: HomeBannerServiceProtocol = FirestoreHomeBannerService()
+        featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository()
     ) {
         self.viewModel = viewModel
-        _heroBannerViewModel = StateObject(wrappedValue: AppHeroBannerViewModel(
-            section: .guide,
-            bannerService: bannerService
+        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
+            repository: featuredBannerRepository
         ))
     }
 
@@ -40,6 +41,14 @@ struct GuideHomeView: View {
         )
     }
 
+    private var selectedFederalState: AustrianFederalState? {
+        authState.user?.selectedFederalState
+    }
+
+    private var featuredBannerLoadKey: String {
+        selectedFederalState?.rawValue ?? "allAustria"
+    }
+
     var body: some View {
         let content = screenContent
 
@@ -48,8 +57,8 @@ struct GuideHomeView: View {
                 guideHeader
                     .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
-                guideHero
-                    .padding(.bottom, AppTheme.homeSectionSpacing)
+                featuredGuideCarousel
+                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
 
                 GuideSearchAndFiltersView(viewModel: viewModel)
                     .padding(.bottom, AppTheme.homeSectionSpacing)
@@ -70,39 +79,23 @@ struct GuideHomeView: View {
         .background(AppBackgroundView())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .task {
+        .task(id: featuredBannerLoadKey) {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
-            await heroBannerViewModel.loadIfNeeded()
+            await loadFeaturedBanners()
         }
         .refreshable {
             await viewModel.refresh()
-            await heroBannerViewModel.refresh()
+            await loadFeaturedBanners()
         }
         .onReceive(NotificationCenter.default.publisher(for: .guideChanged)) { _ in
             Task {
                 await viewModel.refresh()
             }
         }
-        .onChange(of: selectedBannerPhoto) { _, newItem in
-            Task {
-                await updateGuideBanner(from: newItem)
-                selectedBannerPhoto = nil
-            }
-        }
-        .alert(
-            AppStrings.Home.bannerUploadFailed,
-            isPresented: Binding(
-                get: { heroBannerViewModel.error != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        heroBannerViewModel.clearError()
-                    }
-                }
-            )
-        ) {
-            Button(AppStrings.News.dismissError, role: .cancel) {
-                heroBannerViewModel.clearError()
+        .navigationDestination(item: $routedGuideArticleID) { _ in
+            if let routedGuideArticle {
+                GuideDetailView(article: routedGuideArticle)
             }
         }
     }
@@ -113,38 +106,36 @@ struct GuideHomeView: View {
         }
     }
 
-    private var guideHero: some View {
-        ZStack(alignment: .bottomTrailing) {
-            AppHeroBanner(
-                title: AppStrings.Guide.heroTitle,
-                subtitle: AppStrings.Guide.heroSubtitle,
-                imageSource: heroBannerViewModel.imageSource,
-                height: AppTheme.guideHeroHeight,
-                displaysTextOverImage: true
+    @ViewBuilder
+    private var featuredGuideCarousel: some View {
+        if !featuredBannerViewModel.banners.isEmpty {
+            FeaturedBannerCarouselView(
+                banners: featuredBannerViewModel.banners,
+                sizing: .fixedHeight(AppTheme.guideHeroHeight),
+                onBannerTap: handleFeaturedBannerTap
             )
-
-            if PermissionService.canManageHomeBanner(user: authState.user) {
-                AppHeroBannerEditButton(
-                    selectedItem: $selectedBannerPhoto,
-                    isUploading: heroBannerViewModel.isUploading
-                )
-                .padding(10)
-            }
         }
     }
 
-    private func updateGuideBanner(from item: PhotosPickerItem?) async {
-        guard let item else { return }
+    private func loadFeaturedBanners() async {
+        await featuredBannerViewModel.loadActiveBanners(
+            for: .guide,
+            federalState: selectedFederalState
+        )
+    }
 
-        do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                heroBannerViewModel.setSelectionFailed()
-                return
+    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
+        switch featuredBannerActionResolver.resolve(banner, opensPartnerURL: false) {
+        case .noAction, .openNews, .openEvent, .openOrganization:
+            return
+        case let .openURL(url):
+            openURL(url)
+        case let .openGuide(id):
+            Task {
+                guard let article = await viewModel.resolveArticle(id: id) else { return }
+                routedGuideArticle = article
+                routedGuideArticleID = article.id
             }
-
-            await heroBannerViewModel.updateImage(data: data, user: authState.user)
-        } catch {
-            heroBannerViewModel.setSelectionFailed()
         }
     }
 
@@ -212,7 +203,10 @@ struct GuideHomeView: View {
 
 #Preview {
     NavigationStack {
-        GuideHomeView(viewModel: GuideListViewModel(repository: MockGuideRepository()))
+        GuideHomeView(
+            viewModel: GuideListViewModel(repository: MockGuideRepository()),
+            featuredBannerRepository: MockFeaturedBannerRepository()
+        )
     }
     .environmentObject(AuthState())
 }
