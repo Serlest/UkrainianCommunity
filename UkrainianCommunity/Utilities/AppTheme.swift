@@ -105,6 +105,9 @@ enum AppTheme {
     static let heroRadius: CGFloat = 22
     static let imageRadius: CGFloat = 16
     static let chipRadius: CGFloat = 14
+    static let bannerTextScrimRadius = chipRadius
+    static let bannerTextScrimHorizontalPadding = inputHorizontalPadding
+    static let bannerTextScrimVerticalPadding: CGFloat = 10
     static let feedThumbnailSize: CGFloat = 58
     static let feedThumbnailRadius: CGFloat = 13
     static let heroBannerHeight: CGFloat = 146
@@ -118,13 +121,22 @@ enum AppTheme {
     static func bannerOverlayGradient(for colorScheme: ColorScheme) -> LinearGradient {
         LinearGradient(
             colors: [
-                Color.black.opacity(colorScheme == .dark ? 0.64 : 0.50),
-                Color.black.opacity(colorScheme == .dark ? 0.32 : 0.22),
-                Color.black.opacity(0.06)
+                Color.black.opacity(colorScheme == .dark ? 0.46 : 0.34),
+                Color.black.opacity(colorScheme == .dark ? 0.22 : 0.14),
+                Color.black.opacity(colorScheme == .dark ? 0.05 : 0.03)
             ],
             startPoint: .bottomLeading,
             endPoint: .topTrailing
         )
+    }
+
+    static func bannerTextScrimBackground(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .dark:
+            Color.black.opacity(0.32)
+        default:
+            Color.black.opacity(0.26)
+        }
     }
 
     static let subtleGradient = LinearGradient(

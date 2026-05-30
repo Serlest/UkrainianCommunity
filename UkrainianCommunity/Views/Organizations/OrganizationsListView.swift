@@ -266,7 +266,7 @@ struct OrganizationsListView: View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
-                sizing: .fixedHeight(AppTheme.organizationsHeroHeight),
+                sizing: .responsiveHero,
                 onBannerTap: handleFeaturedBannerTap
             )
         }

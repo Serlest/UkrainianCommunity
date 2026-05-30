@@ -111,7 +111,7 @@ struct GuideHomeView: View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
-                sizing: .fixedHeight(AppTheme.guideHeroHeight),
+                sizing: .responsiveHero,
                 onBannerTap: handleFeaturedBannerTap
             )
         }

@@ -2,10 +2,10 @@ import SwiftUI
 
 enum FeaturedBannerCarouselSizing {
     case fixedHeight(CGFloat)
-    case aspectRatio(CGFloat, maxHeight: CGFloat)
+    case aspectRatio(CGFloat, maxHeight: CGFloat? = nil)
 
     static let compactHero = FeaturedBannerCarouselSizing.fixedHeight(AppTheme.heroBannerHeight)
-    static let responsiveHero = FeaturedBannerCarouselSizing.aspectRatio(16.0 / 9.0, maxHeight: AppTheme.heroBannerHeight)
+    static let responsiveHero = FeaturedBannerCarouselSizing.aspectRatio(16.0 / 9.0)
 }
 
 struct FeaturedBannerCarouselView: View {
@@ -29,22 +29,7 @@ struct FeaturedBannerCarouselView: View {
             EmptyView()
         } else {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                GeometryReader { proxy in
-                    TabView(selection: $selectedBannerID) {
-                        ForEach(banners) { banner in
-                            Button {
-                                onBannerTap(banner)
-                            } label: {
-                                FeaturedBannerCardView(banner: banner)
-                                    .frame(width: proxy.size.width, height: proxy.size.height)
-                            }
-                            .buttonStyle(.plain)
-                            .tag(Optional(banner.id))
-                        }
-                    }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                }
-                .frame(height: resolvedHeight)
+                carouselFrame
 
                 FeaturedBannerPageIndicator(
                     count: banners.count,
@@ -58,6 +43,43 @@ struct FeaturedBannerCarouselView: View {
             .task(id: rotationTaskID) {
                 await scheduleNextRotation()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var carouselFrame: some View {
+        switch sizing {
+        case let .fixedHeight(height):
+            carouselContent
+                .frame(height: height)
+        case let .aspectRatio(aspectRatio, maxHeight):
+            Color.clear
+                .aspectRatio(aspectRatio, contentMode: .fit)
+                .frame(
+                    maxWidth: maxHeight.map { $0 * aspectRatio },
+                    maxHeight: maxHeight
+                )
+                .overlay {
+                    carouselContent
+                }
+        }
+    }
+
+    private var carouselContent: some View {
+        GeometryReader { proxy in
+            TabView(selection: $selectedBannerID) {
+                ForEach(banners) { banner in
+                    Button {
+                        onBannerTap(banner)
+                    } label: {
+                        FeaturedBannerCardView(banner: banner)
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                    }
+                    .buttonStyle(.plain)
+                    .tag(Optional(banner.id))
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
         }
     }
 
@@ -79,16 +101,6 @@ struct FeaturedBannerCarouselView: View {
             .map { "\($0.id)-\($0.displayDurationSeconds)" }
             .joined(separator: "|")
         return "\(selectedBannerID ?? "none"):\(slideKeys)"
-    }
-
-    private var resolvedHeight: CGFloat? {
-        switch sizing {
-        case let .fixedHeight(height):
-            return height
-        case let .aspectRatio(aspectRatio, maxHeight):
-            guard aspectRatio > 0 else { return maxHeight }
-            return min(UIScreen.main.bounds.width / aspectRatio, maxHeight)
-        }
     }
 
     private func normalizeSelection() {

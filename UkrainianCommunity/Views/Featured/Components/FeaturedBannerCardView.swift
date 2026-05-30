@@ -7,7 +7,6 @@ struct FeaturedBannerCardView: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             background
-            readabilityOverlay
             textContent
         }
         .clipShape(cardShape)
@@ -52,10 +51,6 @@ struct FeaturedBannerCardView: View {
         )
     }
 
-    private var readabilityOverlay: some View {
-        AppTheme.bannerOverlayGradient(for: colorScheme)
-    }
-
     private var textContent: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(banner.title)
@@ -69,9 +64,15 @@ struct FeaturedBannerCardView: View {
                     .font(AppTheme.secondaryBodyFont.weight(.medium))
                     .foregroundStyle(AppTheme.textOnHero.opacity(0.88))
                     .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                .multilineTextAlignment(.leading)
             }
         }
+        .padding(.horizontal, AppTheme.bannerTextScrimHorizontalPadding)
+        .padding(.vertical, AppTheme.bannerTextScrimVerticalPadding)
+        .background(
+            AppTheme.bannerTextScrimBackground(for: colorScheme),
+            in: RoundedRectangle(cornerRadius: AppTheme.bannerTextScrimRadius, style: .continuous)
+        )
         .padding(AppTheme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
     }

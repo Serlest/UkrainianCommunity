@@ -120,7 +120,7 @@ struct HomeView: View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
-                sizing: .fixedHeight(AppTheme.heroBannerHeight),
+                sizing: .responsiveHero,
                 onBannerTap: handleFeaturedBannerTap
             )
         }
