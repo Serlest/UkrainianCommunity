@@ -3,6 +3,7 @@ import SwiftUI
 struct FeaturedBannerManagementView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: FeaturedBannerManagementViewModel
+    @State private var deleteCandidate: FeaturedBanner?
     private let repository: FeaturedBannerRepository
 
     init(repository: FeaturedBannerRepository) {
@@ -23,6 +24,33 @@ struct FeaturedBannerManagementView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        .confirmationDialog(
+            AppStrings.FeaturedManagement.deleteConfirmationTitle,
+            isPresented: Binding(
+                get: { deleteCandidate != nil },
+                set: { if !$0 { deleteCandidate = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.FeaturedManagement.deleteBanner, role: .destructive) {
+                guard let banner = deleteCandidate else { return }
+                deleteCandidate = nil
+                Task {
+                    await viewModel.delete(banner, requestedBy: authState.user?.id)
+                }
+            }
+            Button(AppStrings.Action.cancel, role: .cancel) {
+                deleteCandidate = nil
+            }
+        } message: {
+            if let banner = deleteCandidate {
+                Text(AppStrings.FeaturedManagement.deleteConfirmationMessage(banner.title))
+            }
+        }
+    }
+
+    private var canDeleteBanners: Bool {
+        authState.user?.globalRole.authorizationRole == .owner
     }
 
     @ViewBuilder
@@ -62,10 +90,14 @@ struct FeaturedBannerManagementView: View {
                         FeaturedBannerManagementRow(
                             banner: banner,
                             isUpdating: viewModel.updatingBannerIDs.contains(banner.id),
+                            canDelete: canDeleteBanners,
                             onActiveChange: { isActive in
                                 Task {
                                     await viewModel.setActive(isActive, for: banner, updatedBy: authState.user?.id)
                                 }
+                            },
+                            onDelete: {
+                                deleteCandidate = banner
                             }
                         )
 
@@ -123,7 +155,9 @@ struct FeaturedBannerManagementView: View {
 private struct FeaturedBannerManagementRow: View {
     let banner: FeaturedBanner
     let isUpdating: Bool
+    let canDelete: Bool
     let onActiveChange: (Bool) -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         AppEditorSectionCard {
@@ -161,6 +195,15 @@ private struct FeaturedBannerManagementRow: View {
                         .foregroundStyle(AppTheme.textPrimary)
                 }
                 .disabled(isUpdating)
+
+                if canDelete {
+                    Button(role: .destructive, action: onDelete) {
+                        Label(AppStrings.FeaturedManagement.deleteBanner, systemImage: "trash")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(isUpdating)
+                }
 
                 if isUpdating {
                     HStack(spacing: 8) {

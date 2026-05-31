@@ -101,6 +101,15 @@ enum AppStrings {
         static var inactive: String { text("featured.management.inactive", "Inactive") }
         static var activeToggle: String { text("featured.management.active_toggle", "Active") }
         static var updating: String { text("featured.management.updating", "Updating") }
+        static var deleteBanner: String { text("featured.management.delete", "Delete banner") }
+        static var deleteConfirmationTitle: String { text("featured.management.delete.confirm.title", "Delete featured banner?") }
+        static func deleteConfirmationMessage(_ title: String) -> String {
+            LocalizationStore.localizedFormat(
+                "featured.management.delete.confirm.message",
+                defaultValue: "This will permanently delete “%@” from featured content.",
+                arguments: [title]
+            )
+        }
         static var sectionsLabel: String { text("featured.management.sections", "Sections") }
         static var regionLabel: String { text("featured.management.region", "Region") }
         static var actionLabel: String { text("featured.management.action", "Action") }
@@ -1794,6 +1803,7 @@ enum AppStrings {
         static var open: String { text("action.open", "Відкрити") }
         static var retry: String { text("action.retry", "Спробувати ще раз") }
         static var delete: String { text("action.delete", "Delete") }
+        static var cancel: String { text("action.cancel", "Cancel") }
         static var share: String { text("action.share", "Share") }
         static var save: String { text("action.save", "Save") }
         static var like: String { text("action.like", "Like") }

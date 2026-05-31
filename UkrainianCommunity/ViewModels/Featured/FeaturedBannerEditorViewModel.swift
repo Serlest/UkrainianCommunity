@@ -221,12 +221,18 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
         do {
             let resolvedImageURL = try await resolvedImageURL()
+            let resolvedImageURLString = resolvedImageURL.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !resolvedImageURLString.isEmpty else {
+                errorMessage = AppStrings.FeaturedEditor.validationImageRequired
+                return false
+            }
+
             let now = Date()
             let banner = FeaturedBanner(
                 id: bannerID,
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 subtitle: nonEmpty(subtitle),
-                imageURL: resolvedImageURL.absoluteString,
+                imageURL: resolvedImageURLString,
                 actionType: actionType,
                 actionTargetID: requiresActionTarget ? nonEmpty(actionTargetID) : nil,
                 externalURL: requiresExternalURL ? normalizedExternalURL?.absoluteString : nil,
@@ -252,7 +258,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 try await repository.updateBanner(banner)
             }
 
-            imageURL = resolvedImageURL.absoluteString
+            imageURL = resolvedImageURLString
             selectedImageData = nil
             selectedProcessedImage = nil
             successMessage = AppStrings.FeaturedEditor.saveSuccess

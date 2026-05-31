@@ -208,6 +208,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         var data: [String: Any] = [
             Field.id.rawValue: banner.id,
             Field.title.rawValue: banner.title,
+            Field.imageURL.rawValue: nonEmpty(banner.imageURL) ?? "",
             Field.actionType.rawValue: banner.actionType.rawValue,
             Field.regionScope.rawValue: banner.regionScope.rawValue,
             Field.visibleSections.rawValue: banner.visibleSections.map(\.rawValue).sorted(),
@@ -221,9 +222,6 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
 
         if let subtitle = nonEmpty(banner.subtitle) {
             data[Field.subtitle.rawValue] = subtitle
-        }
-        if let imageURL = nonEmpty(banner.imageURL) {
-            data[Field.imageURL.rawValue] = imageURL
         }
         if let actionTargetID = nonEmpty(banner.actionTargetID) {
             data[Field.actionTargetID.rawValue] = actionTargetID

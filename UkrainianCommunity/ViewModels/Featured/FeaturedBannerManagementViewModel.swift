@@ -71,4 +71,24 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             self.error = .unknown
         }
     }
+
+    func delete(_ banner: FeaturedBanner, requestedBy userID: String?) async {
+        let trimmedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmedUserID.isEmpty else {
+            error = .permissionDenied
+            return
+        }
+
+        updatingBannerIDs.insert(banner.id)
+        defer { updatingBannerIDs.remove(banner.id) }
+
+        do {
+            try await repository.deleteBanner(id: banner.id)
+            await refresh()
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
 }

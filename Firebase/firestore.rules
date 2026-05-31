@@ -579,6 +579,21 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid;
     }
 
+    function validFeaturedBannerLifecycleUpdate(bannerId) {
+      return isActiveUser()
+        && isOwner()
+        && resource.data.id == bannerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'isActive',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && request.resource.data.isActive is bool
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid
+        && featuredBannerIdentityFieldsArePreserved(bannerId);
+    }
+
     function canReadFeaturedBanner(bannerId) {
       return resource.data.isActive == true;
     }
@@ -1628,7 +1643,8 @@ service cloud.firestore {
     match /featuredBanners/{bannerId} {
       allow read: if isOwner() || canReadFeaturedBanner(bannerId);
       allow create: if validFeaturedBannerCreate(bannerId);
-      allow update: if validFeaturedBannerUpdate(bannerId);
+      allow update: if validFeaturedBannerUpdate(bannerId)
+        || validFeaturedBannerLifecycleUpdate(bannerId);
       allow delete: if isActiveUser() && isOwner();
     }
 
