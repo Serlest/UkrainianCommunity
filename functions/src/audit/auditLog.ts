@@ -18,6 +18,7 @@ export interface AuditLogInput {
   targetUserId: string;
   performedBy: string;
   reason: string;
+  note?: string | null;
   previousValue: Record<string, unknown>;
   newValue: Record<string, unknown>;
 }
@@ -29,6 +30,7 @@ export function auditLogRef() {
 export function buildAuditLog(input: AuditLogInput) {
   return {
     ...input,
+    note: input.note ?? null,
     createdAt: FieldValue.serverTimestamp(),
   };
 }
