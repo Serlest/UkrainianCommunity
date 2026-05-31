@@ -11,6 +11,7 @@ export {
   assignOrganizationModerator,
   removeOrganizationAdmin,
   removeOrganizationModerator,
+  transferOrganizationOwnership,
 } from "./organizations/roleManagement";
 
 setGlobalOptions({

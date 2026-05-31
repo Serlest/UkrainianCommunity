@@ -9,7 +9,7 @@ import {
   type OrganizationRole,
   type OrganizationRoleSnapshot,
 } from "../permissions/organizationPermissions";
-import { getUserPermissions } from "../permissions/userPermissions";
+import { assertOwner, getUserPermissions } from "../permissions/userPermissions";
 
 type AssignableOrganizationRole = "communityAdmin" | "communityModerator";
 type OrganizationRoleResult = "none" | OrganizationRole;
@@ -25,6 +25,13 @@ interface OrganizationRoleChangeResponse {
   targetUserId: string;
   previousRole: OrganizationRoleResult;
   newRole: OrganizationRoleResult;
+  updatedAt: string;
+}
+
+interface OrganizationOwnershipTransferResponse {
+  organizationId: string;
+  previousOwnerId: string | null;
+  newOwnerId: string;
   updatedAt: string;
 }
 
@@ -224,3 +231,70 @@ export const removeOrganizationModerator = createRoleCallable({
   isRemoval: true,
   defaultReason: "Organization role update",
 });
+
+export const transferOrganizationOwnership = onCall(
+  callableOptions,
+  async (request): Promise<OrganizationOwnershipTransferResponse> => {
+    const auth = requireAuth(request);
+    const roleRequest = parseRoleChangeRequest(request.data);
+    const actorPermissions = await getUserPermissions(auth.uid);
+    assertOwner(actorPermissions);
+
+    const organizationReference = db.collection("organizations").doc(roleRequest.organizationId);
+    const committedAt = new Date().toISOString();
+    let previousOwnerId: string | null = null;
+
+    await db.runTransaction(async (transaction) => {
+      const organizationSnapshot = await transaction.get(organizationReference);
+
+      if (!organizationSnapshot.exists) {
+        throw new HttpsError("not-found", "Organization does not exist.");
+      }
+
+      const roles = organizationRolesFromData(
+        roleRequest.organizationId,
+        organizationSnapshot.data()
+      );
+      previousOwnerId = roles.ownerId ?? null;
+
+      if (roles.ownerId === roleRequest.targetUserId) {
+        throw new HttpsError("failed-precondition", "Target user already owns this organization.");
+      }
+
+      transaction.update(organizationReference, {
+        ownerId: roleRequest.targetUserId,
+        adminIds: withoutUser(
+          withoutUser(roles.adminIds, roleRequest.targetUserId),
+          roles.ownerId ?? ""
+        ),
+        moderatorIds: withoutUser(
+          withoutUser(roles.moderatorIds, roleRequest.targetUserId),
+          roles.ownerId ?? ""
+        ),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      transaction.set(auditLogRef(), buildAuditLog({
+        actionType: "organizationOwnerChanged",
+        targetUserId: roleRequest.targetUserId,
+        performedBy: auth.uid,
+        reason: roleRequest.reason ?? "Organization owner changed",
+        previousValue: {
+          organizationId: roleRequest.organizationId,
+          ownerId: previousOwnerId ?? "none",
+        },
+        newValue: {
+          organizationId: roleRequest.organizationId,
+          ownerId: roleRequest.targetUserId,
+        },
+      }));
+    });
+
+    return {
+      organizationId: roleRequest.organizationId,
+      previousOwnerId,
+      newOwnerId: roleRequest.targetUserId,
+      updatedAt: committedAt,
+    };
+  }
+);
