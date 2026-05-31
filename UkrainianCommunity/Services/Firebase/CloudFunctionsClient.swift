@@ -6,6 +6,7 @@ enum CloudFunctionName: String, CaseIterable {
     case removeOrganizationAdmin
     case assignOrganizationModerator
     case removeOrganizationModerator
+    case transferOrganizationOwnership
     case approveOrganization
     case rejectOrganization
     case requestOrganizationRevision
@@ -46,6 +47,13 @@ struct OrganizationRoleChangeFunctionResponse: Codable, Equatable {
     let targetUserId: String
     let previousRole: CloudOrganizationRole
     let newRole: CloudOrganizationRole
+    let updatedAt: String
+}
+
+struct OrganizationOwnershipTransferFunctionResponse: Codable, Equatable {
+    let organizationId: String
+    let previousOwnerId: String?
+    let newOwnerId: String
     let updatedAt: String
 }
 
@@ -125,6 +133,12 @@ final class CloudFunctionsClient {
         _ request: OrganizationRoleChangeFunctionRequest
     ) async throws -> OrganizationRoleChangeFunctionResponse {
         try await call(.removeOrganizationModerator, request: request)
+    }
+
+    func transferOrganizationOwnership(
+        _ request: OrganizationRoleChangeFunctionRequest
+    ) async throws -> OrganizationOwnershipTransferFunctionResponse {
+        try await call(.transferOrganizationOwnership, request: request)
     }
 
     func approveOrganization(

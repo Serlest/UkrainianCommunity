@@ -136,22 +136,6 @@ service cloud.firestore {
       ];
     }
 
-    function guideArticleArchiveFields() {
-      return ['moderationStatus', 'status', 'archivedAt', 'updatedAt', 'updatedBy'];
-    }
-
-    function guideArticleSubmitForReviewFields() {
-      return ['moderationStatus', 'status', 'updatedAt', 'updatedBy'];
-    }
-
-    function guideArticleApproveFields() {
-      return ['moderationStatus', 'status', 'reviewedBy', 'lastReviewedAt', 'updatedAt', 'updatedBy'];
-    }
-
-    function guideArticlePublishFields() {
-      return ['status', 'publishedAt', 'lastReviewedAt', 'nextReviewAt', 'updatedAt', 'updatedBy'];
-    }
-
     function guideWorkflowFieldsAreEmptyOnCreate() {
       return (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy == null)
         && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == null)
@@ -176,11 +160,6 @@ service cloud.firestore {
         && request.resource.data.lastReviewedAt == resource.data.lastReviewedAt
         && request.resource.data.nextReviewAt == resource.data.nextReviewAt
         && request.resource.data.archivedAt == resource.data.archivedAt;
-    }
-
-    function guideArticleIsArchived() {
-      return resource.data.moderationStatus == 'archived'
-        || (('status' in resource.data) && resource.data.status == 'archived');
     }
 
     function guideArticleIsEditableDraft() {
@@ -215,66 +194,6 @@ service cloud.firestore {
         && guideArticleWorkflowFieldsArePreserved()
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.updatedAt is timestamp;
-    }
-
-    function validGuideArticleArchiveUpdate() {
-      return canManageGuide()
-        && !guideArticleIsArchived()
-        && resource.data.moderationStatus == 'draft'
-        && (
-          !('status' in resource.data)
-          || resource.data.status == null
-          || resource.data.status == 'draft'
-        )
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleArchiveFields())
-        && request.resource.data.moderationStatus == 'archived'
-        && request.resource.data.status == 'archived'
-        && request.resource.data.archivedAt is timestamp
-        && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedBy == request.auth.uid;
-    }
-
-    function validGuideArticleSubmitForReviewUpdate() {
-      return canManageGuide()
-        && !guideArticleIsArchived()
-        && resource.data.moderationStatus == 'draft'
-        && (!('status' in resource.data) || resource.data.status == 'draft')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleSubmitForReviewFields())
-        && request.resource.data.moderationStatus == 'pendingReview'
-        && request.resource.data.status == 'review'
-        && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedBy == request.auth.uid;
-    }
-
-    function validGuideArticleApproveUpdate() {
-      return isActiveUser()
-        && isOwner()
-        && !guideArticleIsArchived()
-        && resource.data.moderationStatus == 'pendingReview'
-        && (('status' in resource.data) && resource.data.status == 'review')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleApproveFields())
-        && request.resource.data.moderationStatus == 'approved'
-        && request.resource.data.status == 'approved'
-        && request.resource.data.reviewedBy == request.auth.uid
-        && request.resource.data.lastReviewedAt is timestamp
-        && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedBy == request.auth.uid;
-    }
-
-    function validGuideArticlePublishUpdate() {
-      return isActiveUser()
-        && isOwner()
-        && !guideArticleIsArchived()
-        && resource.data.moderationStatus == 'approved'
-        && (('status' in resource.data) && resource.data.status == 'approved')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticlePublishFields())
-        && request.resource.data.moderationStatus == 'approved'
-        && request.resource.data.status == 'published'
-        && request.resource.data.publishedAt is timestamp
-        && request.resource.data.lastReviewedAt is timestamp
-        && request.resource.data.nextReviewAt is timestamp
-        && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedBy == request.auth.uid;
     }
 
     function isApprovedContent() {
@@ -839,53 +758,6 @@ service cloud.firestore {
       return isOwner() || isOrganizationOwner(organizationId) || isOrganizationAdmin(organizationId);
     }
 
-    function canManageOrganizationRoles(organizationId) {
-      return isOwner() || isOrganizationOwner(organizationId);
-    }
-
-    function organizationRoleFields() {
-      return ['ownerId', 'adminIds', 'moderatorIds', 'updatedAt'];
-    }
-
-    // TODO: Move organization membership storage out of users.communityMemberships
-    // into organizationMemberships/{organizationId_userId} or
-    // organizations/{organizationId}/members/{userId}. Until then, organizations
-    // ownerId/adminIds/moderatorIds are the writable role source of truth.
-    function safeOrganizationRoleUpdate(organizationId) {
-      return canManageOrganizationRoles(organizationId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationRoleFields())
-        && (!('ownerId' in resource.data) || ('ownerId' in request.resource.data))
-        && (!('ownerId' in request.resource.data) || request.resource.data.ownerId is string)
-        && (isOwner() || request.resource.data.ownerId == resource.data.ownerId);
-    }
-
-    function safeOrganizationRoleAuditCreate() {
-      return isActiveUser()
-        && request.resource.data.actionType in ['organizationRoleAssigned', 'organizationRoleRemoved', 'organizationOwnerChanged']
-        && request.resource.data.previousValue is map
-        && request.resource.data.newValue is map
-        && ('organizationId' in request.resource.data.previousValue)
-        && ('organizationId' in request.resource.data.newValue)
-        && request.resource.data.previousValue.organizationId == request.resource.data.newValue.organizationId
-        && canManageOrganizationRoles(request.resource.data.previousValue.organizationId)
-        && (
-          (
-            request.resource.data.actionType == 'organizationOwnerChanged'
-            && isOwner()
-            && ('ownerId' in request.resource.data.previousValue)
-            && ('ownerId' in request.resource.data.newValue)
-            && request.resource.data.newValue.ownerId is string
-          )
-          || (
-            request.resource.data.actionType in ['organizationRoleAssigned', 'organizationRoleRemoved']
-            && ('role' in request.resource.data.previousValue)
-            && ('role' in request.resource.data.newValue)
-            && request.resource.data.previousValue.role in ['none', 'communityAdmin', 'communityModerator']
-            && request.resource.data.newValue.role in ['none', 'communityAdmin', 'communityModerator']
-          )
-        );
-    }
-
     function organizationSafeInfoFields() {
       return [
         'name',
@@ -1419,18 +1291,7 @@ service cloud.firestore {
 
     function notificationCreateTypes() {
       return [
-        'feedbackReply',
-        'organizationRequestApproved',
-        'organizationRequestNeedsRevision',
-        'organizationRequestRejected'
-      ];
-    }
-
-    function notificationStatusTypes() {
-      return [
-        'organizationRequestApproved',
-        'organizationRequestNeedsRevision',
-        'organizationRequestRejected'
+        'feedbackReply'
       ];
     }
 
@@ -1458,18 +1319,8 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/feedback/$(request.resource.data.sourceId)).data.userId == uid;
     }
 
-    function validOrganizationRequestStatusNotification(uid, notificationId) {
-      return validNotificationBase(uid, notificationId)
-        && request.resource.data.type in notificationStatusTypes()
-        && request.resource.data.sourceType == 'organization'
-        && exists(/databases/$(database)/documents/organizations/$(request.resource.data.sourceId))
-        && ('submittedByUserId' in get(/databases/$(database)/documents/organizations/$(request.resource.data.sourceId)).data)
-        && get(/databases/$(database)/documents/organizations/$(request.resource.data.sourceId)).data.submittedByUserId == uid;
-    }
-
     function validNotificationCreate(uid, notificationId) {
-      return validFeedbackReplyNotification(uid, notificationId)
-        || validOrganizationRequestStatusNotification(uid, notificationId);
+      return validFeedbackReplyNotification(uid, notificationId);
     }
 
     function validNotificationReadUpdate(uid) {
@@ -1758,11 +1609,8 @@ service cloud.firestore {
       allow read: if canReadOrganization(organizationId);
       allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
       allow delete: if isOwner();
-      allow update: if isOwner()
-        || safeOrganizationRoleUpdate(organizationId)
-        || safeOrganizationInfoUpdate(organizationId)
+      allow update: if safeOrganizationInfoUpdate(organizationId)
         || safeOrganizationRequestUpdate()
-        || (canModerateSection('organizations') && onlyModerationStatusChanged())
         || (isActiveUser() && onlyOrganizationEngagementCountersChanged());
 
       match /photos/{photoId} {
@@ -1853,17 +1701,13 @@ service cloud.firestore {
     match /auditLogs/{auditLogId} {
       allow read: if isOwner();
 
-      allow create: if (isOwner() || safeOrganizationRoleAuditCreate())
+      allow create: if isOwner()
         && request.resource.data.actionType in [
           'warningIssued',
           'suspended',
           'banned',
           'unblocked',
-          'deactivated',
-          'organizationRoleAssigned',
-          'organizationRoleRemoved',
-          'organizationOwnerChanged',
-          'organizationRequestRejected'
+          'deactivated'
         ]
         && request.resource.data.targetUserId is string
         && request.resource.data.performedBy == request.auth.uid
@@ -1896,11 +1740,7 @@ service cloud.firestore {
         || canManageGuide();
 
       allow create: if validGuideArticleCreate(articleId);
-      allow update: if validGuideArticleEditUpdate()
-        || validGuideArticleArchiveUpdate()
-        || validGuideArticleSubmitForReviewUpdate()
-        || validGuideArticleApproveUpdate()
-        || validGuideArticlePublishUpdate();
+      allow update: if validGuideArticleEditUpdate();
       allow delete: if false;
     }
 

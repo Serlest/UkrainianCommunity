@@ -414,59 +414,15 @@ private final class UserManagementViewModel: ObservableObject {
         actor: AppUser,
         reason: String
     ) async throws {
-        let organizationReference = organizationsCollection.document(organization.id)
         let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalReason = trimmedReason.isEmpty ? "Organization owner changed" : trimmedReason
 
-        _ = try await db.runTransaction { transaction, errorPointer in
-            do {
-                let organizationSnapshot = try transaction.getDocument(organizationReference)
-                guard let organizationData = organizationSnapshot.data() else {
-                    errorPointer?.pointee = AppError.notFound.asNSError
-                    return nil
-                }
-
-                let currentOwnerId = organizationData["ownerId"] as? String
-                let currentAdminIds = organizationData["adminIds"] as? [String] ?? []
-                let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
-                let oldOwnerId = currentOwnerId ?? ""
-
-                guard actor.globalRole.authorizationRole == .owner,
-                      !newOwner.id.isEmpty,
-                      currentOwnerId != newOwner.id else {
-                    errorPointer?.pointee = AppError.permissionDenied.asNSError
-                    return nil
-                }
-
-                transaction.updateData([
-                    "ownerId": newOwner.id,
-                    "adminIds": currentAdminIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
-                    "moderatorIds": currentModeratorIds.filter { $0 != newOwner.id && $0 != oldOwnerId },
-                    "updatedAt": FieldValue.serverTimestamp()
-                ], forDocument: organizationReference)
-
-                transaction.setData([
-                    "actionType": "organizationOwnerChanged",
-                    "targetUserId": newOwner.id,
-                    "performedBy": actor.id,
-                    "createdAt": FieldValue.serverTimestamp(),
-                    "reason": finalReason,
-                    "note": NSNull(),
-                    "previousValue": [
-                        "organizationId": organization.id,
-                        "ownerId": currentOwnerId ?? "none"
-                    ],
-                    "newValue": [
-                        "organizationId": organization.id,
-                        "ownerId": newOwner.id
-                    ]
-                ], forDocument: self.auditCollection.document())
-            } catch {
-                errorPointer?.pointee = error as NSError
-            }
-
-            return nil
-        }
+        try await roleManagementService.transferOwner(
+            organization: organization.asOrganization(),
+            newOwnerID: newOwner.id,
+            actor: actor,
+            reason: finalReason
+        )
     }
 
     private func writeAuditLog(
