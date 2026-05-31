@@ -11,6 +11,8 @@ export type AuditActionType =
   | "organizationRoleAssigned"
   | "organizationRoleRemoved"
   | "organizationOwnerChanged"
+  | "organizationRequestApproved"
+  | "organizationRequestNeedsRevision"
   | "organizationRequestRejected";
 
 export interface AuditLogInput {
