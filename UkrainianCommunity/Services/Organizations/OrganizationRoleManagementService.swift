@@ -7,7 +7,8 @@ protocol OrganizationRoleManagementService {
         organization: Organization,
         targetUserID: String,
         actor: AppUser,
-        isRemoval: Bool
+        isRemoval: Bool,
+        reason: String?
     ) async throws
 
     func transferOwner(
@@ -19,11 +20,16 @@ protocol OrganizationRoleManagementService {
 
 final class FirestoreOrganizationRoleManagementService: OrganizationRoleManagementService {
     private let database: Firestore
+    private let cloudFunctionsClient: CloudFunctionsClient
     private var organizationsCollection: CollectionReference { database.collection("organizations") }
     private var auditCollection: CollectionReference { database.collection("auditLogs") }
 
-    init(database: Firestore = Firestore.firestore()) {
+    init(
+        database: Firestore = Firestore.firestore(),
+        cloudFunctionsClient: CloudFunctionsClient = .shared
+    ) {
         self.database = database
+        self.cloudFunctionsClient = cloudFunctionsClient
     }
 
     func updateRole(
@@ -31,83 +37,39 @@ final class FirestoreOrganizationRoleManagementService: OrganizationRoleManageme
         organization: Organization,
         targetUserID: String,
         actor: AppUser,
-        isRemoval: Bool
+        isRemoval: Bool,
+        reason: String?
     ) async throws {
-        let organizationReference = organizationsCollection.document(organization.id)
-        let previousRole = Self.role(for: targetUserID, in: organization)
-        let actorIsPlatformOwner = actor.globalRole.authorizationRole == .owner
+        let trimmedReason = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let request = OrganizationRoleChangeFunctionRequest(
+            organizationId: organization.id,
+            targetUserId: targetUserID,
+            reason: trimmedReason?.isEmpty == false ? trimmedReason : nil
+        )
 
-        _ = try await database.runTransaction { transaction, errorPointer in
-            do {
-                let organizationSnapshot = try transaction.getDocument(organizationReference)
-                guard let organizationData = organizationSnapshot.data() else {
-                    errorPointer?.pointee = AppError.notFound.asNSError
-                    return nil
-                }
-
-                let currentOwnerId = organizationData["ownerId"] as? String
-                let currentAdminIds = organizationData["adminIds"] as? [String] ?? []
-                let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
-
-                if isRemoval, currentOwnerId == targetUserID {
-                    errorPointer?.pointee = AppError.permissionDenied.asNSError
-                    return nil
-                }
-
-                if !isRemoval, currentOwnerId == targetUserID, role != .communityOwner {
-                    errorPointer?.pointee = AppError.permissionDenied.asNSError
-                    return nil
-                }
-
-                if !actorIsPlatformOwner, role == .communityOwner {
-                    errorPointer?.pointee = AppError.permissionDenied.asNSError
-                    return nil
-                }
-
-                let updatedAdminIds = currentAdminIds.filter { $0 != targetUserID }
-                let updatedModeratorIds = currentModeratorIds.filter { $0 != targetUserID }
-                var organizationUpdate: [String: Any] = [
-                    "adminIds": updatedAdminIds,
-                    "moderatorIds": updatedModeratorIds,
-                    "updatedAt": FieldValue.serverTimestamp()
-                ]
-
-                if !isRemoval {
-                    switch role {
-                    case .communityOwner:
-                        organizationUpdate["ownerId"] = targetUserID
-                    case .communityAdmin:
-                        organizationUpdate["adminIds"] = Array(Set(updatedAdminIds + [targetUserID])).sorted()
-                    case .communityModerator:
-                        organizationUpdate["moderatorIds"] = Array(Set(updatedModeratorIds + [targetUserID])).sorted()
-                    case .member:
-                        break
-                    }
-                }
-
-                transaction.updateData(organizationUpdate, forDocument: organizationReference)
-
-                transaction.setData([
-                    "actionType": isRemoval ? "organizationRoleRemoved" : "organizationRoleAssigned",
-                    "targetUserId": targetUserID,
-                    "performedBy": actor.id,
-                    "createdAt": FieldValue.serverTimestamp(),
-                    "reason": "Organization management hub",
-                    "note": NSNull(),
-                    "previousValue": [
-                        "organizationId": organization.id,
-                        "role": previousRole?.rawValue ?? "none"
-                    ],
-                    "newValue": [
-                        "organizationId": organization.id,
-                        "role": isRemoval ? "none" : role.rawValue
-                    ]
-                ], forDocument: self.auditCollection.document())
-            } catch {
-                errorPointer?.pointee = error as NSError
+        if isRemoval {
+            switch Self.role(for: targetUserID, in: organization) {
+            case .communityAdmin:
+                _ = try await cloudFunctionsClient.removeOrganizationAdmin(request)
+            case .communityModerator:
+                _ = try await cloudFunctionsClient.removeOrganizationModerator(request)
+            case .communityOwner:
+                throw AppError.permissionDenied
+            case .member, nil:
+                return
             }
+            return
+        }
 
-            return nil
+        switch role {
+        case .communityAdmin:
+            _ = try await cloudFunctionsClient.assignOrganizationAdmin(request)
+        case .communityModerator:
+            _ = try await cloudFunctionsClient.assignOrganizationModerator(request)
+        case .communityOwner:
+            try await transferOwner(organization: organization, newOwnerID: targetUserID, actor: actor)
+        case .member:
+            return
         }
     }
 

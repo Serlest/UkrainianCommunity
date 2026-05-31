@@ -120,7 +120,8 @@ final class OrganizationTeamViewModel: ObservableObject {
                 organization: organization,
                 targetUserID: target.userID,
                 actor: actor,
-                isRemoval: false
+                isRemoval: false,
+                reason: "Organization management hub"
             )
         }
     }
@@ -147,7 +148,8 @@ final class OrganizationTeamViewModel: ObservableObject {
                 organization: organization,
                 targetUserID: member.userID,
                 actor: actor,
-                isRemoval: true
+                isRemoval: true,
+                reason: "Organization management hub"
             )
         }
     }

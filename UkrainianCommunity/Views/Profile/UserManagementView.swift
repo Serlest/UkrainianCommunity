@@ -125,6 +125,25 @@ private struct ManagedOrganization: Identifiable, Hashable {
     let adminIds: [String]
     let moderatorIds: [String]
 
+    func asOrganization() -> Organization {
+        Organization(
+            id: id,
+            name: name,
+            description: name,
+            city: city,
+            imageURL: logoURL,
+            logoURL: logoURL,
+            ownerId: ownerId,
+            adminIds: adminIds,
+            moderatorIds: moderatorIds,
+            createdAt: .distantPast,
+            updatedAt: .distantPast,
+            moderationStatus: .approved,
+            likeCount: 0,
+            likeState: .notLiked
+        )
+    }
+
     func role(for userId: String) -> CommunityRole? {
         if ownerId == userId { return .communityOwner }
         if adminIds.contains(userId) { return .communityAdmin }
@@ -150,11 +169,16 @@ private final class UserManagementViewModel: ObservableObject {
     @Published private(set) var updatingUserIDs = Set<String>()
 
     private let db = Firestore.firestore()
+    private let roleManagementService: OrganizationRoleManagementService
     private var hasLoaded = false
 
     private var usersCollection: CollectionReference { db.collection("users") }
     private var organizationsCollection: CollectionReference { db.collection("organizations") }
     private var auditCollection: CollectionReference { db.collection("auditLogs") }
+
+    init(roleManagementService: OrganizationRoleManagementService? = nil) {
+        self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
+    }
 
     func loadIfNeeded(actor: AppUser?) async {
         guard !hasLoaded else { return }
@@ -371,85 +395,17 @@ private final class UserManagementViewModel: ObservableObject {
         reason: String,
         isRemoval: Bool
     ) async throws {
-        let organizationReference = organizationsCollection.document(organization.id)
         let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalReason = trimmedReason.isEmpty ? "Organization role update" : trimmedReason
 
-        _ = try await db.runTransaction { transaction, errorPointer in
-            do {
-                let organizationSnapshot = try transaction.getDocument(organizationReference)
-                guard let organizationData = organizationSnapshot.data() else {
-                    errorPointer?.pointee = AppError.notFound.asNSError
-                    return nil
-                }
-
-                let currentOwnerId = organizationData["ownerId"] as? String
-                let currentAdminIds = organizationData["adminIds"] as? [String] ?? []
-                let currentModeratorIds = organizationData["moderatorIds"] as? [String] ?? []
-                let previousRole = Self.role(
-                    for: target.id,
-                    ownerId: currentOwnerId,
-                    adminIds: currentAdminIds,
-                    moderatorIds: currentModeratorIds
-                )
-
-                if isRemoval, currentOwnerId == target.id {
-                    errorPointer?.pointee = AppError.permissionDenied.asNSError
-                    return nil
-                }
-
-                if !isRemoval, currentOwnerId == target.id, role != .communityOwner {
-                    errorPointer?.pointee = AppError.permissionDenied.asNSError
-                    return nil
-                }
-
-                var updatedAdminIds = currentAdminIds.filter { $0 != target.id }
-                var updatedModeratorIds = currentModeratorIds.filter { $0 != target.id }
-                var organizationUpdate: [String: Any] = [
-                    "adminIds": updatedAdminIds,
-                    "moderatorIds": updatedModeratorIds,
-                    "updatedAt": FieldValue.serverTimestamp()
-                ]
-
-                if !isRemoval {
-                    switch role {
-                    case .communityOwner:
-                        organizationUpdate["ownerId"] = target.id
-                    case .communityAdmin:
-                        updatedAdminIds = Array(Set(updatedAdminIds + [target.id])).sorted()
-                        organizationUpdate["adminIds"] = updatedAdminIds
-                    case .communityModerator:
-                        updatedModeratorIds = Array(Set(updatedModeratorIds + [target.id])).sorted()
-                        organizationUpdate["moderatorIds"] = updatedModeratorIds
-                    case .member:
-                        break
-                    }
-                }
-
-                transaction.updateData(organizationUpdate, forDocument: organizationReference)
-
-                transaction.setData([
-                    "actionType": isRemoval ? "organizationRoleRemoved" : "organizationRoleAssigned",
-                    "targetUserId": target.id,
-                    "performedBy": actor.id,
-                    "createdAt": FieldValue.serverTimestamp(),
-                    "reason": finalReason,
-                    "note": NSNull(),
-                    "previousValue": [
-                        "organizationId": organization.id,
-                        "role": previousRole?.rawValue ?? "none"
-                    ],
-                    "newValue": [
-                        "organizationId": organization.id,
-                        "role": isRemoval ? "none" : role.rawValue
-                    ]
-                ], forDocument: self.auditCollection.document())
-            } catch {
-                errorPointer?.pointee = error as NSError
-            }
-
-            return nil
-        }
+        try await roleManagementService.updateRole(
+            role: role,
+            organization: organization.asOrganization(),
+            targetUserID: target.id,
+            actor: actor,
+            isRemoval: isRemoval,
+            reason: finalReason
+        )
     }
 
     private func updateOrganizationOwner(
@@ -584,17 +540,6 @@ private final class UserManagementViewModel: ObservableObject {
         user?.globalRole.authorizationRole == .owner
     }
 
-    private static func role(
-        for userID: String,
-        ownerId: String?,
-        adminIds: [String],
-        moderatorIds: [String]
-    ) -> CommunityRole? {
-        if ownerId == userID { return .communityOwner }
-        if adminIds.contains(userID) { return .communityAdmin }
-        if moderatorIds.contains(userID) { return .communityModerator }
-        return nil
-    }
 }
 
 struct UserManagementView: View {
