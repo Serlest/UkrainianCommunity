@@ -420,9 +420,6 @@ struct FirestoreEventRepository: EventRepository {
                 }
 
                 transaction.setData(likeData, forDocument: likeReference)
-                transaction.updateData([
-                    "likeCount": FieldValue.increment(Int64(1))
-                ], forDocument: eventReference)
             } catch {
                 errorPointer?.pointee = error as NSError
             }
@@ -455,11 +452,7 @@ struct FirestoreEventRepository: EventRepository {
                     return nil
                 }
 
-                let currentLikeCount = eventSnapshot.data()?["likeCount"] as? Int ?? 0
                 transaction.deleteDocument(likeReference)
-                transaction.updateData([
-                    "likeCount": max(0, currentLikeCount - 1)
-                ], forDocument: eventReference)
             } catch {
                 errorPointer?.pointee = error as NSError
             }
@@ -497,9 +490,6 @@ struct FirestoreEventRepository: EventRepository {
                 }
 
                 transaction.setData(viewData, forDocument: viewReference)
-                transaction.updateData([
-                    "viewCount": FieldValue.increment(Int64(1))
-                ], forDocument: eventReference)
                 return true
             } catch {
                 errorPointer?.pointee = error as NSError
@@ -539,9 +529,6 @@ struct FirestoreEventRepository: EventRepository {
 
         let batch = Firestore.firestore().batch()
         batch.setData(makeCommentData(from: comment.dto), forDocument: commentReference)
-        batch.updateData([
-            "commentCount": FieldValue.increment(Int64(1))
-        ], forDocument: eventReference)
         try await batch.commit()
         return comment
     }
@@ -597,7 +584,7 @@ struct FirestoreEventRepository: EventRepository {
         let commentReference = eventReference.collection("comments").document(commentID)
         _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
-                let eventSnapshot = try transaction.getDocument(eventReference)
+                _ = try transaction.getDocument(eventReference)
                 let commentSnapshot = try transaction.getDocument(commentReference)
                 guard makeCommentDTO(from: commentSnapshot.data() ?? [:]) != nil else {
                     errorPointer?.pointee = AppError.notFound.asNSError
@@ -605,12 +592,6 @@ struct FirestoreEventRepository: EventRepository {
                 }
 
                 transaction.deleteDocument(commentReference)
-                let currentCommentCount = eventSnapshot.data()?["commentCount"] as? Int ?? 0
-                if currentCommentCount > 0 {
-                    transaction.updateData([
-                        "commentCount": currentCommentCount - 1
-                    ], forDocument: eventReference)
-                }
             } catch {
                 errorPointer?.pointee = error as NSError
             }
@@ -646,9 +627,6 @@ struct FirestoreEventRepository: EventRepository {
                 // Do not pre-read the registration document here. Firestore rules allow create
                 // and deny update, so the deterministic document id acts as create-only protection.
                 transaction.setData(registrationData, forDocument: registrationReference)
-                transaction.updateData([
-                    "registeredCount": FieldValue.increment(Int64(1))
-                ], forDocument: eventReference)
             } catch {
                 errorPointer?.pointee = error as NSError
             }
@@ -681,11 +659,7 @@ struct FirestoreEventRepository: EventRepository {
                     return nil
                 }
 
-                let currentRegisteredCount = eventSnapshot.data()?["registeredCount"] as? Int ?? 0
                 transaction.deleteDocument(registrationReference)
-                transaction.updateData([
-                    "registeredCount": max(0, currentRegisteredCount - 1)
-                ], forDocument: eventReference)
             } catch {
                 errorPointer?.pointee = error as NSError
             }

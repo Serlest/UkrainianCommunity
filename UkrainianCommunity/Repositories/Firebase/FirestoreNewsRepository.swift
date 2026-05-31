@@ -184,9 +184,6 @@ struct FirestoreNewsRepository: NewsRepository {
                 }
 
                 transaction.setData(likeData, forDocument: likeReference)
-                transaction.updateData([
-                    "likeCount": FieldValue.increment(Int64(1))
-                ], forDocument: newsReference)
             } catch {
                 errorPointer?.pointee = (error as NSError)
             }
@@ -219,11 +216,7 @@ struct FirestoreNewsRepository: NewsRepository {
                     return nil
                 }
 
-                let currentLikeCount = newsSnapshot.data()?["likeCount"] as? Int ?? 0
                 transaction.deleteDocument(likeReference)
-                transaction.updateData([
-                    "likeCount": max(0, currentLikeCount - 1)
-                ], forDocument: newsReference)
             } catch {
                 errorPointer?.pointee = (error as NSError)
             }
@@ -268,9 +261,6 @@ struct FirestoreNewsRepository: NewsRepository {
                 }
 
                 transaction.setData(viewData, forDocument: viewReference)
-                transaction.updateData([
-                    "viewCount": FieldValue.increment(Int64(1))
-                ], forDocument: newsReference)
                 return true
             } catch {
                 errorPointer?.pointee = error as NSError
@@ -315,9 +305,6 @@ struct FirestoreNewsRepository: NewsRepository {
         let firestore = Firestore.firestore()
         let batch = firestore.batch()
         batch.setData(makeCommentData(from: comment.dto), forDocument: commentReference)
-        batch.updateData([
-            "commentCount": FieldValue.increment(Int64(1))
-        ], forDocument: newsReference)
         try await batch.commit()
         return comment
     }
@@ -372,7 +359,7 @@ struct FirestoreNewsRepository: NewsRepository {
         let commentReference = newsReference.collection("comments").document(commentID)
         _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
             do {
-                let newsSnapshot = try transaction.getDocument(newsReference)
+                _ = try transaction.getDocument(newsReference)
                 let commentSnapshot = try transaction.getDocument(commentReference)
                 guard makeCommentDTO(from: commentSnapshot.data() ?? [:]) != nil else {
                     errorPointer?.pointee = AppError.notFound.asNSError
@@ -380,12 +367,6 @@ struct FirestoreNewsRepository: NewsRepository {
                 }
 
                 transaction.deleteDocument(commentReference)
-                let currentCommentCount = newsSnapshot.data()?["commentCount"] as? Int ?? 0
-                if currentCommentCount > 0 {
-                    transaction.updateData([
-                        "commentCount": currentCommentCount - 1
-                    ], forDocument: newsReference)
-                }
             } catch {
                 errorPointer?.pointee = error as NSError
             }

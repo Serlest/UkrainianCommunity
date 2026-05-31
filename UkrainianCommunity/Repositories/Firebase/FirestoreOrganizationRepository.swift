@@ -198,9 +198,6 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
                         "userId": uid,
                         "createdAt": FieldValue.serverTimestamp()
                     ], forDocument: likeReference)
-                    transaction.updateData([
-                        "likeCount": FieldValue.increment(Int64(1))
-                    ], forDocument: organizationReference)
                 } catch {
                     errorPointer?.pointee = error as NSError
                 }
@@ -234,11 +231,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
                         return nil
                     }
 
-                    let currentLikeCount = organizationSnapshot.data()?["likeCount"] as? Int ?? 0
                     transaction.deleteDocument(likeReference)
-                    transaction.updateData([
-                        "likeCount": max(0, currentLikeCount - 1)
-                    ], forDocument: organizationReference)
                 } catch {
                     errorPointer?.pointee = error as NSError
                 }
@@ -278,9 +271,6 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
                         "userId": uid,
                         "createdAt": FieldValue.serverTimestamp()
                     ], forDocument: subscriptionReference)
-                    transaction.updateData([
-                        "subscriberCount": FieldValue.increment(Int64(1))
-                    ], forDocument: organizationReference)
                 } catch {
                     errorPointer?.pointee = error as NSError
                 }
@@ -314,11 +304,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
                         return nil
                     }
 
-                    let currentSubscriberCount = organizationSnapshot.data()?["subscriberCount"] as? Int ?? 0
                     transaction.deleteDocument(subscriptionReference)
-                    transaction.updateData([
-                        "subscriberCount": max(0, currentSubscriberCount - 1)
-                    ], forDocument: organizationReference)
                 } catch {
                     errorPointer?.pointee = error as NSError
                 }
