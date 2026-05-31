@@ -2,6 +2,18 @@ import { setGlobalOptions } from "firebase-functions/v2";
 
 import "./firebase/admin";
 export {
+  aggregateEventCommentCounterOnCreate,
+  aggregateEventCommentCounterOnDelete,
+  aggregateEventViewCounterOnCreate,
+  aggregateLikeCounterOnCreate,
+  aggregateLikeCounterOnDelete,
+  aggregateNewsCommentCounterOnCreate,
+  aggregateNewsCommentCounterOnDelete,
+  aggregateNewsViewCounterOnCreate,
+  aggregateRegistrationCounterOnCreate,
+  aggregateRegistrationCounterOnDelete,
+} from "./counters/aggregation";
+export {
   approveGuideArticle,
   archiveGuideArticle,
   publishGuideArticle,
