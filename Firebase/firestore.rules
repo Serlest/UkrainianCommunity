@@ -1147,105 +1147,8 @@ service cloud.firestore {
         );
     }
 
-    function onlyOrganizationLikeCountChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
-        && request.resource.data.likeCount is int
-        && resource.data.likeCount is int
-        && request.resource.data.likeCount >= 0
-        && (
-          request.resource.data.likeCount == resource.data.likeCount + 1
-          || (resource.data.likeCount > 0 && request.resource.data.likeCount == resource.data.likeCount - 1)
-        );
-    }
-
-    function onlyOrganizationSubscriberCountChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscriberCount'])
-        && request.resource.data.subscriberCount is int
-        && resource.data.subscriberCount is int
-        && request.resource.data.subscriberCount >= 0
-        && (
-          request.resource.data.subscriberCount == resource.data.subscriberCount + 1
-          || (resource.data.subscriberCount > 0 && request.resource.data.subscriberCount == resource.data.subscriberCount - 1)
-        );
-    }
-
-    function onlyOrganizationEngagementCountersChanged() {
-      return onlyOrganizationLikeCountChanged()
-        || onlyOrganizationSubscriberCountChanged();
-    }
-
     function onlyModerationStatusChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderationStatus']);
-    }
-
-    // TODO: Replace direct client counter writes with server-side aggregation or sharded counters.
-    function onlyNewsEngagementCountersChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
-        && request.resource.data.likeCount is int
-        && resource.data.likeCount is int
-        && request.resource.data.likeCount >= 0
-        && (
-          request.resource.data.likeCount == resource.data.likeCount + 1
-          || (resource.data.likeCount > 0 && request.resource.data.likeCount == resource.data.likeCount - 1)
-        );
-    }
-
-    function onlyNewsViewCountIncremented() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
-        && request.resource.data.viewCount == resource.data.viewCount + 1;
-    }
-
-    function onlyNewsCommentCountChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
-        && (
-          (!('commentCount' in resource.data) && request.resource.data.commentCount == 1)
-          || (('commentCount' in resource.data)
-            && (request.resource.data.commentCount == resource.data.commentCount + 1
-              || (resource.data.commentCount > 0 && request.resource.data.commentCount == resource.data.commentCount - 1)))
-        );
-    }
-
-    // TODO: Replace direct client counter writes with server-side aggregation or sharded counters.
-    function onlyEventLikeCountChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
-        && request.resource.data.likeCount is int
-        && resource.data.likeCount is int
-        && request.resource.data.likeCount >= 0
-        && (
-          request.resource.data.likeCount == resource.data.likeCount + 1
-          || (resource.data.likeCount > 0 && request.resource.data.likeCount == resource.data.likeCount - 1)
-        );
-    }
-
-    function onlyEventRegisteredCountChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registeredCount'])
-        && request.resource.data.registeredCount is int
-        && resource.data.registeredCount is int
-        && request.resource.data.registeredCount >= 0
-        && (
-          request.resource.data.registeredCount == resource.data.registeredCount + 1
-          || (resource.data.registeredCount > 0 && request.resource.data.registeredCount == resource.data.registeredCount - 1)
-        );
-    }
-
-    function onlyEventCountersChanged() {
-      return onlyEventLikeCountChanged()
-        || onlyEventRegisteredCountChanged();
-    }
-
-    function onlyEventViewCountIncremented() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
-        && request.resource.data.viewCount == resource.data.viewCount + 1;
-    }
-
-    function onlyEventCommentCountChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
-        && (
-          (!('commentCount' in resource.data) && request.resource.data.commentCount == 1)
-          || (('commentCount' in resource.data)
-            && (request.resource.data.commentCount == resource.data.commentCount + 1
-              || (resource.data.commentCount > 0 && request.resource.data.commentCount == resource.data.commentCount - 1)))
-        );
     }
 
     function registrationFields() {
@@ -1524,8 +1427,7 @@ service cloud.firestore {
           isOrganizationContent(resource.data)
           && canModerateOrganizationContent(resource.data.organizationId)
           && onlyModerationStatusChanged()
-        )
-        || (isActiveUser() && (onlyNewsEngagementCountersChanged() || onlyNewsViewCountIncremented() || onlyNewsCommentCountChanged()));
+        );
 
       match /comments/{commentId} {
         allow read: if get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved'
@@ -1571,8 +1473,7 @@ service cloud.firestore {
           isOrganizationContent(resource.data)
           && canModerateOrganizationContent(resource.data.organizationId)
           && onlyModerationStatusChanged()
-        )
-        || (isActiveUser() && (onlyEventCountersChanged() || onlyEventViewCountIncremented() || onlyEventCommentCountChanged()));
+        );
 
       match /comments/{commentId} {
         allow read: if get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved'
@@ -1610,8 +1511,7 @@ service cloud.firestore {
       allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
       allow delete: if isOwner();
       allow update: if safeOrganizationInfoUpdate(organizationId)
-        || safeOrganizationRequestUpdate()
-        || (isActiveUser() && onlyOrganizationEngagementCountersChanged());
+        || safeOrganizationRequestUpdate();
 
       match /photos/{photoId} {
         allow read: if canReadOrganizationByLookup(organizationId);
