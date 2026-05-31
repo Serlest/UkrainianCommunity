@@ -11,6 +11,7 @@
 		7A0F10022FB1000100F1A001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10102FB1000100F1A001 /* FirebaseCore */; };
 		7A0F10032FB1000100F1A001 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10112FB1000100F1A001 /* FirebaseFirestore */; };
 		7A0F10042FB1000100F1A001 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10132FB1000100F1A001 /* FirebaseStorage */; };
+		F354356A2FCCCC7600FFDD3C /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = F35435692FCCCC7600FFDD3C /* FirebaseFunctions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +66,7 @@
 			files = (
 				7A0F10012FB1000100F1A001 /* FirebaseAuth in Frameworks */,
 				7A0F10022FB1000100F1A001 /* FirebaseCore in Frameworks */,
+				F354356A2FCCCC7600FFDD3C /* FirebaseFunctions in Frameworks */,
 				7A0F10032FB1000100F1A001 /* FirebaseFirestore in Frameworks */,
 				7A0F10042FB1000100F1A001 /* FirebaseStorage in Frameworks */,
 			);
@@ -95,6 +97,7 @@
 				F347490E2FA0CF7400ED704A /* UkrainianCommunity */,
 				F347491C2FA0CF7500ED704A /* UkrainianCommunityTests */,
 				F34749262FA0CF7500ED704A /* UkrainianCommunityUITests */,
+				F35435682FCCCC7600FFDD3C /* Frameworks */,
 				F347490D2FA0CF7400ED704A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -107,6 +110,13 @@
 				F34749232FA0CF7500ED704A /* UkrainianCommunityUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		F35435682FCCCC7600FFDD3C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		F375C83B2FC5F138005B5EFB /* Firebase */ = {
@@ -143,6 +153,7 @@
 				7A0F10112FB1000100F1A001 /* FirebaseFirestore */,
 				7A0F10122FB1000100F1A001 /* FirebaseAuth */,
 				7A0F10132FB1000100F1A001 /* FirebaseStorage */,
+				F35435692FCCCC7600FFDD3C /* FirebaseFunctions */,
 			);
 			productName = UkrainianCommunity;
 			productReference = F347490C2FA0CF7400ED704A /* UkrainianCommunity.app */;
@@ -659,6 +670,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		F35435692FCCCC7600FFDD3C /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
