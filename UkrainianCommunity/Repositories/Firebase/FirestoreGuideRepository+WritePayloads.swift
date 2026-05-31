@@ -84,52 +84,6 @@ extension FirestoreGuideRepository {
         return data
     }
 
-    func makeArchiveData(from article: GuideArticle) -> [AnyHashable: Any] {
-        let archivedAt = article.archivedAt ?? article.updatedAt
-        return [
-            "moderationStatus": ModerationStatus.archived.rawValue,
-            "status": GuideStatus.archived.rawValue,
-            "archivedAt": Timestamp(date: archivedAt),
-            "updatedAt": Timestamp(date: article.updatedAt),
-            "updatedBy": article.updatedBy ?? ""
-        ]
-    }
-
-    func makeSubmitForReviewData(updatedAt: Date, submitterId: String) -> [AnyHashable: Any] {
-        [
-            "moderationStatus": ModerationStatus.pendingReview.rawValue,
-            "status": GuideStatus.review.rawValue,
-            "updatedAt": Timestamp(date: updatedAt),
-            "updatedBy": submitterId
-        ]
-    }
-
-    func makeApproveData(reviewedAt: Date, reviewerId: String) -> [AnyHashable: Any] {
-        [
-            "moderationStatus": ModerationStatus.approved.rawValue,
-            "status": GuideStatus.approved.rawValue,
-            "reviewedBy": reviewerId,
-            "lastReviewedAt": Timestamp(date: reviewedAt),
-            "updatedAt": Timestamp(date: reviewedAt),
-            "updatedBy": reviewerId
-        ]
-    }
-
-    func makePublishData(
-        publishedAt: Date,
-        nextReviewAt: Date,
-        publisherId: String
-    ) -> [AnyHashable: Any] {
-        [
-            "status": GuideStatus.published.rawValue,
-            "publishedAt": Timestamp(date: publishedAt),
-            "lastReviewedAt": Timestamp(date: publishedAt),
-            "nextReviewAt": Timestamp(date: nextReviewAt),
-            "updatedAt": Timestamp(date: publishedAt),
-            "updatedBy": publisherId
-        ]
-    }
-
     private func makeFirestoreJSONValue<T: Encodable>(from value: T) throws -> Any {
         do {
             let data = try JSONEncoder().encode(value)

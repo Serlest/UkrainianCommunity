@@ -110,24 +110,9 @@ struct FirestoreGuideRepository: GuideRepository {
             throw AppError.permissionDenied
         }
 
-        let document = collection.document(trimmedId)
-        let snapshot = try await document.getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
-        guard let existingArticle = makeGuideArticle(from: snapshot) else {
-            throw AppError.validationFailed
-        }
-        guard existingArticle.moderationStatus == .draft,
-              existingArticle.status == nil || existingArticle.status == .draft,
-              existingArticle.archivedAt == nil else {
-            throw AppError.validationFailed
-        }
-
-        try await document.updateData(makeSubmitForReviewData(
-            updatedAt: Date(),
-            submitterId: trimmedSubmitterId
-        ))
+        _ = try await CloudFunctionsClient.shared.submitGuideArticleForReview(
+            GuideWorkflowFunctionRequest(articleId: trimmedId)
+        )
     }
 
     func approveGuideArticle(id: String, reviewerId: String) async throws {
@@ -137,24 +122,9 @@ struct FirestoreGuideRepository: GuideRepository {
             throw AppError.permissionDenied
         }
 
-        let document = collection.document(trimmedId)
-        let snapshot = try await document.getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
-        guard let existingArticle = makeGuideArticle(from: snapshot) else {
-            throw AppError.validationFailed
-        }
-        guard existingArticle.moderationStatus == .pendingReview,
-              existingArticle.status == .review,
-              existingArticle.archivedAt == nil else {
-            throw AppError.validationFailed
-        }
-
-        try await document.updateData(makeApproveData(
-            reviewedAt: Date(),
-            reviewerId: trimmedReviewerId
-        ))
+        _ = try await CloudFunctionsClient.shared.approveGuideArticle(
+            GuideWorkflowFunctionRequest(articleId: trimmedId)
+        )
     }
 
     func publishGuideArticle(id: String, publisherId: String) async throws {
@@ -164,31 +134,9 @@ struct FirestoreGuideRepository: GuideRepository {
             throw AppError.permissionDenied
         }
 
-        let document = collection.document(trimmedId)
-        let snapshot = try await document.getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
-        guard let existingArticle = makeGuideArticle(from: snapshot) else {
-            throw AppError.validationFailed
-        }
-        guard existingArticle.moderationStatus == .approved,
-              existingArticle.status == .approved,
-              existingArticle.archivedAt == nil else {
-            throw AppError.validationFailed
-        }
-
-        let publishedAt = Date()
-        let nextReviewAt = makeNextReviewDate(
-            from: publishedAt,
-            interval: existingArticle.reviewInterval ?? .normal
+        _ = try await CloudFunctionsClient.shared.publishGuideArticle(
+            GuideWorkflowFunctionRequest(articleId: trimmedId)
         )
-
-        try await document.updateData(makePublishData(
-            publishedAt: publishedAt,
-            nextReviewAt: nextReviewAt,
-            publisherId: trimmedPublisherId
-        ))
     }
 
     func archiveGuideArticle(id: String, editorId: String) async throws {
@@ -198,30 +146,8 @@ struct FirestoreGuideRepository: GuideRepository {
             throw AppError.permissionDenied
         }
 
-        let document = collection.document(trimmedId)
-        let snapshot = try await document.getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
-        guard let existingArticle = makeGuideArticle(from: snapshot) else {
-            throw AppError.validationFailed
-        }
-        guard existingArticle.moderationStatus == .draft,
-              existingArticle.status == nil || existingArticle.status == .draft,
-              existingArticle.archivedAt == nil else {
-            throw AppError.validationFailed
-        }
-
-        let archivedAt = Date()
-        let archivedArticle = existingArticle.archivedBy(
-            editorId: trimmedEditorId,
-            archivedAt: archivedAt
+        _ = try await CloudFunctionsClient.shared.archiveGuideArticle(
+            GuideWorkflowFunctionRequest(articleId: trimmedId)
         )
-
-        try await document.updateData(makeArchiveData(from: archivedArticle))
-    }
-
-    private func makeNextReviewDate(from date: Date, interval: ReviewInterval) -> Date {
-        Calendar.current.date(byAdding: .month, value: interval.months, to: date) ?? date
     }
 }

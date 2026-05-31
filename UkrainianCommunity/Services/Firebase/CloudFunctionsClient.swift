@@ -9,6 +9,10 @@ enum CloudFunctionName: String, CaseIterable {
     case approveOrganization
     case rejectOrganization
     case requestOrganizationRevision
+    case submitGuideArticleForReview
+    case approveGuideArticle
+    case publishGuideArticle
+    case archiveGuideArticle
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -64,6 +68,32 @@ struct OrganizationReviewFunctionResponse: Codable, Equatable {
     let updatedAt: String
 }
 
+enum CloudGuideArticleStatus: String, Codable, Equatable {
+    case draft
+    case review
+    case approved
+    case published
+    case archived
+}
+
+enum CloudGuideModerationStatus: String, Codable, Equatable {
+    case draft
+    case pendingReview
+    case approved
+    case archived
+}
+
+struct GuideWorkflowFunctionRequest: Codable, Equatable {
+    let articleId: String
+}
+
+struct GuideWorkflowFunctionResponse: Codable, Equatable {
+    let articleId: String
+    let moderationStatus: CloudGuideModerationStatus
+    let status: CloudGuideArticleStatus
+    let updatedAt: String
+}
+
 final class CloudFunctionsClient {
     static let shared = CloudFunctionsClient()
 
@@ -113,6 +143,30 @@ final class CloudFunctionsClient {
         _ request: OrganizationReviewFunctionRequest
     ) async throws -> OrganizationReviewFunctionResponse {
         try await call(.requestOrganizationRevision, request: request)
+    }
+
+    func submitGuideArticleForReview(
+        _ request: GuideWorkflowFunctionRequest
+    ) async throws -> GuideWorkflowFunctionResponse {
+        try await call(.submitGuideArticleForReview, request: request)
+    }
+
+    func approveGuideArticle(
+        _ request: GuideWorkflowFunctionRequest
+    ) async throws -> GuideWorkflowFunctionResponse {
+        try await call(.approveGuideArticle, request: request)
+    }
+
+    func publishGuideArticle(
+        _ request: GuideWorkflowFunctionRequest
+    ) async throws -> GuideWorkflowFunctionResponse {
+        try await call(.publishGuideArticle, request: request)
+    }
+
+    func archiveGuideArticle(
+        _ request: GuideWorkflowFunctionRequest
+    ) async throws -> GuideWorkflowFunctionResponse {
+        try await call(.archiveGuideArticle, request: request)
     }
 
     private func call<Request: Encodable, Response: Decodable>(
