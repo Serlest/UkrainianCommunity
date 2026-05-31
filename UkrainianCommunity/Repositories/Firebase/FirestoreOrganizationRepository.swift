@@ -527,58 +527,27 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func approveOrganizationRequest(id: String, reviewerID: String) async throws {
-        let reference = collection.document(id)
-        let snapshot = try await reference.getDocument()
-        let dto = try makeOrganizationDTO(
-            from: snapshot,
-            likedOrganizationIDs: [],
-            subscribedOrganizationIDs: [],
-            bookmarkedOrganizationIDs: []
+        _ = try await CloudFunctionsClient.shared.approveOrganization(
+            OrganizationReviewFunctionRequest(organizationId: id)
         )
-        guard let submittedByUserId = dto.submittedByUserId?.nilIfEmpty else {
-            throw AppError.validationFailed
-        }
-
-        let now = Date()
-        try await reference.updateData([
-            "moderationStatus": ModerationStatus.approved.rawValue,
-            "ownerId": submittedByUserId,
-            "reviewedByUserId": reviewerID,
-            "reviewedAt": Timestamp(date: now),
-            "reviewMessage": FieldValue.delete(),
-            "rejectionReason": FieldValue.delete(),
-            "updatedAt": Timestamp(date: now)
-        ])
     }
 
     func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else { throw AppError.validationFailed }
 
-        let now = Date()
-        try await collection.document(id).updateData([
-            "moderationStatus": ModerationStatus.needsRevision.rawValue,
-            "reviewMessage": trimmedMessage,
-            "reviewedByUserId": reviewerID,
-            "reviewedAt": Timestamp(date: now),
-            "updatedAt": Timestamp(date: now)
-        ])
+        _ = try await CloudFunctionsClient.shared.requestOrganizationRevision(
+            OrganizationReviewFunctionRequest(organizationId: id, message: trimmedMessage)
+        )
     }
 
     func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
         let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedReason.isEmpty else { throw AppError.validationFailed }
 
-        do {
-            try await writeOrganizationReviewAudit(
-                organizationID: id,
-                actionType: "organizationRequestRejected",
-                reason: trimmedReason,
-                reviewerID: reviewerID
-            )
-        } catch {}
-
-        try await deleteOrganization(id: id)
+        _ = try await CloudFunctionsClient.shared.rejectOrganization(
+            OrganizationReviewFunctionRequest(organizationId: id, reason: trimmedReason)
+        )
     }
 
     private func fetchLikedOrganizationIDs() async throws -> Set<String> {
@@ -860,29 +829,6 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             """
         )
         #endif
-    }
-
-    private func writeOrganizationReviewAudit(
-        organizationID: String,
-        actionType: String,
-        reason: String,
-        reviewerID: String
-    ) async throws {
-        let auditReference = Firestore.firestore().collection("auditLogs").document()
-        try await auditReference.setData([
-            "actionType": actionType,
-            "targetUserId": reviewerID,
-            "performedBy": reviewerID,
-            "createdAt": FieldValue.serverTimestamp(),
-            "reason": reason,
-            "previousValue": [
-                "organizationId": organizationID
-            ],
-            "newValue": [
-                "organizationId": organizationID,
-                "moderationStatus": ModerationStatus.rejected.rawValue
-            ]
-        ])
     }
 
     private func setCreateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {

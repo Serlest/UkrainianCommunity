@@ -1586,95 +1586,22 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func approveOrganizationRequest(id: String, reviewerID: String) async throws {
-        let organization = await organizationRequestSnapshot(id: id)
         try await repository.approveOrganizationRequest(id: id, reviewerID: reviewerID)
-        if let organization {
-            await createOrganizationRequestNotification(
-                type: .organizationRequestApproved,
-                organization: organization,
-                reviewerID: reviewerID,
-                message: nil
-            )
-        }
         organizationRequests.removeAll { $0.id == id }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
     }
 
     func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
-        let organization = await organizationRequestSnapshot(id: id)
         try await repository.requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
-        if let organization {
-            await createOrganizationRequestNotification(
-                type: .organizationRequestNeedsRevision,
-                organization: organization,
-                reviewerID: reviewerID,
-                message: message
-            )
-        }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
     }
 
     func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
-        let organization = await organizationRequestSnapshot(id: id)
-        if let organization {
-            await createOrganizationRequestNotification(
-                type: .organizationRequestRejected,
-                organization: organization,
-                reviewerID: reviewerID,
-                message: reason
-            )
-        }
         try await repository.rejectOrganizationRequest(id: id, reason: reason, reviewerID: reviewerID)
         organizationRequests.removeAll { $0.id == id }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
     }
 
-    private func createOrganizationRequestNotification(
-        type: AppNotificationType,
-        organization: Organization,
-        reviewerID: String,
-        message: String?
-    ) async {
-        guard let notificationInboxRepository,
-              let recipientUserId = organization.submittedByUserId else { return }
-        var payload = [
-            "organizationId": organization.id,
-            "organizationName": organization.name
-        ]
-        let trimmedMessage = message?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let trimmedMessage, !trimmedMessage.isEmpty {
-            payload[type == .organizationRequestRejected ? "rejectionReason" : "reviewMessage"] = trimmedMessage
-        }
-
-        let notification = AppNotification(
-            id: UUID().uuidString,
-            recipientUserId: recipientUserId,
-            type: type,
-            sourceType: .organization,
-            sourceId: organization.id,
-            actorUserId: reviewerID,
-            actorDisplayName: nil,
-            payload: payload,
-            isRead: false,
-            readAt: nil,
-            createdAt: Date()
-        )
-
-        do {
-            try await notificationInboxRepository.createNotification(userID: recipientUserId, notification: notification)
-        } catch {
-            #if DEBUG
-            print("Notification inbox create failed: type=\(type.rawValue) recipient=\(recipientUserId) source=\(organization.id) error=\(error)")
-            #endif
-        }
-    }
-
-    private func organizationRequestSnapshot(id: String) async -> Organization? {
-        if let organization = organizationRequests.first(where: { $0.id == id }) {
-            return organization
-        }
-        return try? await repository.fetchOrganization(id: id)
-    }
 }
 
 private extension Organization {

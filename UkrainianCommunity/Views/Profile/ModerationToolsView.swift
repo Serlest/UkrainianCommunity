@@ -106,14 +106,6 @@ private final class ModerationQueueViewModel: ObservableObject {
             case .organization:
                 guard newStatus == .approved, let reviewerID else { throw AppError.permissionDenied }
                 try await organizationRepository.approveOrganizationRequest(id: item.contentID, reviewerID: reviewerID)
-                if let organization = item.organization {
-                    await createOrganizationRequestNotification(
-                        type: .organizationRequestApproved,
-                        organization: organization,
-                        reviewerID: reviewerID,
-                        message: nil
-                    )
-                }
                 AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             }
 
@@ -134,14 +126,6 @@ private final class ModerationQueueViewModel: ObservableObject {
 
         do {
             try await organizationRepository.requestOrganizationRevision(id: item.contentID, message: message, reviewerID: reviewerID)
-            if let organization = item.organization {
-                await createOrganizationRequestNotification(
-                    type: .organizationRequestNeedsRevision,
-                    organization: organization,
-                    reviewerID: reviewerID,
-                    message: message
-                )
-            }
             items.removeAll { $0.id == item.id }
             error = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
@@ -159,14 +143,6 @@ private final class ModerationQueueViewModel: ObservableObject {
         defer { processingItemIDs.remove(item.id) }
 
         do {
-            if let organization = item.organization {
-                await createOrganizationRequestNotification(
-                    type: .organizationRequestRejected,
-                    organization: organization,
-                    reviewerID: reviewerID,
-                    message: reason
-                )
-            }
             try await organizationRepository.rejectOrganizationRequest(id: item.contentID, reason: reason, reviewerID: reviewerID)
             items.removeAll { $0.id == item.id }
             error = nil
@@ -297,46 +273,6 @@ private final class ModerationQueueViewModel: ObservableObject {
                 submittedBy: $0.submittedByDisplayName ?? $0.submittedByUserId,
                 organization: $0
             )
-        }
-    }
-
-    private func createOrganizationRequestNotification(
-        type: AppNotificationType,
-        organization: Organization,
-        reviewerID: String,
-        message: String?
-    ) async {
-        guard let notificationInboxRepository,
-              let recipientUserId = organization.submittedByUserId else { return }
-        var payload = [
-            "organizationId": organization.id,
-            "organizationName": organization.name
-        ]
-        let trimmedMessage = message?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let trimmedMessage, !trimmedMessage.isEmpty {
-            payload[type == .organizationRequestRejected ? "rejectionReason" : "reviewMessage"] = trimmedMessage
-        }
-
-        let notification = AppNotification(
-            id: UUID().uuidString,
-            recipientUserId: recipientUserId,
-            type: type,
-            sourceType: .organization,
-            sourceId: organization.id,
-            actorUserId: reviewerID,
-            actorDisplayName: nil,
-            payload: payload,
-            isRead: false,
-            readAt: nil,
-            createdAt: Date()
-        )
-
-        do {
-            try await notificationInboxRepository.createNotification(userID: recipientUserId, notification: notification)
-        } catch {
-            #if DEBUG
-            print("Notification inbox create failed: type=\(type.rawValue) recipient=\(recipientUserId) source=\(organization.id) error=\(error)")
-            #endif
         }
     }
 
