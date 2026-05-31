@@ -44,8 +44,18 @@ export function isOwner(user: UserPermissionSnapshot): boolean {
   return isActiveUser(user) && user.globalRole === "owner";
 }
 
+export function canManageGuide(user: UserPermissionSnapshot): boolean {
+  return isActiveUser(user) && (user.globalRole === "owner" || user.canManageGuide === true);
+}
+
 export function assertOwner(user: UserPermissionSnapshot): void {
   if (!isOwner(user)) {
     throw new HttpsError("permission-denied", "Owner permissions are required.");
+  }
+}
+
+export function assertCanManageGuide(user: UserPermissionSnapshot): void {
+  if (!canManageGuide(user)) {
+    throw new HttpsError("permission-denied", "Guide management permissions are required.");
   }
 }

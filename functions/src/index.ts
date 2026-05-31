@@ -2,6 +2,12 @@ import { setGlobalOptions } from "firebase-functions/v2";
 
 import "./firebase/admin";
 export {
+  approveGuideArticle,
+  archiveGuideArticle,
+  publishGuideArticle,
+  submitGuideArticleForReview,
+} from "./guide/workflow";
+export {
   approveOrganization,
   rejectOrganization,
   requestOrganizationRevision,
