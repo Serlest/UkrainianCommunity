@@ -58,48 +58,102 @@ final class OrganizationEditorViewModel: ObservableObject {
     static let shortDescriptionLimit = 160
     static let fullDescriptionLimit = 1200
 
-    @Published var name = ""
+    @Published var name = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
     @Published var shortDescription = "" {
         didSet {
             enforceShortDescriptionLimit()
+            scheduleCreateDraftAutosave()
         }
     }
     @Published var fullDescription = "" {
         didSet {
             enforceFullDescriptionLimit()
+            scheduleCreateDraftAutosave()
         }
     }
-    @Published var city = ""
-    @Published var address = ""
-    @Published var selectedFederalState: AustrianFederalState?
-    @Published var email = ""
-    @Published var phone = ""
-    @Published var website = ""
-    @Published var telegramURL = ""
-    @Published var donationURL = ""
-    @Published var missionStatement = ""
-    @Published var contactPerson = ""
-    @Published var organizationType = OrganizationEditorCategory.support.rawValue
+    @Published var city = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var address = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var selectedFederalState: AustrianFederalState? {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var email = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var phone = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var website = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var telegramURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var donationURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var facebookURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var instagramURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var whatsappURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var youtubeURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var linkedinURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var missionStatement = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var contactPerson = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var organizationType = OrganizationEditorCategory.support.rawValue {
+        didSet { markCreateDraftMetadataChanged() }
+    }
     @Published var foundedYear = "" {
         didSet {
             if trimmedFoundedYear.isEmpty {
                 foundedMonth = nil
             }
+            scheduleCreateDraftAutosave()
         }
     }
-    @Published var foundedMonth: Int?
-    @Published var languages = ""
-    @Published var socialLinks = ""
+    @Published var foundedMonth: Int? {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var languages = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    private var legacySocialLinks: [String: String] = [:]
     @Published var selectedImageData: Data?
     @Published var isProcessingImage = false
     @Published var successMessage: String?
     @Published var errorMessage: String?
+    @Published private(set) var pendingRecoveryDraft: OrganizationCreateDraft?
 
     private let mode: Mode
+    private let draftRecoveryService: LocalDraftRecoveryService
     private let validationService = OrganizationValidationService()
+    private var draftAutosaveTask: Task<Void, Never>?
+    private var hasCheckedCreateDraftRecovery = false
+    private var isApplyingRecoveredDraft = false
+    private var isSubmittingCreate = false
+    private var hasMeaningfulCreateDraftMetadata = false
 
-    init(mode: Mode = .create) {
+    init(mode: Mode = .create, draftRecoveryService: LocalDraftRecoveryService? = nil) {
         self.mode = mode
+        self.draftRecoveryService = draftRecoveryService ?? .shared
 
         if case let .edit(existingOrganization) = mode {
             name = existingOrganization.name
@@ -113,14 +167,23 @@ final class OrganizationEditorViewModel: ObservableObject {
             website = existingOrganization.website ?? ""
             telegramURL = existingOrganization.telegramURL ?? ""
             donationURL = existingOrganization.donationURL ?? ""
+            facebookURL = existingOrganization.facebookURL ?? Self.socialLinkText(from: existingOrganization.socialLinks, matching: "facebook")
+            instagramURL = existingOrganization.instagramURL ?? Self.socialLinkText(from: existingOrganization.socialLinks, matching: "instagram")
+            whatsappURL = existingOrganization.whatsappURL ?? Self.socialLinkText(from: existingOrganization.socialLinks, matching: "whatsapp")
+            youtubeURL = existingOrganization.youtubeURL ?? Self.socialLinkText(from: existingOrganization.socialLinks, matching: "youtube")
+            linkedinURL = existingOrganization.linkedinURL ?? Self.socialLinkText(from: existingOrganization.socialLinks, matching: "linkedin")
             missionStatement = existingOrganization.missionStatement ?? ""
             contactPerson = existingOrganization.contactPerson ?? ""
             organizationType = existingOrganization.organizationType ?? OrganizationEditorCategory.support.rawValue
             foundedYear = existingOrganization.foundedYear.map(String.init) ?? ""
             foundedMonth = existingOrganization.foundedYear == nil ? nil : existingOrganization.foundedMonth
             languages = existingOrganization.languages.joined(separator: ", ")
-            socialLinks = Self.socialLinksText(from: existingOrganization.socialLinks)
+            legacySocialLinks = existingOrganization.socialLinks
         }
+    }
+
+    deinit {
+        draftAutosaveTask?.cancel()
     }
 
     var navigationTitle: String {
@@ -129,6 +192,16 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     var isEditing: Bool {
         mode.isEditing
+    }
+
+    var hasPendingRecoveryDraft: Bool {
+        pendingRecoveryDraft != nil
+    }
+
+    var shouldConfirmDraftBeforeDismiss: Bool {
+        guard isCreateMode else { return false }
+        guard !isSubmittingCreate, !isProcessingImage else { return false }
+        return currentOrganizationCreateDraft().hasMeaningfulContent
     }
 
     var existingImageURL: String? {
@@ -167,6 +240,51 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     func setImageProcessing(_ isProcessing: Bool) {
         isProcessingImage = isProcessing
+    }
+
+    func loadRecoverableDraftIfNeeded() async {
+        guard isCreateMode, !hasCheckedCreateDraftRecovery else { return }
+        hasCheckedCreateDraftRecovery = true
+
+        do {
+            guard let draft = try await draftRecoveryService.loadOrganizationCreateDraft(key: createDraftStorageKey),
+                  draft.hasMeaningfulContent else {
+                pendingRecoveryDraft = nil
+                return
+            }
+            pendingRecoveryDraft = draft
+        } catch {
+            pendingRecoveryDraft = nil
+        }
+    }
+
+    func continueRecoveredDraft() {
+        guard let draft = pendingRecoveryDraft, isCreateMode else { return }
+        applyRecoveredDraft(draft)
+        pendingRecoveryDraft = nil
+    }
+
+    func createNewInsteadOfRecoveredDraft() async {
+        pendingRecoveryDraft = nil
+        hasMeaningfulCreateDraftMetadata = false
+        try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
+    }
+
+    func deleteRecoveredDraft() async {
+        pendingRecoveryDraft = nil
+        hasMeaningfulCreateDraftMetadata = false
+        try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
+    }
+
+    func saveDraftBeforeClosing() async {
+        await saveCurrentCreateDraftIfNeeded()
+    }
+
+    func discardCreateDraft() async {
+        draftAutosaveTask?.cancel()
+        pendingRecoveryDraft = nil
+        hasMeaningfulCreateDraftMetadata = false
+        try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
     }
 
     func submit(
@@ -210,6 +328,11 @@ final class OrganizationEditorViewModel: ObservableObject {
                 socialLinks: parsedSocialLinks,
                 telegramURL: normalizedTelegramURL.nilIfEmpty,
                 donationURL: normalizedDonationURL.nilIfEmpty,
+                facebookURL: normalizedFacebookURL.nilIfEmpty,
+                instagramURL: normalizedInstagramURL.nilIfEmpty,
+                whatsappURL: normalizedWhatsAppURL.nilIfEmpty,
+                youtubeURL: normalizedYouTubeURL.nilIfEmpty,
+                linkedinURL: normalizedLinkedInURL.nilIfEmpty,
                 missionStatement: trimmedMissionStatement.nilIfEmpty,
                 contactPerson: trimmedContactPerson.nilIfEmpty,
                 submittedByUserId: isOwnerCreate ? nil : user?.id,
@@ -249,6 +372,11 @@ final class OrganizationEditorViewModel: ObservableObject {
                 socialLinks: parsedSocialLinks,
                 telegramURL: normalizedTelegramURL.nilIfEmpty,
                 donationURL: normalizedDonationURL.nilIfEmpty,
+                facebookURL: normalizedFacebookURL.nilIfEmpty,
+                instagramURL: normalizedInstagramURL.nilIfEmpty,
+                whatsappURL: normalizedWhatsAppURL.nilIfEmpty,
+                youtubeURL: normalizedYouTubeURL.nilIfEmpty,
+                linkedinURL: normalizedLinkedInURL.nilIfEmpty,
                 missionStatement: trimmedMissionStatement.nilIfEmpty,
                 contactPerson: trimmedContactPerson.nilIfEmpty,
                 subscriberCount: existing.subscriberCount,
@@ -280,6 +408,8 @@ final class OrganizationEditorViewModel: ObservableObject {
         do {
             switch mode {
             case .create:
+                isSubmittingCreate = true
+                defer { isSubmittingCreate = false }
                 try await organizationsViewModel.createOrganization(
                     organization,
                     imageData: selectedImageData,
@@ -288,6 +418,9 @@ final class OrganizationEditorViewModel: ObservableObject {
                 successMessage = isPlatformOwner(user)
                     ? AppStrings.Organizations.publishedSuccessfully
                     : AppStrings.Organizations.requestSubmittedSuccessfully
+                draftAutosaveTask?.cancel()
+                try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
+                hasMeaningfulCreateDraftMetadata = false
                 resetForm()
             case .edit:
                 try await organizationsViewModel.updateOrganization(
@@ -375,17 +508,118 @@ final class OrganizationEditorViewModel: ObservableObject {
     }
 
     private var parsedSocialLinks: [String: String] {
-        socialLinks.commaSeparatedValues.reduce(into: [:]) { result, value in
-            if let separatorIndex = value.firstIndex(of: ":") {
-                let key = String(value[..<separatorIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
-                let link = String(value[value.index(after: separatorIndex)...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !key.isEmpty, !link.isEmpty {
-                    result[key] = Self.normalizedSocialLink(link, key: key)
-                }
-            } else if let host = URL(string: value)?.host {
-                result[host] = Self.normalizedSocialLink(value, key: host)
-            }
+        legacySocialLinks.filter { key, _ in
+            let lowercasedKey = key.lowercased()
+            return !["facebook", "instagram", "whatsapp", "youtube", "linkedin"].contains { lowercasedKey.contains($0) }
         }
+    }
+
+    private var isCreateMode: Bool {
+        if case .create = mode {
+            return true
+        }
+        return false
+    }
+
+    private var createDraftStorageKey: String {
+        "organization-create"
+    }
+
+    private func scheduleCreateDraftAutosave() {
+        guard isCreateMode, !isApplyingRecoveredDraft else { return }
+        guard !isSubmittingCreate, !isProcessingImage else { return }
+
+        draftAutosaveTask?.cancel()
+        draftAutosaveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(650))
+            guard !Task.isCancelled else { return }
+            await self?.saveCurrentCreateDraftIfNeeded()
+        }
+    }
+
+    private func markCreateDraftMetadataChanged() {
+        guard isCreateMode, !isApplyingRecoveredDraft else { return }
+        guard !isSubmittingCreate, !isProcessingImage else { return }
+        hasMeaningfulCreateDraftMetadata = true
+        scheduleCreateDraftAutosave()
+    }
+
+    private func saveCurrentCreateDraftIfNeeded() async {
+        guard isCreateMode else { return }
+        guard !isSubmittingCreate, !isProcessingImage else { return }
+
+        let draft = currentOrganizationCreateDraft()
+        do {
+            if draft.hasMeaningfulContent {
+                try await draftRecoveryService.saveOrganizationCreateDraft(draft, key: createDraftStorageKey)
+            } else {
+                try await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
+            }
+        } catch {
+            // Draft recovery is best-effort and must not block organization creation.
+        }
+    }
+
+    private func currentOrganizationCreateDraft(updatedAt: Date = Date()) -> OrganizationCreateDraft {
+        OrganizationCreateDraft(
+            version: OrganizationCreateDraft.currentVersion,
+            hasMeaningfulMetadata: hasMeaningfulCreateDraftMetadata,
+            updatedAt: updatedAt,
+            name: name,
+            shortDescription: shortDescription,
+            fullDescription: fullDescription,
+            city: city,
+            address: address,
+            selectedFederalState: selectedFederalState,
+            email: email,
+            phone: phone,
+            website: website,
+            telegramURL: telegramURL,
+            donationURL: donationURL,
+            facebookURL: facebookURL,
+            instagramURL: instagramURL,
+            whatsappURL: whatsappURL,
+            youtubeURL: youtubeURL,
+            linkedinURL: linkedinURL,
+            missionStatement: missionStatement,
+            contactPerson: contactPerson,
+            organizationType: organizationType,
+            foundedYear: foundedYear,
+            foundedMonth: foundedMonth,
+            languages: languages,
+            socialLinks: Self.socialLinksText(from: legacySocialLinks)
+        )
+    }
+
+    private func applyRecoveredDraft(_ draft: OrganizationCreateDraft) {
+        isApplyingRecoveredDraft = true
+
+        name = draft.name
+        shortDescription = Self.limitedShortDescription(draft.shortDescription)
+        fullDescription = Self.limitedFullDescription(draft.fullDescription)
+        city = draft.city
+        address = draft.address
+        selectedFederalState = draft.selectedFederalState
+        email = draft.email
+        phone = draft.phone
+        website = draft.website
+        telegramURL = draft.telegramURL
+        donationURL = draft.donationURL
+        facebookURL = draft.facebookURL ?? ""
+        instagramURL = draft.instagramURL ?? ""
+        whatsappURL = draft.whatsappURL ?? ""
+        youtubeURL = draft.youtubeURL ?? ""
+        linkedinURL = draft.linkedinURL ?? ""
+        missionStatement = draft.missionStatement
+        contactPerson = draft.contactPerson
+        organizationType = draft.organizationType
+        foundedYear = draft.foundedYear
+        foundedMonth = draft.foundedMonth
+        languages = draft.languages
+        legacySocialLinks = Self.parsedLegacySocialLinks(from: draft.socialLinks)
+        hasMeaningfulCreateDraftMetadata = draft.hasMeaningfulMetadata == true
+
+        isApplyingRecoveredDraft = false
     }
 
     private var normalizedWebsite: String {
@@ -439,13 +673,18 @@ final class OrganizationEditorViewModel: ObservableObject {
         website = ""
         telegramURL = ""
         donationURL = ""
+        facebookURL = ""
+        instagramURL = ""
+        whatsappURL = ""
+        youtubeURL = ""
+        linkedinURL = ""
         missionStatement = ""
         contactPerson = ""
         organizationType = OrganizationEditorCategory.support.rawValue
         foundedYear = ""
         foundedMonth = nil
         languages = ""
-        socialLinks = ""
+        legacySocialLinks = [:]
         selectedImageData = nil
     }
 
@@ -479,6 +718,27 @@ final class OrganizationEditorViewModel: ObservableObject {
             .joined(separator: ", ")
     }
 
+    private static func socialLinkText(from links: [String: String], matching platform: String) -> String {
+        links.first { key, value in
+            key.localizedCaseInsensitiveContains(platform) ||
+                value.localizedCaseInsensitiveContains(platform)
+        }?.value ?? ""
+    }
+
+    private static func parsedLegacySocialLinks(from text: String) -> [String: String] {
+        text.commaSeparatedValues.reduce(into: [:]) { result, value in
+            if let separatorIndex = value.firstIndex(of: ":") {
+                let key = String(value[..<separatorIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let link = String(value[value.index(after: separatorIndex)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !key.isEmpty, !link.isEmpty {
+                    result[key] = normalizedSocialLink(link, key: key)
+                }
+            } else if let host = URL(string: value)?.host {
+                result[host] = normalizedWebURL(value)
+            }
+        }
+    }
+
     private static func normalizedWebURL(_ rawValue: String) -> String {
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }
@@ -508,7 +768,7 @@ final class OrganizationEditorViewModel: ObservableObject {
 
         let lowercaseKey = key.lowercased()
         let lowercaseValue = trimmed.lowercased()
-        if lowercaseKey.contains("telegram") || lowercaseValue.hasPrefix("@") || lowercaseValue.contains("t.me/") {
+        if lowercaseKey.contains("telegram") || lowercaseValue.contains("t.me/") {
             return normalizedTelegramURL(trimmed)
         }
         if lowercaseKey.contains("instagram"), !lowercaseValue.contains("instagram.com") {
@@ -521,8 +781,79 @@ final class OrganizationEditorViewModel: ObservableObject {
         return normalizedWebURL(trimmed)
     }
 
+    private static func normalizedPlatformURL(_ rawValue: String, host: String) -> String {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        let lowercased = trimmed.lowercased()
+        if lowercased.hasPrefix("http://") || lowercased.hasPrefix("https://") {
+            return trimmed
+        }
+        if lowercased.contains(host) {
+            return normalizedWebURL(trimmed)
+        }
+        let handle = trimmed.hasPrefix("@") ? String(trimmed.dropFirst()) : trimmed
+        return normalizedWebURL("\(host)/\(handle)")
+    }
+
+    private static func normalizedWhatsAppURL(_ rawValue: String) -> String {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        let lowercased = trimmed.lowercased()
+        if lowercased.hasPrefix("http://") || lowercased.hasPrefix("https://") {
+            return trimmed
+        }
+        if lowercased.contains("wa.me/") || lowercased.contains("whatsapp.com/") {
+            return normalizedWebURL(trimmed)
+        }
+        let digits = trimmed.filter(\.isNumber)
+        guard !digits.isEmpty else { return "" }
+        return "https://wa.me/\(digits)"
+    }
+
+    private static func normalizedYouTubeURL(_ rawValue: String) -> String {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        let lowercased = trimmed.lowercased()
+        if lowercased.hasPrefix("http://") || lowercased.hasPrefix("https://") {
+            return trimmed
+        }
+        if lowercased.contains("youtube.com") || lowercased.contains("youtu.be") {
+            return normalizedWebURL(trimmed)
+        }
+        let handle = trimmed.hasPrefix("@") ? trimmed : "@\(trimmed)"
+        return normalizedWebURL("youtube.com/\(handle)")
+    }
+
+    private var normalizedFacebookURL: String {
+        Self.normalizedPlatformURL(facebookURL, host: "facebook.com")
+    }
+
+    private var normalizedInstagramURL: String {
+        Self.normalizedPlatformURL(instagramURL, host: "instagram.com")
+    }
+
+    private var normalizedWhatsAppURL: String {
+        Self.normalizedWhatsAppURL(whatsappURL)
+    }
+
+    private var normalizedYouTubeURL: String {
+        Self.normalizedYouTubeURL(youtubeURL)
+    }
+
+    private var normalizedLinkedInURL: String {
+        Self.normalizedPlatformURL(linkedinURL, host: "linkedin.com")
+    }
+
     private func validateOptionalURLs() -> [String] {
-        [normalizedTelegramURL, normalizedDonationURL]
+        [
+            normalizedTelegramURL,
+            normalizedDonationURL,
+            normalizedFacebookURL,
+            normalizedInstagramURL,
+            normalizedWhatsAppURL,
+            normalizedYouTubeURL,
+            normalizedLinkedInURL
+        ]
             .filter { !$0.isEmpty }
             .compactMap { value in
                 URL(string: value)?.scheme?.isEmpty == false ? nil : AppStrings.Validation.organizationWebsiteInvalid

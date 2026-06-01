@@ -78,6 +78,9 @@ enum AppTheme {
     static let sectionTitleFont: Font = .subheadline.weight(.bold)
     static let cardTitleFont: Font = .headline.weight(.semibold)
     static let cardSubtitleFont: Font = .caption.weight(.medium)
+    static let featuredBannerTitleFont: Font = .headline.weight(.semibold)
+    static let featuredBannerSubtitleFont: Font = .caption.weight(.medium)
+    static let featuredBannerCarouselAnimation: Animation = .easeInOut(duration: 0.62)
     static let bodyFont: Font = .body
     static let secondaryBodyFont: Font = .subheadline
     static let metadataFont: Font = .caption2.weight(.medium)

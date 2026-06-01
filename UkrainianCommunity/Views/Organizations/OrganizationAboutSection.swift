@@ -160,7 +160,10 @@ extension OrganizationDetailView {
             !(organization.phone ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
             organizationTelegramURL(for: organization) != nil ||
             organizationSocialURL(for: organization, matching: "instagram") != nil ||
-            organizationSocialURL(for: organization, matching: "facebook") != nil
+            organizationSocialURL(for: organization, matching: "facebook") != nil ||
+            organizationSocialURL(for: organization, matching: "whatsapp") != nil ||
+            organizationSocialURL(for: organization, matching: "youtube") != nil ||
+            organizationSocialURL(for: organization, matching: "linkedin") != nil
     }
 
     func organizationAddressText(for organization: Organization) -> String? {

@@ -7,7 +7,9 @@ struct FeaturedBannerCardView: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             background
-            textContent
+            if hasTextContent {
+                textContent
+            }
         }
         .clipShape(cardShape)
         .overlay {
@@ -52,19 +54,23 @@ struct FeaturedBannerCardView: View {
     }
 
     private var textContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(banner.title)
-                .font(AppTheme.screenTitleFont)
-                .foregroundStyle(AppTheme.textOnHero)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
+        VStack(alignment: .leading, spacing: 4) {
+            if let titleText {
+                Text(titleText)
+                    .font(AppTheme.featuredBannerTitleFont)
+                    .foregroundStyle(AppTheme.textOnHero)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-            if let subtitle = banner.subtitle?.trimmingCharacters(in: .whitespacesAndNewlines), !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(AppTheme.secondaryBodyFont.weight(.medium))
+            if let subtitleText {
+                Text(subtitleText)
+                    .font(AppTheme.featuredBannerSubtitleFont)
                     .foregroundStyle(AppTheme.textOnHero.opacity(0.88))
                     .lineLimit(2)
-                .multilineTextAlignment(.leading)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, AppTheme.bannerTextScrimHorizontalPadding)
@@ -81,12 +87,25 @@ struct FeaturedBannerCardView: View {
         RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
     }
 
+    private var titleText: String? {
+        nonEmpty(banner.title)
+    }
+
+    private var subtitleText: String? {
+        nonEmpty(banner.subtitle)
+    }
+
+    private var hasTextContent: Bool {
+        titleText != nil || subtitleText != nil
+    }
+
     private var accessibilityLabel: String {
-        [banner.title, banner.subtitle]
-            .compactMap { value in
-                let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                return trimmed.isEmpty ? nil : trimmed
-            }
-            .joined(separator: ", ")
+        let text = [titleText, subtitleText].compactMap(\.self).joined(separator: ", ")
+        return text.isEmpty ? AppStrings.FeaturedManagement.title : text
+    }
+
+    private func nonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

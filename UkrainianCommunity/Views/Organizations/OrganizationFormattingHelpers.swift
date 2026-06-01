@@ -98,11 +98,32 @@ func normalizedTelegramContactURL(from value: String?) -> URL? {
 }
 
 func organizationSocialURL(for organization: Organization, matching platform: String) -> URL? {
-    organization.socialLinks.first { key, value in
+    if let firstClassURL = organizationFirstClassSocialURL(for: organization, matching: platform) {
+        return firstClassURL
+    }
+
+    return organization.socialLinks.first { key, value in
         key.localizedCaseInsensitiveContains(platform)
             || value.localizedCaseInsensitiveContains(platform)
     }.flatMap { _, value in
         normalizedSocialContactURL(value, platform: platform)
+    }
+}
+
+func organizationFirstClassSocialURL(for organization: Organization, matching platform: String) -> URL? {
+    switch platform.lowercased() {
+    case "facebook":
+        return normalizedSocialContactURL(organization.facebookURL ?? "", platform: platform)
+    case "instagram":
+        return normalizedSocialContactURL(organization.instagramURL ?? "", platform: platform)
+    case "whatsapp":
+        return normalizedWhatsAppContactURL(from: organization.whatsappURL)
+    case "youtube":
+        return normalizedSocialContactURL(organization.youtubeURL ?? "", platform: platform)
+    case "linkedin":
+        return normalizedSocialContactURL(organization.linkedinURL ?? "", platform: platform)
+    default:
+        return nil
     }
 }
 
@@ -112,7 +133,7 @@ func normalizedSocialContactURL(_ rawValue: String, platform: String) -> URL? {
 
     let lowercasePlatform = platform.lowercased()
     let lowercaseValue = trimmed.lowercased()
-    if lowercasePlatform.contains("telegram") || lowercaseValue.hasPrefix("@") || lowercaseValue.contains("t.me/") {
+    if lowercasePlatform.contains("telegram") || lowercaseValue.contains("t.me/") {
         return normalizedTelegramContactURL(from: trimmed)
     }
     if lowercasePlatform.contains("instagram"), !lowercaseValue.contains("instagram.com") {
@@ -122,7 +143,30 @@ func normalizedSocialContactURL(_ rawValue: String, platform: String) -> URL? {
     if lowercasePlatform.contains("facebook"), !lowercaseValue.contains("facebook.com") && !lowercaseValue.contains("fb.com") {
         return normalizedOrganizationURL(from: "facebook.com/\(trimmed)")
     }
+    if lowercasePlatform.contains("youtube"), !lowercaseValue.contains("youtube.com") && !lowercaseValue.contains("youtu.be") {
+        return normalizedOrganizationURL(from: "youtube.com/\(trimmed)")
+    }
+    if lowercasePlatform.contains("linkedin"), !lowercaseValue.contains("linkedin.com") {
+        return normalizedOrganizationURL(from: "linkedin.com/\(trimmed)")
+    }
+    if lowercasePlatform.contains("whatsapp") {
+        return normalizedWhatsAppContactURL(from: trimmed)
+    }
     return normalizedOrganizationURL(from: trimmed)
+}
+
+func normalizedWhatsAppContactURL(from value: String?) -> URL? {
+    guard let rawValue = value?.trimmingCharacters(in: .whitespacesAndNewlines), !rawValue.isEmpty else { return nil }
+    let lowercaseValue = rawValue.lowercased()
+    if lowercaseValue.hasPrefix("http://") || lowercaseValue.hasPrefix("https://") {
+        return URL(string: rawValue)
+    }
+    if lowercaseValue.contains("wa.me/") || lowercaseValue.contains("whatsapp.com/") {
+        return normalizedOrganizationURL(from: rawValue)
+    }
+    let digits = rawValue.filter(\.isNumber)
+    guard !digits.isEmpty else { return nil }
+    return URL(string: "https://wa.me/\(digits)")
 }
 
 func organizationAddressText(for organization: Organization) -> String? {

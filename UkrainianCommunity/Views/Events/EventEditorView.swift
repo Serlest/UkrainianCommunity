@@ -23,6 +23,8 @@ struct EventEditorView: View {
     @State var isShowingOrganizerPicker = false
     @State var isApplyingLocationSelection = false
     @State var activeDatePicker: EventEditorDatePicker?
+    @State var isShowingDraftRecoveryDialog = false
+    @State var isShowingDraftCloseConfirmation = false
 
     let onPublished: @MainActor () async -> Void
     let editorSectionSpacing: CGFloat = 8
@@ -144,6 +146,49 @@ struct EventEditorView: View {
                 displayedComponents: picker.displayedComponents
             )
         }
+        .confirmationDialog(
+            AppStrings.DraftRecovery.recoveryTitle,
+            isPresented: $isShowingDraftRecoveryDialog,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.DraftRecovery.continueDraft) {
+                viewModel.continueRecoveredDraft()
+            }
+            Button(AppStrings.DraftRecovery.createNew) {
+                Task {
+                    await viewModel.createNewInsteadOfRecoveredDraft()
+                }
+            }
+            Button(AppStrings.DraftRecovery.deleteDraft, role: .destructive) {
+                Task {
+                    await viewModel.deleteRecoveredDraft()
+                }
+            }
+        } message: {
+            Text(AppStrings.DraftRecovery.eventRecoveryMessage)
+        }
+        .confirmationDialog(
+            AppStrings.DraftRecovery.closeTitle,
+            isPresented: $isShowingDraftCloseConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.DraftRecovery.saveDraftAndClose) {
+                Task {
+                    await viewModel.saveDraftBeforeClosing()
+                    dismiss()
+                }
+            }
+            Button(AppStrings.DraftRecovery.discardDraft, role: .destructive) {
+                Task {
+                    await viewModel.discardCreateDraft()
+                    dismiss()
+                }
+            }
+            Button(AppStrings.DraftRecovery.continueEditing, role: .cancel) {}
+        } message: {
+            Text(AppStrings.DraftRecovery.eventCloseMessage)
+        }
+        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss)
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false
@@ -176,12 +221,19 @@ struct EventEditorView: View {
         .task {
             await organizerOrganizationsViewModel.loadIfNeeded()
             applyDefaultOrganizerIfNeeded()
+            await loadRecoverableDraftIfNeeded()
         }
         .onChange(of: organizerOrganizationsViewModel.contentVersion) { _, _ in
             applyDefaultOrganizerIfNeeded()
+            Task {
+                await loadRecoverableDraftIfNeeded()
+            }
         }
         .onChange(of: authState.user?.id) { _, _ in
             applyDefaultOrganizerIfNeeded()
+            Task {
+                await loadRecoverableDraftIfNeeded()
+            }
         }
     }
 
@@ -213,10 +265,15 @@ struct EventEditorView: View {
         viewModel.selectOrganizer(organization)
     }
 
+    func loadRecoverableDraftIfNeeded() async {
+        await viewModel.loadRecoverableDraftIfNeeded()
+        isShowingDraftRecoveryDialog = viewModel.hasPendingRecoveryDraft
+    }
+
     var organizerCard: some View {
         editorCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                editorSectionTitle(AppStrings.Events.editorOrganizerSectionTitle)
+                editorSectionTitle(AppStrings.Events.editorPublisherSectionTitle)
 
                 Button {
                     guard canSelectOrganizer else { return }
@@ -234,7 +291,7 @@ struct EventEditorView: View {
                         )
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(viewModel.organizerName ?? organizerPlaceholderTitle)
+                            Text(viewModel.publishingOrganizationName ?? organizerPlaceholderTitle)
                                 .font(.headline.weight(.semibold))
                                 .foregroundStyle(AppTheme.textPrimary)
                                 .lineLimit(2)
@@ -268,7 +325,7 @@ struct EventEditorView: View {
     }
 
     var organizerStatusTitle: String {
-        if viewModel.organizerName != nil {
+        if viewModel.publishingOrganizationName != nil {
             return AppStrings.Organizations.detailBadge
         }
 

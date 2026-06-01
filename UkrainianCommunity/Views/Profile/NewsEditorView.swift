@@ -17,6 +17,8 @@ struct NewsEditorView: View {
     @State var imageProcessingTask: Task<Void, Never>?
     @State var imageProcessingToken = UUID()
     @State var isShowingOrganizerPicker = false
+    @State var isShowingDraftRecoveryDialog = false
+    @State var isShowingDraftCloseConfirmation = false
     let onPublished: @MainActor () async -> Void
 
     let titleLimit = 120
@@ -142,6 +144,49 @@ struct NewsEditorView: View {
                 )
             }
         }
+        .confirmationDialog(
+            AppStrings.DraftRecovery.recoveryTitle,
+            isPresented: $isShowingDraftRecoveryDialog,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.DraftRecovery.continueDraft) {
+                viewModel.continueRecoveredDraft()
+            }
+            Button(AppStrings.DraftRecovery.createNew) {
+                Task {
+                    await viewModel.createNewInsteadOfRecoveredDraft()
+                }
+            }
+            Button(AppStrings.DraftRecovery.deleteDraft, role: .destructive) {
+                Task {
+                    await viewModel.deleteRecoveredDraft()
+                }
+            }
+        } message: {
+            Text(AppStrings.DraftRecovery.recoveryMessage)
+        }
+        .confirmationDialog(
+            AppStrings.DraftRecovery.closeTitle,
+            isPresented: $isShowingDraftCloseConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.DraftRecovery.saveDraftAndClose) {
+                Task {
+                    await viewModel.saveDraftBeforeClosing()
+                    dismiss()
+                }
+            }
+            Button(AppStrings.DraftRecovery.discardDraft, role: .destructive) {
+                Task {
+                    await viewModel.discardCreateDraft()
+                    dismiss()
+                }
+            }
+            Button(AppStrings.DraftRecovery.continueEditing, role: .cancel) {}
+        } message: {
+            Text(AppStrings.DraftRecovery.closeMessage)
+        }
+        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss)
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false
@@ -160,9 +205,13 @@ struct NewsEditorView: View {
             guard !viewModel.isEditing else { return }
             await organizerOrganizationsViewModel.loadIfNeeded()
             applyDefaultOrganizerIfNeeded()
+            await loadRecoverableDraftIfNeeded()
         }
         .onChange(of: organizerOrganizationsViewModel.contentVersion) { _, _ in
             applyDefaultOrganizerIfNeeded()
+            Task {
+                await loadRecoverableDraftIfNeeded()
+            }
         }
         .onDisappear {
             imageProcessingTask?.cancel()
@@ -201,6 +250,11 @@ struct NewsEditorView: View {
         guard viewModel.selectedOrganizationId == nil else { return }
         guard availableOrganizerOrganizations.count == 1, let organization = availableOrganizerOrganizations.first else { return }
         viewModel.selectOrganizer(organization)
+    }
+
+    func loadRecoverableDraftIfNeeded() async {
+        await viewModel.loadRecoverableDraftIfNeeded()
+        isShowingDraftRecoveryDialog = viewModel.hasPendingRecoveryDraft
     }
 
     func settingsRows<Content: View>(@ViewBuilder content: () -> Content) -> some View {

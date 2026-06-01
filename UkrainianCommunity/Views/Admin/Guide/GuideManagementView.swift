@@ -63,7 +63,10 @@ struct GuideManagementView: View {
                         .buttonStyle(.plain)
                     } else if item == .published {
                         NavigationLink {
-                            GuidePublishedListView(repository: guideRepository)
+                            GuidePublishedListView(
+                                repository: guideRepository,
+                                currentUserId: authState.user?.id
+                            )
                         } label: {
                             GuideManagementPlaceholderCard(item: item)
                         }

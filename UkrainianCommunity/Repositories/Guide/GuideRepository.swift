@@ -11,6 +11,7 @@ protocol GuideRepository {
     func approveGuideArticle(id: String, reviewerId: String) async throws
     func publishGuideArticle(id: String, publisherId: String) async throws
     func archiveGuideArticle(id: String, editorId: String) async throws
+    func deleteGuideArticle(id: String, editorId: String) async throws
 }
 
 typealias InfoRepository = GuideRepository

@@ -2,51 +2,9 @@ import SwiftUI
 
 struct GuideSearchAndFiltersView: View {
     @ObservedObject var viewModel: GuideListViewModel
-    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-            searchField
-            filterRow
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppStrings.Common.done) {
-                    isSearchFocused = false
-                }
-            }
-        }
-    }
-
-    private var searchField: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppTheme.textSecondary)
-
-            TextField(AppStrings.Guide.searchPlaceholder, text: $viewModel.searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.subheadline)
-                .focused($isSearchFocused)
-
-            if !viewModel.searchText.isEmpty {
-                Button {
-                    viewModel.searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.searchControlHeight)
-        .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
-        )
+        filterRow
     }
 
     private var filterRow: some View {

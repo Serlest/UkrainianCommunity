@@ -51,55 +51,115 @@ final class EventEditorViewModel: ObservableObject {
         }
     }
 
-    @Published var title = ""
-    @Published var summary = ""
-    @Published var details = ""
-    @Published var city = ""
-    @Published var venue = ""
-    @Published var address = ""
+    @Published var title = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var summary = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var details = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var city = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var venue = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var address = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
     @Published var locationNote = "" {
         didSet {
-            guard locationNote.count > Self.locationNoteCharacterLimit else { return }
+            guard locationNote.count > Self.locationNoteCharacterLimit else {
+                scheduleCreateDraftAutosave()
+                return
+            }
             locationNote = String(locationNote.prefix(Self.locationNoteCharacterLimit))
+            scheduleCreateDraftAutosave()
         }
     }
-    @Published var latitude: Double?
-    @Published var longitude: Double?
-    @Published var eventOrganizerName = ""
-    @Published var organizerURL = ""
-    @Published var contactPhone = ""
-    @Published var contactEmail = ""
-    @Published var contactURL = ""
-    @Published var selectedFederalState: AustrianFederalState = .tirol
-    @Published var startDate = Date()
-    @Published var endDate = Date().addingTimeInterval(60 * 60)
-    @Published var selectedCategory: EventCategory = .meetups
-    @Published var tags: [String] = []
-    @Published var tagInput = ""
-    @Published var isAllDay = false
-    @Published var requiresRegistration = true
-    @Published var priceText = ""
-    @Published var capacityText = ""
+    @Published var latitude: Double? {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var longitude: Double? {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var eventOrganizerName = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var organizerURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var contactPhone = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var contactEmail = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var contactURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var selectedFederalState: AustrianFederalState = .tirol {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var startDate = Date() {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var endDate = Date().addingTimeInterval(60 * 60) {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var selectedCategory: EventCategory = .meetups {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var tags: [String] = [] {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var tagInput = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var isAllDay = false {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var requiresRegistration = true {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var priceText = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var capacityText = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
     @Published var isPublishing = false
     @Published var isUploadingImage = false
     @Published var isProcessingImage = false
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
+    @Published private(set) var pendingRecoveryDraft: EventCreateDraft?
     private var selectedProcessedImage: ProcessedImageSelection?
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: EventRepository
+    private let draftRecoveryService: LocalDraftRecoveryService
     private let imageUploadService = ImageUploadService.shared
     private let mode: Mode
+    private var draftAutosaveTask: Task<Void, Never>?
+    private var hasCheckedCreateDraftRecovery = false
+    private var isApplyingRecoveredDraft = false
+    private var hasMeaningfulCreateDraftMetadata = false
 
-    init(repository: EventRepository, mode: Mode = .create()) {
+    init(
+        repository: EventRepository,
+        mode: Mode = .create(),
+        draftRecoveryService: LocalDraftRecoveryService? = nil
+    ) {
         self.repository = repository
         self.mode = mode
+        self.draftRecoveryService = draftRecoveryService ?? .shared
 
         if case let .create(context) = mode {
             selectedCreateContext = context
-            eventOrganizerName = context.organizationName ?? ""
         }
 
         if case let .edit(existingEvent) = mode {
@@ -129,6 +189,10 @@ final class EventEditorViewModel: ObservableObject {
         }
     }
 
+    deinit {
+        draftAutosaveTask?.cancel()
+    }
+
     var canPublish: Bool {
         !trimmedTitle.isEmpty
             && !trimmedSummary.isEmpty
@@ -154,6 +218,16 @@ final class EventEditorViewModel: ObservableObject {
         mode.isEditing
     }
 
+    var hasPendingRecoveryDraft: Bool {
+        pendingRecoveryDraft != nil
+    }
+
+    var shouldConfirmDraftBeforeDismiss: Bool {
+        guard isCreateMode else { return false }
+        guard !isPublishing, !isUploadingImage, !isProcessingImage else { return false }
+        return currentEventCreateDraft().hasMeaningfulContent
+    }
+
     var showsRegionPicker: Bool {
         isAppLevelEvent
     }
@@ -173,6 +247,10 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     var organizerName: String? {
+        publishingOrganizationName
+    }
+
+    var publishingOrganizationName: String? {
         switch mode {
         case .create:
             selectedCreateContext?.organizationName
@@ -276,15 +354,60 @@ final class EventEditorViewModel: ObservableObject {
 
     func selectOrganizer(_ organization: Organization) {
         guard case .create = mode else { return }
-        if eventOrganizerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            eventOrganizerName = organization.name
-        }
         selectedCreateContext = CreateContext(
             organizationId: organization.id,
             organizationName: organization.name,
             organizationImageURL: organization.imageURL,
             organizationFederalState: organization.federalState
         )
+        if currentEventCreateDraft().hasMeaningfulContent {
+            scheduleCreateDraftAutosave()
+        }
+    }
+
+    func loadRecoverableDraftIfNeeded() async {
+        guard isCreateMode, !hasCheckedCreateDraftRecovery else { return }
+        hasCheckedCreateDraftRecovery = true
+
+        do {
+            guard let draft = try await draftRecoveryService.loadEventCreateDraft(key: createDraftStorageKey),
+                  draft.hasMeaningfulContent else {
+                pendingRecoveryDraft = nil
+                return
+            }
+            pendingRecoveryDraft = draft
+        } catch {
+            pendingRecoveryDraft = nil
+        }
+    }
+
+    func continueRecoveredDraft() {
+        guard let draft = pendingRecoveryDraft, isCreateMode else { return }
+        applyRecoveredDraft(draft)
+        pendingRecoveryDraft = nil
+    }
+
+    func createNewInsteadOfRecoveredDraft() async {
+        pendingRecoveryDraft = nil
+        hasMeaningfulCreateDraftMetadata = false
+        try? await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)
+    }
+
+    func deleteRecoveredDraft() async {
+        pendingRecoveryDraft = nil
+        hasMeaningfulCreateDraftMetadata = false
+        try? await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)
+    }
+
+    func saveDraftBeforeClosing() async {
+        await saveCurrentCreateDraftIfNeeded()
+    }
+
+    func discardCreateDraft() async {
+        draftAutosaveTask?.cancel()
+        pendingRecoveryDraft = nil
+        hasMeaningfulCreateDraftMetadata = false
+        try? await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)
     }
 
     func applyLocation(
@@ -534,6 +657,11 @@ final class EventEditorViewModel: ObservableObject {
             }
 
             AppContentChangeBus.postEventsChanged(organizationID: newEvent.source.organizationId)
+            if isCreateMode {
+                draftAutosaveTask?.cancel()
+                try? await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)
+            }
+            hasMeaningfulCreateDraftMetadata = false
             title = ""
             summary = ""
             details = ""
@@ -744,6 +872,137 @@ final class EventEditorViewModel: ObservableObject {
 
     private var isAppLevelEvent: Bool {
         !isOrganizationEvent
+    }
+
+    private var isCreateMode: Bool {
+        if case .create = mode {
+            return true
+        }
+        return false
+    }
+
+    private var createDraftStorageKey: String {
+        guard case .create = mode else {
+            return "event-create-edit-ignored"
+        }
+
+        let organizationID = selectedCreateContext?.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !organizationID.isEmpty else {
+            return "event-create"
+        }
+        return "event-create-organization-\(organizationID)"
+    }
+
+    private func scheduleCreateDraftAutosave() {
+        guard isCreateMode, !isApplyingRecoveredDraft else { return }
+        guard !isPublishing, !isUploadingImage, !isProcessingImage else { return }
+
+        draftAutosaveTask?.cancel()
+        draftAutosaveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(650))
+            guard !Task.isCancelled else { return }
+            await self?.saveCurrentCreateDraftIfNeeded()
+        }
+    }
+
+    private func markCreateDraftMetadataChanged() {
+        guard isCreateMode, !isApplyingRecoveredDraft else { return }
+        guard !isPublishing, !isUploadingImage, !isProcessingImage else { return }
+        hasMeaningfulCreateDraftMetadata = true
+        scheduleCreateDraftAutosave()
+    }
+
+    private func saveCurrentCreateDraftIfNeeded() async {
+        guard isCreateMode else { return }
+        guard !isPublishing, !isUploadingImage, !isProcessingImage else { return }
+
+        let draft = currentEventCreateDraft()
+        do {
+            if draft.hasMeaningfulContent {
+                try await draftRecoveryService.saveEventCreateDraft(draft, key: createDraftStorageKey)
+            } else {
+                try await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)
+            }
+        } catch {
+            // Draft recovery is best-effort and must not block event publishing.
+        }
+    }
+
+    private func currentEventCreateDraft(updatedAt: Date = Date()) -> EventCreateDraft {
+        EventCreateDraft(
+            version: EventCreateDraft.currentVersion,
+            hasMeaningfulMetadata: hasMeaningfulCreateDraftMetadata,
+            updatedAt: updatedAt,
+            organizationId: selectedCreateContext?.organizationId,
+            organizationName: selectedCreateContext?.organizationName,
+            organizationImageURL: selectedCreateContext?.organizationImageURL,
+            organizationFederalState: selectedCreateContext?.organizationFederalState,
+            title: title,
+            summary: summary,
+            details: details,
+            city: city,
+            venue: venue,
+            address: address,
+            locationNote: locationNote,
+            latitude: latitude,
+            longitude: longitude,
+            eventOrganizerName: eventOrganizerName,
+            organizerURL: organizerURL,
+            contactPhone: contactPhone,
+            contactEmail: contactEmail,
+            contactURL: contactURL,
+            selectedFederalState: selectedFederalState,
+            startDate: startDate,
+            endDate: endDate,
+            isAllDay: isAllDay,
+            selectedCategory: selectedCategory,
+            tags: tags,
+            tagInput: tagInput,
+            requiresRegistration: requiresRegistration,
+            priceText: priceText,
+            capacityText: capacityText
+        )
+    }
+
+    private func applyRecoveredDraft(_ draft: EventCreateDraft) {
+        isApplyingRecoveredDraft = true
+
+        if let organizationId = draft.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines), !organizationId.isEmpty {
+            selectedCreateContext = CreateContext(
+                organizationId: organizationId,
+                organizationName: draft.organizationName,
+                organizationImageURL: draft.organizationImageURL,
+                organizationFederalState: draft.organizationFederalState
+            )
+        }
+
+        title = draft.title
+        summary = draft.summary
+        details = draft.details
+        city = draft.city
+        venue = draft.venue
+        address = draft.address
+        locationNote = draft.locationNote
+        latitude = draft.latitude
+        longitude = draft.longitude
+        eventOrganizerName = draft.eventOrganizerName
+        organizerURL = draft.organizerURL
+        contactPhone = draft.contactPhone
+        contactEmail = draft.contactEmail
+        contactURL = draft.contactURL
+        selectedFederalState = draft.selectedFederalState
+        startDate = draft.startDate
+        endDate = draft.endDate
+        isAllDay = draft.isAllDay
+        selectedCategory = draft.selectedCategory
+        tags = draft.tags
+        tagInput = draft.tagInput
+        requiresRegistration = draft.requiresRegistration
+        priceText = draft.priceText
+        capacityText = draft.capacityText
+        hasMeaningfulCreateDraftMetadata = draft.hasMeaningfulMetadata == true
+
+        isApplyingRecoveredDraft = false
     }
 
     private var resolvedFederalState: AustrianFederalState? {

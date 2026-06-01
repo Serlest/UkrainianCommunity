@@ -86,9 +86,7 @@ struct FirestoreGuideRepository: GuideRepository {
         guard let existingArticle = makeGuideArticle(from: snapshot) else {
             throw AppError.validationFailed
         }
-        guard existingArticle.moderationStatus == .draft,
-              existingArticle.status == nil || existingArticle.status == .draft,
-              existingArticle.archivedAt == nil else {
+        guard isEditableGuideArticle(existingArticle) else {
             throw AppError.validationFailed
         }
 
@@ -149,5 +147,35 @@ struct FirestoreGuideRepository: GuideRepository {
         _ = try await CloudFunctionsClient.shared.archiveGuideArticle(
             GuideWorkflowFunctionRequest(articleId: trimmedId)
         )
+    }
+
+    func deleteGuideArticle(id: String, editorId: String) async throws {
+        let trimmedId = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEditorId = editorId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty, !trimmedEditorId.isEmpty else {
+            throw AppError.permissionDenied
+        }
+
+        let document = collection.document(trimmedId)
+        let snapshot = try await document.getDocument()
+        guard snapshot.exists else {
+            throw AppError.notFound
+        }
+        guard let existingArticle = makeGuideArticle(from: snapshot),
+              isEditableGuideArticle(existingArticle) else {
+            throw AppError.validationFailed
+        }
+
+        try await document.delete()
+    }
+
+    private func isEditableGuideArticle(_ article: GuideArticle) -> Bool {
+        guard article.archivedAt == nil else { return false }
+
+        let isDraft = article.moderationStatus == .draft
+            && (article.status == nil || article.status == .draft)
+        let isPublished = article.moderationStatus == .approved
+            && article.status == .published
+        return isDraft || isPublished
     }
 }

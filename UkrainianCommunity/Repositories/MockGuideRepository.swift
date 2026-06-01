@@ -49,6 +49,10 @@ struct MockGuideRepository: GuideRepository {
     func archiveGuideArticle(id: String, editorId: String) async throws {
         try await store.archiveGuideArticle(id: id, editorId: editorId)
     }
+
+    func deleteGuideArticle(id: String, editorId: String) async throws {
+        try await store.deleteGuideArticle(id: id, editorId: editorId)
+    }
 }
 
 typealias MockInfoRepository = MockGuideRepository

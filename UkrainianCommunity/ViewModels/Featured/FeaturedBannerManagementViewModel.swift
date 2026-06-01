@@ -9,27 +9,24 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
     @Published private(set) var updatingBannerIDs: Set<String> = []
 
     private let repository: FeaturedBannerRepository
+    private var loadTask: Task<Void, Never>?
+    private var hasLoaded = false
 
     init(repository: FeaturedBannerRepository) {
         self.repository = repository
     }
 
-    func loadBanners() async {
-        isLoading = true
-        defer { isLoading = false }
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await startLoad(force: false)
+    }
 
-        do {
-            banners = try await repository.fetchAllBannersForOwner()
-            error = nil
-        } catch let appError as AppError {
-            error = appError
-        } catch {
-            self.error = .unknown
-        }
+    func loadBanners() async {
+        await refresh()
     }
 
     func refresh() async {
-        await loadBanners()
+        await startLoad(force: true)
     }
 
     func setActive(_ isActive: Bool, for banner: FeaturedBanner, updatedBy userID: String?) async {
@@ -88,6 +85,41 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
         } catch let appError as AppError {
             error = appError
         } catch {
+            self.error = .unknown
+        }
+    }
+
+    private func startLoad(force: Bool) async {
+        guard force || !hasLoaded else { return }
+
+        if let loadTask {
+            await loadTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad()
+        }
+        loadTask = task
+        await task.value
+        loadTask = nil
+    }
+
+    private func performLoad() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            banners = try await repository.fetchAllBannersForOwner()
+            error = nil
+            hasLoaded = true
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
             self.error = .unknown
         }
     }

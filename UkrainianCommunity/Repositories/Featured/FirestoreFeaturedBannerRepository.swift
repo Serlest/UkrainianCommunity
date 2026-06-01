@@ -104,7 +104,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                 updatedBy: banner.updatedBy
             )
             try validationService.validate(updatedBanner)
-            try await document.setData(makeData(from: updatedBanner))
+            try await document.updateData(makeUpdateData(from: updatedBanner))
         } catch {
             throw appError(from: error)
         }
@@ -157,7 +157,6 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
 
     private func makeBanner(id documentID: String, data: [String: Any]) throws -> FeaturedBanner {
         guard
-            let title = data[Field.title.rawValue] as? String,
             let actionTypeValue = data[Field.actionType.rawValue] as? String,
             let actionType = FeaturedBannerActionType(rawValue: actionTypeValue),
             let regionScopeValue = data[Field.regionScope.rawValue] as? String,
@@ -181,7 +180,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         let federalState = (data[Field.federalState.rawValue] as? String).flatMap(AustrianFederalState.init(rawValue:))
         let banner = FeaturedBanner(
             id: (data[Field.id.rawValue] as? String) ?? documentID,
-            title: title,
+            title: data[Field.title.rawValue] as? String ?? "",
             subtitle: data[Field.subtitle.rawValue] as? String,
             imageURL: data[Field.imageURL.rawValue] as? String,
             actionType: actionType,
@@ -205,9 +204,22 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     }
 
     private func makeData(from banner: FeaturedBanner) -> [String: Any] {
+        var data = makeMutableData(from: banner)
+        data[Field.id.rawValue] = banner.id
+        data[Field.createdAt.rawValue] = Timestamp(date: banner.createdAt)
+        data[Field.createdBy.rawValue] = banner.createdBy
+        return data
+    }
+
+    private func makeUpdateData(from banner: FeaturedBanner) -> [String: Any] {
+        makeMutableData(from: banner, deletesClearedOptionalFields: true)
+    }
+
+    private func makeMutableData(
+        from banner: FeaturedBanner,
+        deletesClearedOptionalFields: Bool = false
+    ) -> [String: Any] {
         var data: [String: Any] = [
-            Field.id.rawValue: banner.id,
-            Field.title.rawValue: banner.title,
             Field.imageURL.rawValue: nonEmpty(banner.imageURL) ?? "",
             Field.actionType.rawValue: banner.actionType.rawValue,
             Field.regionScope.rawValue: banner.regionScope.rawValue,
@@ -215,34 +227,37 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             Field.displayDurationSeconds.rawValue: banner.displayDurationSeconds,
             Field.priority.rawValue: banner.priority,
             Field.isActive.rawValue: banner.isActive,
-            Field.createdAt.rawValue: Timestamp(date: banner.createdAt),
-            Field.updatedAt.rawValue: Timestamp(date: banner.updatedAt),
-            Field.createdBy.rawValue: banner.createdBy
+            Field.updatedAt.rawValue: Timestamp(date: banner.updatedAt)
         ]
 
-        if let subtitle = nonEmpty(banner.subtitle) {
-            data[Field.subtitle.rawValue] = subtitle
-        }
-        if let actionTargetID = nonEmpty(banner.actionTargetID) {
-            data[Field.actionTargetID.rawValue] = actionTargetID
-        }
-        if let externalURL = nonEmpty(banner.externalURL) {
-            data[Field.externalURL.rawValue] = externalURL
-        }
-        if let federalState = banner.federalState {
-            data[Field.federalState.rawValue] = federalState.rawValue
-        }
-        if let startsAt = banner.startsAt {
-            data[Field.startsAt.rawValue] = Timestamp(date: startsAt)
-        }
-        if let endsAt = banner.endsAt {
-            data[Field.endsAt.rawValue] = Timestamp(date: endsAt)
-        }
-        if let updatedBy = nonEmpty(banner.updatedBy) {
-            data[Field.updatedBy.rawValue] = updatedBy
+        setOptionalValue(nonEmpty(banner.title), forKey: Field.title.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+        setOptionalValue(nonEmpty(banner.subtitle), forKey: Field.subtitle.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+        setOptionalValue(nonEmpty(banner.actionTargetID), forKey: Field.actionTargetID.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+        setOptionalValue(nonEmpty(banner.externalURL), forKey: Field.externalURL.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+        setOptionalValue(banner.federalState?.rawValue, forKey: Field.federalState.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+        setOptionalValue(banner.startsAt.map(Timestamp.init(date:)), forKey: Field.startsAt.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+        setOptionalValue(banner.endsAt.map(Timestamp.init(date:)), forKey: Field.endsAt.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+
+        if deletesClearedOptionalFields {
+            data[Field.updatedBy.rawValue] = nonEmpty(banner.updatedBy) ?? ""
+        } else {
+            setOptionalValue(nonEmpty(banner.updatedBy), forKey: Field.updatedBy.rawValue, in: &data, deleteIfNil: false)
         }
 
         return data
+    }
+
+    private func setOptionalValue(
+        _ value: Any?,
+        forKey key: String,
+        in data: inout [String: Any],
+        deleteIfNil: Bool
+    ) {
+        if let value {
+            data[key] = value
+        } else if deleteIfNil {
+            data[key] = FieldValue.delete()
+        }
     }
 
     private func intValue(_ value: Any?) -> Int? {

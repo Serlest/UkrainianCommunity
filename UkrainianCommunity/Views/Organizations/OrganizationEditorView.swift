@@ -13,6 +13,8 @@ struct OrganizationEditorView: View {
     @State var cropSourceLogoImage: UIImage?
     @State var isShowingLogoCrop = false
     @State var ignoresNextPhotoClear = false
+    @State var isShowingDraftRecoveryDialog = false
+    @State var isShowingDraftCloseConfirmation = false
     let onSaved: @MainActor () async -> Void
     let editorSectionSpacing: CGFloat = 8
     let editorCardSpacing: CGFloat = 8
@@ -78,6 +80,49 @@ struct OrganizationEditorView: View {
                 )
             }
         }
+        .confirmationDialog(
+            AppStrings.DraftRecovery.recoveryTitle,
+            isPresented: $isShowingDraftRecoveryDialog,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.DraftRecovery.continueDraft) {
+                viewModel.continueRecoveredDraft()
+            }
+            Button(AppStrings.DraftRecovery.createNew) {
+                Task {
+                    await viewModel.createNewInsteadOfRecoveredDraft()
+                }
+            }
+            Button(AppStrings.DraftRecovery.deleteDraft, role: .destructive) {
+                Task {
+                    await viewModel.deleteRecoveredDraft()
+                }
+            }
+        } message: {
+            Text(AppStrings.DraftRecovery.organizationRecoveryMessage)
+        }
+        .confirmationDialog(
+            AppStrings.DraftRecovery.closeTitle,
+            isPresented: $isShowingDraftCloseConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.DraftRecovery.saveDraftAndClose) {
+                Task {
+                    await viewModel.saveDraftBeforeClosing()
+                    dismiss()
+                }
+            }
+            Button(AppStrings.DraftRecovery.discardDraft, role: .destructive) {
+                Task {
+                    await viewModel.discardCreateDraft()
+                    dismiss()
+                }
+            }
+            Button(AppStrings.DraftRecovery.continueEditing, role: .cancel) {}
+        } message: {
+            Text(AppStrings.DraftRecovery.organizationCloseMessage)
+        }
+        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss)
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false
@@ -87,6 +132,14 @@ struct OrganizationEditorView: View {
                 await loadSelectedPhoto(item: newItem)
             }
         }
+        .task {
+            await loadRecoverableDraftIfNeeded()
+        }
+    }
+
+    func loadRecoverableDraftIfNeeded() async {
+        await viewModel.loadRecoverableDraftIfNeeded()
+        isShowingDraftRecoveryDialog = viewModel.hasPendingRecoveryDraft
     }
 
     var moderationNoticeCard: some View {

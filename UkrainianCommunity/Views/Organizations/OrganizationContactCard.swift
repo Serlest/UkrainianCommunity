@@ -51,6 +51,36 @@ struct OrganizationContactCard: View {
                 )
             )
         }
+        if let whatsappURL = organizationSocialURL(for: organization, matching: "whatsapp") {
+            items.append(
+                OrganizationContactItem(
+                    title: AppStrings.Organizations.fieldWhatsApp,
+                    value: cleanURLDisplayText(whatsappURL),
+                    systemImage: "phone.bubble",
+                    destination: whatsappURL
+                )
+            )
+        }
+        if let youtubeURL = organizationSocialURL(for: organization, matching: "youtube") {
+            items.append(
+                OrganizationContactItem(
+                    title: AppStrings.Organizations.fieldYouTube,
+                    value: cleanURLDisplayText(youtubeURL),
+                    systemImage: "play.rectangle",
+                    destination: youtubeURL
+                )
+            )
+        }
+        if let linkedinURL = organizationSocialURL(for: organization, matching: "linkedin") {
+            items.append(
+                OrganizationContactItem(
+                    title: AppStrings.Organizations.fieldLinkedIn,
+                    value: cleanURLDisplayText(linkedinURL),
+                    systemImage: "briefcase",
+                    destination: linkedinURL
+                )
+            )
+        }
         if let contactEmail = organizationContactText(for: organization),
            let destination = emailURL(for: contactEmail) {
             items.append(

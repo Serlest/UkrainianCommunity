@@ -2077,6 +2077,244 @@
         }
       }
     },
+    "draft_recovery.close.continue_editing" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter bearbeiten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продовжити редагування"
+          }
+        }
+      }
+    },
+    "draft_recovery.close.discard" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwerfen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилити"
+          }
+        }
+      }
+    },
+    "draft_recovery.close.event_message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast ungespeicherte Event-Inhalte. Speichere sie lokal, bevor du schließt, oder verwirf sie."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас є незбережений текст події. Збережіть його локально перед закриттям або відхиліть."
+          }
+        }
+      }
+    },
+    "draft_recovery.close.message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast ungespeicherte News-Inhalte. Speichere sie lokal, bevor du schließt, oder verwirf sie."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас є незбережений текст новини. Збережіть його локально перед закриттям або відхиліть."
+          }
+        }
+      }
+    },
+    "draft_recovery.close.organization_message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast ungespeicherte Organisationsdaten. Speichere sie lokal, bevor du schließt, oder verwirf sie."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас є незбережені дані організації. Збережіть їх локально перед закриттям або відхиліть."
+          }
+        }
+      }
+    },
+    "draft_recovery.close.save" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurf speichern und schließen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зберегти чернетку й закрити"
+          }
+        }
+      }
+    },
+    "draft_recovery.close.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurf speichern?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зберегти чернетку?"
+          }
+        }
+      }
+    },
+    "draft_recovery.recovery.continue" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurf fortsetzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продовжити чернетку"
+          }
+        }
+      }
+    },
+    "draft_recovery.recovery.create_new" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu erstellen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Створити нову"
+          }
+        }
+      }
+    },
+    "draft_recovery.recovery.delete" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entwurf löschen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити чернетку"
+          }
+        }
+      }
+    },
+    "draft_recovery.recovery.event_message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein lokaler Entwurf aus deiner letzten Event-Erstellung ist verfügbar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступна локальна чернетка з попереднього створення події."
+          }
+        }
+      }
+    },
+    "draft_recovery.recovery.message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein lokaler Entwurf aus deiner letzten News-Erstellung ist verfügbar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступна локальна чернетка з попереднього створення новини."
+          }
+        }
+      }
+    },
+    "draft_recovery.recovery.organization_message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein lokaler Entwurf aus deiner letzten Organisationserstellung ist verfügbar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступна локальна чернетка з попереднього створення організації."
+          }
+        }
+      }
+    },
+    "draft_recovery.recovery.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gespeicherten Entwurf fortsetzen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продовжити збережену чернетку?"
+          }
+        }
+      }
+    },
     "events.all_day" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2264,6 +2502,23 @@
         }
       }
     },
+    "events.detail.organizer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstalter"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Організатор"
+          }
+        }
+      }
+    },
     "events.detail.organizer_contact" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2277,6 +2532,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Організатор і контакти"
+          }
+        }
+      }
+    },
+    "events.detail.published_by" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veröffentlicht von"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опубліковано"
           }
         }
       }
@@ -2864,13 +3136,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Organisation oder externer Veranstalter"
+            "value" : "Externer Veranstalter, falls abweichend"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Організація або зовнішній організатор"
+            "value" : "Зовнішній організатор, якщо відрізняється"
           }
         }
       }
@@ -2949,13 +3221,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veranstalter *"
+            "value" : "Veranstalter"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Організатор *"
+            "value" : "Організатор"
           }
         }
       }
@@ -3160,6 +3432,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Після публікації подію буде видно у стрічці та в календарі подій."
+          }
+        }
+      }
+    },
+    "events.editor.publisher_section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veröffentlichende Organisation"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Організація-публікатор"
           }
         }
       }
@@ -4251,1502 +4540,1553 @@
         }
       }
     },
-    "featured.management.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured Content"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Рекомендований контент"
-                  }
-            }
+    "featured.editor.action.clear_target" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewähltes Ziel entfernen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити вибрану ціль"
+          }
+        }
       }
     },
-    "featured.management.profile_entry.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured Content"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Рекомендований контент"
-                  }
-            }
+    "featured.editor.action.load_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswählbare Ziele können derzeit nicht geladen werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити доступні цілі."
+          }
+        }
       }
     },
-    "featured.management.profile_entry.subtitle" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Highlights auf Home, Events, Organisationen und Guide verwalten."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Керуйте виділеннями на головній, подіях, організаціях і в гайді."
-                  }
-            }
-      }
-    },
-    "featured.management.subtitle" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Aktive und geplante Highlights prüfen und bearbeiten."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Переглядайте й редагуйте активні та заплановані виділення."
-                  }
-            }
-      }
-    },
-    "featured.management.empty.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Noch keine Featured-Banner"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Ще немає рекомендованих банерів"
-                  }
-            }
-      }
-    },
-    "featured.management.empty.message" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Erstellen Sie den ersten Banner für die öffentlichen Karussells."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Створіть перший банер для публічних каруселей."
-                  }
-            }
-      }
-    },
-    "featured.management.inactive" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Inaktiv"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Неактивний"
-                  }
-            }
-      }
-    },
-    "featured.management.active_toggle" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Aktiv"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Активний"
-                  }
-            }
-      }
-    },
-    "featured.management.updating" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Wird aktualisiert"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Оновлення"
-                  }
-            }
-      }
-    },
-    "featured.management.sections" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bereiche"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Розділи"
-                  }
-            }
-      }
-    },
-    "featured.management.region" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Region"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Регіон"
-                  }
-            }
-      }
-    },
-    "featured.management.action" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Aktion"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Дія"
-                  }
-            }
-      }
-    },
-    "featured.management.priority" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Priorität"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Пріоритет"
-                  }
-            }
-      }
-    },
-    "featured.management.missing_region" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Region fehlt"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Регіон відсутній"
-                  }
-            }
-      }
-    },
-    "featured.management.action.none" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Keine Aktion"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Без дії"
-                  }
-            }
-      }
-    },
-    "featured.management.action.external_url" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Externe URL"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зовнішня URL-адреса"
-                  }
-            }
-      }
-    },
-    "featured.management.action.announcement" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Ankündigung"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Оголошення"
-                  }
-            }
-      }
-    },
-    "featured.management.action.emergency" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Notfall"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Термінове"
-                  }
-            }
-      }
-    },
-    "featured.management.action.partner" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Partner"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Партнер"
-                  }
-            }
-      }
-    },
-    "featured.management.error.network" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured Content konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Не вдалося завантажити рекомендований контент. Перевірте з'єднання й спробуйте ще раз."
-                  }
-            }
-      }
-    },
-    "featured.management.error.permission" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Sie haben keine Berechtigung, Featured Content zu verwalten."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "У вас немає дозволу керувати рекомендованим контентом."
-                  }
-            }
-      }
-    },
-    "featured.management.error.validation" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Die Featured-Content-Daten sind unvollständig oder ungültig."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Дані рекомендованого контенту неповні або недійсні."
-                  }
-            }
-      }
-    },
-    "featured.management.error.not_found" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured Content wurde nicht gefunden."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Рекомендований контент не знайдено."
-                  }
-            }
-      }
-    },
-    "featured.management.error.unknown" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured Content kann gerade nicht aktualisiert werden."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зараз не вдалося оновити рекомендований контент."
-                  }
-            }
-      }
-    },
-    "featured.editor.create.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured-Banner erstellen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Створити рекомендований банер"
-                  }
-            }
-      }
-    },
-    "featured.editor.edit.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured-Banner bearbeiten"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Редагувати рекомендований банер"
-                  }
-            }
-      }
-    },
-    "featured.editor.subtitle" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Konfigurieren Sie das Highlight für öffentliche Banner-Karussells."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Налаштуйте виділення для публічних каруселей банерів."
-                  }
-            }
-      }
-    },
-    "featured.editor.create_banner" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Banner erstellen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Створити банер"
-                  }
-            }
-      }
-    },
-    "featured.editor.edit_banner" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Banner bearbeiten"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Редагувати банер"
-                  }
-            }
-      }
-    },
-    "featured.editor.create_entry.subtitle" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Ein neues Highlight für einen oder mehrere Bereiche hinzufügen."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Додайте нове виділення для одного або кількох розділів."
-                  }
-            }
-      }
-    },
-    "featured.editor.save_changes" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Änderungen speichern"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зберегти зміни"
-                  }
-            }
-      }
-    },
-    "featured.editor.saving" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Speichern"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Збереження"
-                  }
-            }
-      }
-    },
-    "featured.editor.save_success" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured-Banner gespeichert."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Рекомендований банер збережено."
-                  }
-            }
-      }
-    },
-    "featured.editor.section.basics" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Grundlagen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Основне"
-                  }
-            }
-      }
-    },
-    "featured.editor.section.image" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bild"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зображення"
-                  }
-            }
-      }
-    },
-    "featured.editor.section.targeting" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Zielgruppe"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Таргетинг"
-                  }
-            }
-      }
-    },
-    "featured.editor.section.action" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Aktion"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Дія"
-                  }
-            }
-      }
-    },
-    "featured.editor.section.scheduling" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Zeitplanung"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Розклад"
-                  }
-            }
-      }
-    },
-    "featured.editor.field.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Titel"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Назва"
-                  }
-            }
-      }
-    },
-    "featured.editor.field.subtitle" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Untertitel"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Підзаголовок"
-                  }
-            }
-      }
-    },
-    "featured.editor.image.helper" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Verwenden Sie ein breites 16:9-Bild. Das öffentliche Karussell schneidet sicher innerhalb der Kartenränder zu."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Використовуйте широке зображення 16:9. Публічна карусель безпечно обрізає його в межах картки."
-                  }
-            }
-      }
-    },
-    "featured.editor.image.replace" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bild ersetzen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Замінити зображення"
-                  }
-            }
-      }
-    },
-    "featured.editor.image.upload" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bannerbild hochladen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Завантажити зображення банера"
-                  }
-            }
-      }
-    },
-    "featured.editor.image.upload_helper" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Vor dem Speichern ist ein Bannerbild erforderlich."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Перед збереженням потрібно додати зображення банера."
-                  }
-            }
-      }
-    },
-    "featured.editor.image.load_failed" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Das ausgewählte Bild konnte nicht geladen werden."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Не вдалося завантажити вибране зображення."
-                  }
-            }
-      }
-    },
-    "featured.editor.validation.image_aspect_ratio" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Das Bild muss im Format 16:9 sein. Wähle ein horizontales Bild oder schneide es vor dem Hochladen zu."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зображення має бути у форматі 16:9. Оберіть горизонтальне фото або обріжте його перед завантаженням."
-                  }
-            }
-      }
-    },
-    "image.crop.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bild zuschneiden"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Обрізати зображення"
-                  }
-            }
-      }
-    },
-    "image.crop.hint" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Ziehen zum Verschieben. Zusammendrücken zum Zoomen."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Перетягуйте, щоб змінити позицію. Зведіть або розведіть пальці для масштабу."
-                  }
-            }
-      }
-    },
-    "image.crop.reset" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Zurücksetzen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Скинути"
-                  }
-            }
-      }
-    },
-    "image.crop.cancel" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Abbrechen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Скасувати"
-                  }
-            }
-      }
-    },
-    "image.crop.apply" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Anwenden"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Застосувати"
-                  }
-            }
-      }
-    },
-    "image.validation.aspect_ratio.square" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Das Bild muss quadratisch sein. Schneide es vor dem Hochladen passend zum Rahmen zu."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зображення має бути квадратним. Обріжте його відповідно до рамки перед завантаженням."
-                  }
-            }
-      }
-    },
-    "featured.editor.crop.title" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bannerbild zuschneiden"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Обрізати зображення банера"
-                  }
-            }
-      }
-    },
-    "featured.editor.crop.instructions" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Verschiebe und skaliere das Bild im 16:9-Rahmen."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Перемістіть і масштабуйте зображення в рамці 16:9."
-                  }
-            }
-      }
-    },
-    "featured.editor.crop.gesture_hint" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Ziehen zum Verschieben. Zusammendrücken zum Zoomen."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Перетягуйте, щоб змінити позицію. Зведіть або розведіть пальці для масштабу."
-                  }
-            }
-      }
-    },
-    "featured.editor.crop.reset" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Zurücksetzen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Скинути"
-                  }
-            }
-      }
-    },
-    "featured.editor.crop.apply" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Anwenden"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Застосувати"
-                  }
-            }
-      }
-    },
-    "featured.editor.field.region_scope" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Regionsumfang"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Охоплення регіону"
-                  }
-            }
-      }
-    },
-    "featured.editor.region_scope.federal_state" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bundesland"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Федеральна земля"
-                  }
-            }
-      }
-    },
-    "featured.editor.field.federal_state" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bundesland"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Федеральна земля"
-                  }
-            }
-      }
-    },
-    "featured.editor.select_federal_state" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Bundesland auswählen"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Виберіть федеральну землю"
-                  }
-            }
-      }
-    },
-    "featured.editor.field.visible_sections" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Sichtbare Bereiche"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Видимі розділи"
-                  }
-            }
-      }
-    },
-    "featured.editor.field.action_type" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Aktionstyp"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Тип дії"
-                  }
-            }
-      }
-    },
-    "featured.editor.field.action_target" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Ziel-ID"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "ID цілі"
-                  }
-            }
+    "featured.editor.action.loading_targets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziele werden geladen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження цілей"
+          }
+        }
       }
     },
     "featured.editor.action.manual_target_helper" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Geben Sie die bestehende Content-ID manuell ein. Die Inhaltsauswahl folgt später."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Введіть наявний ID контенту вручну. Вибір контенту буде пізніше."
-                  }
-            }
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geben Sie die bestehende Content-ID für Aktionstypen ohne Auswahl manuell ein."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введіть наявний ID контенту вручну для типів дій без вибору зі списку."
+          }
+        }
       }
     },
-    "featured.editor.field.external_url" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Externe URL"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зовнішня URL-адреса"
-                  }
-            }
+    "featured.editor.action.no_targets.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versuchen Sie eine andere Suche oder aktualisieren Sie die Liste."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спробуйте інший пошук або оновіть список."
+          }
+        }
       }
     },
-    "featured.editor.field.duration" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Anzeigedauer"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Тривалість показу"
-                  }
-            }
+    "featured.editor.action.no_targets.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine passenden Ziele"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Немає відповідних цілей"
+          }
+        }
       }
     },
-    "featured.editor.field.priority" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Priorität"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Пріоритет"
-                  }
-            }
+    "featured.editor.action.picker_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ auswählen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виберіть %@"
+          }
+        }
       }
     },
-    "featured.editor.starts_at.enabled" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Startdatum verwenden"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Використовувати дату початку"
-                  }
-            }
+    "featured.editor.action.search_target" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Titel, Quelle, Ort oder ID suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук за назвою, джерелом, місцем або ID"
+          }
+        }
       }
     },
-    "featured.editor.field.starts_at" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Beginnt am"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Починається"
-                  }
-            }
+    "featured.editor.action.select_target" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziel auswählen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виберіть ціль"
+          }
+        }
       }
     },
-    "featured.editor.ends_at.enabled" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Enddatum verwenden"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Використовувати дату завершення"
-                  }
-            }
+    "featured.editor.action.selected_id" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID: %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID: %@"
+          }
+        }
       }
     },
-    "featured.editor.field.ends_at" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Endet am"
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Завершується"
-                  }
-            }
+    "featured.editor.create_banner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner erstellen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Створити банер"
+          }
+        }
       }
     },
-    "featured.editor.validation.title_required" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Titel ist erforderlich."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Назва обов'язкова."
-                  }
-            }
+    "featured.editor.create_entry.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein neues Highlight für einen oder mehrere Bereiche hinzufügen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додайте нове виділення для одного або кількох розділів."
+          }
+        }
       }
     },
-    "featured.editor.validation.image_required" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Wählen oder behalten Sie vor dem Speichern ein Bannerbild."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Виберіть або залиште зображення банера перед збереженням."
-                  }
-            }
+    "featured.editor.create.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured-Banner erstellen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Створити рекомендований банер"
+          }
+        }
       }
     },
-    "featured.editor.validation.duration" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Die Anzeigedauer muss zwischen 3 und 12 Sekunden liegen."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Тривалість показу має бути від 3 до 12 секунд."
-                  }
-            }
+    "featured.editor.crop.apply" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anwenden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Застосувати"
+          }
+        }
       }
     },
-    "featured.editor.validation.priority" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Die Priorität muss zwischen 0 und 1000 liegen."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Пріоритет має бути від 0 до 1000."
-                  }
-            }
+    "featured.editor.crop.gesture_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehen zum Verschieben. Zusammendrücken zum Zoomen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетягуйте, щоб змінити позицію. Зведіть або розведіть пальці для масштабу."
+          }
+        }
       }
     },
-    "featured.editor.validation.sections" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Wählen Sie mindestens einen sichtbaren Bereich."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Виберіть принаймні один видимий розділ."
-                  }
-            }
+    "featured.editor.crop.instructions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verschiebe und skaliere das Bild im 16:9-Rahmen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемістіть і масштабуйте зображення в рамці 16:9."
+          }
+        }
       }
     },
-    "featured.editor.validation.federal_state" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Für Bundesland-Banner ist ein Bundesland erforderlich."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Для банерів федеральної землі потрібно вибрати федеральну землю."
-                  }
-            }
+    "featured.editor.crop.reset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurücksetzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скинути"
+          }
+        }
       }
     },
-    "featured.editor.validation.external_url" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Geben Sie eine gültige externe URL ein."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Введіть дійсну зовнішню URL-адресу."
-                  }
-            }
-      }
-    },
-    "featured.editor.validation.target_id" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Für diesen Aktionstyp ist eine Ziel-ID erforderlich."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Для цього типу дії потрібен ID цілі."
-                  }
-            }
-      }
-    },
-    "featured.editor.validation.date_window" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Das Startdatum muss vor dem Enddatum liegen."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Дата початку має бути раніше дати завершення."
-                  }
-            }
-      }
-    },
-    "featured.editor.validation.owner_required" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Zum Speichern von Featured Content ist ein Owner-Konto erforderlich."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Для збереження рекомендованого контенту потрібен обліковий запис власника."
-                  }
-            }
-      }
-    },
-    "featured.editor.error.network" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured Content konnte nicht gespeichert werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Не вдалося зберегти рекомендований контент. Перевірте з'єднання й спробуйте ще раз."
-                  }
-            }
-      }
-    },
-    "featured.editor.error.permission" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Sie haben keine Berechtigung, Featured Content zu speichern."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "У вас немає дозволу зберігати рекомендований контент."
-                  }
-            }
-      }
-    },
-    "featured.editor.error.validation" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Die Featured-Banner-Daten sind unvollständig oder ungültig."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Дані рекомендованого банера неповні або недійсні."
-                  }
-            }
-      }
-    },
-    "featured.editor.error.not_found" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured-Banner wurde nicht gefunden."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Рекомендований банер не знайдено."
-                  }
-            }
-      }
-    },
-    "featured.editor.error.unknown" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Featured Content kann gerade nicht gespeichert werden."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "Зараз не вдалося зберегти рекомендований контент."
-                  }
-            }
+    "featured.editor.crop.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannerbild zuschneiden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обрізати зображення банера"
+          }
+        }
       }
     },
     "featured.editor.duration.value" : {
-          "extractionState": "manual",
-      "localizations": {
-            "de": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "%lld Sek."
-                  }
-            },
-            "uk": {
-                  "stringUnit": {
-                        "state": "translated",
-                        "value": "%lld с"
-                  }
-            }
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Sek."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld с"
+          }
+        }
       }
-},
+    },
+    "featured.editor.edit_banner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner bearbeiten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Редагувати банер"
+          }
+        }
+      }
+    },
+    "featured.editor.edit.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured-Banner bearbeiten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Редагувати рекомендований банер"
+          }
+        }
+      }
+    },
+    "featured.editor.ends_at.enabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enddatum verwenden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Використовувати дату завершення"
+          }
+        }
+      }
+    },
+    "featured.editor.error.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Content konnte nicht gespeichert werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося зберегти рекомендований контент. Перевірте з'єднання й спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "featured.editor.error.not_found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured-Banner wurde nicht gefunden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рекомендований банер не знайдено."
+          }
+        }
+      }
+    },
+    "featured.editor.error.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie haben keine Berechtigung, Featured Content zu speichern."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас немає дозволу зберігати рекомендований контент."
+          }
+        }
+      }
+    },
+    "featured.editor.error.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Content kann gerade nicht gespeichert werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зараз не вдалося зберегти рекомендований контент."
+          }
+        }
+      }
+    },
+    "featured.editor.error.validation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Featured-Banner-Daten sind unvollständig oder ungültig."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дані рекомендованого банера неповні або недійсні."
+          }
+        }
+      }
+    },
+    "featured.editor.field.action_target" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziel-ID"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID цілі"
+          }
+        }
+      }
+    },
+    "featured.editor.field.action_type" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktionstyp"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тип дії"
+          }
+        }
+      }
+    },
+    "featured.editor.field.duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeigedauer"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тривалість показу"
+          }
+        }
+      }
+    },
+    "featured.editor.field.ends_at" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endet am"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершується"
+          }
+        }
+      }
+    },
+    "featured.editor.field.external_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Externe URL"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зовнішня URL-адреса"
+          }
+        }
+      }
+    },
+    "featured.editor.field.federal_state" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundesland"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Федеральна земля"
+          }
+        }
+      }
+    },
+    "featured.editor.field.priority" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorität"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пріоритет"
+          }
+        }
+      }
+    },
+    "featured.editor.field.region_scope" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regionsumfang"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Охоплення регіону"
+          }
+        }
+      }
+    },
+    "featured.editor.field.starts_at" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beginnt am"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Починається"
+          }
+        }
+      }
+    },
+    "featured.editor.field.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untertitel"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підзаголовок"
+          }
+        }
+      }
+    },
+    "featured.editor.field.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назва"
+          }
+        }
+      }
+    },
+    "featured.editor.field.visible_sections" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sichtbare Bereiche"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видимі розділи"
+          }
+        }
+      }
+    },
+    "featured.editor.image.helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwenden Sie ein breites 16:9-Bild. Das öffentliche Karussell schneidet sicher innerhalb der Kartenränder zu."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Використовуйте широке зображення 16:9. Публічна карусель безпечно обрізає його в межах картки."
+          }
+        }
+      }
+    },
+    "featured.editor.image.load_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das ausgewählte Bild konnte nicht geladen werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити вибране зображення."
+          }
+        }
+      }
+    },
+    "featured.editor.image.replace" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild ersetzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Замінити зображення"
+          }
+        }
+      }
+    },
+    "featured.editor.image.upload" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannerbild hochladen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантажити зображення банера"
+          }
+        }
+      }
+    },
+    "featured.editor.image.upload_helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vor dem Speichern ist ein Bannerbild erforderlich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перед збереженням потрібно додати зображення банера."
+          }
+        }
+      }
+    },
+    "featured.editor.region_scope.federal_state" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundesland"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Федеральна земля"
+          }
+        }
+      }
+    },
+    "featured.editor.save_changes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen speichern"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зберегти зміни"
+          }
+        }
+      }
+    },
+    "featured.editor.save_success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured-Banner gespeichert."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рекомендований банер збережено."
+          }
+        }
+      }
+    },
+    "featured.editor.saving" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichern"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збереження"
+          }
+        }
+      }
+    },
+    "featured.editor.section.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktion"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дія"
+          }
+        }
+      }
+    },
+    "featured.editor.section.basics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grundlagen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основне"
+          }
+        }
+      }
+    },
+    "featured.editor.section.image" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зображення"
+          }
+        }
+      }
+    },
+    "featured.editor.section.scheduling" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitplanung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розклад"
+          }
+        }
+      }
+    },
+    "featured.editor.section.targeting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zielgruppe"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Таргетинг"
+          }
+        }
+      }
+    },
+    "featured.editor.select_federal_state" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundesland auswählen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виберіть федеральну землю"
+          }
+        }
+      }
+    },
+    "featured.editor.starts_at.enabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Startdatum verwenden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Використовувати дату початку"
+          }
+        }
+      }
+    },
+    "featured.editor.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konfigurieren Sie das Highlight für öffentliche Banner-Karussells."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налаштуйте виділення для публічних каруселей банерів."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.date_window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Startdatum muss vor dem Enddatum liegen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата початку має бути раніше дати завершення."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anzeigedauer muss zwischen 3 und 12 Sekunden liegen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тривалість показу має бути від 3 до 12 секунд."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.external_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geben Sie eine gültige externe URL ein."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введіть дійсну зовнішню URL-адресу."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.federal_state" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Bundesland-Banner ist ein Bundesland erforderlich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для банерів федеральної землі потрібно вибрати федеральну землю."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.image_aspect_ratio" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Bild muss im Format 16:9 sein. Wähle ein horizontales Bild oder schneide es vor dem Hochladen zu."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зображення має бути у форматі 16:9. Оберіть горизонтальне фото або обріжте його перед завантаженням."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.image_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wählen oder behalten Sie vor dem Speichern ein Bannerbild."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виберіть або залиште зображення банера перед збереженням."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.owner_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Speichern von Featured Content ist ein Owner-Konto erforderlich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для збереження рекомендованого контенту потрібен обліковий запис власника."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.priority" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Priorität muss zwischen 0 und 1000 liegen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пріоритет має бути від 0 до 1000."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.sections" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wählen Sie mindestens einen sichtbaren Bereich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виберіть принаймні один видимий розділ."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.target_id" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diesen Aktionstyp ist eine Ziel-ID erforderlich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для цього типу дії потрібен ID цілі."
+          }
+        }
+      }
+    },
+    "featured.editor.validation.title_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel ist erforderlich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назва обов'язкова."
+          }
+        }
+      }
+    },
+    "featured.management.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktion"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дія"
+          }
+        }
+      }
+    },
+    "featured.management.action.announcement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ankündigung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оголошення"
+          }
+        }
+      }
+    },
+    "featured.management.action.emergency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notfall"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Термінове"
+          }
+        }
+      }
+    },
+    "featured.management.action.external_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Externe URL"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зовнішня URL-адреса"
+          }
+        }
+      }
+    },
+    "featured.management.action.none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Aktion"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без дії"
+          }
+        }
+      }
+    },
+    "featured.management.action.partner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partner"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Партнер"
+          }
+        }
+      }
+    },
+    "featured.management.active_toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiv"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активний"
+          }
+        }
+      }
+    },
+    "featured.management.empty.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellen Sie den ersten Banner für die öffentlichen Karussells."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Створіть перший банер для публічних каруселей."
+          }
+        }
+      }
+    },
+    "featured.management.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Featured-Banner"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ще немає рекомендованих банерів"
+          }
+        }
+      }
+    },
+    "featured.management.error.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Content konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити рекомендований контент. Перевірте з'єднання й спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "featured.management.error.not_found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Content wurde nicht gefunden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рекомендований контент не знайдено."
+          }
+        }
+      }
+    },
+    "featured.management.error.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie haben keine Berechtigung, Featured Content zu verwalten."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас немає дозволу керувати рекомендованим контентом."
+          }
+        }
+      }
+    },
+    "featured.management.error.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Content kann gerade nicht aktualisiert werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зараз не вдалося оновити рекомендований контент."
+          }
+        }
+      }
+    },
+    "featured.management.error.validation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Featured-Content-Daten sind unvollständig oder ungültig."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дані рекомендованого контенту неповні або недійсні."
+          }
+        }
+      }
+    },
+    "featured.management.inactive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inaktiv"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неактивний"
+          }
+        }
+      }
+    },
+    "featured.management.missing_region" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region fehlt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Регіон відсутній"
+          }
+        }
+      }
+    },
+    "featured.management.priority" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorität"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пріоритет"
+          }
+        }
+      }
+    },
+    "featured.management.profile_entry.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights auf Home, Events, Organisationen und Guide verwalten."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Керуйте виділеннями на головній, подіях, організаціях і в гайді."
+          }
+        }
+      }
+    },
+    "featured.management.profile_entry.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Content"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рекомендований контент"
+          }
+        }
+      }
+    },
+    "featured.management.region" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Region"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Регіон"
+          }
+        }
+      }
+    },
+    "featured.management.sections" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereiche"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розділи"
+          }
+        }
+      }
+    },
+    "featured.management.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktive und geplante Highlights prüfen und bearbeiten."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переглядайте й редагуйте активні та заплановані виділення."
+          }
+        }
+      }
+    },
+    "featured.management.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Featured Content"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рекомендований контент"
+          }
+        }
+      }
+    },
+    "featured.management.updating" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird aktualisiert"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оновлення"
+          }
+        }
+      }
+    },
     "federal_state.burgenland" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7532,6 +7872,23 @@
         }
       }
     },
+    "guide.editor.action.save_changes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen speichern"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зберегти зміни"
+          }
+        }
+      }
+    },
     "guide.editor.action.save_draft" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9232,6 +9589,57 @@
         }
       }
     },
+    "guide.management.delete.action" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити"
+          }
+        }
+      }
+    },
+    "guide.management.delete.confirm.message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ wird dauerhaft gelöscht. Dies kann nicht rückgängig gemacht werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«%@» буде видалено назавжди. Цю дію не можна скасувати."
+          }
+        }
+      }
+    },
+    "guide.management.delete.confirm.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guide-Artikel löschen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити статтю довідника?"
+          }
+        }
+      }
+    },
     "guide.management.drafts" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9262,6 +9670,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Матеріали, які ще не готові до перевірки."
+          }
+        }
+      }
+    },
+    "guide.management.edit.action" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearbeiten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Редагувати"
           }
         }
       }
@@ -10520,6 +10945,108 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Українська спільнота Тіролю"
+          }
+        }
+      }
+    },
+    "image.crop.apply" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anwenden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Застосувати"
+          }
+        }
+      }
+    },
+    "image.crop.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbrechen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасувати"
+          }
+        }
+      }
+    },
+    "image.crop.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehen zum Verschieben. Zusammendrücken zum Zoomen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетягуйте, щоб змінити позицію. Зведіть або розведіть пальці для масштабу."
+          }
+        }
+      }
+    },
+    "image.crop.reset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurücksetzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скинути"
+          }
+        }
+      }
+    },
+    "image.crop.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild zuschneiden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обрізати зображення"
+          }
+        }
+      }
+    },
+    "image.validation.aspect_ratio.square" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Bild muss quadratisch sein. Schneide es vor dem Hochladen passend zum Rahmen zu."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зображення має бути квадратним. Обріжте його відповідно до рамки перед завантаженням."
           }
         }
       }
@@ -14937,6 +15464,23 @@
         }
       }
     },
+    "organizations.contacts.linkedin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LinkedIn"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LinkedIn"
+          }
+        }
+      }
+    },
     "organizations.contacts.location" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15035,6 +15579,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Telegram"
+          }
+        }
+      }
+    },
+    "organizations.contacts.whatsapp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WhatsApp"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WhatsApp"
+          }
+        }
+      }
+    },
+    "organizations.contacts.youtube" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YouTube"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YouTube"
           }
         }
       }
@@ -16167,6 +16745,23 @@
         }
       }
     },
+    "organizations.editor.field.facebook_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facebook"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facebook"
+          }
+        }
+      }
+    },
     "organizations.editor.field.founded_month" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16252,6 +16847,23 @@
         }
       }
     },
+    "organizations.editor.field.instagram_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instagram"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instagram"
+          }
+        }
+      }
+    },
     "organizations.editor.field.languages" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16265,6 +16877,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Мови спілкування"
+          }
+        }
+      }
+    },
+    "organizations.editor.field.linkedin_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LinkedIn"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LinkedIn"
           }
         }
       }
@@ -16401,6 +17030,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сайт або сторінка"
+          }
+        }
+      }
+    },
+    "organizations.editor.field.whatsapp_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WhatsApp"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WhatsApp"
+          }
+        }
+      }
+    },
+    "organizations.editor.field.youtube_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YouTube"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YouTube"
           }
         }
       }
@@ -26235,6 +26898,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Користувач"
+          }
+        }
+      }
+    },
+    "search.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche löschen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити пошук"
+          }
+        }
+      }
+    },
+    "search.close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche schließen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрити пошук"
+          }
+        }
+      }
+    },
+    "search.no_results.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versuchen Sie einen anderen Suchbegriff oder passen Sie die aktuellen Filter an."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спробуйте інший пошуковий запит або змініть поточні фільтри."
+          }
+        }
+      }
+    },
+    "search.no_results.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts gefunden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нічого не знайдено"
+          }
+        }
+      }
+    },
+    "search.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук"
+          }
+        }
+      }
+    },
+    "search.placeholder.events" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Events suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук подій"
+          }
+        }
+      }
+    },
+    "search.placeholder.guide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guide durchsuchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук у довіднику"
+          }
+        }
+      }
+    },
+    "search.placeholder.home" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates, Events und Organisationen suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук оновлень, подій та організацій"
+          }
+        }
+      }
+    },
+    "search.placeholder.organizations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationen suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук організацій"
           }
         }
       }

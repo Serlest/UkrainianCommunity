@@ -6,8 +6,7 @@ struct FeaturedBannerValidationService {
 
     func validate(_ banner: FeaturedBanner) throws {
         guard !trimmed(banner.id).isEmpty,
-              !trimmed(banner.createdBy).isEmpty,
-              !trimmed(banner.title).isEmpty else {
+              !trimmed(banner.createdBy).isEmpty else {
             throw AppError.validationFailed
         }
 

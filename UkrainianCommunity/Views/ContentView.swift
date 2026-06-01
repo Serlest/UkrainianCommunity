@@ -21,6 +21,7 @@ struct ContentView: View {
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @State private var selectedTab: AppTab = .home
+    @State private var previousSelectedTab: AppTab = .home
     @State private var isShowingNotificationInbox = false
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
     @State private var eventsNavigationPath: [EventNavigationRoute] = []
@@ -70,6 +71,10 @@ struct ContentView: View {
         }
         .onChange(of: authSessionKey) { _, newKey in
             handleAuthIdentityChange(for: newKey)
+        }
+        .onChange(of: selectedTab) { _, newTab in
+            resetNavigationPath(for: previousSelectedTab)
+            previousSelectedTab = newTab
         }
         .onChange(of: profileViewModel.settings.language) { _, newLanguage in
             selectedLanguageCode = newLanguage.rawValue
@@ -228,6 +233,7 @@ struct ContentView: View {
             ProfileView(
                 viewModel: profileViewModel,
                 feedbackRepository: container.feedbackRepository,
+                newsRepository: container.newsRepository,
                 eventRepository: container.eventRepository,
                 organizationRepository: container.organizationRepository,
                 guideRepository: container.guideRepository,
@@ -250,8 +256,11 @@ struct ContentView: View {
         lastHandledAuthSessionKey = key
 
         selectedTab = .home
+        previousSelectedTab = .home
         isShowingNotificationInbox = false
         homeNavigationPath.removeAll()
+        eventsNavigationPath.removeAll()
+        organizationsNavigationPath.removeAll()
         authState.dismissAuthFlow()
 
         homeViewModel.resetForAuthChange()
@@ -269,6 +278,19 @@ struct ContentView: View {
             if authState.isAuthenticated {
                 await profileViewModel.refresh()
             }
+        }
+    }
+
+    private func resetNavigationPath(for tab: AppTab) {
+        switch tab {
+        case .home:
+            homeNavigationPath.removeAll()
+        case .events:
+            eventsNavigationPath.removeAll()
+        case .organizations:
+            organizationsNavigationPath.removeAll()
+        case .guide, .profile:
+            break
         }
     }
 }

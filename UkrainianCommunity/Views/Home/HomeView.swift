@@ -24,6 +24,8 @@ struct HomeView: View {
     @State private var selectedFederalState: AustrianFederalState?
     @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
+    @State private var isSearchPresented = false
+    @State private var searchText = ""
     @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
     @State private var pendingContentRefreshTask: Task<Void, Never>?
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
@@ -127,9 +129,11 @@ struct HomeView: View {
     }
 
     private var homeHeader: some View {
-        AppBrandHeader {
-            EmptyView()
-        }
+        AppSearchableBrandHeader(
+            isSearchPresented: $isSearchPresented,
+            searchText: $searchText,
+            placeholder: AppStrings.Search.homePlaceholder
+        )
     }
 
     @ViewBuilder
@@ -156,7 +160,7 @@ struct HomeView: View {
         } else if filteredFeedItems.isEmpty {
             EmptyStateCard(
                 systemImage: emptyStateSystemImage,
-                title: AppStrings.Tabs.home,
+                title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Tabs.home,
                 message: emptyStateMessage
             )
             .frame(maxWidth: .infinity, minHeight: 180)
@@ -179,12 +183,19 @@ struct HomeView: View {
     }
 
     private var filteredFeedItems: [HomeFeedItem] {
-        filteredHomeItems
+        filteredHomeItems.filter(matchesSearch)
+    }
+
+    private var hasActiveSearch: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func matchesSelectedRegion(_ item: HomeFeedItem) -> Bool {
-        guard let selectedFederalState else { return true }
-        return item.federalState == selectedFederalState
+        RegionVisibilityMatcher.isVisible(
+            regionScope: item.regionScope,
+            federalState: item.federalState,
+            selectedFederalState: selectedFederalState
+        )
     }
 
     private func matchesSelectedFilter(_ item: HomeFeedItem) -> Bool {
@@ -282,6 +293,10 @@ struct HomeView: View {
     }
 
     private var emptyStateSystemImage: String {
+        if hasActiveSearch {
+            return "magnifyingglass"
+        }
+
         if selectedContentType != .all {
             return selectedContentType.systemImage
         }
@@ -297,7 +312,11 @@ struct HomeView: View {
     }
 
     private var emptyStateMessage: String {
-        switch selectedFeedFilter {
+        if hasActiveSearch {
+            return AppStrings.Search.noResultsMessage
+        }
+
+        return switch selectedFeedFilter {
         case .all:
             selectedFederalState == nil ? AppStrings.Common.noItems : AppStrings.Home.emptyRegion
         case .saved:
@@ -307,9 +326,25 @@ struct HomeView: View {
         }
     }
 
+    private func matchesSearch(_ item: HomeFeedItem) -> Bool {
+        LocalSearchMatcher.matches(
+            query: searchText,
+            values: [
+                item.title,
+                item.summary,
+                item.organizationName,
+                item.organizationType,
+                item.authorName,
+                item.city,
+                item.eventVenue,
+                item.itemType.searchTitle
+            ]
+        )
+    }
+
     private func loadContentIfNeeded() async {
         async let homeLoad: Void = viewModel.loadIfNeeded()
-        async let featuredBannerLoad: Void = loadFeaturedBanners()
+        async let featuredBannerLoad: Void = loadFeaturedBannersIfNeeded()
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
@@ -319,17 +354,17 @@ struct HomeView: View {
 
     private func refreshContentIfStale() async {
         async let homeRefresh: Void = viewModel.refreshIfStale()
-        async let featuredBannerLoad: Void = loadFeaturedBanners()
+        async let featuredBannerRefresh: Void = refreshFeaturedBannersIfStale()
         async let newsRefresh: Void = newsViewModel.refreshIfStale()
         async let eventsRefresh: Void = eventsViewModel.refreshIfStale()
         async let organizationsRefresh: Void = organizationsViewModel.refreshIfStale()
         async let guideRefresh: Void = guideViewModel.refreshIfStale()
-        _ = await (homeRefresh, featuredBannerLoad, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        _ = await (homeRefresh, featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
     }
 
     private func refreshAllContent() async {
         async let homeRefresh: Void = viewModel.refresh()
-        async let featuredBannerRefresh: Void = loadFeaturedBanners()
+        async let featuredBannerRefresh: Void = refreshFeaturedBanners()
         async let newsRefresh: Void = newsViewModel.refresh()
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
@@ -355,8 +390,22 @@ struct HomeView: View {
         }
     }
 
-    private func loadFeaturedBanners() async {
-        await featuredBannerViewModel.loadActiveBanners(
+    private func loadFeaturedBannersIfNeeded() async {
+        await featuredBannerViewModel.loadIfNeeded(
+            for: .home,
+            federalState: authState.user?.selectedFederalState
+        )
+    }
+
+    private func refreshFeaturedBannersIfStale() async {
+        await featuredBannerViewModel.refreshIfStale(
+            for: .home,
+            federalState: authState.user?.selectedFederalState
+        )
+    }
+
+    private func refreshFeaturedBanners() async {
+        await featuredBannerViewModel.refresh(
             for: .home,
             federalState: authState.user?.selectedFederalState
         )
@@ -975,6 +1024,19 @@ private extension AustrianFederalState {
             "Vorarlberg"
         case .wien:
             "Wien"
+        }
+    }
+}
+
+private extension HomeFeedItemType {
+    var searchTitle: String {
+        switch self {
+        case .news:
+            return AppStrings.News.title
+        case .event:
+            return AppStrings.Tabs.events
+        case .organization:
+            return AppStrings.Tabs.organizations
         }
     }
 }

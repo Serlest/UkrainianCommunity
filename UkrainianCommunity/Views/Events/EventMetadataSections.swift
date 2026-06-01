@@ -76,7 +76,7 @@ extension EventDetailView {
         func organizerCard(for event: Event) -> some View {
             DetailCard {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(AppStrings.Events.detailOrganizerSectionTitle)
+                    Text(AppStrings.Events.publishedBySectionTitle)
                         .font(AppTheme.sectionTitleFont)
                         .foregroundStyle(AppTheme.accentPrimary)
 
@@ -181,12 +181,25 @@ extension EventDetailView {
             .contentShape(Rectangle())
         }
 
+        fileprivate func displayedOrganizerName(for event: Event) -> String? {
+            guard let organizerName = event.organizerName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlankForEventContact else {
+                return nil
+            }
+
+            let publisherName = eventSourceName(for: event).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard organizerName.caseInsensitiveCompare(publisherName) != .orderedSame else {
+                return nil
+            }
+
+            return organizerName
+        }
+
         fileprivate func eventContactRows(for event: Event) -> [EventContactRowModel] {
             var rows: [EventContactRowModel] = []
 
-            if let organizerName = event.organizerName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfBlankForEventContact {
+            if let organizerName = displayedOrganizerName(for: event) {
                 rows.append(EventContactRowModel(
-                    title: AppStrings.Events.organizerNameField,
+                    title: AppStrings.Events.detailOrganizerSectionTitle,
                     value: organizerName,
                     systemImage: "person.crop.circle",
                     url: normalizedEventURL(event.organizerURL)

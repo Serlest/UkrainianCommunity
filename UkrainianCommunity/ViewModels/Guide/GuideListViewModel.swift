@@ -8,6 +8,8 @@ final class GuideListViewModel: ObservableObject {
     @Published private(set) var articles: [GuideArticle]
     @Published private(set) var error: AppError?
     @Published private(set) var isLoading: Bool
+    @Published private(set) var deleteError: AppError?
+    @Published private(set) var deletingArticleIDs = Set<String>()
     @Published var searchText = ""
     @Published var selectedCategory: GuideCategory?
     @Published var selectedContentType: GuideContentType?
@@ -89,6 +91,41 @@ final class GuideListViewModel: ObservableObject {
         selectedContentType = nil
         selectedFederalState = nil
         selectedAudience = nil
+    }
+
+    func isDeleting(_ article: GuideArticle) -> Bool {
+        deletingArticleIDs.contains(article.id)
+    }
+
+    @discardableResult
+    func delete(_ article: GuideArticle, currentUserId: String?) async -> Bool {
+        guard let currentUserId else {
+            deleteError = .permissionDenied
+            return false
+        }
+
+        deletingArticleIDs.insert(article.id)
+        defer {
+            deletingArticleIDs.remove(article.id)
+        }
+
+        do {
+            try await repository.deleteGuideArticle(id: article.id, editorId: currentUserId)
+            articles.removeAll { $0.id == article.id }
+            deleteError = nil
+            AppContentChangeBus.postGuideChanged()
+            return true
+        } catch is CancellationError {
+            return false
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return false }
+            deleteError = appError
+            return false
+        } catch {
+            guard !Task.isCancelled else { return false }
+            deleteError = .unknown
+            return false
+        }
     }
 
     func resolveArticle(id articleID: String) async -> GuideArticle? {

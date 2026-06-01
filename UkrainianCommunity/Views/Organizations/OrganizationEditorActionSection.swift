@@ -14,7 +14,7 @@ extension OrganizationEditorView {
         .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
         .overlay(alignment: .leading) {
             AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                dismiss()
+                requestClose()
             }
         }
         .accessibilityElement(children: .contain)
@@ -73,6 +73,14 @@ extension OrganizationEditorView {
             )
             guard didSave else { return }
             await onSaved()
+            dismiss()
+        }
+    }
+
+    func requestClose() {
+        if viewModel.shouldConfirmDraftBeforeDismiss {
+            isShowingDraftCloseConfirmation = true
+        } else {
             dismiss()
         }
     }

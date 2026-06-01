@@ -109,6 +109,15 @@ final class GuideEditorViewModel: ObservableObject {
             && article.archivedAt == nil
     }
 
+    var saveActionTitle: String {
+        switch currentArticle?.status {
+        case .published:
+            AppStrings.GuideEditor.saveChangesAction
+        default:
+            AppStrings.GuideEditor.saveDraftAction
+        }
+    }
+
     var saveStatusMessage: String? {
         switch saveState {
         case .idle:
@@ -168,6 +177,7 @@ final class GuideEditorViewModel: ObservableObject {
             savedArticle = article
             lastSavedDraft = draft
             saveState = .saved
+            AppContentChangeBus.postGuideChanged()
             return article
         } catch {
             saveState = .failed(Self.saveErrorMessage(for: error))

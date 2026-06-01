@@ -5,7 +5,7 @@ struct GuideDraftListView: View {
     let currentUserId: String?
 
     @StateObject private var viewModel: GuideDraftListViewModel
-    @State private var archiveCandidate: GuideArticle?
+    @State private var deleteCandidate: GuideArticle?
 
     init(repository: GuideRepository, currentUserId: String?) {
         self.repository = repository
@@ -39,18 +39,18 @@ struct GuideDraftListView: View {
             }
         }
         .alert(
-            AppStrings.GuideManagement.archiveDraftConfirmationTitle,
-            isPresented: archiveConfirmationIsPresented
+            AppStrings.GuideManagement.deleteConfirmationTitle,
+            isPresented: deleteConfirmationIsPresented
         ) {
             Button(AppStrings.Common.cancel, role: .cancel) {}
-            Button(AppStrings.GuideManagement.archiveDraftAction, role: .destructive) {
-                guard let article = archiveCandidate else { return }
+            Button(AppStrings.GuideManagement.deleteAction, role: .destructive) {
+                guard let article = deleteCandidate else { return }
                 Task {
-                    await viewModel.archive(article, currentUserId: currentUserId)
+                    await viewModel.delete(article, currentUserId: currentUserId)
                 }
             }
         } message: {
-            Text(AppStrings.GuideManagement.archiveDraftConfirmationMessage(archiveCandidate?.title ?? ""))
+            Text(AppStrings.GuideManagement.deleteConfirmationMessage(deleteCandidate?.title ?? ""))
         }
     }
 
@@ -69,8 +69,8 @@ struct GuideDraftListView: View {
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if let archiveError = viewModel.archiveError {
-                    GuideErrorStateView(error: archiveError, retryAction: viewModel.reload)
+                if let deleteError = viewModel.deleteError {
+                    GuideErrorStateView(error: deleteError, retryAction: viewModel.reload)
                 }
 
                 ForEach(viewModel.drafts) { article in
@@ -87,9 +87,9 @@ struct GuideDraftListView: View {
                         .buttonStyle(.plain)
 
                         Button {
-                            archiveCandidate = article
+                            deleteCandidate = article
                         } label: {
-                            Image(systemName: viewModel.isArchiving(article) ? "clock" : "archivebox")
+                            Image(systemName: viewModel.isDeleting(article) ? "clock" : "trash")
                                 .font(.headline.weight(.semibold))
                                 .foregroundStyle(AppTheme.accentDestructive)
                                 .frame(width: 44, height: 44)
@@ -99,20 +99,20 @@ struct GuideDraftListView: View {
                                 )
                         }
                         .buttonStyle(.plain)
-                        .disabled(viewModel.isArchiving(article))
-                        .accessibilityLabel(AppStrings.GuideManagement.archiveDraftAction)
+                        .disabled(viewModel.isDeleting(article))
+                        .accessibilityLabel(AppStrings.GuideManagement.deleteAction)
                     }
                 }
             }
         }
     }
 
-    private var archiveConfirmationIsPresented: Binding<Bool> {
+    private var deleteConfirmationIsPresented: Binding<Bool> {
         Binding(
-            get: { archiveCandidate != nil },
+            get: { deleteCandidate != nil },
             set: { isPresented in
                 if !isPresented {
-                    archiveCandidate = nil
+                    deleteCandidate = nil
                 }
             }
         )

@@ -201,6 +201,11 @@ struct OrganizationDTO: Codable, Identifiable {
     let socialLinks: [String: String]?
     let telegramURL: String?
     let donationURL: String?
+    let facebookURL: String?
+    let instagramURL: String?
+    let whatsappURL: String?
+    let youtubeURL: String?
+    let linkedinURL: String?
     let missionStatement: String?
     let contactPerson: String?
     let subscriberCount: Int
@@ -586,6 +591,11 @@ extension Organization {
             socialLinks: dto.socialLinks ?? [:],
             telegramURL: dto.telegramURL,
             donationURL: dto.donationURL,
+            facebookURL: dto.facebookURL,
+            instagramURL: dto.instagramURL,
+            whatsappURL: dto.whatsappURL,
+            youtubeURL: dto.youtubeURL,
+            linkedinURL: dto.linkedinURL,
             missionStatement: dto.missionStatement,
             contactPerson: dto.contactPerson,
             subscriberCount: dto.subscriberCount,
@@ -643,6 +653,11 @@ extension Organization {
             socialLinks: socialLinks,
             telegramURL: telegramURL,
             donationURL: donationURL,
+            facebookURL: facebookURL,
+            instagramURL: instagramURL,
+            whatsappURL: whatsappURL,
+            youtubeURL: youtubeURL,
+            linkedinURL: linkedinURL,
             missionStatement: missionStatement,
             contactPerson: contactPerson,
             subscriberCount: subscriberCount,

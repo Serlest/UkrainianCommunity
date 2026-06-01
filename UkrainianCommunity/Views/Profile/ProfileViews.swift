@@ -932,7 +932,12 @@ struct ProfileView: View {
                 }
 
                 NavigationLink {
-                    FeaturedBannerManagementView(repository: featuredBannerRepository)
+                    FeaturedBannerManagementView(
+                        repository: featuredBannerRepository,
+                        newsRepository: newsRepository,
+                        eventRepository: eventRepository,
+                        organizationRepository: organizationRepository
+                    )
                 } label: {
                     ProfileModuleRow(
                         title: AppStrings.FeaturedManagement.profileEntryTitle,
@@ -1395,8 +1400,11 @@ private extension String {
                 localEventReminderService: MockLocalEventReminderService()
             ),
             feedbackRepository: MockFeedbackRepository(),
+            newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
+            organizationRepository: MockOrganizationRepository(),
             guideRepository: MockGuideRepository(),
+            featuredBannerRepository: MockFeaturedBannerRepository(),
             notificationInboxRepository: MockNotificationInboxRepository()
         )
     }

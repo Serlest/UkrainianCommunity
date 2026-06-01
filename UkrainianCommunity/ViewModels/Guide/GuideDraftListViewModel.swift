@@ -6,8 +6,8 @@ final class GuideDraftListViewModel: ObservableObject {
     @Published private(set) var drafts: [GuideArticle]
     @Published private(set) var error: AppError?
     @Published private(set) var isLoading: Bool
-    @Published private(set) var archiveError: AppError?
-    @Published private(set) var archivingArticleIDs = Set<String>()
+    @Published private(set) var deleteError: AppError?
+    @Published private(set) var deletingArticleIDs = Set<String>()
 
     private let repository: GuideRepository
     private var hasLoaded = false
@@ -34,36 +34,37 @@ final class GuideDraftListViewModel: ObservableObject {
         await startLoad(force: true)
     }
 
-    func isArchiving(_ article: GuideArticle) -> Bool {
-        archivingArticleIDs.contains(article.id)
+    func isDeleting(_ article: GuideArticle) -> Bool {
+        deletingArticleIDs.contains(article.id)
     }
 
     @discardableResult
-    func archive(_ article: GuideArticle, currentUserId: String?) async -> Bool {
+    func delete(_ article: GuideArticle, currentUserId: String?) async -> Bool {
         guard let currentUserId else {
-            archiveError = .permissionDenied
+            deleteError = .permissionDenied
             return false
         }
 
-        archivingArticleIDs.insert(article.id)
+        deletingArticleIDs.insert(article.id)
         defer {
-            archivingArticleIDs.remove(article.id)
+            deletingArticleIDs.remove(article.id)
         }
 
         do {
-            try await repository.archiveGuideArticle(id: article.id, editorId: currentUserId)
+            try await repository.deleteGuideArticle(id: article.id, editorId: currentUserId)
             drafts.removeAll { $0.id == article.id }
-            archiveError = nil
+            deleteError = nil
+            AppContentChangeBus.postGuideChanged()
             return true
         } catch is CancellationError {
             return false
         } catch let appError as AppError {
             guard !Task.isCancelled else { return false }
-            archiveError = appError
+            deleteError = appError
             return false
         } catch {
             guard !Task.isCancelled else { return false }
-            archiveError = .unknown
+            deleteError = .unknown
             return false
         }
     }

@@ -409,9 +409,7 @@ actor MockRepositoryStore {
         guard let index = guideArticles.firstIndex(where: { $0.id == trimmedId }) else { throw AppError.notFound }
 
         let existingArticle = guideArticles[index]
-        guard existingArticle.moderationStatus == .draft,
-              existingArticle.status == nil || existingArticle.status == .draft,
-              existingArticle.archivedAt == nil else {
+        guard isEditableGuideArticle(existingArticle) else {
             throw AppError.validationFailed
         }
 
@@ -593,6 +591,25 @@ actor MockRepositoryStore {
         }
 
         guideArticles[index] = existingArticle.archivedBy(editorId: trimmedEditorId)
+    }
+
+    func deleteGuideArticle(id: String, editorId: String) throws {
+        let trimmedId = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEditorId = editorId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedId.isEmpty, !trimmedEditorId.isEmpty else { throw AppError.permissionDenied }
+        guard let index = guideArticles.firstIndex(where: { $0.id == trimmedId }) else { throw AppError.notFound }
+        guard isEditableGuideArticle(guideArticles[index]) else { throw AppError.validationFailed }
+        guideArticles.remove(at: index)
+    }
+
+    private func isEditableGuideArticle(_ article: GuideArticle) -> Bool {
+        guard article.archivedAt == nil else { return false }
+
+        let isDraft = article.moderationStatus == .draft
+            && (article.status == nil || article.status == .draft)
+        let isPublished = article.moderationStatus == .approved
+            && article.status == .published
+        return isDraft || isPublished
     }
 
     func toggleEventLike(id: String, isLiked: Bool) throws {
@@ -973,6 +990,13 @@ actor MockRepositoryStore {
             foundedMonth: item.foundedMonth,
             languages: item.languages,
             socialLinks: item.socialLinks,
+            telegramURL: item.telegramURL,
+            donationURL: item.donationURL,
+            facebookURL: item.facebookURL,
+            instagramURL: item.instagramURL,
+            whatsappURL: item.whatsappURL,
+            youtubeURL: item.youtubeURL,
+            linkedinURL: item.linkedinURL,
             subscriberCount: item.subscriberCount,
             eventsHeldCount: item.eventsHeldCount,
             volunteersCount: item.volunteersCount,
@@ -1096,6 +1120,11 @@ private extension Organization {
             socialLinks: socialLinks,
             telegramURL: telegramURL,
             donationURL: donationURL,
+            facebookURL: facebookURL,
+            instagramURL: instagramURL,
+            whatsappURL: whatsappURL,
+            youtubeURL: youtubeURL,
+            linkedinURL: linkedinURL,
             missionStatement: missionStatement,
             contactPerson: contactPerson,
             subscriberCount: subscriberCount,

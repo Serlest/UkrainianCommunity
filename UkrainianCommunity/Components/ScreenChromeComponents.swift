@@ -134,3 +134,108 @@ struct AppGroupedContentPlane<Content: View>: View {
         )
     }
 }
+
+struct AppSearchableBrandHeader: View {
+    @Binding var isSearchPresented: Bool
+    @Binding var searchText: String
+    let placeholder: String
+    @FocusState private var isSearchFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            AppBrandHeader {
+                AppGlassIconButton(
+                    systemImage: isSearchPresented ? "xmark" : "magnifyingglass",
+                    accessibilityLabel: isSearchPresented ? AppStrings.Search.close : AppStrings.Search.open
+                ) {
+                    toggleSearch()
+                }
+            }
+
+            if isSearchPresented {
+                searchField
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.22), value: isSearchPresented)
+        .onChange(of: isSearchPresented) { _, isPresented in
+            isSearchFocused = isPresented
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(AppStrings.Common.done) {
+                    isSearchFocused = false
+                }
+            }
+        }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+            Image(systemName: "magnifyingglass")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+
+            TextField(placeholder, text: $searchText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textPrimary)
+                .focused($isSearchFocused)
+                .submitLabel(.search)
+
+            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(AppStrings.Search.clear)
+            }
+        }
+        .padding(.horizontal, AppTheme.inputHorizontalPadding)
+        .frame(height: AppTheme.searchControlHeight)
+        .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
+        )
+    }
+
+    private func toggleSearch() {
+        if isSearchPresented {
+            searchText = ""
+            isSearchFocused = false
+            isSearchPresented = false
+        } else {
+            isSearchPresented = true
+            isSearchFocused = true
+        }
+    }
+}
+
+enum LocalSearchMatcher {
+    static func matches(query: String, values: [String?]) -> Bool {
+        let tokens = query
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .split(separator: " ")
+            .map(String.init)
+
+        guard !tokens.isEmpty else { return true }
+
+        let searchableText = values
+            .compactMap { value -> String? in
+                let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return trimmed.isEmpty ? nil : trimmed
+            }
+            .joined(separator: " ")
+            .lowercased()
+
+        return tokens.allSatisfy { searchableText.contains($0) }
+    }
+}

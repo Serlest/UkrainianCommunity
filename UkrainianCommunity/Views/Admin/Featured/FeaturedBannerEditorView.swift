@@ -14,14 +14,25 @@ struct FeaturedBannerEditorView: View {
     @State private var ignoresNextPhotoClear = false
     @State private var imageProcessingTask: Task<Void, Never>?
     @State private var imageProcessingToken = UUID()
+    @State private var isShowingActionTargetPicker = false
+    @State private var actionTargetSearchText = ""
     let onSave: @MainActor () async -> Void
 
     init(
         repository: FeaturedBannerRepository,
         mode: FeaturedBannerEditorViewModel.Mode = .create,
+        newsRepository: NewsRepository? = nil,
+        eventRepository: EventRepository? = nil,
+        organizationRepository: OrganizationRepository? = nil,
         onSave: @escaping @MainActor () async -> Void
     ) {
-        _viewModel = StateObject(wrappedValue: FeaturedBannerEditorViewModel(repository: repository, mode: mode))
+        _viewModel = StateObject(wrappedValue: FeaturedBannerEditorViewModel(
+            repository: repository,
+            mode: mode,
+            newsRepository: newsRepository,
+            eventRepository: eventRepository,
+            organizationRepository: organizationRepository
+        ))
         self.onSave = onSave
     }
 
@@ -78,6 +89,13 @@ struct FeaturedBannerEditorView: View {
                 await loadSelectedPhoto(item: newItem, token: token)
             }
         }
+        .onChange(of: viewModel.actionType) { oldValue, newValue in
+            actionTargetSearchText = ""
+            viewModel.handleActionTypeChanged(from: oldValue, to: newValue)
+            Task {
+                await viewModel.loadActionTargetsIfNeeded()
+            }
+        }
         .onDisappear {
             imageProcessingTask?.cancel()
         }
@@ -92,6 +110,16 @@ struct FeaturedBannerEditorView: View {
                     onApply: applyCroppedImage(_:)
                 )
             }
+        }
+        .sheet(isPresented: $isShowingActionTargetPicker) {
+            FeaturedBannerActionTargetPickerSheet(
+                viewModel: viewModel,
+                searchText: $actionTargetSearchText,
+                onSelect: { item in
+                    viewModel.selectActionTarget(item)
+                    isShowingActionTargetPicker = false
+                }
+            )
         }
     }
 
@@ -276,17 +304,36 @@ struct FeaturedBannerEditorView: View {
                 .pickerStyle(.menu)
 
                 if viewModel.requiresActionTarget {
-                    EditorTextField(
-                        AppStrings.FeaturedEditor.actionTargetField,
-                        text: $viewModel.actionTargetID,
-                        systemImage: "number",
-                        autocapitalization: .never,
-                        autocorrectionDisabled: true
-                    )
-                    Text(AppStrings.FeaturedEditor.manualTargetHelper)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if viewModel.supportsActionTargetPicker {
+                        FeaturedBannerActionTargetSelectionField(
+                            kind: viewModel.actionTargetPickerKind,
+                            selectedItem: viewModel.selectedActionTargetItem,
+                            targetID: viewModel.actionTargetID,
+                            isLoading: viewModel.isLoadingCurrentActionTargets,
+                            onSelect: {
+                                actionTargetSearchText = ""
+                                isShowingActionTargetPicker = true
+                            },
+                            onClear: {
+                                viewModel.actionTargetID = ""
+                            }
+                        )
+                        .task {
+                            await viewModel.loadActionTargetsIfNeeded()
+                        }
+                    } else {
+                        EditorTextField(
+                            AppStrings.FeaturedEditor.actionTargetField,
+                            text: $viewModel.actionTargetID,
+                            systemImage: "number",
+                            autocapitalization: .never,
+                            autocorrectionDisabled: true
+                        )
+                        Text(AppStrings.FeaturedEditor.manualTargetHelper)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
 
                 if viewModel.requiresExternalURL {
@@ -460,6 +507,197 @@ private struct FeaturedEditorValueRow: View {
             Image(systemName: systemImage)
                 .foregroundStyle(AppTheme.accentPrimary)
         }
+    }
+}
+
+private struct FeaturedBannerActionTargetSelectionField: View {
+    let kind: FeaturedBannerActionTargetKind?
+    let selectedItem: FeaturedBannerActionTargetItem?
+    let targetID: String
+    let isLoading: Bool
+    let onSelect: () -> Void
+    let onClear: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            Button(action: onSelect) {
+                HStack(spacing: 10) {
+                    Image(systemName: kind?.systemImage ?? "arrow.up.forward.app")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                        .frame(width: AppTheme.metadataIconSize)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(selectedItem?.title ?? AppStrings.FeaturedEditor.selectTarget)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(selectedItem == nil ? AppTheme.textSecondary : AppTheme.textPrimary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+
+                        if let subtitle = selectedItem?.subtitle ?? selectedItem?.metadata {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
+                                .lineLimit(1)
+                        } else if let rawID = nonEmpty(targetID) {
+                            Text(AppStrings.FeaturedEditor.selectedTargetID(rawID))
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                    if isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .padding(.horizontal, AppTheme.inputHorizontalPadding)
+                .padding(.vertical, AppTheme.eventsMetadataSpacing)
+                .frame(minHeight: AppTheme.newsEditorInputHeight)
+                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
+                        .strokeBorder(AppTheme.borderSubtle)
+                )
+            }
+            .buttonStyle(.plain)
+
+            if selectedItem != nil || !targetID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button(role: .destructive, action: onClear) {
+                    Label(AppStrings.FeaturedEditor.clearTarget, systemImage: "xmark.circle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+    }
+
+    private func nonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private struct FeaturedBannerActionTargetPickerSheet: View {
+    @ObservedObject var viewModel: FeaturedBannerEditorViewModel
+    @Binding var searchText: String
+    let onSelect: (FeaturedBannerActionTargetItem) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private var items: [FeaturedBannerActionTargetItem] {
+        viewModel.actionTargetItems(matching: searchText)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if viewModel.isLoadingCurrentActionTargets && items.isEmpty {
+                    LoadingStateCard(title: AppStrings.FeaturedEditor.loadingTargets)
+                        .padding(AppTheme.pageHorizontal)
+                } else if let error = viewModel.actionTargetLoadError, items.isEmpty {
+                    ErrorStateCard(
+                        systemImage: "arrow.up.forward.app",
+                        title: AppStrings.FeaturedEditor.targetPickerTitle(viewModel.actionTargetPickerKind?.title ?? ""),
+                        message: error,
+                        retryTitle: AppStrings.Action.retry
+                    ) {
+                        Task { await viewModel.refreshActionTargets() }
+                    }
+                    .padding(AppTheme.pageHorizontal)
+                } else if items.isEmpty {
+                    EmptyStateCard(
+                        systemImage: "magnifyingglass",
+                        title: AppStrings.FeaturedEditor.noTargetsFound,
+                        message: AppStrings.FeaturedEditor.noTargetsFoundMessage
+                    )
+                    .padding(AppTheme.pageHorizontal)
+                } else {
+                    List(items) { item in
+                        Button {
+                            onSelect(item)
+                        } label: {
+                            FeaturedBannerActionTargetPickerRow(
+                                item: item,
+                                isSelected: viewModel.actionTargetID == item.id
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle(AppStrings.FeaturedEditor.targetPickerTitle(viewModel.actionTargetPickerKind?.title ?? ""))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppStrings.Action.cancel) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    Button(AppStrings.Action.retry) {
+                        Task { await viewModel.refreshActionTargets() }
+                    }
+                    .disabled(viewModel.isLoadingCurrentActionTargets)
+                }
+            }
+            .searchable(text: $searchText, prompt: AppStrings.FeaturedEditor.targetPickerSearch)
+            .task {
+                await viewModel.loadActionTargetsIfNeeded()
+            }
+        }
+    }
+}
+
+private struct FeaturedBannerActionTargetPickerRow: View {
+    let item: FeaturedBannerActionTargetItem
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: AppTheme.eventsControlGroupSpacing) {
+            Image(systemName: item.kind.systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimary)
+                .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
+                .background(AppTheme.badgeBlueFill, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .lineLimit(2)
+
+                if let subtitle = item.subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(2)
+                }
+
+                if let metadata = item.metadata {
+                    Text(metadata)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(AppTheme.accentPrimary)
+            }
+        }
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
     }
 }
 

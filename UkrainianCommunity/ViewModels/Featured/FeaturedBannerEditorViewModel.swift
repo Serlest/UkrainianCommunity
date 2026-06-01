@@ -34,8 +34,15 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     @Published var isSaving = false
     @Published var errorMessage: String?
     @Published var successMessage: String?
+    @Published private(set) var actionTargetItemsByKind: [FeaturedBannerActionTargetKind: [FeaturedBannerActionTargetItem]] = [:]
+    @Published private(set) var loadingActionTargetKinds: Set<FeaturedBannerActionTargetKind> = []
+    @Published private(set) var actionTargetLoadError: String?
+    @Published private(set) var selectedActionTargetSnapshot: FeaturedBannerActionTargetItem?
 
     private let repository: FeaturedBannerRepository
+    private let newsRepository: NewsRepository?
+    private let eventRepository: EventRepository?
+    private let organizationRepository: OrganizationRepository?
     private let imageUploadService: ImageUploadService
     private let validationService = FeaturedBannerValidationService()
     private let mode: Mode
@@ -43,13 +50,20 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     private let createdAt: Date
     private let createdBy: String
     private var selectedProcessedImage: ProcessedImageSelection?
+    private var actionTargetLoadTasks: [FeaturedBannerActionTargetKind: Task<[FeaturedBannerActionTargetItem], Error>] = [:]
 
     init(
         repository: FeaturedBannerRepository,
         mode: Mode = .create,
+        newsRepository: NewsRepository? = nil,
+        eventRepository: EventRepository? = nil,
+        organizationRepository: OrganizationRepository? = nil,
         imageUploadService: ImageUploadService? = nil
     ) {
         self.repository = repository
+        self.newsRepository = newsRepository
+        self.eventRepository = eventRepository
+        self.organizationRepository = organizationRepository
         self.mode = mode
         self.imageUploadService = imageUploadService ?? .shared
 
@@ -98,6 +112,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         }
     }
 
+    deinit {
+        actionTargetLoadTasks.values.forEach { $0.cancel() }
+    }
+
     var navigationTitle: String {
         mode.isEditing ? AppStrings.FeaturedEditor.editTitle : AppStrings.FeaturedEditor.createTitle
     }
@@ -116,10 +134,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     var validationMessage: String? {
-        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return AppStrings.FeaturedEditor.validationTitleRequired
-        }
-
         if selectedImageData == nil && imageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return AppStrings.FeaturedEditor.validationImageRequired
         }
@@ -175,6 +189,52 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         }
     }
 
+    var actionTargetPickerKind: FeaturedBannerActionTargetKind? {
+        FeaturedBannerActionTargetKind(actionType: actionType)
+    }
+
+    var supportsActionTargetPicker: Bool {
+        actionTargetPickerKind != nil
+    }
+
+    var selectedActionTargetItem: FeaturedBannerActionTargetItem? {
+        guard let kind = actionTargetPickerKind,
+              let targetID = nonEmpty(actionTargetID) else {
+            return nil
+        }
+
+        if let item = actionTargetItemsByKind[kind]?.first(where: { $0.id == targetID }) {
+            return item
+        }
+
+        if selectedActionTargetSnapshot?.kind == kind,
+           selectedActionTargetSnapshot?.id == targetID {
+            return selectedActionTargetSnapshot
+        }
+
+        return nil
+    }
+
+    var isLoadingCurrentActionTargets: Bool {
+        guard let kind = actionTargetPickerKind else { return false }
+        return loadingActionTargetKinds.contains(kind)
+    }
+
+    func handleActionTypeChanged(from oldActionType: FeaturedBannerActionType, to newActionType: FeaturedBannerActionType) {
+        actionTargetLoadError = nil
+        selectedActionTargetSnapshot = nil
+
+        let oldKind = FeaturedBannerActionTargetKind(actionType: oldActionType)
+        let newKind = FeaturedBannerActionTargetKind(actionType: newActionType)
+        if !requiresActionTarget || oldKind != newKind {
+            actionTargetID = ""
+        }
+
+        if !requiresExternalURL {
+            externalURL = ""
+        }
+    }
+
     func setSelectedImageData(_ data: Data?) {
         selectedImageData = data
         selectedProcessedImage = nil
@@ -199,6 +259,49 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         } else {
             visibleSections.remove(section)
         }
+    }
+
+    func actionTargetItems(matching query: String) -> [FeaturedBannerActionTargetItem] {
+        guard let kind = actionTargetPickerKind else { return [] }
+        let items = actionTargetItemsByKind[kind] ?? []
+        let searchTokens = query
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .split(separator: " ")
+            .map(String.init)
+
+        guard !searchTokens.isEmpty else { return items }
+        return items.filter { item in
+            let haystack = [
+                item.title,
+                item.subtitle,
+                item.metadata,
+                item.id
+            ]
+                .compactMap { $0 }
+                .joined(separator: " ")
+                .lowercased()
+
+            return searchTokens.allSatisfy { haystack.contains($0) }
+        }
+    }
+
+    func loadActionTargetsIfNeeded() async {
+        guard let kind = actionTargetPickerKind else { return }
+        guard actionTargetItemsByKind[kind] == nil else { return }
+        await loadActionTargets(kind: kind)
+    }
+
+    func refreshActionTargets() async {
+        guard let kind = actionTargetPickerKind else { return }
+        actionTargetItemsByKind[kind] = nil
+        await loadActionTargets(kind: kind)
+    }
+
+    func selectActionTarget(_ item: FeaturedBannerActionTargetItem) {
+        actionTargetID = item.id
+        selectedActionTargetSnapshot = item
+        actionTargetLoadError = nil
     }
 
     func save(updatedBy userID: String?) async -> Bool {
@@ -275,6 +378,57 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         FeaturedBannerURLNormalizer.normalizedExternalURL(from: externalURL)
     }
 
+    private func loadActionTargets(kind: FeaturedBannerActionTargetKind) async {
+        if let task = actionTargetLoadTasks[kind] {
+            await applyActionTargetResult(from: task, kind: kind)
+            return
+        }
+
+        actionTargetLoadError = nil
+        loadingActionTargetKinds.insert(kind)
+
+        let task = Task<[FeaturedBannerActionTargetItem], Error> {
+            switch kind {
+            case .news:
+                guard let newsRepository else { throw AppError.validationFailed }
+                let posts = try await newsRepository.fetchNews()
+                return posts
+                    .filter { $0.moderationStatus == .approved }
+                    .sorted { $0.publishedAt > $1.publishedAt }
+                    .map(FeaturedBannerActionTargetItem.init(news:))
+            case .event:
+                guard let eventRepository else { throw AppError.validationFailed }
+                let events = try await eventRepository.fetchEvents()
+                return events
+                    .filter { $0.moderationStatus == .approved }
+                    .sorted { $0.startDate > $1.startDate }
+                    .map(FeaturedBannerActionTargetItem.init(event:))
+            case .organization:
+                guard let organizationRepository else { throw AppError.validationFailed }
+                let organizations = try await organizationRepository.fetchOrganizations()
+                return organizations
+                    .filter { $0.moderationStatus == .approved }
+                    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                    .map(FeaturedBannerActionTargetItem.init(organization:))
+            }
+        }
+
+        actionTargetLoadTasks[kind] = task
+        await applyActionTargetResult(from: task, kind: kind)
+    }
+
+    private func applyActionTargetResult(from task: Task<[FeaturedBannerActionTargetItem], Error>, kind: FeaturedBannerActionTargetKind) async {
+        do {
+            let items = try await task.value
+            actionTargetItemsByKind[kind] = items
+        } catch {
+            actionTargetLoadError = AppStrings.FeaturedEditor.targetPickerLoadFailed
+        }
+
+        loadingActionTargetKinds.remove(kind)
+        actionTargetLoadTasks[kind] = nil
+    }
+
     private func resolvedImageURL() async throws -> URL {
         if let selectedProcessedImage {
             return try await imageUploadService.uploadFeaturedBannerImage(bannerId: bannerID, processedImage: selectedProcessedImage)
@@ -308,5 +462,104 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         case .unknown:
             return AppStrings.FeaturedEditor.saveUnknownError
         }
+    }
+}
+
+enum FeaturedBannerActionTargetKind: String, CaseIterable, Identifiable, Hashable {
+    case news
+    case event
+    case organization
+
+    var id: String { rawValue }
+
+    init?(actionType: FeaturedBannerActionType) {
+        switch actionType {
+        case .news:
+            self = .news
+        case .event:
+            self = .event
+        case .organization:
+            self = .organization
+        case .none, .guide, .externalURL, .announcement, .emergency, .partner:
+            return nil
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .news:
+            return AppStrings.News.title
+        case .event:
+            return AppStrings.Tabs.events
+        case .organization:
+            return AppStrings.Tabs.organizations
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .news:
+            return "newspaper"
+        case .event:
+            return "calendar"
+        case .organization:
+            return "building.2"
+        }
+    }
+}
+
+struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
+    let id: String
+    let kind: FeaturedBannerActionTargetKind
+    let title: String
+    let subtitle: String?
+    let metadata: String?
+
+    init(news: NewsPost) {
+        id = news.id
+        kind = .news
+        title = news.title
+        subtitle = Self.nonEmpty(news.subtitle)
+        metadata = Self.joined([
+            news.source.displayOrganizationName ?? news.authorName,
+            Self.dateText(news.publishedAt)
+        ])
+    }
+
+    init(event: Event) {
+        id = event.id
+        kind = .event
+        title = event.title
+        subtitle = Self.nonEmpty(event.summary)
+        metadata = Self.joined([
+            Self.nonEmpty(event.organizerName) ?? event.source.displayOrganizationName,
+            Self.joined([Self.nonEmpty(event.city), Self.nonEmpty(event.venue)]),
+            Self.dateText(event.startDate)
+        ])
+    }
+
+    init(organization: Organization) {
+        id = organization.id
+        kind = .organization
+        title = organization.name
+        subtitle = Self.nonEmpty(organization.shortDescription)
+        metadata = Self.joined([
+            Self.nonEmpty(organization.organizationType),
+            Self.nonEmpty(organization.city)
+        ])
+    }
+
+    private static func joined(_ values: [String?]) -> String? {
+        let joined = values.compactMap { nonEmpty($0) }.joined(separator: " · ")
+        return joined.isEmpty ? nil : joined
+    }
+
+    private static func dateText(_ date: Date) -> String {
+        date.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private static func nonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

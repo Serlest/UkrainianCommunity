@@ -39,7 +39,28 @@ extension OrganizationEditorView {
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
-                    iconTextField(systemImage: "point.3.connected.trianglepath.dotted", placeholder: AppStrings.Organizations.socialPlaceholder, text: $viewModel.socialLinks)
+                    iconTextField(systemImage: "person.2", placeholder: AppStrings.Organizations.fieldFacebookURL, text: $viewModel.facebookURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    iconTextField(systemImage: "camera", placeholder: AppStrings.Organizations.fieldInstagramURL, text: $viewModel.instagramURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    iconTextField(systemImage: "phone.bubble", placeholder: AppStrings.Organizations.fieldWhatsAppURL, text: $viewModel.whatsappURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    iconTextField(systemImage: "play.rectangle", placeholder: AppStrings.Organizations.fieldYouTubeURL, text: $viewModel.youtubeURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    iconTextField(systemImage: "briefcase", placeholder: AppStrings.Organizations.fieldLinkedInURL, text: $viewModel.linkedinURL)
+                        .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }

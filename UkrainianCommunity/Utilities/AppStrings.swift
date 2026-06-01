@@ -77,6 +77,18 @@ enum AppStrings {
         }
     }
 
+    enum Search {
+        static var open: String { text("search.open", "Search") }
+        static var close: String { text("search.close", "Close search") }
+        static var clear: String { text("search.clear", "Clear search") }
+        static var noResultsTitle: String { text("search.no_results.title", "Nothing found") }
+        static var noResultsMessage: String { text("search.no_results.message", "Try a different search term or adjust the current filters.") }
+        static var homePlaceholder: String { text("search.placeholder.home", "Search updates, events, and organizations") }
+        static var eventsPlaceholder: String { text("search.placeholder.events", "Search events") }
+        static var organizationsPlaceholder: String { text("search.placeholder.organizations", "Search organizations") }
+        static var guidePlaceholder: String { text("search.placeholder.guide", "Search guide") }
+    }
+
     enum Images {
         enum Crop {
             static var title: String { text("image.crop.title", "Crop image") }
@@ -162,7 +174,14 @@ enum AppStrings {
         static var visibleSectionsField: String { text("featured.editor.field.visible_sections", "Visible sections") }
         static var actionTypeField: String { text("featured.editor.field.action_type", "Action type") }
         static var actionTargetField: String { text("featured.editor.field.action_target", "Target ID") }
-        static var manualTargetHelper: String { text("featured.editor.action.manual_target_helper", "Enter the existing content ID manually. Content picker comes later.") }
+        static var manualTargetHelper: String { text("featured.editor.action.manual_target_helper", "Enter the existing content ID manually for action types without picker support.") }
+        static var selectTarget: String { text("featured.editor.action.select_target", "Select target") }
+        static var clearTarget: String { text("featured.editor.action.clear_target", "Clear selected target") }
+        static var targetPickerSearch: String { text("featured.editor.action.search_target", "Search by title, source, location, or ID") }
+        static var loadingTargets: String { text("featured.editor.action.loading_targets", "Loading targets") }
+        static var noTargetsFound: String { text("featured.editor.action.no_targets.title", "No matching targets") }
+        static var noTargetsFoundMessage: String { text("featured.editor.action.no_targets.message", "Try a different search or refresh the list.") }
+        static var targetPickerLoadFailed: String { text("featured.editor.action.load_failed", "Unable to load selectable targets right now.") }
         static var externalURLField: String { text("featured.editor.field.external_url", "External URL") }
         static var durationField: String { text("featured.editor.field.duration", "Display duration") }
         static var priorityField: String { text("featured.editor.field.priority", "Priority") }
@@ -191,6 +210,22 @@ enum AppStrings {
                 "featured.editor.duration.value",
                 defaultValue: "%lld sec",
                 arguments: [seconds]
+            )
+        }
+
+        static func targetPickerTitle(_ contentType: String) -> String {
+            LocalizationStore.localizedFormat(
+                "featured.editor.action.picker_title",
+                defaultValue: "Select %@",
+                arguments: [contentType]
+            )
+        }
+
+        static func selectedTargetID(_ id: String) -> String {
+            LocalizationStore.localizedFormat(
+                "featured.editor.action.selected_id",
+                defaultValue: "ID: %@",
+                arguments: [id]
             )
         }
     }
@@ -307,6 +342,23 @@ enum AppStrings {
         static var authorFallback: String { text("news.editor.author_fallback", "Anonymous") }
     }
 
+    enum DraftRecovery {
+        static var recoveryTitle: String { text("draft_recovery.recovery.title", "Continue saved draft?") }
+        static var recoveryMessage: String { text("draft_recovery.recovery.message", "A local draft from your previous News create session is available.") }
+        static var eventRecoveryMessage: String { text("draft_recovery.recovery.event_message", "A local draft from your previous Event create session is available.") }
+        static var organizationRecoveryMessage: String { text("draft_recovery.recovery.organization_message", "A local draft from your previous Organization create session is available.") }
+        static var continueDraft: String { text("draft_recovery.recovery.continue", "Continue draft") }
+        static var createNew: String { text("draft_recovery.recovery.create_new", "Create new") }
+        static var deleteDraft: String { text("draft_recovery.recovery.delete", "Delete draft") }
+        static var closeTitle: String { text("draft_recovery.close.title", "Save this draft?") }
+        static var closeMessage: String { text("draft_recovery.close.message", "You have unsaved News content. Save it locally before closing or discard it.") }
+        static var eventCloseMessage: String { text("draft_recovery.close.event_message", "You have unsaved Event content. Save it locally before closing or discard it.") }
+        static var organizationCloseMessage: String { text("draft_recovery.close.organization_message", "You have unsaved Organization content. Save it locally before closing or discard it.") }
+        static var saveDraftAndClose: String { text("draft_recovery.close.save", "Save draft and close") }
+        static var discardDraft: String { text("draft_recovery.close.discard", "Discard") }
+        static var continueEditing: String { text("draft_recovery.close.continue_editing", "Continue editing") }
+    }
+
     enum Events {
         static var title: String { text("events.title", "Events") }
         static var heroTitle: String { text("events.hero.title", "Події громади") }
@@ -361,7 +413,8 @@ enum AppStrings {
         static var actionUnknownError: String { text("events.error.action.unknown", "Something went wrong while processing the event.") }
         static var detailBadge: String { text("events.detail.badge", "Зустріч") }
         static var aboutSectionTitle: String { text("events.detail.about", "Про подію") }
-        static var detailOrganizerSectionTitle: String { text("events.detail.organizer", "Організатор") }
+        static var detailOrganizerSectionTitle: String { text("events.detail.organizer", "Organizer") }
+        static var publishedBySectionTitle: String { text("events.detail.published_by", "Published by") }
         static var organizerContactSectionTitle: String { text("events.detail.organizer_contact", "Organizer and contact") }
         static var detailsSectionTitle: String { text("events.detail.details", "Деталі") }
         static var locationSectionTitle: String { text("events.detail.location", "Місце проведення") }
@@ -413,9 +466,10 @@ enum AppStrings {
         static var startTime: String { text("events.editor.start_time", "Початок") }
         static var fieldEndDate: String { text("events.editor.field.end_date", "Закінчення") }
         static var endTime: String { text("events.editor.end_time", "Завершення") }
-        static var editorOrganizerSectionTitle: String { text("events.editor.organizer_section", "Організатор *") }
+        static var editorPublisherSectionTitle: String { text("events.editor.publisher_section", "Publishing organization") }
+        static var editorOrganizerSectionTitle: String { text("events.editor.organizer_section", "Organizer") }
         static var organizerNameField: String { text("events.editor.organizer_contact.name", "Organizer name") }
-        static var organizerNamePlaceholder: String { text("events.editor.organizer_contact.name_placeholder", "Organization or external organizer") }
+        static var organizerNamePlaceholder: String { text("events.editor.organizer_contact.name_placeholder", "External organizer, if different") }
         static var organizerURLField: String { text("events.editor.organizer_contact.url", "Organizer website") }
         static var organizerURLPlaceholder: String { text("events.editor.organizer_contact.url_placeholder", "https://example.org") }
         static var contactPhoneField: String { text("events.editor.organizer_contact.phone", "Contact phone") }
@@ -510,6 +564,11 @@ enum AppStrings {
         static var fieldWebsite: String { text("organizations.editor.field.website", "Сайт або сторінка") }
         static var fieldTelegramURL: String { text("organizations.editor.field.telegram_url", "Telegram канал або чат") }
         static var fieldDonationURL: String { text("organizations.editor.field.donation_url", "Посилання для підтримки") }
+        static var fieldFacebookURL: String { text("organizations.editor.field.facebook_url", "Facebook") }
+        static var fieldInstagramURL: String { text("organizations.editor.field.instagram_url", "Instagram") }
+        static var fieldWhatsAppURL: String { text("organizations.editor.field.whatsapp_url", "WhatsApp") }
+        static var fieldYouTubeURL: String { text("organizations.editor.field.youtube_url", "YouTube") }
+        static var fieldLinkedInURL: String { text("organizations.editor.field.linkedin_url", "LinkedIn") }
         static var fieldMissionStatement: String { text("organizations.editor.field.mission_statement", "Чим ви займаєтесь") }
         static var detailMissionStatementTitle: String { text("organizations.detail.mission_statement", "Чим ми займаємось") }
         static var fieldMissionStatementPlaceholder: String { text("organizations.editor.field.mission_statement_placeholder", "Коротко опишіть головний напрям роботи") }
@@ -611,6 +670,9 @@ enum AppStrings {
         static var fieldTelegram: String { text("organizations.contacts.telegram", "Telegram") }
         static var fieldInstagram: String { text("organizations.contacts.instagram", "Instagram") }
         static var fieldFacebook: String { text("organizations.contacts.facebook", "Facebook") }
+        static var fieldWhatsApp: String { text("organizations.contacts.whatsapp", "WhatsApp") }
+        static var fieldYouTube: String { text("organizations.contacts.youtube", "YouTube") }
+        static var fieldLinkedIn: String { text("organizations.contacts.linkedin", "LinkedIn") }
         static var fieldLocation: String { text("organizations.contacts.location", "Локація") }
         static var teamComingSoon: String { text("organizations.detail.team_coming_soon", "Власник зможе додавати адміністраторів і модераторів.") }
         static var photosComingSoon: String { text("organizations.detail.photos_coming_soon", "Галерея буде доступна пізніше.") }
@@ -809,12 +871,13 @@ enum AppStrings {
         static var subcategoriesSubtitle: String { text("guide.management.subcategories.subtitle", "Future organization for nested guide topics.") }
         static var archive: String { text("guide.management.archive", "Archive") }
         static var archiveSubtitle: String { text("guide.management.archive.subtitle", "Retired guide materials kept out of active use.") }
-        static var archiveDraftAction: String { text("guide.management.archive_draft.action", "Archive draft") }
-        static var archiveDraftConfirmationTitle: String { text("guide.management.archive_draft.confirm.title", "Archive draft?") }
-        static func archiveDraftConfirmationMessage(_ title: String) -> String {
+        static var editAction: String { text("guide.management.edit.action", "Edit") }
+        static var deleteAction: String { text("guide.management.delete.action", "Delete") }
+        static var deleteConfirmationTitle: String { text("guide.management.delete.confirm.title", "Delete guide article?") }
+        static func deleteConfirmationMessage(_ title: String) -> String {
             LocalizationStore.localizedFormat(
-                "guide.management.archive_draft.confirm.message",
-                defaultValue: "This will remove “%@” from drafts.",
+                "guide.management.delete.confirm.message",
+                defaultValue: "This permanently deletes “%@”. This cannot be undone.",
                 arguments: [title]
             )
         }
@@ -928,6 +991,7 @@ enum AppStrings {
         static var backendNotice: String { text("guide.editor.backend_notice", "Drafts can be saved, reopened, edited, archived, and submitted for review. Approved articles are published from the review preview.") }
         static var validateAction: String { text("guide.editor.action.validate", "Validate") }
         static var saveDraftAction: String { text("guide.editor.action.save_draft", "Save draft") }
+        static var saveChangesAction: String { text("guide.editor.action.save_changes", "Save changes") }
         static var submitForReviewAction: String { text("guide.editor.action.submit_for_review", "Submit for review") }
         static var submitForReviewConfirmationTitle: String { text("guide.editor.submit.confirm.title", "Submit for review?") }
         static var submitForReviewConfirmationMessage: String { text("guide.editor.submit.confirm.message", "This moves the draft out of editable drafts and into review.") }

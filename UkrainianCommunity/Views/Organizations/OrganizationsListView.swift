@@ -104,6 +104,8 @@ struct OrganizationsListView: View {
     @State private var savedFilterMode: OrganizationSavedFilterMode = .none
     @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
+    @State private var isSearchPresented = false
+    @State private var searchText = ""
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
@@ -186,11 +188,11 @@ struct OrganizationsListView: View {
             applyDefaultRegion()
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
-            await loadFeaturedBanners()
+            await refreshFeaturedBannersIfStale()
         }
         .refreshable {
             await viewModel.refresh()
-            await loadFeaturedBanners()
+            await refreshFeaturedBanners()
         }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }
@@ -256,9 +258,11 @@ struct OrganizationsListView: View {
     }
 
     private var organizationsHeader: some View {
-        AppBrandHeader {
-            EmptyView()
-        }
+        AppSearchableBrandHeader(
+            isSearchPresented: $isSearchPresented,
+            searchText: $searchText,
+            placeholder: AppStrings.Search.organizationsPlaceholder
+        )
     }
 
     @ViewBuilder
@@ -272,8 +276,15 @@ struct OrganizationsListView: View {
         }
     }
 
-    private func loadFeaturedBanners() async {
-        await featuredBannerViewModel.loadActiveBanners(
+    private func refreshFeaturedBannersIfStale() async {
+        await featuredBannerViewModel.refreshIfStale(
+            for: .organizations,
+            federalState: authState.user?.selectedFederalState
+        )
+    }
+
+    private func refreshFeaturedBanners() async {
+        await featuredBannerViewModel.refresh(
             for: .organizations,
             federalState: authState.user?.selectedFederalState
         )
@@ -317,8 +328,8 @@ struct OrganizationsListView: View {
             .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredOrganizations.isEmpty {
             EmptyStateCard(
-                systemImage: "line.3.horizontal.decrease.circle",
-                title: AppStrings.Organizations.title,
+                systemImage: hasActiveSearch ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
+                title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Organizations.title,
                 message: filteredEmptyMessage
             )
             .frame(maxWidth: .infinity, minHeight: 180)
@@ -350,10 +361,19 @@ struct OrganizationsListView: View {
             selectedCategory.matches(organization)
                 && matchesSelectedRegion(organization)
                 && matchesSavedFilterMode(organization)
+                && matchesSearch(organization)
         }
     }
 
+    private var hasActiveSearch: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var filteredEmptyMessage: String {
+        if hasActiveSearch {
+            return AppStrings.Search.noResultsMessage
+        }
+
         if savedFilterMode == .bookmarked {
             return AppStrings.Organizations.emptyBookmarked
         }
@@ -364,8 +384,11 @@ struct OrganizationsListView: View {
     }
 
     private func matchesSelectedRegion(_ organization: Organization) -> Bool {
-        guard let selectedFederalState else { return true }
-        return organization.federalState == selectedFederalState
+        RegionVisibilityMatcher.isVisible(
+            regionScope: organization.regionScope,
+            federalState: organization.federalState,
+            selectedFederalState: selectedFederalState
+        )
     }
 
     private func matchesSavedFilterMode(_ organization: Organization) -> Bool {
@@ -378,6 +401,41 @@ struct OrganizationsListView: View {
         case .bookmarked:
             guard authState.isAuthenticated else { return false }
             return organization.isBookmarked
+        }
+    }
+
+    private func matchesSearch(_ organization: Organization) -> Bool {
+        LocalSearchMatcher.matches(
+            query: searchText,
+            values: [
+                organization.name,
+                organization.shortDescription,
+                organization.description,
+                organization.fullDescription,
+                organization.city,
+                organization.organizationType,
+                selectedCategoryTitle(for: organization.organizationType),
+                organization.contactPerson,
+                organization.missionStatement
+            ]
+        )
+    }
+
+    private func selectedCategoryTitle(for organizationType: String?) -> String? {
+        guard let organizationType else { return nil }
+        switch organizationType {
+        case "support":
+            return AppStrings.Organizations.categorySupport
+        case "integration":
+            return AppStrings.Organizations.categoryIntegration
+        case "culture":
+            return AppStrings.Organizations.categoryCulture
+        case "education":
+            return AppStrings.Organizations.categoryEducation
+        case "other":
+            return AppStrings.Organizations.categoryOther
+        default:
+            return nil
         }
     }
 

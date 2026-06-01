@@ -14,6 +14,7 @@ struct GuideHomeView: View {
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var routedGuideArticle: GuideArticle?
     @State private var routedGuideArticleID: String?
+    @State private var isSearchPresented = false
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
@@ -82,11 +83,11 @@ struct GuideHomeView: View {
         .task(id: featuredBannerLoadKey) {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
-            await loadFeaturedBanners()
+            await refreshFeaturedBannersIfStale()
         }
         .refreshable {
             await viewModel.refresh()
-            await loadFeaturedBanners()
+            await refreshFeaturedBanners()
         }
         .onReceive(NotificationCenter.default.publisher(for: .guideChanged)) { _ in
             Task {
@@ -101,9 +102,11 @@ struct GuideHomeView: View {
     }
 
     private var guideHeader: some View {
-        AppBrandHeader {
-            EmptyView()
-        }
+        AppSearchableBrandHeader(
+            isSearchPresented: $isSearchPresented,
+            searchText: $viewModel.searchText,
+            placeholder: AppStrings.Search.guidePlaceholder
+        )
     }
 
     @ViewBuilder
@@ -117,8 +120,15 @@ struct GuideHomeView: View {
         }
     }
 
-    private func loadFeaturedBanners() async {
-        await featuredBannerViewModel.loadActiveBanners(
+    private func refreshFeaturedBannersIfStale() async {
+        await featuredBannerViewModel.refreshIfStale(
+            for: .guide,
+            federalState: selectedFederalState
+        )
+    }
+
+    private func refreshFeaturedBanners() async {
+        await featuredBannerViewModel.refresh(
             for: .guide,
             federalState: selectedFederalState
         )

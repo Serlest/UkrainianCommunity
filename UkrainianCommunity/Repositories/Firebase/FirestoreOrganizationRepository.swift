@@ -136,6 +136,11 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setUpdateValue(organization.foundedMonth, forKey: "foundedMonth", in: &data)
         setUpdateValue(organization.telegramURL, forKey: "telegramURL", in: &data)
         setUpdateValue(organization.donationURL, forKey: "donationURL", in: &data)
+        setUpdateValue(organization.facebookURL, forKey: "facebookURL", in: &data)
+        setUpdateValue(organization.instagramURL, forKey: "instagramURL", in: &data)
+        setUpdateValue(organization.whatsappURL, forKey: "whatsappURL", in: &data)
+        setUpdateValue(organization.youtubeURL, forKey: "youtubeURL", in: &data)
+        setUpdateValue(organization.linkedinURL, forKey: "linkedinURL", in: &data)
         setUpdateValue(organization.missionStatement, forKey: "missionStatement", in: &data)
         setUpdateValue(organization.contactPerson, forKey: "contactPerson", in: &data)
         setUpdateValue(organization.submittedAt.map(Timestamp.init(date:)), forKey: "submittedAt", in: &data)
@@ -633,6 +638,11 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             socialLinks: data["socialLinks"] as? [String: String],
             telegramURL: data["telegramURL"] as? String,
             donationURL: data["donationURL"] as? String,
+            facebookURL: data["facebookURL"] as? String,
+            instagramURL: data["instagramURL"] as? String,
+            whatsappURL: data["whatsappURL"] as? String,
+            youtubeURL: data["youtubeURL"] as? String,
+            linkedinURL: data["linkedinURL"] as? String,
             missionStatement: data["missionStatement"] as? String,
             contactPerson: data["contactPerson"] as? String,
             subscriberCount: subscriberCount,
@@ -717,6 +727,11 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             socialLinks: organization.socialLinks,
             telegramURL: organization.telegramURL,
             donationURL: organization.donationURL,
+            facebookURL: organization.facebookURL,
+            instagramURL: organization.instagramURL,
+            whatsappURL: organization.whatsappURL,
+            youtubeURL: organization.youtubeURL,
+            linkedinURL: organization.linkedinURL,
             missionStatement: organization.missionStatement,
             contactPerson: organization.contactPerson,
             subscriberCount: organization.subscriberCount,
@@ -787,6 +802,11 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setCreateValue(organization.foundedMonth, forKey: "foundedMonth", in: &data)
         setCreateValue(organization.telegramURL, forKey: "telegramURL", in: &data)
         setCreateValue(organization.donationURL, forKey: "donationURL", in: &data)
+        setCreateValue(organization.facebookURL, forKey: "facebookURL", in: &data)
+        setCreateValue(organization.instagramURL, forKey: "instagramURL", in: &data)
+        setCreateValue(organization.whatsappURL, forKey: "whatsappURL", in: &data)
+        setCreateValue(organization.youtubeURL, forKey: "youtubeURL", in: &data)
+        setCreateValue(organization.linkedinURL, forKey: "linkedinURL", in: &data)
         setCreateValue(organization.missionStatement, forKey: "missionStatement", in: &data)
         setCreateValue(organization.contactPerson, forKey: "contactPerson", in: &data)
         setCreateValue(organization.ownerId, forKey: "ownerId", in: &data)

@@ -148,6 +148,8 @@ struct EventsListView: View {
     @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
     @State private var guestAccessAction: GuestAccessAction?
+    @State private var isSearchPresented = false
+    @State private var searchText = ""
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
@@ -235,12 +237,20 @@ struct EventsListView: View {
             matchesSelectedCategory(event)
                 && matchesSelectedRegion(event)
                 && matchesSelectedFeedScope(event)
+                && matchesSearch(event)
         }
     }
 
+    private var hasActiveSearch: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private func matchesSelectedRegion(_ event: Event) -> Bool {
-        guard let selectedFederalState else { return true }
-        return event.federalState == selectedFederalState
+        RegionVisibilityMatcher.isVisible(
+            regionScope: event.regionScope,
+            federalState: event.federalState,
+            selectedFederalState: selectedFederalState
+        )
     }
 
     private func matchesSelectedCategory(_ event: Event) -> Bool {
@@ -303,11 +313,11 @@ struct EventsListView: View {
             applyDefaultRegion()
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
-            await loadFeaturedBanners()
+            await refreshFeaturedBannersIfStale()
         }
         .refreshable {
             await viewModel.refresh()
-            await loadFeaturedBanners()
+            await refreshFeaturedBanners()
         }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }
@@ -384,9 +394,11 @@ struct EventsListView: View {
     }
 
     private var eventsHeader: some View {
-        AppBrandHeader {
-            EmptyView()
-        }
+        AppSearchableBrandHeader(
+            isSearchPresented: $isSearchPresented,
+            searchText: $searchText,
+            placeholder: AppStrings.Search.eventsPlaceholder
+        )
     }
 
     @ViewBuilder
@@ -400,8 +412,15 @@ struct EventsListView: View {
         }
     }
 
-    private func loadFeaturedBanners() async {
-        await featuredBannerViewModel.loadActiveBanners(
+    private func refreshFeaturedBannersIfStale() async {
+        await featuredBannerViewModel.refreshIfStale(
+            for: .events,
+            federalState: authState.user?.selectedFederalState
+        )
+    }
+
+    private func refreshFeaturedBanners() async {
+        await featuredBannerViewModel.refresh(
             for: .events,
             federalState: authState.user?.selectedFederalState
         )
@@ -443,8 +462,8 @@ struct EventsListView: View {
             .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredEvents.isEmpty {
             EmptyStateCard(
-                systemImage: filteredEventsEmptySystemImage,
-                title: AppStrings.Events.title,
+                systemImage: hasActiveSearch ? "magnifyingglass" : filteredEventsEmptySystemImage,
+                title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Events.title,
                 message: filteredEventsEmptyMessage
             )
             .frame(maxWidth: .infinity, minHeight: 180)
@@ -473,7 +492,11 @@ struct EventsListView: View {
     }
 
     private var filteredEventsEmptyMessage: String {
-        switch selectedFeedScope {
+        if hasActiveSearch {
+            return AppStrings.Search.noResultsMessage
+        }
+
+        return switch selectedFeedScope {
         case .saved:
             AppStrings.Events.emptySaved
         case .registered:
@@ -481,6 +504,26 @@ struct EventsListView: View {
         case .all:
             selectedFederalState == nil ? AppStrings.Events.filteredUpcomingEmpty : AppStrings.Home.emptyRegion
         }
+    }
+
+    private func matchesSearch(_ event: Event) -> Bool {
+        LocalSearchMatcher.matches(
+            query: searchText,
+            values: [
+                event.title,
+                event.summary,
+                event.details,
+                event.city,
+                event.venue,
+                event.address,
+                event.locationNote,
+                event.organizerName,
+                event.authorName,
+                event.source.displayOrganizationName,
+                event.category.title,
+                event.category.rawValue
+            ]
+        )
     }
 
     private func upcomingContent(_ content: EventDiscoveryContent) -> some View {

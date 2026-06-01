@@ -14,7 +14,7 @@ extension NewsEditorView {
             .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
             .overlay(alignment: .leading) {
                 headerIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                    dismiss()
+                    requestClose()
                 }
             }
             .accessibilityElement(children: .contain)
@@ -79,6 +79,14 @@ extension NewsEditorView {
                 let didPublish = await viewModel.publish()
                 guard didPublish else { return }
                 await onPublished()
+                dismiss()
+            }
+        }
+
+        func requestClose() {
+            if viewModel.shouldConfirmDraftBeforeDismiss {
+                isShowingDraftCloseConfirmation = true
+            } else {
                 dismiss()
             }
         }

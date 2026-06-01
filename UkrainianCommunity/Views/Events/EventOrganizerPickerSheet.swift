@@ -25,7 +25,7 @@ struct OrganizerPickerSheet: View {
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
             .background(AppBackgroundView())
-            .navigationTitle(AppStrings.Events.editorOrganizerSectionTitle)
+            .navigationTitle(AppStrings.Events.editorPublisherSectionTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

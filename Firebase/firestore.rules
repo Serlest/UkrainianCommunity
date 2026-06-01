@@ -162,14 +162,22 @@ service cloud.firestore {
         && request.resource.data.archivedAt == resource.data.archivedAt;
     }
 
-    function guideArticleIsEditableDraft() {
-      return resource.data.moderationStatus == 'draft'
+    function guideArticleIsEditableManagedContent() {
+      return (!('archivedAt' in resource.data) || resource.data.archivedAt == null)
         && (
-          !('status' in resource.data)
-          || resource.data.status == null
-          || resource.data.status == 'draft'
-        )
-        && (!('archivedAt' in resource.data) || resource.data.archivedAt == null);
+          (
+            resource.data.moderationStatus == 'draft'
+            && (
+              !('status' in resource.data)
+              || resource.data.status == null
+              || resource.data.status == 'draft'
+            )
+          )
+          || (
+            resource.data.moderationStatus == 'approved'
+            && resource.data.status == 'published'
+          )
+        );
     }
 
     function validGuideArticleCreate(articleId) {
@@ -188,7 +196,7 @@ service cloud.firestore {
 
     function validGuideArticleEditUpdate() {
       return canManageGuide()
-        && guideArticleIsEditableDraft()
+        && guideArticleIsEditableManagedContent()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleEditableFields())
         && guideArticleIdentityFieldsArePreserved()
         && guideArticleWorkflowFieldsArePreserved()
@@ -414,7 +422,6 @@ service cloud.firestore {
     function featuredBannerRequiredFields() {
       return [
         'id',
-        'title',
         'imageURL',
         'actionType',
         'regionScope',
@@ -524,8 +531,7 @@ service cloud.firestore {
         && data.keys().hasOnly(featuredBannerAllowedFields())
         && data.id == bannerId
         && data.id is string
-        && data.title is string
-        && data.title.size() > 0
+        && (!('title' in data) || data.title == null || data.title is string)
         && data.imageURL is string
         && data.imageURL.size() > 0
         && data.actionType in featuredBannerActionTypes()
@@ -798,6 +804,11 @@ service cloud.firestore {
         'socialLinks',
         'telegramURL',
         'donationURL',
+        'facebookURL',
+        'instagramURL',
+        'whatsappURL',
+        'youtubeURL',
+        'linkedinURL',
         'missionStatement',
         'contactPerson',
         'moderationStatus',
@@ -837,6 +848,11 @@ service cloud.firestore {
         'socialLinks',
         'telegramURL',
         'donationURL',
+        'facebookURL',
+        'instagramURL',
+        'whatsappURL',
+        'youtubeURL',
+        'linkedinURL',
         'missionStatement',
         'contactPerson',
         'moderationStatus',
@@ -883,6 +899,11 @@ service cloud.firestore {
         'socialLinks',
         'telegramURL',
         'donationURL',
+        'facebookURL',
+        'instagramURL',
+        'whatsappURL',
+        'youtubeURL',
+        'linkedinURL',
         'missionStatement',
         'contactPerson',
         'moderationStatus',
@@ -1657,7 +1678,8 @@ service cloud.firestore {
 
       allow create: if validGuideArticleCreate(articleId);
       allow update: if validGuideArticleEditUpdate();
-      allow delete: if false;
+      allow delete: if canManageGuide()
+        && guideArticleIsEditableManagedContent();
     }
 
     match /{document=**} {

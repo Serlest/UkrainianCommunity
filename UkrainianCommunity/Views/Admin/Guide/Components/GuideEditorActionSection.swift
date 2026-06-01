@@ -43,7 +43,7 @@ struct GuideEditorActionSection: View {
             .buttonStyle(.bordered)
             .disabled(viewModel.isSaving)
 
-            Button(AppStrings.GuideEditor.saveDraftAction) {
+            Button(viewModel.saveActionTitle) {
                 saveDraftAction()
             }
             .buttonStyle(.borderedProminent)

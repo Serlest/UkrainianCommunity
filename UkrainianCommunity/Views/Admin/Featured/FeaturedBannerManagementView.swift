@@ -5,9 +5,20 @@ struct FeaturedBannerManagementView: View {
     @StateObject private var viewModel: FeaturedBannerManagementViewModel
     @State private var deleteCandidate: FeaturedBanner?
     private let repository: FeaturedBannerRepository
+    private let newsRepository: NewsRepository
+    private let eventRepository: EventRepository
+    private let organizationRepository: OrganizationRepository
 
-    init(repository: FeaturedBannerRepository) {
+    init(
+        repository: FeaturedBannerRepository,
+        newsRepository: NewsRepository,
+        eventRepository: EventRepository,
+        organizationRepository: OrganizationRepository
+    ) {
         self.repository = repository
+        self.newsRepository = newsRepository
+        self.eventRepository = eventRepository
+        self.organizationRepository = organizationRepository
         _viewModel = StateObject(wrappedValue: FeaturedBannerManagementViewModel(repository: repository))
     }
 
@@ -19,7 +30,7 @@ struct FeaturedBannerManagementView: View {
             managementContent
         }
         .task {
-            await viewModel.loadBanners()
+            await viewModel.loadIfNeeded()
         }
         .refreshable {
             await viewModel.refresh()
@@ -102,7 +113,13 @@ struct FeaturedBannerManagementView: View {
                         )
 
                         NavigationLink {
-                            FeaturedBannerEditorView(repository: repository, mode: .edit(banner)) {
+                            FeaturedBannerEditorView(
+                                repository: repository,
+                                mode: .edit(banner),
+                                newsRepository: newsRepository,
+                                eventRepository: eventRepository,
+                                organizationRepository: organizationRepository
+                            ) {
                                 await viewModel.refresh()
                             }
                         } label: {
@@ -122,7 +139,12 @@ struct FeaturedBannerManagementView: View {
 
     private var createBannerLink: some View {
         NavigationLink {
-            FeaturedBannerEditorView(repository: repository) {
+            FeaturedBannerEditorView(
+                repository: repository,
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationRepository
+            ) {
                 await viewModel.refresh()
             }
         } label: {
@@ -326,7 +348,12 @@ private extension FeaturedBannerActionType {
 
 #Preview {
     NavigationStack {
-        FeaturedBannerManagementView(repository: MockFeaturedBannerRepository())
+        FeaturedBannerManagementView(
+            repository: MockFeaturedBannerRepository(),
+            newsRepository: MockNewsRepository(),
+            eventRepository: MockEventRepository(),
+            organizationRepository: MockOrganizationRepository()
+        )
             .environmentObject(AuthState())
     }
 }

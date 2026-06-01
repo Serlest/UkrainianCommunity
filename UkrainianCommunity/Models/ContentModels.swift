@@ -555,6 +555,11 @@ struct Organization: Identifiable, Codable {
     let socialLinks: [String: String]
     let telegramURL: String?
     let donationURL: String?
+    let facebookURL: String?
+    let instagramURL: String?
+    let whatsappURL: String?
+    let youtubeURL: String?
+    let linkedinURL: String?
     let missionStatement: String?
     let contactPerson: String?
     var subscriberCount: Int
@@ -609,6 +614,11 @@ struct Organization: Identifiable, Codable {
         socialLinks: [String: String] = [:],
         telegramURL: String? = nil,
         donationURL: String? = nil,
+        facebookURL: String? = nil,
+        instagramURL: String? = nil,
+        whatsappURL: String? = nil,
+        youtubeURL: String? = nil,
+        linkedinURL: String? = nil,
         missionStatement: String? = nil,
         contactPerson: String? = nil,
         subscriberCount: Int = 0,
@@ -662,6 +672,11 @@ struct Organization: Identifiable, Codable {
         self.socialLinks = socialLinks
         self.telegramURL = Self.normalizedOptionalString(telegramURL)
         self.donationURL = Self.normalizedOptionalString(donationURL)
+        self.facebookURL = Self.normalizedOptionalString(facebookURL)
+        self.instagramURL = Self.normalizedOptionalString(instagramURL)
+        self.whatsappURL = Self.normalizedOptionalString(whatsappURL)
+        self.youtubeURL = Self.normalizedOptionalString(youtubeURL)
+        self.linkedinURL = Self.normalizedOptionalString(linkedinURL)
         self.missionStatement = Self.normalizedOptionalString(missionStatement)
         self.contactPerson = Self.normalizedOptionalString(contactPerson)
         self.subscriberCount = max(0, subscriberCount)

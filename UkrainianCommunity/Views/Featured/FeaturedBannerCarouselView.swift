@@ -80,6 +80,7 @@ struct FeaturedBannerCarouselView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .animation(AppTheme.featuredBannerCarouselAnimation, value: selectedBannerID)
         }
     }
 
@@ -122,7 +123,7 @@ struct FeaturedBannerCarouselView: View {
         guard !Task.isCancelled else { return }
 
         await MainActor.run {
-            withAnimation(.easeInOut(duration: 0.35)) {
+            withAnimation(AppTheme.featuredBannerCarouselAnimation) {
                 selectedBannerID = nextBannerID(after: selectedBanner.id)
             }
         }

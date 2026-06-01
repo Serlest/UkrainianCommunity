@@ -35,30 +35,53 @@ final class NewsEditorViewModel: ObservableObject {
         }
     }
 
-    @Published var title = ""
-    @Published var summary = ""
-    @Published var body = ""
-    @Published var sourceInput = ""
-    @Published var tagsInput = ""
-    @Published var selectedFederalState: AustrianFederalState = .tirol
+    @Published var title = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var summary = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var body = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var sourceInput = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var tagsInput = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var selectedFederalState: AustrianFederalState = .tirol {
+        didSet { scheduleCreateDraftAutosave() }
+    }
     @Published var isPublishing = false
     @Published var isUploadingImage = false
     @Published var isProcessingImage = false
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
+    @Published private(set) var pendingRecoveryDraft: NewsCreateDraft?
     private var selectedProcessedImage: ProcessedImageSelection?
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: NewsRepository
+    private let draftRecoveryService: LocalDraftRecoveryService
     private let imageUploadService = ImageUploadService.shared
     private var authState: AuthState?
     private let mode: Mode
+    private var draftAutosaveTask: Task<Void, Never>?
+    private var hasCheckedCreateDraftRecovery = false
+    private var isApplyingRecoveredDraft = false
 
-    init(repository: NewsRepository, authState: AuthState? = nil, mode: Mode = .create()) {
+    init(
+        repository: NewsRepository,
+        authState: AuthState? = nil,
+        mode: Mode = .create(),
+        draftRecoveryService: LocalDraftRecoveryService? = nil
+    ) {
         self.repository = repository
         self.authState = authState
         self.mode = mode
+        self.draftRecoveryService = draftRecoveryService ?? .shared
 
         if case let .create(context) = mode {
             selectedCreateContext = context
@@ -74,6 +97,10 @@ final class NewsEditorViewModel: ObservableObject {
         }
     }
 
+    deinit {
+        draftAutosaveTask?.cancel()
+    }
+
     var canPublish: Bool {
         !trimmedTitle.isEmpty
             && !trimmedSummary.isEmpty
@@ -87,6 +114,16 @@ final class NewsEditorViewModel: ObservableObject {
 
     var isEditing: Bool {
         mode.isEditing
+    }
+
+    var hasPendingRecoveryDraft: Bool {
+        pendingRecoveryDraft != nil
+    }
+
+    var shouldConfirmDraftBeforeDismiss: Bool {
+        guard isCreateMode else { return false }
+        guard !isPublishing, !isUploadingImage, !isProcessingImage else { return false }
+        return currentNewsCreateDraft().hasMeaningfulContent
     }
 
     var showsRegionPicker: Bool {
@@ -185,6 +222,51 @@ final class NewsEditorViewModel: ObservableObject {
             organizationImageURL: organization.imageURL,
             organizationFederalState: organization.federalState
         )
+        if currentNewsCreateDraft().hasMeaningfulContent {
+            scheduleCreateDraftAutosave()
+        }
+    }
+
+    func loadRecoverableDraftIfNeeded() async {
+        guard isCreateMode, !hasCheckedCreateDraftRecovery else { return }
+        hasCheckedCreateDraftRecovery = true
+
+        do {
+            guard let draft = try await draftRecoveryService.loadNewsCreateDraft(key: createDraftStorageKey),
+                  draft.hasMeaningfulContent else {
+                pendingRecoveryDraft = nil
+                return
+            }
+            pendingRecoveryDraft = draft
+        } catch {
+            pendingRecoveryDraft = nil
+        }
+    }
+
+    func continueRecoveredDraft() {
+        guard let draft = pendingRecoveryDraft, isCreateMode else { return }
+        applyRecoveredDraft(draft)
+        pendingRecoveryDraft = nil
+    }
+
+    func createNewInsteadOfRecoveredDraft() async {
+        pendingRecoveryDraft = nil
+        try? await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
+    }
+
+    func deleteRecoveredDraft() async {
+        pendingRecoveryDraft = nil
+        try? await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
+    }
+
+    func saveDraftBeforeClosing() async {
+        await saveCurrentCreateDraftIfNeeded()
+    }
+
+    func discardCreateDraft() async {
+        draftAutosaveTask?.cancel()
+        pendingRecoveryDraft = nil
+        try? await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
     }
 
     func publish() async -> Bool {
@@ -347,6 +429,9 @@ final class NewsEditorViewModel: ObservableObject {
             }
 
             AppContentChangeBus.postNewsChanged(organizationID: news.source.organizationId)
+            if isCreateMode {
+                try? await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
+            }
             title = ""
             summary = ""
             body = ""
@@ -430,6 +515,94 @@ final class NewsEditorViewModel: ObservableObject {
         case let .edit(existingNews):
             return existingNews.source.sourceType == .organization
         }
+    }
+
+    private var isCreateMode: Bool {
+        if case .create = mode {
+            return true
+        }
+        return false
+    }
+
+    private var createDraftStorageKey: String {
+        guard case .create = mode else {
+            return "news-create-edit-ignored"
+        }
+
+        let organizationID = selectedCreateContext?.organizationId.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !organizationID.isEmpty else {
+            return "news-create"
+        }
+        return "news-create-organization-\(organizationID)"
+    }
+
+    private func scheduleCreateDraftAutosave() {
+        guard isCreateMode, !isApplyingRecoveredDraft else { return }
+        guard !isPublishing, !isUploadingImage, !isProcessingImage else { return }
+
+        draftAutosaveTask?.cancel()
+        draftAutosaveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(650))
+            guard !Task.isCancelled else { return }
+            await self?.saveCurrentCreateDraftIfNeeded()
+        }
+    }
+
+    private func saveCurrentCreateDraftIfNeeded() async {
+        guard isCreateMode else { return }
+        guard !isPublishing, !isUploadingImage, !isProcessingImage else { return }
+
+        let draft = currentNewsCreateDraft()
+        do {
+            if draft.hasMeaningfulContent {
+                try await draftRecoveryService.saveNewsCreateDraft(draft, key: createDraftStorageKey)
+            } else {
+                try await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
+            }
+        } catch {
+            // Draft recovery is best-effort and must not block publishing.
+        }
+    }
+
+    private func currentNewsCreateDraft(updatedAt: Date = Date()) -> NewsCreateDraft {
+        NewsCreateDraft(
+            version: NewsCreateDraft.currentVersion,
+            updatedAt: updatedAt,
+            organizationId: selectedCreateContext?.organizationId,
+            organizationName: selectedCreateContext?.organizationName,
+            organizationImageURL: selectedCreateContext?.organizationImageURL,
+            organizationFederalState: selectedCreateContext?.organizationFederalState,
+            title: title,
+            summary: summary,
+            body: body,
+            sourceInput: sourceInput,
+            tagsInput: tagsInput,
+            selectedFederalState: selectedFederalState
+        )
+    }
+
+    private func applyRecoveredDraft(_ draft: NewsCreateDraft) {
+        isApplyingRecoveredDraft = true
+
+        if let organizationId = draft.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines), !organizationId.isEmpty {
+            selectedCreateContext = CreateContext(
+                organizationId: organizationId,
+                organizationName: draft.organizationName,
+                organizationImageURL: draft.organizationImageURL,
+                organizationFederalState: draft.organizationFederalState
+            )
+        }
+
+        title = draft.title
+        summary = draft.summary
+        body = draft.body
+        sourceInput = draft.sourceInput
+        tagsInput = draft.tagsInput
+        if let selectedFederalState = draft.selectedFederalState {
+            self.selectedFederalState = selectedFederalState
+        }
+
+        isApplyingRecoveredDraft = false
     }
 
     private var resolvedFederalState: AustrianFederalState? {
