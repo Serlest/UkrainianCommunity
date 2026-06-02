@@ -7,24 +7,35 @@ private struct GuideScreenContent {
     let availableCategories: [GuideCategory]
 }
 
+private let guideRootScrollTopID = "guideRootScrollTop"
+
+struct GuideNavigationRoute: Hashable {
+    let articleID: String
+}
+
 struct GuideHomeView: View {
-    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: GuideListViewModel
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
-    @State private var routedGuideArticle: GuideArticle?
-    @State private var routedGuideArticleID: String?
     @State private var isSearchPresented = false
-    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
+    @Binding var navigationPath: [GuideNavigationRoute]
+    let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    let scrollResetToken: Int
 
     init(
         viewModel: GuideListViewModel,
-        featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository()
+        featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        navigationPath: Binding<[GuideNavigationRoute]> = .constant([]),
+        onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
+        scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
+        self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.scrollResetToken = scrollResetToken
         _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
             repository: featuredBannerRepository
         ))
+        _navigationPath = navigationPath
     }
 
     private var screenContent: GuideScreenContent {
@@ -53,29 +64,38 @@ struct GuideHomeView: View {
     var body: some View {
         let content = screenContent
 
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                guideHeader
-                    .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
+        ScrollViewReader { scrollProxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                Color.clear
+                    .frame(height: 0)
+                    .id(guideRootScrollTopID)
 
-                featuredGuideCarousel
-                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
+                VStack(alignment: .leading, spacing: 0) {
+                    guideHeader
+                        .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
-                GuideSearchAndFiltersView(viewModel: viewModel)
+                    featuredGuideCarousel
+                        .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
+
+                    GuideSearchAndFiltersView(viewModel: viewModel)
+                        .padding(.bottom, AppTheme.homeSectionSpacing)
+
+                    GuidePopularCategoriesSection(
+                        categories: content.availableCategories,
+                        selectedCategory: $viewModel.selectedCategory
+                    )
                     .padding(.bottom, AppTheme.homeSectionSpacing)
 
-                GuidePopularCategoriesSection(
-                    categories: content.availableCategories,
-                    selectedCategory: $viewModel.selectedCategory
-                )
-                .padding(.bottom, AppTheme.homeSectionSpacing)
-
-                AppGroupedContentPlane {
-                    guideArticlesContent(content)
+                    AppGroupedContentPlane {
+                        guideArticlesContent(content)
+                    }
                 }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
+            .onChange(of: scrollResetToken) {
+                scrollToTop(with: scrollProxy)
+            }
         }
         .background(AppBackgroundView())
         .navigationBarTitleDisplayMode(.inline)
@@ -94,10 +114,18 @@ struct GuideHomeView: View {
                 await viewModel.refresh()
             }
         }
-        .navigationDestination(item: $routedGuideArticleID) { _ in
-            if let routedGuideArticle {
-                GuideDetailView(article: routedGuideArticle)
+        .navigationDestination(for: GuideNavigationRoute.self) { route in
+            if let article = viewModel.articles.first(where: { $0.id == route.articleID }) {
+                GuideDetailView(article: article)
             }
+        }
+    }
+
+    private func scrollToTop(with scrollProxy: ScrollViewProxy) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            scrollProxy.scrollTo(guideRootScrollTopID, anchor: .top)
         }
     }
 
@@ -115,7 +143,7 @@ struct GuideHomeView: View {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
                 sizing: .responsiveHero,
-                onBannerTap: handleFeaturedBannerTap
+                onBannerTap: onFeaturedBannerTap
             )
         }
     }
@@ -132,21 +160,6 @@ struct GuideHomeView: View {
             for: .guide,
             federalState: selectedFederalState
         )
-    }
-
-    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
-        switch featuredBannerActionResolver.resolve(banner, opensPartnerURL: false) {
-        case .noAction, .openNews, .openEvent, .openOrganization:
-            return
-        case let .openURL(url):
-            openURL(url)
-        case let .openGuide(id):
-            Task {
-                guard let article = await viewModel.resolveArticle(id: id) else { return }
-                routedGuideArticle = article
-                routedGuideArticleID = article.id
-            }
-        }
     }
 
     @ViewBuilder
@@ -200,9 +213,7 @@ struct GuideHomeView: View {
     }
 
     private func guideArticleLink(_ article: GuideArticle, emphasized: Bool) -> some View {
-        NavigationLink {
-            GuideDetailView(article: article)
-        } label: {
+        NavigationLink(value: GuideNavigationRoute(articleID: article.id)) {
             GuideArticleCard(article: article, emphasized: emphasized)
         }
         .buttonStyle(.plain)

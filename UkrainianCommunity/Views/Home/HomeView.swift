@@ -8,8 +8,9 @@ private enum HomeContentRefreshReason: Hashable {
     case organizations
 }
 
+private let homeRootScrollTopID = "homeRootScrollTop"
+
 struct HomeView: View {
-    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: HomeViewModel
     @ObservedObject var newsViewModel: NewsViewModel
@@ -18,6 +19,8 @@ struct HomeView: View {
     @ObservedObject var guideViewModel: GuideListViewModel
     let newsRepository: NewsRepository
     @Binding var navigationPath: [HomeFeedDestinationReference]
+    let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    let scrollResetToken: Int
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var selectedContentType: HomeContentTypeFilter = .all
     @State private var selectedFeedFilter: HomeFeedFilter = .all
@@ -28,7 +31,6 @@ struct HomeView: View {
     @State private var searchText = ""
     @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
     @State private var pendingContentRefreshTask: Task<Void, Never>?
-    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
         viewModel: HomeViewModel,
@@ -38,7 +40,9 @@ struct HomeView: View {
         guideViewModel: GuideListViewModel,
         newsRepository: NewsRepository,
         featuredBannerRepository: FeaturedBannerRepository,
-        navigationPath: Binding<[HomeFeedDestinationReference]>
+        navigationPath: Binding<[HomeFeedDestinationReference]>,
+        onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
+        scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         self.newsViewModel = newsViewModel
@@ -46,36 +50,47 @@ struct HomeView: View {
         self.organizationsViewModel = organizationsViewModel
         self.guideViewModel = guideViewModel
         self.newsRepository = newsRepository
+        self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.scrollResetToken = scrollResetToken
         _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
         _navigationPath = navigationPath
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                homeHeader
-                    .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
+        ScrollViewReader { scrollProxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                Color.clear
+                    .frame(height: 0)
+                    .id(homeRootScrollTopID)
 
-                homeHero
-                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
+                VStack(alignment: .leading, spacing: 0) {
+                    homeHeader
+                        .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
-                HomeFilterRow(
-                    selectedContentType: selectedContentType,
-                    selectedFilter: selectedFeedFilter,
-                    selectedFederalState: selectedFederalState,
-                    onSelectRegion: { isRegionPickerPresented = true },
-                    onSelectContentType: { selectedContentType = $0 },
-                    onToggleSaved: { toggleFeedFilter(.saved) },
-                    onToggleSubscribed: { toggleFeedFilter(.subscribed) }
-                )
-                    .padding(.bottom, AppTheme.homeSectionSpacing)
+                    homeHero
+                        .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
 
-                AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
-                    feedContent
+                    HomeFilterRow(
+                        selectedContentType: selectedContentType,
+                        selectedFilter: selectedFeedFilter,
+                        selectedFederalState: selectedFederalState,
+                        onSelectRegion: { isRegionPickerPresented = true },
+                        onSelectContentType: { selectedContentType = $0 },
+                        onToggleSaved: { toggleFeedFilter(.saved) },
+                        onToggleSubscribed: { toggleFeedFilter(.subscribed) }
+                    )
+                        .padding(.bottom, AppTheme.homeSectionSpacing)
+
+                    AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
+                        feedContent
+                    }
                 }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
+            .onChange(of: scrollResetToken) {
+                scrollToTop(with: scrollProxy)
+            }
         }
         .background(AppBackgroundView())
         .navigationBarTitleDisplayMode(.inline)
@@ -117,13 +132,21 @@ struct HomeView: View {
         }
     }
 
+    private func scrollToTop(with scrollProxy: ScrollViewProxy) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            scrollProxy.scrollTo(homeRootScrollTopID, anchor: .top)
+        }
+    }
+
     @ViewBuilder
     private var homeHero: some View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
                 sizing: .responsiveHero,
-                onBannerTap: handleFeaturedBannerTap
+                onBannerTap: onFeaturedBannerTap
             )
         }
     }
@@ -429,29 +452,6 @@ struct HomeView: View {
         }
 
         _ = await homeRefresh
-    }
-
-    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
-        switch featuredBannerActionResolver.resolve(banner) {
-        case .noAction:
-            return
-        case let .openURL(url):
-            openURL(url)
-        case let .openNews(id):
-            guard newsViewModel.posts.contains(where: { $0.id == id }) else { return }
-            navigationPath.append(.news(id: id))
-        case let .openEvent(id):
-            guard eventsViewModel.events.contains(where: { $0.id == id }) else { return }
-            navigationPath.append(.event(id: id))
-        case let .openOrganization(id):
-            guard organizationsViewModel.organizations.contains(where: { $0.id == id }) else { return }
-            navigationPath.append(.organization(id: id))
-        case let .openGuide(id):
-            Task {
-                guard await guideViewModel.resolveArticle(id: id) != nil else { return }
-                navigationPath.append(.guide(id: id))
-            }
-        }
     }
 
     private var homeErrorText: String {

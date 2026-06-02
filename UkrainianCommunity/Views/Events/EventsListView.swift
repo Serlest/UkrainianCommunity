@@ -5,6 +5,8 @@ struct EventNavigationRoute: Hashable {
     let eventID: String
 }
 
+private let eventsRootScrollTopID = "eventsRootScrollTop"
+
 private enum EventDiscoveryFilter: CaseIterable, Identifiable {
     case all
     case today
@@ -129,7 +131,6 @@ private func eventMonthTitleText(for date: Date) -> String {
 }
 
 struct EventsListView: View {
-    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
@@ -138,6 +139,8 @@ struct EventsListView: View {
     let onEventPublished: @MainActor () async -> Void
     let onEventDeleted: @MainActor @Sendable () -> Void
     let presentationMode: EventPresentationMode
+    let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    let scrollResetToken: Int
     @State private var pendingDeleteEventID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
@@ -150,7 +153,6 @@ struct EventsListView: View {
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isSearchPresented = false
     @State private var searchText = ""
-    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
         viewModel: EventsViewModel,
@@ -159,13 +161,17 @@ struct EventsListView: View {
         navigationPath: Binding<[EventNavigationRoute]> = .constant([]),
         onEventPublished: @escaping @MainActor () async -> Void,
         onEventDeleted: @escaping @MainActor @Sendable () -> Void,
-        presentationMode: EventPresentationMode = .public
+        presentationMode: EventPresentationMode = .public,
+        onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
+        scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         self.eventRepository = eventRepository
         self.onEventPublished = onEventPublished
         self.onEventDeleted = onEventDeleted
         self.presentationMode = presentationMode
+        self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.scrollResetToken = scrollResetToken
         _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
         _navigationPath = navigationPath
     }
@@ -270,31 +276,40 @@ struct EventsListView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                eventsHeader
-                    .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                Color.clear
+                    .frame(height: 0)
+                    .id(eventsRootScrollTopID)
 
-                eventsHero
-                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
+                VStack(alignment: .leading, spacing: 0) {
+                    eventsHeader
+                        .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
-                EventFilterRow(
-                    selectedFederalState: selectedFederalState,
-                    selectedCategory: selectedCategory,
-                    selectedFeedScope: selectedFeedScope,
-                    onSelectCategory: { selectedCategory = $0 },
-                    onSelectRegion: { isRegionPickerPresented = true },
-                    onSelectSaved: { selectedFeedScope = selectedFeedScope == .saved ? .all : .saved },
-                    onSelectRegistered: { selectedFeedScope = selectedFeedScope == .registered ? .all : .registered }
-                )
-                .padding(.bottom, AppTheme.homeSectionSpacing)
+                    eventsHero
+                        .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
 
-                AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
-                    eventListContent
+                    EventFilterRow(
+                        selectedFederalState: selectedFederalState,
+                        selectedCategory: selectedCategory,
+                        selectedFeedScope: selectedFeedScope,
+                        onSelectCategory: { selectedCategory = $0 },
+                        onSelectRegion: { isRegionPickerPresented = true },
+                        onSelectSaved: { selectedFeedScope = selectedFeedScope == .saved ? .all : .saved },
+                        onSelectRegistered: { selectedFeedScope = selectedFeedScope == .registered ? .all : .registered }
+                    )
+                    .padding(.bottom, AppTheme.homeSectionSpacing)
+
+                    AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
+                        eventListContent
+                    }
                 }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
+            .onChange(of: scrollResetToken) {
+                scrollToTop(with: scrollProxy)
+            }
         }
         .background(AppBackgroundView())
         .navigationBarTitleDisplayMode(.inline)
@@ -383,6 +398,14 @@ struct EventsListView: View {
         }
     }
 
+    private func scrollToTop(with scrollProxy: ScrollViewProxy) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            scrollProxy.scrollTo(eventsRootScrollTopID, anchor: .top)
+        }
+    }
+
     private func selectRegion(_ federalState: AustrianFederalState?) {
         selectedFederalState = federalState
         didManuallyChangeRegion = true
@@ -407,7 +430,7 @@ struct EventsListView: View {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
                 sizing: .responsiveHero,
-                onBannerTap: handleFeaturedBannerTap
+                onBannerTap: onFeaturedBannerTap
             )
         }
     }
@@ -424,18 +447,6 @@ struct EventsListView: View {
             for: .events,
             federalState: authState.user?.selectedFederalState
         )
-    }
-
-    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
-        switch featuredBannerActionResolver.resolve(banner) {
-        case .noAction, .openNews, .openOrganization, .openGuide:
-            return
-        case let .openURL(url):
-            openURL(url)
-        case let .openEvent(id):
-            guard viewModel.events.contains(where: { $0.id == id }) else { return }
-            navigationPath.append(EventNavigationRoute(eventID: id))
-        }
     }
 
     @ViewBuilder

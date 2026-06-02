@@ -219,7 +219,7 @@ struct ManagedOrganizationView: View {
         if currentOrganization.ownerId == user.id {
             return .owner
         }
-        if user.globalRole.authorizationRole == .owner {
+        if PermissionService.canUseOwnerOrganizationOverride(user: user) {
             return .platformOwner
         }
         if currentOrganization.adminIds.contains(user.id) {
@@ -468,7 +468,7 @@ struct ManagedOrganizationView: View {
 
     private var availableAssignableRoles: [OrganizationTeamRole] {
         guard let user = authState.user else { return [] }
-        if user.globalRole.authorizationRole == .owner {
+        if PermissionService.canInitiateOwnershipTransferWorkflow(user: user) {
             return [.owner, .admin, .moderator]
         }
         return [.admin, .moderator]
@@ -483,7 +483,7 @@ struct ManagedOrganizationView: View {
     }
 
     private var isPlatformOwner: Bool {
-        authState.user?.globalRole.authorizationRole == .owner
+        PermissionService.canUseOwnerOrganizationOverride(user: authState.user)
     }
 
     private func teamRole(for member: OrganizationTeamMember) -> OrganizationTeamRole? {
@@ -506,7 +506,7 @@ struct ManagedOrganizationView: View {
     private func canChangeRole(for member: OrganizationTeamMember) -> Bool {
         guard canManageTeam else { return false }
         guard let user = authState.user else { return false }
-        if user.globalRole.authorizationRole == .owner {
+        if PermissionService.canInitiateOrganizationRoleWorkflow(user: user) {
             return member.role != .owner
         }
         return member.role != .owner && member.userID != user.id

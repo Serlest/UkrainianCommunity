@@ -4,6 +4,7 @@ import Foundation
 struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     private enum Field: String {
         case id
+        case internalName
         case title
         case subtitle
         case imageURL
@@ -84,6 +85,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             let existingBanner = try makeBanner(id: banner.id, data: snapshot.data() ?? [:])
             let updatedBanner = FeaturedBanner(
                 id: banner.id,
+                internalName: banner.internalName,
                 title: banner.title,
                 subtitle: banner.subtitle,
                 imageURL: banner.imageURL,
@@ -158,7 +160,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     private func makeBanner(id documentID: String, data: [String: Any]) throws -> FeaturedBanner {
         guard
             let actionTypeValue = data[Field.actionType.rawValue] as? String,
-            let actionType = FeaturedBannerActionType(rawValue: actionTypeValue),
+            let actionType = FeaturedBannerActionType.normalized(from: actionTypeValue),
             let regionScopeValue = data[Field.regionScope.rawValue] as? String,
             let regionScope = FeaturedBannerRegionScope(rawValue: regionScopeValue),
             let visibleSectionValues = data[Field.visibleSections.rawValue] as? [String],
@@ -180,6 +182,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         let federalState = (data[Field.federalState.rawValue] as? String).flatMap(AustrianFederalState.init(rawValue:))
         let banner = FeaturedBanner(
             id: (data[Field.id.rawValue] as? String) ?? documentID,
+            internalName: data[Field.internalName.rawValue] as? String,
             title: data[Field.title.rawValue] as? String ?? "",
             subtitle: data[Field.subtitle.rawValue] as? String,
             imageURL: data[Field.imageURL.rawValue] as? String,
@@ -231,6 +234,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         ]
 
         setOptionalValue(nonEmpty(banner.title), forKey: Field.title.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
+        setOptionalValue(nonEmpty(banner.internalName), forKey: Field.internalName.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
         setOptionalValue(nonEmpty(banner.subtitle), forKey: Field.subtitle.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
         setOptionalValue(nonEmpty(banner.actionTargetID), forKey: Field.actionTargetID.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
         setOptionalValue(nonEmpty(banner.externalURL), forKey: Field.externalURL.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)

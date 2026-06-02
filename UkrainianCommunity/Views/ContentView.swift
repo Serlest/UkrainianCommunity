@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.openURL) private var openURL
     private enum AppTab: Hashable {
         case home
         case events
@@ -21,12 +22,19 @@ struct ContentView: View {
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @State private var selectedTab: AppTab = .home
-    @State private var previousSelectedTab: AppTab = .home
     @State private var isShowingNotificationInbox = false
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
     @State private var eventsNavigationPath: [EventNavigationRoute] = []
     @State private var organizationsNavigationPath: [OrganizationNavigationRoute] = []
+    @State private var guideNavigationPath: [GuideNavigationRoute] = []
+    @State private var profileNavigationPath: [ProfileNavigationRoute] = []
+    @State private var homeScrollResetToken = 0
+    @State private var eventsScrollResetToken = 0
+    @State private var organizationsScrollResetToken = 0
+    @State private var guideScrollResetToken = 0
+    @State private var profileScrollResetToken = 0
     @State private var lastHandledAuthSessionKey: String?
+    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(container: AppContainer) {
         self.container = container
@@ -59,7 +67,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             rootTabs
         }
         .tint(AppTheme.primaryBlue)
@@ -71,10 +79,6 @@ struct ContentView: View {
         }
         .onChange(of: authSessionKey) { _, newKey in
             handleAuthIdentityChange(for: newKey)
-        }
-        .onChange(of: selectedTab) { _, newTab in
-            resetNavigationPath(for: previousSelectedTab)
-            previousSelectedTab = newTab
         }
         .onChange(of: profileViewModel.settings.language) { _, newLanguage in
             selectedLanguageCode = newLanguage.rawValue
@@ -110,6 +114,18 @@ struct ContentView: View {
 
     private var selectedAppearance: AppAppearance {
         AppAppearance(rawValue: selectedAppearanceCode) ?? .system
+    }
+
+    private var tabSelection: Binding<AppTab> {
+        Binding(
+            get: { selectedTab },
+            set: { newTab in
+                guard newTab != selectedTab else { return }
+                let previousTab = selectedTab
+                selectedTab = newTab
+                resetNavigationPathAfterTabSwitch(for: previousTab)
+            }
+        )
     }
 
     private var authSessionKey: String {
@@ -161,7 +177,9 @@ struct ContentView: View {
                 guideViewModel: guideViewModel,
                 newsRepository: container.newsRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
-                navigationPath: $homeNavigationPath
+                navigationPath: $homeNavigationPath,
+                onFeaturedBannerTap: handleFeaturedBannerTap,
+                scrollResetToken: homeScrollResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -181,7 +199,9 @@ struct ContentView: View {
                 featuredBannerRepository: container.featuredBannerRepository,
                 navigationPath: $eventsNavigationPath,
                 onEventPublished: {},
-                onEventDeleted: {}
+                onEventDeleted: {},
+                onFeaturedBannerTap: handleFeaturedBannerTap,
+                scrollResetToken: eventsScrollResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -200,7 +220,9 @@ struct ContentView: View {
                 featuredBannerRepository: container.featuredBannerRepository,
                 navigationPath: $organizationsNavigationPath,
                 onOrganizationSaved: {},
-                onOrganizationDeleted: {}
+                onOrganizationDeleted: {},
+                onFeaturedBannerTap: handleFeaturedBannerTap,
+                scrollResetToken: organizationsScrollResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -213,10 +235,13 @@ struct ContentView: View {
     }
 
     private var guideTab: some View {
-        NavigationStack {
+        NavigationStack(path: $guideNavigationPath) {
             InfoView(
                 viewModel: guideViewModel,
-                featuredBannerRepository: container.featuredBannerRepository
+                featuredBannerRepository: container.featuredBannerRepository,
+                navigationPath: $guideNavigationPath,
+                onFeaturedBannerTap: handleFeaturedBannerTap,
+                scrollResetToken: guideScrollResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -229,7 +254,7 @@ struct ContentView: View {
     }
 
     private var profileTab: some View {
-        NavigationStack {
+        NavigationStack(path: $profileNavigationPath) {
             ProfileView(
                 viewModel: profileViewModel,
                 feedbackRepository: container.feedbackRepository,
@@ -239,7 +264,9 @@ struct ContentView: View {
                 guideRepository: container.guideRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
-                localEventReminderService: container.localEventReminderService
+                localEventReminderService: container.localEventReminderService,
+                navigationPath: $profileNavigationPath,
+                scrollResetToken: profileScrollResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -256,11 +283,17 @@ struct ContentView: View {
         lastHandledAuthSessionKey = key
 
         selectedTab = .home
-        previousSelectedTab = .home
         isShowingNotificationInbox = false
         homeNavigationPath.removeAll()
         eventsNavigationPath.removeAll()
         organizationsNavigationPath.removeAll()
+        guideNavigationPath.removeAll()
+        profileNavigationPath.removeAll()
+        homeScrollResetToken += 1
+        eventsScrollResetToken += 1
+        organizationsScrollResetToken += 1
+        guideScrollResetToken += 1
+        profileScrollResetToken += 1
         authState.dismissAuthFlow()
 
         homeViewModel.resetForAuthChange()
@@ -285,12 +318,56 @@ struct ContentView: View {
         switch tab {
         case .home:
             homeNavigationPath.removeAll()
+            homeScrollResetToken += 1
         case .events:
             eventsNavigationPath.removeAll()
+            eventsScrollResetToken += 1
         case .organizations:
             organizationsNavigationPath.removeAll()
-        case .guide, .profile:
-            break
+            organizationsScrollResetToken += 1
+        case .guide:
+            guideNavigationPath.removeAll()
+            guideScrollResetToken += 1
+        case .profile:
+            profileNavigationPath.removeAll()
+            profileScrollResetToken += 1
+        }
+    }
+
+    private func resetNavigationPathAfterTabSwitch(for tab: AppTab) {
+        DispatchQueue.main.async {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                resetNavigationPath(for: tab)
+            }
+        }
+    }
+
+    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
+        switch featuredBannerActionResolver.resolve(banner) {
+        case .noAction:
+            return
+        case let .openURL(url):
+            openURL(url)
+        case let .openNews(id):
+            selectedTab = .home
+            homeNavigationPath = [.news(id: id)]
+        case let .openEvent(id):
+            selectedTab = .events
+            eventsNavigationPath = [EventNavigationRoute(eventID: id)]
+        case let .openOrganization(id):
+            Task {
+                guard let organization = await organizationsViewModel.resolveOrganization(id: id) else { return }
+                selectedTab = .organizations
+                organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organization.id)]
+            }
+        case let .openGuide(id):
+            Task {
+                guard let article = await guideViewModel.resolveArticle(id: id) else { return }
+                selectedTab = .guide
+                guideNavigationPath = [GuideNavigationRoute(articleID: article.id)]
+            }
         }
     }
 }

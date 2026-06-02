@@ -69,7 +69,7 @@ struct OrganizationManagementHubView: View {
         if organization.ownerId == authorityUser.id {
             return .owner
         }
-        if authorityUser.globalRole.authorizationRole == .owner {
+        if PermissionService.canUseOwnerOrganizationOverride(user: authorityUser) {
             return .platformOwner
         }
         if organization.adminIds.contains(authorityUser.id) {

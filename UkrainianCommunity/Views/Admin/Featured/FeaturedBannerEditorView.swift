@@ -138,6 +138,7 @@ struct FeaturedBannerEditorView: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 AppEditorSectionTitle(title: AppStrings.FeaturedEditor.basicsSection)
+                EditorTextField(AppStrings.FeaturedEditor.internalNameField, text: $viewModel.internalName, systemImage: "tag")
                 EditorTextField(AppStrings.FeaturedEditor.titleField, text: $viewModel.title, systemImage: "textformat")
                 EditorTextField(AppStrings.FeaturedEditor.subtitleField, text: $viewModel.subtitle, systemImage: "text.alignleft")
 
@@ -302,6 +303,11 @@ struct FeaturedBannerEditorView: View {
                     }
                 }
                 .pickerStyle(.menu)
+
+                Text(viewModel.actionType.editorHelperText)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if viewModel.requiresActionTarget {
                     if viewModel.supportsActionTargetPicker {
@@ -728,6 +734,17 @@ private extension FeaturedBannerVisibleSection {
 }
 
 private extension FeaturedBannerActionType {
+    var editorHelperText: String {
+        switch self {
+        case .none:
+            return AppStrings.FeaturedEditor.actionHelperNoTap
+        case .news, .event, .organization, .guide:
+            return AppStrings.FeaturedEditor.actionHelperTarget
+        case .externalURL:
+            return AppStrings.FeaturedEditor.actionHelperExternalURL
+        }
+    }
+
     var editorTitle: String {
         switch self {
         case .none:
@@ -742,12 +759,6 @@ private extension FeaturedBannerActionType {
             return AppStrings.Guide.title
         case .externalURL:
             return AppStrings.FeaturedManagement.actionExternalURL
-        case .announcement:
-            return AppStrings.FeaturedManagement.actionAnnouncement
-        case .emergency:
-            return AppStrings.FeaturedManagement.actionEmergency
-        case .partner:
-            return AppStrings.FeaturedManagement.actionPartner
         }
     }
 }

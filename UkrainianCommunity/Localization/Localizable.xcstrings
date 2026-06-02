@@ -4665,13 +4665,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach Titel, Quelle, Ort oder ID suchen"
+            "value" : "Nach Titel, Zusammenfassung, Quelle, Ort, Typ oder ID suchen"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пошук за назвою, джерелом, місцем або ID"
+            "value" : "Пошук за назвою, описом, джерелом, місцем, типом або ID"
           }
         }
       }
@@ -5152,6 +5152,23 @@
         }
       }
     },
+    "featured.editor.field.internal_name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interner Name"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Внутрішня назва"
+          }
+        }
+      }
+    },
     "featured.editor.field.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5175,13 +5192,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Titel"
+            "value" : "Überschrift"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Назва"
+            "value" : "Заголовок"
           }
         }
       }
@@ -5696,40 +5713,6 @@
         }
       }
     },
-    "featured.management.action.announcement" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ankündigung"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Оголошення"
-          }
-        }
-      }
-    },
-    "featured.management.action.emergency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notfall"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Термінове"
-          }
-        }
-      }
-    },
     "featured.management.action.external_url" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5753,30 +5736,64 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Aktion"
+            "value" : "Keine Tipp-Aktion"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Без дії"
+            "value" : "Без дії при натисканні"
           }
         }
       }
     },
-    "featured.management.action.partner" : {
+    "featured.editor.action.helper.external_url" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Partner"
+            "value" : "Beim Tippen auf dieses Banner wird die externe URL geöffnet."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Партнер"
+            "value" : "Натискання на цей банер відкриває зовнішню URL-адресу."
+          }
+        }
+      }
+    },
+    "featured.editor.action.helper.no_tap" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Banner wird nur angezeigt. Beim Tippen wird nichts geöffnet."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цей банер лише відображається. Натискання нічого не відкриває."
+          }
+        }
+      }
+    },
+    "featured.editor.action.helper.target" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Tippen auf dieses Banner wird der ausgewählte App-Inhalt geöffnet."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Натискання на цей банер відкриває вибраний вміст застосунку."
           }
         }
       }
@@ -5913,6 +5930,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Дані рекомендованого контенту неповні або недійсні."
+          }
+        }
+      }
+    },
+    "featured.management.fallback_name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner %@ · %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Банер %@ · %@"
           }
         }
       }

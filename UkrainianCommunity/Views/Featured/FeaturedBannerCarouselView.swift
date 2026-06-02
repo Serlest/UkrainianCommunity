@@ -9,10 +9,19 @@ enum FeaturedBannerCarouselSizing {
 }
 
 struct FeaturedBannerCarouselView: View {
+    private static let autoAdvanceAnimation = Animation.easeInOut(duration: 0.88)
+    private static let restartFadeAnimation = Animation.easeInOut(duration: 0.22)
+    private static let restartFadeNanoseconds: UInt64 = 220_000_000
+    private static let restartSettleNanoseconds: UInt64 = 120_000_000
+    private static let interactionRetryNanoseconds: UInt64 = 250_000_000
+
     let banners: [FeaturedBanner]
     let sizing: FeaturedBannerCarouselSizing
     let onBannerTap: (FeaturedBanner) -> Void
+    private let actionResolver = FeaturedBannerActionResolver()
     @State private var selectedBannerID: FeaturedBanner.ID?
+    @State private var isUserInteracting = false
+    @State private var isRestartingCarousel = false
 
     init(
         banners: [FeaturedBanner],
@@ -22,6 +31,7 @@ struct FeaturedBannerCarouselView: View {
         self.banners = banners
         self.sizing = sizing
         self.onBannerTap = onBannerTap
+        _selectedBannerID = State(initialValue: banners.first?.id)
     }
 
     var body: some View {
@@ -36,12 +46,13 @@ struct FeaturedBannerCarouselView: View {
                     selectedIndex: selectedIndex
                 )
             }
+            .opacity(isRestartingCarousel ? 0 : 1)
             .onAppear(perform: normalizeSelection)
             .onChange(of: banners.map(\.id)) { _, _ in
                 normalizeSelection()
             }
             .task(id: rotationTaskID) {
-                await scheduleNextRotation()
+                await runRotationLoop()
             }
         }
     }
@@ -69,19 +80,36 @@ struct FeaturedBannerCarouselView: View {
         GeometryReader { proxy in
             TabView(selection: $selectedBannerID) {
                 ForEach(banners) { banner in
-                    Button {
-                        onBannerTap(banner)
-                    } label: {
-                        FeaturedBannerCardView(banner: banner)
-                            .frame(width: proxy.size.width, height: proxy.size.height)
-                    }
-                    .buttonStyle(.plain)
+                    bannerSlide(for: banner, size: proxy.size)
                     .tag(Optional(banner.id))
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .animation(AppTheme.featuredBannerCarouselAnimation, value: selectedBannerID)
+            .simultaneousGesture(interactionGesture)
         }
+    }
+
+    @ViewBuilder
+    private func bannerSlide(for banner: FeaturedBanner, size: CGSize) -> some View {
+        if isActionable(banner) {
+            Button {
+                onBannerTap(banner)
+            } label: {
+                bannerContent(for: banner, size: size)
+            }
+            .buttonStyle(.plain)
+        } else {
+            bannerContent(for: banner, size: size)
+        }
+    }
+
+    private func bannerContent(for banner: FeaturedBanner, size: CGSize) -> some View {
+        FeaturedBannerCardView(banner: banner)
+            .frame(width: size.width, height: size.height)
+    }
+
+    private func isActionable(_ banner: FeaturedBanner) -> Bool {
+        actionResolver.resolve(banner) != .noAction
     }
 
     private var selectedIndex: Int {
@@ -98,10 +126,21 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private var rotationTaskID: String {
-        let slideKeys = banners
+        banners
             .map { "\($0.id)-\($0.displayDurationSeconds)" }
             .joined(separator: "|")
-        return "\(selectedBannerID ?? "none"):\(slideKeys)"
+    }
+
+    private var interactionGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { _ in
+                if !isUserInteracting {
+                    isUserInteracting = true
+                }
+            }
+            .onEnded { _ in
+                isUserInteracting = false
+            }
     }
 
     private func normalizeSelection() {
@@ -115,17 +154,70 @@ struct FeaturedBannerCarouselView: View {
         }
     }
 
-    private func scheduleNextRotation() async {
-        guard banners.count > 1, let selectedBanner else { return }
+    private func runRotationLoop() async {
+        while !Task.isCancelled {
+            guard banners.count > 1 else { return }
 
-        let seconds = min(max(selectedBanner.displayDurationSeconds, 3), 12)
-        try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
-        guard !Task.isCancelled else { return }
+            guard !isUserInteracting, !isRestartingCarousel, let initialBanner = selectedBanner else {
+                try? await Task.sleep(nanoseconds: Self.interactionRetryNanoseconds)
+                continue
+            }
+
+            let seconds = min(max(initialBanner.displayDurationSeconds, 3), 12)
+            try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            guard !isUserInteracting, !isRestartingCarousel, let currentBanner = selectedBanner else { continue }
+
+            if isLastBanner(currentBanner.id) {
+                await restartAtFirstBanner()
+            } else {
+                withAnimation(Self.autoAdvanceAnimation) {
+                    selectedBannerID = nextBannerID(after: currentBanner.id)
+                }
+            }
+        }
+    }
+
+    private func restartAtFirstBanner() async {
+        await MainActor.run {
+            guard !isUserInteracting, !isRestartingCarousel else { return }
+            withAnimation(Self.restartFadeAnimation) {
+                isRestartingCarousel = true
+            }
+        }
+        try? await Task.sleep(nanoseconds: Self.restartFadeNanoseconds)
+        guard !Task.isCancelled else {
+            await clearRestartState()
+            return
+        }
 
         await MainActor.run {
-            withAnimation(AppTheme.featuredBannerCarouselAnimation) {
-                selectedBannerID = nextBannerID(after: selectedBanner.id)
+            guard !isUserInteracting else {
+                isRestartingCarousel = false
+                return
             }
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                selectedBannerID = banners.first?.id
+            }
+        }
+        try? await Task.sleep(nanoseconds: Self.restartSettleNanoseconds)
+        guard !Task.isCancelled else {
+            await clearRestartState()
+            return
+        }
+
+        await MainActor.run {
+            withAnimation(Self.restartFadeAnimation) {
+                isRestartingCarousel = false
+            }
+        }
+    }
+
+    private func clearRestartState() async {
+        await MainActor.run {
+            isRestartingCarousel = false
         }
     }
 
@@ -136,5 +228,9 @@ struct FeaturedBannerCarouselView: View {
 
         let nextIndex = banners.index(after: currentIndex)
         return nextIndex < banners.endIndex ? banners[nextIndex].id : banners.first?.id
+    }
+
+    private func isLastBanner(_ bannerID: FeaturedBanner.ID) -> Bool {
+        banners.last?.id == bannerID
     }
 }

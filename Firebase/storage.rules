@@ -156,14 +156,14 @@ service firebase.storage {
 
     match /events/{eventId}/cover.jpg {
       allow read: if true;
-      allow create, update: if (canManageContentImages('events') || canManageEventCover(eventId))
+      allow create, update: if canManageEventCover(eventId)
         && isSafeImageUpload();
-      allow delete: if canManageContentImages('events') || canManageEventCover(eventId);
+      allow delete: if canManageEventCover(eventId);
     }
 
     match /events/{filePath=**} {
       allow read: if true;
-      allow write: if canManageContentImages('events');
+      allow write: if false;
     }
 
     match /organizations/{organizationId}/logo.jpg {

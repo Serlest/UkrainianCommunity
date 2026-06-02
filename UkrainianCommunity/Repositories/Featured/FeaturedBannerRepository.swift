@@ -19,8 +19,7 @@ extension Array where Element == FeaturedBanner {
     func activeFeaturedBanners(
         for section: FeaturedBannerVisibleSection,
         federalState: AustrianFederalState?,
-        now: Date = Date(),
-        limit: Int = 10
+        now: Date = Date()
     ) -> [FeaturedBanner] {
         filter { banner in
             banner.isActive
@@ -35,8 +34,6 @@ extension Array where Element == FeaturedBanner {
             }
             return lhs.updatedAt > rhs.updatedAt
         }
-        .prefix(limit)
-        .map { $0 }
     }
 }
 

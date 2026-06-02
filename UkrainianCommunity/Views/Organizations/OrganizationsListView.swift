@@ -6,6 +6,8 @@ struct OrganizationNavigationRoute: Hashable {
     let organizationID: String
 }
 
+private let organizationsRootScrollTopID = "organizationsRootScrollTop"
+
 enum OrganizationCategoryFilter: CaseIterable, Identifiable {
     case all
     case support
@@ -88,7 +90,6 @@ private enum OrganizationSavedFilterMode {
 }
 
 struct OrganizationsListView: View {
-    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: OrganizationsViewModel
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
@@ -96,6 +97,8 @@ struct OrganizationsListView: View {
     let onOrganizationSaved: @MainActor () async -> Void
     let onOrganizationDeleted: @MainActor () -> Void
     let presentationMode: OrganizationPresentationMode
+    let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    let scrollResetToken: Int
     @State private var pendingDeleteOrganizationID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
@@ -106,7 +109,6 @@ struct OrganizationsListView: View {
     @State private var isRegionPickerPresented = false
     @State private var isSearchPresented = false
     @State private var searchText = ""
-    private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(
         viewModel: OrganizationsViewModel,
@@ -114,12 +116,16 @@ struct OrganizationsListView: View {
         navigationPath: Binding<[OrganizationNavigationRoute]> = .constant([]),
         onOrganizationSaved: @escaping @MainActor () async -> Void = {},
         onOrganizationDeleted: @escaping @MainActor () -> Void = {},
-        presentationMode: OrganizationPresentationMode = .public
+        presentationMode: OrganizationPresentationMode = .public,
+        onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
+        scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         self.onOrganizationSaved = onOrganizationSaved
         self.onOrganizationDeleted = onOrganizationDeleted
         self.presentationMode = presentationMode
+        self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.scrollResetToken = scrollResetToken
         _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
         _navigationPath = navigationPath
     }
@@ -146,31 +152,40 @@ struct OrganizationsListView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                organizationsHeader
-                    .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
+        ScrollViewReader { scrollProxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                Color.clear
+                    .frame(height: 0)
+                    .id(organizationsRootScrollTopID)
 
-                organizationsHero
-                    .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
+                VStack(alignment: .leading, spacing: 0) {
+                    organizationsHeader
+                        .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
-                OrganizationFiltersSection(
-                    selectedCategory: selectedCategory,
-                    selectedFederalState: selectedFederalState,
-                    savedFilterMode: savedFilterMode,
-                    onSelectCategory: { selectedCategory = $0 },
-                    onSelectRegion: { isRegionPickerPresented = true },
-                    onToggleSubscribed: { toggleSavedFilterMode(.subscribed) },
-                    onToggleBookmarked: { toggleSavedFilterMode(.bookmarked) }
-                )
-                .padding(.bottom, AppTheme.homeSectionSpacing)
+                    organizationsHero
+                        .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
 
-                AppGroupedContentPlane {
-                    organizationsPlaneContent
+                    OrganizationFiltersSection(
+                        selectedCategory: selectedCategory,
+                        selectedFederalState: selectedFederalState,
+                        savedFilterMode: savedFilterMode,
+                        onSelectCategory: { selectedCategory = $0 },
+                        onSelectRegion: { isRegionPickerPresented = true },
+                        onToggleSubscribed: { toggleSavedFilterMode(.subscribed) },
+                        onToggleBookmarked: { toggleSavedFilterMode(.bookmarked) }
+                    )
+                    .padding(.bottom, AppTheme.homeSectionSpacing)
+
+                    AppGroupedContentPlane {
+                        organizationsPlaneContent
+                    }
                 }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
+            .onChange(of: scrollResetToken) {
+                scrollToTop(with: scrollProxy)
+            }
         }
         .background(AppBackgroundView())
         .navigationBarTitleDisplayMode(.inline)
@@ -257,6 +272,14 @@ struct OrganizationsListView: View {
         }
     }
 
+    private func scrollToTop(with scrollProxy: ScrollViewProxy) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            scrollProxy.scrollTo(organizationsRootScrollTopID, anchor: .top)
+        }
+    }
+
     private var organizationsHeader: some View {
         AppSearchableBrandHeader(
             isSearchPresented: $isSearchPresented,
@@ -271,7 +294,7 @@ struct OrganizationsListView: View {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
                 sizing: .responsiveHero,
-                onBannerTap: handleFeaturedBannerTap
+                onBannerTap: onFeaturedBannerTap
             )
         }
     }
@@ -288,18 +311,6 @@ struct OrganizationsListView: View {
             for: .organizations,
             federalState: authState.user?.selectedFederalState
         )
-    }
-
-    private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
-        switch featuredBannerActionResolver.resolve(banner) {
-        case .noAction, .openNews, .openEvent, .openGuide:
-            return
-        case let .openURL(url):
-            openURL(url)
-        case let .openOrganization(id):
-            guard viewModel.organizations.contains(where: { $0.id == id }) else { return }
-            navigationPath.append(OrganizationNavigationRoute(organizationID: id))
-        }
     }
 
     @ViewBuilder

@@ -94,7 +94,7 @@ final class FirestoreOrganizationRoleManagementService: OrganizationRoleManageme
         actor: AppUser,
         reason: String?
     ) async throws {
-        guard actor.globalRole.authorizationRole == .owner, !newOwnerID.isEmpty else {
+        guard PermissionService.canInitiateOwnershipTransferWorkflow(user: actor), !newOwnerID.isEmpty else {
             throw AppError.permissionDenied
         }
 

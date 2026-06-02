@@ -23,7 +23,7 @@ struct PermissionService {
     }
 
     var canCreateEvent: Bool {
-        isOwner
+        false
     }
 
     var canCreateOrganization: Bool {
@@ -96,6 +96,81 @@ struct PermissionService {
         return user.globalRole.authorizationRole == .owner || user.canManageGuide
     }
 
+    // Owner surfaces are named here so views and view models can ask for intent
+    // without checking globalRole directly. Owner organization override does not
+    // mutate organization.ownerId, adminIds, or moderatorIds.
+    static func hasOwnerRoleForDisplay(user: AppUser?) -> Bool {
+        user?.globalRole.authorizationRole == .owner
+    }
+
+    static func canAccessOwnerDashboard(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canManageFeaturedBanners(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canDeleteFeaturedBanners(user: AppUser?) -> Bool {
+        canManageFeaturedBanners(user: user)
+    }
+
+    static func canManageUsers(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canManageUserTarget(actor: AppUser?, target: AppUser?) -> Bool {
+        guard let actor, let target else { return false }
+        guard canManageUsers(user: actor) else { return false }
+        guard actor.id != target.id else { return false }
+        return target.globalRole.authorizationRole != .owner
+    }
+
+    static func canManageFeedback(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canManageReports(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canManageModeration(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canManageOrganizations(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canManageOrganizationRequests(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canUseOwnerOrganizationOverride(user: AppUser?) -> Bool {
+        isOwner(user)
+    }
+
+    static func canManageAnyOrganization(user: AppUser?) -> Bool {
+        canUseOwnerOrganizationOverride(user: user)
+    }
+
+    static func canManageAnyOrganizationContent(user: AppUser?) -> Bool {
+        canUseOwnerOrganizationOverride(user: user)
+    }
+
+    static func canManageAnyOrganizationMedia(user: AppUser?) -> Bool {
+        canUseOwnerOrganizationOverride(user: user)
+    }
+
+    // Cloud Functions remain the authority for applying role changes and ownership transfers.
+    static func canInitiateOrganizationRoleWorkflow(user: AppUser?) -> Bool {
+        canUseOwnerOrganizationOverride(user: user)
+    }
+
+    static func canInitiateOwnershipTransferWorkflow(user: AppUser?) -> Bool {
+        canUseOwnerOrganizationOverride(user: user)
+    }
+
     static func canModerate(section: AppSection, user: AppUser) -> Bool {
         // topAdmin, appModerator, and moderatorSections are unsupported future placeholders.
         return user.globalRole.authorizationRole == .owner
@@ -125,6 +200,7 @@ struct PermissionService {
 
     // ID-only checks cannot prove organization-scoped access without loading the Organization.
     // Use Organization overloads for org-scoped permissions.
+    @available(*, unavailable, message: "Load the Organization and use organizationRole(for:user:) instead.")
     static func organizationRole(for organizationId: String, user: AppUser?) -> CommunityRole? {
         nil
     }
@@ -133,24 +209,27 @@ struct PermissionService {
         organizationRole(for: organization, user: user) == .communityOwner
     }
 
+    @available(*, unavailable, message: "Load the Organization and use isOrganizationOwner(_:user:) instead.")
     static func isOrganizationOwner(organizationId: String, user: AppUser?) -> Bool {
-        organizationRole(for: organizationId, user: user) == .communityOwner
+        false
     }
 
     static func isOrganizationAdmin(_ organization: Organization, user: AppUser?) -> Bool {
         organizationRole(for: organization, user: user) == .communityAdmin
     }
 
+    @available(*, unavailable, message: "Load the Organization and use isOrganizationAdmin(_:user:) instead.")
     static func isOrganizationAdmin(organizationId: String, user: AppUser?) -> Bool {
-        organizationRole(for: organizationId, user: user) == .communityAdmin
+        false
     }
 
     static func isOrganizationModerator(_ organization: Organization, user: AppUser?) -> Bool {
         organizationRole(for: organization, user: user) == .communityModerator
     }
 
+    @available(*, unavailable, message: "Load the Organization and use isOrganizationModerator(_:user:) instead.")
     static func isOrganizationModerator(organizationId: String, user: AppUser?) -> Bool {
-        organizationRole(for: organizationId, user: user) == .communityModerator
+        false
     }
 
     static func canEditOrganizationInfo(_ organization: Organization, user: AppUser?) -> Bool {
@@ -174,6 +253,7 @@ struct PermissionService {
         }
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canEditOrganizationInfo(_:user:) instead.")
     static func canEditOrganizationInfo(organizationId: String, user: AppUser?) -> Bool {
         false
     }
@@ -196,6 +276,7 @@ struct PermissionService {
         }
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canCreateOrganizationEvent(_:user:) instead.")
     static func canCreateOrganizationEvent(organizationId: String, user: AppUser?) -> Bool {
         false
     }
@@ -204,8 +285,9 @@ struct PermissionService {
         canCreateOrganizationEvent(organization, user: user)
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canEditOrganizationEvent(_:user:) instead.")
     static func canEditOrganizationEvent(organizationId: String, user: AppUser?) -> Bool {
-        canCreateOrganizationEvent(organizationId: organizationId, user: user)
+        false
     }
 
     static func canCreateOrganizationNews(_ organization: Organization, user: AppUser?) -> Bool {
@@ -226,6 +308,7 @@ struct PermissionService {
         }
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canCreateOrganizationNews(_:user:) instead.")
     static func canCreateOrganizationNews(organizationId: String, user: AppUser?) -> Bool {
         false
     }
@@ -234,8 +317,9 @@ struct PermissionService {
         canCreateOrganizationNews(organization, user: user)
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canEditOrganizationNews(_:user:) instead.")
     static func canEditOrganizationNews(organizationId: String, user: AppUser?) -> Bool {
-        canCreateOrganizationNews(organizationId: organizationId, user: user)
+        false
     }
 
     static func canManageOrganizationRoles(_ organization: Organization, user: AppUser?) -> Bool {
@@ -251,16 +335,19 @@ struct PermissionService {
         }
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canManageOrganizationRoles(_:user:) instead.")
     static func canManageOrganizationRoles(organizationId: String, user: AppUser?) -> Bool {
         false
     }
 
+    @available(*, unavailable, message: "Load the Organization and use a Cloud Function-backed ownership workflow permission.")
     static func canTransferOrganizationOwnership(organizationId: String, user: AppUser?) -> Bool {
         false
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canManageOrganizationRoles(_:user:) for archive eligibility.")
     static func canArchiveOwnOrganization(organizationId: String, user: AppUser?) -> Bool {
-        canManageOrganizationRoles(organizationId: organizationId, user: user)
+        false
     }
 
     static func canModerateOrganizationContent(_ organization: Organization, user: AppUser?) -> Bool {
@@ -281,18 +368,22 @@ struct PermissionService {
         }
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canModerateOrganizationContent(_:user:) instead.")
     static func canModerateOrganizationContent(organizationId: String, user: AppUser?) -> Bool {
         false
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canModerateOrganizationContent(_:user:) for report review.")
     static func canReviewOrganizationReports(organizationId: String, user: AppUser?) -> Bool {
         false
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canModerateOrganizationContent(_:user:) for comment moderation.")
     static func canModerateOrganizationComments(organizationId: String, user: AppUser?) -> Bool {
         false
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canAccessManagedOrganization(_:user:) or canModerateOrganizationContent(_:user:).")
     static func canManageCommunity(organizationId: String, user: AppUser) -> Bool {
         false
     }
@@ -314,8 +405,9 @@ struct PermissionService {
         }
     }
 
+    @available(*, unavailable, message: "Load organizations and use manageableOrganizations(from:user:) instead.")
     static func manageableOrganizationIDs(user: AppUser?) -> Set<String> {
-        preconditionFailure("Load organizations and use manageableOrganizations(from:user:) for organization-scoped permissions.")
+        []
     }
 
     static func canAccessOrganizationManagement(user: AppUser?) -> Bool {
@@ -329,8 +421,7 @@ struct PermissionService {
     }
 
     static func canManageAppEvents(user: AppUser?) -> Bool {
-        guard let user else { return false }
-        return Self.isOwner(user)
+        false
     }
 
     static func canAccessContentManagement(user: AppUser?) -> Bool {
@@ -358,6 +449,7 @@ struct PermissionService {
         false
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canCreateOrganizationNews(_:user:) instead.")
     static func canCreateNews(for organizationId: String, user: AppUser?) -> Bool {
         false
     }
@@ -397,6 +489,7 @@ struct PermissionService {
         false
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canCreateOrganizationEvent(_:user:) instead.")
     static func canCreateEvent(for organizationId: String, user: AppUser?) -> Bool {
         false
     }
@@ -410,7 +503,7 @@ struct PermissionService {
         if event.source.organizationId != nil {
             return Self.isOwner(user)
         }
-        return canEditEvent(user: user)
+        return false
     }
 
     static func canDeleteEvent(user: AppUser?) -> Bool {
@@ -429,7 +522,7 @@ struct PermissionService {
         if event.source.organizationId != nil {
             return Self.isOwner(user)
         }
-        return canDeleteEvent(user: user)
+        return false
     }
 
     static func canModerateEvent(_ event: Event, user: AppUser?) -> Bool {
@@ -437,7 +530,7 @@ struct PermissionService {
         if event.source.organizationId != nil {
             return Self.isOwner(user)
         }
-        return Self.isOwner(user)
+        return false
     }
 
     static func canEditOrganization(user: AppUser?) -> Bool {
@@ -448,6 +541,7 @@ struct PermissionService {
         canEditOrganizationInfo(organization, user: user)
     }
 
+    @available(*, unavailable, message: "Load the Organization and use canEditOrganization(_:user:) instead.")
     static func canEditOrganization(organizationId: String, user: AppUser?) -> Bool {
         false
     }

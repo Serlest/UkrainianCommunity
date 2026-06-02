@@ -39,6 +39,7 @@
 		F375C8382FC5F138005B5EFB /* firestore.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = firestore.rules; sourceTree = "<group>"; };
 		F375C8392FC5F138005B5EFB /* firestore.indexes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = firestore.indexes.json; sourceTree = "<group>"; };
 		F375C83A2FC5F138005B5EFB /* storage.rules */ = {isa = PBXFileReference; lastKnownFileType = text; path = storage.rules; sourceTree = "<group>"; };
+		F38477832FCF8F9700C31CF5 /* PermissionMatrix.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PermissionMatrix.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -99,6 +100,7 @@
 				F34749262FA0CF7500ED704A /* UkrainianCommunityUITests */,
 				F35435682FCCCC7600FFDD3C /* Frameworks */,
 				F347490D2FA0CF7400ED704A /* Products */,
+				F38477822FCF8F7100C31CF5 /* Docs */,
 			);
 			sourceTree = "<group>";
 		};
@@ -127,6 +129,14 @@
 				F375C83A2FC5F138005B5EFB /* storage.rules */,
 			);
 			path = Firebase;
+			sourceTree = "<group>";
+		};
+		F38477822FCF8F7100C31CF5 /* Docs */ = {
+			isa = PBXGroup;
+			children = (
+				F38477832FCF8F9700C31CF5 /* PermissionMatrix.md */,
+			);
+			path = Docs;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

@@ -7,11 +7,31 @@ enum FeaturedBannerActionType: String, CaseIterable, Codable, Identifiable {
     case organization
     case guide
     case externalURL
-    case announcement
-    case emergency
-    case partner
 
     var id: String { rawValue }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        guard let actionType = Self.normalized(from: rawValue) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported featured banner action type: \(rawValue)"
+            )
+        }
+        self = actionType
+    }
+
+    static func normalized(from rawValue: String) -> FeaturedBannerActionType? {
+        switch rawValue {
+        case "announcement", "emergency":
+            return FeaturedBannerActionType.none
+        case "partner":
+            return .externalURL
+        default:
+            return FeaturedBannerActionType(rawValue: rawValue)
+        }
+    }
 }
 
 enum FeaturedBannerRegionScope: String, CaseIterable, Codable, Identifiable {
@@ -34,6 +54,7 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
     static let collectionPath = "featuredBanners"
 
     let id: String
+    let internalName: String?
     let title: String
     let subtitle: String?
     let imageURL: String?
@@ -55,6 +76,7 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
 
     init(
         id: String,
+        internalName: String? = nil,
         title: String,
         subtitle: String? = nil,
         imageURL: String? = nil,
@@ -75,6 +97,7 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
         updatedBy: String? = nil
     ) {
         self.id = id
+        self.internalName = internalName
         self.title = title
         self.subtitle = subtitle
         self.imageURL = imageURL

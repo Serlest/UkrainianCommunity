@@ -52,6 +52,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         let existingBanner = banners[index]
         banners[index] = FeaturedBanner(
             id: existingBanner.id,
+            internalName: existingBanner.internalName,
             title: existingBanner.title,
             subtitle: existingBanner.subtitle,
             imageURL: existingBanner.imageURL,
@@ -89,10 +90,11 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         [
             FeaturedBanner(
                 id: "featured-emergency-support",
+                internalName: "Emergency support guide hero",
                 title: "Emergency support contacts",
                 subtitle: "Fast access to urgent help and community support resources.",
                 imageURL: "https://example.com/featured/emergency-support.jpg",
-                actionType: .emergency,
+                actionType: .none,
                 regionScope: .allAustria,
                 visibleSections: [.home, .guide],
                 displayDurationSeconds: 5,
@@ -105,6 +107,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             ),
             FeaturedBanner(
                 id: "featured-tirol-event",
+                internalName: "Tirol meetup event promo",
                 title: "Community meetup in Tirol",
                 subtitle: "A regional gathering for families, volunteers, and local organizations.",
                 imageURL: "https://example.com/featured/tirol-event.jpg",
@@ -124,10 +127,11 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             ),
             FeaturedBanner(
                 id: "featured-partner-advice",
+                internalName: "Partner legal advice URL",
                 title: "Partner legal advice hours",
                 subtitle: "Book a consultation with a verified partner organization.",
                 imageURL: "https://example.com/featured/partner-advice.jpg",
-                actionType: .partner,
+                actionType: .externalURL,
                 externalURL: "https://example.com/legal-advice",
                 regionScope: .allAustria,
                 visibleSections: [.organizations, .guide],
@@ -141,10 +145,11 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             ),
             FeaturedBanner(
                 id: "featured-expired-announcement",
+                internalName: "Expired paperwork announcement",
                 title: "Expired paperwork deadline",
                 subtitle: "A past announcement retained for management and reporting flows.",
                 imageURL: "https://example.com/featured/expired-paperwork-deadline.jpg",
-                actionType: .announcement,
+                actionType: .none,
                 regionScope: .allAustria,
                 visibleSections: [.home],
                 displayDurationSeconds: 4,
@@ -157,6 +162,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             ),
             FeaturedBanner(
                 id: "featured-inactive-guide",
+                internalName: "Inactive guide spotlight draft",
                 title: "Inactive guide spotlight",
                 subtitle: "A draft spotlight for upcoming practical guidance.",
                 imageURL: "https://example.com/featured/inactive-guide.jpg",

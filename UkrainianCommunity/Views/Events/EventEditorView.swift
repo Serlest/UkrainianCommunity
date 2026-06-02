@@ -41,16 +41,6 @@ struct EventEditorView: View {
 
     init(
         repository: EventRepository,
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
-    ) {
-        _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create()))
-        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
-        self.onPublished = onPublished
-    }
-
-    init(
-        repository: EventRepository,
         organizationId: String,
         organizationName: String,
         organizationImageURL: String?,
@@ -246,12 +236,7 @@ struct EventEditorView: View {
                 lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
 
-        switch user.globalRole.authorizationRole {
-        case .owner:
-            return organizations
-        case .user, .topAdmin, .appModerator:
-            return PermissionService.manageableOrganizations(from: organizations, user: user)
-        }
+        return PermissionService.manageableOrganizations(from: organizations, user: user)
     }
 
     var canSelectOrganizer: Bool {
@@ -552,6 +537,12 @@ extension AustrianFederalState {
 
 #Preview {
     NavigationStack {
-        EventEditorView(repository: MockEventRepository())
+        EventEditorView(
+            repository: MockEventRepository(),
+            organizationId: "preview-organization",
+            organizationName: "Preview Organization",
+            organizationImageURL: nil,
+            organizationFederalState: .wien
+        )
     }
 }

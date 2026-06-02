@@ -1199,6 +1199,29 @@ final class OrganizationsViewModel: ObservableObject {
         return organizations.first(where: { $0.id == organizationID })
     }
 
+    func resolveOrganization(id organizationID: String) async -> Organization? {
+        let trimmedID = organizationID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedID.isEmpty else { return nil }
+
+        if let organization = organization(for: trimmedID) {
+            return organization
+        }
+
+        do {
+            let organization = try await repository.fetchOrganization(id: trimmedID)
+            organizations.upsertByID(organization)
+            contentVersion &+= 1
+            error = nil
+            return organization
+        } catch let appError as AppError {
+            error = appError
+            return nil
+        } catch {
+            self.error = .unknown
+            return nil
+        }
+    }
+
     func comments(for organizationID: String) -> [Comment] {
         organizationCommentsByID[organizationID] ?? []
     }

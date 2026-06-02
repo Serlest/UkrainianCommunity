@@ -186,7 +186,7 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     func refresh(actor: AppUser?) async {
-        guard isOwner(actor) else {
+        guard PermissionService.canManageUsers(user: actor) else {
             users = []
             organizations = []
             hasLoaded = true
@@ -318,7 +318,7 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     func changeOwner(in organization: ManagedOrganization, to target: AppUser, actor: AppUser, reason: String) async {
-        guard canManage(target: target, actor: actor), isOwner(actor) else {
+        guard canManage(target: target, actor: actor), PermissionService.canInitiateOwnershipTransferWorkflow(user: actor) else {
             statusMessage = AppStrings.UserManagement.ownerChangePermissionDenied
             return
         }
@@ -357,7 +357,7 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     func canManage(target: AppUser, actor: AppUser) -> Bool {
-        isOwner(actor)
+        PermissionService.canManageUserTarget(actor: actor, target: target)
     }
 
     func user(withID id: String) -> AppUser? {
@@ -492,9 +492,6 @@ private final class UserManagementViewModel: ObservableObject {
         )
     }
 
-    private func isOwner(_ user: AppUser?) -> Bool {
-        user?.globalRole.authorizationRole == .owner
-    }
 
 }
 
@@ -508,7 +505,7 @@ struct UserManagementView: View {
 
     private var actor: AppUser? { authState.user }
     private var canAccessUserManagement: Bool {
-        actor?.globalRole.authorizationRole == .owner
+        PermissionService.canManageUsers(user: actor)
     }
 
     private var filteredUsers: [AppUser] {
@@ -997,7 +994,7 @@ private struct UserDetailView: View {
 
                         HStack(spacing: 6) {
                             UserStatusBadge(title: user.blockState.title, tint: statusTint)
-                            UserStatusBadge(title: user.globalRole.title, tint: user.globalRole.authorizationRole == .owner ? AppTheme.accentSupport : AppTheme.textSecondary)
+                            UserStatusBadge(title: user.globalRole.title, tint: PermissionService.hasOwnerRoleForDisplay(user: user) ? AppTheme.accentSupport : AppTheme.textSecondary)
                         }
 
                         if !organizationRoles.isEmpty {

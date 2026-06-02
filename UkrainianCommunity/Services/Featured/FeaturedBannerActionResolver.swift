@@ -33,17 +33,11 @@ struct FeaturedBannerURLNormalizer {
 }
 
 struct FeaturedBannerActionResolver {
-    func resolve(
-        _ banner: FeaturedBanner,
-        opensPartnerURL: Bool = true
-    ) -> FeaturedBannerActionIntent {
+    func resolve(_ banner: FeaturedBanner) -> FeaturedBannerActionIntent {
         switch banner.actionType {
-        case .none, .announcement, .emergency:
+        case .none:
             return .noAction
         case .externalURL:
-            return externalURLIntent(from: banner.externalURL)
-        case .partner:
-            guard opensPartnerURL else { return .noAction }
             return externalURLIntent(from: banner.externalURL)
         case .guide:
             return targetIntent(banner.actionTargetID, makeIntent: FeaturedBannerActionIntent.openGuide)

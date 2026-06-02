@@ -127,16 +127,21 @@ enum AppStrings {
         static var actionLabel: String { text("featured.management.action", "Action") }
         static var priorityLabel: String { text("featured.management.priority", "Priority") }
         static var missingRegion: String { text("featured.management.missing_region", "Missing region") }
-        static var actionNone: String { text("featured.management.action.none", "No action") }
+        static var actionNone: String { text("featured.management.action.none", "No tap action") }
         static var actionExternalURL: String { text("featured.management.action.external_url", "External URL") }
-        static var actionAnnouncement: String { text("featured.management.action.announcement", "Announcement") }
-        static var actionEmergency: String { text("featured.management.action.emergency", "Emergency") }
-        static var actionPartner: String { text("featured.management.action.partner", "Partner") }
         static var networkError: String { text("featured.management.error.network", "Unable to load featured content. Check your connection and try again.") }
         static var permissionError: String { text("featured.management.error.permission", "You do not have permission to manage featured content.") }
         static var validationError: String { text("featured.management.error.validation", "Featured content data is incomplete or invalid.") }
         static var notFoundError: String { text("featured.management.error.not_found", "Featured content was not found.") }
         static var unknownError: String { text("featured.management.error.unknown", "Unable to update featured content right now.") }
+
+        static func fallbackBannerName(_ id: String, date: Date) -> String {
+            LocalizationStore.localizedFormat(
+                "featured.management.fallback_name",
+                defaultValue: "Banner %@ · %@",
+                arguments: [id, date.formatted(date: .abbreviated, time: .omitted)]
+            )
+        }
     }
 
     enum FeaturedEditor {
@@ -154,7 +159,8 @@ enum AppStrings {
         static var targetingSection: String { text("featured.editor.section.targeting", "Targeting") }
         static var actionSection: String { text("featured.editor.section.action", "Action") }
         static var schedulingSection: String { text("featured.editor.section.scheduling", "Scheduling") }
-        static var titleField: String { text("featured.editor.field.title", "Title") }
+        static var internalNameField: String { text("featured.editor.field.internal_name", "Internal Name") }
+        static var titleField: String { text("featured.editor.field.title", "Headline") }
         static var subtitleField: String { text("featured.editor.field.subtitle", "Subtitle") }
         static var imageHelper: String { text("featured.editor.image.helper", "Use a wide 16:9 image. The public carousel crops safely inside the card bounds.") }
         static var replaceImage: String { text("featured.editor.image.replace", "Replace image") }
@@ -173,11 +179,14 @@ enum AppStrings {
         static var selectFederalState: String { text("featured.editor.select_federal_state", "Select federal state") }
         static var visibleSectionsField: String { text("featured.editor.field.visible_sections", "Visible sections") }
         static var actionTypeField: String { text("featured.editor.field.action_type", "Action type") }
+        static var actionHelperNoTap: String { text("featured.editor.action.helper.no_tap", "This banner will display only. Tapping it will not open anything.") }
+        static var actionHelperTarget: String { text("featured.editor.action.helper.target", "Tapping this banner opens the selected app content.") }
+        static var actionHelperExternalURL: String { text("featured.editor.action.helper.external_url", "Tapping this banner opens the external URL.") }
         static var actionTargetField: String { text("featured.editor.field.action_target", "Target ID") }
         static var manualTargetHelper: String { text("featured.editor.action.manual_target_helper", "Enter the existing content ID manually for action types without picker support.") }
         static var selectTarget: String { text("featured.editor.action.select_target", "Select target") }
         static var clearTarget: String { text("featured.editor.action.clear_target", "Clear selected target") }
-        static var targetPickerSearch: String { text("featured.editor.action.search_target", "Search by title, source, location, or ID") }
+        static var targetPickerSearch: String { text("featured.editor.action.search_target", "Search by title, summary, source, location, type, or ID") }
         static var loadingTargets: String { text("featured.editor.action.loading_targets", "Loading targets") }
         static var noTargetsFound: String { text("featured.editor.action.no_targets.title", "No matching targets") }
         static var noTargetsFoundMessage: String { text("featured.editor.action.no_targets.message", "Try a different search or refresh the list.") }

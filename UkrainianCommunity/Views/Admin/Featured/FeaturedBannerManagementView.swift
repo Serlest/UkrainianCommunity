@@ -55,13 +55,13 @@ struct FeaturedBannerManagementView: View {
             }
         } message: {
             if let banner = deleteCandidate {
-                Text(AppStrings.FeaturedManagement.deleteConfirmationMessage(banner.title))
+                Text(AppStrings.FeaturedManagement.deleteConfirmationMessage(managementTitle(for: banner)))
             }
         }
     }
 
     private var canDeleteBanners: Bool {
-        authState.user?.globalRole.authorizationRole == .owner
+        PermissionService.canDeleteFeaturedBanners(user: authState.user)
     }
 
     @ViewBuilder
@@ -125,7 +125,7 @@ struct FeaturedBannerManagementView: View {
                         } label: {
                             ProfileModuleRow(
                                 title: AppStrings.FeaturedEditor.editBanner,
-                                subtitle: banner.title,
+                                subtitle: managementTitle(for: banner),
                                 systemImage: "slider.horizontal.3",
                                 status: .available
                             )
@@ -172,6 +172,21 @@ struct FeaturedBannerManagementView: View {
             return AppStrings.FeaturedManagement.unknownError
         }
     }
+
+    private func managementTitle(for banner: FeaturedBanner) -> String {
+        if let internalName = nonEmpty(banner.internalName) {
+            return internalName
+        }
+        if let title = nonEmpty(banner.title) {
+            return title
+        }
+        return AppStrings.FeaturedManagement.fallbackBannerName(banner.id, date: banner.createdAt)
+    }
+
+    private func nonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
 }
 
 private struct FeaturedBannerManagementRow: View {
@@ -186,14 +201,14 @@ private struct FeaturedBannerManagementRow: View {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(banner.title)
+                        Text(managementTitle)
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        if let subtitle = nonEmpty(banner.subtitle) {
-                            Text(subtitle)
+                        if let publicHeadline = publicHeadlineText {
+                            Text(publicHeadline)
                                 .font(.subheadline)
                                 .foregroundStyle(AppTheme.textSecondary)
                                 .lineLimit(2)
@@ -281,6 +296,26 @@ private struct FeaturedBannerManagementRow: View {
         banner.actionType.managementTitle
     }
 
+    private var managementTitle: String {
+        if let internalName = nonEmpty(banner.internalName) {
+            return internalName
+        }
+        if let title = nonEmpty(banner.title) {
+            return title
+        }
+        return AppStrings.FeaturedManagement.fallbackBannerName(banner.id, date: banner.createdAt)
+    }
+
+    private var publicHeadlineText: String? {
+        let title = nonEmpty(banner.title)
+        let subtitle = nonEmpty(banner.subtitle)
+
+        if nonEmpty(banner.internalName) != nil {
+            return title ?? subtitle
+        }
+        return subtitle
+    }
+
     private func nonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
@@ -336,12 +371,6 @@ private extension FeaturedBannerActionType {
             return AppStrings.Guide.title
         case .externalURL:
             return AppStrings.FeaturedManagement.actionExternalURL
-        case .announcement:
-            return AppStrings.FeaturedManagement.actionAnnouncement
-        case .emergency:
-            return AppStrings.FeaturedManagement.actionEmergency
-        case .partner:
-            return AppStrings.FeaturedManagement.actionPartner
         }
     }
 }

@@ -108,8 +108,8 @@ final class OrganizationTeamViewModel: ObservableObject {
         organization: Organization,
         actor: AppUser
     ) async -> Bool {
-        let actorIsPlatformOwner = actor.globalRole.authorizationRole == .owner
-        guard actorIsPlatformOwner || role != .owner else {
+        let canInitiateOwnershipTransfer = PermissionService.canInitiateOwnershipTransferWorkflow(user: actor)
+        guard canInitiateOwnershipTransfer || role != .owner else {
             errorMessage = AppStrings.Profile.organizationTeamOwnerCanAssignOnlyAdminModerator
             return false
         }
@@ -131,8 +131,8 @@ final class OrganizationTeamViewModel: ObservableObject {
         organization: Organization,
         actor: AppUser
     ) async -> Bool {
-        let actorIsPlatformOwner = actor.globalRole.authorizationRole == .owner
-        guard actorIsPlatformOwner || member.role != .owner else {
+        let canInitiateOwnershipTransfer = PermissionService.canInitiateOwnershipTransferWorkflow(user: actor)
+        guard canInitiateOwnershipTransfer || member.role != .owner else {
             errorMessage = AppStrings.Profile.organizationTeamOwnerCannotRemoveOwner
             return false
         }
@@ -159,7 +159,7 @@ final class OrganizationTeamViewModel: ObservableObject {
         organization: Organization,
         actor: AppUser
     ) async -> Bool {
-        guard actor.globalRole.authorizationRole == .owner else {
+        guard PermissionService.canInitiateOwnershipTransferWorkflow(user: actor) else {
             errorMessage = AppStrings.Profile.organizationTeamOwnerChangePlatformOnly
             return false
         }

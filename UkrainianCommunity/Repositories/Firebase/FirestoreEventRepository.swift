@@ -19,14 +19,16 @@ struct FirestoreEventRepository: EventRepository {
         let registeredEventIDs = try await fetchRegisteredEventIDs()
         let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
 
-        return try snapshot.documents.map { document in
-            try Event(dto: makeEventDTO(
-                from: document,
-                likedEventIDs: likedEventIDs,
-                registeredEventIDs: registeredEventIDs,
-                bookmarkedEventIDs: bookmarkedEventIDs
-            ))
-        }
+        return try snapshot.documents
+            .map { document in
+                try Event(dto: makeEventDTO(
+                    from: document,
+                    likedEventIDs: likedEventIDs,
+                    registeredEventIDs: registeredEventIDs,
+                    bookmarkedEventIDs: bookmarkedEventIDs
+                ))
+            }
+            .filter(\.isOrganizationEvent)
     }
 
     func fetchRegisteredEvents() async throws -> [Event] {
@@ -66,7 +68,12 @@ struct FirestoreEventRepository: EventRepository {
                     continue
                 }
 
-                resolvedEvents.append(Event(dto: dto))
+                let event = Event(dto: dto)
+                guard event.isOrganizationEvent else {
+                    continue
+                }
+
+                resolvedEvents.append(event)
             }
 
             registeredEvents.append(contentsOf: resolvedEvents)
@@ -130,14 +137,16 @@ struct FirestoreEventRepository: EventRepository {
         let registeredEventIDs = try await fetchRegisteredEventIDs()
         let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
 
-        return try snapshot.documents.map { document in
-            try Event(dto: makeEventDTO(
-                from: document,
-                likedEventIDs: likedEventIDs,
-                registeredEventIDs: registeredEventIDs,
-                bookmarkedEventIDs: bookmarkedEventIDs
-            ))
-        }
+        return try snapshot.documents
+            .map { document in
+                try Event(dto: makeEventDTO(
+                    from: document,
+                    likedEventIDs: likedEventIDs,
+                    registeredEventIDs: registeredEventIDs,
+                    bookmarkedEventIDs: bookmarkedEventIDs
+                ))
+            }
+            .filter(\.isOrganizationEvent)
     }
 
     func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event] {
@@ -177,6 +186,10 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func createEvent(_ event: Event) async throws {
+        guard event.isOrganizationEvent else {
+            throw AppError.validationFailed
+        }
+
         let now = Date()
         let currentUserID = Auth.auth().currentUser?.uid
         let resolvedAuthorName = try await resolvedCurrentUserAuthorName()
@@ -295,6 +308,10 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func updateEvent(_ event: Event) async throws {
+        guard event.isOrganizationEvent else {
+            throw AppError.validationFailed
+        }
+
         var data: [String: Any] = [
             "title": event.title,
             "summary": event.summary,
@@ -1052,6 +1069,13 @@ extension FirestoreEventRepository: EventRealtimeRepository {
             return .permissionDenied
         }
         return .network
+    }
+}
+
+private extension Event {
+    var isOrganizationEvent: Bool {
+        source.sourceType == .organization
+            && source.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 }
 

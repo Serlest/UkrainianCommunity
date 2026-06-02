@@ -438,6 +438,7 @@ service cloud.firestore {
     function featuredBannerAllowedFields() {
       return [
         'id',
+        'internalName',
         'title',
         'subtitle',
         'imageURL',
@@ -466,10 +467,7 @@ service cloud.firestore {
         'event',
         'organization',
         'guide',
-        'externalURL',
-        'announcement',
-        'emergency',
-        'partner'
+        'externalURL'
       ];
     }
 
@@ -478,7 +476,7 @@ service cloud.firestore {
     }
 
     function featuredBannerExternalActionTypes() {
-      return ['externalURL', 'partner'];
+      return ['externalURL'];
     }
 
     function featuredBannerRegionScopes() {
@@ -531,6 +529,7 @@ service cloud.firestore {
         && data.keys().hasOnly(featuredBannerAllowedFields())
         && data.id == bannerId
         && data.id is string
+        && (!('internalName' in data) || data.internalName == null || data.internalName is string)
         && (!('title' in data) || data.title == null || data.title is string)
         && data.imageURL is string
         && data.imageURL.size() > 0
@@ -665,8 +664,10 @@ service cloud.firestore {
 
     function safeOwnerUserUpdate(uid) {
       return isOwner()
+        && uid != request.auth.uid
         && request.resource.data.id == resource.data.id
         && ('globalRole' in resource.data)
+        && resource.data.globalRole != 'owner'
         && request.resource.data.globalRole == resource.data.globalRole
         && (!('role' in resource.data) || request.resource.data.role == resource.data.role)
         && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
@@ -1120,7 +1121,7 @@ service cloud.firestore {
 
     function canDeleteOrganizationContent() {
       return isOrganizationContent(resource.data)
-        && isOrganizationOwner(resource.data.organizationId);
+        && (isOwner() || isOrganizationOwner(resource.data.organizationId));
     }
 
     function canModerateNewsComment(newsId) {
@@ -1323,7 +1324,10 @@ service cloud.firestore {
         || safeSelfUserUpdate(uid)
         || safeSelfAccountDeletionUpdate(uid);
 
-      allow delete: if (isOwner() && uid != request.auth.uid)
+      allow delete: if (isOwner()
+          && uid != request.auth.uid
+          && ('globalRole' in resource.data)
+          && resource.data.globalRole != 'owner')
         || (isSelf(uid)
           && isActiveUser()
           && ('globalRole' in resource.data)
@@ -1500,11 +1504,9 @@ service cloud.firestore {
       allow read: if isApprovedContent()
         || canReadModerationQueue('events')
         || canReadOrganizationModerationQueue(resource.data);
-      allow create: if isOwner() || canCreateOrganizationContent();
-      allow delete: if isOwner() || canDeleteOrganizationContent();
-      allow update: if isOwner()
-        || canUpdateOrganizationContent()
-        || (canModerateSection('events') && onlyModerationStatusChanged())
+      allow create: if canCreateOrganizationContent();
+      allow delete: if canDeleteOrganizationContent();
+      allow update: if canUpdateOrganizationContent()
         || (
           isOrganizationContent(resource.data)
           && canModerateOrganizationContent(resource.data.organizationId)

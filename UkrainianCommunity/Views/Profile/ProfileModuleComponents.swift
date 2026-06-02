@@ -185,7 +185,7 @@ struct PlatformAccessStrip: View {
             ProfileBadge(title: user.globalRole.title, systemImage: "person.badge.key")
             ProfileBadge(title: AppStrings.Profile.verifiedAccess, systemImage: "checkmark.seal")
 
-            if user.globalRole.authorizationRole == .owner {
+            if PermissionService.hasOwnerRoleForDisplay(user: user) {
                 ProfileBadge(title: AppStrings.Profile.systemAccessLevel, systemImage: "lock.shield")
             }
         }

@@ -714,7 +714,7 @@ extension EventDetailView {
             if let organization = organizationForPermissions(organizationID: organizationId) {
                 return PermissionService.canModerateOrganizationContent(organization, user: user)
             }
-            return PermissionService.canModerateOrganizationComments(organizationId: organizationId, user: user)
+            return false
         }
 
         func eventCommentAvatar(_ comment: Comment) -> some View {

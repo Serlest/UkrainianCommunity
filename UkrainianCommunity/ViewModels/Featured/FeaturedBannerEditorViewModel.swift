@@ -14,6 +14,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     @Published var title: String
+    @Published var internalName: String
     @Published var subtitle: String
     @Published var imageURL: String
     @Published var regionScope: FeaturedBannerRegionScope
@@ -71,6 +72,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         case .create:
             let now = Date()
             bannerID = UUID().uuidString
+            internalName = ""
             title = ""
             subtitle = ""
             imageURL = ""
@@ -91,6 +93,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             createdBy = ""
         case let .edit(existing):
             bannerID = existing.id
+            internalName = existing.internalName ?? ""
             title = existing.title
             subtitle = existing.subtitle ?? ""
             imageURL = existing.imageURL ?? ""
@@ -175,16 +178,16 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         switch actionType {
         case .news, .event, .organization, .guide:
             return true
-        case .none, .externalURL, .announcement, .emergency, .partner:
+        case .none, .externalURL:
             return false
         }
     }
 
     var requiresExternalURL: Bool {
         switch actionType {
-        case .externalURL, .partner:
+        case .externalURL:
             return true
-        case .none, .news, .event, .organization, .guide, .announcement, .emergency:
+        case .none, .news, .event, .organization, .guide:
             return false
         }
     }
@@ -272,17 +275,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
         guard !searchTokens.isEmpty else { return items }
         return items.filter { item in
-            let haystack = [
-                item.title,
-                item.subtitle,
-                item.metadata,
-                item.id
-            ]
-                .compactMap { $0 }
-                .joined(separator: " ")
-                .lowercased()
-
-            return searchTokens.allSatisfy { haystack.contains($0) }
+            searchTokens.allSatisfy { item.searchText.contains($0) }
         }
     }
 
@@ -333,6 +326,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             let now = Date()
             let banner = FeaturedBanner(
                 id: bannerID,
+                internalName: nonEmpty(internalName),
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 subtitle: nonEmpty(subtitle),
                 imageURL: resolvedImageURLString,
@@ -480,7 +474,7 @@ enum FeaturedBannerActionTargetKind: String, CaseIterable, Identifiable, Hashabl
             self = .event
         case .organization:
             self = .organization
-        case .none, .guide, .externalURL, .announcement, .emergency, .partner:
+        case .none, .guide, .externalURL:
             return nil
         }
     }
@@ -514,6 +508,7 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
     let title: String
     let subtitle: String?
     let metadata: String?
+    let searchText: String
 
     init(news: NewsPost) {
         id = news.id
@@ -523,6 +518,14 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
         metadata = Self.joined([
             news.source.displayOrganizationName ?? news.authorName,
             Self.dateText(news.publishedAt)
+        ])
+        searchText = Self.searchText([
+            news.title,
+            news.subtitle,
+            news.source.displayOrganizationName,
+            news.sourceName,
+            news.authorName,
+            news.id
         ])
     }
 
@@ -536,6 +539,20 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
             Self.joined([Self.nonEmpty(event.city), Self.nonEmpty(event.venue)]),
             Self.dateText(event.startDate)
         ])
+        searchText = Self.searchText([
+            event.title,
+            event.summary,
+            Self.dateText(event.startDate),
+            Self.dateText(event.endDate),
+            event.city,
+            event.venue,
+            event.address,
+            event.locationNote,
+            event.organizerName,
+            event.source.displayOrganizationName,
+            event.authorName,
+            event.id
+        ])
     }
 
     init(organization: Organization) {
@@ -547,6 +564,13 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
             Self.nonEmpty(organization.organizationType),
             Self.nonEmpty(organization.city)
         ])
+        searchText = Self.searchText([
+            organization.name,
+            organization.shortDescription,
+            organization.city,
+            organization.organizationType,
+            organization.id
+        ])
     }
 
     private static func joined(_ values: [String?]) -> String? {
@@ -556,6 +580,13 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
 
     private static func dateText(_ date: Date) -> String {
         date.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private static func searchText(_ values: [String?]) -> String {
+        values
+            .compactMap { nonEmpty($0) }
+            .joined(separator: " ")
+            .lowercased()
     }
 
     private static func nonEmpty(_ value: String?) -> String? {

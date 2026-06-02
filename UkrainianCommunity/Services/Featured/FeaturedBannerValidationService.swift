@@ -51,16 +51,16 @@ struct FeaturedBannerValidationService {
         switch actionType {
         case .news, .event, .organization, .guide:
             return true
-        case .none, .externalURL, .announcement, .emergency, .partner:
+        case .none, .externalURL:
             return false
         }
     }
 
     private func requiresExternalURL(_ actionType: FeaturedBannerActionType) -> Bool {
         switch actionType {
-        case .externalURL, .partner:
+        case .externalURL:
             return true
-        case .none, .news, .event, .organization, .guide, .announcement, .emergency:
+        case .none, .news, .event, .organization, .guide:
             return false
         }
     }

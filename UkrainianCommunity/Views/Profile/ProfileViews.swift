@@ -1,6 +1,23 @@
 import PhotosUI
 import SwiftUI
 
+private let profileRootScrollTopID = "profileRootScrollTop"
+
+enum ProfileNavigationRoute: Hashable {
+    case organizationManagement
+    case registrations
+    case savedContent
+    case followedOrganizations
+    case recentViews
+    case activityHistory
+    case moderationTools
+    case guideManagement
+    case userManagement
+    case featuredBannerManagement
+    case feedbackInbox
+    case myFeedback(userID: String)
+    case legal(LegalDocumentKind)
+}
 
 struct ProfileView: View {
     @ObservedObject var viewModel: ProfileViewModel
@@ -41,6 +58,8 @@ struct ProfileView: View {
     @State private var isShowingDeleteAccountSheet = false
     @State private var deleteAccountConfirmationText = ""
     @State private var deleteAccountErrorMessage: String?
+    @Binding var navigationPath: [ProfileNavigationRoute]
+    let scrollResetToken: Int
 
     init(
         viewModel: ProfileViewModel,
@@ -51,7 +70,9 @@ struct ProfileView: View {
         guideRepository: GuideRepository = FirestoreGuideRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
-        localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService()
+        localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
+        navigationPath: Binding<[ProfileNavigationRoute]> = .constant([]),
+        scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         self.feedbackRepository = feedbackRepository
@@ -61,6 +82,8 @@ struct ProfileView: View {
         self.guideRepository = guideRepository
         self.featuredBannerRepository = featuredBannerRepository
         self.notificationInboxRepository = notificationInboxRepository
+        self.scrollResetToken = scrollResetToken
+        _navigationPath = navigationPath
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(
             repository: eventRepository,
             localEventReminderService: localEventReminderService
@@ -90,7 +113,7 @@ struct ProfileView: View {
 
     private var canShowOrganizationManagement: Bool {
         guard let user = permissionUser else { return false }
-        if user.globalRole.authorizationRole == .owner {
+        if PermissionService.canManageOrganizations(user: user) {
             return true
         }
         if PermissionService.canCreateOrganization(user: user) {
@@ -140,7 +163,7 @@ struct ProfileView: View {
     }
 
     private var shouldLoadOwnerVisibility: Bool {
-        permissionUser?.globalRole.authorizationRole == .owner
+        PermissionService.canAccessOwnerDashboard(user: permissionUser)
     }
 
     private var organizationRoleMemberships: [CommunityMembership] {
@@ -267,33 +290,45 @@ struct ProfileView: View {
                 .allowsHitTesting(false)
 
             GeometryReader { proxy in
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                        profileHeader
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        Color.clear
+                            .frame(height: 0)
+                            .id(profileRootScrollTopID)
 
-                        profileTitleBlock
+                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                            profileHeader
 
-                        AppGroupedContentPlane {
-                            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                                if let user = displayUser {
-                                    userProfileContent(for: user)
-                                } else {
-                                    guestProfileContent
+                            profileTitleBlock
+
+                            AppGroupedContentPlane {
+                                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                                    if let user = displayUser {
+                                        userProfileContent(for: user)
+                                    } else {
+                                        guestProfileContent
+                                    }
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, AppTheme.pageHorizontal)
+                        .padding(.top, AppTheme.sectionSpacing)
+                        .padding(.bottom, AppTheme.homeBottomContentPadding + 32)
+                        .frame(width: proxy.size.width, alignment: .topLeading)
                     }
-                    .padding(.horizontal, AppTheme.pageHorizontal)
-                    .padding(.top, AppTheme.sectionSpacing)
-                    .padding(.bottom, AppTheme.homeBottomContentPadding + 32)
-                    .frame(width: proxy.size.width, alignment: .topLeading)
+                    .frame(width: proxy.size.width)
+                    .onChange(of: scrollResetToken) {
+                        scrollToTop(with: scrollProxy)
+                    }
                 }
-                .frame(width: proxy.size.width)
             }
         }
         .tint(AppTheme.accentPrimary)
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(for: ProfileNavigationRoute.self) { route in
+            profileDestination(for: route)
+        }
         .task {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
@@ -468,6 +503,69 @@ struct ProfileView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func scrollToTop(with scrollProxy: ScrollViewProxy) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            scrollProxy.scrollTo(profileRootScrollTopID, anchor: .top)
+        }
+    }
+
+    @ViewBuilder
+    private func profileDestination(for route: ProfileNavigationRoute) -> some View {
+        switch route {
+        case .organizationManagement:
+            OrganizationManagementHubView()
+        case .registrations:
+            MyRegistrationsView(viewModel: registrationsViewModel, eventRepository: eventRepository)
+        case .savedContent:
+            SavedContentView(
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationRepository
+            )
+        case .followedOrganizations:
+            FollowedOrganizationsView(organizationRepository: organizationRepository)
+        case .recentViews:
+            RecentViewsView(
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationRepository
+            )
+        case .activityHistory:
+            ActivityHistoryView(
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationRepository
+            )
+        case .moderationTools:
+            ModerationToolsView(
+                organizationRepository: organizationRepository,
+                notificationInboxRepository: notificationInboxRepository
+            )
+        case .guideManagement:
+            GuideManagementView(guideRepository: guideRepository)
+        case .userManagement:
+            UserManagementView()
+        case .featuredBannerManagement:
+            FeaturedBannerManagementView(
+                repository: featuredBannerRepository,
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationRepository
+            )
+        case .feedbackInbox:
+            FeedbackInboxView(
+                repository: feedbackRepository,
+                notificationInboxRepository: notificationInboxRepository
+            )
+        case let .myFeedback(userID):
+            MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: userID)
+        case let .legal(document):
+            LegalDocumentView(document: document)
         }
     }
 
@@ -769,9 +867,7 @@ struct ProfileView: View {
             ],
             spacing: AppTheme.eventsMetadataSpacing
         ) {
-            NavigationLink {
-                OrganizationManagementHubView()
-            } label: {
+            NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.myOrganizations,
                     subtitle: AppStrings.Profile.organizationManagementIntro,
@@ -781,9 +877,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink {
-                MyRegistrationsView(viewModel: registrationsViewModel, eventRepository: eventRepository)
-            } label: {
+            NavigationLink(value: ProfileNavigationRoute.registrations) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.myEvents,
                     subtitle: AppStrings.Profile.quickActionRegisteredEventsSubtitle,
@@ -793,13 +887,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink {
-                SavedContentView(
-                    newsRepository: newsRepository,
-                    eventRepository: eventRepository,
-                    organizationRepository: organizationRepository
-                )
-            } label: {
+            NavigationLink(value: ProfileNavigationRoute.savedContent) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.savedContent,
                     subtitle: AppStrings.Profile.quickActionSavedContentSubtitle,
@@ -809,9 +897,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink {
-                FollowedOrganizationsView(organizationRepository: organizationRepository)
-            } label: {
+            NavigationLink(value: ProfileNavigationRoute.followedOrganizations) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.organizationSubscriptions,
                     subtitle: AppStrings.Profile.quickActionSubscriptionsSubtitle,
@@ -821,13 +907,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink {
-                RecentViewsView(
-                    newsRepository: newsRepository,
-                    eventRepository: eventRepository,
-                    organizationRepository: organizationRepository
-                )
-            } label: {
+            NavigationLink(value: ProfileNavigationRoute.recentViews) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.recentlyViewed,
                     subtitle: AppStrings.Profile.recentlyViewedSubtitle,
@@ -837,13 +917,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
-            NavigationLink {
-                ActivityHistoryView(
-                    newsRepository: newsRepository,
-                    eventRepository: eventRepository,
-                    organizationRepository: organizationRepository
-                )
-            } label: {
+            NavigationLink(value: ProfileNavigationRoute.activityHistory) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
                     title: AppStrings.Profile.activityHistoryModule,
                     subtitle: AppStrings.Profile.quickActionActivitySubtitle,
@@ -863,12 +937,7 @@ struct ProfileView: View {
             ],
             spacing: AppTheme.eventsMetadataSpacing
         ) {
-            NavigationLink {
-                ModerationToolsView(
-                    organizationRepository: organizationRepository,
-                    notificationInboxRepository: notificationInboxRepository
-                )
-            } label: {
+            NavigationLink(value: ProfileNavigationRoute.moderationTools) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(title: AppStrings.Profile.moderatorModerationQueue, subtitle: AppStrings.Profile.ownerPendingReviewSubtitle, systemImage: "clock.badge.exclamationmark", status: canShowModerationTools ? .active : .locked))
             }
             .buttonStyle(.plain)
@@ -898,7 +967,7 @@ struct ProfileView: View {
     private var guideManagementSection: some View {
         if canShowGuideManagement {
             ProfileSectionCard(title: AppStrings.GuideManagement.title, subtitle: AppStrings.GuideManagement.entrySubtitle) {
-                NavigationLink { GuideManagementView(guideRepository: guideRepository) } label: {
+                NavigationLink(value: ProfileNavigationRoute.guideManagement) {
                     ProfileModuleRow(
                         title: AppStrings.GuideManagement.title,
                         subtitle: AppStrings.GuideManagement.entrySubtitle,
@@ -914,13 +983,13 @@ struct ProfileView: View {
     private var ownerPlatformManagementSection: some View {
         ProfileSectionCard(title: AppStrings.Profile.ownerPlatformManagement, subtitle: AppStrings.Profile.ownerPlatformManagementSubtitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink { UserManagementView() } label: {
+                NavigationLink(value: ProfileNavigationRoute.userManagement) {
                     ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.ownerUsersSubtitle, systemImage: "person.3", status: canShowAdminTools ? .active : .locked)
                 }
                 .buttonStyle(.plain)
 
                 if canShowGuideManagement {
-                    NavigationLink { GuideManagementView(guideRepository: guideRepository) } label: {
+                    NavigationLink(value: ProfileNavigationRoute.guideManagement) {
                         ProfileModuleRow(
                             title: AppStrings.GuideManagement.title,
                             subtitle: AppStrings.GuideManagement.entrySubtitle,
@@ -931,14 +1000,7 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                 }
 
-                NavigationLink {
-                    FeaturedBannerManagementView(
-                        repository: featuredBannerRepository,
-                        newsRepository: newsRepository,
-                        eventRepository: eventRepository,
-                        organizationRepository: organizationRepository
-                    )
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
                     ProfileModuleRow(
                         title: AppStrings.FeaturedManagement.profileEntryTitle,
                         subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
@@ -948,12 +1010,7 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
-                    ModerationToolsView(
-                        organizationRepository: organizationRepository,
-                        notificationInboxRepository: notificationInboxRepository
-                    )
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.moderationTools) {
                     ProfileModuleRow(
                         title: AppStrings.Profile.ownerOrganizationRequests,
                         subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
@@ -964,12 +1021,7 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
-                    FeedbackInboxView(
-                        repository: feedbackRepository,
-                        notificationInboxRepository: notificationInboxRepository
-                    )
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.feedbackInbox) {
                     ProfileModuleRow(
                         title: AppStrings.Profile.ownerUserFeedback,
                         subtitle: AppStrings.Feedback.inboxSubtitle,
@@ -1076,9 +1128,7 @@ struct ProfileView: View {
                     accessory: .none
                 )
 
-                NavigationLink {
-                    LegalDocumentView(document: .privacy)
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
                     ProfileModuleRow(title: AppStrings.Settings.privacyPolicy, subtitle: AppStrings.Profile.privacySettingsSubtitle, systemImage: "lock.doc", status: .available)
                 }
                 .buttonStyle(.plain)
@@ -1093,9 +1143,7 @@ struct ProfileView: View {
             subtitle: AppStrings.Profile.supportSectionSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink {
-                    MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: user.id)
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.myFeedback(userID: user.id)) {
                     ProfileModuleRow(
                         title: AppStrings.Feedback.myFeedbackTitle,
                         subtitle: AppStrings.Feedback.myFeedbackSubtitle,
@@ -1122,17 +1170,12 @@ struct ProfileView: View {
                     submitFeedback(for: user)
                 }
 
-
-                NavigationLink {
-                    LegalDocumentView(document: .terms)
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
                     ProfileModuleRow(title: AppStrings.Settings.terms, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
-                    LegalDocumentView(document: .privacy)
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
                     ProfileModuleRow(title: AppStrings.Settings.privacyPolicy, subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion), systemImage: "lock.doc", status: .available)
                 }
                 .buttonStyle(.plain)
@@ -1172,16 +1215,12 @@ struct ProfileView: View {
                     .labelsHidden()
                 }
 
-                NavigationLink {
-                    LegalDocumentView(document: .terms)
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
                     ProfileModuleRow(title: AppStrings.Profile.termsOfUse, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
                 }
                 .buttonStyle(.plain)
 
-                NavigationLink {
-                    LegalDocumentView(document: .privacy)
-                } label: {
+                NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
                     ProfileModuleRow(title: AppStrings.Profile.privacyPolicy, subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion), systemImage: "lock.doc", status: .available)
                 }
                 .buttonStyle(.plain)
