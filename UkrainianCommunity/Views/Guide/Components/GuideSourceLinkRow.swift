@@ -17,7 +17,7 @@ struct GuideSourceLinkRow: View {
 
     private func rowContent<Accessory: View>(accessory: Accessory) -> some View {
         DetailActionRow {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Text(link.title)
                         .font(.subheadline.weight(.semibold))
@@ -36,6 +36,10 @@ struct GuideSourceLinkRow: View {
                     }
                 }
 
+                Text(actionLabel)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimary)
+
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.caption.weight(.medium))
@@ -43,6 +47,10 @@ struct GuideSourceLinkRow: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+
+                Text(AppStrings.Guide.opensExternalWebsiteHint)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary.opacity(0.9))
             }
         } trailingContent: {
             accessory
@@ -58,8 +66,13 @@ struct GuideSourceLinkRow: View {
             .joined(separator: " · ")
     }
 
+    private var actionLabel: String {
+        link.isOfficial ? AppStrings.Guide.openOfficialSourceAction : AppStrings.Guide.openExternalSourceAction
+    }
+
     private var externalLinkIcon: some View {
-        Image(systemName: "arrow.up.right.square")
+        Image(systemName: "arrow.up.right.square.fill")
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppTheme.accentPrimary)
     }
 

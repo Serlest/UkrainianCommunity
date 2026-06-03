@@ -4,6 +4,10 @@ struct GuideArticleCard: View {
     let article: GuideArticle
     let emphasized: Bool
 
+    private var hasOfficialSource: Bool {
+        article.sourceLinks?.contains(where: \.isOfficial) == true || article.officialSourceURL != nil
+    }
+
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
             HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
@@ -50,7 +54,9 @@ struct GuideArticleCard: View {
                         .foregroundStyle(AppTheme.textSecondary.opacity(0.84))
                         .lineLimit(2)
 
-                    if let sourceName = article.sourceName, !sourceName.isEmpty {
+                    if hasOfficialSource {
+                        AppMetadataLine(title: AppStrings.Guide.officialSourceAvailableLabel, systemImage: "checkmark.seal")
+                    } else if let sourceName = article.sourceName, !sourceName.isEmpty {
                         AppMetadataLine(title: sourceName, systemImage: "link")
                     }
                 }
@@ -74,6 +80,8 @@ struct GuideArticleCard: View {
 
         if let sourceName = article.sourceName, !sourceName.isEmpty {
             parts.append(sourceName)
+        } else if hasOfficialSource {
+            parts.append(AppStrings.Guide.officialSourceAvailableLabel)
         }
 
         if let reviewLabel = article.reviewState.accessibilityLabel {

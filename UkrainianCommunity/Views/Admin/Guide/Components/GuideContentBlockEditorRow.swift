@@ -2,6 +2,8 @@ import SwiftUI
 
 struct GuideContentBlockEditorRow: View {
     @Binding var block: GuideContentBlock
+    let position: Int
+    let totalCount: Int
     let canMoveUp: Bool
     let canMoveDown: Bool
     let onMoveUp: () -> Void
@@ -18,33 +20,40 @@ struct GuideContentBlockEditorRow: View {
     }
 
     private var header: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            AppInfoChip(
-                title: block.editorTitle,
-                systemImage: block.editorSystemImage,
-                tint: block.editorTint,
-                fill: block.editorFill,
-                size: .small
-            )
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                AppInfoChip(
+                    title: block.editorTitle,
+                    systemImage: block.editorSystemImage,
+                    tint: block.editorTint,
+                    fill: block.editorFill,
+                    size: .small
+                )
 
-            Spacer(minLength: AppTheme.eventsMetadataSpacing)
+                Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-            Button(action: onMoveUp) {
-                Image(systemName: "chevron.up")
+                Button(action: onMoveUp) {
+                    Image(systemName: "chevron.up")
+                }
+                .disabled(!canMoveUp)
+                .accessibilityLabel(AppStrings.GuideEditor.moveBlockUp)
+
+                Button(action: onMoveDown) {
+                    Image(systemName: "chevron.down")
+                }
+                .disabled(!canMoveDown)
+                .accessibilityLabel(AppStrings.GuideEditor.moveBlockDown)
+
+                Button(role: .destructive, action: onDelete) {
+                    Image(systemName: "trash")
+                }
+                .accessibilityLabel(AppStrings.GuideEditor.deleteBlock)
             }
-            .disabled(!canMoveUp)
-            .accessibilityLabel(AppStrings.GuideEditor.moveBlockUp)
 
-            Button(action: onMoveDown) {
-                Image(systemName: "chevron.down")
-            }
-            .disabled(!canMoveDown)
-            .accessibilityLabel(AppStrings.GuideEditor.moveBlockDown)
-
-            Button(role: .destructive, action: onDelete) {
-                Image(systemName: "trash")
-            }
-            .accessibilityLabel(AppStrings.GuideEditor.deleteBlock)
+            Text(AppStrings.GuideEditor.readerOrderPosition(position, totalCount))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .buttonStyle(.borderless)
     }

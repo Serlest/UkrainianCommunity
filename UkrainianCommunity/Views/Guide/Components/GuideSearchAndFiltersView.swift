@@ -4,7 +4,10 @@ struct GuideSearchAndFiltersView: View {
     @ObservedObject var viewModel: GuideListViewModel
 
     var body: some View {
-        filterRow
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            filterFeedback
+            filterRow
+        }
     }
 
     private var filterRow: some View {
@@ -13,6 +16,33 @@ struct GuideSearchAndFiltersView: View {
             regionFilter
             audienceFilter
             clearFiltersButton
+        }
+    }
+
+    private var filterFeedback: some View {
+        SoftContentCard(padding: AppTheme.eventsCardPadding) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(AppStrings.Guide.resultsCount(viewModel.filteredArticles.count))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+
+                    if viewModel.filterState.hasActiveFilters {
+                        AppInfoChip(
+                            title: AppStrings.Guide.activeFiltersTitle,
+                            systemImage: "line.3.horizontal.decrease.circle",
+                            tint: AppTheme.accentPrimary,
+                            fill: AppTheme.badgeBlueFill,
+                            size: .small
+                        )
+                    }
+                }
+
+                Text(activeFilterSummaryText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -103,6 +133,15 @@ struct GuideSearchAndFiltersView: View {
             .buttonStyle(.plain)
         }
     }
+
+    private var activeFilterSummaryText: String {
+        let summaryParts = viewModel.filterState.summaryParts
+        if summaryParts.isEmpty {
+            return AppStrings.Guide.activeFiltersEmptyHint
+        }
+
+        return summaryParts.joined(separator: " • ")
+    }
 }
 
 private extension GuideContentType {
@@ -125,5 +164,34 @@ private extension GuideContentType {
 private extension AustrianFederalState {
     var guideFilterDisplayName: String {
         AppStrings.FederalStates.title(for: self)
+    }
+}
+
+private extension GuideFilterState {
+    var summaryParts: [String] {
+        var parts: [String] = []
+
+        let trimmedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedSearchText.isEmpty {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterSearchLabel, trimmedSearchText))
+        }
+
+        if let selectedCategory {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterCategoryLabel, selectedCategory.title))
+        }
+
+        if let selectedContentType {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterTypeLabel, selectedContentType.guideFilterTitle))
+        }
+
+        if let selectedFederalState {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterRegionLabel, selectedFederalState.guideFilterDisplayName))
+        }
+
+        if let selectedAudience, !selectedAudience.isEmpty {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterAudienceLabel, selectedAudience))
+        }
+
+        return parts
     }
 }

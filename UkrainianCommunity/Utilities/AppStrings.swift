@@ -750,11 +750,32 @@ enum AppStrings {
         static var popularCategoriesTitle: String { text("guide.categories.popular", "Популярні категорії") }
         static var allCategories: String { text("guide.categories.all", "All") }
         static var allArticlesTitle: String { text("guide.articles", "Articles") }
+        static var moreArticlesTitle: String { text("guide.articles.more", "More articles") }
         static var newcomersTitle: String { text("guide.section.newcomers", "First steps") }
         static var featuredTitle: String { text("guide.section.featured", "Featured guidance") }
         static var recentlyUpdatedTitle: String { text("guide.section.recently_updated", "Recently updated") }
         static var emergencyTitle: String { text("guide.section.emergency", "Emergency and urgent help") }
         static var officialSource: String { text("guide.official_source", "Official source") }
+        static var sourceSectionTitle: String { text("guide.sources.title", "Sources") }
+        static var sourceSectionSubtitle: String { text("guide.sources.subtitle", "Open the source directly to verify details and check the latest official information.") }
+        static var sourceSectionPrimaryTitle: String { text("guide.sources.primary_title", "Primary source") }
+        static var sourceSectionPrimarySubtitle: String { text("guide.sources.primary_subtitle", "Official information used as the main reference for this article.") }
+        static var sourceSectionSupportingTitle: String { text("guide.sources.supporting_title", "Supporting sources") }
+        static var sourceSectionSupportingSubtitle: String { text("guide.sources.supporting_subtitle", "Additional references and practical links related to this topic.") }
+        static var openSourceAction: String { text("guide.sources.open", "Open source") }
+        static var openOfficialSourceAction: String { text("guide.sources.open_official", "Open official source") }
+        static var openExternalSourceAction: String { text("guide.sources.open_external", "Open external source") }
+        static var opensExternalWebsiteHint: String { text("guide.sources.opens_external", "Opens external website") }
+        static var articleOverviewLabel: String { text("guide.detail.overview_label", "Overview") }
+        static var articleContainsTitle: String { text("guide.contains.title", "In this article") }
+        static var articleContainsSubtitle: String { text("guide.contains.subtitle", "Quick overview of the sections below.") }
+        static var activeFiltersTitle: String { text("guide.filters.active.title", "Current filters") }
+        static var activeFiltersEmptyHint: String { text("guide.filters.active.empty_hint", "Use filters to narrow the guide by type, place, or audience.") }
+        static var filterSearchLabel: String { text("guide.filters.label.search", "Search") }
+        static var filterCategoryLabel: String { text("guide.filters.label.category", "Category") }
+        static var filterTypeLabel: String { text("guide.filters.label.type", "Type") }
+        static var filterRegionLabel: String { text("guide.filters.label.region", "Region") }
+        static var filterAudienceLabel: String { text("guide.filters.label.audience", "Audience") }
         static var searchPlaceholder: String { text("guide.search", "Search the guide") }
         static var filterAllTypes: String { text("guide.filter.all_types", "All types") }
         static var filterAllAudiences: String { text("guide.filter.all_audiences", "All audiences") }
@@ -772,6 +793,16 @@ enum AppStrings {
         static var emptyMessage: String { text("guide.empty.message", "Practical guidance will appear here once it has been published.") }
         static var noMatchesTitle: String { text("guide.no_matches.title", "No matching articles") }
         static var noResults: String { text("guide.no_results", "No guide articles match this search right now.") }
+        static var noResultsNarrowHint: String { text("guide.no_results.narrow_hint", "Your current search or filters may be too narrow. Try clearing one filter or broadening the search.") }
+        static var sourceAvailableLabel: String { text("guide.source.available", "Source available") }
+        static var officialSourceAvailableLabel: String { text("guide.source.official_available", "Official source") }
+        static var blockTypeText: String { text("guide.block_type.text", "Text") }
+        static var blockTypeWarning: String { text("guide.block_type.warning", "Warning") }
+        static var blockTypeInfoBox: String { text("guide.block_type.info_box", "Info box") }
+        static var blockTypeSteps: String { text("guide.block_type.steps", "Steps") }
+        static var blockTypeChecklist: String { text("guide.block_type.checklist", "Checklist") }
+        static var blockTypeLinks: String { text("guide.block_type.links", "Links") }
+        static var blockTypeContacts: String { text("guide.block_type.contacts", "Contacts") }
         static var loadNetworkError: String { text("guide.error.load.network", "Unable to load guide articles. Check your connection and try again.") }
         static var loadPermissionError: String { text("guide.error.load.permission", "You do not have permission to view guide articles.") }
         static var loadValidationError: String { text("guide.error.load.validation", "The guide data could not be loaded.") }
@@ -796,6 +827,30 @@ enum AppStrings {
         static var categoryChildren: String { text("guide.category.children", "Children") }
         static var categoryBusiness: String { text("guide.category.business", "Business") }
         static var categoryContacts: String { text("guide.category.contacts", "Contacts") }
+
+        static func resultsCount(_ count: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "guide.results.count",
+                defaultValue: "%lld articles",
+                arguments: [count]
+            )
+        }
+
+        static func noResultsForSummary(_ summary: String) -> String {
+            LocalizationStore.localizedFormat(
+                "guide.no_results.summary",
+                defaultValue: "No guide articles match %@ right now.",
+                arguments: [summary.lowercased()]
+            )
+        }
+
+        static func filterSummaryItem(_ label: String, _ value: String) -> String {
+            LocalizationStore.localizedFormat(
+                "guide.filters.summary_item",
+                defaultValue: "%1$@: %2$@",
+                arguments: [label, value]
+            )
+        }
     }
 
     enum Info {
@@ -927,8 +982,11 @@ enum AppStrings {
         static var reviewSection: String { text("guide.editor.section.review", "Review settings") }
         static var titleField: String { text("guide.editor.field.title", "Title") }
         static var titlePlaceholder: String { text("guide.editor.placeholder.title", "Short, clear article title") }
+        static var titleHelp: String { text("guide.editor.help.title", "Readers see this first in lists and again at the top of the article.") }
         static var summaryField: String { text("guide.editor.field.summary", "Summary") }
+        static var summaryHelp: String { text("guide.editor.help.summary", "Use one or two short sentences. This appears in cards and under the article title.") }
         static var bodyFallbackField: String { text("guide.editor.field.body_fallback", "Body fallback") }
+        static var bodyFallbackHelp: String { text("guide.editor.help.body_fallback", "Body is fallback content. Readers see it only when no content blocks are added below.") }
         static var categoryField: String { text("guide.editor.field.category", "Category") }
         static var categoryPlaceholder: String { text("guide.editor.placeholder.category", "Select category") }
         static var contentTypeField: String { text("guide.editor.field.content_type", "Content type") }
@@ -944,10 +1002,16 @@ enum AppStrings {
         static var contentBlocksField: String { text("guide.editor.field.content_blocks", "Content blocks") }
         static var contentBlocksPlaceholder: String { text("guide.editor.content_blocks.placeholder", "Structured content blocks will be added in a later pass. Use body fallback for now.") }
         static var contentBlocksEmpty: String { text("guide.editor.content_blocks.empty", "No structured content blocks yet.") }
+        static var contentBlocksHelp: String { text("guide.editor.help.content_blocks", "If content blocks exist, readers see the blocks instead of the body. Blocks render in the order shown below.") }
         static var articleSourceLinksField: String { text("guide.editor.field.article_source_links", "Article sources") }
         static var articleSourceLinksEmpty: String { text("guide.editor.article_source_links.empty", "No article sources yet.") }
+        static var articleSourceLinksHelp: String { text("guide.editor.help.article_source_links", "If Official sources required is enabled, add at least one article source and mark it as Official source.") }
         static var addArticleSourceLink: String { text("guide.editor.action.add_article_source_link", "Add article source") }
         static var addContentBlock: String { text("guide.editor.action.add_content_block", "Add content block") }
+        static var readerOrderTitle: String { text("guide.editor.reader_order.title", "Reader order") }
+        static var readerOrderHelp: String { text("guide.editor.reader_order.help", "This is the order readers see on the article page. Use the arrows on each block to move it earlier or later.") }
+        static var blockSummaryUntitled: String { text("guide.editor.block_summary.untitled", "Untitled") }
+        static var blockSummaryEmpty: String { text("guide.editor.block_summary.empty", "Add content to show a reader summary.") }
         static var blockTitlePlaceholder: String { text("guide.editor.placeholder.block_title", "Optional block title") }
         static var blockTextField: String { text("guide.editor.field.block_text", "Text") }
         static var blockMessageField: String { text("guide.editor.field.block_message", "Message") }
@@ -1019,6 +1083,10 @@ enum AppStrings {
         static var reviewIntervalCritical: String { text("guide.editor.review_interval.critical", "Critical") }
         static var reviewIntervalNormal: String { text("guide.editor.review_interval.normal", "Normal") }
         static var reviewIntervalStable: String { text("guide.editor.review_interval.stable", "Stable") }
+
+        static func readerOrderPosition(_ position: Int, _ total: Int) -> String {
+            "Reader order \(position) of \(total)"
+        }
     }
 
     enum Profile {

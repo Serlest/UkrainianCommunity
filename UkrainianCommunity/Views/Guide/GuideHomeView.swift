@@ -2,9 +2,11 @@ import SwiftUI
 
 private struct GuideScreenContent {
     let filteredArticles: [GuideArticle]
-    let regularArticles: [GuideArticle]
+    let secondaryArticles: [GuideArticle]
     let smartCollections: GuideSmartCollectionSet
     let availableCategories: [GuideCategory]
+    let hasActiveFilters: Bool
+    let smartSectionIDs: Set<String>
 }
 
 private let guideRootScrollTopID = "guideRootScrollTop"
@@ -40,16 +42,28 @@ struct GuideHomeView: View {
 
     private var screenContent: GuideScreenContent {
         let filteredArticles = viewModel.filteredArticles
-        let regularArticles = filteredArticles
+        let hasActiveFilters = viewModel.filterState.hasActiveFilters
+        let smartCollections = viewModel.smartCollections
+        let smartSectionIDs = Set([
+            smartCollections.importantNow,
+            smartCollections.newcomers,
+            smartCollections.emergency,
+            smartCollections.popular,
+            smartCollections.recentlyUpdated
+        ].flatMap { $0.map(\.id) })
+        let secondaryArticles = filteredArticles
+            .filter { hasActiveFilters || !smartSectionIDs.contains($0.id) }
             .sorted { $0.updatedAt > $1.updatedAt }
         let categories = Set(viewModel.articles.map(\.category))
         let availableCategories = GuideCategory.allCases.filter { categories.contains($0) }
 
         return GuideScreenContent(
             filteredArticles: filteredArticles,
-            regularArticles: regularArticles,
-            smartCollections: viewModel.smartCollections,
-            availableCategories: availableCategories
+            secondaryArticles: secondaryArticles,
+            smartCollections: smartCollections,
+            availableCategories: availableCategories,
+            hasActiveFilters: hasActiveFilters,
+            smartSectionIDs: smartSectionIDs
         )
     }
 
@@ -181,24 +195,60 @@ struct GuideHomeView: View {
 
     @ViewBuilder
     private func populatedGuideContent(_ content: GuideScreenContent) -> some View {
-        smartSection(title: AppStrings.Guide.pinnedTitle, articles: content.smartCollections.importantNow, emphasized: true)
-        smartSection(title: AppStrings.Guide.newcomersTitle, articles: content.smartCollections.newcomers, emphasized: false)
-        smartSection(title: AppStrings.Guide.emergencyTitle, articles: content.smartCollections.emergency, emphasized: false)
-        smartSection(title: AppStrings.Guide.featuredTitle, articles: content.smartCollections.popular, emphasized: false)
-        smartSection(title: AppStrings.Guide.recentlyUpdatedTitle, articles: content.smartCollections.recentlyUpdated, emphasized: false)
+        if content.hasActiveFilters {
+            DashboardSectionHeader(title: AppStrings.Guide.allArticlesTitle)
 
-        DashboardSectionHeader(title: AppStrings.Guide.allArticlesTitle)
-
-        if content.filteredArticles.isEmpty && viewModel.filterState.hasActiveFilters {
-            GuideEmptyStateView(kind: .noMatches)
+            if content.filteredArticles.isEmpty {
+                narrowedResultsEmptyState
+            } else {
+                DashboardFeedContainer(
+                    items: content.filteredArticles.sorted { $0.updatedAt > $1.updatedAt },
+                    spacing: AppTheme.feedRowSpacing
+                ) { article in
+                    guideArticleLink(article, emphasized: false)
+                }
+            }
         } else {
-            DashboardFeedContainer(
-                items: content.regularArticles,
-                spacing: AppTheme.feedRowSpacing
-            ) { article in
-                guideArticleLink(article, emphasized: false)
+            smartSection(title: AppStrings.Guide.pinnedTitle, articles: content.smartCollections.importantNow, emphasized: true)
+            smartSection(title: AppStrings.Guide.newcomersTitle, articles: content.smartCollections.newcomers, emphasized: false)
+            smartSection(title: AppStrings.Guide.emergencyTitle, articles: content.smartCollections.emergency, emphasized: false)
+            smartSection(title: AppStrings.Guide.featuredTitle, articles: content.smartCollections.popular, emphasized: false)
+            smartSection(title: AppStrings.Guide.recentlyUpdatedTitle, articles: content.smartCollections.recentlyUpdated, emphasized: false)
+
+            if !content.secondaryArticles.isEmpty {
+                DashboardSectionHeader(
+                    title: content.smartSectionIDs.isEmpty ? AppStrings.Guide.allArticlesTitle : AppStrings.Guide.moreArticlesTitle
+                )
+
+                DashboardFeedContainer(
+                    items: content.secondaryArticles,
+                    spacing: AppTheme.feedRowSpacing
+                ) { article in
+                    guideArticleLink(article, emphasized: false)
+                }
+            } else if content.smartSectionIDs.isEmpty {
+                GuideEmptyStateView(kind: .noArticles)
             }
         }
+    }
+
+    private var narrowedResultsEmptyState: some View {
+        EmptyStateCard(
+            systemImage: "line.3.horizontal.decrease.circle",
+            title: AppStrings.Guide.noMatchesTitle,
+            message: noResultsContextMessage
+        )
+        .frame(maxWidth: .infinity, minHeight: 180)
+    }
+
+    private var noResultsContextMessage: String {
+        let summaryParts = viewModel.filterState.homeSummaryParts
+        guard !summaryParts.isEmpty else {
+            return AppStrings.Guide.noResultsNarrowHint
+        }
+
+        let summary = summaryParts.joined(separator: ", ")
+        return "\(AppStrings.Guide.noResultsForSummary(summary)) \(AppStrings.Guide.noResultsNarrowHint)"
     }
 
     @ViewBuilder
@@ -219,6 +269,48 @@ struct GuideHomeView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(article.title)
         .accessibilityHint(AppStrings.Guide.articleDetailTitle)
+    }
+}
+
+private extension GuideFilterState {
+    var homeSummaryParts: [String] {
+        var parts: [String] = []
+
+        let trimmedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedSearchText.isEmpty {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterSearchLabel, trimmedSearchText))
+        }
+
+        if let selectedCategory {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterCategoryLabel, selectedCategory.title))
+        }
+
+        if let selectedContentType {
+            let title: String
+            switch selectedContentType {
+            case .guide:
+                title = AppStrings.Guide.contentTypeGuide
+            case .quickInfo:
+                title = AppStrings.Guide.contentTypeQuickInfo
+            case .checklist:
+                title = AppStrings.Guide.contentTypeChecklist
+            case .contact:
+                title = AppStrings.Guide.contentTypeContact
+            case .process:
+                title = AppStrings.Guide.contentTypeProcess
+            }
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterTypeLabel, title))
+        }
+
+        if let selectedFederalState {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterRegionLabel, AppStrings.FederalStates.title(for: selectedFederalState)))
+        }
+
+        if let selectedAudience, !selectedAudience.isEmpty {
+            parts.append(AppStrings.Guide.filterSummaryItem(AppStrings.Guide.filterAudienceLabel, selectedAudience))
+        }
+
+        return parts
     }
 }
 
