@@ -1,0 +1,5 @@
+
+# Local secrets
+Secrets/
+*.service-account.json
+ukrainiancommunity-dbd5f-*.json

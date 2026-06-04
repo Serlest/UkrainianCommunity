@@ -20,6 +20,9 @@ export {
   submitGuideArticleForReview,
 } from "./guide/workflow";
 export {
+  acceptLegalDocument,
+} from "./legal/legalDocuments";
+export {
   approveOrganization,
   rejectOrganization,
   requestOrganizationRevision,
@@ -31,6 +34,14 @@ export {
   removeOrganizationModerator,
   transferOrganizationOwnership,
 } from "./organizations/roleManagement";
+export {
+  banUser,
+  deactivateUser,
+  restoreExpiredTemporarySuspensions,
+  restoreUser,
+  suspendUser,
+  warnUser,
+} from "./users/accountStatusManagement";
 export {
   assignAppAdmin,
   assignAppModerator,

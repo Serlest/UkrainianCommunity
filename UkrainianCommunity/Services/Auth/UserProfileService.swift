@@ -39,6 +39,8 @@ struct RegisteredUserDocumentData: Equatable {
     let communityMemberships: [[String: String]]
     let acceptedTermsAt: Date
     let acceptedPrivacyAt: Date
+    let acceptedTermsVersion: String
+    let acceptedPrivacyVersion: String
     let termsVersion: String
     let privacyVersion: String
 
@@ -61,6 +63,8 @@ struct RegisteredUserDocumentData: Equatable {
             "communityMemberships": communityMemberships,
             "acceptedTermsAt": Timestamp(date: acceptedTermsAt),
             "acceptedPrivacyAt": Timestamp(date: acceptedPrivacyAt),
+            "acceptedTermsVersion": acceptedTermsVersion,
+            "acceptedPrivacyVersion": acceptedPrivacyVersion,
             "termsVersion": termsVersion,
             "privacyVersion": privacyVersion,
             "createdAt": FieldValue.serverTimestamp(),
@@ -144,10 +148,17 @@ final class UserProfileService {
                 accountStatus: data["accountStatus"] as? String,
                 banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
                 warningCount: data["warningCount"] as? Int,
+                statusReason: data["statusReason"] as? String,
+                statusMessage: data["statusMessage"] as? String,
+                statusUpdatedAt: (data["statusUpdatedAt"] as? Timestamp)?.dateValue(),
+                statusUpdatedBy: data["statusUpdatedBy"] as? String,
+                statusAcknowledgedAt: (data["statusAcknowledgedAt"] as? Timestamp)?.dateValue(),
                 communityMemberships: communityMemberships,
                 selectedFederalState: data["selectedFederalState"] as? String,
                 acceptedTermsAt: (data["acceptedTermsAt"] as? Timestamp)?.dateValue(),
                 acceptedPrivacyAt: (data["acceptedPrivacyAt"] as? Timestamp)?.dateValue(),
+                acceptedTermsVersion: data["acceptedTermsVersion"] as? String,
+                acceptedPrivacyVersion: data["acceptedPrivacyVersion"] as? String,
                 termsVersion: data["termsVersion"] as? String,
                 privacyVersion: data["privacyVersion"] as? String,
                 createdAt: createdAt,
@@ -249,6 +260,8 @@ extension UserProfileService {
             communityMemberships: [],
             acceptedTermsAt: draft.acceptedTermsAt,
             acceptedPrivacyAt: draft.acceptedPrivacyAt,
+            acceptedTermsVersion: draft.termsVersion,
+            acceptedPrivacyVersion: draft.privacyVersion,
             termsVersion: draft.termsVersion,
             privacyVersion: draft.privacyVersion
         )

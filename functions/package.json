@@ -10,6 +10,7 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "lint": "eslint .",
+    "seed:legal": "node scripts/seedLegalDocuments.mjs",
     "smoke:roles": "npm run build && node --test smoke-tests/roleContractSmoke.test.mjs",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",

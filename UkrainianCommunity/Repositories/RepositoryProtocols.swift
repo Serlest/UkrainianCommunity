@@ -7,6 +7,20 @@ protocol UserRepository {
     func deleteAccount(currentUser: AppUser) async throws
 }
 
+protocol LegalDocumentRepository {
+    func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument
+    func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState
+    func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws
+    func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) async throws
+    func acceptDocument(
+        type: LegalDocumentType,
+        version: String,
+        appVersion: String?,
+        locale: String?,
+        acceptedFromPlatform: String
+    ) async throws -> LegalAcceptanceReceipt
+}
+
 protocol NotificationPreferencesRepository {
     func fetchNotificationPreferences(userID: String) async throws -> NotificationPreferences
     func saveNotificationPreferences(_ preferences: NotificationPreferences, userID: String) async throws

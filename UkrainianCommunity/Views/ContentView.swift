@@ -21,6 +21,8 @@ struct ContentView: View {
     @StateObject private var guideViewModel: LegacyGuideListViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
+    @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
+    @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @State private var selectedTab: AppTab = .home
     @State private var isShowingNotificationInbox = false
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
@@ -64,6 +66,10 @@ struct ContentView: View {
         _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
             repository: container.notificationInboxRepository
         ))
+        _legalComplianceMonitor = StateObject(wrappedValue: LegalComplianceMonitorService(
+            legalDocumentRepository: container.legalDocumentRepository,
+            userRepository: container.userRepository
+        ))
     }
 
     var body: some View {
@@ -76,6 +82,10 @@ struct ContentView: View {
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .task(id: authSessionKey) {
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
+            accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
+        }
+        .task(id: legalComplianceKey) {
+            await legalComplianceMonitor.configure(user: authState.user)
         }
         .onChange(of: authSessionKey) { _, newKey in
             handleAuthIdentityChange(for: newKey)
@@ -109,6 +119,34 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $isShowingNotificationInbox) {
             NotificationInboxView(viewModel: notificationInboxViewModel)
+        }
+        .sheet(item: $accountStatusMonitor.activeNotice) { notice in
+            AccountStatusNoticeView(
+                notice: notice,
+                isAcknowledging: accountStatusMonitor.isAcknowledging,
+                errorMessage: accountStatusMonitor.acknowledgementError,
+                acknowledge: {
+                    Task {
+                        await accountStatusMonitor.acknowledgeActiveNotice()
+                    }
+                }
+            )
+            .interactiveDismissDisabled(true)
+        }
+        .fullScreenCover(item: $legalComplianceMonitor.activeRequirement) { requirement in
+            LegalComplianceView(
+                requirement: requirement,
+                isAccepting: legalComplianceMonitor.isAccepting,
+                errorMessage: legalComplianceMonitor.errorMessage,
+                accept: {
+                    Task {
+                        await legalComplianceMonitor.acceptRequiredDocuments(authState: authState)
+                    }
+                },
+                decline: {
+                    legalComplianceMonitor.declineAndSignOut()
+                }
+            )
         }
     }
 
@@ -146,6 +184,18 @@ struct ContentView: View {
     private var notificationInboxUserID: String? {
         guard authState.isAuthenticated else { return nil }
         return authState.user?.id
+    }
+
+    private var legalComplianceKey: String {
+        guard authState.isAuthenticated, let user = authState.user else {
+            return "guest"
+        }
+
+        return [
+            user.id,
+            user.acceptedTermsVersion ?? "",
+            user.acceptedPrivacyVersion ?? ""
+        ].joined(separator: ":")
     }
 
     private var notificationBellConfiguration: AppNotificationBellConfiguration {
@@ -265,6 +315,7 @@ struct ContentView: View {
                 organizationRepository: container.organizationRepository,
                 guideRepository: container.guideRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
+                legalDocumentRepository: container.legalDocumentRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 localEventReminderService: container.localEventReminderService,
                 navigationPath: $profileNavigationPath,

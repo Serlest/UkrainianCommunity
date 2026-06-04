@@ -317,10 +317,17 @@ struct AppUser: Identifiable, Codable {
     let accountStatus: AccountStatus
     let banExpiresAt: Date?
     let warningCount: Int
+    let statusReason: String?
+    let statusMessage: String?
+    let statusUpdatedAt: Date?
+    let statusUpdatedBy: String?
+    let statusAcknowledgedAt: Date?
     let communityMemberships: [CommunityMembership]
     let selectedFederalState: AustrianFederalState?
     let acceptedTermsAt: Date?
     let acceptedPrivacyAt: Date?
+    let acceptedTermsVersion: String?
+    let acceptedPrivacyVersion: String?
     let termsVersion: String?
     let privacyVersion: String?
     let createdAt: Date
@@ -377,10 +384,17 @@ struct AppUser: Identifiable, Codable {
         accountStatus: AccountStatus? = nil,
         banExpiresAt: Date? = nil,
         warningCount: Int = 0,
+        statusReason: String? = nil,
+        statusMessage: String? = nil,
+        statusUpdatedAt: Date? = nil,
+        statusUpdatedBy: String? = nil,
+        statusAcknowledgedAt: Date? = nil,
         communityMemberships: [CommunityMembership] = [],
         selectedFederalState: AustrianFederalState? = .tirol,
         acceptedTermsAt: Date? = nil,
         acceptedPrivacyAt: Date? = nil,
+        acceptedTermsVersion: String? = nil,
+        acceptedPrivacyVersion: String? = nil,
         termsVersion: String? = nil,
         privacyVersion: String? = nil,
         createdAt: Date,
@@ -402,10 +416,17 @@ struct AppUser: Identifiable, Codable {
         self.accountStatus = accountStatus ?? (blockState.isRestricted ? .suspendedUntil : .active)
         self.banExpiresAt = banExpiresAt
         self.warningCount = warningCount
+        self.statusReason = statusReason
+        self.statusMessage = statusMessage
+        self.statusUpdatedAt = statusUpdatedAt
+        self.statusUpdatedBy = statusUpdatedBy
+        self.statusAcknowledgedAt = statusAcknowledgedAt
         self.communityMemberships = communityMemberships
         self.selectedFederalState = selectedFederalState
         self.acceptedTermsAt = acceptedTermsAt
         self.acceptedPrivacyAt = acceptedPrivacyAt
+        self.acceptedTermsVersion = acceptedTermsVersion ?? termsVersion
+        self.acceptedPrivacyVersion = acceptedPrivacyVersion ?? privacyVersion
         self.termsVersion = termsVersion
         self.privacyVersion = privacyVersion
         self.createdAt = createdAt

@@ -14,6 +14,7 @@ enum ProfileNavigationRoute: Hashable {
     case guideManagement
     case userManagement
     case featuredBannerManagement
+    case legalDocumentManagement
     case feedbackInbox
     case myFeedback(userID: String)
     case legal(LegalDocumentKind)
@@ -27,6 +28,7 @@ struct ProfileView: View {
     private let organizationRepository: OrganizationRepository
     private let guideRepository: LegacyGuideRepository
     private let featuredBannerRepository: FeaturedBannerRepository
+    private let legalDocumentRepository: LegalDocumentRepository
     private let notificationInboxRepository: NotificationInboxRepository
     @EnvironmentObject var authState: AuthState
     @Environment(\.colorScheme) private var colorScheme
@@ -69,6 +71,7 @@ struct ProfileView: View {
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
         guideRepository: LegacyGuideRepository = LegacyFirestoreGuideRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
         navigationPath: Binding<[ProfileNavigationRoute]> = .constant([]),
@@ -81,6 +84,7 @@ struct ProfileView: View {
         self.organizationRepository = organizationRepository
         self.guideRepository = guideRepository
         self.featuredBannerRepository = featuredBannerRepository
+        self.legalDocumentRepository = legalDocumentRepository
         self.notificationInboxRepository = notificationInboxRepository
         self.scrollResetToken = scrollResetToken
         _navigationPath = navigationPath
@@ -578,6 +582,8 @@ struct ProfileView: View {
                 eventRepository: eventRepository,
                 organizationRepository: organizationRepository
             )
+        case .legalDocumentManagement:
+            LegalDocumentManagementView(repository: legalDocumentRepository)
         case .feedbackInbox:
             FeedbackInboxView(
                 repository: feedbackRepository,
@@ -861,7 +867,9 @@ struct ProfileView: View {
                 onEditProfile: beginEditingProfile
             )
 
-            quickActionsSection(for: user)
+            organizationRoleDashboardSection(for: user)
+            quickActionsSection(for: user, includeMyOrganizations: false)
+            myOrganizationsSection
             supportSection(for: user)
             settingsSection
             accountDeletionSection
@@ -872,15 +880,37 @@ struct ProfileView: View {
     @ViewBuilder
     private func platformProfileContent(for user: AppUser, mode: ProfileDashboardMode) -> some View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: mode)
-        quickActionsSection(for: user)
         platformManagementSection
+        organizationRoleDashboardSection(for: user)
+        quickActionsSection(for: user)
         supportSection(for: user)
         settingsSection
         accountDeletionSection
         logoutSection
     }
 
-    private func quickActionsSection(for user: AppUser) -> some View {
+    @ViewBuilder
+    private func organizationRoleDashboardSection(for user: AppUser) -> some View {
+        let memberships = organizationRoleMemberships
+        if !memberships.isEmpty {
+            ProfileSectionCard(
+                title: AppStrings.Profile.organizationManagement,
+                subtitle: AppStrings.Profile.organizationRoleDashboardSubtitle
+            ) {
+                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    ForEach(memberships) { membership in
+                        OrganizationRoleDashboardCard(
+                            membership: membership,
+                            roleTitle: organizationRoleTitle(membership.role),
+                            user: user
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private func quickActionsSection(for user: AppUser, includeMyOrganizations: Bool = true) -> some View {
         LazyVGrid(
             columns: [
                 GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
@@ -888,15 +918,9 @@ struct ProfileView: View {
             ],
             spacing: AppTheme.eventsMetadataSpacing
         ) {
-            NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(
-                    title: AppStrings.Profile.myOrganizations,
-                    subtitle: AppStrings.Profile.organizationManagementIntro,
-                    systemImage: "building.2",
-                    status: .available
-                ))
+            if includeMyOrganizations {
+                myOrganizationsQuickAction
             }
-            .buttonStyle(.plain)
 
             NavigationLink(value: ProfileNavigationRoute.registrations) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
@@ -950,6 +974,35 @@ struct ProfileView: View {
         }
     }
 
+    private var myOrganizationsQuickAction: some View {
+        NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
+            ProfileQuickActionCard(item: ProfileQuickActionItem(
+                title: AppStrings.Profile.myOrganizations,
+                subtitle: AppStrings.Profile.organizationManagementIntro,
+                systemImage: "building.2",
+                status: .available
+            ))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var myOrganizationsSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.myOrganizations,
+            subtitle: AppStrings.Profile.organizationManagementIntro
+        ) {
+            NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
+                ProfileModuleRow(
+                    title: AppStrings.Profile.myOrganizations,
+                    subtitle: AppStrings.Profile.organizationManagementIntro,
+                    systemImage: "building.2",
+                    status: .available
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var moderatorQuickActionsSection: some View {
         LazyVGrid(
             columns: [
@@ -983,6 +1036,19 @@ struct ProfileView: View {
         return organizationCount
     }
 
+    private func organizationRoleTitle(_ role: CommunityRole) -> String {
+        switch role {
+        case .communityOwner:
+            return AppStrings.Profile.organizationRoleOwner
+        case .communityAdmin:
+            return AppStrings.Profile.organizationRoleAdmin
+        case .communityModerator:
+            return AppStrings.Profile.organizationRoleModerator
+        case .member:
+            return AppStrings.Profile.organizationRoleMember
+        }
+    }
+
     @ViewBuilder
     private var platformManagementSection: some View {
         if hasPlatformManagementItems {
@@ -1014,6 +1080,18 @@ struct ProfileView: View {
                                 subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
                                 systemImage: "sparkles.rectangle.stack",
                                 status: .active
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if PermissionService.isAppOwner(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.legalDocumentManagement) {
+                            ProfileModuleRow(
+                                title: AppStrings.Profile.ownerLegalDocuments,
+                                subtitle: AppStrings.Profile.ownerLegalDocumentsSubtitle,
+                                systemImage: "doc.text.magnifyingglass",
+                                status: .available
                             )
                         }
                         .buttonStyle(.plain)
@@ -1065,6 +1143,7 @@ struct ProfileView: View {
         canShowAdminTools
             || canShowGuideManagement
             || canShowFeaturedBanners
+            || PermissionService.isAppOwner(user: permissionUser)
             || canShowOrganizationRequests
             || canShowModerationTools
             || canShowFeedbackReports
@@ -1244,6 +1323,11 @@ struct ProfileView: View {
                     accessory: .none
                 )
 
+                NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
+                    ProfileModuleRow(title: AppStrings.Settings.terms, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
+                }
+                .buttonStyle(.plain)
+
                 NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
                     ProfileModuleRow(title: AppStrings.Settings.privacyPolicy, subtitle: AppStrings.Profile.privacySettingsSubtitle, systemImage: "lock.doc", status: .available)
                 }
@@ -1285,16 +1369,6 @@ struct ProfileView: View {
                 ) {
                     submitFeedback(for: user)
                 }
-
-                NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
-                    ProfileModuleRow(title: AppStrings.Settings.terms, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
-                    ProfileModuleRow(title: AppStrings.Settings.privacyPolicy, subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion), systemImage: "lock.doc", status: .available)
-                }
-                .buttonStyle(.plain)
             }
         }
     }

@@ -17,10 +17,17 @@ struct UserDTO: Codable, Identifiable {
     let accountStatus: String?
     let banExpiresAt: Date?
     let warningCount: Int?
+    let statusReason: String?
+    let statusMessage: String?
+    let statusUpdatedAt: Date?
+    let statusUpdatedBy: String?
+    let statusAcknowledgedAt: Date?
     let communityMemberships: [CommunityMembershipDTO]?
     let selectedFederalState: String?
     let acceptedTermsAt: Date?
     let acceptedPrivacyAt: Date?
+    let acceptedTermsVersion: String?
+    let acceptedPrivacyVersion: String?
     let termsVersion: String?
     let privacyVersion: String?
     let createdAt: Date
@@ -261,6 +268,11 @@ extension AppUser {
             accountStatus: resolvedAccountStatus,
             banExpiresAt: dto.banExpiresAt,
             warningCount: dto.warningCount ?? 0,
+            statusReason: dto.statusReason,
+            statusMessage: dto.statusMessage,
+            statusUpdatedAt: dto.statusUpdatedAt,
+            statusUpdatedBy: dto.statusUpdatedBy,
+            statusAcknowledgedAt: dto.statusAcknowledgedAt,
             communityMemberships: (dto.communityMemberships ?? []).map {
                 CommunityMembership(
                     organizationId: $0.organizationId,
@@ -270,6 +282,8 @@ extension AppUser {
             selectedFederalState: dto.selectedFederalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
             acceptedTermsAt: dto.acceptedTermsAt,
             acceptedPrivacyAt: dto.acceptedPrivacyAt,
+            acceptedTermsVersion: dto.acceptedTermsVersion,
+            acceptedPrivacyVersion: dto.acceptedPrivacyVersion,
             termsVersion: dto.termsVersion,
             privacyVersion: dto.privacyVersion,
             createdAt: dto.createdAt,
@@ -295,6 +309,11 @@ extension AppUser {
             accountStatus: accountStatus.rawValue,
             banExpiresAt: banExpiresAt,
             warningCount: warningCount,
+            statusReason: statusReason,
+            statusMessage: statusMessage,
+            statusUpdatedAt: statusUpdatedAt,
+            statusUpdatedBy: statusUpdatedBy,
+            statusAcknowledgedAt: statusAcknowledgedAt,
             communityMemberships: communityMemberships.map {
                 CommunityMembershipDTO(
                     organizationId: $0.organizationId,
@@ -304,6 +323,8 @@ extension AppUser {
             selectedFederalState: selectedFederalState?.rawValue,
             acceptedTermsAt: acceptedTermsAt,
             acceptedPrivacyAt: acceptedPrivacyAt,
+            acceptedTermsVersion: acceptedTermsVersion,
+            acceptedPrivacyVersion: acceptedPrivacyVersion,
             termsVersion: termsVersion,
             privacyVersion: privacyVersion,
             createdAt: createdAt,

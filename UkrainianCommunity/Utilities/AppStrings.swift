@@ -77,6 +77,24 @@ enum AppStrings {
         }
     }
 
+    enum AccountStatusAlert {
+        static var warnedTitle: String { text("account_status_alert.warned.title", "Попередження для акаунта") }
+        static var suspendedTitle: String { text("account_status_alert.suspended.title", "Акаунт тимчасово заблоковано") }
+        static var bannedTitle: String { text("account_status_alert.banned.title", "Акаунт заблоковано") }
+        static var deactivatedTitle: String { text("account_status_alert.deactivated.title", "Акаунт деактивовано") }
+        static var restoredTitle: String { text("account_status_alert.restored.title", "Доступ до акаунта відновлено") }
+        static var warnedMessage: String { text("account_status_alert.warned.message", "Ви можете й надалі користуватися застосунком, але повторні порушення можуть обмежити доступ до захищених дій.") }
+        static var suspendedMessage: String { text("account_status_alert.suspended.message", "Захищені дії та розширені можливості обмежені до завершення тимчасового блокування.") }
+        static var bannedMessage: String { text("account_status_alert.banned.message", "Захищені дії та можливості акаунта заблоковані. Публічний контент може залишатися доступним, якщо це дозволено правилами застосунку.") }
+        static var deactivatedMessage: String { text("account_status_alert.deactivated.message", "Акаунт деактивовано. Захищені дії та персональні можливості недоступні.") }
+        static var restoredMessage: String { text("account_status_alert.restored.message", "Ваш доступ відновлено. Ви знову можете користуватися можливостями акаунта відповідно до ваших ролей.") }
+        static var reasonTitle: String { text("account_status_alert.reason", "Причина") }
+        static var suspensionUntilTitle: String { text("account_status_alert.suspension_until", "Блокування діє до") }
+        static var acknowledgementButton: String { text("account_status_alert.acknowledgement_button", "Зрозуміло") }
+        static var acknowledgementLoading: String { text("account_status_alert.acknowledgement_loading", "Зберігаємо…") }
+        static var acknowledgementFailed: String { text("account_status_alert.acknowledgement_failed", "Не вдалося підтвердити повідомлення. Перевірте з’єднання та спробуйте ще раз.") }
+    }
+
     enum Search {
         static var open: String { text("search.open", "Search") }
         static var close: String { text("search.close", "Close search") }
@@ -1914,6 +1932,58 @@ enum AppStrings {
         static var privacyRightsTitle: String { text("legal.privacy.rights.title", "Your choices") }
         static var privacyRightsBody: String { text("legal.privacy.rights.body", "You can update supported profile fields in the app. If you need help with account data, moderation questions, or deletion requests, contact the project team through the provided support channel.") }
         static var screenIntro: String { text("legal.screen_intro", "These in-app documents describe the current product terms and privacy handling for internal and TestFlight-style use.") }
+    }
+
+    enum LegalCompliance {
+        static var title: String { text("legal_compliance.title", "Updated legal documents") }
+        static var message: String { text("legal_compliance.message", "Please review and accept the updated Terms or Privacy Policy to continue using your registered account.") }
+        static var readDocument: String { text("legal_compliance.read_document", "Read document") }
+        static var readDocumentSubtitle: String { text("legal_compliance.read_document.subtitle", "Review the current active version before accepting.") }
+        static var acceptAll: String { text("legal_compliance.accept_all", "Accept required documents") }
+        static var accepting: String { text("legal_compliance.accepting", "Accepting…") }
+        static var decline: String { text("legal_compliance.decline", "Decline and sign out") }
+        static var declineConfirmTitle: String { text("legal_compliance.decline.confirm.title", "Decline updated terms?") }
+        static var declineConfirmMessage: String { text("legal_compliance.decline.confirm.message", "Without accepting the updated terms, you cannot use your registered account. You will be signed out and returned to guest mode.") }
+        static var declineConfirmAction: String { text("legal_compliance.decline.confirm.action", "Sign out") }
+        static var loadFailed: String { text("legal_compliance.error.load_failed", "Unable to check the current legal documents right now.") }
+        static var acceptFailed: String { text("legal_compliance.error.accept_failed", "Unable to save your acceptance. Check your connection and try again.") }
+    }
+
+    enum LegalManagement {
+        static var title: String { text("legal_management.title", "Legal Documents") }
+        static var subtitle: String { text("legal_management.subtitle", "Manage active Terms and Privacy documents, drafts, and required reacceptance.") }
+        static var permissionTitle: String { text("legal_management.permission.title", "Owner access required") }
+        static var permissionMessage: String { text("legal_management.permission.message", "Only the App Owner can manage legal documents.") }
+        static var loadFailed: String { text("legal_management.error.load_failed", "Unable to load legal documents.") }
+        static var termsSubtitle: String { text("legal_management.terms.subtitle", "Terms of Service shown to registered users.") }
+        static var privacySubtitle: String { text("legal_management.privacy.subtitle", "Privacy Policy shown to registered users.") }
+        static var requiresAcceptance: String { text("legal_management.requires_acceptance", "Requires acceptance") }
+        static var acceptanceNotRequired: String { text("legal_management.acceptance_not_required", "Acceptance not required") }
+        static var draftExists: String { text("legal_management.draft_exists", "Draft exists") }
+        static var createDraft: String { text("legal_management.create_draft", "Create draft") }
+        static var editDraft: String { text("legal_management.edit_draft", "Edit draft") }
+        static var editorSubtitle: String { text("legal_management.editor.subtitle", "Edit localized Markdown and publish a new immutable version.") }
+        static func editorTitle(_ documentTitle: String) -> String {
+            LocalizationStore.localizedFormat("legal_management.editor.title", defaultValue: "Edit %@", arguments: [documentTitle])
+        }
+        static var editorIntro: String { text("legal_management.editor.intro", "Draft changes are private until published. Publishing updates the active version for all users.") }
+        static var versionSection: String { text("legal_management.version.section", "Version and acceptance") }
+        static var versionSectionSubtitle: String { text("legal_management.version.section.subtitle", "Publishing this draft creates the next active legal version.") }
+        static var changeSummary: String { text("legal_management.change_summary", "Change summary") }
+        static var localizedContent: String { text("legal_management.localized_content", "Localized content") }
+        static var localizedContentSubtitle: String { text("legal_management.localized_content.subtitle", "Edit the title and Markdown body for each supported language.") }
+        static var localePicker: String { text("legal_management.locale_picker", "Language") }
+        static var localizedTitle: String { text("legal_management.localized_title", "Localized title") }
+        static var saveDraft: String { text("legal_management.save_draft", "Save draft") }
+        static var saving: String { text("legal_management.saving", "Saving…") }
+        static var draftSaved: String { text("legal_management.draft_saved", "Draft saved.") }
+        static var saveFailed: String { text("legal_management.error.save_failed", "Unable to save draft.") }
+        static var preview: String { text("legal_management.preview", "Preview") }
+        static var publish: String { text("legal_management.publish", "Publish new version") }
+        static var publishing: String { text("legal_management.publishing", "Publishing…") }
+        static var publishFailed: String { text("legal_management.error.publish_failed", "Unable to publish legal document.") }
+        static var publishConfirmTitle: String { text("legal_management.publish.confirm.title", "Publish new legal version?") }
+        static var publishConfirmMessage: String { text("legal_management.publish.confirm.message", "This version becomes immutable and replaces the active document. If acceptance is required, users with older accepted versions will need to accept again.") }
     }
 
     enum Roles {

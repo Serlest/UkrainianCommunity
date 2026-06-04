@@ -15,6 +15,24 @@
       ]
     },
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accountStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "blockState",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "banExpiresAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "likes",
       "queryScope": "COLLECTION",
       "fields": [

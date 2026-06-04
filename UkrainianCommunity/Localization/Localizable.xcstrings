@@ -11990,6 +11990,210 @@
         }
       }
     },
+    "legal_compliance.accept_all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erforderliche Dokumente akzeptieren"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прийняти необхідні документи"
+          }
+        }
+      }
+    },
+    "legal_compliance.accepting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird akzeptiert…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приймаємо…"
+          }
+        }
+      }
+    },
+    "legal_compliance.decline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ablehnen und abmelden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилити й вийти"
+          }
+        }
+      }
+    },
+    "legal_compliance.decline.confirm.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abmelden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вийти"
+          }
+        }
+      }
+    },
+    "legal_compliance.decline.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Zustimmung zu den aktualisierten Bedingungen können Sie Ihr registriertes Konto nicht verwenden. Sie werden abgemeldet und kehren in den Gastmodus zurück."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без прийняття оновлених умов ви не зможете користуватися зареєстрованим обліковим записом. Ви вийдете з акаунта й повернетеся в гостьовий режим."
+          }
+        }
+      }
+    },
+    "legal_compliance.decline.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisierte Bedingungen ablehnen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилити оновлені умови?"
+          }
+        }
+      }
+    },
+    "legal_compliance.error.accept_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihre Zustimmung konnte nicht gespeichert werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося зберегти вашу згоду. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "legal_compliance.error.load_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die aktuellen rechtlichen Dokumente konnten gerade nicht geprüft werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося перевірити актуальні юридичні документи."
+          }
+        }
+      }
+    },
+    "legal_compliance.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte lesen und akzeptieren Sie die aktualisierten Nutzungsbedingungen oder die Datenschutzrichtlinie, um Ihr registriertes Konto weiter zu verwenden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будь ласка, перегляньте й прийміть оновлені Умови або Політику конфіденційності, щоб продовжити користуватися зареєстрованим обліковим записом."
+          }
+        }
+      }
+    },
+    "legal_compliance.read_document" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokument lesen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитати документ"
+          }
+        }
+      }
+    },
+    "legal_compliance.read_document.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesen Sie die aktuell gültige Version vor der Zustimmung."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перегляньте поточну чинну версію перед прийняттям."
+          }
+        }
+      }
+    },
+    "legal_compliance.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisierte rechtliche Dokumente"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оновлені юридичні документи"
+          }
+        }
+      }
+    },
     "legal.terms.account.body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18989,6 +19193,261 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Обліковий запис"
+          }
+        }
+      }
+    },
+    "account_status_alert.acknowledgement_button" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verstanden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зрозуміло"
+          }
+        }
+      }
+    },
+    "account_status_alert.acknowledgement_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nachricht konnte nicht bestätigt werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося підтвердити повідомлення. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "account_status_alert.acknowledgement_loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gespeichert…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зберігаємо…"
+          }
+        }
+      }
+    },
+    "account_status_alert.banned.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschützte Aktionen und Kontofunktionen sind gesperrt. Öffentliche Inhalte können weiterhin sichtbar sein, wenn die App-Regeln dies erlauben."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Захищені дії та можливості акаунта заблоковані. Публічний контент може залишатися доступним, якщо це дозволено правилами застосунку."
+          }
+        }
+      }
+    },
+    "account_status_alert.banned.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto gesperrt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Акаунт заблоковано"
+          }
+        }
+      }
+    },
+    "account_status_alert.deactivated.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Konto wurde deaktiviert. Geschützte Aktionen und persönliche Funktionen sind nicht verfügbar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Акаунт деактивовано. Захищені дії та персональні можливості недоступні."
+          }
+        }
+      }
+    },
+    "account_status_alert.deactivated.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto deaktiviert"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Акаунт деактивовано"
+          }
+        }
+      }
+    },
+    "account_status_alert.reason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grund"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Причина"
+          }
+        }
+      }
+    },
+    "account_status_alert.restored.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihr Zugriff wurde wiederhergestellt. Sie können Kontofunktionen wieder entsprechend Ihren Rollen nutzen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш доступ відновлено. Ви знову можете користуватися можливостями акаунта відповідно до ваших ролей."
+          }
+        }
+      }
+    },
+    "account_status_alert.restored.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontozugriff wiederhergestellt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ до акаунта відновлено"
+          }
+        }
+      }
+    },
+    "account_status_alert.suspended.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschützte Aktionen und erweiterte Funktionen sind bis zum Ende der temporären Sperre eingeschränkt."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Захищені дії та розширені можливості обмежені до завершення тимчасового блокування."
+          }
+        }
+      }
+    },
+    "account_status_alert.suspended.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto vorübergehend gesperrt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Акаунт тимчасово заблоковано"
+          }
+        }
+      }
+    },
+    "account_status_alert.suspension_until" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sperre gilt bis"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокування діє до"
+          }
+        }
+      }
+    },
+    "account_status_alert.warned.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie können die App weiter nutzen. Wiederholte Verstöße können jedoch geschützte Aktionen einschränken."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ви можете й надалі користуватися застосунком, але повторні порушення можуть обмежити доступ до захищених дій."
+          }
+        }
+      }
+    },
+    "account_status_alert.warned.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warnung für Ihr Konto"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попередження для акаунта"
           }
         }
       }

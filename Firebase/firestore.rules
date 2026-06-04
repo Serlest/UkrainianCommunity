@@ -395,6 +395,120 @@ service cloud.firestore {
       return ['fullName', 'displayName', 'telegramUsername', 'city', 'bio', 'email', 'selectedFederalState', 'avatarURL', 'updatedAt'];
     }
 
+    function isLegalDocumentType(documentType) {
+      return documentType in ['terms', 'privacy'];
+    }
+
+    function legalDocumentPointerFields() {
+      return [
+        'documentType',
+        'activeVersion',
+        'versionNumber',
+        'status',
+        'requiresAcceptance',
+        'defaultLocale',
+        'updatedAt',
+        'updatedBy',
+        'publishedAt',
+        'publishedBy',
+        'changeSummary'
+      ];
+    }
+
+    function legalDocumentVersionFields() {
+      return [
+        'documentType',
+        'version',
+        'versionNumber',
+        'status',
+        'requiresAcceptance',
+        'defaultLocale',
+        'canonicalLocale',
+        'locales',
+        'contentHash',
+        'changeSummary',
+        'createdAt',
+        'createdBy',
+        'updatedAt',
+        'updatedBy',
+        'publishedAt',
+        'publishedBy',
+        'supersedesVersion'
+      ];
+    }
+
+    function validLegalDocumentPointer(documentType) {
+      return isLegalDocumentType(documentType)
+        && request.resource.data.keys().hasOnly(legalDocumentPointerFields())
+        && request.resource.data.documentType == documentType
+        && request.resource.data.activeVersion is string
+        && request.resource.data.versionNumber is int
+        && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.requiresAcceptance is bool
+        && request.resource.data.defaultLocale is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid
+        && (!('publishedAt' in request.resource.data)
+          || request.resource.data.publishedAt == null
+          || request.resource.data.publishedAt is timestamp)
+        && (!('publishedBy' in request.resource.data)
+          || request.resource.data.publishedBy == null
+          || request.resource.data.publishedBy == request.auth.uid)
+        && (!('changeSummary' in request.resource.data)
+          || request.resource.data.changeSummary == null
+          || request.resource.data.changeSummary is string);
+    }
+
+    function validLegalDocumentVersion(documentType, version) {
+      return isLegalDocumentType(documentType)
+        && request.resource.data.keys().hasOnly(legalDocumentVersionFields())
+        && request.resource.data.documentType == documentType
+        && request.resource.data.version == version
+        && request.resource.data.version is string
+        && request.resource.data.versionNumber is int
+        && request.resource.data.status in ['draft', 'published', 'archived']
+        && request.resource.data.requiresAcceptance is bool
+        && request.resource.data.defaultLocale is string
+        && request.resource.data.canonicalLocale is string
+        && request.resource.data.locales is map
+        && request.resource.data.locales.keys().size() > 0
+        && request.resource.data.locales[request.resource.data.defaultLocale] is map
+        && request.resource.data.locales[request.resource.data.defaultLocale].title is string
+        && request.resource.data.locales[request.resource.data.defaultLocale].contentMarkdown is string
+        && (!('contentText' in request.resource.data.locales[request.resource.data.defaultLocale])
+          || request.resource.data.locales[request.resource.data.defaultLocale].contentText == null
+          || request.resource.data.locales[request.resource.data.defaultLocale].contentText is string)
+        && (!('contentHash' in request.resource.data.locales[request.resource.data.defaultLocale])
+          || request.resource.data.locales[request.resource.data.defaultLocale].contentHash == null
+          || request.resource.data.locales[request.resource.data.defaultLocale].contentHash is string)
+        && request.resource.data.locales[request.resource.data.canonicalLocale] is map
+        && request.resource.data.locales[request.resource.data.canonicalLocale].title is string
+        && request.resource.data.locales[request.resource.data.canonicalLocale].contentMarkdown is string
+        && (!('contentText' in request.resource.data.locales[request.resource.data.canonicalLocale])
+          || request.resource.data.locales[request.resource.data.canonicalLocale].contentText == null
+          || request.resource.data.locales[request.resource.data.canonicalLocale].contentText is string)
+        && (!('contentHash' in request.resource.data.locales[request.resource.data.canonicalLocale])
+          || request.resource.data.locales[request.resource.data.canonicalLocale].contentHash == null
+          || request.resource.data.locales[request.resource.data.canonicalLocale].contentHash is string)
+        && request.resource.data.contentHash is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid
+        && (!('publishedAt' in request.resource.data)
+          || request.resource.data.publishedAt == null
+          || request.resource.data.publishedAt is timestamp)
+        && (!('publishedBy' in request.resource.data)
+          || request.resource.data.publishedBy == null
+          || request.resource.data.publishedBy == request.auth.uid)
+        && (!('changeSummary' in request.resource.data)
+          || request.resource.data.changeSummary == null
+          || request.resource.data.changeSummary is string)
+        && (!('supersedesVersion' in request.resource.data)
+          || request.resource.data.supersedesVersion == null
+          || request.resource.data.supersedesVersion is string);
+    }
+
     function userSelfDeletionFields() {
       return [
         'accountStatus',
@@ -805,6 +919,8 @@ service cloud.firestore {
         && request.resource.data.warningCount == 0
         && request.resource.data.acceptedTermsAt is timestamp
         && request.resource.data.acceptedPrivacyAt is timestamp
+        && request.resource.data.acceptedTermsVersion is string
+        && request.resource.data.acceptedPrivacyVersion is string
         && request.resource.data.termsVersion is string
         && request.resource.data.privacyVersion is string
         && request.resource.data.communityMemberships is list
@@ -815,6 +931,15 @@ service cloud.firestore {
       return isSelf(uid)
         && request.resource.data.id == resource.data.id
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfEditableFields());
+    }
+
+    function safeSelfStatusAcknowledgement(uid) {
+      return isSelf(uid)
+        && request.resource.data.id == resource.data.id
+        && ('statusUpdatedAt' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAcknowledgedAt'])
+        && request.resource.data.statusAcknowledgedAt is timestamp
+        && request.resource.data.statusAcknowledgedAt >= resource.data.statusUpdatedAt;
     }
 
     function safeSelfAccountDeletionUpdate(uid) {
@@ -1506,6 +1631,41 @@ service cloud.firestore {
       allow delete: if isOwner() || (isActiveUser() && request.auth.uid == uid);
     }
 
+    match /legalDocuments/{documentType} {
+      allow read: if isLegalDocumentType(documentType);
+
+      allow create, update: if isOwner()
+        && validLegalDocumentPointer(documentType);
+
+      allow delete: if false;
+
+      match /versions/{version} {
+        allow read: if isOwner()
+          || (isLegalDocumentType(documentType)
+            && resource.data.status == 'published'
+            && get(/databases/$(database)/documents/legalDocuments/$(documentType))
+              .data.activeVersion == version);
+
+        allow create: if isOwner()
+          && validLegalDocumentVersion(documentType, version);
+
+        allow update: if isOwner()
+          && resource.data.status != 'published'
+          && request.resource.data.documentType == resource.data.documentType
+          && request.resource.data.version == resource.data.version
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.createdBy == resource.data.createdBy
+          && validLegalDocumentVersion(documentType, version);
+
+        allow delete: if false;
+      }
+    }
+
+    match /legalAcceptanceLogs/{logId} {
+      allow read: if isOwner() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
     match /users/{uid} {
       allow read: if isSelf(uid) || isOwner();
 
@@ -1513,6 +1673,7 @@ service cloud.firestore {
 
       allow update: if safeOwnerUserUpdate(uid)
         || safeSelfUserUpdate(uid)
+        || safeSelfStatusAcknowledgement(uid)
         || safeSelfAccountDeletionUpdate(uid);
 
       allow delete: if (isOwner()

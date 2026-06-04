@@ -20,6 +20,12 @@ enum CloudFunctionName: String, CaseIterable {
     case removeAppModerator
     case assignGuideEditor
     case removeGuideEditor
+    case warnUser
+    case suspendUser
+    case banUser
+    case deactivateUser
+    case restoreUser
+    case acceptLegalDocument
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -87,6 +93,51 @@ struct PlatformRoleChangeFunctionResponse: Codable, Equatable {
     let previousCanManageGuide: Bool
     let newCanManageGuide: Bool
     let updatedAt: String
+}
+
+enum CloudAccountStatus: String, Codable, Equatable {
+    case active
+    case warned
+    case suspendedUntil
+    case bannedPermanent
+    case deactivated
+}
+
+struct AccountStatusChangeFunctionRequest: Codable, Equatable {
+    let targetUserId: String
+    let until: String?
+    let reason: String?
+
+    init(targetUserId: String, until: String? = nil, reason: String? = nil) {
+        self.targetUserId = targetUserId
+        self.until = until
+        self.reason = reason
+    }
+}
+
+struct AccountStatusChangeFunctionResponse: Codable, Equatable {
+    let targetUserId: String
+    let previousAccountStatus: CloudAccountStatus
+    let newAccountStatus: CloudAccountStatus
+    let previousBlockState: CloudAccountStatus
+    let newBlockState: CloudAccountStatus
+    let warningCount: Int
+    let banExpiresAt: String?
+    let updatedAt: String
+}
+
+struct LegalAcceptanceFunctionRequest: Codable, Equatable {
+    let documentType: LegalDocumentType
+    let version: String
+    let appVersion: String?
+    let locale: String?
+    let acceptedFromPlatform: String
+}
+
+struct LegalAcceptanceFunctionResponse: Codable, Equatable {
+    let documentType: LegalDocumentType
+    let version: String
+    let acceptedAt: String
 }
 
 struct OrganizationReviewFunctionRequest: Codable, Equatable {
@@ -215,6 +266,63 @@ final class CloudFunctionsClient {
         )
     }
 
+    func warnUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+        try await call(
+            .warnUser,
+            request: accountStatusChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func suspendUser(userId: String, until: Date, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+        try await call(
+            .suspendUser,
+            request: accountStatusChangeRequest(userId: userId, until: until, reason: reason)
+        )
+    }
+
+    func banUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+        try await call(
+            .banUser,
+            request: accountStatusChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func deactivateUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+        try await call(
+            .deactivateUser,
+            request: accountStatusChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func restoreUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+        try await call(
+            .restoreUser,
+            request: accountStatusChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func acceptLegalDocument(
+        type: LegalDocumentType,
+        version: String,
+        appVersion: String?,
+        locale: String?,
+        acceptedFromPlatform: String = "ios"
+    ) async throws -> LegalAcceptanceFunctionResponse {
+        let trimmedVersion = version.trimmingCharacters(in: .whitespacesAndNewlines)
+        return try await call(
+            .acceptLegalDocument,
+            request: LegalAcceptanceFunctionRequest(
+                documentType: type,
+                version: trimmedVersion,
+                appVersion: appVersion?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                locale: locale?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                acceptedFromPlatform: acceptedFromPlatform
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .nilIfEmpty ?? "ios"
+            )
+        )
+    }
+
     func approveOrganization(
         _ request: OrganizationReviewFunctionRequest
     ) async throws -> OrganizationReviewFunctionResponse {
@@ -274,5 +382,30 @@ final class CloudFunctionsClient {
             targetUserId: userId,
             reason: trimmedReason?.isEmpty == false ? trimmedReason : nil
         )
+    }
+
+    private func accountStatusChangeRequest(
+        userId: String,
+        until: Date? = nil,
+        reason: String?
+    ) -> AccountStatusChangeFunctionRequest {
+        let trimmedReason = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return AccountStatusChangeFunctionRequest(
+            targetUserId: userId,
+            until: until.map(Self.cloudFunctionDateFormatter.string(from:)),
+            reason: trimmedReason?.isEmpty == false ? trimmedReason : nil
+        )
+    }
+
+    private static let cloudFunctionDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

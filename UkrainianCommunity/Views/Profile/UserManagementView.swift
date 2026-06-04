@@ -239,7 +239,6 @@ private final class UserManagementViewModel: ObservableObject {
 
     private var usersCollection: CollectionReference { db.collection("users") }
     private var organizationsCollection: CollectionReference { db.collection("organizations") }
-    private var auditCollection: CollectionReference { db.collection("auditLogs") }
 
     init(roleManagementService: OrganizationRoleManagementService? = nil) {
         self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
@@ -287,73 +286,21 @@ private final class UserManagementViewModel: ObservableObject {
 
         let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalReason = trimmedReason.isEmpty ? "Owner action" : trimmedReason
-        let previousValue = [
-            "blockState": target.blockState.rawValue,
-            "accountStatus": target.accountStatus.rawValue,
-            "warningCount": String(target.warningCount)
-        ]
-        let payload: [String: Any]
-        let newValue: [String: String]
 
-        switch action {
-        case .warningIssued:
-            payload = [
-                "blockState": UserBlockState.warned.rawValue,
-                "accountStatus": AccountStatus.warned.rawValue,
-                "warningCount": FieldValue.increment(Int64(1)),
-                "isBlocked": false,
-                "updatedAt": FieldValue.serverTimestamp()
-            ]
-            newValue = ["blockState": UserBlockState.warned.rawValue, "accountStatus": AccountStatus.warned.rawValue]
-        case .suspended:
-            let suspendedUntil = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date().addingTimeInterval(7 * 24 * 60 * 60)
-            payload = [
-                "blockState": UserBlockState.suspendedUntil.rawValue,
-                "accountStatus": AccountStatus.suspendedUntil.rawValue,
-                "banExpiresAt": Timestamp(date: suspendedUntil),
-                "isBlocked": true,
-                "updatedAt": FieldValue.serverTimestamp()
-            ]
-            newValue = ["blockState": UserBlockState.suspendedUntil.rawValue, "accountStatus": AccountStatus.suspendedUntil.rawValue]
-        case .banned:
-            payload = [
-                "blockState": UserBlockState.bannedPermanent.rawValue,
-                "accountStatus": AccountStatus.bannedPermanent.rawValue,
-                "banExpiresAt": FieldValue.delete(),
-                "isBlocked": true,
-                "updatedAt": FieldValue.serverTimestamp()
-            ]
-            newValue = ["blockState": UserBlockState.bannedPermanent.rawValue, "accountStatus": AccountStatus.bannedPermanent.rawValue]
-        case .unblocked:
-            payload = [
-                "blockState": UserBlockState.active.rawValue,
-                "accountStatus": AccountStatus.active.rawValue,
-                "banExpiresAt": FieldValue.delete(),
-                "isBlocked": false,
-                "updatedAt": FieldValue.serverTimestamp()
-            ]
-            newValue = ["blockState": UserBlockState.active.rawValue, "accountStatus": AccountStatus.active.rawValue]
-        case .deactivated:
-            payload = [
-                "blockState": UserBlockState.deactivated.rawValue,
-                "accountStatus": AccountStatus.deactivated.rawValue,
-                "banExpiresAt": FieldValue.delete(),
-                "isBlocked": true,
-                "updatedAt": FieldValue.serverTimestamp()
-            ]
-            newValue = ["blockState": UserBlockState.deactivated.rawValue, "accountStatus": AccountStatus.deactivated.rawValue]
-        }
-
-        await updateUser(target, actor: actor) {
-            try await usersCollection.document(target.id).updateData(payload)
-            try await writeAuditLog(
-                actionType: action.rawValue,
-                targetUserId: target.id,
-                performedBy: actor.id,
-                reason: finalReason,
-                previousValue: previousValue,
-                newValue: newValue
-            )
+        await updateUser(target, actor: actor, failureMessage: accountStatusFailureMessage(from:)) {
+            switch action {
+            case .warningIssued:
+                _ = try await CloudFunctionsClient.shared.warnUser(userId: target.id, reason: finalReason)
+            case .suspended:
+                let suspendedUntil = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date().addingTimeInterval(7 * 24 * 60 * 60)
+                _ = try await CloudFunctionsClient.shared.suspendUser(userId: target.id, until: suspendedUntil, reason: finalReason)
+            case .banned:
+                _ = try await CloudFunctionsClient.shared.banUser(userId: target.id, reason: finalReason)
+            case .unblocked:
+                _ = try await CloudFunctionsClient.shared.restoreUser(userId: target.id, reason: finalReason)
+            case .deactivated:
+                _ = try await CloudFunctionsClient.shared.deactivateUser(userId: target.id, reason: finalReason)
+            }
         }
     }
 
@@ -528,6 +475,25 @@ private final class UserManagementViewModel: ObservableObject {
         return nil
     }
 
+    private func accountStatusFailureMessage(from error: Error) -> String? {
+        let message = (error as NSError).localizedDescription.lowercased()
+
+        if message.contains("owner account status cannot be changed") || message.contains("owner role cannot be changed") {
+            return AppStrings.UserManagement.platformRoleTargetOwnerProtected
+        }
+        if message.contains("self account status") || message.contains("self-target") {
+            return AppStrings.UserManagement.platformRoleSelfChangeRejected
+        }
+        if message.contains("target user does not exist") {
+            return AppStrings.UserManagement.platformRoleTargetMissing
+        }
+        if message.contains("owner permissions") || message.contains("permission") {
+            return AppStrings.UserManagement.statusPermissionDenied
+        }
+
+        return nil
+    }
+
     private func updateOrganizationRole(
         role: CommunityRole,
         organization: ManagedOrganization,
@@ -566,26 +532,6 @@ private final class UserManagementViewModel: ObservableObject {
         )
     }
 
-    private func writeAuditLog(
-        actionType: String,
-        targetUserId: String,
-        performedBy: String,
-        reason: String,
-        previousValue: [String: String],
-        newValue: [String: String]
-    ) async throws {
-        try await auditCollection.document().setData([
-            "actionType": actionType,
-            "targetUserId": targetUserId,
-            "performedBy": performedBy,
-            "createdAt": FieldValue.serverTimestamp(),
-            "reason": reason,
-            "note": NSNull(),
-            "previousValue": previousValue,
-            "newValue": newValue
-        ])
-    }
-
     private func makeUser(from document: QueryDocumentSnapshot) -> AppUser {
         let data = document.data()
         let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
@@ -609,6 +555,11 @@ private final class UserManagementViewModel: ObservableObject {
             accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:)) ?? (blockState.isRestricted ? .suspendedUntil : .active),
             banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
             warningCount: data["warningCount"] as? Int ?? 0,
+            statusReason: data["statusReason"] as? String,
+            statusMessage: data["statusMessage"] as? String,
+            statusUpdatedAt: (data["statusUpdatedAt"] as? Timestamp)?.dateValue(),
+            statusUpdatedBy: data["statusUpdatedBy"] as? String,
+            statusAcknowledgedAt: (data["statusAcknowledgedAt"] as? Timestamp)?.dateValue(),
             communityMemberships: [],
             selectedFederalState: (data["selectedFederalState"] as? String).flatMap(AustrianFederalState.init(rawValue:)),
             acceptedTermsAt: (data["acceptedTermsAt"] as? Timestamp)?.dateValue(),

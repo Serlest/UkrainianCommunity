@@ -37,6 +37,8 @@ actor MockRepositoryStore {
             selectedFederalState: profile.selectedFederalState,
             acceptedTermsAt: user.acceptedTermsAt,
             acceptedPrivacyAt: user.acceptedPrivacyAt,
+            acceptedTermsVersion: user.acceptedTermsVersion,
+            acceptedPrivacyVersion: user.acceptedPrivacyVersion,
             termsVersion: user.termsVersion,
             privacyVersion: user.privacyVersion,
             createdAt: user.createdAt,
