@@ -35,6 +35,8 @@ enum AppStrings {
         static var markUnread: String { text("notifications.inbox.mark_unread", "Mark unread") }
         static var archive: String { text("notifications.inbox.archive", "Archive") }
         static var delete: String { text("notifications.inbox.delete", "Delete") }
+        static var destinationUnavailableTitle: String { text("notifications.inbox.destination_unavailable.title", "No longer available") }
+        static var destinationUnavailableMessage: String { text("notifications.inbox.destination_unavailable.message", "This notification can no longer be opened.") }
         static var feedbackReplyTitle: String { text("notifications.inbox.feedback_reply.title", "Support replied") }
         static var feedbackReplyBody: String { text("notifications.inbox.feedback_reply.body", "You have a new reply to your message.") }
         static var organizationApprovedTitle: String { text("notifications.inbox.organization_approved.title", "Organization approved") }
@@ -83,6 +85,11 @@ enum AppStrings {
                 arguments: [count]
             )
         }
+    }
+
+    enum NotificationPopup {
+        static var actionButton: String { text("notifications.popup.action", "Open") }
+        static var updateFailed: String { text("notifications.popup.error.update_failed", "Unable to update this notification right now.") }
     }
 
     enum Featured {

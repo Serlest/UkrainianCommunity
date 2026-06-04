@@ -37,6 +37,7 @@ enum AppNotificationSourceType: String, Codable {
     case account
     case legal
     case role
+    case profile
     case event
     case guideMaterial
     case guideReport
@@ -77,6 +78,8 @@ struct AppNotification: Identifiable, Codable, Equatable {
     let expiresAt: Date?
     let archivedAt: Date?
     let deletedAt: Date?
+    let title: String?
+    let message: String?
     let metadata: [String: String]
     let actorUserId: String?
     let actorDisplayName: String?
@@ -100,6 +103,8 @@ struct AppNotification: Identifiable, Codable, Equatable {
         expiresAt: Date? = nil,
         archivedAt: Date? = nil,
         deletedAt: Date? = nil,
+        title: String? = nil,
+        message: String? = nil,
         metadata: [String: String] = [:],
         actorUserId: String? = nil,
         actorDisplayName: String? = nil,
@@ -122,6 +127,8 @@ struct AppNotification: Identifiable, Codable, Equatable {
         self.expiresAt = expiresAt
         self.archivedAt = archivedAt
         self.deletedAt = deletedAt
+        self.title = title
+        self.message = message
         self.metadata = metadata
         self.actorUserId = actorUserId
         self.actorDisplayName = actorDisplayName
@@ -163,6 +170,8 @@ struct AppNotification: Identifiable, Codable, Equatable {
             expiresAt: expiresAt,
             archivedAt: archivedAt,
             deletedAt: deletedAt,
+            title: title,
+            message: message,
             metadata: metadata,
             actorUserId: actorUserId,
             actorDisplayName: actorDisplayName,
@@ -189,6 +198,8 @@ struct AppNotification: Identifiable, Codable, Equatable {
             expiresAt: expiresAt,
             archivedAt: archivedAt,
             deletedAt: deletedAt,
+            title: title,
+            message: message,
             metadata: metadata,
             actorUserId: actorUserId,
             actorDisplayName: actorDisplayName,
@@ -215,6 +226,36 @@ struct AppNotification: Identifiable, Codable, Equatable {
             expiresAt: expiresAt,
             archivedAt: archivedAt,
             deletedAt: deletedAt,
+            title: title,
+            message: message,
+            metadata: metadata,
+            actorUserId: actorUserId,
+            actorDisplayName: actorDisplayName,
+            dedupeKey: dedupeKey,
+            payload: payload,
+            isRead: isRead,
+            readAt: readAt,
+            createdAt: createdAt
+        )
+    }
+
+    nonisolated func updatingPopupPresentedState(popupPresentedAt: Date?) -> AppNotification {
+        AppNotification(
+            id: id,
+            recipientUserId: recipientUserId,
+            type: type,
+            sourceType: sourceType,
+            sourceId: sourceId,
+            severity: severity,
+            actionType: actionType,
+            actionTargetId: actionTargetId,
+            requiresPopup: requiresPopup,
+            popupPresentedAt: popupPresentedAt,
+            expiresAt: expiresAt,
+            archivedAt: archivedAt,
+            deletedAt: deletedAt,
+            title: title,
+            message: message,
             metadata: metadata,
             actorUserId: actorUserId,
             actorDisplayName: actorDisplayName,

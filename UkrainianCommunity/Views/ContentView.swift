@@ -21,6 +21,7 @@ struct ContentView: View {
     @StateObject private var guideViewModel: LegacyGuideListViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
+    @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
     @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @State private var selectedTab: AppTab = .home
@@ -36,6 +37,7 @@ struct ContentView: View {
     @State private var guideScrollResetToken = 0
     @State private var profileScrollResetToken = 0
     @State private var lastHandledAuthSessionKey: String?
+    @State private var notificationRouteErrorMessage: String?
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(container: AppContainer) {
@@ -66,6 +68,9 @@ struct ContentView: View {
         _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
             repository: container.notificationInboxRepository
         ))
+        _notificationPopupCoordinator = StateObject(wrappedValue: NotificationPopupCoordinatorService(
+            repository: container.notificationInboxRepository
+        ))
         _legalComplianceMonitor = StateObject(wrappedValue: LegalComplianceMonitorService(
             legalDocumentRepository: container.legalDocumentRepository,
             userRepository: container.userRepository
@@ -82,6 +87,7 @@ struct ContentView: View {
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .task(id: authSessionKey) {
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
+            notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
         }
         .task(id: legalComplianceKey) {
@@ -118,7 +124,10 @@ struct ContentView: View {
                 .environmentObject(authState)
         }
         .fullScreenCover(isPresented: $isShowingNotificationInbox) {
-            NotificationInboxView(viewModel: notificationInboxViewModel)
+            NotificationInboxView(
+                viewModel: notificationInboxViewModel,
+                onNotificationTap: handleNotificationTap
+            )
         }
         .sheet(item: $accountStatusMonitor.activeNotice) { notice in
             AccountStatusNoticeView(
@@ -147,6 +156,40 @@ struct ContentView: View {
                     legalComplianceMonitor.declineAndSignOut()
                 }
             )
+        }
+        .sheet(item: Binding(
+            get: { notificationPopupCoordinator.activeNotification },
+            set: { _ in }
+        )) { notification in
+            NotificationPopupView(
+                notification: notification,
+                errorMessage: notificationPopupCoordinator.errorMessage,
+                dismiss: {
+                    Task {
+                        await notificationPopupCoordinator.dismissActiveNotification(markRead: false)
+                    }
+                },
+                performAction: {
+                    Task {
+                        await notificationPopupCoordinator.dismissActiveNotification(markRead: true)
+                        handleNotificationTap(notification)
+                    }
+                }
+            )
+        }
+        .alert(AppStrings.NotificationInbox.destinationUnavailableTitle, isPresented: Binding(
+            get: { notificationRouteErrorMessage != nil },
+            set: { newValue in
+                if !newValue {
+                    notificationRouteErrorMessage = nil
+                }
+            }
+        )) {
+            Button(AppStrings.Common.ok, role: .cancel) {
+                notificationRouteErrorMessage = nil
+            }
+        } message: {
+            Text(notificationRouteErrorMessage ?? AppStrings.NotificationInbox.destinationUnavailableMessage)
         }
     }
 
@@ -318,6 +361,7 @@ struct ContentView: View {
                 legalDocumentRepository: container.legalDocumentRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 localEventReminderService: container.localEventReminderService,
+                onNotificationTap: handleNotificationTap,
                 navigationPath: $profileNavigationPath,
                 scrollResetToken: profileScrollResetToken
             )
@@ -356,6 +400,7 @@ struct ContentView: View {
 
         Task {
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
+            notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             await homeViewModel.refresh()
             await newsViewModel.refresh()
             await eventsViewModel.refresh()
@@ -426,6 +471,105 @@ struct ContentView: View {
             }
             selectedTab = .guide
         }
+    }
+
+    private func handleNotificationTap(_ notification: AppNotification) {
+        guard notification.actionType != .none else { return }
+
+        isShowingNotificationInbox = false
+
+        switch notification.actionType {
+        case .none:
+            return
+        case .openFeedback:
+            routeToFeedback(notification)
+        case .openOrganization:
+            routeToOrganization(notification)
+        case .openOrganizationRequest:
+            selectedTab = .profile
+            profileNavigationPath = [.moderationTools]
+        case .openEvent:
+            routeToEvent(notification)
+        case .openGuideMaterial:
+            guideBannerCategoryTarget = nil
+            selectedTab = .guide
+        case .openGuideReport:
+            selectedTab = .profile
+            profileNavigationPath = [.guideManagement]
+        case .openLegalDocuments:
+            selectedTab = .profile
+            profileNavigationPath = [.legal(.terms)]
+        case .openProfile:
+            selectedTab = .profile
+            profileNavigationPath.removeAll()
+        case .openURL:
+            routeToURL(notification)
+        }
+    }
+
+    private func routeToFeedback(_ notification: AppNotification) {
+        selectedTab = .profile
+        if let userID = authState.user?.id {
+            profileNavigationPath = [.myFeedback(userID: userID)]
+        } else {
+            profileNavigationPath = [.feedbackInbox]
+        }
+    }
+
+    private func routeToOrganization(_ notification: AppNotification) {
+        guard let organizationID = notificationTargetID(notification) else {
+            showNotificationRouteUnavailable()
+            return
+        }
+
+        selectedTab = .organizations
+        organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organizationID)]
+    }
+
+    private func routeToEvent(_ notification: AppNotification) {
+        guard let eventID = notificationTargetID(notification) else {
+            showNotificationRouteUnavailable()
+            return
+        }
+
+        selectedTab = .events
+        eventsNavigationPath = [EventNavigationRoute(eventID: eventID)]
+    }
+
+    private func routeToURL(_ notification: AppNotification) {
+        guard let urlString = notificationURLString(notification),
+              let url = URL(string: urlString) else {
+            showNotificationRouteUnavailable()
+            return
+        }
+
+        openURL(url)
+    }
+
+    private func notificationURLString(_ notification: AppNotification) -> String? {
+        [
+            notification.actionTargetId,
+            notification.metadata["url"],
+            notification.payload["url"]
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .first { !$0.isEmpty }
+    }
+
+    private func notificationTargetID(_ notification: AppNotification) -> String? {
+        [
+            notification.actionTargetId,
+            notification.sourceId,
+            notification.metadata["targetId"],
+            notification.metadata["targetID"],
+            notification.metadata["url"]
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .first { !$0.isEmpty }
+    }
+
+    private func showNotificationRouteUnavailable() {
+        notificationRouteErrorMessage = AppStrings.NotificationInbox.destinationUnavailableMessage
     }
 }
 

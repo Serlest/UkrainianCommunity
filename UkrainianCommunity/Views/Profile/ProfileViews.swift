@@ -31,6 +31,7 @@ struct ProfileView: View {
     private let featuredBannerRepository: FeaturedBannerRepository
     private let legalDocumentRepository: LegalDocumentRepository
     private let notificationInboxRepository: NotificationInboxRepository
+    private let onNotificationTap: (AppNotification) -> Void
     @EnvironmentObject var authState: AuthState
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -76,6 +77,7 @@ struct ProfileView: View {
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
+        onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
         navigationPath: Binding<[ProfileNavigationRoute]> = .constant([]),
         scrollResetToken: Int = 0
     ) {
@@ -88,6 +90,7 @@ struct ProfileView: View {
         self.featuredBannerRepository = featuredBannerRepository
         self.legalDocumentRepository = legalDocumentRepository
         self.notificationInboxRepository = notificationInboxRepository
+        self.onNotificationTap = onNotificationTap
         self.scrollResetToken = scrollResetToken
         _navigationPath = navigationPath
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(
@@ -601,7 +604,10 @@ struct ProfileView: View {
                 notificationInboxRepository: notificationInboxRepository
             )
         case .notifications:
-            NotificationInboxView(viewModel: notificationInboxViewModel)
+            NotificationInboxView(
+                viewModel: notificationInboxViewModel,
+                onNotificationTap: onNotificationTap
+            )
         case let .myFeedback(userID):
             MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: userID)
         case let .legal(document):

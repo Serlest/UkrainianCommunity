@@ -2248,7 +2248,6 @@ final class FeedbackInboxViewModel: ObservableObject {
 
         do {
             try await repository.sendOwnerFeedbackReply(feedback: item, text: trimmedReply, owner: owner)
-            await createFeedbackReplyNotification(for: item, reply: trimmedReply, owner: owner)
             await refresh()
             if let updatedItem = items.first(where: { $0.id == item.id }) {
                 await loadMessages(for: updatedItem)
@@ -2340,39 +2339,6 @@ final class FeedbackInboxViewModel: ObservableObject {
             print("Realtime listener failed: purpose=feedbackMessages key=\(key) error=\(appError)")
             #endif
         }, for: key)
-    }
-
-    private func createFeedbackReplyNotification(for item: FeedbackItem, reply: String, owner: AppUser) async {
-        guard let notificationInboxRepository else { return }
-        var payload = [
-            "feedbackId": item.id,
-            "messagePreview": String(reply.prefix(160))
-        ]
-        if let subject = item.subject?.trimmingCharacters(in: .whitespacesAndNewlines), !subject.isEmpty {
-            payload["subject"] = subject
-        }
-
-        let notification = AppNotification(
-            id: UUID().uuidString,
-            recipientUserId: item.userId,
-            type: .feedbackReply,
-            sourceType: .feedback,
-            sourceId: item.id,
-            actorUserId: owner.id,
-            actorDisplayName: owner.preferredDisplayName,
-            payload: payload,
-            isRead: false,
-            readAt: nil,
-            createdAt: Date()
-        )
-
-        do {
-            try await notificationInboxRepository.createNotification(userID: item.userId, notification: notification)
-        } catch {
-            #if DEBUG
-            print("Notification inbox create failed: type=\(AppNotificationType.feedbackReply.rawValue) recipient=\(item.userId) source=\(item.id) error=\(error)")
-            #endif
-        }
     }
 
     private func update(_ item: FeedbackItem, status: FeedbackStatus) async {

@@ -3,6 +3,15 @@ import SwiftUI
 struct NotificationInboxView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: NotificationInboxViewModel
+    let onNotificationTap: (AppNotification) -> Void
+
+    init(
+        viewModel: NotificationInboxViewModel,
+        onNotificationTap: @escaping (AppNotification) -> Void = { _ in }
+    ) {
+        self.viewModel = viewModel
+        self.onNotificationTap = onNotificationTap
+    }
 
     var body: some View {
         ZStack {
@@ -96,6 +105,12 @@ struct NotificationInboxView: View {
                 ForEach(viewModel.filteredNotifications) { notification in
                     NotificationInboxRow(
                         notification: notification,
+                        tapAction: {
+                            Task {
+                                await viewModel.markRead(notification)
+                                onNotificationTap(notification)
+                            }
+                        },
                         markReadAction: {
                             Task { await viewModel.markRead(notification) }
                         },
@@ -129,13 +144,14 @@ struct NotificationInboxView: View {
 
 private struct NotificationInboxRow: View {
     let notification: AppNotification
+    let tapAction: () -> Void
     let markReadAction: () -> Void
     let markUnreadAction: () -> Void
     let archiveAction: () -> Void
     let deleteAction: () -> Void
 
     var body: some View {
-        Button(action: markReadAction) {
+        Button(action: tapAction) {
             AppEditorSectionCard {
                 HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
                     ZStack(alignment: .topTrailing) {
@@ -217,7 +233,11 @@ private struct NotificationInboxRow: View {
     }
 
     private var title: String {
-        switch notification.type {
+        if let title = notification.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            return title
+        }
+
+        return switch notification.type {
         case .feedbackReply:
             AppStrings.NotificationInbox.feedbackReplyTitle
         case .organizationRequestApproved:
@@ -250,6 +270,9 @@ private struct NotificationInboxRow: View {
     }
 
     private var bodyText: String {
+        if let message = notification.message?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
+            return message
+        }
         if let message = notification.metadata["message"]?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
             return message
         }

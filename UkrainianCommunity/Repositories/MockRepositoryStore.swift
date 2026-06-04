@@ -106,6 +106,14 @@ actor MockRepositoryStore {
         notificationsByUserID[userID] = notifications
     }
 
+    func markNotificationPopupPresented(userID: String, notificationID: String) {
+        guard var notifications = notificationsByUserID[userID],
+              let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
+        let notification = notifications[index]
+        notifications[index] = notification.updatingPopupPresentedState(popupPresentedAt: .now)
+        notificationsByUserID[userID] = notifications
+    }
+
     func archiveNotification(userID: String, notificationID: String) {
         guard var notifications = notificationsByUserID[userID],
               let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }

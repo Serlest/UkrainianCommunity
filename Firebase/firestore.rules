@@ -1529,67 +1529,30 @@ service cloud.firestore {
       return ['notificationsEnabled', 'eventRemindersEnabled', 'reminderLeadMinutes', 'updatedAt'];
     }
 
-    function notificationInboxFields() {
+    function notificationUserMutableFields() {
       return [
-        'id',
-        'recipientUserId',
-        'type',
-        'sourceType',
-        'sourceId',
-        'actorUserId',
-        'actorDisplayName',
-        'payload',
         'isRead',
         'readAt',
-        'createdAt'
+        'archivedAt',
+        'deletedAt',
+        'popupPresentedAt'
       ];
     }
 
-    function notificationCreateTypes() {
-      return [
-        'feedbackReply'
-      ];
+    function validNotificationOptionalTimestamp(field) {
+      return !(field in request.resource.data)
+        || request.resource.data[field] is timestamp
+        || request.resource.data[field] == null;
     }
 
-    function validNotificationBase(uid, notificationId) {
-      return canManageFeedback()
-        && request.resource.data.keys().hasOnly(notificationInboxFields())
-        && request.resource.data.id == notificationId
-        && request.resource.data.recipientUserId == uid
-        && request.resource.data.type in notificationCreateTypes()
-        && request.resource.data.sourceId is string
-        && request.resource.data.sourceId.size() > 0
-        && request.resource.data.actorUserId == request.auth.uid
-        && (!('actorDisplayName' in request.resource.data) || request.resource.data.actorDisplayName is string)
-        && request.resource.data.payload is map
-        && request.resource.data.isRead == false
-        && !('readAt' in request.resource.data)
-        && request.resource.data.createdAt is timestamp;
-    }
-
-    function validFeedbackReplyNotification(uid, notificationId) {
-      return validNotificationBase(uid, notificationId)
-        && request.resource.data.type == 'feedbackReply'
-        && request.resource.data.sourceType == 'feedback'
-        && exists(/databases/$(database)/documents/feedback/$(request.resource.data.sourceId))
-        && get(/databases/$(database)/documents/feedback/$(request.resource.data.sourceId)).data.userId == uid;
-    }
-
-    function validNotificationCreate(uid, notificationId) {
-      return validFeedbackReplyNotification(uid, notificationId);
-    }
-
-    function validNotificationReadUpdate(uid) {
+    function validNotificationUserUpdate(uid) {
       return isSelf(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt'])
-        && request.resource.data.id == resource.data.id
-        && request.resource.data.recipientUserId == resource.data.recipientUserId
-        && request.resource.data.type == resource.data.type
-        && request.resource.data.sourceType == resource.data.sourceType
-        && request.resource.data.sourceId == resource.data.sourceId
-        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(notificationUserMutableFields())
         && request.resource.data.isRead is bool
-        && (!request.resource.data.isRead || request.resource.data.readAt is timestamp);
+        && validNotificationOptionalTimestamp('readAt')
+        && validNotificationOptionalTimestamp('archivedAt')
+        && validNotificationOptionalTimestamp('deletedAt')
+        && validNotificationOptionalTimestamp('popupPresentedAt');
     }
 
     function validNotificationPreferencesWrite(uid) {
@@ -1699,11 +1662,11 @@ service cloud.firestore {
       match /notificationInbox/{notificationId} {
         allow read: if isSelf(uid);
 
-        allow create: if validNotificationCreate(uid, notificationId);
+        allow create: if false;
 
-        allow update: if validNotificationReadUpdate(uid);
+        allow update: if validNotificationUserUpdate(uid);
 
-        allow delete: if isSelf(uid);
+        allow delete: if false;
       }
 
       match /newsBookmarks/{newsId} {

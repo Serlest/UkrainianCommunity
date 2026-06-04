@@ -78,6 +78,12 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         try await batch.commit()
     }
 
+    func markNotificationPopupPresented(userID: String, notificationID: String) async throws {
+        try await inboxCollection(userID: userID).document(notificationID).updateData([
+            "popupPresentedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
     func archiveNotification(userID: String, notificationID: String) async throws {
         try await inboxCollection(userID: userID).document(notificationID).updateData([
             "archivedAt": FieldValue.serverTimestamp()
@@ -126,11 +132,13 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             expiresAt: (data["expiresAt"] as? Timestamp)?.dateValue(),
             archivedAt: (data["archivedAt"] as? Timestamp)?.dateValue(),
             deletedAt: (data["deletedAt"] as? Timestamp)?.dateValue(),
-            metadata: data["metadata"] as? [String: String] ?? [:],
+            title: nonEmptyString(from: data["title"]),
+            message: nonEmptyString(from: data["message"]),
+            metadata: stringDictionary(from: data["metadata"]),
             actorUserId: data["actorUserId"] as? String,
             actorDisplayName: data["actorDisplayName"] as? String,
             dedupeKey: data["dedupeKey"] as? String,
-            payload: data["payload"] as? [String: String] ?? [:],
+            payload: stringDictionary(from: data["payload"]),
             isRead: data["isRead"] as? Bool ?? false,
             readAt: readAt,
             createdAt: createdAt
@@ -149,6 +157,12 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             "createdAt": Timestamp(date: notification.createdAt)
         ]
 
+        if let title = notification.title {
+            data["title"] = title
+        }
+        if let message = notification.message {
+            data["message"] = message
+        }
         if notification.severity != defaultSeverity(for: notification.type) {
             data["severity"] = notification.severity.rawValue
         }
@@ -190,6 +204,41 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         }
 
         return data
+    }
+
+    private func stringDictionary(from value: Any?) -> [String: String] {
+        guard let dictionary = value as? [String: Any] else { return [:] }
+
+        return dictionary.reduce(into: [String: String]()) { result, item in
+            guard let stringValue = stringValue(from: item.value) else { return }
+            result[item.key] = stringValue
+        }
+    }
+
+    private func nonEmptyString(from value: Any?) -> String? {
+        guard let string = stringValue(from: value)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !string.isEmpty else {
+            return nil
+        }
+
+        return string
+    }
+
+    private func stringValue(from value: Any?) -> String? {
+        switch value {
+        case let string as String:
+            string
+        case let bool as Bool:
+            String(bool)
+        case let number as NSNumber:
+            number.stringValue
+        case let timestamp as Timestamp:
+            ISO8601DateFormatter().string(from: timestamp.dateValue())
+        case nil, is NSNull:
+            nil
+        default:
+            value.map { String(describing: $0) }
+        }
     }
 
     private func defaultSeverity(for type: AppNotificationType) -> AppNotificationSeverity {

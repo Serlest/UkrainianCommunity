@@ -15,7 +15,9 @@ export type NotificationType =
   | "organizationRoleRemoved"
   | "reportReviewed"
   | "roleChanged"
-  | "systemAnnouncement";
+  | "systemAnnouncement"
+  | "eventUpdated"
+  | "eventCancelled";
 
 export type NotificationSeverity = "info" | "success" | "warning" | "critical";
 
@@ -33,6 +35,7 @@ export type NotificationActionType =
 
 type NotificationSourceType =
   | "account"
+  | "event"
   | "feedback"
   | "guide"
   | "legal"
@@ -212,12 +215,14 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
     case "organizationRequestNeedsRevision":
     case "organizationRequestRejected":
     case "organizationRequestRevisionRequested":
+    case "eventCancelled":
       return "warning";
     case "organizationRequestApproved":
       return "success";
     case "systemAnnouncement":
       return "critical";
     case "feedbackReply":
+    case "eventUpdated":
     case "guideMaterialUpdated":
     case "legalDocumentsUpdated":
     case "organizationRoleAssigned":
@@ -234,6 +239,9 @@ function defaultActionType(type: NotificationType): NotificationActionType {
       return "openFeedback";
     case "guideMaterialUpdated":
       return "openGuideMaterial";
+    case "eventUpdated":
+    case "eventCancelled":
+      return "openEvent";
     case "legalDocumentsUpdated":
       return "openLegalDocuments";
     case "organizationRequestApproved":
@@ -258,6 +266,9 @@ function defaultSourceType(type: NotificationType): NotificationSourceType {
   switch (type) {
     case "feedbackReply":
       return "feedback";
+    case "eventUpdated":
+    case "eventCancelled":
+      return "event";
     case "guideMaterialUpdated":
     case "reportReviewed":
       return "guide";
