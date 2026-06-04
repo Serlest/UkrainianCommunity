@@ -4,6 +4,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
+import { writeUserNotification } from "../notifications/notificationPayloads";
 import {
   assertOwner,
   isActiveUser,
@@ -140,6 +141,44 @@ function assertChanged(current: UserRoleSnapshot, next: UserRoleUpdate): void {
   }
 }
 
+function platformRoleNotificationTitle(mutation: PlatformRoleMutation): string {
+  switch (mutation.actionType) {
+    case "appAdminAssigned":
+      return "App admin role assigned";
+    case "appAdminRemoved":
+      return "App admin role removed";
+    case "appModeratorAssigned":
+      return "App moderator role assigned";
+    case "appModeratorRemoved":
+      return "App moderator role removed";
+    case "guideEditorAssigned":
+      return "Guide editor access assigned";
+    case "guideEditorRemoved":
+      return "Guide editor access removed";
+    default:
+      return "Role changed";
+  }
+}
+
+function platformRoleNotificationMessage(mutation: PlatformRoleMutation): string {
+  switch (mutation.actionType) {
+    case "appAdminAssigned":
+      return "Your platform role was changed to app admin.";
+    case "appAdminRemoved":
+      return "Your app admin role was removed.";
+    case "appModeratorAssigned":
+      return "Your platform role was changed to app moderator.";
+    case "appModeratorRemoved":
+      return "Your app moderator role was removed.";
+    case "guideEditorAssigned":
+      return "You can now manage guide content.";
+    case "guideEditorRemoved":
+      return "Your guide editor access was removed.";
+    default:
+      return "Your platform role was changed.";
+  }
+}
+
 function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
   return onCall(callableOptions, async (request): Promise<PlatformRoleChangeResponse> => {
     const auth = requireAuth(request);
@@ -207,6 +246,32 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
           roleUpdatedBy: auth.uid,
         },
       }));
+    });
+
+    await writeUserNotification({
+      targetUserId: roleRequest.targetUserId,
+      type: "roleChanged",
+      title: platformRoleNotificationTitle(mutation),
+      message: platformRoleNotificationMessage(mutation),
+      severity: "info",
+      actionType: "openProfile",
+      actionTargetId: roleRequest.targetUserId,
+      requiresPopup: false,
+      actorUserId: auth.uid,
+      metadata: {
+        previousGlobalRole,
+        newGlobalRole,
+        previousCanManageGuide,
+        newCanManageGuide,
+        updatedAt: committedAt,
+      },
+      dedupeKey: [
+        "platformRole",
+        mutation.actionType,
+        roleRequest.targetUserId,
+        newGlobalRole,
+        String(newCanManageGuide),
+      ].join(":"),
     });
 
     return {

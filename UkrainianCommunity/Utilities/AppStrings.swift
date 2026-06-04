@@ -26,12 +26,30 @@ enum AppStrings {
         static var subtitle: String { text("notifications.inbox.subtitle", "Updates about your requests and support messages.") }
         static var emptyTitle: String { text("notifications.inbox.empty.title", "No notifications yet") }
         static var emptyMessage: String { text("notifications.inbox.empty.message", "New replies and request updates will appear here.") }
+        static var unreadEmptyTitle: String { text("notifications.inbox.unread.empty.title", "No unread notifications") }
+        static var unreadEmptyMessage: String { text("notifications.inbox.unread.empty.message", "Unread updates will appear here.") }
+        static var filterAll: String { text("notifications.inbox.filter.all", "All") }
+        static var filterUnread: String { text("notifications.inbox.filter.unread", "Unread") }
         static var markAllRead: String { text("notifications.inbox.mark_all_read", "Mark all as read") }
+        static var markRead: String { text("notifications.inbox.mark_read", "Mark read") }
+        static var markUnread: String { text("notifications.inbox.mark_unread", "Mark unread") }
+        static var archive: String { text("notifications.inbox.archive", "Archive") }
+        static var delete: String { text("notifications.inbox.delete", "Delete") }
         static var feedbackReplyTitle: String { text("notifications.inbox.feedback_reply.title", "Support replied") }
         static var feedbackReplyBody: String { text("notifications.inbox.feedback_reply.body", "You have a new reply to your message.") }
         static var organizationApprovedTitle: String { text("notifications.inbox.organization_approved.title", "Organization approved") }
         static var organizationNeedsRevisionTitle: String { text("notifications.inbox.organization_needs_revision.title", "Organization needs revision") }
         static var organizationRejectedTitle: String { text("notifications.inbox.organization_rejected.title", "Organization rejected") }
+        static var accountStatusChangedTitle: String { text("notifications.inbox.account_status_changed.title", "Account status updated") }
+        static var legalDocumentsUpdatedTitle: String { text("notifications.inbox.legal_documents_updated.title", "Legal documents updated") }
+        static var roleChangedTitle: String { text("notifications.inbox.role_changed.title", "Role updated") }
+        static var organizationRoleAssignedTitle: String { text("notifications.inbox.organization_role_assigned.title", "Organization role assigned") }
+        static var organizationRoleRemovedTitle: String { text("notifications.inbox.organization_role_removed.title", "Organization role removed") }
+        static var reportReviewedTitle: String { text("notifications.inbox.report_reviewed.title", "Report reviewed") }
+        static var eventUpdatedTitle: String { text("notifications.inbox.event_updated.title", "Event updated") }
+        static var eventCancelledTitle: String { text("notifications.inbox.event_cancelled.title", "Event cancelled") }
+        static var guideMaterialUpdatedTitle: String { text("notifications.inbox.guide_material_updated.title", "Guide material updated") }
+        static var systemAnnouncementTitle: String { text("notifications.inbox.system_announcement.title", "System announcement") }
         static var genericBody: String { text("notifications.inbox.generic.body", "Open this notification for details.") }
 
         static func organizationApprovedBody(_ organizationName: String) -> String {

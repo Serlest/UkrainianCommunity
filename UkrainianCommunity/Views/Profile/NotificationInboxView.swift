@@ -50,6 +50,12 @@ struct NotificationInboxView: View {
                     subtitle: AppStrings.NotificationInbox.subtitle
                 )
 
+                Picker(AppStrings.NotificationInbox.title, selection: $viewModel.selectedFilter) {
+                    Text(AppStrings.NotificationInbox.filterAll).tag(NotificationInboxFilter.all)
+                    Text(AppStrings.NotificationInbox.filterUnread).tag(NotificationInboxFilter.unread)
+                }
+                .pickerStyle(.segmented)
+
                 if viewModel.unreadCount > 0 {
                     Button {
                         Task { await viewModel.markAllRead() }
@@ -79,54 +85,85 @@ struct NotificationInboxView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
-        } else if viewModel.notifications.isEmpty {
+        } else if viewModel.filteredNotifications.isEmpty {
             UnifiedEmptyStateCard(
-                systemImage: "bell",
-                title: AppStrings.NotificationInbox.emptyTitle,
-                message: AppStrings.NotificationInbox.emptyMessage
+                systemImage: viewModel.selectedFilter == .unread ? "checkmark.circle" : "bell",
+                title: emptyTitle,
+                message: emptyMessage
             )
         } else {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ForEach(viewModel.notifications) { notification in
-                    NotificationInboxRow(notification: notification) {
-                        Task { await viewModel.markRead(notification) }
-                    }
+                ForEach(viewModel.filteredNotifications) { notification in
+                    NotificationInboxRow(
+                        notification: notification,
+                        markReadAction: {
+                            Task { await viewModel.markRead(notification) }
+                        },
+                        markUnreadAction: {
+                            Task { await viewModel.markUnread(notification) }
+                        },
+                        archiveAction: {
+                            Task { await viewModel.archive(notification) }
+                        },
+                        deleteAction: {
+                            Task { await viewModel.delete(notification) }
+                        }
+                    )
                 }
             }
         }
+    }
+
+    private var emptyTitle: String {
+        viewModel.selectedFilter == .unread
+            ? AppStrings.NotificationInbox.unreadEmptyTitle
+            : AppStrings.NotificationInbox.emptyTitle
+    }
+
+    private var emptyMessage: String {
+        viewModel.selectedFilter == .unread
+            ? AppStrings.NotificationInbox.unreadEmptyMessage
+            : AppStrings.NotificationInbox.emptyMessage
     }
 }
 
 private struct NotificationInboxRow: View {
     let notification: AppNotification
-    let action: () -> Void
+    let markReadAction: () -> Void
+    let markUnreadAction: () -> Void
+    let archiveAction: () -> Void
+    let deleteAction: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(action: markReadAction) {
             AppEditorSectionCard {
                 HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
-                    ZStack {
+                    ZStack(alignment: .topTrailing) {
                         Circle()
-                            .fill(notification.isRead ? AppTheme.surfaceControl : AppTheme.accentPrimarySoft)
-                            .frame(width: 40, height: 40)
+                            .fill(iconTint.opacity(notification.isRead ? 0.10 : 0.16))
+                            .frame(width: 42, height: 42)
 
                         Image(systemName: systemImage)
                             .font(.headline.weight(.semibold))
-                            .foregroundStyle(notification.isRead ? AppTheme.textSecondary : AppTheme.accentPrimary)
+                            .foregroundStyle(iconTint)
+                            .frame(width: 42, height: 42)
+
+                        if !notification.isRead {
+                            Circle()
+                                .fill(AppTheme.accentDestructive)
+                                .frame(width: 9, height: 9)
+                                .offset(x: -1, y: 2)
+                        }
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 7) {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(title)
                                 .font(.headline.weight(notification.isRead ? .regular : .semibold))
                                 .foregroundStyle(AppTheme.textPrimary)
                                 .multilineTextAlignment(.leading)
 
-                            if !notification.isRead {
-                                Circle()
-                                    .fill(AppTheme.accentDestructive)
-                                    .frame(width: 7, height: 7)
-                            }
+                            severityLabel
                         }
 
                         Text(bodyText)
@@ -145,6 +182,38 @@ private struct NotificationInboxRow: View {
             }
         }
         .buttonStyle(.plain)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive, action: deleteAction) {
+                Label(AppStrings.NotificationInbox.delete, systemImage: "trash")
+            }
+
+            Button(action: archiveAction) {
+                Label(AppStrings.NotificationInbox.archive, systemImage: "archivebox")
+            }
+            .tint(AppTheme.textSecondary)
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button(action: notification.isRead ? markUnreadAction : markReadAction) {
+                Label(
+                    notification.isRead ? AppStrings.NotificationInbox.markUnread : AppStrings.NotificationInbox.markRead,
+                    systemImage: notification.isRead ? "envelope.badge" : "envelope.open"
+                )
+            }
+            .tint(AppTheme.accentPrimary)
+        }
+    }
+
+    @ViewBuilder
+    private var severityLabel: some View {
+        if notification.severity != .info {
+            Text(severityText)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(iconTint)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(iconTint.opacity(0.10), in: Capsule())
+                .lineLimit(1)
+        }
     }
 
     private var title: String {
@@ -157,10 +226,37 @@ private struct NotificationInboxRow: View {
             AppStrings.NotificationInbox.organizationNeedsRevisionTitle
         case .organizationRequestRejected:
             AppStrings.NotificationInbox.organizationRejectedTitle
+        case .accountStatusChanged:
+            AppStrings.NotificationInbox.accountStatusChangedTitle
+        case .legalDocumentsUpdated:
+            AppStrings.NotificationInbox.legalDocumentsUpdatedTitle
+        case .roleChanged:
+            AppStrings.NotificationInbox.roleChangedTitle
+        case .organizationRoleAssigned:
+            AppStrings.NotificationInbox.organizationRoleAssignedTitle
+        case .organizationRoleRemoved:
+            AppStrings.NotificationInbox.organizationRoleRemovedTitle
+        case .reportReviewed:
+            AppStrings.NotificationInbox.reportReviewedTitle
+        case .eventUpdated:
+            AppStrings.NotificationInbox.eventUpdatedTitle
+        case .eventCancelled:
+            AppStrings.NotificationInbox.eventCancelledTitle
+        case .guideMaterialUpdated:
+            AppStrings.NotificationInbox.guideMaterialUpdatedTitle
+        case .systemAnnouncement:
+            AppStrings.NotificationInbox.systemAnnouncementTitle
         }
     }
 
     private var bodyText: String {
+        if let message = notification.metadata["message"]?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
+            return message
+        }
+        if let message = notification.payload["message"]?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
+            return message
+        }
+
         switch notification.type {
         case .feedbackReply:
             return notification.payload["subject"] ?? notification.payload["messagePreview"] ?? AppStrings.NotificationInbox.feedbackReplyBody
@@ -170,11 +266,13 @@ private struct NotificationInboxRow: View {
             return notification.payload["reviewMessage"] ?? AppStrings.NotificationInbox.organizationNeedsRevisionBody(organizationName)
         case .organizationRequestRejected:
             return notification.payload["rejectionReason"] ?? AppStrings.NotificationInbox.organizationRejectedBody(organizationName)
+        default:
+            return AppStrings.NotificationInbox.genericBody
         }
     }
 
     private var organizationName: String {
-        notification.payload["organizationName"] ?? AppStrings.Common.notAvailable
+        notification.payload["organizationName"] ?? notification.metadata["organizationName"] ?? AppStrings.Common.notAvailable
     }
 
     private var dateText: String {
@@ -191,6 +289,48 @@ private struct NotificationInboxRow: View {
             return "pencil.and.list.clipboard"
         case .organizationRequestRejected:
             return "xmark.seal"
+        case .accountStatusChanged:
+            return "person.crop.circle.badge.exclamationmark"
+        case .legalDocumentsUpdated:
+            return "doc.text.magnifyingglass"
+        case .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved:
+            return "person.badge.key"
+        case .reportReviewed:
+            return "checkmark.message"
+        case .eventUpdated:
+            return "calendar.badge.clock"
+        case .eventCancelled:
+            return "calendar.badge.exclamationmark"
+        case .guideMaterialUpdated:
+            return "book.pages"
+        case .systemAnnouncement:
+            return "megaphone"
+        }
+    }
+
+    private var iconTint: Color {
+        switch notification.severity {
+        case .info:
+            return notification.isRead ? AppTheme.textSecondary : AppTheme.accentPrimary
+        case .success:
+            return .green
+        case .warning:
+            return AppTheme.accentSupport
+        case .critical:
+            return AppTheme.accentDestructive
+        }
+    }
+
+    private var severityText: String {
+        switch notification.severity {
+        case .info:
+            return ""
+        case .success:
+            return AppStrings.Common.approved
+        case .warning:
+            return AppStrings.Common.warned
+        case .critical:
+            return AppStrings.Common.blocked
         }
     }
 }

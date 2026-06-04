@@ -16,6 +16,7 @@ enum ProfileNavigationRoute: Hashable {
     case featuredBannerManagement
     case legalDocumentManagement
     case feedbackInbox
+    case notifications
     case myFeedback(userID: String)
     case legal(LegalDocumentKind)
 }
@@ -35,6 +36,7 @@ struct ProfileView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @StateObject private var registrationsViewModel: MyRegistrationsViewModel
     @StateObject private var myFeedbackViewModel: MyFeedbackViewModel
+    @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var ownerOrganizationsViewModel: OrganizationsViewModel
     @StateObject private var ownerVisibilityViewModel: OwnerProfileVisibilityViewModel
     @State private var isShowingEditProfileSheet = false
@@ -93,6 +95,9 @@ struct ProfileView: View {
             localEventReminderService: localEventReminderService
         ))
         _myFeedbackViewModel = StateObject(wrappedValue: MyFeedbackViewModel(repository: feedbackRepository))
+        _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
+            repository: notificationInboxRepository
+        ))
         _ownerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(
             repository: organizationRepository,
             notificationInboxRepository: notificationInboxRepository
@@ -377,6 +382,7 @@ struct ProfileView: View {
                 await registrationsViewModel.refreshIfStale()
                 if let userID = authState.user?.id {
                     await myFeedbackViewModel.loadIfNeeded(userID: userID)
+                    await notificationInboxViewModel.configure(userID: userID)
                     await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)
                 }
                 await ownerOrganizationsViewModel.loadIfNeeded()
@@ -394,6 +400,7 @@ struct ProfileView: View {
                 await registrationsViewModel.refresh()
                 if let userID = authState.user?.id {
                     await myFeedbackViewModel.refresh(userID: userID)
+                    await notificationInboxViewModel.refresh()
                     await viewModel.refreshNotificationPreferences(userID: userID)
                 }
                 await ownerOrganizationsViewModel.refresh()
@@ -406,6 +413,7 @@ struct ProfileView: View {
                     await registrationsViewModel.refresh()
                     if let userID = authState.user?.id {
                         await myFeedbackViewModel.refresh(userID: userID)
+                        await notificationInboxViewModel.configure(userID: userID)
                         await viewModel.refreshNotificationPreferences(userID: userID)
                     }
                     await ownerOrganizationsViewModel.refresh()
@@ -413,6 +421,7 @@ struct ProfileView: View {
                 } else {
                     registrationsViewModel.resetForGuest()
                     myFeedbackViewModel.reset()
+                    await notificationInboxViewModel.configure(userID: nil)
                     ownerOrganizationsViewModel.resetForAuthChange()
                     ownerVisibilityViewModel.reset()
                     feedbackMessage = ""
@@ -424,11 +433,13 @@ struct ProfileView: View {
             Task {
                 registrationsViewModel.resetForAuthChange()
                 myFeedbackViewModel.reset()
+                await notificationInboxViewModel.configure(userID: nil)
                 ownerOrganizationsViewModel.resetForAuthChange()
                 ownerVisibilityViewModel.reset()
                 guard let newUserID else { return }
                 await registrationsViewModel.refresh()
                 await myFeedbackViewModel.refresh(userID: newUserID)
+                await notificationInboxViewModel.configure(userID: newUserID)
                 await viewModel.refreshNotificationPreferences(userID: newUserID)
                 await ownerOrganizationsViewModel.refresh()
                 await refreshOwnerVisibilityIfAllowed()
@@ -589,6 +600,8 @@ struct ProfileView: View {
                 repository: feedbackRepository,
                 notificationInboxRepository: notificationInboxRepository
             )
+        case .notifications:
+            NotificationInboxView(viewModel: notificationInboxViewModel)
         case let .myFeedback(userID):
             MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: userID)
         case let .legal(document):
@@ -793,6 +806,17 @@ struct ProfileView: View {
             subtitle: AppStrings.Profile.appSettingsSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                NavigationLink(value: ProfileNavigationRoute.notifications) {
+                    ProfileModuleRow(
+                        title: AppStrings.NotificationInbox.title,
+                        subtitle: AppStrings.NotificationInbox.subtitle,
+                        systemImage: "bell",
+                        status: .available,
+                        countBadge: notificationInboxViewModel.unreadCount
+                    )
+                }
+                .buttonStyle(.plain)
+
                 ProfileSettingsPickerRow(
                     title: AppStrings.Profile.appLanguage,
                     subtitle: AppStrings.Profile.languageSettingsSubtitle,

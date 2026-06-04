@@ -10,7 +10,9 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .limit(to: max(1, limit))
             .getDocuments()
 
-        return snapshot.documents.map(makeNotification)
+        return snapshot.documents
+            .map(makeNotification)
+            .filter(\.isVisibleInInbox)
     }
 
     func listenNotifications(
@@ -22,7 +24,9 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .order(by: "createdAt", descending: true)
             .limit(to: max(1, limit))
             .addSnapshotListener { snapshot, _ in
-                let notifications = snapshot?.documents.map(makeNotification) ?? []
+                let notifications = snapshot?.documents
+                    .map(makeNotification)
+                    .filter(\.isVisibleInInbox) ?? []
                 Task { @MainActor in onChange(notifications) }
             }
 
@@ -34,7 +38,10 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .whereField("isRead", isEqualTo: false)
             .getDocuments()
 
-        return snapshot.documents.count
+        return snapshot.documents
+            .map(makeNotification)
+            .filter(\.countsAsUnread)
+            .count
     }
 
     func markNotificationRead(userID: String, notificationID: String) async throws {
@@ -44,21 +51,43 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         ])
     }
 
+    func markNotificationUnread(userID: String, notificationID: String) async throws {
+        try await inboxCollection(userID: userID).document(notificationID).updateData([
+            "isRead": false,
+            "readAt": FieldValue.delete()
+        ])
+    }
+
     func markAllNotificationsRead(userID: String) async throws {
         let snapshot = try await inboxCollection(userID: userID)
             .whereField("isRead", isEqualTo: false)
             .getDocuments()
 
-        guard !snapshot.documents.isEmpty else { return }
+        let unreadDocuments = snapshot.documents.filter { document in
+            makeNotification(from: document).countsAsUnread
+        }
+        guard !unreadDocuments.isEmpty else { return }
 
         let batch = database.batch()
-        for document in snapshot.documents {
+        for document in unreadDocuments {
             batch.updateData([
                 "isRead": true,
                 "readAt": FieldValue.serverTimestamp()
             ], forDocument: document.reference)
         }
         try await batch.commit()
+    }
+
+    func archiveNotification(userID: String, notificationID: String) async throws {
+        try await inboxCollection(userID: userID).document(notificationID).updateData([
+            "archivedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
+    func deleteNotification(userID: String, notificationID: String) async throws {
+        try await inboxCollection(userID: userID).document(notificationID).updateData([
+            "deletedAt": FieldValue.serverTimestamp()
+        ])
     }
 
     func createNotification(userID: String, notification: AppNotification) async throws {
@@ -78,6 +107,8 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         let data = document.data()
         let type = (data["type"] as? String).flatMap(AppNotificationType.init(rawValue:)) ?? .feedbackReply
         let sourceType = (data["sourceType"] as? String).flatMap(AppNotificationSourceType.init(rawValue:)) ?? .feedback
+        let severity = (data["severity"] as? String).flatMap(AppNotificationSeverity.init(rawValue:)) ?? defaultSeverity(for: type)
+        let actionType = (data["actionType"] as? String).flatMap(AppNotificationActionType.init(rawValue:)) ?? defaultActionType(for: type)
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
         let readAt = (data["readAt"] as? Timestamp)?.dateValue()
 
@@ -87,8 +118,18 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             type: type,
             sourceType: sourceType,
             sourceId: data["sourceId"] as? String ?? "",
+            severity: severity,
+            actionType: actionType,
+            actionTargetId: data["actionTargetId"] as? String,
+            requiresPopup: data["requiresPopup"] as? Bool ?? false,
+            popupPresentedAt: (data["popupPresentedAt"] as? Timestamp)?.dateValue(),
+            expiresAt: (data["expiresAt"] as? Timestamp)?.dateValue(),
+            archivedAt: (data["archivedAt"] as? Timestamp)?.dateValue(),
+            deletedAt: (data["deletedAt"] as? Timestamp)?.dateValue(),
+            metadata: data["metadata"] as? [String: String] ?? [:],
             actorUserId: data["actorUserId"] as? String,
             actorDisplayName: data["actorDisplayName"] as? String,
+            dedupeKey: data["dedupeKey"] as? String,
             payload: data["payload"] as? [String: String] ?? [:],
             isRead: data["isRead"] as? Bool ?? false,
             readAt: readAt,
@@ -108,16 +149,82 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             "createdAt": Timestamp(date: notification.createdAt)
         ]
 
+        if notification.severity != defaultSeverity(for: notification.type) {
+            data["severity"] = notification.severity.rawValue
+        }
+        if notification.actionType != .none {
+            data["actionType"] = notification.actionType.rawValue
+        }
+        if let actionTargetId = notification.actionTargetId {
+            data["actionTargetId"] = actionTargetId
+        }
+        if notification.requiresPopup {
+            data["requiresPopup"] = notification.requiresPopup
+        }
+        if let popupPresentedAt = notification.popupPresentedAt {
+            data["popupPresentedAt"] = Timestamp(date: popupPresentedAt)
+        }
+        if let expiresAt = notification.expiresAt {
+            data["expiresAt"] = Timestamp(date: expiresAt)
+        }
+        if let archivedAt = notification.archivedAt {
+            data["archivedAt"] = Timestamp(date: archivedAt)
+        }
+        if let deletedAt = notification.deletedAt {
+            data["deletedAt"] = Timestamp(date: deletedAt)
+        }
         if let actorUserId = notification.actorUserId {
             data["actorUserId"] = actorUserId
         }
         if let actorDisplayName = notification.actorDisplayName {
             data["actorDisplayName"] = actorDisplayName
         }
+        if let dedupeKey = notification.dedupeKey {
+            data["dedupeKey"] = dedupeKey
+        }
+        if !notification.metadata.isEmpty {
+            data["metadata"] = notification.metadata
+        }
         if let readAt = notification.readAt {
             data["readAt"] = Timestamp(date: readAt)
         }
 
         return data
+    }
+
+    private func defaultSeverity(for type: AppNotificationType) -> AppNotificationSeverity {
+        switch type {
+        case .organizationRequestApproved:
+            .success
+        case .organizationRequestNeedsRevision, .organizationRequestRejected, .accountStatusChanged, .eventCancelled:
+            .warning
+        case .legalDocumentsUpdated, .systemAnnouncement:
+            .critical
+        case .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .guideMaterialUpdated:
+            .info
+        }
+    }
+
+    private func defaultActionType(for type: AppNotificationType) -> AppNotificationActionType {
+        switch type {
+        case .feedbackReply:
+            .openFeedback
+        case .organizationRequestApproved, .organizationRequestNeedsRevision, .organizationRequestRejected:
+            .openOrganizationRequest
+        case .organizationRoleAssigned, .organizationRoleRemoved:
+            .openOrganization
+        case .eventUpdated, .eventCancelled:
+            .openEvent
+        case .guideMaterialUpdated:
+            .openGuideMaterial
+        case .reportReviewed:
+            .openGuideReport
+        case .legalDocumentsUpdated:
+            .openLegalDocuments
+        case .accountStatusChanged, .roleChanged:
+            .openProfile
+        case .systemAnnouncement:
+            .none
+        }
     }
 }

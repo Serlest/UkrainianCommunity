@@ -1,12 +1,20 @@
 import Foundation
 import Combine
 
+enum NotificationInboxFilter: String, CaseIterable, Identifiable {
+    case all
+    case unread
+
+    var id: String { rawValue }
+}
+
 @MainActor
 final class NotificationInboxViewModel: ObservableObject {
     @Published private(set) var notifications: [AppNotification] = []
     @Published private(set) var unreadCount = 0
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
+    @Published var selectedFilter: NotificationInboxFilter = .all
 
     private let repository: NotificationInboxRepository
     private var listener: AppRealtimeListener?
@@ -25,10 +33,20 @@ final class NotificationInboxViewModel: ObservableObject {
         notifications = []
         unreadCount = 0
         error = nil
+        selectedFilter = .all
 
         guard let userID else { return }
         startListening(userID: userID)
         await refresh()
+    }
+
+    var filteredNotifications: [AppNotification] {
+        switch selectedFilter {
+        case .all:
+            notifications
+        case .unread:
+            notifications.filter(\.countsAsUnread)
+        }
     }
 
     func refresh() async {
@@ -52,7 +70,21 @@ final class NotificationInboxViewModel: ObservableObject {
 
         do {
             try await repository.markNotificationRead(userID: userID, notificationID: notification.id)
-            applyReadState(notificationID: notification.id)
+            applyReadState(notificationID: notification.id, isRead: true, readAt: Date())
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func markUnread(_ notification: AppNotification) async {
+        guard let userID = currentUserID, notification.isRead else { return }
+
+        do {
+            try await repository.markNotificationUnread(userID: userID, notificationID: notification.id)
+            applyReadState(notificationID: notification.id, isRead: false, readAt: nil)
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -67,21 +99,42 @@ final class NotificationInboxViewModel: ObservableObject {
         do {
             try await repository.markAllNotificationsRead(userID: userID)
             notifications = notifications.map { notification in
-                AppNotification(
-                    id: notification.id,
-                    recipientUserId: notification.recipientUserId,
-                    type: notification.type,
-                    sourceType: notification.sourceType,
-                    sourceId: notification.sourceId,
-                    actorUserId: notification.actorUserId,
-                    actorDisplayName: notification.actorDisplayName,
-                    payload: notification.payload,
-                    isRead: true,
-                    readAt: notification.readAt ?? Date(),
-                    createdAt: notification.createdAt
-                )
+                guard notification.countsAsUnread else { return notification }
+                return notification.updatingReadState(isRead: true, readAt: notification.readAt ?? Date())
             }
             unreadCount = 0
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func archive(_ notification: AppNotification) async {
+        guard let userID = currentUserID else { return }
+
+        do {
+            try await repository.archiveNotification(userID: userID, notificationID: notification.id)
+            applyArchiveState(notificationID: notification.id)
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func delete(_ notification: AppNotification) async {
+        guard let userID = currentUserID else { return }
+
+        do {
+            try await repository.deleteNotification(userID: userID, notificationID: notification.id)
+            let wasUnread = notification.countsAsUnread
+            notifications.removeAll { $0.id == notification.id }
+            if wasUnread {
+                unreadCount = max(0, unreadCount - 1)
+            }
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -94,29 +147,34 @@ final class NotificationInboxViewModel: ObservableObject {
         listener = repository.listenNotifications(userID: userID, limit: notificationLimit) { [weak self] notifications in
             guard let self else { return }
             self.notifications = notifications
-            self.unreadCount = notifications.filter { !$0.isRead }.count
+            self.unreadCount = notifications.filter(\.countsAsUnread).count
             self.error = nil
         }
     }
 
-    private func applyReadState(notificationID: String) {
+    private func applyReadState(notificationID: String, isRead: Bool, readAt: Date?) {
         guard let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
         let notification = notifications[index]
-        guard !notification.isRead else { return }
+        let wasUnread = notification.countsAsUnread
+        notifications[index] = notification.updatingReadState(isRead: isRead, readAt: readAt)
+        let isUnread = notifications[index].countsAsUnread
+        updateUnreadCount(wasUnread: wasUnread, isUnread: isUnread)
+    }
 
-        notifications[index] = AppNotification(
-            id: notification.id,
-            recipientUserId: notification.recipientUserId,
-            type: notification.type,
-            sourceType: notification.sourceType,
-            sourceId: notification.sourceId,
-            actorUserId: notification.actorUserId,
-            actorDisplayName: notification.actorDisplayName,
-            payload: notification.payload,
-            isRead: true,
-            readAt: notification.readAt ?? Date(),
-            createdAt: notification.createdAt
-        )
-        unreadCount = max(0, unreadCount - 1)
+    private func applyArchiveState(notificationID: String) {
+        guard let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
+        let notification = notifications[index]
+        let wasUnread = notification.countsAsUnread
+        notifications[index] = notification.updatingArchiveState(archivedAt: Date())
+        let isUnread = notifications[index].countsAsUnread
+        updateUnreadCount(wasUnread: wasUnread, isUnread: isUnread)
+    }
+
+    private func updateUnreadCount(wasUnread: Bool, isUnread: Bool) {
+        if wasUnread && !isUnread {
+            unreadCount = max(0, unreadCount - 1)
+        } else if !wasUnread && isUnread {
+            unreadCount += 1
+        }
     }
 }

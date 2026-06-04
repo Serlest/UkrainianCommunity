@@ -4,6 +4,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { auditLogRef, buildAuditLog } from "../audit/auditLog";
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
+import { writeUserNotification } from "../notifications/notificationPayloads";
 import {
   canManageOrganizationRoles,
   type OrganizationRole,
@@ -134,6 +135,19 @@ function withoutUser(userIds: string[], uid: string): string[] {
   return userIds.filter((userId) => userId !== uid);
 }
 
+function organizationRoleName(role: OrganizationRoleResult): string {
+  switch (role) {
+    case "communityOwner":
+      return "organization owner";
+    case "communityAdmin":
+      return "organization admin";
+    case "communityModerator":
+      return "organization moderator";
+    case "none":
+      return "organization role";
+  }
+}
+
 function createRoleCallable(mutation: RoleMutation) {
   return onCall(callableOptions, async (request): Promise<OrganizationRoleChangeResponse> => {
     const auth = requireAuth(request);
@@ -196,6 +210,41 @@ function createRoleCallable(mutation: RoleMutation) {
           role: newRole,
         },
       }));
+    });
+
+    const notificationType = mutation.isRemoval
+      ? "organizationRoleRemoved"
+      : "organizationRoleAssigned";
+    const changedRole = mutation.isRemoval ? previousRole : newRole;
+
+    await writeUserNotification({
+      targetUserId: roleRequest.targetUserId,
+      type: notificationType,
+      title: mutation.isRemoval
+        ? "Organization role removed"
+        : "Organization role assigned",
+      message: mutation.isRemoval
+        ? `Your ${organizationRoleName(changedRole)} role was removed.`
+        : `You were assigned as ${organizationRoleName(changedRole)}.`,
+      severity: "info",
+      actionType: "openOrganization",
+      actionTargetId: roleRequest.organizationId,
+      requiresPopup: false,
+      actorUserId: auth.uid,
+      sourceType: "organization",
+      sourceId: roleRequest.organizationId,
+      metadata: {
+        organizationId: roleRequest.organizationId,
+        previousRole,
+        newRole,
+        updatedAt: committedAt,
+      },
+      dedupeKey: [
+        "organizationRole",
+        roleRequest.organizationId,
+        roleRequest.targetUserId,
+        newRole,
+      ].join(":"),
     });
 
     return {
@@ -289,6 +338,58 @@ export const transferOrganizationOwnership = onCall(
         },
       }));
     });
+
+    await writeUserNotification({
+      targetUserId: roleRequest.targetUserId,
+      type: "organizationRoleAssigned",
+      title: "Organization ownership transferred",
+      message: "You were assigned as organization owner.",
+      severity: "info",
+      actionType: "openOrganization",
+      actionTargetId: roleRequest.organizationId,
+      requiresPopup: false,
+      actorUserId: auth.uid,
+      sourceType: "organization",
+      sourceId: roleRequest.organizationId,
+      metadata: {
+        organizationId: roleRequest.organizationId,
+        previousOwnerId,
+        newOwnerId: roleRequest.targetUserId,
+        updatedAt: committedAt,
+      },
+      dedupeKey: [
+        "organizationOwnership",
+        roleRequest.organizationId,
+        roleRequest.targetUserId,
+      ].join(":"),
+    });
+
+    if (previousOwnerId) {
+      await writeUserNotification({
+        targetUserId: previousOwnerId,
+        type: "organizationRoleRemoved",
+        title: "Organization ownership transferred",
+        message: "Your organization owner role was transferred.",
+        severity: "info",
+        actionType: "openOrganization",
+        actionTargetId: roleRequest.organizationId,
+        requiresPopup: false,
+        actorUserId: auth.uid,
+        sourceType: "organization",
+        sourceId: roleRequest.organizationId,
+        metadata: {
+          organizationId: roleRequest.organizationId,
+          previousOwnerId,
+          newOwnerId: roleRequest.targetUserId,
+          updatedAt: committedAt,
+        },
+        dedupeKey: [
+          "organizationOwnershipRemoved",
+          roleRequest.organizationId,
+          previousOwnerId,
+        ].join(":"),
+      });
+    }
 
     return {
       organizationId: roleRequest.organizationId,

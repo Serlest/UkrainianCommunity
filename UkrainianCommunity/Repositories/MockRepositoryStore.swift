@@ -66,12 +66,13 @@ actor MockRepositoryStore {
 
     func notifications(userID: String, limit: Int) -> [AppNotification] {
         Array((notificationsByUserID[userID] ?? [])
+            .filter(\.isVisibleInInbox)
             .sorted { $0.createdAt > $1.createdAt }
             .prefix(max(1, limit)))
     }
 
     func unreadNotificationCount(userID: String) -> Int {
-        (notificationsByUserID[userID] ?? []).filter { !$0.isRead }.count
+        (notificationsByUserID[userID] ?? []).filter(\.countsAsUnread).count
     }
 
     func createNotification(_ notification: AppNotification, userID: String) {
@@ -85,38 +86,39 @@ actor MockRepositoryStore {
         guard var notifications = notificationsByUserID[userID],
               let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
         let notification = notifications[index]
-        notifications[index] = AppNotification(
-            id: notification.id,
-            recipientUserId: notification.recipientUserId,
-            type: notification.type,
-            sourceType: notification.sourceType,
-            sourceId: notification.sourceId,
-            actorUserId: notification.actorUserId,
-            actorDisplayName: notification.actorDisplayName,
-            payload: notification.payload,
-            isRead: true,
-            readAt: .now,
-            createdAt: notification.createdAt
-        )
+        notifications[index] = notification.updatingReadState(isRead: true, readAt: .now)
+        notificationsByUserID[userID] = notifications
+    }
+
+    func markNotificationUnread(userID: String, notificationID: String) {
+        guard var notifications = notificationsByUserID[userID],
+              let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
+        let notification = notifications[index]
+        notifications[index] = notification.updatingReadState(isRead: false, readAt: nil)
         notificationsByUserID[userID] = notifications
     }
 
     func markAllNotificationsRead(userID: String) {
         let notifications = (notificationsByUserID[userID] ?? []).map { notification in
-            AppNotification(
-                id: notification.id,
-                recipientUserId: notification.recipientUserId,
-                type: notification.type,
-                sourceType: notification.sourceType,
-                sourceId: notification.sourceId,
-                actorUserId: notification.actorUserId,
-                actorDisplayName: notification.actorDisplayName,
-                payload: notification.payload,
-                isRead: true,
-                readAt: notification.readAt ?? .now,
-                createdAt: notification.createdAt
-            )
+            guard notification.countsAsUnread else { return notification }
+            return notification.updatingReadState(isRead: true, readAt: notification.readAt ?? .now)
         }
+        notificationsByUserID[userID] = notifications
+    }
+
+    func archiveNotification(userID: String, notificationID: String) {
+        guard var notifications = notificationsByUserID[userID],
+              let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
+        let notification = notifications[index]
+        notifications[index] = notification.updatingArchiveState(archivedAt: .now)
+        notificationsByUserID[userID] = notifications
+    }
+
+    func deleteNotification(userID: String, notificationID: String) {
+        guard var notifications = notificationsByUserID[userID],
+              let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
+        let notification = notifications[index]
+        notifications[index] = notification.updatingDeleteState(deletedAt: .now)
         notificationsByUserID[userID] = notifications
     }
 

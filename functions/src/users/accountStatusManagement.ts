@@ -6,6 +6,10 @@ import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/audit
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
+  type NotificationSeverity,
+  writeUserNotification,
+} from "../notifications/notificationPayloads";
+import {
   assertOwner,
   type AccountStatus,
   type BlockState,
@@ -213,6 +217,25 @@ function timestampToISO(timestamp: Timestamp | null): string | null {
   return timestamp?.toDate().toISOString() ?? null;
 }
 
+function accountStatusNotificationTitle(status: AccountStatus): string {
+  switch (status) {
+    case "active":
+      return "Account access restored";
+    case "warned":
+      return "Account warning issued";
+    case "suspendedUntil":
+      return "Account temporarily suspended";
+    case "bannedPermanent":
+      return "Account permanently blocked";
+    case "deactivated":
+      return "Account deactivated";
+  }
+}
+
+function accountStatusNotificationSeverity(status: AccountStatus): NotificationSeverity {
+  return status === "active" ? "success" : "warning";
+}
+
 function createAccountStatusCallable(mutation: AccountStatusMutation) {
   return onCall(callableOptions, async (request): Promise<AccountStatusChangeResponse> => {
     const auth = requireAuth(request);
@@ -238,6 +261,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
     let newBlockState: BlockState = "active";
     let warningCount = 0;
     let banExpiresAt: string | null = null;
+    const notificationReason = statusRequest.reason ?? mutation.defaultReason;
 
     await db.runTransaction(async (transaction) => {
       const targetSnapshot = await transaction.get(targetReference);
@@ -252,7 +276,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
       );
       assertMutableTarget(target);
 
-      const reason = statusRequest.reason ?? mutation.defaultReason;
+      const reason = notificationReason;
       const next = mutation.apply(target, statusRequest);
       const nextWarningCount = next.warningCount ? target.warningCount + 1 : target.warningCount;
       const nextBanTimestamp = next.banExpiresAt instanceof Timestamp ? next.banExpiresAt : null;
@@ -298,6 +322,37 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
           statusUpdatedBy: auth.uid,
         },
       }));
+    });
+
+    await writeUserNotification({
+      targetUserId: statusRequest.targetUserId,
+      type: "accountStatusChanged",
+      title: accountStatusNotificationTitle(newAccountStatus),
+      message: mutation.statusMessage(notificationReason),
+      severity: accountStatusNotificationSeverity(newAccountStatus),
+      actionType: "openProfile",
+      actionTargetId: statusRequest.targetUserId,
+      requiresPopup: false,
+      actorUserId: auth.uid,
+      sourceType: "account",
+      sourceId: statusRequest.targetUserId,
+      metadata: {
+        previousAccountStatus,
+        newAccountStatus,
+        previousBlockState,
+        newBlockState,
+        warningCount,
+        banExpiresAt,
+        reason: notificationReason,
+        updatedAt: committedAt,
+      },
+      dedupeKey: [
+        "accountStatus",
+        statusRequest.targetUserId,
+        newAccountStatus,
+        String(warningCount),
+        banExpiresAt ?? "none",
+      ].join(":"),
     });
 
     return {
@@ -396,6 +451,11 @@ export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, a
 
   const batch = db.batch();
   let restoredCount = 0;
+  const restoredUsers: Array<{
+    userId: string;
+    warningCount: number;
+    expiredAt: string | null;
+  }> = [];
 
   for (const userSnapshot of expiredUsersSnapshot.docs) {
     const target = accountStatusSnapshotFromData(userSnapshot.id, userSnapshot.data());
@@ -446,9 +506,46 @@ export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, a
     }));
 
     restoredCount += 1;
+    restoredUsers.push({
+      userId: userSnapshot.id,
+      warningCount: target.warningCount,
+      expiredAt: timestampToISO(target.banExpiresAt),
+    });
   }
 
   if (restoredCount > 0) {
     await batch.commit();
+    await Promise.all(restoredUsers.map((restoredUser) => writeUserNotification({
+      targetUserId: restoredUser.userId,
+      type: "accountStatusChanged",
+      title: accountStatusNotificationTitle("active"),
+      message: `Your account access has been restored. Reason: ${
+        temporarySuspensionExpiredReason
+      }`,
+      severity: "success",
+      actionType: "openProfile",
+      actionTargetId: restoredUser.userId,
+      requiresPopup: false,
+      actorUserId: systemActor,
+      sourceType: "account",
+      sourceId: restoredUser.userId,
+      metadata: {
+        previousAccountStatus: "suspendedUntil",
+        newAccountStatus: "active",
+        previousBlockState: "suspendedUntil",
+        newBlockState: "active",
+        warningCount: restoredUser.warningCount,
+        banExpiresAt: null,
+        reason: temporarySuspensionExpiredReason,
+        updatedAt: committedAt,
+      },
+      dedupeKey: [
+        "accountStatus",
+        restoredUser.userId,
+        "active",
+        "expiredSuspension",
+        restoredUser.expiredAt ?? "none",
+      ].join(":"),
+    })));
   }
 });

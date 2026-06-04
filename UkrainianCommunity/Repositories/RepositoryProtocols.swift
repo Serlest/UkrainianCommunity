@@ -35,7 +35,10 @@ protocol NotificationInboxRepository {
     ) -> AppRealtimeListener
     func fetchUnreadCount(userID: String) async throws -> Int
     func markNotificationRead(userID: String, notificationID: String) async throws
+    func markNotificationUnread(userID: String, notificationID: String) async throws
     func markAllNotificationsRead(userID: String) async throws
+    func archiveNotification(userID: String, notificationID: String) async throws
+    func deleteNotification(userID: String, notificationID: String) async throws
     func createNotification(userID: String, notification: AppNotification) async throws
 }
 
