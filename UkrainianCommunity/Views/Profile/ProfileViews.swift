@@ -25,7 +25,7 @@ struct ProfileView: View {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
-    private let guideRepository: GuideRepository
+    private let guideRepository: LegacyGuideRepository
     private let featuredBannerRepository: FeaturedBannerRepository
     private let notificationInboxRepository: NotificationInboxRepository
     @EnvironmentObject var authState: AuthState
@@ -67,7 +67,7 @@ struct ProfileView: View {
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        guideRepository: GuideRepository = FirestoreGuideRepository(),
+        guideRepository: LegacyGuideRepository = LegacyFirestoreGuideRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
@@ -109,6 +109,19 @@ struct ProfileView: View {
 
     private var canShowModerationTools: Bool {
         PermissionService.canAccessModerationTools(user: permissionUser)
+    }
+
+    private var canShowOrganizationRequests: Bool {
+        PermissionService.canManageOrganizationRequests(user: permissionUser)
+    }
+
+    private var canShowFeedbackReports: Bool {
+        PermissionService.canManageFeedback(user: permissionUser)
+            || PermissionService.canManageReports(user: permissionUser)
+    }
+
+    private var canShowFeaturedBanners: Bool {
+        PermissionService.canManageFeaturedBanners(user: permissionUser)
     }
 
     private var canShowOrganizationManagement: Bool {
@@ -163,7 +176,31 @@ struct ProfileView: View {
     }
 
     private var shouldLoadOwnerVisibility: Bool {
-        PermissionService.canAccessOwnerDashboard(user: permissionUser)
+        canShowOrganizationRequests || canShowFeedbackReports
+    }
+
+    private func loadOwnerVisibilityIfAllowed() async {
+        guard shouldLoadOwnerVisibility else {
+            ownerVisibilityViewModel.reset()
+            return
+        }
+
+        await ownerVisibilityViewModel.loadIfNeeded(
+            includeOrganizationRequests: canShowOrganizationRequests,
+            includeFeedback: canShowFeedbackReports
+        )
+    }
+
+    private func refreshOwnerVisibilityIfAllowed() async {
+        guard shouldLoadOwnerVisibility else {
+            ownerVisibilityViewModel.reset()
+            return
+        }
+
+        await ownerVisibilityViewModel.refresh(
+            includeOrganizationRequests: canShowOrganizationRequests,
+            includeFeedback: canShowFeedbackReports
+        )
     }
 
     private var organizationRoleMemberships: [CommunityMembership] {
@@ -313,7 +350,6 @@ struct ProfileView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, AppTheme.pageHorizontal)
-                        .padding(.top, AppTheme.sectionSpacing)
                         .padding(.bottom, AppTheme.homeBottomContentPadding + 32)
                         .frame(width: proxy.size.width, alignment: .topLeading)
                     }
@@ -341,11 +377,7 @@ struct ProfileView: View {
                 }
                 await ownerOrganizationsViewModel.loadIfNeeded()
                 await ownerOrganizationsViewModel.refreshIfStale()
-                if shouldLoadOwnerVisibility {
-                    await ownerVisibilityViewModel.loadIfNeeded()
-                } else {
-                    ownerVisibilityViewModel.reset()
-                }
+                await loadOwnerVisibilityIfAllowed()
             } else {
                 registrationsViewModel.resetForGuest()
                 myFeedbackViewModel.reset()
@@ -361,11 +393,7 @@ struct ProfileView: View {
                     await viewModel.refreshNotificationPreferences(userID: userID)
                 }
                 await ownerOrganizationsViewModel.refresh()
-                if shouldLoadOwnerVisibility {
-                    await ownerVisibilityViewModel.refresh()
-                } else {
-                    ownerVisibilityViewModel.reset()
-                }
+                await refreshOwnerVisibilityIfAllowed()
             }
         }
         .onChange(of: authState.isAuthenticated) { _, isAuthenticated in
@@ -377,11 +405,7 @@ struct ProfileView: View {
                         await viewModel.refreshNotificationPreferences(userID: userID)
                     }
                     await ownerOrganizationsViewModel.refresh()
-                    if shouldLoadOwnerVisibility {
-                        await ownerVisibilityViewModel.refresh()
-                    } else {
-                        ownerVisibilityViewModel.reset()
-                    }
+                    await refreshOwnerVisibilityIfAllowed()
                 } else {
                     registrationsViewModel.resetForGuest()
                     myFeedbackViewModel.reset()
@@ -403,18 +427,14 @@ struct ProfileView: View {
                 await myFeedbackViewModel.refresh(userID: newUserID)
                 await viewModel.refreshNotificationPreferences(userID: newUserID)
                 await ownerOrganizationsViewModel.refresh()
-                if shouldLoadOwnerVisibility {
-                    await ownerVisibilityViewModel.refresh()
-                }
+                await refreshOwnerVisibilityIfAllowed()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             guard authState.isAuthenticated else { return }
             Task {
                 await ownerOrganizationsViewModel.refresh()
-                if shouldLoadOwnerVisibility {
-                    await ownerVisibilityViewModel.refresh()
-                }
+                await refreshOwnerVisibilityIfAllowed()
             }
         }
         .sheet(isPresented: $isShowingEditProfileSheet) {
@@ -486,6 +506,7 @@ struct ProfileView: View {
             Text(deleteAccountErrorMessage ?? "")
         }
         .guestAccessAlert($guestAccessAction)
+        .dismissesKeyboardOnBackgroundTap()
     }
 
     private var profileTitleBlock: some View {
@@ -547,7 +568,7 @@ struct ProfileView: View {
                 notificationInboxRepository: notificationInboxRepository
             )
         case .guideManagement:
-            GuideManagementView(guideRepository: guideRepository)
+            GuideManagementView()
         case .userManagement:
             UserManagementView()
         case .featuredBannerManagement:
@@ -584,15 +605,13 @@ struct ProfileView: View {
                     AppEditorSectionCard {
                         VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                             Text(AppStrings.Profile.deleteAccountTypePrompt)
-                                .font(.subheadline.weight(.semibold))
+                                .font(AppTheme.buttonLabelFont)
                                 .foregroundStyle(AppTheme.textPrimary)
 
                             TextField(AppStrings.Profile.deleteAccountConfirmationKeyword, text: $deleteAccountConfirmationText)
                                 .textInputAutocapitalization(.characters)
                                 .autocorrectionDisabled()
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
-                                .background(AppTheme.surfacePrimary, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+                                .appEditorInputStyle()
 
                             Button(role: .destructive) {
                                 Task {
@@ -605,7 +624,7 @@ struct ProfileView: View {
                                     Label(AppStrings.Profile.deleteAccountFinalAction, systemImage: "trash")
                                 }
                             }
-                            .buttonStyle(.borderedProminent)
+                            .appActionButtonStyle(.primary)
                             .tint(AppTheme.accentDestructive)
                             .disabled(!canConfirmAccountDeletion || viewModel.isDeletingAccount)
                         }
@@ -622,6 +641,7 @@ struct ProfileView: View {
                     }
                 }
             }
+            .dismissesKeyboardOnBackgroundTap()
         }
     }
 
@@ -636,6 +656,15 @@ struct ProfileView: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    AppCenteredBrandHeader {
+                        AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
+                            guard !viewModel.isSavingProfile else { return }
+                            isShowingEditProfileSheet = false
+                        }
+                    } trailingContent: {
+                        EmptyView()
+                    }
+
                     SectionHeaderBlock(
                         title: AppStrings.Profile.editProfile,
                         subtitle: AppStrings.Profile.editProfileSubtitle
@@ -693,17 +722,9 @@ struct ProfileView: View {
                 }
             }
         }
-        .navigationTitle(AppStrings.Profile.editProfile)
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .interactiveDismissDisabled(viewModel.isSavingProfile)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(AppStrings.Common.cancel) {
-                    guard !viewModel.isSavingProfile else { return }
-                    isShowingEditProfileSheet = false
-                }
-            }
-        }
+        .dismissesKeyboardOnBackgroundTap()
         .sheet(isPresented: $isShowingAvatarCrop, onDismiss: resetAvatarCropSelection) {
             if let cropSourceAvatarImage {
                 ImageCropView(
@@ -832,10 +853,7 @@ struct ProfileView: View {
     @ViewBuilder
     private func userProfileContent(for user: AppUser) -> some View {
         if let profileDashboardMode {
-            switch profileDashboardMode {
-            case .owner:
-                ownerControlCenterContent(for: user)
-            }
+            platformProfileContent(for: user, mode: profileDashboardMode)
         } else {
             ProfileHeroCard(
                 user: user,
@@ -844,18 +862,21 @@ struct ProfileView: View {
             )
 
             quickActionsSection(for: user)
-            guideManagementSection
             supportSection(for: user)
+            settingsSection
             accountDeletionSection
             logoutSection
         }
     }
 
     @ViewBuilder
-    private func ownerControlCenterContent(for user: AppUser) -> some View {
-        OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: .owner)
+    private func platformProfileContent(for user: AppUser, mode: ProfileDashboardMode) -> some View {
+        OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: mode)
         quickActionsSection(for: user)
-        ownerPlatformManagementSection
+        platformManagementSection
+        supportSection(for: user)
+        settingsSection
+        accountDeletionSection
         logoutSection
     }
 
@@ -962,22 +983,117 @@ struct ProfileView: View {
         return organizationCount
     }
 
-
     @ViewBuilder
-    private var guideManagementSection: some View {
-        if canShowGuideManagement {
-            ProfileSectionCard(title: AppStrings.GuideManagement.title, subtitle: AppStrings.GuideManagement.entrySubtitle) {
-                NavigationLink(value: ProfileNavigationRoute.guideManagement) {
-                    ProfileModuleRow(
-                        title: AppStrings.GuideManagement.title,
-                        subtitle: AppStrings.GuideManagement.entrySubtitle,
-                        systemImage: "book.closed",
-                        status: .available
-                    )
+    private var platformManagementSection: some View {
+        if hasPlatformManagementItems {
+            ProfileSectionCard(title: platformManagementTitle, subtitle: platformManagementSubtitle) {
+                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    if canShowAdminTools {
+                        NavigationLink(value: ProfileNavigationRoute.userManagement) {
+                            ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.ownerUsersSubtitle, systemImage: "person.3", status: .active)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if canShowGuideManagement {
+                        NavigationLink(value: ProfileNavigationRoute.guideManagement) {
+                            ProfileModuleRow(
+                                title: AppStrings.GuideManagement.title,
+                                subtitle: AppStrings.GuideManagement.entrySubtitle,
+                                systemImage: "book.closed",
+                                status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if canShowFeaturedBanners {
+                        NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
+                            ProfileModuleRow(
+                                title: AppStrings.FeaturedManagement.profileEntryTitle,
+                                subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
+                                systemImage: "sparkles.rectangle.stack",
+                                status: .active
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if canShowOrganizationRequests {
+                        NavigationLink(value: ProfileNavigationRoute.moderationTools) {
+                            ProfileModuleRow(
+                                title: AppStrings.Profile.ownerOrganizationRequests,
+                                subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
+                                systemImage: "clock.badge.exclamationmark",
+                                status: .available,
+                                countBadge: ownerVisibilityViewModel.pendingOrganizationRequestCount
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if canShowModerationTools {
+                        NavigationLink(value: ProfileNavigationRoute.moderationTools) {
+                            ProfileModuleRow(
+                                title: AppStrings.Profile.ownerModeration,
+                                subtitle: AppStrings.Profile.ownerModerationSubtitle,
+                                systemImage: "shield.lefthalf.filled",
+                                status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if canShowFeedbackReports {
+                        NavigationLink(value: ProfileNavigationRoute.feedbackInbox) {
+                            ProfileModuleRow(
+                                title: AppStrings.Profile.ownerUserFeedback,
+                                subtitle: AppStrings.Feedback.inboxSubtitle,
+                                systemImage: "bubble.left.and.bubble.right",
+                                status: .available,
+                                countBadge: ownerVisibilityViewModel.unreadFeedbackCount
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
+    }
+
+    private var hasPlatformManagementItems: Bool {
+        canShowAdminTools
+            || canShowGuideManagement
+            || canShowFeaturedBanners
+            || canShowOrganizationRequests
+            || canShowModerationTools
+            || canShowFeedbackReports
+    }
+
+    private var platformManagementTitle: String {
+        if PermissionService.isAppOwner(user: permissionUser) {
+            return AppStrings.Profile.ownerPlatformManagement
+        }
+        if PermissionService.isAppAdmin(user: permissionUser) {
+            return AppStrings.Profile.adminPlatformManagement
+        }
+        if PermissionService.isAppModerator(user: permissionUser) {
+            return AppStrings.Profile.moderatorReviewQueues
+        }
+        return AppStrings.Profile.guideEditorManagement
+    }
+
+    private var platformManagementSubtitle: String {
+        if PermissionService.isAppOwner(user: permissionUser) {
+            return AppStrings.Profile.ownerPlatformManagementSubtitle
+        }
+        if PermissionService.isAppAdmin(user: permissionUser) {
+            return AppStrings.Profile.adminAssistanceSubtitle
+        }
+        if PermissionService.isAppModerator(user: permissionUser) {
+            return AppStrings.Profile.moderatorReviewQueuesSubtitle
+        }
+        return AppStrings.Profile.guideEditorManagementSubtitle
     }
 
     private var ownerPlatformManagementSection: some View {
@@ -1015,8 +1131,8 @@ struct ProfileView: View {
                         title: AppStrings.Profile.ownerOrganizationRequests,
                         subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
                         systemImage: "clock.badge.exclamationmark",
-                        status: canShowModerationTools ? .available : .locked,
-                        countBadge: canShowModerationTools ? ownerVisibilityViewModel.pendingOrganizationRequestCount : nil
+                        status: canShowOrganizationRequests ? .available : .locked,
+                        countBadge: canShowOrganizationRequests ? ownerVisibilityViewModel.pendingOrganizationRequestCount : nil
                     )
                 }
                 .buttonStyle(.plain)
@@ -1442,7 +1558,7 @@ private extension String {
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
             organizationRepository: MockOrganizationRepository(),
-            guideRepository: MockGuideRepository(),
+            guideRepository: LegacyMockGuideRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
             notificationInboxRepository: MockNotificationInboxRepository()
         )

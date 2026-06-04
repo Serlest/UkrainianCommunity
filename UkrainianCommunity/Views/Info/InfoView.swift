@@ -3,30 +3,34 @@ import SwiftUI
 struct InfoView: View {
     @ObservedObject var viewModel: InfoViewModel
     let featuredBannerRepository: FeaturedBannerRepository
-    @Binding var navigationPath: [GuideNavigationRoute]
+    let feedbackRepository: FeedbackRepository
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    @Binding var guideBannerCategoryTarget: GuideCategory?
     let scrollResetToken: Int
 
     init(
         viewModel: InfoViewModel,
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
-        navigationPath: Binding<[GuideNavigationRoute]> = .constant([]),
+        feedbackRepository: FeedbackRepository = FirestoreFeedbackRepository(),
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
+        guideBannerCategoryTarget: Binding<GuideCategory?> = .constant(nil),
         scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         self.featuredBannerRepository = featuredBannerRepository
+        self.feedbackRepository = feedbackRepository
         self.onFeaturedBannerTap = onFeaturedBannerTap
+        _guideBannerCategoryTarget = guideBannerCategoryTarget
         self.scrollResetToken = scrollResetToken
-        _navigationPath = navigationPath
     }
 
     var body: some View {
-        GuideHomeView(
-            viewModel: viewModel,
+        GuideReaderView(
+            viewModel: GuideReaderViewModel(repository: FirestoreGuideRepository()),
             featuredBannerRepository: featuredBannerRepository,
-            navigationPath: $navigationPath,
+            feedbackRepository: feedbackRepository,
             onFeaturedBannerTap: onFeaturedBannerTap,
+            guideBannerCategoryTarget: $guideBannerCategoryTarget,
             scrollResetToken: scrollResetToken
         )
     }

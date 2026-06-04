@@ -1335,12 +1335,15 @@ enum AppStrings {
         static var platformOwnerBadge: String { text("profile.owner.badge", "Власник платформи") }
         static var platformAdminBadge: String { text("profile.admin.badge", "Адміністратор") }
         static var platformModeratorBadge: String { text("profile.moderator.badge", "Модератор") }
+        static var guideEditorBadge: String { text("profile.guide_editor.badge", "Guide Editor") }
         static var ownerHeroStatus: String { text("profile.owner.hero_status", "Повний доступ до керування застосунком.") }
         static var adminHeroStatus: String { text("profile.admin.hero_status", "Операційне керування контентом, організаціями та модерацією.") }
         static var moderatorHeroStatus: String { text("profile.moderator.hero_status", "Фокус на перевірці матеріалів і роботі зі скаргами.") }
+        static var guideEditorHeroStatus: String { text("profile.guide_editor.hero_status", "Доступ до керування довідником і матеріалами Guide.") }
         static var ownerFullAccess: String { text("profile.owner.full_access", "Повний доступ") }
         static var adminOperationalAccess: String { text("profile.admin.operational_access", "Операційний доступ") }
         static var moderatorContentAccess: String { text("profile.moderator.content_access", "Модерація контенту") }
+        static var guideEditorAccess: String { text("profile.guide_editor.access", "Керування довідником") }
         static var ownerCreateNews: String { text("profile.owner.quick.create_news", "Створити новину") }
         static var ownerCreateNewsSubtitle: String { text("profile.owner.quick.create_news.subtitle", "Редакційний центр новин.") }
         static var ownerCreateEvent: String { text("profile.owner.quick.create_event", "Створити подію") }
@@ -1355,6 +1358,9 @@ enum AppStrings {
         static var ownerPlatformManagementSubtitle: String { text("profile.owner.platform_management.subtitle", "Основні модулі керування контентом і доступом.") }
         static var adminPlatformManagement: String { text("profile.admin.platform_management", "Операційне керування") }
         static var adminPlatformManagementSubtitle: String { text("profile.admin.platform_management.subtitle", "Контент, організації, довідник і частина user management.") }
+        static var adminAssistanceSubtitle: String { text("profile.admin.assistance.subtitle", "Заявки організацій, модерація, feedback/reports і довідник лише за окремою роллю.") }
+        static var guideEditorManagement: String { text("profile.guide_editor.management", "Керування довідником") }
+        static var guideEditorManagementSubtitle: String { text("profile.guide_editor.management.subtitle", "Створення, редагування, перевірка здоровʼя та звіти Guide.") }
         static var ownerUsers: String { text("profile.owner.users", "Користувачі") }
         static var ownerUsersSubtitle: String { text("profile.owner.users.subtitle", "Ролі, блокування, статус акаунтів.") }
         static var adminUsersSubtitle: String { text("profile.admin.users.subtitle", "Статуси акаунтів і базова модерація користувачів.") }
@@ -1748,6 +1754,28 @@ enum AppStrings {
         static var changeOwnerButton: String { text("user_management.change_owner.button", "Змінити власника") }
         static var assignRoleSectionTitle: String { text("user_management.assign_role.section_title", "Призначити роль") }
         static var assignRoleSectionSubtitle: String { text("user_management.assign_role.section_subtitle", "Owner платформи може призначити роль тільки в конкретній організації.") }
+        static var platformRolesTitle: String { text("user_management.platform_roles.title", "Ролі платформи") }
+        static var platformRolesSubtitle: String { text("user_management.platform_roles.subtitle", "App Admin, App Moderator і Guide Editor не повʼязані з ролями в організаціях.") }
+        static var currentPlatformRole: String { text("user_management.platform_roles.current_role", "Поточна роль") }
+        static var guideEditorRole: String { text("user_management.platform_roles.guide_editor", "Guide Editor") }
+        static var guideEditorEnabled: String { text("user_management.platform_roles.guide_editor.enabled", "Так") }
+        static var guideEditorDisabled: String { text("user_management.platform_roles.guide_editor.disabled", "Ні") }
+        static var assignAppAdmin: String { text("user_management.platform_roles.assign_app_admin", "Призначити App Admin") }
+        static var removeAppAdmin: String { text("user_management.platform_roles.remove_app_admin", "Зняти App Admin") }
+        static var assignAppModerator: String { text("user_management.platform_roles.assign_app_moderator", "Призначити App Moderator") }
+        static var removeAppModerator: String { text("user_management.platform_roles.remove_app_moderator", "Зняти App Moderator") }
+        static var assignGuideEditor: String { text("user_management.platform_roles.assign_guide_editor", "Призначити Guide Editor") }
+        static var removeGuideEditor: String { text("user_management.platform_roles.remove_guide_editor", "Зняти Guide Editor") }
+        static var platformRoleActionFallbackTitle: String { text("user_management.platform_roles.action_title", "Зміна ролі платформи") }
+        static var platformRoleAuditNotice: String { text("user_management.platform_roles.audit_notice", "Зміна ролі буде виконана через Cloud Function і записана в audit log. За потреби вкажіть причину в полі нижче перед підтвердженням.") }
+        static var platformRolePermissionDenied: String { text("user_management.platform_roles.permission_denied", "Недостатньо прав для зміни ролі платформи.") }
+        static var platformRoleTargetOwnerProtected: String { text("user_management.platform_roles.error.target_owner_protected", "App Owner захищений: змінити цю роль тут не можна.") }
+        static var platformRoleSelfChangeRejected: String { text("user_management.platform_roles.error.self_change_rejected", "Власну роль не можна змінити в цьому екрані.") }
+        static var platformRoleTargetAccountNotUsable: String { text("user_management.platform_roles.error.target_account_not_usable", "Роль можна надати лише користувачу з активним або попередженим акаунтом.") }
+        static var platformRoleNoOp: String { text("user_management.platform_roles.error.no_op", "Ця зміна ролі вже застосована.") }
+        static var platformRoleTargetMissing: String { text("user_management.platform_roles.error.target_missing", "Користувача для зміни ролі не знайдено.") }
+        static var ownerRoleImmutableNotice: String { text("user_management.platform_roles.owner_immutable", "App Owner не змінюється в цьому екрані.") }
+        static var selfRoleChangeNotice: String { text("user_management.platform_roles.self_change_blocked", "Власну роль не можна змінити тут.") }
         static var statusPermissionDenied: String { text("user_management.status.permission_denied", "Недостатньо прав для зміни статусу користувача.") }
         static var rolePermissionDenied: String { text("user_management.role.permission_denied", "Недостатньо прав для призначення ролі.") }
         static var removeRolePermissionDenied: String { text("user_management.role.remove_permission_denied", "Недостатньо прав для зняття ролі.") }

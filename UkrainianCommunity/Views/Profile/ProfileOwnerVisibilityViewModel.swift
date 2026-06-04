@@ -8,7 +8,8 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     private let feedbackRepository: FeedbackRepository
     private let organizationRepository: OrganizationRepository
     private let listenerBag = RealtimeListenerBag()
-    private var hasLoaded = false
+    private var hasLoadedFeedback = false
+    private var hasLoadedOrganizationRequests = false
 
     init(
         feedbackRepository: FeedbackRepository,
@@ -26,50 +27,98 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
         pendingOrganizationRequests?.count
     }
 
-    func loadIfNeeded() async {
-        startListening()
-        guard !hasLoaded else { return }
-        await refresh()
+    func loadIfNeeded(includeOrganizationRequests: Bool, includeFeedback: Bool) async {
+        startListening(includeOrganizationRequests: includeOrganizationRequests, includeFeedback: includeFeedback)
+
+        if includeFeedback, !hasLoadedFeedback {
+            await refreshFeedback()
+        } else if !includeFeedback {
+            resetFeedback()
+        }
+
+        if includeOrganizationRequests, !hasLoadedOrganizationRequests {
+            await refreshOrganizationRequests()
+        } else if !includeOrganizationRequests {
+            resetOrganizationRequests()
+        }
     }
 
-    func refresh() async {
-        startListening()
+    func refresh(includeOrganizationRequests: Bool, includeFeedback: Bool) async {
+        startListening(includeOrganizationRequests: includeOrganizationRequests, includeFeedback: includeFeedback)
 
-        do {
-            ownerFeedbackItems = try await feedbackRepository.fetchFeedback()
-            pendingOrganizationRequests = try await organizationRepository.fetchPendingOrganizations()
-            hasLoaded = true
-        } catch {
-            hasLoaded = true
+        if includeFeedback {
+            await refreshFeedback()
+        } else {
+            resetFeedback()
+        }
+
+        if includeOrganizationRequests {
+            await refreshOrganizationRequests()
+        } else {
+            resetOrganizationRequests()
         }
     }
 
     func reset() {
-        ownerFeedbackItems = nil
-        pendingOrganizationRequests = nil
-        listenerBag.removeAll()
-        hasLoaded = false
+        resetFeedback()
+        resetOrganizationRequests()
     }
 
-    private func startListening() {
-        if !listenerBag.contains("ownerFeedback"),
+    private func refreshFeedback() async {
+        do {
+            ownerFeedbackItems = try await feedbackRepository.fetchFeedback()
+            hasLoadedFeedback = true
+        } catch {
+            hasLoadedFeedback = true
+        }
+    }
+
+    private func refreshOrganizationRequests() async {
+        do {
+            pendingOrganizationRequests = try await organizationRepository.fetchPendingOrganizations()
+            hasLoadedOrganizationRequests = true
+        } catch {
+            hasLoadedOrganizationRequests = true
+        }
+    }
+
+    private func resetFeedback() {
+        ownerFeedbackItems = nil
+        listenerBag.remove("ownerFeedback")
+        hasLoadedFeedback = false
+    }
+
+    private func resetOrganizationRequests() {
+        pendingOrganizationRequests = nil
+        listenerBag.remove("pendingOrganizationRequests")
+        hasLoadedOrganizationRequests = false
+    }
+
+    private func startListening(includeOrganizationRequests: Bool, includeFeedback: Bool) {
+        if includeFeedback,
+           !listenerBag.contains("ownerFeedback"),
            let realtimeRepository = feedbackRepository as? FeedbackRealtimeRepository {
             listenerBag.set(realtimeRepository.listenOwnerFeedbackInbox { [weak self] items in
                 self?.ownerFeedbackItems = items
-                self?.hasLoaded = true
+                self?.hasLoadedFeedback = true
             } onError: { [weak self] _ in
                 self?.listenerBag.remove("ownerFeedback")
             }, for: "ownerFeedback")
+        } else if !includeFeedback {
+            resetFeedback()
         }
 
-        if !listenerBag.contains("pendingOrganizationRequests"),
+        if includeOrganizationRequests,
+           !listenerBag.contains("pendingOrganizationRequests"),
            let realtimeRepository = organizationRepository as? OrganizationRealtimeRepository {
             listenerBag.set(realtimeRepository.listenPendingOrganizationRequestsForOwner { [weak self] organizations in
                 self?.pendingOrganizationRequests = organizations
-                self?.hasLoaded = true
+                self?.hasLoadedOrganizationRequests = true
             } onError: { [weak self] _ in
                 self?.listenerBag.remove("pendingOrganizationRequests")
             }, for: "pendingOrganizationRequests")
+        } else if !includeOrganizationRequests {
+            resetOrganizationRequests()
         }
     }
 }

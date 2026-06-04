@@ -14,6 +14,12 @@ enum CloudFunctionName: String, CaseIterable {
     case approveGuideArticle
     case publishGuideArticle
     case archiveGuideArticle
+    case assignAppAdmin
+    case removeAppAdmin
+    case assignAppModerator
+    case removeAppModerator
+    case assignGuideEditor
+    case removeGuideEditor
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -54,6 +60,32 @@ struct OrganizationOwnershipTransferFunctionResponse: Codable, Equatable {
     let organizationId: String
     let previousOwnerId: String?
     let newOwnerId: String
+    let updatedAt: String
+}
+
+enum CloudPlatformGlobalRole: String, Codable, Equatable {
+    case owner
+    case admin
+    case moderator
+    case user
+}
+
+struct PlatformRoleChangeFunctionRequest: Codable, Equatable {
+    let targetUserId: String
+    let reason: String?
+
+    init(targetUserId: String, reason: String? = nil) {
+        self.targetUserId = targetUserId
+        self.reason = reason
+    }
+}
+
+struct PlatformRoleChangeFunctionResponse: Codable, Equatable {
+    let targetUserId: String
+    let previousGlobalRole: CloudPlatformGlobalRole
+    let newGlobalRole: CloudPlatformGlobalRole
+    let previousCanManageGuide: Bool
+    let newCanManageGuide: Bool
     let updatedAt: String
 }
 
@@ -141,6 +173,48 @@ final class CloudFunctionsClient {
         try await call(.transferOrganizationOwnership, request: request)
     }
 
+    func assignAppAdmin(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+        try await call(
+            .assignAppAdmin,
+            request: platformRoleChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func removeAppAdmin(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+        try await call(
+            .removeAppAdmin,
+            request: platformRoleChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func assignAppModerator(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+        try await call(
+            .assignAppModerator,
+            request: platformRoleChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func removeAppModerator(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+        try await call(
+            .removeAppModerator,
+            request: platformRoleChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func assignGuideEditor(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+        try await call(
+            .assignGuideEditor,
+            request: platformRoleChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func removeGuideEditor(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+        try await call(
+            .removeGuideEditor,
+            request: platformRoleChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
     func approveOrganization(
         _ request: OrganizationReviewFunctionRequest
     ) async throws -> OrganizationReviewFunctionResponse {
@@ -189,5 +263,16 @@ final class CloudFunctionsClient {
     ) async throws -> Response {
         let callable: Callable<Request, Response> = functions.httpsCallable(functionName.rawValue)
         return try await callable.call(request)
+    }
+
+    private func platformRoleChangeRequest(
+        userId: String,
+        reason: String?
+    ) -> PlatformRoleChangeFunctionRequest {
+        let trimmedReason = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return PlatformRoleChangeFunctionRequest(
+            targetUserId: userId,
+            reason: trimmedReason?.isEmpty == false ? trimmedReason : nil
+        )
     }
 }

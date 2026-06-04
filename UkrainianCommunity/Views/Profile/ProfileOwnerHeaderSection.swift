@@ -2,13 +2,21 @@ import SwiftUI
 
 enum ProfileDashboardMode {
     case owner
+    case admin
+    case moderator
+    case guideEditor
 
     init?(user: AppUser) {
         switch user.globalRole.authorizationRole {
         case .owner:
             self = .owner
+        case .admin:
+            self = .admin
+        case .moderator:
+            self = .moderator
         case .user, .topAdmin, .appModerator:
-            return nil
+            guard user.canManageGuide else { return nil }
+            self = .guideEditor
         }
     }
 
@@ -16,6 +24,12 @@ enum ProfileDashboardMode {
         switch self {
         case .owner:
             return AppStrings.Profile.platformOwnerBadge
+        case .admin:
+            return AppStrings.Profile.platformAdminBadge
+        case .moderator:
+            return AppStrings.Profile.platformModeratorBadge
+        case .guideEditor:
+            return AppStrings.Profile.guideEditorBadge
         }
     }
 
@@ -23,6 +37,12 @@ enum ProfileDashboardMode {
         switch self {
         case .owner:
             return AppStrings.Profile.ownerHeroStatus
+        case .admin:
+            return AppStrings.Profile.adminHeroStatus
+        case .moderator:
+            return AppStrings.Profile.moderatorHeroStatus
+        case .guideEditor:
+            return AppStrings.Profile.guideEditorHeroStatus
         }
     }
 
@@ -30,6 +50,12 @@ enum ProfileDashboardMode {
         switch self {
         case .owner:
             return AppStrings.Profile.ownerFullAccess
+        case .admin:
+            return AppStrings.Profile.adminOperationalAccess
+        case .moderator:
+            return AppStrings.Profile.moderatorContentAccess
+        case .guideEditor:
+            return AppStrings.Profile.guideEditorAccess
         }
     }
 
@@ -37,6 +63,12 @@ enum ProfileDashboardMode {
         switch self {
         case .owner:
             return "crown"
+        case .admin:
+            return "person.badge.key"
+        case .moderator:
+            return "shield"
+        case .guideEditor:
+            return "book.closed"
         }
     }
 }

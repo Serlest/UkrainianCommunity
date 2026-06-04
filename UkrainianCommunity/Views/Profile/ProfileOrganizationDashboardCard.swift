@@ -24,12 +24,12 @@ struct OrganizationRoleDashboardCard: View {
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(organizationTitle)
-                        .font(.subheadline.weight(.semibold))
+                        .font(AppTheme.buttonLabelFont)
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(1)
 
                     Text(organizationSubtitle)
-                        .font(.caption)
+                        .font(AppTheme.cardSubtitleFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)
                         .truncationMode(.tail)
@@ -38,7 +38,7 @@ struct OrganizationRoleDashboardCard: View {
                 Spacer(minLength: 0)
 
                 Text(roleTitle)
-                    .font(.caption.weight(.semibold))
+                    .font(AppTheme.metadataFont)
                     .foregroundStyle(AppTheme.accentPrimary)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)

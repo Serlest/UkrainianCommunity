@@ -49,9 +49,9 @@ struct FeaturedBannerValidationService {
 
     private func requiresActionTarget(_ actionType: FeaturedBannerActionType) -> Bool {
         switch actionType {
-        case .news, .event, .organization, .guide:
+        case .news, .event, .organization:
             return true
-        case .none, .externalURL:
+        case .none, .externalURL, .guide:
             return false
         }
     }

@@ -2,48 +2,13 @@ import SwiftUI
 
 extension EventEditorView {
         var editorHeader: some View {
-            ZStack {
-                BrandMarkView(
-                    size: headerLogoSize.height,
-                    width: headerLogoSize.width,
-                    assetName: "logo1",
-                    contentMode: .fit
-                )
-                .allowsHitTesting(false)
-            }
-            .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
-            .overlay(alignment: .leading) {
-                headerIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
+            AppCenteredBrandHeader {
+                AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
                     requestClose()
                 }
+            } trailingContent: {
+                EmptyView()
             }
-            .accessibilityElement(children: .contain)
-        }
-
-        func headerIconButton(systemImage: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
-            Button(action: action) {
-                Image(systemName: systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
-                    .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-                    .background(
-                        reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                        in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                    )
-                    .background {
-                        if !reduceTransparency {
-                            RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                        }
-                    }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                            .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                    )
-                    .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 5, y: 2)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(accessibilityLabel)
         }
 
         var editorTitleBlock: some View {
@@ -108,31 +73,14 @@ extension EventEditorView {
 
 
         var bottomSubmitButton: some View {
-            Button(action: submit) {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    if viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.white)
-                    }
-
-                    Text(viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage ? statusMessage : viewModel.primarySubmitButtonTitle)
-                        .font(.headline.weight(.semibold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(
-                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                        .fill(viewModel.canPublish ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.26))
-                )
-                .shadow(color: AppTheme.accentPrimary.opacity(viewModel.canPublish ? 0.18 : 0), radius: 12, y: 6)
+            PrimaryActionButton(
+                title: viewModel.primarySubmitButtonTitle,
+                loadingTitle: statusMessage,
+                isEnabled: viewModel.canPublish,
+                isLoading: viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage
+            ) {
+                submit()
             }
-            .buttonStyle(.plain)
-            .disabled(!viewModel.canPublish || viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage)
-            .accessibilityLabel(viewModel.primarySubmitButtonTitle)
         }
 
         func submit() {

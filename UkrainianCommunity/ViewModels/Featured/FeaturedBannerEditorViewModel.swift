@@ -3,6 +3,13 @@ import Foundation
 
 @MainActor
 final class FeaturedBannerEditorViewModel: ObservableObject {
+    enum GuideTargetMode: String, CaseIterable, Identifiable {
+        case root
+        case category
+
+        var id: String { rawValue }
+    }
+
     enum Mode {
         case create
         case edit(FeaturedBanner)
@@ -113,6 +120,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             createdAt = existing.createdAt
             createdBy = existing.createdBy
         }
+
+        sanitizeGuideTargetIfNeeded()
     }
 
     deinit {
@@ -176,9 +185,9 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
     var requiresActionTarget: Bool {
         switch actionType {
-        case .news, .event, .organization, .guide:
+        case .news, .event, .organization:
             return true
-        case .none, .externalURL:
+        case .none, .externalURL, .guide:
             return false
         }
     }
@@ -198,6 +207,18 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
     var supportsActionTargetPicker: Bool {
         actionTargetPickerKind != nil
+    }
+
+    var supportsGuideTargetSelection: Bool {
+        actionType == .guide
+    }
+
+    var selectedGuideCategory: GuideCategory? {
+        nonEmpty(actionTargetID).flatMap(GuideCategory.init(rawValue:))
+    }
+
+    var guideTargetMode: GuideTargetMode {
+        selectedGuideCategory == nil ? .root : .category
     }
 
     var selectedActionTargetItem: FeaturedBannerActionTargetItem? {
@@ -229,13 +250,17 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
         let oldKind = FeaturedBannerActionTargetKind(actionType: oldActionType)
         let newKind = FeaturedBannerActionTargetKind(actionType: newActionType)
-        if !requiresActionTarget || oldKind != newKind {
+        if newActionType == .guide {
+            actionTargetID = ""
+        } else if !requiresActionTarget || oldKind != newKind {
             actionTargetID = ""
         }
 
         if !requiresExternalURL {
             externalURL = ""
         }
+
+        sanitizeGuideTargetIfNeeded()
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -297,6 +322,28 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         actionTargetLoadError = nil
     }
 
+    func setGuideTargetMode(_ mode: GuideTargetMode, defaultCategory: GuideCategory?) {
+        switch mode {
+        case .root:
+            actionTargetID = ""
+        case .category:
+            if let selectedGuideCategory {
+                actionTargetID = selectedGuideCategory.rawValue
+            } else {
+                actionTargetID = defaultCategory?.rawValue ?? ""
+            }
+        }
+
+        selectedActionTargetSnapshot = nil
+        actionTargetLoadError = nil
+    }
+
+    func selectGuideCategory(_ category: GuideCategory) {
+        actionTargetID = category.rawValue
+        selectedActionTargetSnapshot = nil
+        actionTargetLoadError = nil
+    }
+
     func save(updatedBy userID: String?) async -> Bool {
         guard !isSaving else { return false }
         errorMessage = nil
@@ -324,6 +371,14 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             }
 
             let now = Date()
+            let resolvedActionTargetID: String? = {
+                switch actionType {
+                case .guide, .news, .event, .organization:
+                    return nonEmpty(actionTargetID)
+                case .none, .externalURL:
+                    return nil
+                }
+            }()
             let banner = FeaturedBanner(
                 id: bannerID,
                 internalName: nonEmpty(internalName),
@@ -331,7 +386,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 subtitle: nonEmpty(subtitle),
                 imageURL: resolvedImageURLString,
                 actionType: actionType,
-                actionTargetID: requiresActionTarget ? nonEmpty(actionTargetID) : nil,
+                actionTargetID: resolvedActionTargetID,
                 externalURL: requiresExternalURL ? normalizedExternalURL?.absoluteString : nil,
                 regionScope: regionScope,
                 federalState: regionScope == .federalState ? federalState : nil,
@@ -441,6 +496,19 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     private func nonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func sanitizeGuideTargetIfNeeded() {
+        guard actionType == .guide else { return }
+
+        guard let targetID = nonEmpty(actionTargetID) else {
+            actionTargetID = ""
+            return
+        }
+
+        if GuideCategory(rawValue: targetID) == nil {
+            actionTargetID = ""
+        }
     }
 
     private func errorText(_ error: AppError) -> String {

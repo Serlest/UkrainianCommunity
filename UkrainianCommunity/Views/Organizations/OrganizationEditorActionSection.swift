@@ -2,50 +2,24 @@ import SwiftUI
 
 extension OrganizationEditorView {
     var editorHeader: some View {
-        ZStack {
-            BrandMarkView(
-                size: headerLogoSize.height,
-                width: headerLogoSize.width,
-                assetName: "logo1",
-                contentMode: .fit
-            )
-            .allowsHitTesting(false)
-        }
-        .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
-        .overlay(alignment: .leading) {
+        AppCenteredBrandHeader {
             AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
                 requestClose()
             }
+        } trailingContent: {
+            EmptyView()
         }
-        .accessibilityElement(children: .contain)
     }
 
     var bottomSubmitButton: some View {
-        Button(action: submit) {
-            HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if isSaving {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(.white)
-                }
-
-                Text(isSaving ? bottomLoadingTitle : bottomSubmitTitle)
-                    .font(.headline.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(
-                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                    .fill(canTapSubmit ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.26))
-            )
-            .shadow(color: AppTheme.accentPrimary.opacity(canTapSubmit ? 0.18 : 0), radius: 12, y: 6)
+        PrimaryActionButton(
+            title: bottomSubmitTitle,
+            loadingTitle: bottomLoadingTitle,
+            isEnabled: canTapSubmit,
+            isLoading: isSaving
+        ) {
+            submit()
         }
-        .buttonStyle(.plain)
-        .disabled(!canTapSubmit)
-        .accessibilityLabel(bottomSubmitTitle)
     }
 
     var bottomSubmitTitle: String {

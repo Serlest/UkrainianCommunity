@@ -246,14 +246,7 @@ struct EventDetailView: View {
             EventShareSheet(activityItems: payload.items)
         }
         .guestAccessAlert($guestAccessAction)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppStrings.Common.done) {
-                    isCommentFieldFocused = false
-                }
-            }
-        }
+        .dismissesKeyboardOnBackgroundTap()
         .task {
             await viewModel.loadIfNeeded()
             guard let event = viewModel.event(for: eventID) else { return }

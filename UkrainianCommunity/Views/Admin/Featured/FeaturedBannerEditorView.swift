@@ -340,6 +340,8 @@ struct FeaturedBannerEditorView: View {
                             .foregroundStyle(AppTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                } else if viewModel.supportsGuideTargetSelection {
+                    guideTargetSection
                 }
 
                 if viewModel.requiresExternalURL {
@@ -353,6 +355,79 @@ struct FeaturedBannerEditorView: View {
                     )
                 }
             }
+        }
+    }
+
+    private var guideTargetSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+            AppEditorField(
+                title: GuideAuthoringPresentation.localized(
+                    uk: "Що відкривати",
+                    de: "Was geöffnet werden soll",
+                    en: "Open destination"
+                )
+            ) {
+                Picker(
+                    GuideAuthoringPresentation.localized(
+                        uk: "Що відкривати",
+                        de: "Was geöffnet werden soll",
+                        en: "Open destination"
+                    ),
+                    selection: Binding(
+                        get: { viewModel.guideTargetMode },
+                        set: { newMode in
+                            viewModel.setGuideTargetMode(
+                                newMode,
+                                defaultCategory: GuideCategoryPresentation.publicTopLevelCategories.first
+                            )
+                        }
+                    )
+                ) {
+                    Text(GuideAuthoringPresentation.localized(uk: "Головна довідника", de: "Leitfaden-Startseite", en: "Guide root"))
+                        .tag(FeaturedBannerEditorViewModel.GuideTargetMode.root)
+                    Text(GuideAuthoringPresentation.localized(uk: "Категорія довідника", de: "Leitfaden-Kategorie", en: "Guide category"))
+                        .tag(FeaturedBannerEditorViewModel.GuideTargetMode.category)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            if viewModel.guideTargetMode == .category {
+                AppEditorField(
+                    title: GuideAuthoringPresentation.localized(
+                        uk: "Категорія",
+                        de: "Kategorie",
+                        en: "Category"
+                    )
+                ) {
+                    Picker(
+                        GuideAuthoringPresentation.localized(
+                            uk: "Категорія",
+                            de: "Kategorie",
+                            en: "Category"
+                        ),
+                        selection: Binding(
+                            get: { viewModel.selectedGuideCategory ?? GuideCategoryPresentation.publicTopLevelCategories.first ?? .firstSteps },
+                            set: { viewModel.selectGuideCategory($0) }
+                        )
+                    ) {
+                        ForEach(GuideCategoryPresentation.publicTopLevelCategories) { category in
+                            Text(GuideCategoryPresentation.publicTitle(for: category)).tag(category)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
+
+            Text(
+                GuideAuthoringPresentation.localized(
+                    uk: "Банер для довідника може відкрити лише головну сторінку або одну з публічних категорій. Посилання на розділи та матеріали поки не підтримуються.",
+                    de: "Ein Leitfaden-Banner kann nur die Startseite oder eine öffentliche Kategorie öffnen. Links zu Abschnitten oder Artikeln werden derzeit nicht unterstützt.",
+                    en: "Guide banners can open only the root screen or a public category. Section and material deep links are not supported yet."
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(AppTheme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 

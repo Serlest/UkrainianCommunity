@@ -7,7 +7,7 @@ import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/audit
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
 import { buildNotification, type NotificationType } from "../notifications/notificationPayloads";
-import { getUserPermissions, isOwner } from "../permissions/userPermissions";
+import { canManageOrganizationRequests, getUserPermissions } from "../permissions/userPermissions";
 import { type OrganizationModerationStatus } from "./types";
 
 type ReviewAction = "approve" | "requestRevision" | "reject";
@@ -188,8 +188,8 @@ function createReviewCallable(workflow: ReviewWorkflow) {
     const reviewRequest = parseReviewRequest(request.data);
     const actorPermissions = await getUserPermissions(auth.uid);
 
-    if (!isOwner(actorPermissions)) {
-      throw new HttpsError("permission-denied", "Owner permissions are required.");
+    if (!canManageOrganizationRequests(actorPermissions)) {
+      throw new HttpsError("permission-denied", "Owner or App Admin permissions are required.");
     }
 
     const text = workflow.requiredTextField

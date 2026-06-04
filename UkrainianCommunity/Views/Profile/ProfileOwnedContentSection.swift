@@ -19,25 +19,25 @@ struct ManagedContentCard<Actions: View>: View {
                         .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(title)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
+                    Text(title)
+                        .font(AppTheme.cardTitleFont)
+                        .foregroundStyle(AppTheme.textPrimary)
                             .lineLimit(2)
 
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
+                    Text(subtitle)
+                        .font(AppTheme.secondaryBodyFont)
+                        .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
 
-                        Text(metadata)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.textSecondary)
+                    Text(metadata)
+                        .font(AppTheme.metadataFont)
+                        .foregroundStyle(AppTheme.textSecondary)
                     }
 
                     Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
                     Text(status)
-                        .font(.caption.weight(.semibold))
+                        .font(AppTheme.metadataFont)
                         .foregroundStyle(AppTheme.accentPrimary)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
@@ -49,8 +49,7 @@ struct ManagedContentCard<Actions: View>: View {
                     actions
                 }
                 .font(.footnote.weight(.semibold))
-                .buttonStyle(.bordered)
-                .tint(AppTheme.accentPrimary)
+                .appActionButtonStyle(.secondary)
             }
         }
     }
@@ -62,7 +61,7 @@ struct ProfilePreviewGroup<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.footnote.weight(.semibold))
+                .font(AppTheme.metadataFont)
                 .foregroundStyle(AppTheme.textSecondary)
 
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
@@ -85,18 +84,18 @@ struct ProfileEventPreviewCard: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(event.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(AppTheme.buttonLabelFont)
                     .foregroundStyle(AppTheme.textPrimary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(registrationEventScheduleText(for: event))
-                    .font(.caption)
+                    .font(AppTheme.metadataFont)
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(1)
 
                 Label(event.city, systemImage: "mappin.and.ellipse")
-                    .font(.caption)
+                    .font(AppTheme.metadataFont)
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(1)
             }

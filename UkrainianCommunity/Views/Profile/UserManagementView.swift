@@ -116,6 +116,71 @@ private enum UserAdminAction: String {
     }
 }
 
+private enum PlatformRoleAction: Identifiable {
+    case assignAppAdmin
+    case removeAppAdmin
+    case assignAppModerator
+    case removeAppModerator
+    case assignGuideEditor
+    case removeGuideEditor
+
+    var id: String { title }
+
+    var title: String {
+        switch self {
+        case .assignAppAdmin:
+            AppStrings.UserManagement.assignAppAdmin
+        case .removeAppAdmin:
+            AppStrings.UserManagement.removeAppAdmin
+        case .assignAppModerator:
+            AppStrings.UserManagement.assignAppModerator
+        case .removeAppModerator:
+            AppStrings.UserManagement.removeAppModerator
+        case .assignGuideEditor:
+            AppStrings.UserManagement.assignGuideEditor
+        case .removeGuideEditor:
+            AppStrings.UserManagement.removeGuideEditor
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .assignAppAdmin, .removeAppAdmin:
+            "person.badge.key"
+        case .assignAppModerator, .removeAppModerator:
+            "shield"
+        case .assignGuideEditor, .removeGuideEditor:
+            "book"
+        }
+    }
+
+    var isRemoval: Bool {
+        switch self {
+        case .removeAppAdmin, .removeAppModerator, .removeGuideEditor:
+            true
+        case .assignAppAdmin, .assignAppModerator, .assignGuideEditor:
+            false
+        }
+    }
+
+    var defaultReason: String {
+        switch self {
+        case .assignAppAdmin:
+            "App admin assigned"
+        case .removeAppAdmin:
+            "App admin removed"
+        case .assignAppModerator:
+            "App moderator assigned"
+        case .removeAppModerator:
+            "App moderator removed"
+        case .assignGuideEditor:
+            "Guide editor assigned"
+        case .removeGuideEditor:
+            "Guide editor removed"
+        }
+    }
+}
+
 private struct ManagedOrganization: Identifiable, Hashable {
     let id: String
     let name: String
@@ -356,8 +421,50 @@ private final class UserManagementViewModel: ObservableObject {
         }
     }
 
+    func performPlatformRoleAction(_ action: PlatformRoleAction, target: AppUser, actor: AppUser, reason: String) async {
+        guard !PermissionService.hasOwnerRoleForDisplay(user: target) else {
+            statusMessage = AppStrings.UserManagement.platformRoleTargetOwnerProtected
+            return
+        }
+
+        guard actor.id != target.id else {
+            statusMessage = AppStrings.UserManagement.platformRoleSelfChangeRejected
+            return
+        }
+
+        guard canManagePlatformRole(target: target, actor: actor) else {
+            statusMessage = AppStrings.UserManagement.platformRolePermissionDenied
+            return
+        }
+
+        let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalReason = trimmedReason.isEmpty ? action.defaultReason : trimmedReason
+
+        await updateUser(target, actor: actor, failureMessage: platformRoleFailureMessage(from:)) {
+            switch action {
+            case .assignAppAdmin:
+                _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: finalReason)
+            case .removeAppAdmin:
+                _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: finalReason)
+            case .assignAppModerator:
+                _ = try await CloudFunctionsClient.shared.assignAppModerator(userId: target.id, reason: finalReason)
+            case .removeAppModerator:
+                _ = try await CloudFunctionsClient.shared.removeAppModerator(userId: target.id, reason: finalReason)
+            case .assignGuideEditor:
+                _ = try await CloudFunctionsClient.shared.assignGuideEditor(userId: target.id, reason: finalReason)
+            case .removeGuideEditor:
+                _ = try await CloudFunctionsClient.shared.removeGuideEditor(userId: target.id, reason: finalReason)
+            }
+        }
+    }
+
     func canManage(target: AppUser, actor: AppUser) -> Bool {
         PermissionService.canManageUserTarget(actor: actor, target: target)
+    }
+
+    func canManagePlatformRole(target: AppUser, actor: AppUser) -> Bool {
+        PermissionService.canManageUserTarget(actor: actor, target: target)
+            && PermissionService.canAssignGlobalRoles(user: actor)
     }
 
     func user(withID id: String) -> AppUser? {
@@ -372,6 +479,15 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     private func updateUser(_ target: AppUser, actor: AppUser, operation: () async throws -> Void) async {
+        await updateUser(target, actor: actor, failureMessage: nil, operation: operation)
+    }
+
+    private func updateUser(
+        _ target: AppUser,
+        actor: AppUser,
+        failureMessage: ((Error) -> String?)?,
+        operation: () async throws -> Void
+    ) async {
         guard !updatingUserIDs.contains(target.id) else { return }
         updatingUserIDs.insert(target.id)
         statusMessage = nil
@@ -383,8 +499,33 @@ private final class UserManagementViewModel: ObservableObject {
             await refresh(actor: actor)
         } catch {
             self.error = .permissionDenied
-            statusMessage = AppStrings.UserManagement.changesFailed
+            statusMessage = failureMessage?(error) ?? AppStrings.UserManagement.changesFailed
         }
+    }
+
+    private func platformRoleFailureMessage(from error: Error) -> String? {
+        let message = (error as NSError).localizedDescription.lowercased()
+
+        if message.contains("owner role cannot be changed") {
+            return AppStrings.UserManagement.platformRoleTargetOwnerProtected
+        }
+        if message.contains("self role changes") {
+            return AppStrings.UserManagement.platformRoleSelfChangeRejected
+        }
+        if message.contains("usable account") {
+            return AppStrings.UserManagement.platformRoleTargetAccountNotUsable
+        }
+        if message.contains("already applied") {
+            return AppStrings.UserManagement.platformRoleNoOp
+        }
+        if message.contains("target user does not exist") {
+            return AppStrings.UserManagement.platformRoleTargetMissing
+        }
+        if message.contains("owner permissions") || message.contains("permission") {
+            return AppStrings.UserManagement.platformRolePermissionDenied
+        }
+
+        return nil
     }
 
     private func updateOrganizationRole(
@@ -543,14 +684,7 @@ struct UserManagementView: View {
         .navigationTitle(AppStrings.UserManagement.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppStrings.Common.done) {
-                    isSearchFocused = false
-                }
-            }
-        }
+        .dismissesKeyboardOnBackgroundTap()
         .task {
             await viewModel.loadIfNeeded(actor: actor)
         }
@@ -589,10 +723,6 @@ struct UserManagementView: View {
                 filterRow
                 contentList
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            isSearchFocused = false
         }
     }
 
@@ -810,6 +940,7 @@ private struct UserDetailView: View {
     @State private var reason = ""
     @State private var pendingAction: UserAdminAction?
     @State private var pendingRoleRemoval: ManagedOrganization?
+    @State private var pendingPlatformRoleAction: PlatformRoleAction?
     @FocusState private var focusedField: UserDetailFocusField?
 
     private var selectedOrganization: ManagedOrganization? {
@@ -883,6 +1014,7 @@ private struct UserDetailView: View {
                     AppGroupedContentPlane {
                         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                             profileCard
+                            platformRolesCard
                             organizationRolesCard
                             roleAssignmentCard
                             accountActionsCard
@@ -902,20 +1034,10 @@ private struct UserDetailView: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            focusedField = nil
-        }
         .navigationTitle(user.preferredDisplayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppStrings.Common.done) {
-                    focusedField = nil
-                }
-            }
-        }
+        .dismissesKeyboardOnBackgroundTap()
         .task {
             ensureSelectedOrganization()
             ensureSelectedRole()
@@ -973,6 +1095,33 @@ private struct UserDetailView: View {
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
             Text(AppStrings.UserManagement.removeOwnerRoleWarning)
+        }
+        .confirmationDialog(
+            pendingPlatformRoleAction?.title ?? AppStrings.UserManagement.platformRoleActionFallbackTitle,
+            isPresented: Binding(
+                get: { pendingPlatformRoleAction != nil },
+                set: { if !$0 { pendingPlatformRoleAction = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let pendingPlatformRoleAction {
+                Button(pendingPlatformRoleAction.title, role: pendingPlatformRoleAction.isRemoval ? .destructive : nil) {
+                    guard let actor else { return }
+                    let currentUser = user
+                    Task {
+                        await viewModel.performPlatformRoleAction(
+                            pendingPlatformRoleAction,
+                            target: currentUser,
+                            actor: actor,
+                            reason: reason
+                        )
+                    }
+                    reason = ""
+                }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.UserManagement.platformRoleAuditNotice)
         }
     }
 
@@ -1060,6 +1209,57 @@ private struct UserDetailView: View {
                             .disabled(!canManage || item.role == .communityOwner || isUpdating)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    private var platformRolesCard: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                SectionHeaderBlock(
+                    title: AppStrings.UserManagement.platformRolesTitle,
+                    subtitle: AppStrings.UserManagement.platformRolesSubtitle
+                )
+
+                if isUpdating {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    platformRoleStatusRow(
+                        systemImage: platformRoleIcon,
+                        title: AppStrings.UserManagement.currentPlatformRole,
+                        value: user.globalRole.title,
+                        tint: platformRoleTint
+                    )
+
+                    platformRoleStatusRow(
+                        systemImage: "book",
+                        title: AppStrings.UserManagement.guideEditorRole,
+                        value: user.canManageGuide ? AppStrings.UserManagement.guideEditorEnabled : AppStrings.UserManagement.guideEditorDisabled,
+                        tint: user.canManageGuide ? AppTheme.accentPrimary : AppTheme.textSecondary
+                    )
+                }
+
+                if PermissionService.hasOwnerRoleForDisplay(user: user) {
+                    Text(AppStrings.UserManagement.ownerRoleImmutableNotice)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                } else if actor?.id == user.id {
+                    Text(AppStrings.UserManagement.selfRoleChangeNotice)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
+                VStack(spacing: 8) {
+                    roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
+                    roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
+                    roleActionButton(.assignAppModerator, isEnabled: canAssignAppModerator)
+                    roleActionButton(.removeAppModerator, isEnabled: canRemoveAppModerator)
+                    roleActionButton(.assignGuideEditor, isEnabled: canAssignGuideEditor)
+                    roleActionButton(.removeGuideEditor, isEnabled: canRemoveGuideEditor)
                 }
             }
         }
@@ -1225,6 +1425,62 @@ private struct UserDetailView: View {
         }
     }
 
+    private var platformRoleIcon: String {
+        switch user.globalRole.authorizationRole {
+        case .owner:
+            "crown"
+        case .admin:
+            "person.badge.key"
+        case .moderator:
+            "shield"
+        case .user, .topAdmin, .appModerator:
+            "person"
+        }
+    }
+
+    private var platformRoleTint: Color {
+        switch user.globalRole.authorizationRole {
+        case .owner:
+            AppTheme.accentSupport
+        case .admin, .moderator:
+            AppTheme.accentPrimary
+        case .user, .topAdmin, .appModerator:
+            AppTheme.textSecondary
+        }
+    }
+
+    private var canChangePlatformRoles: Bool {
+        guard let actor else { return false }
+        return viewModel.canManagePlatformRole(target: user, actor: actor)
+            && !isUpdating
+            && !PermissionService.hasOwnerRoleForDisplay(user: user)
+            && actor.id != user.id
+    }
+
+    private var canAssignAppAdmin: Bool {
+        canChangePlatformRoles && user.globalRole.authorizationRole != .admin
+    }
+
+    private var canRemoveAppAdmin: Bool {
+        canChangePlatformRoles && user.globalRole.authorizationRole == .admin
+    }
+
+    private var canAssignAppModerator: Bool {
+        canChangePlatformRoles && user.globalRole.authorizationRole != .moderator
+    }
+
+    private var canRemoveAppModerator: Bool {
+        canChangePlatformRoles && user.globalRole.authorizationRole == .moderator
+    }
+
+    private var canAssignGuideEditor: Bool {
+        canChangePlatformRoles && !user.canManageGuide
+    }
+
+    private var canRemoveGuideEditor: Bool {
+        canChangePlatformRoles && user.canManageGuide
+    }
+
     private func actionLabel(_ action: UserAdminAction, tint: Color) -> some View {
         Label(action.title, systemImage: action.systemImage)
             .font(.subheadline.weight(.semibold))
@@ -1232,6 +1488,52 @@ private struct UserDetailView: View {
             .frame(maxWidth: .infinity)
             .frame(height: AppTheme.iconButtonSize)
             .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+    }
+
+    private func roleActionButton(_ action: PlatformRoleAction, isEnabled: Bool) -> some View {
+        Button {
+            pendingPlatformRoleAction = action
+        } label: {
+            Label(action.title, systemImage: action.systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(action.isRemoval ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: AppTheme.iconButtonSize)
+                .background(
+                    (action.isRemoval ? AppTheme.accentDestructive : AppTheme.accentPrimary).opacity(0.10),
+                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .overlay(alignment: .trailing) {
+            if isUpdating && isEnabled {
+                ProgressView()
+                    .padding(.trailing, 12)
+            }
+        }
+    }
+
+    private func platformRoleStatusRow(
+        systemImage: String,
+        title: String,
+        value: String,
+        tint: Color
+    ) -> some View {
+        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: 20)
+
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+
+            Spacer(minLength: 8)
+
+            UserStatusBadge(title: value, tint: tint)
+        }
     }
 
     private func ensureSelectedOrganization(allowFilteredMatch: Bool = false) {

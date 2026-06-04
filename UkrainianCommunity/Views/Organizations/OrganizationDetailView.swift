@@ -325,14 +325,7 @@ struct OrganizationDetailView: View {
         }
         .background(AppBackgroundView().allowsHitTesting(false))
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppStrings.Common.done) {
-                    isCommentFieldFocused = false
-                }
-            }
-        }
+        .dismissesKeyboardOnBackgroundTap()
         .confirmationDialog(AppStrings.Organizations.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.Organizations.delete, role: .destructive) {
                 guard !isDeletingCurrentOrganization else { return }

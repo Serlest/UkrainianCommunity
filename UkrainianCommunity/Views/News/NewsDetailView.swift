@@ -146,14 +146,7 @@ struct NewsDetailView: View {
         }
         .background(AppBackgroundView().allowsHitTesting(false))
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppStrings.Common.done) {
-                    isCommentFieldFocused = false
-                }
-            }
-        }
+        .dismissesKeyboardOnBackgroundTap()
         .confirmationDialog(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.News.delete, role: .destructive) {
                 Task {

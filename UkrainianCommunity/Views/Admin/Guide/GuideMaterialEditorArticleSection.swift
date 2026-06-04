@@ -1,0 +1,70 @@
+import SwiftUI
+
+struct GuideMaterialEditorArticleSection: View {
+    let screenTitle: String
+    let headerSubtitle: String
+    let nodePathDescription: String
+    @Binding var title: String
+    @Binding var summary: String
+    @Binding var articleBody: String
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                SectionHeaderBlock(
+                    title: screenTitle,
+                    subtitle: headerSubtitle
+                )
+
+                placementContext
+
+                AppEditorField(title: GuideAuthoringPresentation.titleLabel) {
+                    TextField(GuideAuthoringPresentation.titleLabel, text: $title, axis: .vertical)
+                        .textInputAutocapitalization(.sentences)
+                        .appEditorInputStyle()
+                }
+
+                AppEditorField(title: GuideAuthoringPresentation.shortDescriptionLabel) {
+                    TextField(GuideAuthoringPresentation.shortDescriptionLabel, text: $summary, axis: .vertical)
+                        .textInputAutocapitalization(.sentences)
+                        .frame(minHeight: 100, alignment: .topLeading)
+                        .appEditorInputStyle(minHeight: 100)
+                }
+
+                SectionHeaderBlock(
+                    title: GuideAuthoringPresentation.descriptionSectionTitle,
+                    subtitle: GuideAuthoringPresentation.descriptionSectionSubtitle
+                )
+
+                AppEditorField(title: GuideAuthoringPresentation.bodyLabel) {
+                    TextEditor(text: $articleBody)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 160)
+                        .padding(8)
+                        .background(AppTheme.surfaceGlass, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private var placementContext: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            contextRow(
+                label: GuideAuthoringPresentation.placementHintLabel,
+                value: nodePathDescription
+            )
+        }
+    }
+
+    private func contextRow(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(AppTheme.metadataFont)
+                .foregroundStyle(AppTheme.textSecondary)
+            Text(value)
+                .font(AppTheme.secondaryBodyFont)
+                .foregroundStyle(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}

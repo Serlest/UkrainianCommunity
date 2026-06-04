@@ -31,6 +31,14 @@ export {
   removeOrganizationModerator,
   transferOrganizationOwnership,
 } from "./organizations/roleManagement";
+export {
+  assignAppAdmin,
+  assignAppModerator,
+  assignGuideEditor,
+  removeAppAdmin,
+  removeAppModerator,
+  removeGuideEditor,
+} from "./users/platformRoleManagement";
 
 setGlobalOptions({
   region: "europe-west3",

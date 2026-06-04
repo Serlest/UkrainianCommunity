@@ -3,7 +3,7 @@ import Foundation
 enum FeaturedBannerActionIntent: Equatable {
     case noAction
     case openURL(URL)
-    case openGuide(id: String)
+    case openGuide(targetID: String?)
     case openNews(id: String)
     case openEvent(id: String)
     case openOrganization(id: String)
@@ -40,7 +40,7 @@ struct FeaturedBannerActionResolver {
         case .externalURL:
             return externalURLIntent(from: banner.externalURL)
         case .guide:
-            return targetIntent(banner.actionTargetID, makeIntent: FeaturedBannerActionIntent.openGuide)
+            return .openGuide(targetID: normalizedTargetID(from: banner.actionTargetID))
         case .news:
             return targetIntent(banner.actionTargetID, makeIntent: FeaturedBannerActionIntent.openNews)
         case .event:
@@ -61,8 +61,13 @@ struct FeaturedBannerActionResolver {
         _ value: String?,
         makeIntent: (String) -> FeaturedBannerActionIntent
     ) -> FeaturedBannerActionIntent {
-        let trimmedID = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmedID = normalizedTargetID(from: value) ?? ""
         guard !trimmedID.isEmpty else { return .noAction }
         return makeIntent(trimmedID)
+    }
+
+    private func normalizedTargetID(from value: String?) -> String? {
+        let trimmedID = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmedID.isEmpty ? nil : trimmedID
     }
 }

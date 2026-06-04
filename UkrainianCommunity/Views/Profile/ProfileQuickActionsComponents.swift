@@ -26,12 +26,12 @@ struct ProfileQuickStatsGrid: View {
                         .foregroundStyle(AppTheme.accentPrimary)
 
                     Text(stat.value)
-                        .font(.headline.weight(.semibold))
+                        .font(AppTheme.cardTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)
                         .monospacedDigit()
 
                     Text(stat.title)
-                        .font(.caption.weight(.medium))
+                        .font(AppTheme.cardSubtitleFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -109,13 +109,13 @@ struct ProfileQuickActionCard: View {
             }
 
             Text(item.title)
-                .font(.subheadline.weight(.semibold))
+                .font(AppTheme.buttonLabelFont)
                 .foregroundStyle(AppTheme.textPrimary)
                 .lineLimit(2)
                 .truncationMode(.tail)
 
             Text(item.subtitle)
-                .font(.caption)
+                .font(AppTheme.cardSubtitleFont)
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(2)
                 .truncationMode(.tail)

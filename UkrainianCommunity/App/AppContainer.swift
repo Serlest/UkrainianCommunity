@@ -10,7 +10,7 @@ struct AppContainer {
     let newsRepository: NewsRepository
     let eventRepository: EventRepository
     let organizationRepository: OrganizationRepository
-    let guideRepository: GuideRepository
+    let guideRepository: LegacyGuideRepository
     let featuredBannerRepository: FeaturedBannerRepository
 
     static var development: AppContainer {
@@ -24,7 +24,7 @@ struct AppContainer {
             newsRepository: FirestoreNewsRepository(),
             eventRepository: FirestoreEventRepository(),
             organizationRepository: FirestoreOrganizationRepository(),
-            guideRepository: FirestoreGuideRepository(),
+            guideRepository: LegacyFirestoreGuideRepository(),
             featuredBannerRepository: FirestoreFeaturedBannerRepository()
         )
     }
@@ -40,7 +40,7 @@ struct AppContainer {
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
             organizationRepository: MockOrganizationRepository(),
-            guideRepository: MockGuideRepository(),
+            guideRepository: LegacyMockGuideRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository()
         )
     }

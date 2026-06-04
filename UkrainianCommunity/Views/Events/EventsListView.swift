@@ -344,6 +344,7 @@ struct EventsListView: View {
             }
         }
         .guestAccessAlert($guestAccessAction)
+        .dismissesKeyboardOnBackgroundTap()
         .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
             Button(AppStrings.Home.regionAllAustria) {
                 selectRegion(nil)
@@ -420,7 +421,8 @@ struct EventsListView: View {
         AppSearchableBrandHeader(
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
-            placeholder: AppStrings.Search.eventsPlaceholder
+            placeholder: AppStrings.Search.eventsPlaceholder,
+            collapseToken: scrollResetToken
         )
     }
 

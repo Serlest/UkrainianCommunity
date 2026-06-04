@@ -2,9 +2,19 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { db } from "../firebase/admin";
 
-export type AccountStatus = "active" | "warned" | "deactivated" | "suspended" | "banned";
-export type BlockState = "active" | "warned" | "deactivated" | "suspended" | "banned";
-export type GlobalRole = "user" | "owner";
+export type AccountStatus =
+  | "active"
+  | "warned"
+  | "suspendedUntil"
+  | "bannedPermanent"
+  | "deactivated";
+export type BlockState =
+  | "active"
+  | "warned"
+  | "suspendedUntil"
+  | "bannedPermanent"
+  | "deactivated";
+export type GlobalRole = "owner" | "admin" | "moderator" | "user" | "topAdmin" | "appModerator";
 
 export interface UserPermissionSnapshot {
   uid: string;
@@ -42,6 +52,58 @@ export function isActiveUser(user: UserPermissionSnapshot): boolean {
 
 export function isOwner(user: UserPermissionSnapshot): boolean {
   return isActiveUser(user) && user.globalRole === "owner";
+}
+
+export function isAppOwner(user: UserPermissionSnapshot): boolean {
+  return isOwner(user);
+}
+
+export function isAppAdmin(user: UserPermissionSnapshot): boolean {
+  return isActiveUser(user) && user.globalRole === "admin";
+}
+
+export function isAppModerator(user: UserPermissionSnapshot): boolean {
+  return isActiveUser(user) && user.globalRole === "moderator";
+}
+
+export function canManageOrganizationRequests(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user) || isAppAdmin(user);
+}
+
+export function canManageUsers(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user);
+}
+
+export function canAssignAppAdmin(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user);
+}
+
+export function canAssignAppModerator(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user);
+}
+
+export function canAssignGuideEditor(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user);
+}
+
+export function canAccessModerationTools(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user) || isAppAdmin(user) || isAppModerator(user);
+}
+
+export function canManageFeedback(user: UserPermissionSnapshot): boolean {
+  return canAccessModerationTools(user);
+}
+
+export function canManageReports(user: UserPermissionSnapshot): boolean {
+  return canAccessModerationTools(user);
+}
+
+export function canManageFeaturedBanners(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user);
+}
+
+export function canUseOrganizationOverride(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user);
 }
 
 export function canManageGuide(user: UserPermissionSnapshot): boolean {

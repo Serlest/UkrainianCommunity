@@ -3,28 +3,48 @@ import SwiftUI
 
 enum GlobalRole: String, CaseIterable, Codable, Identifiable {
     case owner
-    // Unsupported legacy/future values kept readable while persisted documents are migrated.
-    // They intentionally do not grant authorization in the current product model.
+    case admin
+    case moderator
+    case user
+    // Legacy persisted values kept readable while documents are migrated.
+    // They intentionally do not grant elevated authorization.
     case topAdmin
     case appModerator
-    case user
 
-    static var allCases: [GlobalRole] { [.owner, .user] }
+    static var allCases: [GlobalRole] { [.owner, .admin, .moderator, .user] }
 
     var id: String { rawValue }
 
     nonisolated var isSupportedForAuthorization: Bool {
-        self == .owner || self == .user
+        switch self {
+        case .owner, .admin, .moderator, .user:
+            return true
+        case .topAdmin, .appModerator:
+            return false
+        }
     }
 
     nonisolated var authorizationRole: GlobalRole {
-        self == .owner ? .owner : .user
+        switch self {
+        case .owner:
+            return .owner
+        case .admin:
+            return .admin
+        case .moderator:
+            return .moderator
+        case .user, .topAdmin, .appModerator:
+            return .user
+        }
     }
 
     var title: String {
         switch authorizationRole {
         case .owner:
             AppStrings.Roles.owner
+        case .admin:
+            AppStrings.Roles.admin
+        case .moderator:
+            AppStrings.Roles.moderator
         case .user:
             AppStrings.Roles.user
         case .topAdmin, .appModerator:

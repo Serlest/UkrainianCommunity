@@ -18,7 +18,7 @@ struct ContentView: View {
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
     @StateObject private var organizationsViewModel: OrganizationsViewModel
-    @StateObject private var guideViewModel: GuideListViewModel
+    @StateObject private var guideViewModel: LegacyGuideListViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @State private var selectedTab: AppTab = .home
@@ -26,8 +26,8 @@ struct ContentView: View {
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
     @State private var eventsNavigationPath: [EventNavigationRoute] = []
     @State private var organizationsNavigationPath: [OrganizationNavigationRoute] = []
-    @State private var guideNavigationPath: [GuideNavigationRoute] = []
     @State private var profileNavigationPath: [ProfileNavigationRoute] = []
+    @State private var guideBannerCategoryTarget: GuideCategory?
     @State private var homeScrollResetToken = 0
     @State private var eventsScrollResetToken = 0
     @State private var organizationsScrollResetToken = 0
@@ -53,7 +53,7 @@ struct ContentView: View {
             repository: container.organizationRepository,
             notificationInboxRepository: container.notificationInboxRepository
         ))
-        _guideViewModel = StateObject(wrappedValue: GuideListViewModel(repository: container.guideRepository))
+        _guideViewModel = StateObject(wrappedValue: LegacyGuideListViewModel(repository: container.guideRepository))
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
             repository: container.userRepository,
             feedbackRepository: container.feedbackRepository,
@@ -235,15 +235,17 @@ struct ContentView: View {
     }
 
     private var guideTab: some View {
-        NavigationStack(path: $guideNavigationPath) {
+        NavigationStack {
             InfoView(
                 viewModel: guideViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
-                navigationPath: $guideNavigationPath,
+                feedbackRepository: container.feedbackRepository,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
+                guideBannerCategoryTarget: $guideBannerCategoryTarget,
                 scrollResetToken: guideScrollResetToken
             )
         }
+        .id(guideScrollResetToken)
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.guide")
         .tabItem {
@@ -287,7 +289,6 @@ struct ContentView: View {
         homeNavigationPath.removeAll()
         eventsNavigationPath.removeAll()
         organizationsNavigationPath.removeAll()
-        guideNavigationPath.removeAll()
         profileNavigationPath.removeAll()
         homeScrollResetToken += 1
         eventsScrollResetToken += 1
@@ -326,7 +327,6 @@ struct ContentView: View {
             organizationsNavigationPath.removeAll()
             organizationsScrollResetToken += 1
         case .guide:
-            guideNavigationPath.removeAll()
             guideScrollResetToken += 1
         case .profile:
             profileNavigationPath.removeAll()
@@ -362,12 +362,18 @@ struct ContentView: View {
                 selectedTab = .organizations
                 organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organization.id)]
             }
-        case let .openGuide(id):
-            Task {
-                guard let article = await guideViewModel.resolveArticle(id: id) else { return }
-                selectedTab = .guide
-                guideNavigationPath = [GuideNavigationRoute(articleID: article.id)]
+        case let .openGuide(targetID):
+            if let targetID, let category = GuideCategory(rawValue: targetID) {
+                guideBannerCategoryTarget = category
+            } else {
+                #if DEBUG
+                if let targetID {
+                    debugPrint("Guide featured banner deep link target is unsupported and falls back to root:", targetID)
+                }
+                #endif
+                guideBannerCategoryTarget = nil
             }
+            selectedTab = .guide
         }
     }
 }

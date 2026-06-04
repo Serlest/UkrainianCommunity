@@ -100,6 +100,7 @@ struct EventEditorView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .scrollDismissesKeyboard(.interactively)
+        .dismissesKeyboardOnBackgroundTap()
         .sheet(isPresented: $isShowingMapPicker) {
             EventMapPickerView(
                 initialCoordinate: viewModel.selectedCoordinate,
@@ -346,26 +347,11 @@ struct EventEditorView: View {
     }
 
     func editorCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-        }
-        .padding(editorCardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassSurface(for: colorScheme),
-            in: RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
-        )
-        .background {
-            if !reduceTransparency {
-                RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 0) {
+                content()
             }
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: editorCardRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.55))
-        )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.45), radius: 10, y: 5)
     }
 
     func editorStatusCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -375,31 +361,13 @@ struct EventEditorView: View {
     }
 
     func editorField<Content: View>(title: String, counterText: String? = nil, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-
-                if let counterText {
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                    Text(counterText)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .monospacedDigit()
-                }
-            }
-
+        AppEditorField(title: title, counterText: counterText) {
             content()
         }
     }
 
     func editorSectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(AppTheme.textPrimary)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        AppEditorSectionTitle(title: title)
     }
 
     var editorDivider: some View {
@@ -496,16 +464,7 @@ struct EventEditorView: View {
 
 extension View {
     func eventEditorCompactInputStyle(minHeight: CGFloat) -> some View {
-        self
-            .font(.subheadline)
-            .foregroundStyle(AppTheme.textPrimary)
-            .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
-            .frame(minHeight: minHeight, alignment: .leading)
-            .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                    .strokeBorder(AppTheme.borderSubtle)
-            )
+        self.appEditorInputStyle(minHeight: minHeight)
     }
 }
 

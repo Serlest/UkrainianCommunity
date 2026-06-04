@@ -25,13 +25,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    function isOwner() {
-      return isSignedIn()
-        && existsUser(request.auth.uid)
-        && ('globalRole' in currentUserData())
-        && currentUserData().globalRole == 'owner';
-    }
-
     function isActiveUser() {
       return isSignedIn()
         && existsUser(request.auth.uid)
@@ -47,17 +40,68 @@ service cloud.firestore {
         );
     }
 
-    function canModerateSection(section) {
-      // topAdmin, appModerator, and moderatorSections are not active authorization sources.
-      return section is string && isOwner();
+    function isAppOwner() {
+      return isActiveUser()
+        && ('globalRole' in currentUserData())
+        && currentUserData().globalRole == 'owner';
+    }
+
+    function isAppAdmin() {
+      return isActiveUser()
+        && ('globalRole' in currentUserData())
+        && currentUserData().globalRole == 'admin';
+    }
+
+    function isAppModerator() {
+      return isActiveUser()
+        && ('globalRole' in currentUserData())
+        && currentUserData().globalRole == 'moderator';
+    }
+
+    function isPlatformModeratorTier() {
+      return isAppOwner() || isAppAdmin() || isAppModerator();
+    }
+
+    function isGuideEditor() {
+      return isActiveUser()
+        && (
+          isAppOwner()
+          || (('canManageGuide' in currentUserData()) && currentUserData().canManageGuide == true)
+        );
     }
 
     function canManageGuide() {
-      return isActiveUser()
-        && (
-          (('globalRole' in currentUserData()) && currentUserData().globalRole == 'owner')
-          || (('canManageGuide' in currentUserData()) && currentUserData().canManageGuide == true)
-        );
+      return isGuideEditor();
+    }
+
+    function canManageFeedback() {
+      return isPlatformModeratorTier();
+    }
+
+    function canManageReports() {
+      return isPlatformModeratorTier();
+    }
+
+    function canManageOrganizationRequests() {
+      return isAppOwner() || isAppAdmin();
+    }
+
+    function canManageFeaturedBanners() {
+      return isAppOwner();
+    }
+
+    function canUseOrganizationOverride() {
+      return isAppOwner();
+    }
+
+    function isOwner() {
+      return isAppOwner();
+    }
+
+    function canModerateSection(section) {
+      // topAdmin, appModerator, and moderatorSections are migration-only and
+      // are not active authorization sources.
+      return section is string && isPlatformModeratorTier();
     }
 
     function guideArticleRequiredCreateFields() {
@@ -204,6 +248,145 @@ service cloud.firestore {
         && request.resource.data.updatedAt is timestamp;
     }
 
+    function isPublishedGuideV2Resource() {
+      return resource.data.moderationStatus == 'approved'
+        && (('publishedAt' in resource.data) && resource.data.publishedAt is timestamp)
+        && (!('archivedAt' in resource.data) || resource.data.archivedAt == null);
+    }
+
+    function guideNodeAllowedFields() {
+      return [
+        'id',
+        'parentID',
+        'category',
+        'kind',
+        'title',
+        'summary',
+        'sortOrder',
+        'regionScope',
+        'federalState',
+        'healthStatus',
+        'moderationStatus',
+        'publishedAt',
+        'createdAt',
+        'updatedAt',
+        'createdBy',
+        'updatedBy',
+        'archivedAt'
+      ];
+    }
+
+    function guideMaterialAllowedFields() {
+      return [
+        'id',
+        'kind',
+        'category',
+        'nodeID',
+        'nodePath',
+        'title',
+        'summary',
+        'body',
+        'sortOrder',
+        'contentBlocks',
+        'sourceLinks',
+        'officialSourceURL',
+        'sourceName',
+        'officialSourcesRequired',
+        'regionScope',
+        'federalState',
+        'reviewInterval',
+        'lastReviewedAt',
+        'nextReviewAt',
+        'reviewedBy',
+        'healthStatus',
+        'moderationStatus',
+        'publishedAt',
+        'createdAt',
+        'updatedAt',
+        'createdBy',
+        'updatedBy',
+        'archivedAt'
+      ];
+    }
+
+    function hasOptionalGuideV2Timestamps(data) {
+      return (!('publishedAt' in data) || data.publishedAt == null || data.publishedAt is timestamp)
+        && (!('archivedAt' in data) || data.archivedAt == null || data.archivedAt is timestamp)
+        && (!('lastReviewedAt' in data) || data.lastReviewedAt == null || data.lastReviewedAt is timestamp)
+        && (!('nextReviewAt' in data) || data.nextReviewAt == null || data.nextReviewAt is timestamp);
+    }
+
+    function validGuideNodeWrite(nodeId) {
+      return canManageGuide()
+        && request.resource.data.keys().hasAll([
+          'id',
+          'parentID',
+          'category',
+          'kind',
+          'title',
+          'sortOrder',
+          'moderationStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly(guideNodeAllowedFields())
+        && request.resource.data.id == nodeId
+        && request.resource.data.parentID is string
+        && request.resource.data.category is string
+        && request.resource.data.kind in ['section', 'folder']
+        && request.resource.data.title is string
+        && (!('summary' in request.resource.data) || request.resource.data.summary is string)
+        && request.resource.data.sortOrder is number
+        && request.resource.data.moderationStatus is string
+        && (!('healthStatus' in request.resource.data) || request.resource.data.healthStatus is string)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && (!('createdBy' in request.resource.data) || request.resource.data.createdBy == null || request.resource.data.createdBy is string)
+        && (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy == null || request.resource.data.updatedBy is string)
+        && (!('regionScope' in request.resource.data) || request.resource.data.regionScope == null || request.resource.data.regionScope is string)
+        && (!('federalState' in request.resource.data) || request.resource.data.federalState == null || request.resource.data.federalState is string)
+        && hasOptionalGuideV2Timestamps(request.resource.data);
+    }
+
+    function validGuideMaterialWrite(materialId) {
+      return canManageGuide()
+        && request.resource.data.keys().hasAll([
+          'id',
+          'kind',
+          'category',
+          'nodeID',
+          'title',
+          'sortOrder',
+          'moderationStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly(guideMaterialAllowedFields())
+        && request.resource.data.id == materialId
+        && request.resource.data.kind in ['page', 'catalog']
+        && request.resource.data.category is string
+        && request.resource.data.nodeID is string
+        && (!('nodePath' in request.resource.data) || request.resource.data.nodePath is map)
+        && request.resource.data.title is string
+        && (!('summary' in request.resource.data) || request.resource.data.summary is string)
+        && (!('body' in request.resource.data) || request.resource.data.body is string)
+        && request.resource.data.sortOrder is number
+        && request.resource.data.moderationStatus is string
+        && (!('healthStatus' in request.resource.data) || request.resource.data.healthStatus is string)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && (!('createdBy' in request.resource.data) || request.resource.data.createdBy == null || request.resource.data.createdBy is string)
+        && (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy == null || request.resource.data.updatedBy is string)
+        && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == null || request.resource.data.reviewedBy is string)
+        && (!('officialSourceURL' in request.resource.data) || request.resource.data.officialSourceURL == null || request.resource.data.officialSourceURL is string)
+        && (!('sourceName' in request.resource.data) || request.resource.data.sourceName == null || request.resource.data.sourceName is string)
+        && (!('officialSourcesRequired' in request.resource.data) || request.resource.data.officialSourcesRequired is bool)
+        && (!('regionScope' in request.resource.data) || request.resource.data.regionScope == null || request.resource.data.regionScope is string)
+        && (!('federalState' in request.resource.data) || request.resource.data.federalState == null || request.resource.data.federalState is string)
+        && (!('reviewInterval' in request.resource.data) || request.resource.data.reviewInterval == null || request.resource.data.reviewInterval is string)
+        && hasOptionalGuideV2Timestamps(request.resource.data);
+    }
+
     function isApprovedContent() {
       return resource.data.moderationStatus == 'approved';
     }
@@ -316,7 +499,7 @@ service cloud.firestore {
     }
 
     function safeFeedbackOwnerUpdate() {
-      return isOwner()
+      return canManageFeedback()
         && feedbackChangedKeys().hasOnly(feedbackOwnerUpdateFields())
         && request.resource.data.status in ['open', 'answered', 'closed', 'reviewed', 'archived']
         && request.resource.data.updatedAt is timestamp
@@ -352,7 +535,7 @@ service cloud.firestore {
     }
 
     function canReadFeedback(feedbackId) {
-      return isOwner()
+      return canManageFeedback()
         || (isSignedIn()
           && get(/databases/$(database)/documents/feedback/$(feedbackId)).data.userId == request.auth.uid);
     }
@@ -377,7 +560,7 @@ service cloud.firestore {
           (parent.userId == request.auth.uid
             && request.resource.data.senderRole == 'user'
             && (!('isSystem' in request.resource.data) || request.resource.data.isSystem == false))
-          || (isOwner() && request.resource.data.senderRole == 'owner')
+          || (canManageFeedback() && request.resource.data.senderRole == 'owner')
         );
     }
 
@@ -559,7 +742,7 @@ service cloud.firestore {
 
     function validFeaturedBannerCreate(bannerId) {
       return isActiveUser()
-        && isOwner()
+        && canManageFeaturedBanners()
         && featuredBannerStructurallyValid(request.resource.data, bannerId)
         && request.resource.data.createdBy == request.auth.uid
         && (
@@ -578,7 +761,7 @@ service cloud.firestore {
 
     function validFeaturedBannerUpdate(bannerId) {
       return isActiveUser()
-        && isOwner()
+        && canManageFeaturedBanners()
         && featuredBannerStructurallyValid(request.resource.data, bannerId)
         && featuredBannerIdentityFieldsArePreserved(bannerId)
         && request.resource.data.updatedBy == request.auth.uid;
@@ -586,7 +769,7 @@ service cloud.firestore {
 
     function validFeaturedBannerLifecycleUpdate(bannerId) {
       return isActiveUser()
-        && isOwner()
+        && canManageFeaturedBanners()
         && resource.data.id == bannerId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'isActive',
@@ -684,7 +867,7 @@ service cloud.firestore {
     }
 
     function hasOrganizationRole(organizationId, role) {
-      return isSignedIn()
+      return isActiveUser()
         && organizationId is string
         && (
           (
@@ -724,15 +907,19 @@ service cloud.firestore {
     }
 
     function canManageOrganizationPhotos(organizationId) {
-      return isOwner() || canEditOrganizationContent(organizationId);
+      return canUseOrganizationOverride() || canEditOrganizationContent(organizationId);
     }
 
     function canReadOrganizationByLookup(organizationId) {
-      return isOwner()
+      return canUseOrganizationOverride()
         || (exists(/databases/$(database)/documents/organizations/$(organizationId))
         && (
           get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus == 'approved'
           || canEditOrganizationContent(organizationId)
+          || (
+            canManageOrganizationRequests()
+            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
+          )
           || (
             isActiveUser()
             && ('submittedByUserId' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
@@ -743,8 +930,12 @@ service cloud.firestore {
     }
 
     function canReadOrganization(organizationId) {
-      return isOwner()
+      return canUseOrganizationOverride()
         || (('moderationStatus' in resource.data) && resource.data.moderationStatus == 'approved')
+        || (
+          canManageOrganizationRequests()
+          && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
+        )
         || (
           isActiveUser()
           && ('submittedByUserId' in resource.data)
@@ -777,7 +968,7 @@ service cloud.firestore {
     }
 
     function canEditOrganizationInfo(organizationId) {
-      return isOwner() || isOrganizationOwner(organizationId) || isOrganizationAdmin(organizationId);
+      return canUseOrganizationOverride() || isOrganizationOwner(organizationId) || isOrganizationAdmin(organizationId);
     }
 
     function organizationSafeInfoFields() {
@@ -1108,7 +1299,7 @@ service cloud.firestore {
     function canCreateOrganizationContent() {
       // Current policy: organization team members create approved content within their organization.
       return isOrganizationContent(request.resource.data)
-        && (isOwner() || canEditOrganizationContent(request.resource.data.organizationId));
+        && (canUseOrganizationOverride() || canEditOrganizationContent(request.resource.data.organizationId));
     }
 
     function canUpdateOrganizationContent() {
@@ -1116,12 +1307,12 @@ service cloud.firestore {
         && isOrganizationContent(request.resource.data)
         && request.resource.data.sourceType == resource.data.sourceType
         && request.resource.data.organizationId == resource.data.organizationId
-        && (isOwner() || canEditOrganizationContent(resource.data.organizationId));
+        && (canUseOrganizationOverride() || canEditOrganizationContent(resource.data.organizationId));
     }
 
     function canDeleteOrganizationContent() {
       return isOrganizationContent(resource.data)
-        && (isOwner() || isOrganizationOwner(resource.data.organizationId));
+        && (canUseOrganizationOverride() || isOrganizationOwner(resource.data.organizationId));
     }
 
     function canModerateNewsComment(newsId) {
@@ -1158,7 +1349,7 @@ service cloud.firestore {
     }
 
     function canModerateOrganizationComment(organizationId) {
-      return isOwner()
+      return canUseOrganizationOverride()
         || canModerateSection('comments')
         || canModerateOrganizationContent(organizationId);
     }
@@ -1236,7 +1427,7 @@ service cloud.firestore {
     }
 
     function validNotificationBase(uid, notificationId) {
-      return isOwner()
+      return canManageFeedback()
         && request.resource.data.keys().hasOnly(notificationInboxFields())
         && request.resource.data.id == notificationId
         && request.resource.data.recipientUserId == uid
@@ -1402,6 +1593,23 @@ service cloud.firestore {
         allow delete: if isActiveUser()
           && request.auth.uid == uid
           && resource.data.organizationId == organizationId
+          && resource.data.userId == uid;
+      }
+
+      match /guideMaterialBookmarks/{materialId} {
+        allow read: if isSelf(uid);
+
+        allow create: if isActiveUser()
+          && request.auth.uid == uid
+          && request.resource.data.id == materialId
+          && request.resource.data.materialId == materialId
+          && request.resource.data.userId == uid;
+
+        allow update: if false;
+
+        allow delete: if isActiveUser()
+          && request.auth.uid == uid
+          && resource.data.materialId == materialId
           && resource.data.userId == uid;
       }
 
@@ -1617,7 +1825,7 @@ service cloud.firestore {
     }
 
     match /feedback/{feedbackId} {
-      allow read: if isOwner()
+      allow read: if canManageFeedback()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
 
       allow create: if safeFeedbackCreate(feedbackId);
@@ -1660,15 +1868,15 @@ service cloud.firestore {
     match /appConfig/{bannerId} {
       allow read: if isAppManagedHeroBannerDocument(bannerId);
       allow create, update, delete: if isAppManagedHeroBannerDocument(bannerId)
-        && isOwner();
+        && canManageFeaturedBanners();
     }
 
     match /featuredBanners/{bannerId} {
-      allow read: if isOwner() || canReadFeaturedBanner(bannerId);
+      allow read: if canManageFeaturedBanners() || canReadFeaturedBanner(bannerId);
       allow create: if validFeaturedBannerCreate(bannerId);
       allow update: if validFeaturedBannerUpdate(bannerId)
         || validFeaturedBannerLifecycleUpdate(bannerId);
-      allow delete: if isActiveUser() && isOwner();
+      allow delete: if isActiveUser() && canManageFeaturedBanners();
     }
 
     match /guideArticles/{articleId} {
@@ -1682,6 +1890,20 @@ service cloud.firestore {
       allow update: if validGuideArticleEditUpdate();
       allow delete: if canManageGuide()
         && guideArticleIsEditableManagedContent();
+    }
+
+    match /guideNodes/{nodeId} {
+      allow read: if isPublishedGuideV2Resource() || canManageGuide();
+      allow create: if validGuideNodeWrite(nodeId);
+      allow update: if validGuideNodeWrite(nodeId);
+      allow delete: if canManageGuide();
+    }
+
+    match /guideMaterials/{materialId} {
+      allow read: if isPublishedGuideV2Resource() || canManageGuide();
+      allow create: if validGuideMaterialWrite(materialId);
+      allow update: if validGuideMaterialWrite(materialId);
+      allow delete: if canManageGuide();
     }
 
     match /{document=**} {

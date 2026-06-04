@@ -16,7 +16,7 @@ struct HomeView: View {
     @ObservedObject var newsViewModel: NewsViewModel
     @ObservedObject var eventsViewModel: EventsViewModel
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
-    @ObservedObject var guideViewModel: GuideListViewModel
+    @ObservedObject var guideViewModel: LegacyGuideListViewModel
     let newsRepository: NewsRepository
     @Binding var navigationPath: [HomeFeedDestinationReference]
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
@@ -37,7 +37,7 @@ struct HomeView: View {
         newsViewModel: NewsViewModel,
         eventsViewModel: EventsViewModel,
         organizationsViewModel: OrganizationsViewModel,
-        guideViewModel: GuideListViewModel,
+        guideViewModel: LegacyGuideListViewModel,
         newsRepository: NewsRepository,
         featuredBannerRepository: FeaturedBannerRepository,
         navigationPath: Binding<[HomeFeedDestinationReference]>,
@@ -130,6 +130,7 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             scheduleContentRefresh(for: .organizations)
         }
+        .dismissesKeyboardOnBackgroundTap()
     }
 
     private func scrollToTop(with scrollProxy: ScrollViewProxy) {
@@ -155,7 +156,8 @@ struct HomeView: View {
         AppSearchableBrandHeader(
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
-            placeholder: AppStrings.Search.homePlaceholder
+            placeholder: AppStrings.Search.homePlaceholder,
+            collapseToken: scrollResetToken
         )
     }
 
@@ -487,7 +489,7 @@ struct HomeView: View {
             OrganizationDetailView(viewModel: organizationsViewModel, organizationID: id, onNavigateBack: popHomeDetail)
         case let .guide(id):
             if let article = guideViewModel.articles.first(where: { $0.id == id }) {
-                GuideDetailView(article: article)
+                LegacyGuideDetailView(article: article)
             }
         }
     }
@@ -994,7 +996,7 @@ private struct HomeEventDateBadge: View {
             newsViewModel: NewsViewModel(repository: MockNewsRepository()),
             eventsViewModel: EventsViewModel(repository: MockEventRepository()),
             organizationsViewModel: OrganizationsViewModel(repository: MockOrganizationRepository()),
-            guideViewModel: GuideListViewModel(repository: MockGuideRepository()),
+            guideViewModel: LegacyGuideListViewModel(repository: LegacyMockGuideRepository()),
             newsRepository: MockNewsRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
             navigationPath: .constant([])

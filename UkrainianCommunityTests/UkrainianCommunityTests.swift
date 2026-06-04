@@ -33,6 +33,9 @@ struct UkrainianCommunityTests {
         id: String = UUID().uuidString,
         role: UserRole = .user,
         globalRole: GlobalRole? = nil,
+        canManageGuide: Bool = false,
+        blockState: UserBlockState = .active,
+        accountStatus: AccountStatus? = nil,
         moderatorSections: [AppSection] = [],
         communityMemberships: [CommunityMembership] = []
     ) -> AppUser {
@@ -46,7 +49,9 @@ struct UkrainianCommunityTests {
             role: role,
             globalRole: globalRole,
             moderatorSections: moderatorSections,
-            blockState: .active,
+            canManageGuide: canManageGuide,
+            blockState: blockState,
+            accountStatus: accountStatus,
             communityMemberships: communityMemberships,
             createdAt: .now,
             updatedAt: .now
@@ -93,6 +98,90 @@ struct UkrainianCommunityTests {
         #expect(ownerPermissions.canAccessOwnerTools == true)
     }
 
+    @Test func finalPlatformRoleMatrixMatchesContract() {
+        let owner = makeUser(id: "owner", globalRole: .owner)
+        let admin = makeUser(id: "admin", globalRole: .admin)
+        let guideAdmin = makeUser(id: "guide-admin", globalRole: .admin, canManageGuide: true)
+        let moderator = makeUser(id: "moderator", globalRole: .moderator)
+        let guideEditor = makeUser(id: "guide-editor", globalRole: .user, canManageGuide: true)
+        let normalUser = makeUser(id: "normal-user", globalRole: .user)
+
+        #expect(PermissionService.canAssignAppAdmin(user: owner))
+        #expect(PermissionService.canAssignAppModerator(user: owner))
+        #expect(PermissionService.canAssignGuideEditor(user: owner))
+        #expect(PermissionService.canManageUsers(user: owner))
+        #expect(PermissionService.canManageGuide(user: owner))
+        #expect(PermissionService.canManageOrganizationRequests(user: owner))
+        #expect(PermissionService.canAccessModerationTools(user: owner))
+        #expect(PermissionService.canManageFeedback(user: owner))
+        #expect(PermissionService.canManageReports(user: owner))
+        #expect(PermissionService.canManageFeaturedBanners(user: owner))
+        #expect(PermissionService.canUseOrganizationOverride(user: owner))
+
+        #expect(PermissionService.canManageOrganizationRequests(user: admin))
+        #expect(PermissionService.canAccessModerationTools(user: admin))
+        #expect(PermissionService.canManageFeedback(user: admin))
+        #expect(PermissionService.canManageReports(user: admin))
+        #expect(PermissionService.canAssignAppAdmin(user: admin) == false)
+        #expect(PermissionService.canAssignAppModerator(user: admin) == false)
+        #expect(PermissionService.canAssignGuideEditor(user: admin) == false)
+        #expect(PermissionService.canUseOrganizationOverride(user: admin) == false)
+        #expect(PermissionService.canManageGuide(user: admin) == false)
+        #expect(PermissionService.canManageGuide(user: guideAdmin))
+
+        #expect(PermissionService.canAccessModerationTools(user: moderator))
+        #expect(PermissionService.canManageFeedback(user: moderator))
+        #expect(PermissionService.canManageReports(user: moderator))
+        #expect(PermissionService.canManageOrganizationRequests(user: moderator) == false)
+        #expect(PermissionService.canAssignAppAdmin(user: moderator) == false)
+        #expect(PermissionService.canAssignAppModerator(user: moderator) == false)
+        #expect(PermissionService.canAssignGuideEditor(user: moderator) == false)
+        #expect(PermissionService.canUseOrganizationOverride(user: moderator) == false)
+
+        #expect(PermissionService.canManageGuide(user: guideEditor))
+        #expect(PermissionService.canManageUsers(user: guideEditor) == false)
+        #expect(PermissionService.canManageOrganizationRequests(user: guideEditor) == false)
+        #expect(PermissionService.canAccessModerationTools(user: guideEditor) == false)
+        #expect(PermissionService.canManageFeedback(user: guideEditor) == false)
+        #expect(PermissionService.canManageReports(user: guideEditor) == false)
+        #expect(PermissionService.canUseOrganizationOverride(user: guideEditor) == false)
+
+        #expect(PermissionService.canManageUsers(user: normalUser) == false)
+        #expect(PermissionService.canAccessModerationTools(user: normalUser) == false)
+        #expect(PermissionService.canManageGuide(user: normalUser) == false)
+    }
+
+    @Test func restrictedAndLegacyPlatformRolesDoNotGrantElevatedAccess() {
+        let suspendedOwner = makeUser(
+            id: "suspended-owner",
+            globalRole: .owner,
+            blockState: .suspendedUntil,
+            accountStatus: .suspendedUntil
+        )
+        let warnedAdmin = makeUser(
+            id: "warned-admin",
+            globalRole: .admin,
+            blockState: .warned,
+            accountStatus: .warned
+        )
+        let legacyTopAdmin = makeUser(id: "legacy-top-admin", globalRole: .topAdmin)
+        let legacyModerator = makeUser(id: "legacy-moderator", globalRole: .appModerator)
+
+        #expect(PermissionService.isUsableAccount(user: suspendedOwner) == false)
+        #expect(PermissionService.canManageUsers(user: suspendedOwner) == false)
+        #expect(PermissionService.canUseOrganizationOverride(user: suspendedOwner) == false)
+
+        #expect(PermissionService.isUsableAccount(user: warnedAdmin))
+        #expect(PermissionService.canManageOrganizationRequests(user: warnedAdmin))
+        #expect(PermissionService.canAccessModerationTools(user: warnedAdmin))
+
+        #expect(legacyTopAdmin.globalRole.authorizationRole == .user)
+        #expect(legacyModerator.globalRole.authorizationRole == .user)
+        #expect(PermissionService.canAccessModerationTools(user: legacyTopAdmin) == false)
+        #expect(PermissionService.canAccessModerationTools(user: legacyModerator) == false)
+        #expect(PermissionService.canManageGuide(user: legacyTopAdmin) == false)
+    }
+
     @Test func authStateSupportsRestoringGuestAndAuthenticatedSessions() async {
         let authState = AuthState()
 
@@ -132,7 +221,8 @@ struct UkrainianCommunityTests {
     }
 
     @Test func permissionServiceUsesOrganizationArraysForOrganizationScopedAccess() {
-        let owner = makeUser(role: .owner)
+        let owner = makeUser(globalRole: .owner)
+        let platformAdmin = makeUser(id: "platform-admin", globalRole: .admin)
         let ordinaryUser = makeUser(role: .user, globalRole: .user)
         let organizationOwner = makeUser(id: "org-owner", role: .user, globalRole: .user)
         let organizationAdmin = makeUser(id: "org-admin", role: .user, globalRole: .user)
@@ -152,9 +242,14 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canCreateNews(user: ordinaryUser) == false)
         #expect(PermissionService.canCreateEvent(user: ordinaryUser) == false)
 
+        #expect(PermissionService.canEditOrganizationInfo(organization, user: platformAdmin) == false)
+        #expect(PermissionService.canManageOrganizationRoles(organization, user: platformAdmin) == false)
+        #expect(PermissionService.canCreateOrganizationNews(organization, user: platformAdmin) == false)
+        #expect(PermissionService.canCreateOrganizationEvent(organization, user: platformAdmin) == false)
+
         #expect(PermissionService.canAccessOrganizationManagement(user: organizationAdmin) == false)
-        #expect(PermissionService.canCreateNews(for: organization.id, user: organizationAdmin) == false)
-        #expect(PermissionService.canCreateEvent(for: organization.id, user: organizationAdmin) == false)
+        #expect(PermissionService.canCreateOrganizationNews(organization, user: ordinaryUser) == false)
+        #expect(PermissionService.canCreateOrganizationEvent(organization, user: ordinaryUser) == false)
 
         #expect(PermissionService.canEditOrganizationInfo(organization, user: organizationOwner))
         #expect(PermissionService.canManageOrganizationRoles(organization, user: organizationOwner))

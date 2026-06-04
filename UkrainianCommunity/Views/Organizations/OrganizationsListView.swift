@@ -270,6 +270,7 @@ struct OrganizationsListView: View {
         } message: {
             Text(deleteErrorMessage ?? readableOrganizationErrorText(.unknown))
         }
+        .dismissesKeyboardOnBackgroundTap()
     }
 
     private func scrollToTop(with scrollProxy: ScrollViewProxy) {
@@ -284,7 +285,8 @@ struct OrganizationsListView: View {
         AppSearchableBrandHeader(
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
-            placeholder: AppStrings.Search.organizationsPlaceholder
+            placeholder: AppStrings.Search.organizationsPlaceholder,
+            collapseToken: scrollResetToken
         )
     }
 

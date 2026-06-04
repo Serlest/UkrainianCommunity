@@ -15,12 +15,12 @@ struct ProfileOrganizationPreviewCard: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(AppTheme.buttonLabelFont)
                     .foregroundStyle(AppTheme.textPrimary)
                     .lineLimit(1)
 
                 Text(role)
-                    .font(.caption)
+                    .font(AppTheme.cardSubtitleFont)
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(1)
             }
@@ -29,7 +29,7 @@ struct ProfileOrganizationPreviewCard: View {
 
             if let statusTitle = status.title {
                 Text(statusTitle)
-                    .font(.caption.weight(.semibold))
+                    .font(AppTheme.metadataFont)
                     .foregroundStyle(status.tint)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 5)

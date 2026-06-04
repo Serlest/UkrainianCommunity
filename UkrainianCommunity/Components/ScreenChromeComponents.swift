@@ -139,14 +139,27 @@ struct AppSearchableBrandHeader: View {
     @Binding var isSearchPresented: Bool
     @Binding var searchText: String
     let placeholder: String
+    let collapseToken: Int
     @FocusState private var isSearchFocused: Bool
+
+    init(
+        isSearchPresented: Binding<Bool>,
+        searchText: Binding<String>,
+        placeholder: String,
+        collapseToken: Int = 0
+    ) {
+        _isSearchPresented = isSearchPresented
+        _searchText = searchText
+        self.placeholder = placeholder
+        self.collapseToken = collapseToken
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
             AppBrandHeader {
                 AppGlassIconButton(
-                    systemImage: isSearchPresented ? "xmark" : "magnifyingglass",
-                    accessibilityLabel: isSearchPresented ? AppStrings.Search.close : AppStrings.Search.open
+                    systemImage: showsCloseButton ? "xmark" : "magnifyingglass",
+                    accessibilityLabel: showsCloseButton ? AppStrings.Search.close : AppStrings.Search.open
                 ) {
                     toggleSearch()
                 }
@@ -161,13 +174,15 @@ struct AppSearchableBrandHeader: View {
         .onChange(of: isSearchPresented) { _, isPresented in
             isSearchFocused = isPresented
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppStrings.Common.done) {
-                    isSearchFocused = false
-                }
-            }
+        .onChange(of: isSearchFocused) { _, isFocused in
+            guard !isFocused, isSearchPresented else { return }
+            collapseSearchIfInactive()
+        }
+        .onChange(of: collapseToken) { _, _ in
+            collapseSearch(clearText: true)
+        }
+        .onDisappear {
+            collapseSearch(clearText: true)
         }
     }
 
@@ -184,6 +199,9 @@ struct AppSearchableBrandHeader: View {
                 .foregroundStyle(AppTheme.textPrimary)
                 .focused($isSearchFocused)
                 .submitLabel(.search)
+                .onSubmit {
+                    endEditing()
+                }
 
             if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button {
@@ -206,15 +224,38 @@ struct AppSearchableBrandHeader: View {
         )
     }
 
+    private var hasActiveSearchText: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var showsCloseButton: Bool {
+        isSearchPresented || hasActiveSearchText
+    }
+
     private func toggleSearch() {
-        if isSearchPresented {
-            searchText = ""
-            isSearchFocused = false
-            isSearchPresented = false
+        if showsCloseButton {
+            collapseSearch(clearText: true)
         } else {
             isSearchPresented = true
             isSearchFocused = true
         }
+    }
+
+    private func endEditing() {
+        isSearchFocused = false
+    }
+
+    private func collapseSearch(clearText: Bool) {
+        if clearText {
+            searchText = ""
+        }
+        isSearchFocused = false
+        isSearchPresented = false
+    }
+
+    private func collapseSearchIfInactive() {
+        guard !hasActiveSearchText else { return }
+        isSearchPresented = false
     }
 }
 
