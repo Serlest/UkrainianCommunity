@@ -8,9 +8,9 @@ enum GuideMaterialEditorMode {
     var title: String {
         switch self {
         case .create:
-            return "Add Material"
+            return GuideAuthoringPresentation.createMaterialScreenTitle
         case .edit:
-            return "Edit Material"
+            return GuideAuthoringPresentation.editMaterialScreenTitle
         }
     }
 

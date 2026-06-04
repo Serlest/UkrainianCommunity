@@ -611,7 +611,7 @@ struct ProfileView: View {
         case let .myFeedback(userID):
             MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: userID)
         case let .legal(document):
-            LegalDocumentView(document: document)
+            LegalDocumentView(document: document, repository: legalDocumentRepository)
         }
     }
 

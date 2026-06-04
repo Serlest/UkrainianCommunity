@@ -100,11 +100,11 @@ enum GuideSectionEditorMode {
     var title: String {
         switch self {
         case .createRoot:
-            return "Add Root Node"
+            return GuideAuthoringPresentation.createSectionScreenTitle
         case .createChild:
-            return "Add Child Node"
+            return GuideAuthoringPresentation.createSubsection
         case .edit:
-            return "Edit Node"
+            return GuideAuthoringPresentation.editSectionScreenTitle
         }
     }
 }

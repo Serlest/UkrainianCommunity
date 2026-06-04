@@ -22,74 +22,160 @@ enum AppStrings {
     }
 
     enum NotificationInbox {
-        static var title: String { text("notifications.inbox.title", "Notifications") }
-        static var subtitle: String { text("notifications.inbox.subtitle", "Updates about your requests and support messages.") }
-        static var emptyTitle: String { text("notifications.inbox.empty.title", "No notifications yet") }
-        static var emptyMessage: String { text("notifications.inbox.empty.message", "New replies and request updates will appear here.") }
-        static var unreadEmptyTitle: String { text("notifications.inbox.unread.empty.title", "No unread notifications") }
-        static var unreadEmptyMessage: String { text("notifications.inbox.unread.empty.message", "Unread updates will appear here.") }
-        static var filterAll: String { text("notifications.inbox.filter.all", "All") }
-        static var filterUnread: String { text("notifications.inbox.filter.unread", "Unread") }
-        static var markAllRead: String { text("notifications.inbox.mark_all_read", "Mark all as read") }
-        static var markRead: String { text("notifications.inbox.mark_read", "Mark read") }
-        static var markUnread: String { text("notifications.inbox.mark_unread", "Mark unread") }
-        static var archive: String { text("notifications.inbox.archive", "Archive") }
-        static var delete: String { text("notifications.inbox.delete", "Delete") }
-        static var destinationUnavailableTitle: String { text("notifications.inbox.destination_unavailable.title", "No longer available") }
-        static var destinationUnavailableMessage: String { text("notifications.inbox.destination_unavailable.message", "This notification can no longer be opened.") }
-        static var feedbackReplyTitle: String { text("notifications.inbox.feedback_reply.title", "Support replied") }
-        static var feedbackReplyBody: String { text("notifications.inbox.feedback_reply.body", "You have a new reply to your message.") }
-        static var organizationApprovedTitle: String { text("notifications.inbox.organization_approved.title", "Organization approved") }
-        static var organizationNeedsRevisionTitle: String { text("notifications.inbox.organization_needs_revision.title", "Organization needs revision") }
-        static var organizationRejectedTitle: String { text("notifications.inbox.organization_rejected.title", "Organization rejected") }
-        static var accountStatusChangedTitle: String { text("notifications.inbox.account_status_changed.title", "Account status updated") }
-        static var legalDocumentsUpdatedTitle: String { text("notifications.inbox.legal_documents_updated.title", "Legal documents updated") }
-        static var roleChangedTitle: String { text("notifications.inbox.role_changed.title", "Role updated") }
-        static var organizationRoleAssignedTitle: String { text("notifications.inbox.organization_role_assigned.title", "Organization role assigned") }
-        static var organizationRoleRemovedTitle: String { text("notifications.inbox.organization_role_removed.title", "Organization role removed") }
-        static var reportReviewedTitle: String { text("notifications.inbox.report_reviewed.title", "Report reviewed") }
-        static var eventUpdatedTitle: String { text("notifications.inbox.event_updated.title", "Event updated") }
-        static var eventCancelledTitle: String { text("notifications.inbox.event_cancelled.title", "Event cancelled") }
-        static var guideMaterialUpdatedTitle: String { text("notifications.inbox.guide_material_updated.title", "Guide material updated") }
-        static var systemAnnouncementTitle: String { text("notifications.inbox.system_announcement.title", "System announcement") }
-        static var genericBody: String { text("notifications.inbox.generic.body", "Open this notification for details.") }
+        static var title: String {
+            String(localized: "notifications.inbox.title", defaultValue: "Notifications", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var subtitle: String {
+            String(localized: "notifications.inbox.subtitle", defaultValue: "Updates about your requests and support messages.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var emptyTitle: String {
+            String(localized: "notifications.inbox.empty.title", defaultValue: "No notifications yet", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var emptyMessage: String {
+            String(localized: "notifications.inbox.empty.message", defaultValue: "New replies and request updates will appear here.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var unreadEmptyTitle: String {
+            String(localized: "notifications.inbox.unread.empty.title", defaultValue: "No unread notifications", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var unreadEmptyMessage: String {
+            String(localized: "notifications.inbox.unread.empty.message", defaultValue: "Unread updates will appear here.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var filterAll: String {
+            String(localized: "notifications.inbox.filter.all", defaultValue: "All", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var filterUnread: String {
+            String(localized: "notifications.inbox.filter.unread", defaultValue: "Unread", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var markAllRead: String {
+            String(localized: "notifications.inbox.mark_all_read", defaultValue: "Mark all as read", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var markRead: String {
+            String(localized: "notifications.inbox.mark_read", defaultValue: "Mark read", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var markUnread: String {
+            String(localized: "notifications.inbox.mark_unread", defaultValue: "Mark unread", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var archive: String {
+            String(localized: "notifications.inbox.archive", defaultValue: "Archive", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var delete: String {
+            String(localized: "notifications.inbox.delete", defaultValue: "Delete", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var destinationUnavailableTitle: String {
+            String(localized: "notifications.inbox.destination_unavailable.title", defaultValue: "No longer available", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var destinationUnavailableMessage: String {
+            String(localized: "notifications.inbox.destination_unavailable.message", defaultValue: "This notification can no longer be opened.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var feedbackReplyTitle: String {
+            String(localized: "notifications.inbox.feedback_reply.title", defaultValue: "Support replied", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var feedbackReplyBody: String {
+            String(localized: "notifications.inbox.feedback_reply.body", defaultValue: "You have a new reply to your message.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var organizationApprovedTitle: String {
+            String(localized: "notifications.inbox.organization_approved.title", defaultValue: "Organization approved", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var organizationNeedsRevisionTitle: String {
+            String(localized: "notifications.inbox.organization_needs_revision.title", defaultValue: "Organization needs revision", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var organizationRejectedTitle: String {
+            String(localized: "notifications.inbox.organization_rejected.title", defaultValue: "Organization rejected", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var accountStatusChangedTitle: String {
+            String(localized: "notifications.inbox.account_status_changed.title", defaultValue: "Account status updated", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var legalDocumentsUpdatedTitle: String {
+            String(localized: "notifications.inbox.legal_documents_updated.title", defaultValue: "Legal documents updated", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var roleChangedTitle: String {
+            String(localized: "notifications.inbox.role_changed.title", defaultValue: "Role updated", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var organizationRoleAssignedTitle: String {
+            String(localized: "notifications.inbox.organization_role_assigned.title", defaultValue: "Organization role assigned", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var organizationRoleRemovedTitle: String {
+            String(localized: "notifications.inbox.organization_role_removed.title", defaultValue: "Organization role removed", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var reportReviewedTitle: String {
+            String(localized: "notifications.inbox.report_reviewed.title", defaultValue: "Report reviewed", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var eventUpdatedTitle: String {
+            String(localized: "notifications.inbox.event_updated.title", defaultValue: "Event updated", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var eventCancelledTitle: String {
+            String(localized: "notifications.inbox.event_cancelled.title", defaultValue: "Event cancelled", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var guideMaterialUpdatedTitle: String {
+            String(localized: "notifications.inbox.guide_material_updated.title", defaultValue: "Guide material updated", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var systemAnnouncementTitle: String {
+            String(localized: "notifications.inbox.system_announcement.title", defaultValue: "System announcement", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var genericBody: String {
+            String(localized: "notifications.inbox.generic.body", defaultValue: "Open this notification for details.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var severityInfo: String {
+            String(localized: "notifications.inbox.severity.info", defaultValue: "Info", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var severitySuccess: String {
+            String(localized: "notifications.inbox.severity.success", defaultValue: "Success", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var severityWarning: String {
+            String(localized: "notifications.inbox.severity.warning", defaultValue: "Warning", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var severityCritical: String {
+            String(localized: "notifications.inbox.severity.critical", defaultValue: "Critical", bundle: .main, locale: LocalizationStore.locale)
+        }
 
         static func organizationApprovedBody(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.organization_approved.body",
+            let format = String(
+                localized: "notifications.inbox.organization_approved.body",
                 defaultValue: "%@ was approved.",
-                arguments: [organizationName]
+                bundle: .main,
+                locale: LocalizationStore.locale
             )
+            return String(format: format, locale: LocalizationStore.locale, organizationName)
         }
 
         static func organizationNeedsRevisionBody(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.organization_needs_revision.body",
+            let format = String(
+                localized: "notifications.inbox.organization_needs_revision.body",
                 defaultValue: "%@ needs changes before approval.",
-                arguments: [organizationName]
+                bundle: .main,
+                locale: LocalizationStore.locale
             )
+            return String(format: format, locale: LocalizationStore.locale, organizationName)
         }
 
         static func organizationRejectedBody(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.organization_rejected.body",
+            let format = String(
+                localized: "notifications.inbox.organization_rejected.body",
                 defaultValue: "%@ was rejected.",
-                arguments: [organizationName]
+                bundle: .main,
+                locale: LocalizationStore.locale
             )
+            return String(format: format, locale: LocalizationStore.locale, organizationName)
         }
 
         static func unreadCount(_ count: Int) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.unread_count",
+            let format = String(
+                localized: "notifications.inbox.unread_count",
                 defaultValue: "%lld unread",
-                arguments: [count]
+                bundle: .main,
+                locale: LocalizationStore.locale
             )
+            return String(format: format, locale: LocalizationStore.locale, count)
         }
     }
 
     enum NotificationPopup {
-        static var actionButton: String { text("notifications.popup.action", "Open") }
-        static var updateFailed: String { text("notifications.popup.error.update_failed", "Unable to update this notification right now.") }
+        static var actionButton: String {
+            String(localized: "notifications.popup.action", defaultValue: "Open", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var updateFailed: String {
+            String(localized: "notifications.popup.error.update_failed", defaultValue: "Unable to update this notification right now.", bundle: .main, locale: LocalizationStore.locale)
+        }
     }
 
     enum Featured {
@@ -1975,40 +2061,120 @@ enum AppStrings {
     }
 
     enum LegalManagement {
-        static var title: String { text("legal_management.title", "Legal Documents") }
-        static var subtitle: String { text("legal_management.subtitle", "Manage active Terms and Privacy documents, drafts, and required reacceptance.") }
-        static var permissionTitle: String { text("legal_management.permission.title", "Owner access required") }
-        static var permissionMessage: String { text("legal_management.permission.message", "Only the App Owner can manage legal documents.") }
-        static var loadFailed: String { text("legal_management.error.load_failed", "Unable to load legal documents.") }
-        static var termsSubtitle: String { text("legal_management.terms.subtitle", "Terms of Service shown to registered users.") }
-        static var privacySubtitle: String { text("legal_management.privacy.subtitle", "Privacy Policy shown to registered users.") }
-        static var requiresAcceptance: String { text("legal_management.requires_acceptance", "Requires acceptance") }
-        static var acceptanceNotRequired: String { text("legal_management.acceptance_not_required", "Acceptance not required") }
-        static var draftExists: String { text("legal_management.draft_exists", "Draft exists") }
-        static var createDraft: String { text("legal_management.create_draft", "Create draft") }
-        static var editDraft: String { text("legal_management.edit_draft", "Edit draft") }
-        static var editorSubtitle: String { text("legal_management.editor.subtitle", "Edit localized Markdown and publish a new immutable version.") }
-        static func editorTitle(_ documentTitle: String) -> String {
-            LocalizationStore.localizedFormat("legal_management.editor.title", defaultValue: "Edit %@", arguments: [documentTitle])
+        static var title: String {
+            String(localized: "legal_management.title", defaultValue: "Legal Documents", bundle: .main, locale: LocalizationStore.locale)
         }
-        static var editorIntro: String { text("legal_management.editor.intro", "Draft changes are private until published. Publishing updates the active version for all users.") }
-        static var versionSection: String { text("legal_management.version.section", "Version and acceptance") }
-        static var versionSectionSubtitle: String { text("legal_management.version.section.subtitle", "Publishing this draft creates the next active legal version.") }
-        static var changeSummary: String { text("legal_management.change_summary", "Change summary") }
-        static var localizedContent: String { text("legal_management.localized_content", "Localized content") }
-        static var localizedContentSubtitle: String { text("legal_management.localized_content.subtitle", "Edit the title and Markdown body for each supported language.") }
-        static var localePicker: String { text("legal_management.locale_picker", "Language") }
-        static var localizedTitle: String { text("legal_management.localized_title", "Localized title") }
-        static var saveDraft: String { text("legal_management.save_draft", "Save draft") }
-        static var saving: String { text("legal_management.saving", "Saving…") }
-        static var draftSaved: String { text("legal_management.draft_saved", "Draft saved.") }
-        static var saveFailed: String { text("legal_management.error.save_failed", "Unable to save draft.") }
-        static var preview: String { text("legal_management.preview", "Preview") }
-        static var publish: String { text("legal_management.publish", "Publish new version") }
-        static var publishing: String { text("legal_management.publishing", "Publishing…") }
-        static var publishFailed: String { text("legal_management.error.publish_failed", "Unable to publish legal document.") }
-        static var publishConfirmTitle: String { text("legal_management.publish.confirm.title", "Publish new legal version?") }
-        static var publishConfirmMessage: String { text("legal_management.publish.confirm.message", "This version becomes immutable and replaces the active document. If acceptance is required, users with older accepted versions will need to accept again.") }
+        static var subtitle: String {
+            String(localized: "legal_management.subtitle", defaultValue: "Manage active Terms and Privacy documents, drafts, and required reacceptance.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var permissionTitle: String {
+            String(localized: "legal_management.permission.title", defaultValue: "Owner access required", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var permissionMessage: String {
+            String(localized: "legal_management.permission.message", defaultValue: "Only the App Owner can manage legal documents.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var loadFailed: String {
+            String(localized: "legal_management.error.load_failed", defaultValue: "Unable to load legal documents.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var termsSubtitle: String {
+            String(localized: "legal_management.terms.subtitle", defaultValue: "Terms of Service shown to registered users.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var privacySubtitle: String {
+            String(localized: "legal_management.privacy.subtitle", defaultValue: "Privacy Policy shown to registered users.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var requiresAcceptance: String {
+            String(localized: "legal_management.requires_acceptance", defaultValue: "Requires acceptance", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var acceptanceNotRequired: String {
+            String(localized: "legal_management.acceptance_not_required", defaultValue: "Acceptance not required", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var draftExists: String {
+            String(localized: "legal_management.draft_exists", defaultValue: "Draft exists", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var createDraft: String {
+            String(localized: "legal_management.create_draft", defaultValue: "Create draft", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var editDraft: String {
+            String(localized: "legal_management.edit_draft", defaultValue: "Edit draft", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var editorSubtitle: String {
+            String(localized: "legal_management.editor.subtitle", defaultValue: "Edit localized Markdown and publish a new immutable version.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static func editorTitle(_ documentTitle: String) -> String {
+            let format = String(
+                localized: "legal_management.editor.title",
+                defaultValue: "Edit %@",
+                bundle: .main,
+                locale: LocalizationStore.locale
+            )
+            return String(format: format, locale: LocalizationStore.locale, documentTitle)
+        }
+        static var editorIntro: String {
+            String(localized: "legal_management.editor.intro", defaultValue: "Draft changes are private until published. Publishing updates the active version for all users.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var versionSection: String {
+            String(localized: "legal_management.version.section", defaultValue: "Version and acceptance", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var versionSectionSubtitle: String {
+            String(localized: "legal_management.version.section.subtitle", defaultValue: "Publishing this draft creates the next active legal version.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var changeSummary: String {
+            String(localized: "legal_management.change_summary", defaultValue: "Change summary", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var localizedContent: String {
+            String(localized: "legal_management.localized_content", defaultValue: "Localized content", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var localizedContentSubtitle: String {
+            String(localized: "legal_management.localized_content.subtitle", defaultValue: "Edit the title and Markdown body for each supported language.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var localePicker: String {
+            String(localized: "legal_management.locale_picker", defaultValue: "Language", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var localizedTitle: String {
+            String(localized: "legal_management.localized_title", defaultValue: "Localized title", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var saveDraft: String {
+            String(localized: "legal_management.save_draft", defaultValue: "Save draft", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var saving: String {
+            String(localized: "legal_management.saving", defaultValue: "Saving…", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var draftSaved: String {
+            String(localized: "legal_management.draft_saved", defaultValue: "Draft saved.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var saveFailed: String {
+            String(localized: "legal_management.error.save_failed", defaultValue: "Unable to save draft.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var preview: String {
+            String(localized: "legal_management.preview", defaultValue: "Preview", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var publish: String {
+            String(localized: "legal_management.publish", defaultValue: "Publish new version", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var publishing: String {
+            String(localized: "legal_management.publishing", defaultValue: "Publishing…", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var publishFailed: String {
+            String(localized: "legal_management.error.publish_failed", defaultValue: "Unable to publish legal document.", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var missingGermanTitle: String {
+            String(localized: "legal_management.validation.missing_german_title", defaultValue: "Missing German title", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var missingGermanContent: String {
+            String(localized: "legal_management.validation.missing_german_content", defaultValue: "Missing German content", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var missingUkrainianTitle: String {
+            String(localized: "legal_management.validation.missing_ukrainian_title", defaultValue: "Missing Ukrainian title", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var missingUkrainianContent: String {
+            String(localized: "legal_management.validation.missing_ukrainian_content", defaultValue: "Missing Ukrainian content", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var publishConfirmTitle: String {
+            String(localized: "legal_management.publish.confirm.title", defaultValue: "Publish new legal version?", bundle: .main, locale: LocalizationStore.locale)
+        }
+        static var publishConfirmMessage: String {
+            String(localized: "legal_management.publish.confirm.message", defaultValue: "This version becomes immutable and replaces the active document. If acceptance is required, users with older accepted versions will need to accept again.", bundle: .main, locale: LocalizationStore.locale)
+        }
     }
 
     enum Roles {
@@ -2160,6 +2326,7 @@ enum AppStrings {
         static var registrationProfileNetworkError: String { text("auth.registration.profile_network", "Your account was created, but the profile setup could not finish because of a network problem. Please try again.") }
         static var registrationProfileUnknownError: String { text("auth.registration.profile_unknown", "Your account was created, but the profile setup could not be completed. Please try again later.") }
         static var resetPasswordFailed: String { text("auth.reset_password.failed", "We couldn’t send a reset link right now.") }
+        static var loadUserProfileFailed: String { text("auth.load_user_profile.failed", "Failed to load user profile.") }
     }
 
     static func homeHighlightNews(_ count: Int) -> String {

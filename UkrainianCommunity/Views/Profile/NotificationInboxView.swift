@@ -347,13 +347,13 @@ private struct NotificationInboxRow: View {
     private var severityText: String {
         switch notification.severity {
         case .info:
-            return ""
+            return AppStrings.NotificationInbox.severityInfo
         case .success:
-            return AppStrings.Common.approved
+            return AppStrings.NotificationInbox.severitySuccess
         case .warning:
-            return AppStrings.Common.warned
+            return AppStrings.NotificationInbox.severityWarning
         case .critical:
-            return AppStrings.Common.blocked
+            return AppStrings.NotificationInbox.severityCritical
         }
     }
 }

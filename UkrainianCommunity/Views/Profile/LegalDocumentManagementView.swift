@@ -177,6 +177,7 @@ private struct LegalDocumentEditorView: View {
     @State private var statusStyle: InlineMessageStyle = .info
     @State private var isShowingPreview = false
     @State private var isConfirmingPublish = false
+    @State private var validationErrors: [String] = []
 
     init(
         type: LegalDocumentType,
@@ -214,7 +215,7 @@ private struct LegalDocumentEditorView: View {
         }
         .sheet(isPresented: $isShowingPreview) {
             NavigationStack {
-                LegalMarkdownPreview(document: previewDocument)
+                LegalMarkdownPreview(document: previewDocument, preferredLocale: selectedLocale)
             }
         }
     }
@@ -223,6 +224,10 @@ private struct LegalDocumentEditorView: View {
         VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
             if let statusMessage {
                 InlineMessageCard(style: statusStyle, message: statusMessage)
+            }
+
+            ForEach(validationErrors, id: \.self) { validationError in
+                InlineMessageCard(style: .error, message: validationError)
             }
 
             AppEditorSectionCard {
@@ -287,7 +292,7 @@ private struct LegalDocumentEditorView: View {
                     .appActionButtonStyle(.secondary)
 
                     Button(role: .destructive) {
-                        isConfirmingPublish = true
+                        validateAndConfirmPublish()
                     } label: {
                         Label(isPublishing ? AppStrings.LegalManagement.publishing : AppStrings.LegalManagement.publish, systemImage: "paperplane.fill")
                             .frame(maxWidth: .infinity)
@@ -341,6 +346,7 @@ private struct LegalDocumentEditorView: View {
     }
 
     private func updateLocale(title: String?, markdown: String?) {
+        validationErrors = []
         let existing = draft.locales[selectedLocale]
             ?? LegalDocumentLocaleContent(title: "", contentMarkdown: "", contentText: nil, contentHash: nil)
         draft.locales[selectedLocale] = LegalDocumentLocaleContent(
@@ -355,6 +361,7 @@ private struct LegalDocumentEditorView: View {
         guard let userID = authState.user?.id else { return }
         isSaving = true
         statusMessage = nil
+        validationErrors = []
         defer { isSaving = false }
 
         do {
@@ -370,8 +377,14 @@ private struct LegalDocumentEditorView: View {
 
     private func publish() async {
         guard let userID = authState.user?.id else { return }
+        guard publishValidationErrors(for: normalizedDraft).isEmpty else {
+            validateAndConfirmPublish()
+            return
+        }
+
         isPublishing = true
         statusMessage = nil
+        validationErrors = []
         defer { isPublishing = false }
 
         do {
@@ -384,6 +397,36 @@ private struct LegalDocumentEditorView: View {
             statusStyle = .error
             statusMessage = AppStrings.LegalManagement.publishFailed
         }
+    }
+
+    private func validateAndConfirmPublish() {
+        statusMessage = nil
+        validationErrors = publishValidationErrors(for: normalizedDraft)
+        isConfirmingPublish = validationErrors.isEmpty
+    }
+
+    private func publishValidationErrors(for draft: LegalDocumentDraft) -> [String] {
+        var errors: [String] = []
+        let germanContent = draft.locales[AppLanguage.german.rawValue]
+        let ukrainianContent = draft.locales[AppLanguage.ukrainian.rawValue]
+
+        if germanContent?.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            errors.append(AppStrings.LegalManagement.missingGermanTitle)
+        }
+
+        if germanContent?.contentMarkdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            errors.append(AppStrings.LegalManagement.missingGermanContent)
+        }
+
+        if ukrainianContent?.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            errors.append(AppStrings.LegalManagement.missingUkrainianTitle)
+        }
+
+        if ukrainianContent?.contentMarkdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            errors.append(AppStrings.LegalManagement.missingUkrainianContent)
+        }
+
+        return errors
     }
 
     private var normalizedDraft: LegalDocumentDraft {
@@ -408,10 +451,11 @@ private struct LegalDocumentEditorView: View {
 private struct LegalMarkdownPreview: View {
     @Environment(\.dismiss) private var dismiss
     let document: LegalDocument
+    let preferredLocale: String
 
     private var content: LegalDocumentLocaleContent {
-        document.content(preferredLocale: AppLanguage.stored.rawValue)
-            ?? LegalDocument.hardcodedFallback(type: document.type).content(preferredLocale: AppLanguage.stored.rawValue)
+        document.content(preferredLocale: preferredLocale)
+            ?? LegalDocument.hardcodedFallback(type: document.type).content(preferredLocale: preferredLocale)
             ?? LegalDocumentLocaleContent(title: document.type.title, contentMarkdown: "", contentText: nil, contentHash: nil)
     }
 

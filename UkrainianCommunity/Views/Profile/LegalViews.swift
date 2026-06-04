@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 enum LegalDocumentKind: String, Identifiable {
@@ -6,21 +7,21 @@ enum LegalDocumentKind: String, Identifiable {
 
     var id: String { rawValue }
 
+    var documentType: LegalDocumentType {
+        switch self {
+        case .terms:
+            .terms
+        case .privacy:
+            .privacy
+        }
+    }
+
     var title: String {
         switch self {
         case .terms:
             AppStrings.Settings.terms
         case .privacy:
             AppStrings.Settings.privacyPolicy
-        }
-    }
-
-    var version: String {
-        switch self {
-        case .terms:
-            AuthService.currentTermsVersion
-        case .privacy:
-            AuthService.currentPrivacyVersion
         }
     }
 
@@ -32,35 +33,54 @@ enum LegalDocumentKind: String, Identifiable {
             "legal.privacy.screen"
         }
     }
-
-    var sections: [(title: String, body: String)] {
-        switch self {
-        case .terms:
-            return [
-                (AppStrings.Legal.termsIntroTitle, AppStrings.Legal.termsIntroBody),
-                (AppStrings.Legal.termsAccountTitle, AppStrings.Legal.termsAccountBody),
-                (AppStrings.Legal.termsContentTitle, AppStrings.Legal.termsContentBody),
-                (AppStrings.Legal.termsAvailabilityTitle, AppStrings.Legal.termsAvailabilityBody),
-                (AppStrings.Legal.termsLiabilityTitle, AppStrings.Legal.termsLiabilityBody)
-            ]
-        case .privacy:
-            return [
-                (AppStrings.Legal.privacyIntroTitle, AppStrings.Legal.privacyIntroBody),
-                (AppStrings.Legal.privacyUsageTitle, AppStrings.Legal.privacyUsageBody),
-                (AppStrings.Legal.privacyStorageTitle, AppStrings.Legal.privacyStorageBody),
-                (AppStrings.Legal.privacySharingTitle, AppStrings.Legal.privacySharingBody),
-                (AppStrings.Legal.privacyRightsTitle, AppStrings.Legal.privacyRightsBody)
-            ]
-        }
-    }
 }
 
 struct LegalDocumentView: View {
     let document: LegalDocumentKind
 
-    private var lastUpdatedText: String {
-        let updatedAt = Date(timeIntervalSince1970: 1_767_225_600) // January 1, 2026 UTC
-        return AppStrings.legalLastUpdatedLabel(LocalizationStore.dateString(from: updatedAt))
+    @StateObject private var viewModel: LegalDocumentReaderViewModel
+
+    init(
+        document: LegalDocumentKind,
+        repository: LegalDocumentRepository = FirestoreLegalDocumentRepository()
+    ) {
+        self.document = document
+        _viewModel = StateObject(
+            wrappedValue: LegalDocumentReaderViewModel(
+                kind: document,
+                repository: repository
+            )
+        )
+    }
+
+    private var displayedDocument: LegalDocument {
+        viewModel.document ?? LegalDocument.hardcodedFallback(type: document.documentType)
+    }
+
+    private var displayedContent: LegalDocumentLocaleContent {
+        displayedDocument.content(preferredLocale: AppLanguage.stored.rawValue)
+            ?? LegalDocumentLocaleContent(
+                title: document.title,
+                contentMarkdown: "",
+                contentText: nil,
+                contentHash: nil
+            )
+    }
+
+    private var lastUpdatedText: String? {
+        guard let lastUpdated = displayedDocument.publishedAt ?? displayedDocument.updatedAt else {
+            return nil
+        }
+
+        return AppStrings.legalLastUpdatedLabel(LocalizationStore.dateString(from: lastUpdated))
+    }
+
+    private var markdownText: Text {
+        if let attributed = try? AttributedString(markdown: displayedContent.contentMarkdown) {
+            return Text(attributed)
+        }
+
+        return Text(displayedContent.contentText ?? displayedContent.contentMarkdown)
     }
 
     var body: some View {
@@ -75,41 +95,42 @@ struct LegalDocumentView: View {
                     }
 
                     AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                            if viewModel.isLoading, viewModel.document == nil {
+                                LoadingStateCard(title: nil)
+                            }
+
+                            if let errorMessage = viewModel.errorMessage {
+                                InlineMessageCard(style: .error, message: errorMessage)
+                            }
+
                             AppEditorSectionCard {
                                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                                     SectionHeaderBlock(
-                                        title: document.title,
+                                        title: displayedContent.title,
                                         subtitle: AppStrings.Legal.screenIntro
                                     )
 
                                     ViewThatFits(in: .horizontal) {
                                         HStack(spacing: 8) {
-                                            AppInfoChip(title: AppStrings.legalVersionLabel(document.version), systemImage: "doc.text")
-                                            AppInfoChip(title: lastUpdatedText, systemImage: "calendar")
+                                            versionChip
+                                            lastUpdatedChip
                                         }
 
                                         VStack(alignment: .leading, spacing: 8) {
-                                            AppInfoChip(title: AppStrings.legalVersionLabel(document.version), systemImage: "doc.text")
-                                            AppInfoChip(title: lastUpdatedText, systemImage: "calendar")
+                                            versionChip
+                                            lastUpdatedChip
                                         }
                                     }
                                 }
                             }
 
-                            ForEach(Array(document.sections.enumerated()), id: \.offset) { _, section in
-                                AppEditorSectionCard {
-                                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                                        Text(section.title)
-                                            .font(.headline.weight(.semibold))
-                                            .foregroundStyle(AppTheme.textPrimary)
-
-                                        Text(section.body)
-                                            .font(.subheadline)
-                                            .foregroundStyle(AppTheme.textSecondary)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                }
+                            AppEditorSectionCard {
+                                markdownText
+                                    .font(.body)
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                    .lineSpacing(4)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     }
@@ -119,8 +140,57 @@ struct LegalDocumentView: View {
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
         }
-        .navigationTitle(document.title)
+        .navigationTitle(displayedContent.title)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier(document.accessibilityIdentifier)
+        .task {
+            await viewModel.load()
+        }
+        .refreshable {
+            await viewModel.load()
+        }
+    }
+
+    private var versionChip: some View {
+        AppInfoChip(
+            title: AppStrings.legalVersionLabel(displayedDocument.version),
+            systemImage: "doc.text"
+        )
+    }
+
+    @ViewBuilder
+    private var lastUpdatedChip: some View {
+        if let lastUpdatedText {
+            AppInfoChip(title: lastUpdatedText, systemImage: "calendar")
+        }
+    }
+}
+
+@MainActor
+private final class LegalDocumentReaderViewModel: ObservableObject {
+    @Published private(set) var document: LegalDocument?
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
+
+    private let kind: LegalDocumentKind
+    private let repository: LegalDocumentRepository
+
+    init(kind: LegalDocumentKind, repository: LegalDocumentRepository) {
+        self.kind = kind
+        self.repository = repository
+    }
+
+    func load() async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            document = try await repository.fetchActiveDocument(type: kind.documentType)
+        } catch {
+            document = LegalDocument.hardcodedFallback(type: kind.documentType)
+            errorMessage = AppStrings.LegalManagement.loadFailed
+        }
+
+        isLoading = false
     }
 }

@@ -73,7 +73,7 @@ final class AuthState: ObservableObject {
         user = result
 
         if result == nil {
-            errorMessage = "Failed to load user profile."
+            errorMessage = AppStrings.Auth.loadUserProfileFailed
         }
     }
 }

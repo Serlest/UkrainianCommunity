@@ -73,14 +73,77 @@ struct NotificationPopupView: View {
     }
 
     private var title: String {
-        notification.title ?? AppStrings.NotificationInbox.systemAnnouncementTitle
+        if let title = notification.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            return title
+        }
+
+        return fallbackTitle
     }
 
     private var message: String {
-        notification.message
-            ?? notification.metadata["message"]
-            ?? notification.payload["message"]
-            ?? AppStrings.NotificationInbox.genericBody
+        if let message = notification.message?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
+            return message
+        }
+        if let message = notification.metadata["message"]?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
+            return message
+        }
+        if let message = notification.payload["message"]?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
+            return message
+        }
+
+        return fallbackMessage
+    }
+
+    private var fallbackTitle: String {
+        switch notification.type {
+        case .feedbackReply:
+            AppStrings.NotificationInbox.feedbackReplyTitle
+        case .organizationRequestApproved:
+            AppStrings.NotificationInbox.organizationApprovedTitle
+        case .organizationRequestNeedsRevision:
+            AppStrings.NotificationInbox.organizationNeedsRevisionTitle
+        case .organizationRequestRejected:
+            AppStrings.NotificationInbox.organizationRejectedTitle
+        case .accountStatusChanged:
+            AppStrings.NotificationInbox.accountStatusChangedTitle
+        case .legalDocumentsUpdated:
+            AppStrings.NotificationInbox.legalDocumentsUpdatedTitle
+        case .roleChanged:
+            AppStrings.NotificationInbox.roleChangedTitle
+        case .organizationRoleAssigned:
+            AppStrings.NotificationInbox.organizationRoleAssignedTitle
+        case .organizationRoleRemoved:
+            AppStrings.NotificationInbox.organizationRoleRemovedTitle
+        case .reportReviewed:
+            AppStrings.NotificationInbox.reportReviewedTitle
+        case .eventUpdated:
+            AppStrings.NotificationInbox.eventUpdatedTitle
+        case .eventCancelled:
+            AppStrings.NotificationInbox.eventCancelledTitle
+        case .guideMaterialUpdated:
+            AppStrings.NotificationInbox.guideMaterialUpdatedTitle
+        case .systemAnnouncement:
+            AppStrings.NotificationInbox.systemAnnouncementTitle
+        }
+    }
+
+    private var fallbackMessage: String {
+        switch notification.type {
+        case .feedbackReply:
+            notification.payload["subject"] ?? notification.payload["messagePreview"] ?? AppStrings.NotificationInbox.feedbackReplyBody
+        case .organizationRequestApproved:
+            AppStrings.NotificationInbox.organizationApprovedBody(organizationName)
+        case .organizationRequestNeedsRevision:
+            notification.payload["reviewMessage"] ?? AppStrings.NotificationInbox.organizationNeedsRevisionBody(organizationName)
+        case .organizationRequestRejected:
+            notification.payload["rejectionReason"] ?? AppStrings.NotificationInbox.organizationRejectedBody(organizationName)
+        default:
+            AppStrings.NotificationInbox.genericBody
+        }
+    }
+
+    private var organizationName: String {
+        notification.payload["organizationName"] ?? notification.metadata["organizationName"] ?? AppStrings.Common.notAvailable
     }
 
     private var systemImage: String {
