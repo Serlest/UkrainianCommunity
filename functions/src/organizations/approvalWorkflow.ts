@@ -41,6 +41,12 @@ interface OrganizationReviewSnapshot {
   previousStatus: OrganizationModerationStatus;
 }
 
+interface OrganizationReviewNotificationTarget {
+  organizationId: string;
+  submittedByUserId: string;
+  name: string;
+}
+
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
@@ -131,7 +137,7 @@ function requiredReviewText(
 }
 
 function notificationPayload(
-  organization: OrganizationReviewSnapshot,
+  organization: OrganizationReviewNotificationTarget,
   workflow: ReviewWorkflow,
   text?: string
 ): Record<string, unknown> {
@@ -163,7 +169,7 @@ function notificationTitle(workflow: ReviewWorkflow): string {
 }
 
 function notificationMessage(
-  organization: OrganizationReviewSnapshot,
+  organization: OrganizationReviewNotificationTarget,
   workflow: ReviewWorkflow,
   text?: string
 ): string {
@@ -230,9 +236,10 @@ function createReviewCallable(workflow: ReviewWorkflow) {
       : undefined;
     const organizationReference = db.collection("organizations").doc(reviewRequest.organizationId);
     const committedAt = new Date().toISOString();
-    let reviewedOrganization: OrganizationReviewSnapshot | null = null;
 
-    await db.runTransaction(async (transaction) => {
+    const reviewedOrganization = await db.runTransaction(async (
+      transaction
+    ): Promise<OrganizationReviewNotificationTarget> => {
       const organizationDocument = await transaction.get(organizationReference);
       if (!organizationDocument.exists) {
         throw new HttpsError("not-found", "Organization does not exist.");
@@ -243,7 +250,6 @@ function createReviewCallable(workflow: ReviewWorkflow) {
         organizationDocument.data()
       );
       assertReviewableStatus(organization.previousStatus);
-      reviewedOrganization = organization;
 
       transaction.update(
         organizationReference,
@@ -265,11 +271,12 @@ function createReviewCallable(workflow: ReviewWorkflow) {
         },
       }));
 
+      return {
+        organizationId: organization.organizationId,
+        submittedByUserId: organization.submittedByUserId,
+        name: organization.name,
+      };
     });
-
-    if (!reviewedOrganization) {
-      throw new HttpsError("internal", "Organization review snapshot was not captured.");
-    }
 
     const notification = await writeUserNotification({
       targetUserId: reviewedOrganization.submittedByUserId,
