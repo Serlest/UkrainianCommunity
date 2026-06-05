@@ -111,7 +111,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
 
     private func makeNotification(from document: QueryDocumentSnapshot) -> AppNotification {
         let data = document.data()
-        let type = (data["type"] as? String).flatMap(AppNotificationType.init(rawValue:)) ?? .feedbackReply
+        let type = (data["type"] as? String).flatMap(AppNotificationType.init(rawValue:)) ?? .unknown
         let sourceType = (data["sourceType"] as? String).flatMap(AppNotificationSourceType.init(rawValue:)) ?? .feedback
         let severity = (data["severity"] as? String).flatMap(AppNotificationSeverity.init(rawValue:)) ?? defaultSeverity(for: type)
         let actionType = (data["actionType"] as? String).flatMap(AppNotificationActionType.init(rawValue:)) ?? defaultActionType(for: type)
@@ -249,7 +249,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .warning
         case .legalDocumentsUpdated, .systemAnnouncement:
             .critical
-        case .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .guideMaterialUpdated:
+        case .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .guideMaterialUpdated, .unknown:
             .info
         }
     }
@@ -272,7 +272,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .openLegalDocuments
         case .accountStatusChanged, .roleChanged:
             .openProfile
-        case .systemAnnouncement:
+        case .systemAnnouncement, .unknown:
             .none
         }
     }

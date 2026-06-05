@@ -29,6 +29,7 @@ enum AppNotificationType: String, Codable, CaseIterable {
     case eventCancelled
     case guideMaterialUpdated
     case systemAnnouncement
+    case unknown
 }
 
 enum AppNotificationSourceType: String, Codable {
@@ -265,5 +266,88 @@ struct AppNotification: Identifiable, Codable, Equatable {
             readAt: readAt,
             createdAt: createdAt
         )
+    }
+}
+
+struct AppNotificationDisplayContent: Equatable {
+    let title: String
+    let body: String
+}
+
+extension AppNotification {
+    var localizedDisplayContent: AppNotificationDisplayContent {
+        AppNotificationDisplayResolver.content(for: self)
+    }
+}
+
+private enum AppNotificationDisplayResolver {
+    static func content(for notification: AppNotification) -> AppNotificationDisplayContent {
+        switch notification.type {
+        case .systemAnnouncement, .unknown:
+            return AppNotificationDisplayContent(
+                title: firstNonEmpty(notification.title) ?? AppStrings.NotificationInbox.systemAnnouncementTitle,
+                body: firstNonEmpty(notification.message, notification.metadata["message"], notification.payload["message"])
+                    ?? AppStrings.NotificationInbox.genericBody
+            )
+        case .feedbackReply:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.feedbackReplyTitle,
+                body: firstNonEmpty(notification.payload["subject"], notification.payload["messagePreview"])
+                    ?? AppStrings.NotificationInbox.feedbackReplyBody
+            )
+        case .organizationRequestApproved:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.organizationApprovedTitle,
+                body: AppStrings.NotificationInbox.organizationApprovedBody(organizationName(for: notification))
+            )
+        case .organizationRequestNeedsRevision:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.organizationNeedsRevisionTitle,
+                body: firstNonEmpty(notification.payload["reviewMessage"], notification.metadata["reviewMessage"])
+                    ?? AppStrings.NotificationInbox.organizationNeedsRevisionBody(organizationName(for: notification))
+            )
+        case .organizationRequestRejected:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.organizationRejectedTitle,
+                body: firstNonEmpty(notification.payload["rejectionReason"], notification.metadata["rejectionReason"])
+                    ?? AppStrings.NotificationInbox.organizationRejectedBody(organizationName(for: notification))
+            )
+        case .accountStatusChanged:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.accountStatusChangedTitle,
+                body: AppStrings.NotificationInbox.genericBody
+            )
+        case .legalDocumentsUpdated:
+            return genericContent(title: AppStrings.NotificationInbox.legalDocumentsUpdatedTitle)
+        case .roleChanged:
+            return genericContent(title: AppStrings.NotificationInbox.roleChangedTitle)
+        case .organizationRoleAssigned:
+            return genericContent(title: AppStrings.NotificationInbox.organizationRoleAssignedTitle)
+        case .organizationRoleRemoved:
+            return genericContent(title: AppStrings.NotificationInbox.organizationRoleRemovedTitle)
+        case .reportReviewed:
+            return genericContent(title: AppStrings.NotificationInbox.reportReviewedTitle)
+        case .eventUpdated:
+            return genericContent(title: AppStrings.NotificationInbox.eventUpdatedTitle)
+        case .eventCancelled:
+            return genericContent(title: AppStrings.NotificationInbox.eventCancelledTitle)
+        case .guideMaterialUpdated:
+            return genericContent(title: AppStrings.NotificationInbox.guideMaterialUpdatedTitle)
+        }
+    }
+
+    private static func genericContent(title: String) -> AppNotificationDisplayContent {
+        AppNotificationDisplayContent(title: title, body: AppStrings.NotificationInbox.genericBody)
+    }
+
+    private static func organizationName(for notification: AppNotification) -> String {
+        firstNonEmpty(notification.payload["organizationName"], notification.metadata["organizationName"])
+            ?? AppStrings.Common.notAvailable
+    }
+
+    private static func firstNonEmpty(_ values: String?...) -> String? {
+        values.lazy
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
     }
 }
