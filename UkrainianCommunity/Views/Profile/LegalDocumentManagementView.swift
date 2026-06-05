@@ -467,11 +467,10 @@ private struct LegalMarkdownPreview: View {
                 }
 
                 AppEditorSectionCard {
-                    markdownText
-                        .font(.body)
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineSpacing(4)
-                        .fixedSize(horizontal: false, vertical: true)
+                    LegalMarkdownRenderer(
+                        markdown: content.contentMarkdown,
+                        fallbackText: content.contentText
+                    )
                 }
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
@@ -487,12 +486,6 @@ private struct LegalMarkdownPreview: View {
         }
     }
 
-    private var markdownText: Text {
-        if let attributed = try? AttributedString(markdown: content.contentMarkdown) {
-            return Text(attributed)
-        }
-        return Text(content.contentMarkdown)
-    }
 }
 
 private extension LegalDocumentDraft {

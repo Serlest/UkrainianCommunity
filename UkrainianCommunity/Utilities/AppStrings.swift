@@ -459,7 +459,7 @@ enum AppStrings {
         static var tagsHelper: String { text("news.editor.tags.helper", "Наприклад: підтримка, освіта, інтеграція") }
         static var additionalSettingsTitle: String { text("news.editor.settings.title", "Додаткові налаштування") }
         static var regionSectionTitle: String { text("news.editor.region.title", "Регіон") }
-        static var regionTitle: String { text("news.editor.region.field", "Bundesland") }
+        static var regionTitle: String { text("news.editor.region.field", "Федеральна земля") }
         static var publish: String { text("news.editor.publish", "Опублікувати") }
         static var saveChanges: String { text("news.editor.save_changes", "Зберегти") }
         static var primaryPublish: String { text("news.editor.primary_publish", "Опублікувати новину") }
@@ -712,8 +712,8 @@ enum AppStrings {
         static var fieldMissionStatementPlaceholder: String { text("organizations.editor.field.mission_statement_placeholder", "Коротко опишіть головний напрям роботи") }
         static var fieldContactPerson: String { text("organizations.editor.field.contact_person", "Контактна людина") }
         static var fieldContactPersonDisplay: String { text("organizations.detail.contact_person", "Контактна особа") }
-        static var fieldRegion: String { text("organizations.editor.field.region", "Bundesland *") }
-        static var fieldRegionPlaceholder: String { text("organizations.editor.field.region_placeholder", "Оберіть Bundesland") }
+        static var fieldRegion: String { text("organizations.editor.field.region", "Федеральна земля *") }
+        static var fieldRegionPlaceholder: String { text("organizations.editor.field.region_placeholder", "Оберіть федеральну землю") }
         static var fieldCity: String { text("organizations.editor.field.city", "Місто") }
         static var fieldAddress: String { text("organizations.editor.field.address", "Адреса або район") }
         static var fieldFoundedYear: String { text("organizations.editor.field.founded_year", "Рік заснування") }
@@ -1350,7 +1350,7 @@ enum AppStrings {
         static var afterRegistrationEventsSubtitle: String { text("profile.guest.after_registration.events", "Реєстрації та історія участі в одному місці.") }
         static var afterRegistrationSavedSubtitle: String { text("profile.guest.after_registration.saved", "Новини, події та довідник для швидкого повернення.") }
         static var personalRegion: String { text("profile.guest.personal_region", "Персональний регіон") }
-        static var personalRegionSubtitle: String { text("profile.guest.personal_region.subtitle", "Локальні події та організації за вашим Bundesland.") }
+        static var personalRegionSubtitle: String { text("profile.guest.personal_region.subtitle", "Локальні події та організації у вашій федеральній землі.") }
         static var guestAvailableTitle: String { text("profile.guest.available.title", "Доступно без акаунта") }
         static var guestAvailableSubtitle: String { text("profile.guest.available.subtitle", "Основний контент можна переглядати одразу.") }
         static var guestBrowseNews: String { text("profile.guest.available.news", "Перегляд новин") }
@@ -1537,7 +1537,7 @@ enum AppStrings {
         static var ownerFeaturedOrganizations: String { text("profile.owner.featured_organizations", "Рекомендовані організації") }
         static var adminContentControlSubtitle: String { text("profile.admin.content_control.subtitle", "Операційні рекомендації та банери без critical platform configuration.") }
         static var ownerCategories: String { text("profile.owner.categories", "Категорії") }
-        static var ownerRegions: String { text("profile.owner.regions", "Регіони / Bundesländer") }
+        static var ownerRegions: String { text("profile.owner.regions", "Регіони / федеральні землі") }
         static var ownerContentLanguages: String { text("profile.owner.content_languages", "Мови контенту") }
         static var ownerUserSupport: String { text("profile.owner.user_support", "Підтримка користувачів") }
         static var ownerUserSupportSubtitle: String { text("profile.owner.user_support.subtitle", "Відгуки, проблеми та FAQ.") }
@@ -1646,7 +1646,7 @@ enum AppStrings {
         static var languageSettingsSubtitle: String { text("profile.settings.language.subtitle", "Мова інтерфейсу застосунку.") }
         static var appAppearance: String { text("profile.settings.app_appearance", "Тема оформлення") }
         static var appearanceSettingsSubtitle: String { text("profile.settings.appearance.subtitle", "Системна, світла або темна тема.") }
-        static var regionSettings: String { text("profile.settings.region", "Регіон / Bundesland") }
+        static var regionSettings: String { text("profile.settings.region", "Регіон / федеральна земля") }
         static var regionSettingsSubtitle: String { text("profile.settings.region.subtitle", "Регіон використовується для локального контенту.") }
         static var privacySettingsSubtitle: String { text("profile.settings.privacy.subtitle", "Політика приватності та обробка даних.") }
         static var accountSecurity: String { text("profile.settings.account_security", "Безпека акаунта") }
@@ -1849,7 +1849,7 @@ enum AppStrings {
         static var helpedPeople: String { text("moderation.organization.metrics.helped_people", "Людей отримали допомогу") }
         static var shortDescription: String { text("moderation.organization.short_description", "Короткий опис") }
         static var fullDescription: String { text("moderation.organization.full_description", "Повний опис") }
-        static var federalState: String { text("moderation.organization.federal_state", "Bundesland") }
+        static var federalState: String { text("moderation.organization.federal_state", "Федеральна земля") }
         static var austriaScope: String { text("moderation.organization.region_scope.austria", "Австрія") }
         static var regionScope: String { text("moderation.organization.region_scope", "Охоплення") }
         static var socialLinks: String { text("moderation.organization.social_links", "Соцмережі") }
@@ -2268,7 +2268,7 @@ enum AppStrings {
         static var organizationNameRequired: String { text("validation.organization.name_required", "Додайте назву спільноти.") }
         static var organizationDescriptionTooShort: String { text("validation.organization.description_too_short", "Додайте короткий опис щонайменше на 20 символів.") }
         static var organizationCityRequired: String { text("validation.organization.city_required", "Вкажіть місто спільноти.") }
-        static var organizationRegionRequired: String { text("validation.organization.region_required", "Оберіть Bundesland, де працює спільнота.") }
+        static var organizationRegionRequired: String { text("validation.organization.region_required", "Оберіть федеральну землю, де працює спільнота.") }
         static var organizationEmailInvalid: String { text("validation.organization.email_invalid", "Перевірте email для зв’язку.") }
         static var organizationWebsiteInvalid: String { text("validation.organization.website_invalid", "Додайте повне посилання, наприклад https://example.org.") }
         static var organizationFoundedYearInvalid: String { text("validation.organization.founded_year_invalid", "Вкажіть коректний рік заснування.") }

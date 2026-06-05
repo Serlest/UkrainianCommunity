@@ -215,27 +215,6 @@ struct ProfileView: View {
         )
     }
 
-    private var organizationRoleMemberships: [CommunityMembership] {
-        guard let user = permissionUser else { return [] }
-
-        let organizationMemberships = PermissionService.manageableOrganizations(
-            from: ownerOrganizationsViewModel.organizations,
-            user: user
-        )
-        .compactMap { organization -> CommunityMembership? in
-            guard let role = PermissionService.organizationRole(for: organization, user: user) else {
-                return nil
-            }
-            return CommunityMembership(organizationId: organization.id, role: role)
-        }
-
-        return organizationMemberships
-            .filter { $0.role != .member }
-            .sorted { lhs, rhs in
-                organizationRoleSortValue(lhs.role) < organizationRoleSortValue(rhs.role)
-            }
-    }
-
     private var saveButtonTitle: String {
         viewModel.isSavingProfile ? AppStrings.Profile.savingProfile : AppStrings.Profile.saveProfile
     }
@@ -897,9 +876,7 @@ struct ProfileView: View {
                 onEditProfile: beginEditingProfile
             )
 
-            organizationRoleDashboardSection(for: user)
-            quickActionsSection(for: user, includeMyOrganizations: false)
-            myOrganizationsSection
+            quickActionsSection(for: user)
             supportSection(for: user)
             settingsSection
             accountDeletionSection
@@ -911,33 +888,11 @@ struct ProfileView: View {
     private func platformProfileContent(for user: AppUser, mode: ProfileDashboardMode) -> some View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: mode)
         platformManagementSection
-        organizationRoleDashboardSection(for: user)
         quickActionsSection(for: user)
         supportSection(for: user)
         settingsSection
         accountDeletionSection
         logoutSection
-    }
-
-    @ViewBuilder
-    private func organizationRoleDashboardSection(for user: AppUser) -> some View {
-        let memberships = organizationRoleMemberships
-        if !memberships.isEmpty {
-            ProfileSectionCard(
-                title: AppStrings.Profile.organizationManagement,
-                subtitle: AppStrings.Profile.organizationRoleDashboardSubtitle
-            ) {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    ForEach(memberships) { membership in
-                        OrganizationRoleDashboardCard(
-                            membership: membership,
-                            roleTitle: organizationRoleTitle(membership.role),
-                            user: user
-                        )
-                    }
-                }
-            }
-        }
     }
 
     private func quickActionsSection(for user: AppUser, includeMyOrganizations: Bool = true) -> some View {
@@ -1016,23 +971,6 @@ struct ProfileView: View {
         .buttonStyle(.plain)
     }
 
-    private var myOrganizationsSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.myOrganizations,
-            subtitle: AppStrings.Profile.organizationManagementIntro
-        ) {
-            NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
-                ProfileModuleRow(
-                    title: AppStrings.Profile.myOrganizations,
-                    subtitle: AppStrings.Profile.organizationManagementIntro,
-                    systemImage: "building.2",
-                    status: .available
-                )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
     private var moderatorQuickActionsSection: some View {
         LazyVGrid(
             columns: [
@@ -1064,19 +1002,6 @@ struct ProfileView: View {
             user: user
         ).count
         return organizationCount
-    }
-
-    private func organizationRoleTitle(_ role: CommunityRole) -> String {
-        switch role {
-        case .communityOwner:
-            return AppStrings.Profile.organizationRoleOwner
-        case .communityAdmin:
-            return AppStrings.Profile.organizationRoleAdmin
-        case .communityModerator:
-            return AppStrings.Profile.organizationRoleModerator
-        case .member:
-            return AppStrings.Profile.organizationRoleMember
-        }
     }
 
     @ViewBuilder
@@ -1383,14 +1308,6 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
 
-                ProfileModuleRow(
-                    title: AppStrings.Profile.sendFeedback,
-                    subtitle: AppStrings.Profile.sendFeedbackSubtitle,
-                    systemImage: "paperplane",
-                    status: .available,
-                    accessory: .none
-                )
-
                 FeedbackComposerCard(
                     selectedFeedbackType: $selectedFeedbackType,
                     feedbackMessage: $feedbackMessage,
@@ -1509,19 +1426,6 @@ struct ProfileView: View {
             return AppStrings.Profile.communityModerator
         case .member:
             return AppStrings.Profile.communityMember
-        }
-    }
-
-    private func organizationRoleSortValue(_ role: CommunityRole) -> Int {
-        switch role {
-        case .communityOwner:
-            return 0
-        case .communityAdmin:
-            return 1
-        case .communityModerator:
-            return 2
-        case .member:
-            return 3
         }
     }
 

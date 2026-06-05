@@ -75,14 +75,6 @@ struct LegalDocumentView: View {
         return AppStrings.legalLastUpdatedLabel(LocalizationStore.dateString(from: lastUpdated))
     }
 
-    private var markdownText: Text {
-        if let attributed = try? AttributedString(markdown: displayedContent.contentMarkdown) {
-            return Text(attributed)
-        }
-
-        return Text(displayedContent.contentText ?? displayedContent.contentMarkdown)
-    }
-
     var body: some View {
         ZStack {
             AppBackgroundView()
@@ -126,11 +118,10 @@ struct LegalDocumentView: View {
                             }
 
                             AppEditorSectionCard {
-                                markdownText
-                                    .font(.body)
-                                    .foregroundStyle(AppTheme.textPrimary)
-                                    .lineSpacing(4)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                LegalMarkdownRenderer(
+                                    markdown: displayedContent.contentMarkdown,
+                                    fallbackText: displayedContent.contentText
+                                )
                             }
                         }
                     }
