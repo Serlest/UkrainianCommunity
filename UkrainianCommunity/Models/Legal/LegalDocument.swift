@@ -147,14 +147,11 @@ struct LegalDocumentDraft: Equatable {
     var supersedesVersion: String?
 
     static func from(activeDocument: LegalDocument) -> LegalDocumentDraft {
-        let nextVersionNumber = activeDocument.versionNumber + 1
+        let nextVersion = Self.nextVersion(after: activeDocument.version)
         return LegalDocumentDraft(
             type: activeDocument.type,
-            version: Self.nextVersionString(
-                currentVersion: activeDocument.version,
-                nextVersionNumber: nextVersionNumber
-            ),
-            versionNumber: nextVersionNumber,
+            version: nextVersion.identifier,
+            versionNumber: nextVersion.number,
             defaultLocale: activeDocument.defaultLocale,
             canonicalLocale: activeDocument.canonicalLocale ?? activeDocument.defaultLocale,
             locales: activeDocument.locales,
@@ -164,15 +161,36 @@ struct LegalDocumentDraft: Equatable {
         )
     }
 
-    private static func nextVersionString(
-        currentVersion: String,
-        nextVersionNumber: Int
-    ) -> String {
+    private static func nextVersion(after currentVersion: String) -> (identifier: String, number: Int) {
         let parts = currentVersion.split(separator: ".")
-        guard parts.count >= 2, parts.last.flatMap({ Int($0) }) != nil else {
-            return "\(nextVersionNumber)"
+        guard
+            parts.count >= 2,
+            let year = parts.first.flatMap({ Int($0) }),
+            let currentMinorVersion = parts.last.flatMap({ Int($0) })
+        else {
+            let fallbackYear = Calendar.current.component(.year, from: .now)
+            return ("\(fallbackYear).1", fallbackYear * 100 + 1)
         }
 
-        return (parts.dropLast() + [Substring("\(nextVersionNumber)")]).joined(separator: ".")
+        let visibleMinorVersion = Self.visibleMinorVersion(
+            from: currentMinorVersion,
+            year: year
+        )
+        let nextMinorVersion = visibleMinorVersion + 1
+        return ("\(year).\(nextMinorVersion)", year * 100 + nextMinorVersion)
+    }
+
+    private static func visibleMinorVersion(from rawMinorVersion: Int, year: Int) -> Int {
+        guard rawMinorVersion >= 100 else {
+            return rawMinorVersion
+        }
+
+        let internalYear = rawMinorVersion / 100
+        let internalMinorVersion = rawMinorVersion % 100
+        if internalYear == year, internalMinorVersion > 0 {
+            return internalMinorVersion
+        }
+
+        return 1
     }
 }

@@ -369,6 +369,26 @@ struct UkrainianCommunityTests {
         #expect(AuthService.currentPrivacyVersion == "2026.1")
     }
 
+    @Test func legalDraftVersionGenerationUsesReadableVersionAndInternalNumber() {
+        let nextFromSecondVersion = LegalDocumentDraft.from(
+            activeDocument: makeLegalDocument(version: "2026.2", versionNumber: 202602)
+        )
+        #expect(nextFromSecondVersion.version == "2026.3")
+        #expect(nextFromSecondVersion.versionNumber == 202603)
+
+        let nextFromNinthVersion = LegalDocumentDraft.from(
+            activeDocument: makeLegalDocument(version: "2026.9", versionNumber: 202609)
+        )
+        #expect(nextFromNinthVersion.version == "2026.10")
+        #expect(nextFromNinthVersion.versionNumber == 202610)
+
+        let nextFromMalformedVersion = LegalDocumentDraft.from(
+            activeDocument: makeLegalDocument(version: "2026.202605", versionNumber: 202605)
+        )
+        #expect(nextFromMalformedVersion.version == "2026.6")
+        #expect(nextFromMalformedVersion.versionNumber == 202606)
+    }
+
     @Test func registrationPayloadMatchesSafeUserDefaults() {
         let acceptedAt = Date(timeIntervalSince1970: 1_767_225_600)
         let draft = RegistrationProfileDraft(
@@ -412,6 +432,33 @@ struct UkrainianCommunityTests {
         #expect(approvedEvents.allSatisfy { $0.moderationStatus == .approved })
         #expect(allMockEvents.contains(where: { $0.moderationStatus == .draft }))
         #expect(organizations.contains(where: { $0.moderationStatus == .approved }))
+    }
+
+    private func makeLegalDocument(version: String, versionNumber: Int) -> LegalDocument {
+        LegalDocument(
+            id: LegalDocumentType.terms.rawValue,
+            type: .terms,
+            version: version,
+            versionNumber: versionNumber,
+            locales: [
+                AppLanguage.german.rawValue: LegalDocumentLocaleContent(
+                    title: "Terms",
+                    contentMarkdown: "Terms",
+                    contentText: nil,
+                    contentHash: nil
+                )
+            ],
+            defaultLocale: AppLanguage.german.rawValue,
+            canonicalLocale: AppLanguage.german.rawValue,
+            contentHash: nil,
+            changeSummary: nil,
+            requiresAcceptance: true,
+            status: .published,
+            updatedAt: nil,
+            updatedBy: nil,
+            publishedAt: nil,
+            publishedBy: nil
+        )
     }
 
     @Test func homeFeedViewModelSortsNewestFirstAndContainsSupportedItemTypes() async {

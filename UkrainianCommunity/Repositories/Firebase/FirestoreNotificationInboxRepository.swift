@@ -18,12 +18,18 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     func listenNotifications(
         userID: String,
         limit: Int,
-        onChange: @escaping @MainActor ([AppNotification]) -> Void
+        onChange: @escaping @MainActor ([AppNotification]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
     ) -> AppRealtimeListener {
         let registration = inboxCollection(userID: userID)
             .order(by: "createdAt", descending: true)
             .limit(to: max(1, limit))
-            .addSnapshotListener { snapshot, _ in
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+
                 let notifications = snapshot?.documents
                     .map(makeNotification)
                     .filter(\.isVisibleInInbox) ?? []
@@ -275,5 +281,14 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         case .systemAnnouncement, .unknown:
             .none
         }
+    }
+
+    private static func appError(from error: Error) -> AppError {
+        let nsError = error as NSError
+        if nsError.domain == FirestoreErrorDomain,
+           nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
+            return .permissionDenied
+        }
+        return .network
     }
 }

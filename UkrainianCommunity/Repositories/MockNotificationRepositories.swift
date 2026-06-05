@@ -26,7 +26,8 @@ struct MockNotificationInboxRepository: NotificationInboxRepository {
     func listenNotifications(
         userID: String,
         limit: Int,
-        onChange: @escaping @MainActor ([AppNotification]) -> Void
+        onChange: @escaping @MainActor ([AppNotification]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
     ) -> AppRealtimeListener {
         Task {
             let notifications = await store.notifications(userID: userID, limit: limit)

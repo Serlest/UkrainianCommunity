@@ -26,7 +26,14 @@ final class NotificationInboxViewModel: ObservableObject {
     }
 
     func configure(userID: String?) async {
-        guard currentUserID != userID else { return }
+        if currentUserID == userID {
+            if let userID, listener == nil {
+                startListening(userID: userID)
+                await refresh()
+            }
+            return
+        }
+
         listener?.cancel()
         listener = nil
         currentUserID = userID
@@ -50,6 +57,10 @@ final class NotificationInboxViewModel: ObservableObject {
     }
 
     func refresh() async {
+        await refresh(clearErrorOnSuccess: true)
+    }
+
+    private func refresh(clearErrorOnSuccess: Bool) async {
         guard let userID = currentUserID else { return }
         isLoading = true
         defer { isLoading = false }
@@ -57,7 +68,9 @@ final class NotificationInboxViewModel: ObservableObject {
         do {
             notifications = try await repository.fetchNotifications(userID: userID, limit: notificationLimit)
             unreadCount = try await repository.fetchUnreadCount(userID: userID)
-            error = nil
+            if clearErrorOnSuccess {
+                error = nil
+            }
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -144,11 +157,28 @@ final class NotificationInboxViewModel: ObservableObject {
     }
 
     private func startListening(userID: String) {
-        listener = repository.listenNotifications(userID: userID, limit: notificationLimit) { [weak self] notifications in
-            guard let self else { return }
-            self.notifications = notifications
-            self.unreadCount = notifications.filter(\.countsAsUnread).count
-            self.error = nil
+        listener = repository.listenNotifications(
+            userID: userID,
+            limit: notificationLimit,
+            onChange: { [weak self] notifications in
+                guard let self else { return }
+                self.notifications = notifications
+                self.unreadCount = notifications.filter(\.countsAsUnread).count
+                self.error = nil
+            },
+            onError: { [weak self] appError in
+                self?.handleListenerError(appError)
+            }
+        )
+    }
+
+    private func handleListenerError(_ appError: AppError) {
+        listener?.cancel()
+        listener = nil
+        error = appError
+
+        Task {
+            await refresh(clearErrorOnSuccess: false)
         }
     }
 

@@ -27,9 +27,16 @@ final class NotificationPopupCoordinatorService: ObservableObject {
         errorMessage = nil
 
         guard let userID else { return }
-        listener = repository.listenNotifications(userID: userID, limit: notificationLimit) { [weak self] notifications in
-            self?.receive(notifications)
-        }
+        listener = repository.listenNotifications(
+            userID: userID,
+            limit: notificationLimit,
+            onChange: { [weak self] notifications in
+                self?.receive(notifications)
+            },
+            onError: { [weak self] _ in
+                self?.handleListenerError()
+            }
+        )
     }
 
     func dismissActiveNotification(markRead: Bool) async {
@@ -55,6 +62,12 @@ final class NotificationPopupCoordinatorService: ObservableObject {
             .sorted { $0.createdAt < $1.createdAt }
 
         presentNextIfPossible()
+    }
+
+    private func handleListenerError() {
+        listener?.cancel()
+        listener = nil
+        errorMessage = AppStrings.NotificationPopup.updateFailed
     }
 
     private func presentNextIfPossible() {
