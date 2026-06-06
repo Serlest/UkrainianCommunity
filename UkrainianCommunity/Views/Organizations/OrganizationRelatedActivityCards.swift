@@ -179,7 +179,7 @@ extension OrganizationDetailView {
                         retryTitle: AppStrings.Organizations.retry
                     ) {
                         Task {
-                            await activityViewModel.refresh(for: organization)
+                            await refreshOrganizationActivity(for: organization)
                         }
                     }
                 } else {
@@ -238,6 +238,8 @@ extension OrganizationDetailView {
             OrganizationDetailView(
                 viewModel: viewModel,
                 organizationID: id,
+                newsViewModel: newsDetailViewModel,
+                eventsViewModel: eventsDetailViewModel,
                 onOrganizationSaved: onOrganizationSaved,
                 onOrganizationDeleted: onOrganizationDeleted
             )

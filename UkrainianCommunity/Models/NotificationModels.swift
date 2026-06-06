@@ -15,6 +15,7 @@ struct NotificationPreferences: Codable, Equatable {
 }
 
 enum AppNotificationType: String, Codable, CaseIterable {
+    case feedbackSubmitted
     case feedbackReply
     case organizationRequestApproved
     case organizationRequestNeedsRevision
@@ -289,10 +290,16 @@ private enum AppNotificationDisplayResolver {
                 body: firstNonEmpty(notification.message, notification.metadata["message"], notification.payload["message"])
                     ?? AppStrings.NotificationInbox.genericBody
             )
+        case .feedbackSubmitted:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.feedbackSubmittedTitle,
+                body: firstNonEmpty(localizedFeedbackSubject(for: notification), notification.payload["messagePreview"])
+                    ?? AppStrings.NotificationInbox.feedbackSubmittedBody
+            )
         case .feedbackReply:
             return AppNotificationDisplayContent(
                 title: AppStrings.NotificationInbox.feedbackReplyTitle,
-                body: firstNonEmpty(notification.payload["subject"], notification.payload["messagePreview"])
+                body: firstNonEmpty(localizedFeedbackSubject(for: notification), notification.payload["messagePreview"])
                     ?? AppStrings.NotificationInbox.feedbackReplyBody
             )
         case .organizationRequestApproved:
@@ -343,6 +350,14 @@ private enum AppNotificationDisplayResolver {
     private static func organizationName(for notification: AppNotification) -> String {
         firstNonEmpty(notification.payload["organizationName"], notification.metadata["organizationName"])
             ?? AppStrings.Common.notAvailable
+    }
+
+    private static func localizedFeedbackSubject(for notification: AppNotification) -> String? {
+        guard let subject = firstNonEmpty(notification.payload["subject"], notification.metadata["subject"]) else {
+            return nil
+        }
+
+        return FeedbackType(rawValue: subject)?.title ?? subject
     }
 
     private static func firstNonEmpty(_ values: String?...) -> String? {

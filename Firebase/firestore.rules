@@ -86,6 +86,10 @@ service cloud.firestore {
       return isAppOwner() || isAppAdmin();
     }
 
+    function canManageUsers() {
+      return isAppOwner() || isAppAdmin();
+    }
+
     function canManageFeaturedBanners() {
       return isAppOwner();
     }
@@ -531,6 +535,25 @@ service cloud.firestore {
 
     function activityLogFields() {
       return ['id', 'actionType', 'targetId', 'targetType', 'title', 'subtitle', 'imageURL', 'createdAt'];
+    }
+
+    function notificationPushTokenFields() {
+      return ['id', 'token', 'platform', 'deviceName', 'appVersion', 'createdAt', 'updatedAt'];
+    }
+
+    function validNotificationPushTokenWrite(uid, tokenId) {
+      return isActiveUser()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(notificationPushTokenFields())
+        && request.resource.data.id == tokenId
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 0
+        && request.resource.data.token.size() <= 4096
+        && request.resource.data.platform == 'ios'
+        && (!('deviceName' in request.resource.data) || request.resource.data.deviceName is string)
+        && (!('appVersion' in request.resource.data) || request.resource.data.appVersion is string)
+        && request.resource.data.updatedAt is timestamp
+        && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp);
     }
 
     function feedbackCreateFields() {
@@ -1070,6 +1093,20 @@ service cloud.firestore {
         || canEditOrganizationContent(organizationId);
     }
 
+    function canListOrganization() {
+      return (('moderationStatus' in resource.data) && resource.data.moderationStatus == 'approved')
+        || (
+          canManageOrganizationRequests()
+          && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
+        )
+        || (
+          isActiveUser()
+          && ('submittedByUserId' in resource.data)
+          && resource.data.submittedByUserId == request.auth.uid
+          && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
+        );
+    }
+
     function organizationPhotoFields() {
       return ['id', 'organizationId', 'imageURL', 'caption', 'uploadedBy', 'createdAt', 'updatedAt'];
     }
@@ -1486,6 +1523,45 @@ service cloud.firestore {
         || bannerId == 'guideBanner';
     }
 
+    function donationConfigFields() {
+      return [
+        'isEnabled',
+        'donationURL',
+        'titleUK',
+        'messageUK',
+        'buttonTitleUK',
+        'titleDE',
+        'messageDE',
+        'buttonTitleDE',
+        'updatedAt',
+        'updatedBy'
+      ];
+    }
+
+    function validDonationConfigWrite() {
+      return isAppOwner()
+        && request.resource.data.keys().hasOnly(donationConfigFields())
+        && request.resource.data.keys().hasAll(donationConfigFields())
+        && request.resource.data.isEnabled is bool
+        && request.resource.data.donationURL is string
+        && request.resource.data.titleUK is string
+        && request.resource.data.messageUK is string
+        && request.resource.data.buttonTitleUK is string
+        && request.resource.data.titleDE is string
+        && request.resource.data.messageDE is string
+        && request.resource.data.buttonTitleDE is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy == request.auth.uid
+        && (
+          request.resource.data.donationURL == ''
+          || request.resource.data.donationURL.matches('https://.*')
+        )
+        && (
+          request.resource.data.isEnabled == false
+          || request.resource.data.donationURL.matches('https://.+')
+        );
+    }
+
     function canReadModerationQueue(section) {
       return canModerateSection(section);
     }
@@ -1630,7 +1706,7 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isSelf(uid) || isOwner();
+      allow read: if isSelf(uid) || canManageUsers();
 
       allow create: if safeUserCreate(uid);
 
@@ -1667,6 +1743,14 @@ service cloud.firestore {
         allow update: if validNotificationUserUpdate(uid);
 
         allow delete: if false;
+      }
+
+      match /notificationPushTokens/{tokenId} {
+        allow read: if false;
+
+        allow create, update: if validNotificationPushTokenWrite(uid, tokenId);
+
+        allow delete: if isSelf(uid);
       }
 
       match /newsBookmarks/{newsId} {
@@ -1877,7 +1961,8 @@ service cloud.firestore {
     }
 
     match /organizations/{organizationId} {
-      allow read: if canReadOrganization(organizationId);
+      allow get: if canReadOrganization(organizationId);
+      allow list: if canListOrganization();
       allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
       allow delete: if isOwner();
       allow update: if safeOrganizationInfoUpdate(organizationId)
@@ -1969,7 +2054,7 @@ service cloud.firestore {
     }
 
     match /auditLogs/{auditLogId} {
-      allow read: if isOwner();
+      allow read: if canManageUsers();
 
       allow create: if isOwner()
         && request.resource.data.actionType in [
@@ -1989,9 +2074,18 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    match /appConfig/{bannerId} {
-      allow read: if isAppManagedHeroBannerDocument(bannerId);
-      allow create, update, delete: if isAppManagedHeroBannerDocument(bannerId)
+    match /appConfig/{configId} {
+      allow read: if isAppManagedHeroBannerDocument(configId)
+        || configId == 'donation';
+      allow create, update: if (
+          isAppManagedHeroBannerDocument(configId)
+          && canManageFeaturedBanners()
+        )
+        || (
+          configId == 'donation'
+          && validDonationConfigWrite()
+        );
+      allow delete: if isAppManagedHeroBannerDocument(configId)
         && canManageFeaturedBanners();
     }
 

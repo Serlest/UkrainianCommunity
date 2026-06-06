@@ -246,9 +246,11 @@ struct EventDetailView: View {
             EventShareSheet(activityItems: payload.items)
         }
         .guestAccessAlert($guestAccessAction)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .task {
-            await viewModel.loadIfNeeded()
+            if viewModel.event(for: eventID) == nil {
+                await viewModel.loadIfNeeded()
+            }
             guard let event = viewModel.event(for: eventID) else { return }
             await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
             await loadEventRegistrationAttendeesIfNeeded(for: event)

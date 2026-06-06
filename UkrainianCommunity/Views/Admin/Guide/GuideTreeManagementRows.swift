@@ -135,3 +135,59 @@ struct GuideManagementMaterialCard: View {
         }
     }
 }
+
+struct GuideReorderControls: View {
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    let isDisabled: Bool
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+
+    var body: some View {
+        VStack(spacing: 6) {
+            reorderButton(
+                systemImage: "chevron.up",
+                accessibilityLabel: GuideAuthoringPresentation.localized(
+                    uk: "Перемістити вгору",
+                    de: "Nach oben verschieben",
+                    en: "Move up"
+                ),
+                isEnabled: canMoveUp,
+                action: onMoveUp
+            )
+
+            reorderButton(
+                systemImage: "chevron.down",
+                accessibilityLabel: GuideAuthoringPresentation.localized(
+                    uk: "Перемістити вниз",
+                    de: "Nach unten verschieben",
+                    en: "Move down"
+                ),
+                isEnabled: canMoveDown,
+                action: onMoveDown
+            )
+        }
+    }
+
+    private func reorderButton(
+        systemImage: String,
+        accessibilityLabel: String,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(isEnabled && !isDisabled ? AppTheme.accentPrimary : AppTheme.textSecondary.opacity(0.36))
+                .frame(width: 34, height: 34)
+                .background(AppTheme.surfaceGlass, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .strokeBorder(AppTheme.borderSubtle)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled || isDisabled)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}

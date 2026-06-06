@@ -70,3 +70,8 @@ struct MockNotificationInboxRepository: NotificationInboxRepository {
         await store.createNotification(notification, userID: userID)
     }
 }
+
+struct MockNotificationPushTokenRepository: NotificationPushTokenRepository {
+    func saveCurrentDeviceToken(userID: String, token: String) async throws {}
+    func deleteCurrentDeviceToken(userID: String, token: String) async throws {}
+}

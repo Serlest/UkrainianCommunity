@@ -95,12 +95,14 @@ struct EventEditorView: View {
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.bottom, AppTheme.homeBottomContentPadding)
         }
-        .background(AppBackgroundView())
+        .keyboardDismissBackground {
+            AppBackgroundView()
+        }
         .tint(AppTheme.accentPrimary)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .scrollDismissesKeyboard(.interactively)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingMapPicker) {
             EventMapPickerView(
                 initialCoordinate: viewModel.selectedCoordinate,
@@ -185,7 +187,6 @@ struct EventEditorView: View {
                 ignoresNextPhotoClear = false
                 return
             }
-            dismissKeyboard()
             imageProcessingTask?.cancel()
             let token = UUID()
             imageProcessingToken = token
@@ -455,10 +456,6 @@ struct EventEditorView: View {
                     .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
             }
         }
-    }
-
-    func dismissKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 

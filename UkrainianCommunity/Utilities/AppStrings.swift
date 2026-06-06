@@ -37,6 +37,8 @@ enum AppStrings {
         static var delete: String { text("notifications.inbox.delete", "Delete") }
         static var destinationUnavailableTitle: String { text("notifications.inbox.destination_unavailable.title", "No longer available") }
         static var destinationUnavailableMessage: String { text("notifications.inbox.destination_unavailable.message", "This notification can no longer be opened.") }
+        static var feedbackSubmittedTitle: String { text("notifications.inbox.feedback_submitted.title", "New user request") }
+        static var feedbackSubmittedBody: String { text("notifications.inbox.feedback_submitted.body", "A user submitted a new request.") }
         static var feedbackReplyTitle: String { text("notifications.inbox.feedback_reply.title", "Support replied") }
         static var feedbackReplyBody: String { text("notifications.inbox.feedback_reply.body", "You have a new reply to your message.") }
         static var organizationApprovedTitle: String { text("notifications.inbox.organization_approved.title", "Organization approved") }

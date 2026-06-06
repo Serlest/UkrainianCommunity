@@ -118,12 +118,14 @@ struct NewsEditorView: View {
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.bottom, AppTheme.homeBottomContentPadding)
         }
-        .background(AppBackgroundView())
+        .keyboardDismissBackground {
+            AppBackgroundView()
+        }
         .tint(AppTheme.accentPrimary)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .scrollDismissesKeyboard(.interactively)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingOrganizerPicker) {
             NewsOrganizerPickerSheet(
                 organizations: availableOrganizerOrganizations,
@@ -193,7 +195,6 @@ struct NewsEditorView: View {
                 ignoresNextPhotoClear = false
                 return
             }
-            dismissKeyboard()
             imageProcessingTask?.cancel()
             let token = UUID()
             imageProcessingToken = token
@@ -330,10 +331,6 @@ struct NewsEditorView: View {
 
     func counterText(_ count: Int, limit: Int) -> String {
         "\(count)/\(limit)"
-    }
-
-    func dismissKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 

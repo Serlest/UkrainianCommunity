@@ -134,6 +134,29 @@ final class OrganizationActivityViewModel: ObservableObject {
         await startLoad(for: organization, force: true)
     }
 
+    func update(
+        for organization: Organization,
+        posts: [NewsPost],
+        events: [Event],
+        isLoading: Bool,
+        error: AppError?
+    ) {
+        let filteredNews = posts
+            .filter { belongsToOrganization($0.source, organization: organization) }
+            .map(OrganizationActivityItem.init(post:))
+        let filteredEvents = events
+            .filter { belongsToOrganization($0.source, organization: organization) }
+            .map(OrganizationActivityItem.init(event:))
+        let profileItem = OrganizationActivityItem(profile: organization)
+        let activityItems = (filteredNews + filteredEvents)
+            .sorted { $0.publishedAt > $1.publishedAt }
+
+        items = [profileItem] + activityItems
+        self.isLoading = isLoading
+        self.error = error
+        hasLoaded = true
+    }
+
     private func startLoad(for organization: Organization, force: Bool) async {
         guard force || !hasLoaded else { return }
 
@@ -247,6 +270,8 @@ struct OrganizationDetailView: View {
         eventRepository: EventRepository = FirestoreEventRepository(),
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
         photoRepository: OrganizationPhotoRepository = FirestoreOrganizationPhotoRepository(),
+        newsViewModel: NewsViewModel? = nil,
+        eventsViewModel: EventsViewModel? = nil,
         onOrganizationSaved: @escaping @MainActor () async -> Void = {},
         onOrganizationDeleted: @escaping @MainActor () -> Void = {},
         onNavigateBack: (() -> Void)? = nil
@@ -266,8 +291,8 @@ struct OrganizationDetailView: View {
             newsRepository: newsRepository,
             eventRepository: eventRepository
         ))
-        _newsDetailViewModel = StateObject(wrappedValue: NewsViewModel(repository: newsRepository))
-        _eventsDetailViewModel = StateObject(wrappedValue: EventsViewModel(repository: eventRepository))
+        _newsDetailViewModel = StateObject(wrappedValue: newsViewModel ?? NewsViewModel(repository: newsRepository))
+        _eventsDetailViewModel = StateObject(wrappedValue: eventsViewModel ?? EventsViewModel(repository: eventRepository))
     }
 
     var isDeletingCurrentOrganization: Bool {
@@ -311,9 +336,7 @@ struct OrganizationDetailView: View {
                     }
                 }
                 .task(id: organization.id) {
-                    await activityViewModel.loadIfNeeded(for: organization)
-                    await newsDetailViewModel.loadIfNeeded()
-                    await eventsDetailViewModel.loadIfNeeded()
+                    await loadOrganizationActivityIfNeeded(for: organization)
                     await viewModel.loadComments(for: organization.id)
                     await loadPreviewPhotosIfNeeded(for: organization.id)
                     await loadCommunityMembersIfNeeded(for: organization)
@@ -325,7 +348,7 @@ struct OrganizationDetailView: View {
         }
         .background(AppBackgroundView().allowsHitTesting(false))
         .toolbar(.hidden, for: .navigationBar)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .confirmationDialog(AppStrings.Organizations.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.Organizations.delete, role: .destructive) {
                 guard !isDeletingCurrentOrganization else { return }
@@ -388,7 +411,7 @@ struct OrganizationDetailView: View {
             Task {
                 await viewModel.refresh()
                 if let organization = viewModel.organization(for: organizationID) {
-                    await activityViewModel.refresh(for: organization)
+                    await refreshOrganizationActivity(for: organization)
                     await reloadPreviewPhotos(for: organization.id)
                     await reloadCommunityMembers(for: organization)
                 }
@@ -398,16 +421,14 @@ struct OrganizationDetailView: View {
             guard AppContentChangeBus.organizationID(from: notification) == organizationID else { return }
             guard let organization = viewModel.organization(for: organizationID) else { return }
             Task {
-                await activityViewModel.refresh(for: organization)
-                await newsDetailViewModel.refresh()
+                await refreshOrganizationActivity(for: organization)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .eventsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { notification in
             guard AppContentChangeBus.organizationID(from: notification) == organizationID else { return }
             guard let organization = viewModel.organization(for: organizationID) else { return }
             Task {
-                await activityViewModel.refresh(for: organization)
-                await eventsDetailViewModel.refresh()
+                await refreshOrganizationActivity(for: organization)
             }
         }
         .onDisappear {
@@ -489,12 +510,51 @@ struct OrganizationDetailView: View {
     func refreshOrganizationDetail(for organization: Organization) async {
         await viewModel.refresh()
         let refreshedOrganization = viewModel.organization(for: organization.id) ?? organization
-        await activityViewModel.refresh(for: refreshedOrganization)
-        await newsDetailViewModel.refresh()
-        await eventsDetailViewModel.refresh()
+        await refreshOrganizationActivity(for: refreshedOrganization)
         await viewModel.loadComments(for: refreshedOrganization.id)
         await reloadPreviewPhotos(for: refreshedOrganization.id)
         await reloadCommunityMembers(for: refreshedOrganization)
+    }
+
+    @MainActor
+    func loadOrganizationActivityIfNeeded(for organization: Organization) async {
+        activityViewModel.update(
+            for: organization,
+            posts: newsDetailViewModel.posts,
+            events: eventsDetailViewModel.events,
+            isLoading: true,
+            error: nil
+        )
+        async let newsLoad: Void = newsDetailViewModel.loadIfNeeded()
+        async let eventsLoad: Void = eventsDetailViewModel.loadIfNeeded()
+        _ = await (newsLoad, eventsLoad)
+        updateOrganizationActivity(for: organization)
+    }
+
+    @MainActor
+    func refreshOrganizationActivity(for organization: Organization) async {
+        activityViewModel.update(
+            for: organization,
+            posts: newsDetailViewModel.posts,
+            events: eventsDetailViewModel.events,
+            isLoading: true,
+            error: nil
+        )
+        async let newsRefresh: Void = newsDetailViewModel.refresh()
+        async let eventsRefresh: Void = eventsDetailViewModel.refresh()
+        _ = await (newsRefresh, eventsRefresh)
+        updateOrganizationActivity(for: organization)
+    }
+
+    @MainActor
+    func updateOrganizationActivity(for organization: Organization) {
+        activityViewModel.update(
+            for: organization,
+            posts: newsDetailViewModel.posts,
+            events: eventsDetailViewModel.events,
+            isLoading: newsDetailViewModel.isLoading || eventsDetailViewModel.isLoading,
+            error: newsDetailViewModel.error ?? eventsDetailViewModel.error
+        )
     }
 
     @MainActor

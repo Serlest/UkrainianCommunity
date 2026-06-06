@@ -34,7 +34,18 @@ struct MyRegistrationsView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: MyRegistrationsViewModel
     let eventRepository: EventRepository
+    @ObservedObject private var eventsViewModel: EventsViewModel
     @State private var selectedSegment: MyEventsSegment = .upcoming
+
+    init(
+        viewModel: MyRegistrationsViewModel,
+        eventRepository: EventRepository,
+        eventsViewModel: EventsViewModel? = nil
+    ) {
+        self.viewModel = viewModel
+        self.eventRepository = eventRepository
+        self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
+    }
 
     private var calendar: Calendar { .current }
 
@@ -104,6 +115,9 @@ struct MyRegistrationsView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        .onChange(of: eventsViewModel.contentVersion) { _, _ in
+            viewModel.synchronize(with: eventsViewModel.events)
+        }
     }
 
     @ViewBuilder
@@ -151,7 +165,11 @@ struct MyRegistrationsView: View {
     @ViewBuilder
     private func registrationRow(for event: Event) -> some View {
         NavigationLink {
-            RegisteredEventDetailContainer(event: event, repository: eventRepository)
+            RegisteredEventDetailContainer(
+                event: event,
+                repository: eventRepository,
+                eventsViewModel: eventsViewModel
+            )
         } label: {
             RegistrationEventRow(
                 event: event,
@@ -182,9 +200,15 @@ private struct RegisteredEventDetailContainer: View {
     let event: Event
     @StateObject private var detailViewModel: EventsViewModel
 
-    init(event: Event, repository: EventRepository) {
+    init(
+        event: Event,
+        repository: EventRepository,
+        eventsViewModel: EventsViewModel? = nil
+    ) {
         self.event = event
-        _detailViewModel = StateObject(wrappedValue: EventsViewModel(repository: repository))
+        let resolvedViewModel = eventsViewModel ?? EventsViewModel(repository: repository)
+        resolvedViewModel.cacheEvent(event)
+        _detailViewModel = StateObject(wrappedValue: resolvedViewModel)
     }
 
     var body: some View {

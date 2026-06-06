@@ -8,9 +8,6 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
     case warned
     case suspended
     case banned
-    case organizationOwners
-    case organizationAdmins
-    case organizationModerators
 
     var id: String { title }
 
@@ -26,12 +23,6 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
             AppStrings.UserManagement.filterSuspended
         case .banned:
             AppStrings.UserManagement.filterBanned
-        case .organizationOwners:
-            AppStrings.UserManagement.filterOrganizationOwners
-        case .organizationAdmins:
-            AppStrings.UserManagement.filterOrganizationAdmins
-        case .organizationModerators:
-            AppStrings.UserManagement.filterOrganizationModerators
         }
     }
 
@@ -47,16 +38,10 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
             "clock.badge.exclamationmark"
         case .banned:
             "lock"
-        case .organizationOwners:
-            "crown"
-        case .organizationAdmins:
-            "person.badge.key"
-        case .organizationModerators:
-            "shield"
         }
     }
 
-    func matches(_ user: AppUser, organizationRoles: [UserOrganizationRole]) -> Bool {
+    func matches(_ user: AppUser) -> Bool {
         switch self {
         case .all:
             true
@@ -68,12 +53,6 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
             user.blockState == .suspendedUntil || user.blockState == .blocked || user.accountStatus == .suspendedUntil || user.accountStatus == .temporarilyBanned
         case .banned:
             user.blockState == .bannedPermanent || user.blockState == .deactivated || user.accountStatus == .bannedPermanent || user.accountStatus == .permanentlyBanned || user.accountStatus == .deactivated
-        case .organizationOwners:
-            organizationRoles.contains { $0.role == .communityOwner }
-        case .organizationAdmins:
-            organizationRoles.contains { $0.role == .communityAdmin }
-        case .organizationModerators:
-            organizationRoles.contains { $0.role == .communityModerator }
         }
     }
 }
@@ -238,7 +217,6 @@ private final class UserManagementViewModel: ObservableObject {
     private var hasLoaded = false
 
     private var usersCollection: CollectionReference { db.collection("users") }
-    private var organizationsCollection: CollectionReference { db.collection("organizations") }
 
     init(roleManagementService: OrganizationRoleManagementService? = nil) {
         self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
@@ -265,14 +243,11 @@ private final class UserManagementViewModel: ObservableObject {
         }
 
         do {
-            async let usersSnapshot = usersCollection.order(by: "createdAt", descending: true).getDocuments()
-            async let organizationsSnapshot = organizationsCollection.getDocuments()
-            let snapshots = try await (usersSnapshot, organizationsSnapshot)
-            users = snapshots.0.documents.map(makeUser(from:))
-            organizations = snapshots.1.documents
-                .map(makeManagedOrganization(from:))
-                .filter { $0.id != Organization.systemOrganizationID }
-                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            let snapshot = try await usersCollection
+                .order(by: "createdAt", descending: true)
+                .getDocuments()
+            users = snapshot.documents.map(makeUser(from:))
+            organizations = []
         } catch {
             self.error = .network
         }
@@ -305,7 +280,7 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     func assignRole(_ role: CommunityRole, in organization: ManagedOrganization, to target: AppUser, actor: AppUser, reason: String) async {
-        guard canManage(target: target, actor: actor) else {
+        guard canManageOrganizationRoles(target: target, actor: actor) else {
             statusMessage = AppStrings.UserManagement.rolePermissionDenied
             return
         }
@@ -351,7 +326,7 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     func removeRole(in organization: ManagedOrganization, from target: AppUser, actor: AppUser, reason: String) async {
-        guard canManage(target: target, actor: actor) else {
+        guard canManageOrganizationRoles(target: target, actor: actor) else {
             statusMessage = AppStrings.UserManagement.removeRolePermissionDenied
             return
         }
@@ -412,6 +387,11 @@ private final class UserManagementViewModel: ObservableObject {
     func canManagePlatformRole(target: AppUser, actor: AppUser) -> Bool {
         PermissionService.canManageUserTarget(actor: actor, target: target)
             && PermissionService.canAssignGlobalRoles(user: actor)
+    }
+
+    func canManageOrganizationRoles(target: AppUser, actor: AppUser) -> Bool {
+        PermissionService.canManageUserTarget(actor: actor, target: target)
+            && PermissionService.canInitiateOrganizationRoleWorkflow(user: actor)
     }
 
     func user(withID id: String) -> AppUser? {
@@ -602,7 +582,7 @@ struct UserManagementView: View {
 
     private var filteredUsers: [AppUser] {
         viewModel.users.filter { user in
-            selectedFilter.matches(user, organizationRoles: viewModel.organizationRoles(for: user)) && matchesSearch(user)
+            selectedFilter.matches(user) && matchesSearch(user)
         }
     }
 
@@ -635,7 +615,7 @@ struct UserManagementView: View {
         .navigationTitle(AppStrings.UserManagement.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .task {
             await viewModel.loadIfNeeded(actor: actor)
         }
@@ -947,6 +927,10 @@ private struct UserDetailView: View {
         actor.map { viewModel.canManage(target: user, actor: $0) } ?? false
     }
 
+    private var canManageOrganizationRoles: Bool {
+        actor.map { viewModel.canManageOrganizationRoles(target: user, actor: $0) } ?? false
+    }
+
     var body: some View {
         ZStack {
             AppBackgroundView()
@@ -966,8 +950,6 @@ private struct UserDetailView: View {
                         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                             profileCard
                             platformRolesCard
-                            organizationRolesCard
-                            roleAssignmentCard
                             accountActionsCard
                             UserAuditHistoryCard(userId: user.id)
                         }
@@ -988,7 +970,7 @@ private struct UserDetailView: View {
         .navigationTitle(user.preferredDisplayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .task {
             ensureSelectedOrganization()
             ensureSelectedRole()
@@ -1113,7 +1095,6 @@ private struct UserDetailView: View {
                 UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: user.telegramUsername ?? AppStrings.Common.notAvailable)
                 UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
                 UserManagementMetadataRow(systemImage: "calendar", title: "Joined", value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
-                UserManagementMetadataRow(systemImage: "building.2", title: AppStrings.UserManagement.organizationRolesTitle, value: String(organizationRoles.count))
                 if let banExpiresAt = user.banExpiresAt {
                     UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.blockedUntil, value: LocalizationStore.dateString(from: banExpiresAt, dateStyle: .medium, timeStyle: .short))
                 }
@@ -1157,7 +1138,7 @@ private struct UserDetailView: View {
                                 Image(systemName: "minus.circle")
                                     .foregroundStyle(AppTheme.accentDestructive)
                             }
-                            .disabled(!canManage || item.role == .communityOwner || isUpdating)
+                            .disabled(!canManageOrganizationRoles || item.role == .communityOwner || isUpdating)
                         }
                     }
                 }
@@ -1253,7 +1234,7 @@ private struct UserDetailView: View {
                     RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
                         .strokeBorder(AppTheme.borderSubtle)
                 )
-                .disabled(organizations.isEmpty || !canManage)
+                .disabled(organizations.isEmpty || !canManageOrganizationRoles)
 
                 Picker(AppStrings.UserManagement.organizationPicker, selection: Binding(
                     get: { selectedOrganizationID ?? organizations.first?.id ?? "" },
@@ -1264,7 +1245,7 @@ private struct UserDetailView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .disabled(filteredOrganizations.isEmpty || !canManage)
+                .disabled(filteredOrganizations.isEmpty || !canManageOrganizationRoles)
 
                 if organizations.isEmpty {
                     Text(AppStrings.UserManagement.organizationsNotLoaded)
@@ -1282,7 +1263,7 @@ private struct UserDetailView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .disabled(!canManage)
+                .disabled(!canManageOrganizationRoles)
 
                 if selectedOrganization?.ownerId == user.id {
                     Text(AppStrings.UserManagement.ownerTransferOnly)
@@ -1301,7 +1282,7 @@ private struct UserDetailView: View {
 
                 PrimaryActionButton(
                     title: selectedRole == .communityOwner ? AppStrings.UserManagement.changeOwnerButton : AppStrings.UserManagement.assignRoleButton,
-                    isEnabled: canManage && canAssignSelectedOrganizationRole,
+                    isEnabled: canManageOrganizationRoles && canAssignSelectedOrganizationRole,
                     isLoading: isUpdating,
                     systemImage: selectedRole == .communityOwner ? "person.crop.circle.badge.checkmark" : "person.badge.key"
                 ) {
@@ -1409,27 +1390,45 @@ private struct UserDetailView: View {
     }
 
     private var canAssignAppAdmin: Bool {
-        canChangePlatformRoles && user.globalRole.authorizationRole != .admin
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignAppAdmin(user: actor)
+            && user.globalRole.authorizationRole != .admin
     }
 
     private var canRemoveAppAdmin: Bool {
-        canChangePlatformRoles && user.globalRole.authorizationRole == .admin
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignAppAdmin(user: actor)
+            && user.globalRole.authorizationRole == .admin
     }
 
     private var canAssignAppModerator: Bool {
-        canChangePlatformRoles && user.globalRole.authorizationRole != .moderator
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignAppModerator(user: actor)
+            && user.globalRole.authorizationRole != .moderator
     }
 
     private var canRemoveAppModerator: Bool {
-        canChangePlatformRoles && user.globalRole.authorizationRole == .moderator
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignAppModerator(user: actor)
+            && user.globalRole.authorizationRole == .moderator
     }
 
     private var canAssignGuideEditor: Bool {
-        canChangePlatformRoles && !user.canManageGuide
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignGuideEditor(user: actor)
+            && !user.canManageGuide
     }
 
     private var canRemoveGuideEditor: Bool {
-        canChangePlatformRoles && user.canManageGuide
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignGuideEditor(user: actor)
+            && user.canManageGuide
     }
 
     private func actionLabel(_ action: UserAdminAction, tint: Color) -> some View {

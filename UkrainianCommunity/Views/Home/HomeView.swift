@@ -130,7 +130,16 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             scheduleContentRefresh(for: .organizations)
         }
-        .dismissesKeyboardOnBackgroundTap()
+        .onChange(of: newsViewModel.contentVersion) { _, _ in
+            synchronizeHomeFeed()
+        }
+        .onChange(of: eventsViewModel.contentVersion) { _, _ in
+            synchronizeHomeFeed()
+        }
+        .onChange(of: organizationsViewModel.contentVersion) { _, _ in
+            synchronizeHomeFeed()
+        }
+        .observesKeyboardDismissTaps()
     }
 
     private func scrollToTop(with scrollProxy: ScrollViewProxy) {
@@ -172,7 +181,9 @@ struct HomeView: View {
                 message: homeErrorText,
                 retryTitle: AppStrings.News.retry
             ) {
-                viewModel.reload()
+                Task {
+                    await refreshContentWhenAuthIsReady(force: true)
+                }
             }
             .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.feedItems.isEmpty {
@@ -368,33 +379,36 @@ struct HomeView: View {
     }
 
     private func loadContentIfNeeded() async {
-        async let homeLoad: Void = viewModel.loadIfNeeded()
+        synchronizeHomeFeed(isLoading: true)
         async let featuredBannerLoad: Void = loadFeaturedBannersIfNeeded()
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
         async let guideLoad: Void = guideViewModel.loadIfNeeded()
-        _ = await (homeLoad, featuredBannerLoad, newsLoad, eventsLoad, organizationsLoad, guideLoad)
+        _ = await (featuredBannerLoad, newsLoad, eventsLoad, organizationsLoad, guideLoad)
+        synchronizeHomeFeed()
     }
 
     private func refreshContentIfStale() async {
-        async let homeRefresh: Void = viewModel.refreshIfStale()
+        synchronizeHomeFeed(isLoading: true)
         async let featuredBannerRefresh: Void = refreshFeaturedBannersIfStale()
         async let newsRefresh: Void = newsViewModel.refreshIfStale()
         async let eventsRefresh: Void = eventsViewModel.refreshIfStale()
         async let organizationsRefresh: Void = organizationsViewModel.refreshIfStale()
         async let guideRefresh: Void = guideViewModel.refreshIfStale()
-        _ = await (homeRefresh, featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        synchronizeHomeFeed()
     }
 
     private func refreshAllContent() async {
-        async let homeRefresh: Void = viewModel.refresh()
+        synchronizeHomeFeed(isLoading: true)
         async let featuredBannerRefresh: Void = refreshFeaturedBanners()
         async let newsRefresh: Void = newsViewModel.refresh()
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
         async let guideRefresh: Void = guideViewModel.refresh()
-        _ = await (homeRefresh, featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        synchronizeHomeFeed()
     }
 
     private func scheduleContentRefresh(for reason: HomeContentRefreshReason) {
@@ -439,7 +453,7 @@ struct HomeView: View {
     private func refreshChangedContent(for reasons: Set<HomeContentRefreshReason>) async {
         guard !reasons.isEmpty else { return }
 
-        async let homeRefresh: Void = viewModel.refresh()
+        synchronizeHomeFeed(isLoading: true)
 
         if reasons.contains(.news) {
             await newsViewModel.refresh()
@@ -453,7 +467,17 @@ struct HomeView: View {
             await organizationsViewModel.refresh()
         }
 
-        _ = await homeRefresh
+        synchronizeHomeFeed()
+    }
+
+    private func synchronizeHomeFeed(isLoading: Bool? = nil) {
+        viewModel.updateFeed(
+            posts: newsViewModel.posts,
+            events: eventsViewModel.events,
+            organizations: organizationsViewModel.organizations,
+            isLoading: isLoading ?? (newsViewModel.isLoading || eventsViewModel.isLoading || organizationsViewModel.isLoading),
+            error: newsViewModel.error ?? eventsViewModel.error ?? organizationsViewModel.error
+        )
     }
 
     private var homeErrorText: String {
@@ -486,7 +510,13 @@ struct HomeView: View {
         case let .event(id):
             EventDetailView(viewModel: eventsViewModel, eventID: id, onEventDeleted: {}, onNavigateBack: popHomeDetail)
         case let .organization(id):
-            OrganizationDetailView(viewModel: organizationsViewModel, organizationID: id, onNavigateBack: popHomeDetail)
+            OrganizationDetailView(
+                viewModel: organizationsViewModel,
+                organizationID: id,
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
+                onNavigateBack: popHomeDetail
+            )
         case let .guide(id):
             if let article = guideViewModel.articles.first(where: { $0.id == id }) {
                 LegacyGuideDetailView(article: article)

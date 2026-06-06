@@ -15,6 +15,7 @@ enum ProfileNavigationRoute: Hashable {
     case userManagement
     case featuredBannerManagement
     case legalDocumentManagement
+    case donationSettings
     case feedbackInbox
     case notifications
     case myFeedback(userID: String)
@@ -30,16 +31,23 @@ struct ProfileView: View {
     private let guideRepository: LegacyGuideRepository
     private let featuredBannerRepository: FeaturedBannerRepository
     private let legalDocumentRepository: LegalDocumentRepository
+    private let donationConfigRepository: DonationConfigRepository
     private let notificationInboxRepository: NotificationInboxRepository
     private let onNotificationTap: (AppNotification) -> Void
     @EnvironmentObject var authState: AuthState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.locale) private var locale
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @StateObject private var registrationsViewModel: MyRegistrationsViewModel
     @StateObject private var myFeedbackViewModel: MyFeedbackViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var ownerOrganizationsViewModel: OrganizationsViewModel
     @StateObject private var ownerVisibilityViewModel: OwnerProfileVisibilityViewModel
+    @StateObject private var donationConfigViewModel: DonationConfigViewModel
+    @ObservedObject private var newsViewModel: NewsViewModel
+    @ObservedObject private var eventsViewModel: EventsViewModel
+    @ObservedObject private var organizationsViewModel: OrganizationsViewModel
+    @ObservedObject private var guideReaderViewModel: GuideReaderViewModel
     @State private var isShowingEditProfileSheet = false
     @State private var fullNameDraft = ""
     @State private var displayNameDraft = ""
@@ -72,9 +80,14 @@ struct ProfileView: View {
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        newsViewModel: NewsViewModel? = nil,
+        eventsViewModel: EventsViewModel? = nil,
+        organizationsViewModel: OrganizationsViewModel? = nil,
+        guideReaderViewModel: GuideReaderViewModel? = nil,
         guideRepository: LegacyGuideRepository = LegacyFirestoreGuideRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
+        donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
         onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
@@ -86,9 +99,17 @@ struct ProfileView: View {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
+        self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
+        self.eventsViewModel = eventsViewModel ?? EventsViewModel(
+            repository: eventRepository,
+            localEventReminderService: localEventReminderService
+        )
+        self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
+        self.guideReaderViewModel = guideReaderViewModel ?? GuideReaderViewModel(repository: FirestoreGuideRepository())
         self.guideRepository = guideRepository
         self.featuredBannerRepository = featuredBannerRepository
         self.legalDocumentRepository = legalDocumentRepository
+        self.donationConfigRepository = donationConfigRepository
         self.notificationInboxRepository = notificationInboxRepository
         self.onNotificationTap = onNotificationTap
         self.scrollResetToken = scrollResetToken
@@ -109,10 +130,17 @@ struct ProfileView: View {
             feedbackRepository: feedbackRepository,
             organizationRepository: organizationRepository
         ))
+        _donationConfigViewModel = StateObject(wrappedValue: DonationConfigViewModel(
+            repository: donationConfigRepository
+        ))
     }
 
     private var permissionUser: AppUser? {
         authState.user
+    }
+
+    private var appLanguage: AppLanguage {
+        DonationLocalization.language(from: locale)
     }
 
     private var canShowAdminTools: Bool {
@@ -327,8 +355,6 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                             profileHeader
 
-                            profileTitleBlock
-
                             AppGroupedContentPlane {
                                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                                     if let user = displayUser {
@@ -358,7 +384,7 @@ struct ProfileView: View {
         }
         .task {
             await viewModel.loadIfNeeded()
-            await viewModel.refreshIfStale()
+            await donationConfigViewModel.loadIfNeeded()
             if authState.isAuthenticated {
                 await registrationsViewModel.loadIfNeeded()
                 await registrationsViewModel.refreshIfStale()
@@ -378,6 +404,7 @@ struct ProfileView: View {
         }
         .refreshable {
             await viewModel.refresh()
+            await donationConfigViewModel.load()
             if authState.isAuthenticated {
                 await registrationsViewModel.refresh()
                 if let userID = authState.user?.id {
@@ -412,6 +439,7 @@ struct ProfileView: View {
             }
         }
         .onChange(of: authState.user?.id) { _, newUserID in
+            viewModel.clearFeedbackSuccessMessage()
             Task {
                 registrationsViewModel.resetForAuthChange()
                 myFeedbackViewModel.reset()
@@ -427,12 +455,19 @@ struct ProfileView: View {
                 await refreshOwnerVisibilityIfAllowed()
             }
         }
+        .onChange(of: eventsViewModel.contentVersion) { _, _ in
+            guard authState.isAuthenticated else { return }
+            registrationsViewModel.synchronize(with: eventsViewModel.events)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             guard authState.isAuthenticated else { return }
             Task {
                 await ownerOrganizationsViewModel.refresh()
                 await refreshOwnerVisibilityIfAllowed()
             }
+        }
+        .onDisappear {
+            viewModel.clearFeedbackSuccessMessage()
         }
         .sheet(isPresented: $isShowingEditProfileSheet) {
             NavigationStack {
@@ -503,11 +538,7 @@ struct ProfileView: View {
             Text(deleteAccountErrorMessage ?? "")
         }
         .guestAccessAlert($guestAccessAction)
-        .dismissesKeyboardOnBackgroundTap()
-    }
-
-    private var profileTitleBlock: some View {
-        SectionHeaderBlock(title: AppStrings.Profile.title)
+        .observesKeyboardDismissTaps()
     }
 
     private var profileHeader: some View {
@@ -538,26 +569,35 @@ struct ProfileView: View {
         case .organizationManagement:
             OrganizationManagementHubView()
         case .registrations:
-            MyRegistrationsView(viewModel: registrationsViewModel, eventRepository: eventRepository)
+            MyRegistrationsView(
+                viewModel: registrationsViewModel,
+                eventRepository: eventRepository,
+                eventsViewModel: eventsViewModel
+            )
         case .savedContent:
             SavedContentView(
-                newsRepository: newsRepository,
-                eventRepository: eventRepository,
-                organizationRepository: organizationRepository
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
+                organizationsViewModel: organizationsViewModel,
+                guideReaderViewModel: guideReaderViewModel,
+                feedbackRepository: feedbackRepository
             )
         case .followedOrganizations:
-            FollowedOrganizationsView(organizationRepository: organizationRepository)
+            FollowedOrganizationsView(
+                organizationsViewModel: organizationsViewModel,
+                organizationRepository: organizationRepository
+            )
         case .recentViews:
             RecentViewsView(
-                newsRepository: newsRepository,
-                eventRepository: eventRepository,
-                organizationRepository: organizationRepository
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
+                organizationsViewModel: organizationsViewModel
             )
         case .activityHistory:
             ActivityHistoryView(
-                newsRepository: newsRepository,
-                eventRepository: eventRepository,
-                organizationRepository: organizationRepository
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
+                organizationsViewModel: organizationsViewModel
             )
         case .moderationTools:
             ModerationToolsView(
@@ -577,6 +617,8 @@ struct ProfileView: View {
             )
         case .legalDocumentManagement:
             LegalDocumentManagementView(repository: legalDocumentRepository)
+        case .donationSettings:
+            DonationSettingsView(viewModel: donationConfigViewModel)
         case .feedbackInbox:
             FeedbackInboxView(
                 repository: feedbackRepository,
@@ -645,7 +687,7 @@ struct ProfileView: View {
                     }
                 }
             }
-            .dismissesKeyboardOnBackgroundTap()
+            .observesKeyboardDismissTaps()
         }
     }
 
@@ -728,7 +770,7 @@ struct ProfileView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .interactiveDismissDisabled(viewModel.isSavingProfile)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingAvatarCrop, onDismiss: resetAvatarCropSelection) {
             if let cropSourceAvatarImage {
                 ImageCropView(
@@ -862,6 +904,7 @@ struct ProfileView: View {
             }
         }
 
+        donationSupportSection
         guestSettingsSupportSection
     }
 
@@ -877,6 +920,7 @@ struct ProfileView: View {
             )
 
             quickActionsSection(for: user)
+            donationSupportSection
             supportSection(for: user)
             settingsSection
             accountDeletionSection
@@ -889,6 +933,7 @@ struct ProfileView: View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: mode)
         platformManagementSection
         quickActionsSection(for: user)
+        donationSupportSection
         supportSection(for: user)
         settingsSection
         accountDeletionSection
@@ -1041,6 +1086,16 @@ struct ProfileView: View {
                     }
 
                     if PermissionService.isAppOwner(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.donationSettings) {
+                            ProfileModuleRow(
+                                title: DonationLocalization.publicSectionTitle(for: appLanguage),
+                                subtitle: DonationLocalization.platformEntrySubtitle(for: appLanguage),
+                                systemImage: "heart.circle",
+                                status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+
                         NavigationLink(value: ProfileNavigationRoute.legalDocumentManagement) {
                             ProfileModuleRow(
                                 title: AppStrings.Profile.ownerLegalDocuments,
@@ -1206,7 +1261,7 @@ struct ProfileView: View {
                     title: AppStrings.Profile.ownerOrganizations,
                     subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
                     systemImage: "building.2",
-                    status: PermissionService.canModerate(section: .organizations, user: user) ? .active : .locked,
+                    status: PermissionService.canManageOrganizationRequests(user: user) ? .active : .locked,
                     accessory: .none
                 )
             }
@@ -1363,6 +1418,12 @@ struct ProfileView: View {
                 .buttonStyle(.plain)
 
             }
+        }
+    }
+
+    private var donationSupportSection: some View {
+        ProfileSectionCard(title: DonationLocalization.publicSectionTitle(for: appLanguage)) {
+            ProfileDonationSupportCard(config: donationConfigViewModel.config, language: appLanguage)
         }
     }
 
@@ -1540,6 +1601,71 @@ struct ProfileView: View {
                 await myFeedbackViewModel.refresh(userID: user.id)
             }
         }
+    }
+}
+
+
+private struct ProfileDonationSupportCard: View {
+    let config: DonationConfig
+    let language: AppLanguage
+    @Environment(\.openURL) private var openURL
+
+    private var title: String {
+        config.title(for: language)
+    }
+
+    private var message: String {
+        config.message(for: language)
+    }
+
+    private var buttonTitle: String {
+        config.buttonTitle(for: language)
+    }
+
+    private var donationURL: URL? {
+        guard config.isEnabled else { return nil }
+        return config.validDonationURL
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "heart.circle.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentSupport)
+                    .frame(width: 40, height: 40)
+                    .background(AppTheme.accentSupport.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(message)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if let donationURL {
+                PrimaryActionButton(
+                    title: buttonTitle,
+                    systemImage: "arrow.up.right.square"
+                ) {
+                    openURL(donationURL)
+                }
+            }
+        }
+        .padding(AppTheme.dashboardCardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.accentSupport.opacity(0.07), in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                .strokeBorder(AppTheme.accentSupport.opacity(0.16), lineWidth: 1)
+        )
+        .accessibilityElement(children: .contain)
     }
 }
 

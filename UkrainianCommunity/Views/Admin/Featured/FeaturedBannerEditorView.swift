@@ -77,6 +77,7 @@ struct FeaturedBannerEditorView: View {
         .toolbar(.hidden, for: .navigationBar)
         .tint(AppTheme.accentPrimary)
         .scrollDismissesKeyboard(.interactively)
+        .observesKeyboardDismissTaps()
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false

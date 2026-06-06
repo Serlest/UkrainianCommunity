@@ -106,7 +106,6 @@ struct NewsListView: View {
                 Task {
                     do {
                         try await viewModel.deleteNews(id: postID)
-                        viewModel.removeDeletedNews(id: postID)
                         onNewsChanged()
                     } catch let appError as AppError {
                         deleteErrorMessage = readableNewsErrorText(appError)

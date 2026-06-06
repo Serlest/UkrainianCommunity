@@ -2,6 +2,7 @@ import SwiftUI
 
 struct InfoView: View {
     @ObservedObject var viewModel: InfoViewModel
+    @ObservedObject private var guideReaderViewModel: GuideReaderViewModel
     let featuredBannerRepository: FeaturedBannerRepository
     let feedbackRepository: FeedbackRepository
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
@@ -10,6 +11,8 @@ struct InfoView: View {
 
     init(
         viewModel: InfoViewModel,
+        guideReaderViewModel: GuideReaderViewModel? = nil,
+        guideReaderRepository: GuideRepositoryProtocol = FirestoreGuideRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         feedbackRepository: FeedbackRepository = FirestoreFeedbackRepository(),
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
@@ -17,6 +20,9 @@ struct InfoView: View {
         scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
+        _guideReaderViewModel = ObservedObject(
+            wrappedValue: guideReaderViewModel ?? GuideReaderViewModel(repository: guideReaderRepository)
+        )
         self.featuredBannerRepository = featuredBannerRepository
         self.feedbackRepository = feedbackRepository
         self.onFeaturedBannerTap = onFeaturedBannerTap
@@ -26,7 +32,7 @@ struct InfoView: View {
 
     var body: some View {
         GuideReaderView(
-            viewModel: GuideReaderViewModel(repository: FirestoreGuideRepository()),
+            viewModel: guideReaderViewModel,
             featuredBannerRepository: featuredBannerRepository,
             feedbackRepository: feedbackRepository,
             onFeaturedBannerTap: onFeaturedBannerTap,
@@ -40,6 +46,7 @@ struct InfoView: View {
     NavigationStack {
         InfoView(
             viewModel: InfoViewModel(repository: MockInfoRepository()),
+            guideReaderRepository: MockGuideRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository()
         )
     }

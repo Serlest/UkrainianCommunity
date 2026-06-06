@@ -37,7 +37,7 @@ struct GuideMaterialEditorArticleSection: View {
                 )
 
                 AppEditorField(title: GuideAuthoringPresentation.bodyLabel) {
-                    TextEditor(text: $articleBody)
+                    TextEditor(text: normalizedArticleBody)
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 160)
                         .padding(8)
@@ -66,5 +66,25 @@ struct GuideMaterialEditorArticleSection: View {
                 .foregroundStyle(AppTheme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var normalizedArticleBody: Binding<String> {
+        Binding(
+            get: { articleBody },
+            set: { articleBody = GuideEditorTextNormalization.normalizedPastedText($0, previousValue: articleBody) }
+        )
+    }
+}
+
+enum GuideEditorTextNormalization {
+    static func normalizedPastedText(_ value: String, previousValue: String) -> String {
+        guard previousValue.isEmpty else { return value }
+
+        let leadingSpaces = value.prefix { character in
+            character == " " || character == "\t"
+        }.count
+        guard leadingSpaces >= 2 else { return value }
+
+        return String(value.dropFirst(leadingSpaces))
     }
 }

@@ -120,11 +120,16 @@ struct UkrainianCommunityTests {
 
         #expect(PermissionService.canManageOrganizationRequests(user: admin))
         #expect(PermissionService.canAccessModerationTools(user: admin))
+        #expect(PermissionService.canAccessAdminTools(user: admin))
+        #expect(PermissionService.canManageUsers(user: admin))
         #expect(PermissionService.canManageFeedback(user: admin))
         #expect(PermissionService.canManageReports(user: admin))
+        #expect(PermissionService.canAssignGlobalRoles(user: admin))
+        #expect(PermissionService.canTemporarilyBan(user: admin))
+        #expect(PermissionService.canPermanentlyBan(user: admin))
         #expect(PermissionService.canAssignAppAdmin(user: admin) == false)
-        #expect(PermissionService.canAssignAppModerator(user: admin) == false)
-        #expect(PermissionService.canAssignGuideEditor(user: admin) == false)
+        #expect(PermissionService.canAssignAppModerator(user: admin))
+        #expect(PermissionService.canAssignGuideEditor(user: admin))
         #expect(PermissionService.canUseOrganizationOverride(user: admin) == false)
         #expect(PermissionService.canManageGuide(user: admin) == false)
         #expect(PermissionService.canManageGuide(user: guideAdmin))
@@ -172,6 +177,7 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canUseOrganizationOverride(user: suspendedOwner) == false)
 
         #expect(PermissionService.isUsableAccount(user: warnedAdmin))
+        #expect(PermissionService.canManageUsers(user: warnedAdmin))
         #expect(PermissionService.canManageOrganizationRequests(user: warnedAdmin))
         #expect(PermissionService.canAccessModerationTools(user: warnedAdmin))
 
@@ -461,24 +467,36 @@ struct UkrainianCommunityTests {
         )
     }
 
-    @Test func homeFeedViewModelSortsNewestFirstAndContainsSupportedItemTypes() async {
-        let viewModel = HomeFeedViewModel(
-            newsRepository: MockNewsRepository(),
-            eventRepository: MockEventRepository(),
-            organizationRepository: MockOrganizationRepository()
+    @Test func homeViewModelSortsNewestFirstAndContainsSupportedItemTypes() async throws {
+        let newsRepository = MockNewsRepository()
+        let eventRepository = MockEventRepository()
+        let organizationRepository = MockOrganizationRepository()
+        let viewModel = HomeViewModel(
+            newsRepository: newsRepository,
+            eventRepository: eventRepository,
+            organizationRepository: organizationRepository
         )
 
-        await viewModel.refresh()
+        let posts = try await newsRepository.fetchNews()
+        let events = try await eventRepository.fetchEvents()
+        let organizations = try await organizationRepository.fetchOrganizations()
+        viewModel.updateFeed(
+            posts: posts,
+            events: events,
+            organizations: organizations,
+            isLoading: false,
+            error: nil
+        )
 
-        #expect(viewModel.items.isEmpty == false)
-        #expect(viewModel.items.map(\.publishedAt) == viewModel.items.map(\.publishedAt).sorted(by: >))
+        #expect(viewModel.feedItems.isEmpty == false)
+        #expect(viewModel.feedItems.map(\.publishedAt) == viewModel.feedItems.map(\.publishedAt).sorted(by: >))
 
-        let itemTypes = Set(viewModel.items.map(\.itemType))
+        let itemTypes = Set(viewModel.feedItems.map(\.itemType))
         #expect(itemTypes.contains(.news))
         #expect(itemTypes.contains(.event))
         #expect(itemTypes.contains(.organization))
 
-        let destinations = viewModel.items.map(\.destination)
+        let destinations = viewModel.feedItems.map(\.destination)
         #expect(destinations.contains { if case .news = $0 { return true } else { return false } })
         #expect(destinations.contains { if case .event = $0 { return true } else { return false } })
         #expect(destinations.contains { if case .organization = $0 { return true } else { return false } })

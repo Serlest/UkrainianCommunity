@@ -137,7 +137,7 @@ struct PermissionService {
     }
 
     static func canManageUsers(user: AppUser?) -> Bool {
-        isOwner(user)
+        isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canAssignAppAdmin(user: AppUser?) -> Bool {
@@ -145,11 +145,11 @@ struct PermissionService {
     }
 
     static func canAssignAppModerator(user: AppUser?) -> Bool {
-        isOwner(user)
+        isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canAssignGuideEditor(user: AppUser?) -> Bool {
-        isOwner(user)
+        isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canManageUserTarget(actor: AppUser?, target: AppUser?) -> Bool {
@@ -606,19 +606,19 @@ struct PermissionService {
     }
 
     static func canAssignGlobalRoles(user: AppUser) -> Bool {
-        isOwner(user)
+        isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canPermanentlyBan(user: AppUser) -> Bool {
-        isOwner(user)
+        isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canTemporarilyBan(user: AppUser) -> Bool {
-        isOwner(user)
+        isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canAccessAdminTools(user: AppUser?) -> Bool {
-        Self.isOwner(user)
+        Self.isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canAccessModerationTools(user: AppUser?) -> Bool {

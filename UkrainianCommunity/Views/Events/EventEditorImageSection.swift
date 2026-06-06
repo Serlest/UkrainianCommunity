@@ -13,7 +13,6 @@ extension EventEditorView {
                     }
                     .buttonStyle(.plain)
                     .disabled(viewModel.isProcessingImage || viewModel.isPublishing)
-                    .simultaneousGesture(TapGesture().onEnded(dismissKeyboard))
                     .accessibilityLabel(AppStrings.Events.imageSectionTitle)
                     .overlay {
                         if viewModel.isProcessingImage {

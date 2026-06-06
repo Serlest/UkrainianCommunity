@@ -315,7 +315,7 @@ struct ModerationToolsView: View {
         }
         return PermissionService.canModerate(section: .news, user: user)
             || PermissionService.canModerate(section: .events, user: user)
-            || PermissionService.canModerate(section: .organizations, user: user)
+            || PermissionService.canManageOrganizationRequests(user: user)
     }
 
     private var allowedSections: Set<AppSection> {
@@ -327,8 +327,12 @@ struct ModerationToolsView: View {
             }
             return [.news, .events]
         }
-        return PermissionService.moderatedSections(for: user)
-            .intersection([.news, .events, .organizations])
+        var sections = PermissionService.moderatedSections(for: user)
+            .intersection([.news, .events])
+        if PermissionService.canManageOrganizationRequests(user: user) {
+            sections.insert(.organizations)
+        }
+        return sections
     }
 
     private var screenTitle: String {

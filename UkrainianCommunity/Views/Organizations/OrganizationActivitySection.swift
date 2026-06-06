@@ -100,7 +100,7 @@ extension OrganizationDetailView {
                 ) {
                     Task {
                         if let organization = viewModel.organization(for: organizationID) {
-                            await activityViewModel.refresh(for: organization)
+                            await refreshOrganizationActivity(for: organization)
                         }
                     }
                 }

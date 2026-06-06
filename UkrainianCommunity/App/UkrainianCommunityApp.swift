@@ -30,6 +30,24 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
     }
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Task { @MainActor in
+            RemoteNotificationRegistrationService.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken)
+        }
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        Task { @MainActor in
+            RemoteNotificationRegistrationService.shared.didFailToRegisterForRemoteNotifications(error)
+        }
+    }
 }
 
 @main

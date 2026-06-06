@@ -1,6 +1,8 @@
 import Combine
 import Foundation
 
+nonisolated private let guideTreeRefreshStaleInterval: TimeInterval = 86_400
+
 enum GuideReaderEmptyState: Equatable {
     case noCategorySelected
     case noRootNodes(category: GuideCategory)
@@ -47,6 +49,9 @@ final class GuideReaderViewModel: ObservableObject {
     private var rootNodesByCategory: [GuideCategoryCacheKey: [GuideNode]] = [:]
     private var childNodesByParentID: [NodeRegionCacheKey: [GuideNode]] = [:]
     private var materialsByNodeID: [NodeRegionCacheKey: [GuideMaterial]] = [:]
+    private var rootNodesLoadedAtByCategory: [GuideCategoryCacheKey: Date] = [:]
+    private var childNodesLoadedAtByParentID: [NodeRegionCacheKey: Date] = [:]
+    private var materialsLoadedAtByNodeID: [NodeRegionCacheKey: Date] = [:]
     private var materialByID: [String: GuideMaterial] = [:]
     private var nodeByID: [String: GuideNode] = [:]
     private var breadcrumbComponents: [GuideTreePath.Component] = []
@@ -54,6 +59,8 @@ final class GuideReaderViewModel: ObservableObject {
     private var hasManualRegionOverride = false
     private var searchableNodesByRegion: [RegionCacheKey: [GuideNode]] = [:]
     private var searchableMaterialsByRegion: [RegionCacheKey: [GuideMaterial]] = [:]
+    private var searchableNodesLoadedAtByRegion: [RegionCacheKey: Date] = [:]
+    private var searchableMaterialsLoadedAtByRegion: [RegionCacheKey: Date] = [:]
     private var savedMaterialIDOrder: [String] = []
     private var hasLoadedSavedMaterialIDs = false
     private var pendingSavedMaterialIDs = Set<String>()
@@ -70,8 +77,13 @@ final class GuideReaderViewModel: ObservableObject {
         childViewModel.rootNodesByCategory = rootNodesByCategory
         childViewModel.childNodesByParentID = childNodesByParentID
         childViewModel.materialsByNodeID = materialsByNodeID
+        childViewModel.rootNodesLoadedAtByCategory = rootNodesLoadedAtByCategory
+        childViewModel.childNodesLoadedAtByParentID = childNodesLoadedAtByParentID
+        childViewModel.materialsLoadedAtByNodeID = materialsLoadedAtByNodeID
         childViewModel.searchableNodesByRegion = searchableNodesByRegion
         childViewModel.searchableMaterialsByRegion = searchableMaterialsByRegion
+        childViewModel.searchableNodesLoadedAtByRegion = searchableNodesLoadedAtByRegion
+        childViewModel.searchableMaterialsLoadedAtByRegion = searchableMaterialsLoadedAtByRegion
         childViewModel.materialByID = materialByID
         childViewModel.nodeByID = nodeByID
         childViewModel.savedMaterialIDs = savedMaterialIDs
@@ -92,6 +104,81 @@ final class GuideReaderViewModel: ObservableObject {
 
     var visibleMaterials: [GuideMaterial] {
         materials
+    }
+
+    func nodeSortOrderUpdates(
+        moving nodeID: String,
+        direction: GuideReorderDirection
+    ) -> [GuideSortOrderUpdate] {
+        reorderedSortOrderUpdates(
+            items: visibleChildNodes,
+            movingID: nodeID,
+            direction: direction,
+            id: \.id,
+            sortOrder: \.sortOrder
+        )
+    }
+
+    func materialSortOrderUpdates(
+        moving materialID: String,
+        direction: GuideReorderDirection
+    ) -> [GuideSortOrderUpdate] {
+        reorderedSortOrderUpdates(
+            items: visibleMaterials,
+            movingID: materialID,
+            direction: direction,
+            id: \.id,
+            sortOrder: \.sortOrder
+        )
+    }
+
+    func applyNodeSortOrderUpdates(_ updates: [GuideSortOrderUpdate]) {
+        guard !updates.isEmpty else { return }
+        let sortOrdersByID = Dictionary(uniqueKeysWithValues: updates.map { ($0.id, $0.sortOrder) })
+
+        if currentNode == nil {
+            rootNodes = sortedNodes(rootNodes.map { node in
+                guard let sortOrder = sortOrdersByID[node.id] else { return node }
+                return node.updatingSortOrder(sortOrder)
+            })
+
+            if let selectedCategory {
+                let cacheKey = GuideCategoryCacheKey(
+                    category: selectedCategory,
+                    federalState: selectedFederalState
+                )
+                rootNodesByCategory[cacheKey] = rootNodes
+            }
+            cache(nodes: rootNodes)
+        } else if let currentNode {
+            childNodes = sortedNodes(childNodes.map { node in
+                guard let sortOrder = sortOrdersByID[node.id] else { return node }
+                return node.updatingSortOrder(sortOrder)
+            })
+
+            let cacheKey = NodeRegionCacheKey(
+                nodeID: currentNode.id,
+                federalState: selectedFederalState
+            )
+            childNodesByParentID[cacheKey] = childNodes
+            cache(nodes: childNodes)
+        }
+    }
+
+    func applyMaterialSortOrderUpdates(_ updates: [GuideSortOrderUpdate]) {
+        guard !updates.isEmpty, let currentNode else { return }
+        let sortOrdersByID = Dictionary(uniqueKeysWithValues: updates.map { ($0.id, $0.sortOrder) })
+        materials = sortedMaterials(materials.map { material in
+            guard let sortOrder = sortOrdersByID[material.id] else { return material }
+            return material.updatingSortOrder(sortOrder)
+        })
+
+        let cacheKey = NodeRegionCacheKey(
+            nodeID: currentNode.id,
+            federalState: selectedFederalState
+        )
+        materialsByNodeID[cacheKey] = materials
+        cache(materials: materials)
     }
 
     var visibleSections: [GuideVisibleSection] {
@@ -228,11 +315,14 @@ final class GuideReaderViewModel: ObservableObject {
         defer { isLoadingSavedMaterials = false }
 
         do {
-            let ids = try await repository.fetchSavedMaterialIDs()
+            let fetchedIDs = try await repository.fetchSavedMaterialIDs()
+            let ids = uniquedPreservingOrder(fetchedIDs)
+            let resolvedMaterials = try await resolveSavedMaterials(for: ids)
+            let resolvedIDs = Set(resolvedMaterials.map(\.id))
             hasLoadedSavedMaterialIDs = true
-            savedMaterialIDOrder = ids
-            savedMaterialIDs = Set(ids)
-            savedMaterials = try await resolveSavedMaterials(for: ids)
+            savedMaterialIDOrder = ids.filter { resolvedIDs.contains($0) }
+            savedMaterialIDs = Set(savedMaterialIDOrder)
+            savedMaterials = resolvedMaterials
             error = nil
         } catch {
             handle(error)
@@ -329,7 +419,9 @@ final class GuideReaderViewModel: ObservableObject {
             federalState: selectedFederalState
         )
 
-        if !force, let cachedNodes = rootNodesByCategory[cacheKey] {
+        if !force,
+           let cachedNodes = rootNodesByCategory[cacheKey],
+           isFresh(rootNodesLoadedAtByCategory[cacheKey]) {
             return cachedNodes
         }
 
@@ -338,6 +430,7 @@ final class GuideReaderViewModel: ObservableObject {
             selectedFederalState: selectedFederalState
         )
         rootNodesByCategory[cacheKey] = nodes
+        rootNodesLoadedAtByCategory[cacheKey] = Date()
         cache(nodes: nodes)
         return nodes
     }
@@ -348,7 +441,9 @@ final class GuideReaderViewModel: ObservableObject {
             federalState: selectedFederalState
         )
 
-        if !force, let cachedNodes = childNodesByParentID[cacheKey] {
+        if !force,
+           let cachedNodes = childNodesByParentID[cacheKey],
+           isFresh(childNodesLoadedAtByParentID[cacheKey]) {
             return cachedNodes
         }
 
@@ -357,6 +452,7 @@ final class GuideReaderViewModel: ObservableObject {
             selectedFederalState: selectedFederalState
         )
         childNodesByParentID[cacheKey] = nodes
+        childNodesLoadedAtByParentID[cacheKey] = Date()
         cache(nodes: nodes)
         return nodes
     }
@@ -367,7 +463,9 @@ final class GuideReaderViewModel: ObservableObject {
             federalState: selectedFederalState
         )
 
-        if !force, let cachedMaterials = materialsByNodeID[cacheKey] {
+        if !force,
+           let cachedMaterials = materialsByNodeID[cacheKey],
+           isFresh(materialsLoadedAtByNodeID[cacheKey]) {
             return cachedMaterials
         }
 
@@ -376,6 +474,7 @@ final class GuideReaderViewModel: ObservableObject {
             selectedFederalState: selectedFederalState
         )
         materialsByNodeID[cacheKey] = materials
+        materialsLoadedAtByNodeID[cacheKey] = Date()
         cache(materials: materials)
         return materials
     }
@@ -392,9 +491,75 @@ final class GuideReaderViewModel: ObservableObject {
         }
     }
 
+    private func reorderedSortOrderUpdates<Item>(
+        items: [Item],
+        movingID: String,
+        direction: GuideReorderDirection,
+        id: KeyPath<Item, String>,
+        sortOrder: KeyPath<Item, Int>
+    ) -> [GuideSortOrderUpdate] {
+        guard let sourceIndex = items.firstIndex(where: { $0[keyPath: id] == movingID }) else {
+            return []
+        }
+
+        let destinationIndex: Int
+        switch direction {
+        case .up:
+            destinationIndex = sourceIndex - 1
+        case .down:
+            destinationIndex = sourceIndex + 1
+        }
+
+        guard items.indices.contains(destinationIndex) else { return [] }
+
+        let movingItem = items[sourceIndex]
+        let adjacentItem = items[destinationIndex]
+        let movingSortOrder = movingItem[keyPath: sortOrder]
+        let adjacentSortOrder = adjacentItem[keyPath: sortOrder]
+
+        if movingSortOrder != adjacentSortOrder {
+            return [
+                GuideSortOrderUpdate(id: movingItem[keyPath: id], sortOrder: adjacentSortOrder),
+                GuideSortOrderUpdate(id: adjacentItem[keyPath: id], sortOrder: movingSortOrder)
+            ]
+        }
+
+        var reorderedItems = items
+        reorderedItems.swapAt(sourceIndex, destinationIndex)
+        return reorderedItems.enumerated().compactMap { index, item in
+            guard item[keyPath: sortOrder] != index else { return nil }
+            return GuideSortOrderUpdate(id: item[keyPath: id], sortOrder: index)
+        }
+    }
+
+    private func sortedNodes(_ nodes: [GuideNode]) -> [GuideNode] {
+        nodes.sorted { lhs, rhs in
+            if lhs.sortOrder != rhs.sortOrder {
+                return lhs.sortOrder < rhs.sortOrder
+            }
+
+            return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+        }
+    }
+
+    private func sortedMaterials(_ materials: [GuideMaterial]) -> [GuideMaterial] {
+        materials.sorted { lhs, rhs in
+            if lhs.sortOrder != rhs.sortOrder {
+                return lhs.sortOrder < rhs.sortOrder
+            }
+
+            if lhs.title != rhs.title {
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
+
+            return lhs.updatedAt > rhs.updatedAt
+        }
+    }
+
     private func fetchSearchableNodes() async throws -> [GuideNode] {
         let cacheKey = RegionCacheKey(federalState: selectedFederalState)
-        if let cachedNodes = searchableNodesByRegion[cacheKey] {
+        if let cachedNodes = searchableNodesByRegion[cacheKey],
+           isFresh(searchableNodesLoadedAtByRegion[cacheKey]) {
             return cachedNodes
         }
 
@@ -402,13 +567,15 @@ final class GuideReaderViewModel: ObservableObject {
             selectedFederalState: selectedFederalState
         )
         searchableNodesByRegion[cacheKey] = nodes
+        searchableNodesLoadedAtByRegion[cacheKey] = Date()
         cache(nodes: nodes)
         return nodes
     }
 
     private func fetchSearchableMaterials() async throws -> [GuideMaterial] {
         let cacheKey = RegionCacheKey(federalState: selectedFederalState)
-        if let cachedMaterials = searchableMaterialsByRegion[cacheKey] {
+        if let cachedMaterials = searchableMaterialsByRegion[cacheKey],
+           isFresh(searchableMaterialsLoadedAtByRegion[cacheKey]) {
             return cachedMaterials
         }
 
@@ -416,6 +583,7 @@ final class GuideReaderViewModel: ObservableObject {
             selectedFederalState: selectedFederalState
         )
         searchableMaterialsByRegion[cacheKey] = materials
+        searchableMaterialsLoadedAtByRegion[cacheKey] = Date()
         cache(materials: materials)
         return materials
     }
@@ -436,6 +604,7 @@ final class GuideReaderViewModel: ObservableObject {
     }
 
     private func fetchMaterialsByID(ids: [String]) async throws -> [String: GuideMaterial] {
+        let ids = uniquedPreservingOrder(ids)
         guard !ids.isEmpty else { return [:] }
 
         var materialsByID: [String: GuideMaterial] = [:]
@@ -459,6 +628,16 @@ final class GuideReaderViewModel: ObservableObject {
         }
 
         return materialsByID
+    }
+
+    private func uniquedPreservingOrder(_ ids: [String]) -> [String] {
+        var seenIDs = Set<String>()
+        return ids.filter { seenIDs.insert($0).inserted }
+    }
+
+    private func isFresh(_ loadedAt: Date?) -> Bool {
+        guard let loadedAt else { return false }
+        return Date().timeIntervalSince(loadedAt) <= guideTreeRefreshStaleInterval
     }
 
     private func rootNodesForCurrentCategory(fallbackCategory: GuideCategory) -> [GuideNode] {
@@ -521,6 +700,64 @@ final class GuideReaderViewModel: ObservableObject {
         } else {
             self.error = .unknown
         }
+    }
+}
+
+private extension GuideNode {
+    func updatingSortOrder(_ sortOrder: Int) -> GuideNode {
+        GuideNode(
+            id: id,
+            parentID: parentID,
+            kind: kind,
+            category: category,
+            title: title,
+            summary: summary,
+            sortOrder: sortOrder,
+            regionScope: regionScope,
+            federalState: federalState,
+            healthStatus: healthStatus,
+            moderationStatus: moderationStatus,
+            publishedAt: publishedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            createdBy: createdBy,
+            updatedBy: updatedBy,
+            archivedAt: archivedAt
+        )
+    }
+}
+
+private extension GuideMaterial {
+    func updatingSortOrder(_ sortOrder: Int) -> GuideMaterial {
+        GuideMaterial(
+            id: id,
+            title: title,
+            summary: summary,
+            body: body,
+            sortOrder: sortOrder,
+            contentBlocks: contentBlocks,
+            sourceLinks: sourceLinks,
+            officialSourceURL: officialSourceURL,
+            sourceName: sourceName,
+            officialSourcesRequired: officialSourcesRequired,
+            kind: kind,
+            category: category,
+            nodeID: nodeID,
+            nodePath: nodePath,
+            regionScope: regionScope,
+            federalState: federalState,
+            reviewInterval: reviewInterval,
+            lastReviewedAt: lastReviewedAt,
+            nextReviewAt: nextReviewAt,
+            reviewedBy: reviewedBy,
+            moderationStatus: moderationStatus,
+            publishedAt: publishedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            createdBy: createdBy,
+            updatedBy: updatedBy,
+            archivedAt: archivedAt
+        )
     }
 }
 

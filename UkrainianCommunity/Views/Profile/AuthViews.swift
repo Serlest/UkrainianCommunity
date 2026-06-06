@@ -46,7 +46,10 @@ private struct AuthScreenScaffold<Content: View>: View {
             .padding(.bottom, AppTheme.sectionSpacing * 2)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
+        .keyboardDismissBackground {
+            AppBackgroundView()
+        }
+        .observesKeyboardDismissTaps()
     }
 }
 

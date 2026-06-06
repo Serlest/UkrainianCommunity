@@ -3,168 +3,44 @@ import FirebaseAuth
 import Foundation
 
 nonisolated private let defaultRefreshStaleInterval: TimeInterval = 300
+nonisolated private let organizationRefreshStaleInterval: TimeInterval = 600
 
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published private(set) var feedItems: [HomeFeedItem]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
-    private let feedViewModel: HomeFeedViewModel
 
     init(
-        newsRepository: NewsRepository,
-        eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository
+        newsRepository _: NewsRepository,
+        eventRepository _: EventRepository,
+        organizationRepository _: OrganizationRepository
     ) {
         feedItems = []
         isLoading = false
-        feedViewModel = HomeFeedViewModel(
-            newsRepository: newsRepository,
-            eventRepository: eventRepository,
-            organizationRepository: organizationRepository
+    }
+
+    func updateFeed(
+        posts: [NewsPost],
+        events: [Event],
+        organizations: [Organization],
+        isLoading: Bool,
+        error: AppError?
+    ) {
+        feedItems = (
+            posts.map(HomeFeedItem.init(post:))
+                + events.map(HomeFeedItem.init(event:))
+                + organizations.map(HomeFeedItem.init(organization:))
         )
-    }
-
-    func loadIfNeeded() async {
-        await feedViewModel.loadIfNeeded()
-        feedItems = feedViewModel.items
-        isLoading = feedViewModel.isLoading
-        error = feedViewModel.error
-    }
-
-    func reload() {
-        Task {
-            await refresh()
-        }
-    }
-
-    func refresh() async {
-        await feedViewModel.refresh()
-        feedItems = feedViewModel.items
-        isLoading = feedViewModel.isLoading
-        error = feedViewModel.error
-    }
-
-    func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
-        await feedViewModel.refreshIfStale(maxAge: maxAge)
-        feedItems = feedViewModel.items
-        isLoading = feedViewModel.isLoading
-        error = feedViewModel.error
+        .sorted { $0.publishedAt > $1.publishedAt }
+        self.isLoading = isLoading
+        self.error = error
     }
 
     func resetForAuthChange() {
-        feedViewModel.resetForAuthChange()
         feedItems = []
         isLoading = false
         error = nil
-    }
-}
-
-@MainActor
-final class HomeFeedViewModel: ObservableObject {
-    @Published private(set) var items: [HomeFeedItem]
-    @Published private(set) var isLoading: Bool
-    @Published private(set) var error: AppError?
-
-    private let newsRepository: NewsRepository
-    private let eventRepository: EventRepository
-    private let organizationRepository: OrganizationRepository
-    private var loadTask: Task<Void, Never>?
-    private var hasLoaded = false
-    private var lastLoadedAt: Date?
-
-    init(
-        newsRepository: NewsRepository,
-        eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository
-    ) {
-        self.newsRepository = newsRepository
-        self.eventRepository = eventRepository
-        self.organizationRepository = organizationRepository
-        items = []
-        isLoading = false
-    }
-
-    func loadIfNeeded() async {
-        guard !hasLoaded else { return }
-        await startLoad(force: false)
-    }
-
-    func refresh() async {
-        await startLoad(force: true)
-    }
-
-    func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
-        guard hasLoaded else {
-            await loadIfNeeded()
-            return
-        }
-
-        guard let lastLoadedAt else {
-            await refresh()
-            return
-        }
-
-        guard Date().timeIntervalSince(lastLoadedAt) > maxAge else { return }
-        await refresh()
-    }
-
-    func resetForAuthChange() {
-        loadTask?.cancel()
-        loadTask = nil
-        items = []
-        isLoading = false
-        error = nil
-        hasLoaded = false
-        lastLoadedAt = nil
-    }
-
-
-    private func startLoad(force: Bool) async {
-        guard force || !hasLoaded else { return }
-
-        if let loadTask {
-            await loadTask.value
-            return
-        }
-
-        let task = Task { [weak self] in
-            guard let self else { return }
-            await self.performLoad()
-        }
-        loadTask = task
-        await task.value
-        self.loadTask = nil
-    }
-
-    private func performLoad() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            async let newsLoad = newsRepository.fetchNews()
-            async let eventsLoad = eventRepository.fetchEvents()
-            async let organizationsLoad = organizationRepository.fetchOrganizations()
-
-            let newsItems = try await newsLoad.map(HomeFeedItem.init(post:))
-            let eventItems = try await eventsLoad.map(HomeFeedItem.init(event:))
-            let organizationItems = (try await organizationsLoad)
-                .map(HomeFeedItem.init(organization:))
-
-            guard !Task.isCancelled else { return }
-            items = (newsItems + eventItems + organizationItems)
-                .sorted { $0.publishedAt > $1.publishedAt }
-            error = nil
-            hasLoaded = true
-            lastLoadedAt = Date()
-        } catch is CancellationError {
-        } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
-            error = appError
-        } catch {
-            guard !Task.isCancelled else { return }
-            self.error = .unknown
-        }
     }
 }
 
@@ -258,6 +134,7 @@ final class NewsViewModel: ObservableObject {
 
                 posts[index].likeState = shouldLike ? .liked : .notLiked
                 posts[index].likeCount += shouldLike ? 1 : -1
+                contentVersion &+= 1
                 error = nil
             } catch let appError as AppError {
                 error = appError
@@ -295,6 +172,7 @@ final class NewsViewModel: ObservableObject {
         let post = posts[index]
 
         posts[index].isBookmarked = shouldBookmark
+        contentVersion &+= 1
 
         Task {
             pendingNewsBookmarkIDs.insert(postID)
@@ -310,9 +188,11 @@ final class NewsViewModel: ObservableObject {
                 error = nil
             } catch let appError as AppError {
                 posts[index].isBookmarked.toggle()
+                contentVersion &+= 1
                 error = appError
             } catch {
                 posts[index].isBookmarked.toggle()
+                contentVersion &+= 1
                 self.error = .unknown
             }
         }
@@ -431,6 +311,8 @@ final class NewsViewModel: ObservableObject {
 
         do {
             try await repository.deleteNews(id: id)
+            posts.removeAll { $0.id == id }
+            contentVersion &+= 1
             error = nil
             AppContentChangeBus.postNewsChanged(organizationID: organizationID)
         } catch let appError as AppError {
@@ -444,6 +326,7 @@ final class NewsViewModel: ObservableObject {
 
     func removeDeletedNews(id: String) {
         posts.removeAll { $0.id == id }
+        contentVersion &+= 1
     }
 
     private func startLoad(force: Bool) async {
@@ -582,6 +465,7 @@ final class EventsViewModel: ObservableObject {
 
                 events[index].likeState = shouldLike ? .liked : .notLiked
                 events[index].likeCount += shouldLike ? 1 : -1
+                contentVersion &+= 1
                 error = nil
             } catch let appError as AppError {
                 error = appError
@@ -654,6 +538,7 @@ final class EventsViewModel: ObservableObject {
                     isBookmarked: events[index].isBookmarked,
                     commentCount: events[index].commentCount
                 )
+                contentVersion &+= 1
                 ActivityLogRecorder.recordEvent(event, actionType: shouldRegister ? .registeredForEvent : .canceledEventRegistration)
                 error = nil
             } catch let appError as AppError {
@@ -673,6 +558,7 @@ final class EventsViewModel: ObservableObject {
         Task {
             pendingEventBookmarkIDs.insert(eventID)
             events[index].isBookmarked = shouldBookmark
+            contentVersion &+= 1
             defer { pendingEventBookmarkIDs.remove(eventID) }
 
             do {
@@ -685,9 +571,11 @@ final class EventsViewModel: ObservableObject {
                 error = nil
             } catch let appError as AppError {
                 events[index].isBookmarked.toggle()
+                contentVersion &+= 1
                 error = appError
             } catch {
                 events[index].isBookmarked.toggle()
+                contentVersion &+= 1
                 self.error = .unknown
             }
         }
@@ -818,6 +706,15 @@ final class EventsViewModel: ObservableObject {
         events.first(where: { $0.id == eventID })
     }
 
+    func cacheEvent(_ event: Event) {
+        if let index = events.firstIndex(where: { $0.id == event.id }) {
+            events[index] = event
+        } else {
+            events.append(event)
+        }
+        contentVersion &+= 1
+    }
+
     var editorRepository: EventRepository {
         repository
     }
@@ -827,6 +724,8 @@ final class EventsViewModel: ObservableObject {
 
         do {
             try await repository.deleteEvent(id: id)
+            events.removeAll { $0.id == id }
+            contentVersion &+= 1
             error = nil
             AppContentChangeBus.postEventsChanged(organizationID: organizationID)
         } catch let appError as AppError {
@@ -840,6 +739,7 @@ final class EventsViewModel: ObservableObject {
 
     func removeDeletedEvent(id: String) {
         events.removeAll { $0.id == id }
+        contentVersion &+= 1
     }
 
     private func startLoad(force: Bool) async {
@@ -944,6 +844,24 @@ final class MyRegistrationsViewModel: ObservableObject {
         loadTask?.cancel()
         loadTask = nil
         isLoading = false
+    }
+
+    func synchronize(with sharedEvents: [Event]) {
+        guard hasLoaded else { return }
+
+        for event in sharedEvents {
+            if event.registrationState == .registered {
+                if let index = events.firstIndex(where: { $0.id == event.id }) {
+                    events[index] = event
+                } else {
+                    events.append(event)
+                }
+            } else {
+                events.removeAll { $0.id == event.id }
+            }
+        }
+
+        events = events.deduplicatedByID()
     }
 
     func cancelRegistration(for eventID: String) async {
@@ -1053,7 +971,7 @@ final class OrganizationsViewModel: ObservableObject {
         await startLoad(force: true)
     }
 
-    func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
+    func refreshIfStale(maxAge: TimeInterval = organizationRefreshStaleInterval) async {
         guard hasLoaded else {
             await loadIfNeeded()
             return
@@ -1099,6 +1017,7 @@ final class OrganizationsViewModel: ObservableObject {
 
         organizations[index].likeState = shouldLike ? .liked : .notLiked
         organizations[index].likeCount = max(0, previousLikeCount + (shouldLike ? 1 : -1))
+        contentVersion &+= 1
 
         Task {
             pendingOrganizationLikeIDs.insert(organizationID)
@@ -1115,10 +1034,12 @@ final class OrganizationsViewModel: ObservableObject {
             } catch let appError as AppError {
                 organizations[index].likeState = previousLikeState
                 organizations[index].likeCount = previousLikeCount
+                contentVersion &+= 1
                 error = appError
             } catch {
                 organizations[index].likeState = previousLikeState
                 organizations[index].likeCount = previousLikeCount
+                contentVersion &+= 1
                 self.error = .unknown
             }
         }
@@ -1172,6 +1093,7 @@ final class OrganizationsViewModel: ObservableObject {
 
         pendingOrganizationBookmarkIDs.insert(organizationID)
         organizations[index].isBookmarked = shouldBookmark
+        contentVersion &+= 1
 
         Task {
             defer { pendingOrganizationBookmarkIDs.remove(organizationID) }
@@ -1187,9 +1109,11 @@ final class OrganizationsViewModel: ObservableObject {
                 error = nil
             } catch let appError as AppError {
                 organizations[index].isBookmarked = previousBookmarkState
+                contentVersion &+= 1
                 error = appError
             } catch {
                 organizations[index].isBookmarked = previousBookmarkState
+                contentVersion &+= 1
                 self.error = .unknown
             }
         }
@@ -1395,6 +1319,7 @@ final class OrganizationsViewModel: ObservableObject {
             try await repository.deleteOrganization(id: id)
             error = nil
             validationErrorMessage = nil
+            removeDeletedOrganization(id: id)
             organizationRequests.removeAll { $0.id == id }
             AppContentChangeBus.postOrganizationsChanged(organizationID: id)
         } catch let appError as AppError {
@@ -1722,7 +1647,9 @@ final class ProfileViewModel: ObservableObject {
     private let repository: UserRepository
     private let feedbackRepository: FeedbackRepository
     private let notificationPreferencesRepository: NotificationPreferencesRepository
+    private let notificationPermissionService: NotificationPermissionServiceProtocol
     private var loadTask: Task<Void, Never>?
+    private var feedbackSuccessDismissTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
     private var loadedNotificationPreferencesUserID: String?
@@ -1737,6 +1664,7 @@ final class ProfileViewModel: ObservableObject {
         self.repository = repository
         self.feedbackRepository = feedbackRepository
         self.notificationPreferencesRepository = notificationPreferencesRepository
+        self.notificationPermissionService = notificationPermissionService
         user = .placeholder
         settings = .stored
     }
@@ -1756,24 +1684,10 @@ final class ProfileViewModel: ObservableObject {
         await startLoad(force: true)
     }
 
-    func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
-        guard hasLoaded else {
-            await loadIfNeeded()
-            return
-        }
-
-        guard let lastLoadedAt else {
-            await refresh()
-            return
-        }
-
-        guard Date().timeIntervalSince(lastLoadedAt) > maxAge else { return }
-        await refresh()
-    }
-
     func resetForAuthChange() {
         loadTask?.cancel()
         loadTask = nil
+        cancelFeedbackSuccessDismiss()
         user = .placeholder
         error = nil
         isSavingProfile = false
@@ -1789,6 +1703,11 @@ final class ProfileViewModel: ObservableObject {
         feedbackMessage = nil
         hasLoaded = false
         lastLoadedAt = nil
+    }
+
+    deinit {
+        loadTask?.cancel()
+        feedbackSuccessDismissTask?.cancel()
     }
 
     func loadNotificationPreferencesIfNeeded(userID: String) async {
@@ -1833,7 +1752,19 @@ final class ProfileViewModel: ObservableObject {
         defer { isSavingNotificationPreferences = false }
 
         do {
+            if updatedPreferences.notificationsEnabled {
+                let granted = try await notificationPermissionService.requestNotificationAuthorization()
+                guard granted else {
+                    notificationPreferences = previousPreferences
+                    notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaveFailed
+                    return
+                }
+            }
+
             try await notificationPreferencesRepository.saveNotificationPreferences(updatedPreferences, userID: userID)
+            if !updatedPreferences.notificationsEnabled {
+                await RemoteNotificationRegistrationService.shared.removeCurrentToken()
+            }
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaved
             loadedNotificationPreferencesUserID = userID
         } catch let appError as AppError {
@@ -1903,6 +1834,7 @@ final class ProfileViewModel: ObservableObject {
 
     func submitFeedback(type: FeedbackType, message: String, user: AppUser) async -> Bool {
         guard !isSubmittingFeedback else { return false }
+        cancelFeedbackSuccessDismiss()
 
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else {
@@ -1938,6 +1870,7 @@ final class ProfileViewModel: ObservableObject {
             ))
             error = nil
             feedbackMessage = AppStrings.Feedback.submitted
+            scheduleFeedbackSuccessDismiss()
             return true
         } catch let appError as AppError {
             error = appError
@@ -1948,6 +1881,30 @@ final class ProfileViewModel: ObservableObject {
             feedbackMessage = AppStrings.Feedback.submitFailed
             return false
         }
+    }
+
+    func clearFeedbackSuccessMessage() {
+        guard feedbackMessage == AppStrings.Feedback.submitted else { return }
+        cancelFeedbackSuccessDismiss()
+        feedbackMessage = nil
+    }
+
+    private func scheduleFeedbackSuccessDismiss() {
+        feedbackSuccessDismissTask?.cancel()
+        feedbackSuccessDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(7))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                guard self?.feedbackMessage == AppStrings.Feedback.submitted else { return }
+                self?.feedbackMessage = nil
+                self?.feedbackSuccessDismissTask = nil
+            }
+        }
+    }
+
+    private func cancelFeedbackSuccessDismiss() {
+        feedbackSuccessDismissTask?.cancel()
+        feedbackSuccessDismissTask = nil
     }
 
     func deleteAccount(currentUser: AppUser) async -> String? {
@@ -2399,6 +2356,15 @@ private extension Array where Element == Organization {
             self[index] = organization
         } else {
             insert(organization, at: 0)
+        }
+    }
+}
+
+private extension Array where Element == Event {
+    func deduplicatedByID() -> [Event] {
+        var seenIDs = Set<String>()
+        return filter { event in
+            seenIDs.insert(event.id).inserted
         }
     }
 }

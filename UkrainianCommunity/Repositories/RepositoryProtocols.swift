@@ -21,6 +21,11 @@ protocol LegalDocumentRepository {
     ) async throws -> LegalAcceptanceReceipt
 }
 
+protocol DonationConfigRepository {
+    func fetchDonationConfig() async throws -> DonationConfig?
+    func saveDonationConfig(_ config: DonationConfig, updatedBy userID: String) async throws
+}
+
 protocol NotificationPreferencesRepository {
     func fetchNotificationPreferences(userID: String) async throws -> NotificationPreferences
     func saveNotificationPreferences(_ preferences: NotificationPreferences, userID: String) async throws
@@ -42,6 +47,11 @@ protocol NotificationInboxRepository {
     func archiveNotification(userID: String, notificationID: String) async throws
     func deleteNotification(userID: String, notificationID: String) async throws
     func createNotification(userID: String, notification: AppNotification) async throws
+}
+
+protocol NotificationPushTokenRepository {
+    func saveCurrentDeviceToken(userID: String, token: String) async throws
+    func deleteCurrentDeviceToken(userID: String, token: String) async throws
 }
 
 protocol FeedbackRepository {

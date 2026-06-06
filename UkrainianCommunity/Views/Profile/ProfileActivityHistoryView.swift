@@ -52,21 +52,25 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
 struct ActivityHistoryView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var activityLogViewModel: ActivityLogViewModel
-    @StateObject private var newsViewModel: NewsViewModel
-    @StateObject private var eventsViewModel: EventsViewModel
-    @StateObject private var organizationsViewModel: OrganizationsViewModel
+    @ObservedObject private var newsViewModel: NewsViewModel
+    @ObservedObject private var eventsViewModel: EventsViewModel
+    @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var selectedSegment: ActivityHistorySegment = .all
+    @State private var configuredUserID: String?
 
     init(
         activityLogRepository: ActivityLogRepository = FirestoreActivityLogRepository(),
+        newsViewModel: NewsViewModel? = nil,
+        eventsViewModel: EventsViewModel? = nil,
+        organizationsViewModel: OrganizationsViewModel? = nil,
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
         _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: activityLogRepository))
-        _newsViewModel = StateObject(wrappedValue: NewsViewModel(repository: newsRepository))
-        _eventsViewModel = StateObject(wrappedValue: EventsViewModel(repository: eventRepository))
-        _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
+        self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
+        self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
+        self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
     }
 
     private var filteredItems: [ActivityLogItem] {
@@ -102,6 +106,8 @@ struct ActivityHistoryView: View {
             activityHistoryContent
         }
         .task(id: authState.user?.id) {
+            guard configuredUserID != authState.user?.id else { return }
+            configuredUserID = authState.user?.id
             resetActivityHistoryState()
             guard authState.isAuthenticated else { return }
             await loadActivityHistoryIfNeeded()
@@ -154,9 +160,6 @@ struct ActivityHistoryView: View {
 
     private func resetActivityHistoryState() {
         activityLogViewModel.resetForAuthChange()
-        newsViewModel.resetForAuthChange()
-        eventsViewModel.resetForAuthChange()
-        organizationsViewModel.resetForAuthChange()
     }
 
     private func activityHistoryErrorMessage(_ error: AppError) -> String {

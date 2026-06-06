@@ -4,7 +4,7 @@ private let guideRootScrollTopID = "guideRootScrollTop"
 
 struct GuideReaderView: View {
     @EnvironmentObject private var authState: AuthState
-    @StateObject private var viewModel: GuideReaderViewModel
+    @ObservedObject private var viewModel: GuideReaderViewModel
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var isSearchPresented = false
     @State private var searchPlaceholderText = ""
@@ -34,7 +34,7 @@ struct GuideReaderView: View {
         guideBannerCategoryTarget: Binding<GuideCategory?> = .constant(nil),
         scrollResetToken: Int = 0
     ) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+        _viewModel = ObservedObject(wrappedValue: viewModel)
         _featuredBannerViewModel = StateObject(
             wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository)
         )
@@ -88,7 +88,7 @@ struct GuideReaderView: View {
         .onAppear {
             if authState.isAuthenticated {
                 Task {
-                    await viewModel.refreshSavedMaterials()
+                    await viewModel.loadSavedMaterialsIfNeeded()
                 }
             }
         }
@@ -124,7 +124,7 @@ struct GuideReaderView: View {
             }
         }
         .guestAccessAlert($guestAccessAction)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .alert(
             GuideCategoryPresentation.saveActionFailedTitle,
             isPresented: Binding(

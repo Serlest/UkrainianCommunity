@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-nonisolated private let guideRefreshStaleInterval: TimeInterval = 300
+nonisolated private let guideRefreshStaleInterval: TimeInterval = 86_400
 
 @MainActor
 final class LegacyGuideListViewModel: ObservableObject {

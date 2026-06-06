@@ -202,7 +202,7 @@ struct GuideMaterialFeedbackSheet: View {
                 }
             }
         }
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .alert(
             GuideCategoryPresentation.feedbackSuccessTitle,
             isPresented: $showsSuccessAlert

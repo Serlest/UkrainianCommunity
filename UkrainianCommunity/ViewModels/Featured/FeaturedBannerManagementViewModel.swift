@@ -41,7 +41,8 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
 
         do {
             try await repository.setBannerActive(id: banner.id, isActive: isActive, updatedBy: trimmedUserID)
-            await refresh()
+            replaceBanner(banner.settingActive(isActive, updatedBy: trimmedUserID))
+            error = nil
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -61,7 +62,8 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
 
         do {
             try await repository.archiveBanner(id: banner.id, updatedBy: trimmedUserID)
-            await refresh()
+            replaceBanner(banner.settingActive(false, updatedBy: trimmedUserID))
+            error = nil
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -81,7 +83,8 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
 
         do {
             try await repository.deleteBanner(id: banner.id)
-            await refresh()
+            banners.removeAll { $0.id == banner.id }
+            error = nil
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -122,5 +125,47 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             self.error = .unknown
         }
+    }
+
+    private func replaceBanner(_ banner: FeaturedBanner) {
+        guard let index = banners.firstIndex(where: { $0.id == banner.id }) else { return }
+        banners[index] = banner
+        sortBanners()
+    }
+
+    private func sortBanners() {
+        banners.sort { lhs, rhs in
+            if lhs.priority != rhs.priority {
+                return lhs.priority > rhs.priority
+            }
+            return lhs.updatedAt > rhs.updatedAt
+        }
+    }
+}
+
+private extension FeaturedBanner {
+    func settingActive(_ isActive: Bool, updatedBy userID: String) -> FeaturedBanner {
+        FeaturedBanner(
+            id: id,
+            internalName: internalName,
+            title: title,
+            subtitle: subtitle,
+            imageURL: imageURL,
+            actionType: actionType,
+            actionTargetID: actionTargetID,
+            externalURL: externalURL,
+            regionScope: regionScope,
+            federalState: federalState,
+            visibleSections: visibleSections,
+            displayDurationSeconds: displayDurationSeconds,
+            priority: priority,
+            isActive: isActive,
+            startsAt: startsAt,
+            endsAt: endsAt,
+            createdAt: createdAt,
+            updatedAt: Date(),
+            createdBy: createdBy,
+            updatedBy: userID
+        )
     }
 }

@@ -71,7 +71,7 @@ export function canManageOrganizationRequests(user: UserPermissionSnapshot): boo
 }
 
 export function canManageUsers(user: UserPermissionSnapshot): boolean {
-  return isAppOwner(user);
+  return isAppOwner(user) || isAppAdmin(user);
 }
 
 export function canAssignAppAdmin(user: UserPermissionSnapshot): boolean {
@@ -79,11 +79,11 @@ export function canAssignAppAdmin(user: UserPermissionSnapshot): boolean {
 }
 
 export function canAssignAppModerator(user: UserPermissionSnapshot): boolean {
-  return isAppOwner(user);
+  return isAppOwner(user) || isAppAdmin(user);
 }
 
 export function canAssignGuideEditor(user: UserPermissionSnapshot): boolean {
-  return isAppOwner(user);
+  return isAppOwner(user) || isAppAdmin(user);
 }
 
 export function canAccessModerationTools(user: UserPermissionSnapshot): boolean {
@@ -113,6 +113,12 @@ export function canManageGuide(user: UserPermissionSnapshot): boolean {
 export function assertOwner(user: UserPermissionSnapshot): void {
   if (!isOwner(user)) {
     throw new HttpsError("permission-denied", "Owner permissions are required.");
+  }
+}
+
+export function assertCanManageUsers(user: UserPermissionSnapshot): void {
+  if (!canManageUsers(user)) {
+    throw new HttpsError("permission-denied", "Platform user management permissions are required.");
   }
 }
 

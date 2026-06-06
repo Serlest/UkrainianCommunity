@@ -21,8 +21,10 @@ struct GuideSectionEditorView: View {
             editorCard
             actionCard
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .dismissesKeyboardOnBackgroundTap()
+        .keyboardDismissBackground {
+            AppBackgroundView()
+        }
+        .observesKeyboardDismissTaps()
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: viewModel.title) { _, _ in viewModel.clearTransientState() }
         .onChange(of: viewModel.summary) { _, _ in viewModel.clearTransientState() }

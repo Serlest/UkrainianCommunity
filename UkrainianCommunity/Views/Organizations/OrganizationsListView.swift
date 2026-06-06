@@ -92,6 +92,8 @@ private enum OrganizationSavedFilterMode {
 struct OrganizationsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: OrganizationsViewModel
+    @StateObject var newsViewModel: NewsViewModel
+    @StateObject var eventsViewModel: EventsViewModel
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @Binding var navigationPath: [OrganizationNavigationRoute]
     let onOrganizationSaved: @MainActor () async -> Void
@@ -112,6 +114,10 @@ struct OrganizationsListView: View {
 
     init(
         viewModel: OrganizationsViewModel,
+        newsViewModel: NewsViewModel? = nil,
+        eventsViewModel: EventsViewModel? = nil,
+        newsRepository: NewsRepository = FirestoreNewsRepository(),
+        eventRepository: EventRepository = FirestoreEventRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         navigationPath: Binding<[OrganizationNavigationRoute]> = .constant([]),
         onOrganizationSaved: @escaping @MainActor () async -> Void = {},
@@ -121,6 +127,8 @@ struct OrganizationsListView: View {
         scrollResetToken: Int = 0
     ) {
         self.viewModel = viewModel
+        _newsViewModel = StateObject(wrappedValue: newsViewModel ?? NewsViewModel(repository: newsRepository))
+        _eventsViewModel = StateObject(wrappedValue: eventsViewModel ?? EventsViewModel(repository: eventRepository))
         self.onOrganizationSaved = onOrganizationSaved
         self.onOrganizationDeleted = onOrganizationDeleted
         self.presentationMode = presentationMode
@@ -194,6 +202,8 @@ struct OrganizationsListView: View {
             OrganizationDetailView(
                 viewModel: viewModel,
                 organizationID: route.organizationID,
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
                 onOrganizationSaved: onOrganizationSaved,
                 onOrganizationDeleted: onOrganizationDeleted
             )
@@ -270,7 +280,7 @@ struct OrganizationsListView: View {
         } message: {
             Text(deleteErrorMessage ?? readableOrganizationErrorText(.unknown))
         }
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
     }
 
     private func scrollToTop(with scrollProxy: ScrollViewProxy) {

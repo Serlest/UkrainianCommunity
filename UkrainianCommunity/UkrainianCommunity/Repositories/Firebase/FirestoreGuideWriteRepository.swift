@@ -77,6 +77,27 @@ struct FirestoreGuideWriteRepository: GuideWriteRepositoryProtocol {
         }
     }
 
+    func updateNodeSortOrders(_ updates: [GuideSortOrderUpdate], updatedAt: Date, updatedBy: String?) async throws {
+        guard !updates.isEmpty else { return }
+
+        do {
+            let batch = database.batch()
+            for update in updates {
+                batch.updateData(
+                    [
+                        "sortOrder": update.sortOrder,
+                        "updatedAt": Timestamp(date: updatedAt),
+                        "updatedBy": updatedBy ?? NSNull()
+                    ],
+                    forDocument: guideNodesCollection.document(update.id)
+                )
+            }
+            try await batch.commit()
+        } catch {
+            throw mapFirestoreError(error)
+        }
+    }
+
     func deleteNode(id: String) async throws {
         do {
             try await deleteDocument(guideNodesCollection.document(id))
@@ -136,6 +157,27 @@ struct FirestoreGuideWriteRepository: GuideWriteRepositoryProtocol {
                 makeGuideMaterialUpdateData(from: material),
                 for: guideMaterialsCollection.document(material.id)
             )
+        } catch {
+            throw mapFirestoreError(error)
+        }
+    }
+
+    func updateMaterialSortOrders(_ updates: [GuideSortOrderUpdate], updatedAt: Date, updatedBy: String?) async throws {
+        guard !updates.isEmpty else { return }
+
+        do {
+            let batch = database.batch()
+            for update in updates {
+                batch.updateData(
+                    [
+                        "sortOrder": update.sortOrder,
+                        "updatedAt": Timestamp(date: updatedAt),
+                        "updatedBy": updatedBy ?? NSNull()
+                    ],
+                    forDocument: guideMaterialsCollection.document(update.id)
+                )
+            }
+            try await batch.commit()
         } catch {
             throw mapFirestoreError(error)
         }

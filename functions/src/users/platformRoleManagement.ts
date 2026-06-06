@@ -6,7 +6,10 @@ import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
 import { writeUserNotification } from "../notifications/notificationPayloads";
 import {
-  assertOwner,
+  assertCanManageUsers,
+  canAssignAppAdmin,
+  canAssignAppModerator,
+  canAssignGuideEditor,
   isActiveUser,
   type AccountStatus,
   type BlockState,
@@ -34,6 +37,7 @@ interface PlatformRoleMutation {
   actionType: AuditActionType;
   defaultReason: string;
   requiresUsableTarget: boolean;
+  canPerform(actor: UserPermissionSnapshot): boolean;
   apply(current: UserRoleSnapshot): UserRoleUpdate;
 }
 
@@ -190,7 +194,11 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
     }
 
     const actorPermissions = userRoleSnapshotFromData(auth.uid, actorSnapshot.data());
-    assertOwner(actorPermissions);
+    assertCanManageUsers(actorPermissions);
+
+    if (!mutation.canPerform(actorPermissions)) {
+      throw new HttpsError("permission-denied", "Platform role permissions are required.");
+    }
 
     if (roleRequest.targetUserId === auth.uid) {
       throw new HttpsError("failed-precondition", "Self role changes are not allowed here.");
@@ -289,6 +297,7 @@ export const assignAppAdmin = createPlatformRoleCallable({
   actionType: "appAdminAssigned",
   defaultReason: "App admin assigned",
   requiresUsableTarget: true,
+  canPerform: canAssignAppAdmin,
   apply(current) {
     return {
       globalRole: "admin",
@@ -301,6 +310,7 @@ export const removeAppAdmin = createPlatformRoleCallable({
   actionType: "appAdminRemoved",
   defaultReason: "App admin removed",
   requiresUsableTarget: false,
+  canPerform: canAssignAppAdmin,
   apply(current) {
     return {
       globalRole: current.globalRole === "admin" ? "user" : current.globalRole,
@@ -313,6 +323,7 @@ export const assignAppModerator = createPlatformRoleCallable({
   actionType: "appModeratorAssigned",
   defaultReason: "App moderator assigned",
   requiresUsableTarget: true,
+  canPerform: canAssignAppModerator,
   apply(current) {
     return {
       globalRole: "moderator",
@@ -325,6 +336,7 @@ export const removeAppModerator = createPlatformRoleCallable({
   actionType: "appModeratorRemoved",
   defaultReason: "App moderator removed",
   requiresUsableTarget: false,
+  canPerform: canAssignAppModerator,
   apply(current) {
     return {
       globalRole: current.globalRole === "moderator" ? "user" : current.globalRole,
@@ -337,6 +349,7 @@ export const assignGuideEditor = createPlatformRoleCallable({
   actionType: "guideEditorAssigned",
   defaultReason: "Guide editor assigned",
   requiresUsableTarget: true,
+  canPerform: canAssignGuideEditor,
   apply(current) {
     return {
       globalRole: current.globalRole,
@@ -349,6 +362,7 @@ export const removeGuideEditor = createPlatformRoleCallable({
   actionType: "guideEditorRemoved",
   defaultReason: "Guide editor removed",
   requiresUsableTarget: false,
+  canPerform: canAssignGuideEditor,
   apply(current) {
     return {
       globalRole: current.globalRole,

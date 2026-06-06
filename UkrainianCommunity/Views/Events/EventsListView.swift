@@ -344,7 +344,7 @@ struct EventsListView: View {
             }
         }
         .guestAccessAlert($guestAccessAction)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
             Button(AppStrings.Home.regionAllAustria) {
                 selectRegion(nil)
@@ -374,7 +374,6 @@ struct EventsListView: View {
                 Task {
                     do {
                         try await viewModel.deleteEvent(id: eventID)
-                        viewModel.removeDeletedEvent(id: eventID)
                         onEventDeleted()
                     } catch let appError as AppError {
                         deleteErrorMessage = readableEventErrorText(appError)

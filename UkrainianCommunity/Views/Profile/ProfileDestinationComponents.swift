@@ -41,6 +41,7 @@ struct ProfileDestinationLayout<Content: View>: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .observesKeyboardDismissTaps()
     }
 }
 

@@ -19,6 +19,7 @@ struct ContentView: View {
     @StateObject private var eventsViewModel: EventsViewModel
     @StateObject private var organizationsViewModel: OrganizationsViewModel
     @StateObject private var guideViewModel: LegacyGuideListViewModel
+    @StateObject private var guideReaderViewModel: GuideReaderViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
@@ -35,6 +36,7 @@ struct ContentView: View {
     @State private var eventsScrollResetToken = 0
     @State private var organizationsScrollResetToken = 0
     @State private var guideScrollResetToken = 0
+    @State private var guideNavigationResetToken = 0
     @State private var profileScrollResetToken = 0
     @State private var lastHandledAuthSessionKey: String?
     @State private var notificationRouteErrorMessage: String?
@@ -58,6 +60,7 @@ struct ContentView: View {
             notificationInboxRepository: container.notificationInboxRepository
         ))
         _guideViewModel = StateObject(wrappedValue: LegacyGuideListViewModel(repository: container.guideRepository))
+        _guideReaderViewModel = StateObject(wrappedValue: GuideReaderViewModel(repository: FirestoreGuideRepository()))
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
             repository: container.userRepository,
             feedbackRepository: container.feedbackRepository,
@@ -75,6 +78,7 @@ struct ContentView: View {
             legalDocumentRepository: container.legalDocumentRepository,
             userRepository: container.userRepository
         ))
+        RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
     }
 
     var body: some View {
@@ -89,6 +93,7 @@ struct ContentView: View {
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
+            await configureRemoteNotifications(for: notificationInboxUserID)
         }
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.user)
@@ -100,7 +105,6 @@ struct ContentView: View {
             selectedLanguageCode = newLanguage.rawValue
             LocalizationStore.language = newLanguage
             UserSettings.stored = profileViewModel.settings
-            homeViewModel.reload()
             newsViewModel.reload()
             eventsViewModel.reload()
             organizationsViewModel.reload()
@@ -113,7 +117,6 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in
             Task {
-                await homeViewModel.refresh()
                 await newsViewModel.refresh()
                 await eventsViewModel.refresh()
                 await organizationsViewModel.refresh()
@@ -204,7 +207,7 @@ struct ContentView: View {
                 guard newTab != selectedTab else { return }
                 let previousTab = selectedTab
                 selectedTab = newTab
-                resetNavigationPathAfterTabSwitch(for: previousTab)
+                scheduleNavigationPathResetAfterTabSwitch(for: previousTab)
             }
         )
     }
@@ -310,6 +313,8 @@ struct ContentView: View {
         NavigationStack(path: $organizationsNavigationPath) {
             OrganizationsListView(
                 viewModel: organizationsViewModel,
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
                 navigationPath: $organizationsNavigationPath,
                 onOrganizationSaved: {},
@@ -331,6 +336,7 @@ struct ContentView: View {
         NavigationStack {
             InfoView(
                 viewModel: guideViewModel,
+                guideReaderViewModel: guideReaderViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
                 feedbackRepository: container.feedbackRepository,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
@@ -338,7 +344,7 @@ struct ContentView: View {
                 scrollResetToken: guideScrollResetToken
             )
         }
-        .id(guideScrollResetToken)
+        .id(guideNavigationResetToken)
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.guide")
         .tabItem {
@@ -356,6 +362,10 @@ struct ContentView: View {
                 newsRepository: container.newsRepository,
                 eventRepository: container.eventRepository,
                 organizationRepository: container.organizationRepository,
+                newsViewModel: newsViewModel,
+                eventsViewModel: eventsViewModel,
+                organizationsViewModel: organizationsViewModel,
+                guideReaderViewModel: guideReaderViewModel,
                 guideRepository: container.guideRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
                 legalDocumentRepository: container.legalDocumentRepository,
@@ -396,12 +406,13 @@ struct ContentView: View {
         newsViewModel.resetForAuthChange()
         eventsViewModel.resetForAuthChange()
         organizationsViewModel.resetForAuthChange()
+        guideReaderViewModel.resetSavedMaterialsState()
         profileViewModel.resetForAuthChange()
 
         Task {
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
-            await homeViewModel.refresh()
+            await configureRemoteNotifications(for: notificationInboxUserID)
             await newsViewModel.refresh()
             await eventsViewModel.refresh()
             await organizationsViewModel.refresh()
@@ -414,23 +425,45 @@ struct ContentView: View {
     private func resetNavigationPath(for tab: AppTab) {
         switch tab {
         case .home:
+            guard !homeNavigationPath.isEmpty else { return }
             homeNavigationPath.removeAll()
             homeScrollResetToken += 1
         case .events:
+            guard !eventsNavigationPath.isEmpty else { return }
             eventsNavigationPath.removeAll()
             eventsScrollResetToken += 1
         case .organizations:
+            guard !organizationsNavigationPath.isEmpty else { return }
             organizationsNavigationPath.removeAll()
             organizationsScrollResetToken += 1
         case .guide:
+            guideNavigationResetToken += 1
             guideScrollResetToken += 1
         case .profile:
+            guard !profileNavigationPath.isEmpty else { return }
             profileNavigationPath.removeAll()
             profileScrollResetToken += 1
         }
     }
 
-    private func resetNavigationPathAfterTabSwitch(for tab: AppTab) {
+    private func configureRemoteNotifications(for userID: String?) async {
+        RemoteNotificationRegistrationService.shared.configureUser(userID)
+        guard let userID else { return }
+
+        do {
+            let preferences = try await container.notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            RemoteNotificationRegistrationService.shared.configureUser(
+                userID,
+                notificationsEnabled: preferences.notificationsEnabled
+            )
+        } catch {
+            #if DEBUG
+            print("[Notifications] Notification preferences fetch failed during remote registration setup: \(error)")
+            #endif
+        }
+    }
+
+    private func scheduleNavigationPathResetAfterTabSwitch(for tab: AppTab) {
         DispatchQueue.main.async {
             var transaction = Transaction()
             transaction.disablesAnimations = true
@@ -509,7 +542,9 @@ struct ContentView: View {
 
     private func routeToFeedback(_ notification: AppNotification) {
         selectedTab = .profile
-        if let userID = authState.user?.id {
+        if notification.type == .feedbackSubmitted || PermissionService.canManageFeedback(user: authState.user) {
+            profileNavigationPath = [.feedbackInbox]
+        } else if let userID = authState.user?.id {
             profileNavigationPath = [.myFeedback(userID: userID)]
         } else {
             profileNavigationPath = [.feedbackInbox]

@@ -157,7 +157,17 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
     func fetchMaterial(id: String) async throws -> GuideMaterial {
         do {
             let document = try await guideMaterialsCollection.document(id).getDocument()
-            guard let material = makeGuideMaterial(from: document), material.isPublished else {
+
+            guard document.exists, document.data() != nil else {
+                try? await removeCurrentUserBookmark(for: id)
+                throw AppError.notFound
+            }
+
+            guard let material = makeGuideMaterial(from: document) else {
+                throw AppError.validationFailed
+            }
+
+            guard material.isPublished else {
                 throw AppError.notFound
             }
 
@@ -167,6 +177,11 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
         } catch {
             throw mapFirestoreError(error)
         }
+    }
+
+    private func removeCurrentUserBookmark(for materialID: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        try await guideMaterialBookmarkReference(materialID: materialID, userID: uid).delete()
     }
 }
 

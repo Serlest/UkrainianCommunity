@@ -10,7 +10,7 @@ import {
   writeUserNotification,
 } from "../notifications/notificationPayloads";
 import {
-  assertOwner,
+  assertCanManageUsers,
   type AccountStatus,
   type BlockState,
   type GlobalRole,
@@ -251,7 +251,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
     }
 
     const actorPermissions = accountStatusSnapshotFromData(auth.uid, actorSnapshot.data());
-    assertOwner(actorPermissions);
+    assertCanManageUsers(actorPermissions);
 
     const targetReference = db.collection("users").doc(statusRequest.targetUserId);
     const committedAt = new Date().toISOString();

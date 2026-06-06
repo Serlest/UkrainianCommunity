@@ -146,7 +146,7 @@ struct NewsDetailView: View {
         }
         .background(AppBackgroundView().allowsHitTesting(false))
         .toolbar(.hidden, for: .navigationBar)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .confirmationDialog(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.News.delete, role: .destructive) {
                 Task {

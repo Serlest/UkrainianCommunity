@@ -9,6 +9,13 @@ import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
     private let expectedTabs = ["Start", "Veranstaltungen", "Organisationen", "Guide", "Profil"]
+    private let stressTabs: [MainTabSpec] = [
+        MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Start"),
+        MainTabSpec(screenIdentifier: "screen.events", tabIdentifier: "tab.events", tabLabel: "Veranstaltungen"),
+        MainTabSpec(screenIdentifier: "screen.organizations", tabIdentifier: "tab.organizations", tabLabel: "Organisationen"),
+        MainTabSpec(screenIdentifier: "screen.guide", tabIdentifier: "tab.guide", tabLabel: "Guide"),
+        MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
+    ]
 
     private func launchApp() -> XCUIApplication {
         let app = XCUIApplication()
@@ -55,6 +62,35 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(tabButton.waitForExistence(timeout: 10), file: file, line: line)
         tabButton.tap()
         XCTAssertTrue(app.otherElements[screenIdentifier].waitForExistence(timeout: 10), file: file, line: line)
+    }
+
+    private func tapRootTab(
+        _ tab: MainTabSpec,
+        in app: XCUIApplication,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: timeout), file: file, line: line)
+
+        let identifierButton = tabBar.buttons[tab.tabIdentifier]
+        let tabButton = identifierButton.exists ? identifierButton : tabBar.buttons[tab.tabLabel]
+        XCTAssertTrue(tabButton.waitForExistence(timeout: timeout), file: file, line: line)
+        tabButton.tap()
+
+        XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout), file: file, line: line)
+        XCTAssertEqual(app.state, .runningForeground, file: file, line: line)
+    }
+
+    private func navigateBackIfPossible(in app: XCUIApplication) {
+        let navigationBar = app.navigationBars.firstMatch
+        guard navigationBar.waitForExistence(timeout: 3) else { return }
+
+        let backButton = navigationBar.buttons.element(boundBy: 0)
+        if backButton.exists && backButton.isHittable {
+            backButton.tap()
+        }
     }
 
     private func scrollToElement(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 6) {
@@ -105,6 +141,37 @@ final class UkrainianCommunityUITests: XCTestCase {
         assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
         assertRootScreen(screenIdentifier: "screen.guide", tabLabel: "Guide", in: app)
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+    }
+
+    @MainActor
+    // Navigation stability stress test. Run manually from Xcode or CI when UI
+    // test execution is available; the local run was blocked by Xcode
+    // cancellation, not by an XCTest failure.
+    func testMainNavigationStressRemainsStable() throws {
+        let app = launchApp()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+
+        for _ in 0..<12 {
+            for tab in stressTabs {
+                tapRootTab(tab, in: app, timeout: 5)
+            }
+        }
+
+        tapRootTab(stressTabs[1], in: app)
+        let eventCard = app.buttons["event.card.event-1"]
+        if eventCard.waitForExistence(timeout: 5) {
+            eventCard.tap()
+            XCTAssertTrue(app.buttons["event.register.event-1"].waitForExistence(timeout: 10))
+            navigateBackIfPossible(in: app)
+            XCTAssertTrue(app.otherElements["screen.events"].waitForExistence(timeout: 10))
+        }
+
+        tapRootTab(stressTabs[3], in: app)
+        tapRootTab(stressTabs[4], in: app)
+        tapRootTab(stressTabs[0], in: app)
+
+        XCTAssertEqual(app.state, .runningForeground)
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
     }
 
     @MainActor
@@ -201,4 +268,10 @@ final class UkrainianCommunityUITests: XCTestCase {
 private enum AppStringsPlaceholder {
     static let acceptTermsDE = "Ich akzeptiere die Nutzungsbedingungen"
     static let acceptPrivacyDE = "Ich akzeptiere die Datenschutzerklärung"
+}
+
+private struct MainTabSpec {
+    let screenIdentifier: String
+    let tabIdentifier: String
+    let tabLabel: String
 }

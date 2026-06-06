@@ -16,6 +16,8 @@ struct GuideTreeSectionManagementView: View {
     @State private var isPresentingDeleteConfirmation = false
     @State private var deleteAlertMessage: String?
     @State private var isDeleting = false
+    @State private var reorderingNodeID: String?
+    @State private var reorderingMaterialID: String?
     private let writeRepository: GuideWriteRepositoryProtocol
 
     init(
@@ -260,20 +262,34 @@ struct GuideTreeSectionManagementView: View {
             )
         } else {
             VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing + 4) {
-                ForEach(viewModel.visibleChildNodes) { childNode in
-                    NavigationLink {
-                        GuideTreeSectionManagementView(
-                            node: childNode,
-                            viewModel: viewModel.makeChildViewModel(),
-                            writeRepository: writeRepository,
-                            onNodeDeleted: {
-                                await viewModel.reload()
+                ForEach(Array(viewModel.visibleChildNodes.enumerated()), id: \.element.id) { index, childNode in
+                    HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
+                        NavigationLink {
+                            GuideTreeSectionManagementView(
+                                node: childNode,
+                                viewModel: viewModel.makeChildViewModel(),
+                                writeRepository: writeRepository,
+                                onNodeDeleted: {
+                                    await viewModel.reload()
+                                }
+                            )
+                        } label: {
+                            GuideManagementSectionCardView(node: childNode)
+                        }
+                        .buttonStyle(.plain)
+
+                        GuideReorderControls(
+                            canMoveUp: index > 0,
+                            canMoveDown: index < viewModel.visibleChildNodes.count - 1,
+                            isDisabled: reorderingNodeID != nil,
+                            onMoveUp: {
+                                Task { await moveNode(childNode, direction: .up) }
+                            },
+                            onMoveDown: {
+                                Task { await moveNode(childNode, direction: .down) }
                             }
                         )
-                    } label: {
-                        GuideManagementSectionCardView(node: childNode)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -289,28 +305,42 @@ struct GuideTreeSectionManagementView: View {
             )
         } else {
             VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing + 4) {
-                ForEach(viewModel.visibleMaterials) { material in
-                    NavigationLink {
-                        GuideTreeMaterialManagementView(
-                            material: material,
-                            writeRepository: writeRepository,
-                            currentUserID: authState.user?.id
-                        ) { _ in
-                            await viewModel.reload()
-                        } onMaterialDeleted: {
-                            await viewModel.reload()
+                ForEach(Array(viewModel.visibleMaterials.enumerated()), id: \.element.id) { index, material in
+                    HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
+                        NavigationLink {
+                            GuideTreeMaterialManagementView(
+                                material: material,
+                                writeRepository: writeRepository,
+                                currentUserID: authState.user?.id
+                            ) { _ in
+                                await viewModel.reload()
+                            } onMaterialDeleted: {
+                                await viewModel.reload()
+                            }
+                        } label: {
+                            GuideManagementMaterialCard(material: material)
                         }
-                    } label: {
-                        GuideManagementMaterialCard(material: material)
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button(GuideAuthoringPresentation.editMaterial) {
-                            editingMaterial = material
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(GuideAuthoringPresentation.editMaterial) {
+                                editingMaterial = material
+                            }
+                            Button(GuideAuthoringPresentation.deleteMaterial, role: .destructive) {
+                                materialPendingDelete = material
+                            }
                         }
-                        Button(GuideAuthoringPresentation.deleteMaterial, role: .destructive) {
-                            materialPendingDelete = material
-                        }
+
+                        GuideReorderControls(
+                            canMoveUp: index > 0,
+                            canMoveDown: index < viewModel.visibleMaterials.count - 1,
+                            isDisabled: reorderingMaterialID != nil,
+                            onMoveUp: {
+                                Task { await moveMaterial(material, direction: .up) }
+                            },
+                            onMoveDown: {
+                                Task { await moveMaterial(material, direction: .down) }
+                            }
+                        )
                     }
                 }
             }
@@ -376,6 +406,46 @@ struct GuideTreeSectionManagementView: View {
             deleteAlertMessage = readableDeleteMessage(for: error)
         } catch {
             deleteAlertMessage = GuideAuthoringPresentation.deleteUnknownError
+        }
+    }
+
+    private func moveNode(_ node: GuideNode, direction: GuideReorderDirection) async {
+        guard reorderingNodeID == nil else { return }
+        let updates = viewModel.nodeSortOrderUpdates(moving: node.id, direction: direction)
+        guard !updates.isEmpty else { return }
+
+        reorderingNodeID = node.id
+        defer { reorderingNodeID = nil }
+
+        do {
+            try await writeRepository.updateNodeSortOrders(
+                updates,
+                updatedAt: Date(),
+                updatedBy: authState.user?.id
+            )
+            viewModel.applyNodeSortOrderUpdates(updates)
+        } catch {
+            await viewModel.reload()
+        }
+    }
+
+    private func moveMaterial(_ material: GuideMaterial, direction: GuideReorderDirection) async {
+        guard reorderingMaterialID == nil else { return }
+        let updates = viewModel.materialSortOrderUpdates(moving: material.id, direction: direction)
+        guard !updates.isEmpty else { return }
+
+        reorderingMaterialID = material.id
+        defer { reorderingMaterialID = nil }
+
+        do {
+            try await writeRepository.updateMaterialSortOrders(
+                updates,
+                updatedAt: Date(),
+                updatedBy: authState.user?.id
+            )
+            viewModel.applyMaterialSortOrderUpdates(updates)
+        } catch {
+            await viewModel.reload()
         }
     }
 }

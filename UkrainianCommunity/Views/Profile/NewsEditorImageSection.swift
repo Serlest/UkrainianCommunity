@@ -13,7 +13,6 @@ extension NewsEditorView {
                     }
                     .buttonStyle(.plain)
                     .disabled(viewModel.isProcessingImage || viewModel.isPublishing)
-                    .simultaneousGesture(TapGesture().onEnded(dismissKeyboard))
                     .overlay {
                         if viewModel.isProcessingImage {
                             imageProcessingOverlay

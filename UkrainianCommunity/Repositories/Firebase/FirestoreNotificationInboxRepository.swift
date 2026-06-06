@@ -255,14 +255,14 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .warning
         case .legalDocumentsUpdated, .systemAnnouncement:
             .critical
-        case .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .guideMaterialUpdated, .unknown:
+        case .feedbackSubmitted, .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .guideMaterialUpdated, .unknown:
             .info
         }
     }
 
     private func defaultActionType(for type: AppNotificationType) -> AppNotificationActionType {
         switch type {
-        case .feedbackReply:
+        case .feedbackSubmitted, .feedbackReply:
             .openFeedback
         case .organizationRequestApproved, .organizationRequestNeedsRevision, .organizationRequestRejected:
             .openOrganizationRequest

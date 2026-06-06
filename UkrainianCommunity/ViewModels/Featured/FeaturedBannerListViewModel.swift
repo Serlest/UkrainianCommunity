@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-nonisolated private let featuredBannerRefreshStaleInterval: TimeInterval = 300
+nonisolated private let featuredBannerRefreshStaleInterval: TimeInterval = 1_800
 
 @MainActor
 final class FeaturedBannerListViewModel: ObservableObject {

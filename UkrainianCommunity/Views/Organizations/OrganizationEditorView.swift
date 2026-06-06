@@ -63,12 +63,14 @@ struct OrganizationEditorView: View {
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.bottom, AppTheme.homeBottomContentPadding)
         }
-        .background(AppBackgroundView())
+        .keyboardDismissBackground {
+            AppBackgroundView()
+        }
         .tint(AppTheme.accentPrimary)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .scrollDismissesKeyboard(.interactively)
-        .dismissesKeyboardOnBackgroundTap()
+        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingLogoCrop, onDismiss: resetLogoCropSelection) {
             if let cropSourceLogoImage {
                 ImageCropView(

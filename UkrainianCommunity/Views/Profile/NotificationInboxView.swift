@@ -246,7 +246,7 @@ private struct NotificationInboxRow: View {
 
     private var systemImage: String {
         switch notification.type {
-        case .feedbackReply:
+        case .feedbackSubmitted, .feedbackReply:
             return "bubble.left.and.bubble.right"
         case .organizationRequestApproved:
             return "checkmark.seal"

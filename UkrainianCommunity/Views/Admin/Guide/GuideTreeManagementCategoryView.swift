@@ -5,6 +5,7 @@ struct GuideTreeCategoryManagementView: View {
     let category: GuideCategory
     @StateObject private var viewModel: GuideReaderViewModel
     @State private var isPresentingRootEditor = false
+    @State private var reorderingNodeID: String?
     private let writeRepository: GuideWriteRepositoryProtocol
 
     init(
@@ -84,22 +85,56 @@ struct GuideTreeCategoryManagementView: View {
                     subtitle: GuideAuthoringPresentation.sectionsListSubtitle
                 )
 
-                ForEach(viewModel.visibleChildNodes) { node in
-                    NavigationLink {
-                        GuideTreeSectionManagementView(
-                            node: node,
-                            viewModel: viewModel.makeChildViewModel(),
-                            writeRepository: writeRepository,
-                            onNodeDeleted: {
-                                await viewModel.reload()
+                ForEach(Array(viewModel.visibleChildNodes.enumerated()), id: \.element.id) { index, node in
+                    HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
+                        NavigationLink {
+                            GuideTreeSectionManagementView(
+                                node: node,
+                                viewModel: viewModel.makeChildViewModel(),
+                                writeRepository: writeRepository,
+                                onNodeDeleted: {
+                                    await viewModel.reload()
+                                }
+                            )
+                        } label: {
+                            GuideManagementSectionCardView(node: node)
+                        }
+                        .buttonStyle(.plain)
+
+                        GuideReorderControls(
+                            canMoveUp: index > 0,
+                            canMoveDown: index < viewModel.visibleChildNodes.count - 1,
+                            isDisabled: reorderingNodeID != nil,
+                            onMoveUp: {
+                                Task { await moveNode(node, direction: .up) }
+                            },
+                            onMoveDown: {
+                                Task { await moveNode(node, direction: .down) }
                             }
                         )
-                    } label: {
-                        GuideManagementSectionCardView(node: node)
                     }
-                    .buttonStyle(.plain)
                 }
             }
+        }
+    }
+
+    private func moveNode(_ node: GuideNode, direction: GuideReorderDirection) async {
+        guard reorderingNodeID == nil else { return }
+        let updates = viewModel.nodeSortOrderUpdates(moving: node.id, direction: direction)
+        guard !updates.isEmpty else { return }
+
+        reorderingNodeID = node.id
+        defer { reorderingNodeID = nil }
+
+        do {
+            try await writeRepository.updateNodeSortOrders(
+                updates,
+                updatedAt: Date(),
+                updatedBy: authState.user?.id
+            )
+            viewModel.applyNodeSortOrderUpdates(updates)
+        } catch {
+            await viewModel.reload()
         }
     }
 }

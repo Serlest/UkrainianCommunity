@@ -27,7 +27,7 @@ struct GuideContentBlockBodyEditor: View {
             TextEditor(
                 text: Binding(
                     get: { text },
-                    set: onChange
+                    set: { onChange(GuideEditorTextNormalization.normalizedPastedText($0, previousValue: text)) }
                 )
             )
             .scrollContentBackground(.hidden)
@@ -43,4 +43,3 @@ private extension String {
         isEmpty ? nil : self
     }
 }
-
