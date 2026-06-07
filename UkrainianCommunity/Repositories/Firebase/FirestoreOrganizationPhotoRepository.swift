@@ -47,6 +47,16 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
         do {
             try await photoReference.setData(makePhotoData(from: photo))
         } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Organizations",
+                    operationName: "addOrganizationPhotoMetadata",
+                    targetType: .organization,
+                    targetId: photoReference.documentID,
+                    organizationId: organizationId
+                )
+            )
             do {
                 try await imageUploadService.deleteOrganizationPhoto(
                     organizationID: organizationId,
@@ -64,7 +74,21 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
             try await imageUploadService.deleteOrganizationPhoto(organizationID: photo.organizationId, photoID: photo.id)
         } catch {}
 
-        try await photosCollection(organizationId: photo.organizationId).document(photo.id).delete()
+        do {
+            try await photosCollection(organizationId: photo.organizationId).document(photo.id).delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Organizations",
+                    operationName: "deleteOrganizationPhotoMetadata",
+                    targetType: .organization,
+                    targetId: photo.id,
+                    organizationId: photo.organizationId
+                )
+            )
+            throw error
+        }
     }
 
     private func photosCollection(organizationId: String) -> CollectionReference {

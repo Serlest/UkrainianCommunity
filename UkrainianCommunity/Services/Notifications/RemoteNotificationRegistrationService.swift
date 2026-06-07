@@ -3,7 +3,7 @@ import UIKit
 import UserNotifications
 
 #if canImport(FirebaseMessaging)
-import FirebaseMessaging
+private import FirebaseMessaging
 #endif
 
 @MainActor
@@ -18,11 +18,20 @@ final class RemoteNotificationRegistrationService: NSObject {
     private var hasRequestedRemoteRegistration = false
     private var isRefreshingMessagingToken = false
     private var lastAuthorizationRequestUserID: String?
+    private var messagingDelegateAdapter: AnyObject?
 
     private override init() {
         super.init()
         #if canImport(FirebaseMessaging)
-        Messaging.messaging().delegate = self
+        let adapter = FirebaseMessagingDelegateAdapter { [weak self] fcmToken in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.debugLog("FCM registration token callback received: \(fcmToken ?? "nil")")
+                await self.saveToken(fcmToken)
+            }
+        }
+        messagingDelegateAdapter = adapter
+        Messaging.messaging().delegate = adapter
         #endif
     }
 
@@ -182,12 +191,15 @@ final class RemoteNotificationRegistrationService: NSObject {
 }
 
 #if canImport(FirebaseMessaging)
-extension RemoteNotificationRegistrationService: MessagingDelegate {
+private final class FirebaseMessagingDelegateAdapter: NSObject, MessagingDelegate {
+    private let onTokenReceived: @Sendable (String?) -> Void
+
+    init(onTokenReceived: @escaping @Sendable (String?) -> Void) {
+        self.onTokenReceived = onTokenReceived
+    }
+
     nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        Task { @MainActor in
-            debugLog("FCM registration token callback received: \(fcmToken ?? "nil")")
-            await saveToken(fcmToken)
-        }
+        onTokenReceived(fcmToken)
     }
 }
 #endif

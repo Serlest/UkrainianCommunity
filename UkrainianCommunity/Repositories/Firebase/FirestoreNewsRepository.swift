@@ -104,7 +104,37 @@ struct FirestoreNewsRepository: NewsRepository {
         if let sourceURL = dto.sourceURL {
             data["sourceURL"] = sourceURL
         }
-        try await collection.document(news.id).setData(data)
+        do {
+            try await collection.document(news.id).setData(data)
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "News",
+                    operationName: "createNews",
+                    targetType: .newsPost,
+                    targetId: news.id,
+                    targetTitle: news.title,
+                    organizationId: news.source.organizationId,
+                    organizationName: news.source.organizationName
+                )
+            )
+            throw error
+        }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "News",
+                operationName: "createNews",
+                eventType: .contentCreated,
+                targetType: .newsPost,
+                targetId: news.id,
+                targetTitle: news.title,
+                organizationId: news.source.organizationId,
+                organizationName: news.source.organizationName,
+                summary: "News post created"
+            )
+        )
     }
 
     func updateNews(_ news: NewsPost) async throws {
@@ -132,27 +162,105 @@ struct FirestoreNewsRepository: NewsRepository {
         ]
         data["sourceName"] = news.sourceName ?? FieldValue.delete()
         data["sourceURL"] = news.sourceURL ?? FieldValue.delete()
-        try await collection.document(news.id).updateData(data)
+        do {
+            try await collection.document(news.id).updateData(data)
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "News",
+                    operationName: "updateNews",
+                    targetType: .newsPost,
+                    targetId: news.id,
+                    targetTitle: news.title,
+                    organizationId: news.source.organizationId,
+                    organizationName: news.source.organizationName
+                )
+            )
+            throw error
+        }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "News",
+                operationName: "updateNews",
+                eventType: .contentUpdated,
+                targetType: .newsPost,
+                targetId: news.id,
+                targetTitle: news.title,
+                organizationId: news.source.organizationId,
+                organizationName: news.source.organizationName,
+                summary: "News post updated"
+            )
+        )
     }
 
     func updateNewsImageURL(id: String, imageURL: String?) async throws {
-        try await collection.document(id).updateData([
-            "imageURL": imageURL as Any,
-            "updatedAt": Timestamp(date: Date())
-        ])
+        do {
+            try await collection.document(id).updateData([
+                "imageURL": imageURL as Any,
+                "updatedAt": Timestamp(date: Date())
+            ])
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "News",
+                    operationName: "updateNewsImageURL",
+                    targetType: .newsPost,
+                    targetId: id
+                )
+            )
+            throw error
+        }
     }
 
     func deleteNews(id: String) async throws {
         await deleteNewsCoverImageIfPossible(id: id)
-        try await collection.document(id).delete()
+        do {
+            try await collection.document(id).delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "News",
+                    operationName: "deleteNews",
+                    targetType: .newsPost,
+                    targetId: id
+                )
+            )
+            throw error
+        }
         await deleteRelatedLikesIfPossible(newsID: id)
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "News",
+                operationName: "deleteNews",
+                eventType: .contentDeleted,
+                targetType: .newsPost,
+                targetId: id,
+                summary: "News post deleted"
+            )
+        )
     }
 
     private func deleteNewsCoverImageIfPossible(id: String) async {
         let imageReference = Storage.storage().reference().child("news/\(id)/cover.jpg")
         do {
             try await imageReference.delete()
-        } catch {}
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "deleteNewsCoverImage",
+                    targetType: .newsPost,
+                    targetId: id,
+                    metadata: ["storageArea": "news"]
+                )
+            )
+        }
     }
 
     func likeNews(id: String) async throws {
@@ -233,6 +341,40 @@ struct FirestoreNewsRepository: NewsRepository {
             "moderationStatus": newStatus.rawValue,
             "updatedAt": Timestamp(date: Date())
         ])
+
+        await logModerationStatusChange(id: id, newStatus: newStatus)
+    }
+
+    private func logModerationStatusChange(id: String, newStatus: ModerationStatus) async {
+        guard let moderationLogContext = moderationLogContext(id: id, newStatus: newStatus) else { return }
+        await SystemModerationLoggingService.shared.logSuccess(moderationLogContext)
+    }
+
+    private func moderationLogContext(id: String, newStatus: ModerationStatus) -> SystemModerationLogContext? {
+        switch newStatus {
+        case .approved:
+            return SystemModerationLogContext(
+                operationName: "approveNewsPost",
+                eventType: .contentApproved,
+                targetType: .newsPost,
+                targetId: id,
+                outcome: .approved,
+                summary: "Новину схвалено",
+                metadata: ["newStatus": newStatus.rawValue]
+            )
+        case .rejected:
+            return SystemModerationLogContext(
+                operationName: "rejectNewsPost",
+                eventType: .contentRejected,
+                targetType: .newsPost,
+                targetId: id,
+                outcome: .rejected,
+                summary: "Новину відхилено",
+                metadata: ["newStatus": newStatus.rawValue]
+            )
+        case .draft, .pendingReview, .needsRevision, .archived:
+            return nil
+        }
     }
 
     func recordNewsView(id: String) async throws -> Bool {
@@ -613,6 +755,7 @@ extension FirestoreNewsRepository: NewsRealtimeRepository {
             .order(by: "createdAt", descending: false)
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    Self.logListenerFailure(error, newsID: newsID)
                     Task { @MainActor in onError(Self.appError(from: error)) }
                     return
                 }
@@ -630,6 +773,24 @@ extension FirestoreNewsRepository: NewsRealtimeRepository {
             return .permissionDenied
         }
         return .network
+    }
+
+    private static func logListenerFailure(_ error: Error, newsID: String) {
+        Task {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "News",
+                    operationName: "listenNewsComments",
+                    targetType: .newsPost,
+                    targetId: newsID,
+                    metadata: [
+                        "listenerName": "newsComments",
+                        "pathGroup": "news/{newsID}/comments"
+                    ]
+                )
+            )
+        }
     }
 }
 

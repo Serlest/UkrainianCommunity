@@ -7,13 +7,16 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:rules:systemLogs": "firebase emulators:exec --only firestore \"node --test smoke-tests/systemLogsRules.test.mjs\""
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.2.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0",
     "typescript": "^5.7.0"
   }
 }

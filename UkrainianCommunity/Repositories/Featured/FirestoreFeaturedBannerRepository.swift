@@ -66,50 +66,98 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     }
 
     func createBanner(_ banner: FeaturedBanner) async throws {
+        try validationService.validate(banner)
+        let data = makeData(from: banner)
+
         do {
-            try validationService.validate(banner)
-            try await collection.document(banner.id).setData(makeData(from: banner))
+            try await collection.document(banner.id).setData(data)
         } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "FeaturedBanners",
+                    operationName: "createBanner",
+                    targetType: .systemConfiguration,
+                    targetId: banner.id,
+                    targetTitle: banner.title
+                )
+            )
             throw appError(from: error)
         }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "FeaturedBanners",
+                operationName: "createBanner",
+                eventType: .contentCreated,
+                targetType: .systemConfiguration,
+                targetId: banner.id,
+                targetTitle: banner.title,
+                summary: "Featured banner created"
+            )
+        )
     }
 
     func updateBanner(_ banner: FeaturedBanner) async throws {
+        try validationService.validate(banner)
+        let document = collection.document(banner.id)
+        let snapshot = try await document.getDocument()
+        guard snapshot.exists else {
+            throw AppError.notFound
+        }
+        let existingBanner = try makeBanner(id: banner.id, data: snapshot.data() ?? [:])
+        let updatedBanner = FeaturedBanner(
+            id: banner.id,
+            internalName: banner.internalName,
+            title: banner.title,
+            subtitle: banner.subtitle,
+            imageURL: banner.imageURL,
+            actionType: banner.actionType,
+            actionTargetID: banner.actionTargetID,
+            externalURL: banner.externalURL,
+            regionScope: banner.regionScope,
+            federalState: banner.federalState,
+            visibleSections: banner.visibleSections,
+            displayDurationSeconds: banner.displayDurationSeconds,
+            priority: banner.priority,
+            isActive: banner.isActive,
+            startsAt: banner.startsAt,
+            endsAt: banner.endsAt,
+            createdAt: existingBanner.createdAt,
+            updatedAt: Date(),
+            createdBy: existingBanner.createdBy,
+            updatedBy: banner.updatedBy
+        )
+        try validationService.validate(updatedBanner)
+        let data = makeUpdateData(from: updatedBanner)
+
         do {
-            try validationService.validate(banner)
-            let document = collection.document(banner.id)
-            let snapshot = try await document.getDocument()
-            guard snapshot.exists else {
-                throw AppError.notFound
-            }
-            let existingBanner = try makeBanner(id: banner.id, data: snapshot.data() ?? [:])
-            let updatedBanner = FeaturedBanner(
-                id: banner.id,
-                internalName: banner.internalName,
-                title: banner.title,
-                subtitle: banner.subtitle,
-                imageURL: banner.imageURL,
-                actionType: banner.actionType,
-                actionTargetID: banner.actionTargetID,
-                externalURL: banner.externalURL,
-                regionScope: banner.regionScope,
-                federalState: banner.federalState,
-                visibleSections: banner.visibleSections,
-                displayDurationSeconds: banner.displayDurationSeconds,
-                priority: banner.priority,
-                isActive: banner.isActive,
-                startsAt: banner.startsAt,
-                endsAt: banner.endsAt,
-                createdAt: existingBanner.createdAt,
-                updatedAt: Date(),
-                createdBy: existingBanner.createdBy,
-                updatedBy: banner.updatedBy
-            )
-            try validationService.validate(updatedBanner)
-            try await document.updateData(makeUpdateData(from: updatedBanner))
+            try await document.updateData(data)
         } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "FeaturedBanners",
+                    operationName: "updateBanner",
+                    targetType: .systemConfiguration,
+                    targetId: banner.id,
+                    targetTitle: banner.title
+                )
+            )
             throw appError(from: error)
         }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "FeaturedBanners",
+                operationName: "updateBanner",
+                eventType: .contentUpdated,
+                targetType: .systemConfiguration,
+                targetId: updatedBanner.id,
+                targetTitle: updatedBanner.title,
+                summary: "Featured banner updated"
+            )
+        )
     }
 
     func setBannerActive(id: String, isActive: Bool, updatedBy userID: String) async throws {
@@ -119,24 +167,47 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             throw AppError.validationFailed
         }
 
+        let document = collection.document(trimmedID)
+        let snapshot = try await document.getDocument()
+        guard snapshot.exists else {
+            throw AppError.notFound
+        }
+
         do {
-            let document = collection.document(trimmedID)
-            let snapshot = try await document.getDocument()
-            guard snapshot.exists else {
-                throw AppError.notFound
-            }
             try await document.updateData([
                 Field.isActive.rawValue: isActive,
                 Field.updatedAt.rawValue: Timestamp(date: Date()),
                 Field.updatedBy.rawValue: trimmedUserID
             ])
         } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "FeaturedBanners",
+                    operationName: "setBannerActive",
+                    targetType: .systemConfiguration,
+                    targetId: trimmedID,
+                    metadata: ["requestedActiveState": "\(isActive)"]
+                )
+            )
             throw appError(from: error)
         }
     }
 
     func archiveBanner(id: String, updatedBy userID: String) async throws {
-        try await setBannerActive(id: id, isActive: false, updatedBy: userID)
+        let trimmedID = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        try await setBannerActive(id: trimmedID, isActive: false, updatedBy: userID)
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "FeaturedBanners",
+                operationName: "archiveBanner",
+                eventType: .contentUpdated,
+                targetType: .systemConfiguration,
+                targetId: trimmedID,
+                summary: "Featured banner archived"
+            )
+        )
     }
 
     func deleteBanner(id: String) async throws {
@@ -148,8 +219,28 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         do {
             try await collection.document(trimmedID).delete()
         } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "FeaturedBanners",
+                    operationName: "deleteBanner",
+                    targetType: .systemConfiguration,
+                    targetId: trimmedID
+                )
+            )
             throw appError(from: error)
         }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "FeaturedBanners",
+                operationName: "deleteBanner",
+                eventType: .contentDeleted,
+                targetType: .systemConfiguration,
+                targetId: trimmedID,
+                summary: "Featured banner deleted"
+            )
+        )
     }
 
     private func makeBanner(from document: QueryDocumentSnapshot) throws -> FeaturedBanner {

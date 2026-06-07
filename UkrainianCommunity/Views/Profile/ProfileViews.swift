@@ -17,6 +17,7 @@ enum ProfileNavigationRoute: Hashable {
     case legalDocumentManagement
     case donationSettings
     case feedbackInbox
+    case systemLogs(SystemLogsAccessMode)
     case notifications
     case myFeedback(userID: String)
     case legal(LegalDocumentKind)
@@ -624,6 +625,17 @@ struct ProfileView: View {
                 repository: feedbackRepository,
                 notificationInboxRepository: notificationInboxRepository
             )
+        case let .systemLogs(accessMode):
+            switch accessMode {
+            case .owner:
+                if PermissionService.isAppOwner(user: permissionUser) {
+                    SystemLogsDashboardView(accessMode: .owner, embedsInNavigationStack: false)
+                }
+            case .appAdmin:
+                if PermissionService.isAppAdmin(user: permissionUser) {
+                    SystemLogsDashboardView(accessMode: .appAdmin, embedsInNavigationStack: false)
+                }
+            }
         case .notifications:
             NotificationInboxView(
                 viewModel: notificationInboxViewModel,
@@ -1100,6 +1112,28 @@ struct ProfileView: View {
                             ProfileModuleRow(
                                 title: AppStrings.Profile.ownerLegalDocuments,
                                 subtitle: AppStrings.Profile.ownerLegalDocumentsSubtitle,
+                                systemImage: "doc.text.magnifyingglass",
+                                status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink(value: ProfileNavigationRoute.systemLogs(.owner)) {
+                            ProfileModuleRow(
+                                title: AppStrings.SystemLogs.ownerTitle,
+                                subtitle: AppStrings.SystemLogs.ownerProfileSubtitle,
+                                systemImage: "doc.text.magnifyingglass",
+                                status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if PermissionService.isAppAdmin(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.systemLogs(.appAdmin)) {
+                            ProfileModuleRow(
+                                title: AppStrings.SystemLogs.appAdminTitle,
+                                subtitle: AppStrings.SystemLogs.appAdminSubtitle,
                                 systemImage: "doc.text.magnifyingglass",
                                 status: .available
                             )

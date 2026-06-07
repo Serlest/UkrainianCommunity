@@ -304,7 +304,37 @@ struct FirestoreEventRepository: EventRepository {
             data["contactURL"] = contactURL
         }
 
-        try await collection.document(dto.id).setData(data)
+        do {
+            try await collection.document(dto.id).setData(data)
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Events",
+                    operationName: "createEvent",
+                    targetType: .event,
+                    targetId: event.id,
+                    targetTitle: event.title,
+                    organizationId: event.source.organizationId,
+                    organizationName: event.source.organizationName
+                )
+            )
+            throw error
+        }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "Events",
+                operationName: "createEvent",
+                eventType: .contentCreated,
+                targetType: .event,
+                targetId: normalizedEvent.id,
+                targetTitle: normalizedEvent.title,
+                organizationId: normalizedEvent.source.organizationId,
+                organizationName: normalizedEvent.source.organizationName,
+                summary: "Event created"
+            )
+        )
     }
 
     func updateEvent(_ event: Event) async throws {
@@ -383,21 +413,88 @@ struct FirestoreEventRepository: EventRepository {
         data["contactEmail"] = event.contactEmail ?? FieldValue.delete()
         data["contactURL"] = event.contactURL ?? FieldValue.delete()
 
-        try await collection.document(event.id).updateData(data)
+        do {
+            try await collection.document(event.id).updateData(data)
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Events",
+                    operationName: "updateEvent",
+                    targetType: .event,
+                    targetId: event.id,
+                    targetTitle: event.title,
+                    organizationId: event.source.organizationId,
+                    organizationName: event.source.organizationName
+                )
+            )
+            throw error
+        }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "Events",
+                operationName: "updateEvent",
+                eventType: .contentUpdated,
+                targetType: .event,
+                targetId: event.id,
+                targetTitle: event.title,
+                organizationId: event.source.organizationId,
+                organizationName: event.source.organizationName,
+                summary: "Event updated"
+            )
+        )
     }
 
     func updateEventImageURL(id: String, imageURL: String?) async throws {
-        try await collection.document(id).updateData([
-            "imageURL": imageURL as Any,
-            "updatedAt": Timestamp(date: Date())
-        ])
+        do {
+            try await collection.document(id).updateData([
+                "imageURL": imageURL as Any,
+                "updatedAt": Timestamp(date: Date())
+            ])
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Events",
+                    operationName: "updateEventImageURL",
+                    targetType: .event,
+                    targetId: id
+                )
+            )
+            throw error
+        }
     }
 
     func deleteEvent(id: String) async throws {
         await deleteEventCoverImageIfPossible(id: id)
-        try await collection.document(id).delete()
+        do {
+            try await collection.document(id).delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Events",
+                    operationName: "deleteEvent",
+                    targetType: .event,
+                    targetId: id
+                )
+            )
+            throw error
+        }
         await deleteRelatedLikesIfPossible(eventID: id)
         await deleteRelatedRegistrationsIfPossible(eventID: id)
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "Events",
+                operationName: "deleteEvent",
+                eventType: .contentDeleted,
+                targetType: .event,
+                targetId: id,
+                summary: "Event deleted"
+            )
+        )
     }
 
     private func deleteEventCoverImageIfPossible(id: String) async {
@@ -405,7 +502,18 @@ struct FirestoreEventRepository: EventRepository {
 
         do {
             try await imageReference.delete()
-        } catch {}
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "deleteEventCoverImage",
+                    targetType: .event,
+                    targetId: id,
+                    metadata: ["storageArea": "events"]
+                )
+            )
+        }
     }
 
     func likeEvent(id: String) async throws {
@@ -714,6 +822,40 @@ struct FirestoreEventRepository: EventRepository {
             "moderationStatus": newStatus.rawValue,
             "updatedAt": Timestamp(date: Date())
         ])
+
+        await logModerationStatusChange(id: id, newStatus: newStatus)
+    }
+
+    private func logModerationStatusChange(id: String, newStatus: ModerationStatus) async {
+        guard let moderationLogContext = moderationLogContext(id: id, newStatus: newStatus) else { return }
+        await SystemModerationLoggingService.shared.logSuccess(moderationLogContext)
+    }
+
+    private func moderationLogContext(id: String, newStatus: ModerationStatus) -> SystemModerationLogContext? {
+        switch newStatus {
+        case .approved:
+            return SystemModerationLogContext(
+                operationName: "approveEvent",
+                eventType: .contentApproved,
+                targetType: .event,
+                targetId: id,
+                outcome: .approved,
+                summary: "Подію схвалено",
+                metadata: ["newStatus": newStatus.rawValue]
+            )
+        case .rejected:
+            return SystemModerationLogContext(
+                operationName: "rejectEvent",
+                eventType: .contentRejected,
+                targetType: .event,
+                targetId: id,
+                outcome: .rejected,
+                summary: "Подію відхилено",
+                metadata: ["newStatus": newStatus.rawValue]
+            )
+        case .draft, .pendingReview, .needsRevision, .archived:
+            return nil
+        }
     }
 
     private func fetchLikedEventIDs() async throws -> Set<String> {
@@ -1052,6 +1194,7 @@ extension FirestoreEventRepository: EventRealtimeRepository {
             .order(by: "createdAt", descending: false)
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    Self.logListenerFailure(error, eventID: eventID)
                     Task { @MainActor in onError(Self.appError(from: error)) }
                     return
                 }
@@ -1069,6 +1212,24 @@ extension FirestoreEventRepository: EventRealtimeRepository {
             return .permissionDenied
         }
         return .network
+    }
+
+    private static func logListenerFailure(_ error: Error, eventID: String) {
+        Task {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Events",
+                    operationName: "listenEventComments",
+                    targetType: .event,
+                    targetId: eventID,
+                    metadata: [
+                        "listenerName": "eventComments",
+                        "pathGroup": "events/{eventID}/comments"
+                    ]
+                )
+            )
+        }
     }
 }
 

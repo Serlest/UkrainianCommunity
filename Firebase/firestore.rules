@@ -98,6 +98,264 @@ service cloud.firestore {
       return isAppOwner();
     }
 
+    function systemLogAllowedFields() {
+      return [
+        'id',
+        'createdAt',
+        'category',
+        'severity',
+        'severityRank',
+        'eventType',
+        'actorUserId',
+        'actorDisplayName',
+        'actorRole',
+        'targetType',
+        'targetId',
+        'targetTitle',
+        'organizationId',
+        'organizationName',
+        'outcome',
+        'summary',
+        'technicalMessage',
+        'errorCode',
+        'moduleName',
+        'screenName',
+        'operationName',
+        'appVersion',
+        'osVersion',
+        'deviceModel',
+        'isReviewed',
+        'reviewedAt',
+        'reviewedByUserId',
+        'metadata',
+        'retentionPolicy',
+        'correlationId'
+      ];
+    }
+
+    function appAdminReadableSystemLogCategories() {
+      return ['userAccount', 'organization', 'moderation', 'diagnostics'];
+    }
+
+    function isSystemLogSecuritySensitive(data) {
+      return (('retentionPolicy' in data) && data.retentionPolicy == 'security')
+        || (('category' in data) && data.category == 'authorization')
+        || (('eventType' in data) && data.eventType in ['permissionDenied', 'accountBlocked']);
+    }
+
+    function isSystemLogOwnerActor(data) {
+      return ('actorRole' in data) && data.actorRole == 'owner';
+    }
+
+    function isSystemLogOwnerTarget(data) {
+      return ((('targetActorRole' in data) && data.targetActorRole == 'owner')
+        || (('targetRole' in data) && data.targetRole == 'owner'));
+    }
+
+    function canAppAdminReadSystemLog(data) {
+      return isAppAdmin()
+        && ('category' in data)
+        && data.category in appAdminReadableSystemLogCategories()
+        && !isSystemLogSecuritySensitive(data)
+        && !isSystemLogOwnerActor(data)
+        && !isSystemLogOwnerTarget(data);
+    }
+
+    function canReadSystemLog(data) {
+      return isAppOwner() || canAppAdminReadSystemLog(data);
+    }
+
+    function isOwnerOrAppAdmin() {
+      return isActiveUser()
+        && ('globalRole' in currentUserData())
+        && currentUserData().globalRole in ['owner', 'admin'];
+    }
+
+    function isModerationLogActor() {
+      return isActiveUser()
+        && ('globalRole' in currentUserData())
+        && currentUserData().globalRole in ['owner', 'admin', 'moderator'];
+    }
+
+    function requestActorMatchesAuth() {
+      return request.resource.data.actorUserId == request.auth.uid
+        && request.resource.data.actorRole in ['owner', 'admin']
+        && request.resource.data.actorRole == currentUserData().globalRole;
+    }
+
+    function requestModerationActorMatchesAuth() {
+      return request.resource.data.actorUserId == request.auth.uid
+        && request.resource.data.actorRole in ['owner', 'admin', 'moderator']
+        && request.resource.data.actorRole == currentUserData().globalRole;
+    }
+
+    function validSystemLogCreateBase(logId) {
+      return request.resource.data.keys().hasOnly(systemLogAllowedFields())
+        && request.resource.data.id == logId
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.severityRank is int
+        && request.resource.data.targetType is string
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() > 0
+        && request.resource.data.summary.size() <= 512
+        && request.resource.data.isReviewed == false
+        && !('reviewedAt' in request.resource.data)
+        && !('reviewedByUserId' in request.resource.data)
+        && (!('metadata' in request.resource.data) || request.resource.data.metadata is map)
+        && !isSystemLogSecuritySensitive(request.resource.data)
+        && !isSystemLogOwnerTarget(request.resource.data);
+    }
+
+    function isSafeDiagnosticsCreate(logId) {
+      return validSystemLogCreateBase(logId)
+        && request.resource.data.category == 'diagnostics'
+        && request.resource.data.retentionPolicy == 'technicalError'
+        && request.resource.data.eventType is string
+        && request.resource.data.severity in ['debug', 'info', 'notice', 'warning', 'error', 'critical']
+        && request.resource.data.actorRole is string
+        && (!('technicalMessage' in request.resource.data) || request.resource.data.technicalMessage is string);
+    }
+
+    function isSafeAuditCreate(logId) {
+      return validSystemLogCreateBase(logId)
+        && request.resource.data.category == 'audit'
+        && request.resource.data.retentionPolicy == 'normalAudit'
+        && request.resource.data.eventType in ['contentCreated', 'contentUpdated', 'contentDeleted']
+        && request.resource.data.severity == 'info'
+        && request.resource.data.outcome == 'success'
+        && requestActorMatchesAuth()
+        && request.resource.data.targetType in ['newsPost', 'event', 'organization', 'guideArticle', 'systemConfiguration']
+        && request.resource.data.moduleName is string
+        && request.resource.data.operationName is string
+        && (!('targetId' in request.resource.data) || request.resource.data.targetId is string)
+        && (!('targetTitle' in request.resource.data) || request.resource.data.targetTitle is string)
+        && (!('organizationId' in request.resource.data) || request.resource.data.organizationId is string)
+        && (!('organizationName' in request.resource.data) || request.resource.data.organizationName is string)
+        && !('technicalMessage' in request.resource.data)
+        && !('errorCode' in request.resource.data);
+    }
+
+    function isSafeModerationCreate(logId) {
+      return validSystemLogCreateBase(logId)
+        && request.resource.data.category == 'moderation'
+        && request.resource.data.retentionPolicy == 'moderationDispute'
+        && request.resource.data.eventType in [
+          'contentApproved',
+          'contentRejected',
+          'organizationRequestApproved',
+          'organizationRequestRejected',
+          'reportReviewed'
+        ]
+        && request.resource.data.severity in ['info', 'notice']
+        && request.resource.data.outcome in ['approved', 'rejected', 'success']
+        && requestModerationActorMatchesAuth()
+        && request.resource.data.targetType in [
+          'newsPost',
+          'event',
+          'organization',
+          'organizationRequest',
+          'guideArticle',
+          'report'
+        ]
+        && request.resource.data.moduleName == 'Moderation'
+        && request.resource.data.operationName is string
+        && (!('targetId' in request.resource.data) || request.resource.data.targetId is string)
+        && (!('targetTitle' in request.resource.data) || request.resource.data.targetTitle is string)
+        && (!('organizationId' in request.resource.data) || request.resource.data.organizationId is string)
+        && (!('organizationName' in request.resource.data) || request.resource.data.organizationName is string)
+        && !('technicalMessage' in request.resource.data)
+        && !('errorCode' in request.resource.data);
+    }
+
+    function validSystemLogSecurityCreateBase(logId) {
+      return request.resource.data.keys().hasOnly(systemLogAllowedFields())
+        && request.resource.data.id == logId
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.severityRank is int
+        && request.resource.data.targetType is string
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() > 0
+        && request.resource.data.summary.size() <= 512
+        && request.resource.data.isReviewed == false
+        && !('reviewedAt' in request.resource.data)
+        && !('reviewedByUserId' in request.resource.data)
+        && (!('metadata' in request.resource.data) || request.resource.data.metadata is map)
+        && !isSystemLogOwnerTarget(request.resource.data);
+    }
+
+    function isSafeSecurityCreate(logId) {
+      return validSystemLogSecurityCreateBase(logId)
+        && request.resource.data.category == 'authorization'
+        && request.resource.data.retentionPolicy == 'security'
+        && request.resource.data.eventType in [
+          'permissionDenied',
+          'roleAssigned',
+          'roleRemoved',
+          'accountBlocked',
+          'accountUnblocked',
+          'userWarned'
+        ]
+        && request.resource.data.severity in ['notice', 'warning', 'error']
+        && request.resource.data.outcome in ['success', 'failed', 'blocked']
+        && requestActorMatchesAuth()
+        && request.resource.data.targetType in ['userProfile', 'organization', 'guideArticle']
+        && request.resource.data.moduleName in ['Security', 'Account']
+        && request.resource.data.operationName is string
+        && (!('targetId' in request.resource.data) || request.resource.data.targetId is string)
+        && (!('targetTitle' in request.resource.data) || request.resource.data.targetTitle is string)
+        && !('organizationId' in request.resource.data)
+        && !('organizationName' in request.resource.data)
+        && !('technicalMessage' in request.resource.data)
+        && !('errorCode' in request.resource.data);
+    }
+
+    function canCreateDiagnosticsLog(logId) {
+      return isOwnerOrAppAdmin()
+        && isSafeDiagnosticsCreate(logId);
+    }
+
+    function canCreateAuditLog(logId) {
+      return isOwnerOrAppAdmin()
+        && isSafeAuditCreate(logId);
+    }
+
+    function canCreateModerationLog(logId) {
+      return isModerationLogActor()
+        && isSafeModerationCreate(logId);
+    }
+
+    function canCreateSecurityLog(logId) {
+      return isOwnerOrAppAdmin()
+        && isSafeSecurityCreate(logId);
+    }
+
+    function validSystemLogClientCreate(logId) {
+      return request.resource.data.category == 'diagnostics'
+        ? canCreateDiagnosticsLog(logId)
+        : request.resource.data.category == 'audit'
+          ? canCreateAuditLog(logId)
+          : request.resource.data.category == 'moderation'
+            ? canCreateModerationLog(logId)
+            : request.resource.data.category == 'authorization'
+              ? canCreateSecurityLog(logId)
+              : false;
+    }
+
+    function validSystemLogReviewUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'isReviewed',
+          'reviewedAt',
+          'reviewedByUserId'
+        ])
+        && request.resource.data.isReviewed == true
+        && request.resource.data.reviewedAt is timestamp
+        && request.resource.data.reviewedByUserId == request.auth.uid
+        && (
+          isAppOwner()
+          || (canAppAdminReadSystemLog(resource.data) && canAppAdminReadSystemLog(request.resource.data))
+        );
+    }
+
     function isOwner() {
       return isAppOwner();
     }
@@ -2051,6 +2309,18 @@ service cloud.firestore {
 
         allow update, delete: if false;
       }
+    }
+
+    match /systemLogs/{systemLogId} {
+      // Full-text search is intentionally unsupported. Future searchText can be
+      // applied client-side on loaded pages or through explicit search tokens.
+      allow read: if canReadSystemLog(resource.data);
+
+      allow create: if validSystemLogClientCreate(systemLogId);
+
+      allow update: if validSystemLogReviewUpdate();
+
+      allow delete: if false;
     }
 
     match /auditLogs/{auditLogId} {

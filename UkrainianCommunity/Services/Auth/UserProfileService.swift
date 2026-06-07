@@ -92,6 +92,16 @@ final class UserProfileService {
                 federalState: draft.selectedFederalState
             )
         } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Profile",
+                    operationName: "createRegisteredUserDocument",
+                    targetType: .userProfile,
+                    targetId: uid
+                )
+            )
+
             if let nsError = error as NSError?, nsError.domain == FirestoreErrorDomain {
                 switch nsError.code {
                 case FirestoreErrorCode.permissionDenied.rawValue:
@@ -297,16 +307,29 @@ struct FirestoreUserRepository: UserRepository {
         let trimmedTelegramUsername = profile.telegramUsername?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        try await document.updateData([
-            "fullName": trimmedFullName,
-            "displayName": trimmedDisplayName,
-            "city": trimmedCity,
-            "bio": trimmedBio,
-            "telegramUsername": (trimmedTelegramUsername?.isEmpty == false) ? trimmedTelegramUsername! : NSNull(),
-            "selectedFederalState": profile.selectedFederalState.rawValue,
-            "avatarURL": profile.avatarURL?.absoluteString ?? FieldValue.delete(),
-            "updatedAt": FieldValue.serverTimestamp()
-        ])
+        do {
+            try await document.updateData([
+                "fullName": trimmedFullName,
+                "displayName": trimmedDisplayName,
+                "city": trimmedCity,
+                "bio": trimmedBio,
+                "telegramUsername": (trimmedTelegramUsername?.isEmpty == false) ? trimmedTelegramUsername! : NSNull(),
+                "selectedFederalState": profile.selectedFederalState.rawValue,
+                "avatarURL": profile.avatarURL?.absoluteString ?? FieldValue.delete(),
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Profile",
+                    operationName: "updateProfile",
+                    targetType: .userProfile,
+                    targetId: uid
+                )
+            )
+            throw error
+        }
 
         let updatedUser = try await UserProfileService.shared.fetchExistingUserProfile(uid: uid)
 
@@ -785,6 +808,13 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
             .whereField("userId", isEqualTo: userID)
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    Self.logListenerFailure(
+                        error,
+                        listenerName: "myFeedback",
+                        operationName: "listenMyFeedback",
+                        targetId: userID,
+                        pathGroup: "feedback"
+                    )
                     Task { @MainActor in onError(Self.appError(from: error)) }
                     return
                 }
@@ -805,6 +835,13 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    Self.logListenerFailure(
+                        error,
+                        listenerName: "ownerFeedbackInbox",
+                        operationName: "listenOwnerFeedbackInbox",
+                        targetId: nil,
+                        pathGroup: "feedback"
+                    )
                     Task { @MainActor in onError(Self.appError(from: error)) }
                     return
                 }
@@ -825,6 +862,13 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
             .order(by: "createdAt", descending: false)
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    Self.logListenerFailure(
+                        error,
+                        listenerName: "feedbackMessages",
+                        operationName: "listenFeedbackMessages",
+                        targetId: feedback.id,
+                        pathGroup: "feedback/{feedbackID}/messages"
+                    )
                     Task { @MainActor in onError(Self.appError(from: error)) }
                     return
                 }
@@ -843,5 +887,29 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
             return .permissionDenied
         }
         return .network
+    }
+
+    private static func logListenerFailure(
+        _ error: Error,
+        listenerName: String,
+        operationName: String,
+        targetId: String?,
+        pathGroup: String
+    ) {
+        Task {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Feedback",
+                    operationName: operationName,
+                    targetType: .feedback,
+                    targetId: targetId,
+                    metadata: [
+                        "listenerName": listenerName,
+                        "pathGroup": pathGroup
+                    ]
+                )
+            )
+        }
     }
 }

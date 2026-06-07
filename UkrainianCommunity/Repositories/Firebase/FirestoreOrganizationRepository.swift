@@ -95,15 +95,75 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let normalizedOrganization = normalizedOrganizationForWrite(organization, preserveCreatedAt: false)
         let data = makeOrganizationData(from: normalizedOrganization)
         debugLogOrganizationCreatePayload(uid: uid, organization: normalizedOrganization, data: data)
-        try await collection.document(normalizedOrganization.id).setData(data)
+        do {
+            try await collection.document(normalizedOrganization.id).setData(data)
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Organizations",
+                    operationName: "createOrganization",
+                    targetType: .organization,
+                    targetId: normalizedOrganization.id,
+                    targetTitle: normalizedOrganization.name,
+                    organizationId: normalizedOrganization.id,
+                    organizationName: normalizedOrganization.name
+                )
+            )
+            throw error
+        }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "Organizations",
+                operationName: "createOrganization",
+                eventType: .contentCreated,
+                targetType: .organization,
+                targetId: normalizedOrganization.id,
+                targetTitle: normalizedOrganization.name,
+                organizationId: normalizedOrganization.id,
+                organizationName: normalizedOrganization.name,
+                summary: "Organization created"
+            )
+        )
     }
 
     func updateOrganization(_ organization: Organization) async throws {
         _ = try ensureAuthenticatedUserID()
         let normalizedOrganization = normalizedOrganizationForWrite(organization, preserveCreatedAt: true)
 
-        try await collection.document(normalizedOrganization.id).updateData(
-            makeSafeOrganizationInfoUpdateData(from: normalizedOrganization)
+        do {
+            try await collection.document(normalizedOrganization.id).updateData(
+                makeSafeOrganizationInfoUpdateData(from: normalizedOrganization)
+            )
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Organizations",
+                    operationName: "updateOrganization",
+                    targetType: .organization,
+                    targetId: normalizedOrganization.id,
+                    targetTitle: normalizedOrganization.name,
+                    organizationId: normalizedOrganization.id,
+                    organizationName: normalizedOrganization.name
+                )
+            )
+            throw error
+        }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "Organizations",
+                operationName: "updateOrganization",
+                eventType: .contentUpdated,
+                targetType: .organization,
+                targetId: normalizedOrganization.id,
+                targetTitle: normalizedOrganization.name,
+                organizationId: normalizedOrganization.id,
+                organizationName: normalizedOrganization.name,
+                summary: "Organization updated"
+            )
         )
     }
 
@@ -159,20 +219,84 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
         do {
             try await imageReference.delete()
-        } catch {}
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "deleteOrganizationLogoImage",
+                    targetType: .organization,
+                    targetId: id,
+                    organizationId: id,
+                    metadata: ["storageArea": "organizations"]
+                )
+            )
+        }
 
         do {
             try await deleteStorageItems(prefix: "organizations/\(id)")
-        } catch {}
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "deleteOrganizationStorageItems",
+                    targetType: .organization,
+                    targetId: id,
+                    organizationId: id,
+                    metadata: ["storageArea": "organizations"]
+                )
+            )
+        }
 
         try await deleteRelatedLikes(organizationID: id)
         try await deleteRelatedSubscriptions(organizationID: id)
-        try await collection.document(id).delete()
+        do {
+            try await collection.document(id).delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Organizations",
+                    operationName: "deleteOrganization",
+                    targetType: .organization,
+                    targetId: id,
+                    organizationId: id
+                )
+            )
+            throw error
+        }
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "Organizations",
+                operationName: "deleteOrganization",
+                eventType: .contentDeleted,
+                targetType: .organization,
+                targetId: id,
+                organizationId: id,
+                summary: "Organization deleted"
+            )
+        )
     }
 
     func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL {
         _ = try ensureAuthenticatedUserID()
-        return try await imageUploadService.uploadOrganizationLogoImage(data: data, organizationID: organizationID)
+        do {
+            return try await imageUploadService.uploadOrganizationLogoImage(data: data, organizationID: organizationID)
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Organizations",
+                    operationName: "uploadOrganizationImage",
+                    targetType: .organization,
+                    targetId: organizationID,
+                    organizationId: organizationID
+                )
+            )
+            throw error
+        }
     }
 
     func likeOrganization(id: String) async throws {
@@ -521,6 +645,19 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         _ = try await CloudFunctionsClient.shared.approveOrganization(
             OrganizationReviewFunctionRequest(organizationId: id)
         )
+
+        await SystemModerationLoggingService.shared.logSuccess(
+            SystemModerationLogContext(
+                operationName: "approveOrganizationRequest",
+                eventType: .organizationRequestApproved,
+                targetType: .organizationRequest,
+                targetId: id,
+                organizationId: id,
+                outcome: .approved,
+                summary: "Запит організації схвалено",
+                metadata: ["newStatus": ModerationStatus.approved.rawValue]
+            )
+        )
     }
 
     func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
@@ -538,6 +675,19 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
         _ = try await CloudFunctionsClient.shared.rejectOrganization(
             OrganizationReviewFunctionRequest(organizationId: id, reason: trimmedReason)
+        )
+
+        await SystemModerationLoggingService.shared.logSuccess(
+            SystemModerationLogContext(
+                operationName: "rejectOrganizationRequest",
+                eventType: .organizationRequestRejected,
+                targetType: .organizationRequest,
+                targetId: id,
+                organizationId: id,
+                outcome: .rejected,
+                summary: "Запит організації відхилено",
+                metadata: ["newStatus": ModerationStatus.rejected.rawValue]
+            )
         )
     }
 
@@ -983,6 +1133,14 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
             .order(by: "createdAt", descending: false)
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    Self.logListenerFailure(
+                        error,
+                        listenerName: "organizationComments",
+                        operationName: "listenOrganizationComments",
+                        targetType: .organization,
+                        targetId: organizationID,
+                        pathGroup: "organizations/{organizationID}/comments"
+                    )
                     Task { @MainActor in onError(Self.appError(from: error)) }
                     return
                 }
@@ -1008,7 +1166,14 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
             .whereField("moderationStatus", in: requestStatuses)
             .order(by: "submittedAt", descending: true)
             .addSnapshotListener { snapshot, error in
-                handleOrganizationRequestSnapshot(snapshot, error: error, onChange: onChange, onError: onError)
+                handleOrganizationRequestSnapshot(
+                    snapshot,
+                    error: error,
+                    listenerName: "submittedOrganizationRequests",
+                    targetId: userID,
+                    onChange: onChange,
+                    onError: onError
+                )
             }
         return FirebaseRealtimeListener(registration)
     }
@@ -1021,7 +1186,14 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
             .order(by: "createdAt", descending: true)
             .addSnapshotListener { snapshot, error in
-                handleOrganizationRequestSnapshot(snapshot, error: error, onChange: onChange, onError: onError)
+                handleOrganizationRequestSnapshot(
+                    snapshot,
+                    error: error,
+                    listenerName: "pendingOrganizationRequestsForOwner",
+                    targetId: nil,
+                    onChange: onChange,
+                    onError: onError
+                )
             }
         return FirebaseRealtimeListener(registration)
     }
@@ -1029,10 +1201,20 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
     private func handleOrganizationRequestSnapshot(
         _ snapshot: QuerySnapshot?,
         error: Error?,
+        listenerName: String,
+        targetId: String?,
         onChange: @escaping @MainActor ([Organization]) -> Void,
         onError: @escaping @MainActor (AppError) -> Void
     ) {
         if let error {
+            Self.logListenerFailure(
+                error,
+                listenerName: listenerName,
+                operationName: "listenOrganizationRequests",
+                targetType: .organization,
+                targetId: targetId,
+                pathGroup: "organizations"
+            )
             Task { @MainActor in onError(Self.appError(from: error)) }
             return
         }
@@ -1069,6 +1251,31 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
             return .permissionDenied
         }
         return .network
+    }
+
+    private static func logListenerFailure(
+        _ error: Error,
+        listenerName: String,
+        operationName: String,
+        targetType: SystemLogTargetType,
+        targetId: String?,
+        pathGroup: String
+    ) {
+        Task {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Organizations",
+                    operationName: operationName,
+                    targetType: targetType,
+                    targetId: targetId,
+                    metadata: [
+                        "listenerName": listenerName,
+                        "pathGroup": pathGroup
+                    ]
+                )
+            )
+        }
     }
 }
 

@@ -26,6 +26,11 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .limit(to: max(1, limit))
             .addSnapshotListener { snapshot, error in
                 if let error {
+                    Self.logListenerFailure(
+                        error,
+                        listenerName: "notificationInbox",
+                        userID: userID
+                    )
                     Task { @MainActor in onError(Self.appError(from: error)) }
                     return
                 }
@@ -113,6 +118,24 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .collection("users")
             .document(userID)
             .collection("notificationInbox")
+    }
+
+    private static func logListenerFailure(_ error: Error, listenerName: String, userID: String) {
+        Task {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Notifications",
+                    operationName: "listenNotifications",
+                    targetType: .notification,
+                    targetId: userID,
+                    metadata: [
+                        "listenerName": listenerName,
+                        "pathGroup": "users/{userID}/notificationInbox"
+                    ]
+                )
+            )
+        }
     }
 
     private func makeNotification(from document: QueryDocumentSnapshot) -> AppNotification {

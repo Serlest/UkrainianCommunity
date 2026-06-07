@@ -42,9 +42,24 @@ final class ImageUploadService {
     }
 
     func deleteOrganizationNewsDraftImage(organizationID: String, newsID: String) async throws {
-        try await storage.reference()
-            .child(organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID))
-            .delete()
+        do {
+            try await storage.reference()
+                .child(organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID))
+                .delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "deleteOrganizationNewsDraftImage",
+                    targetType: .newsPost,
+                    targetId: newsID,
+                    organizationId: organizationID,
+                    metadata: ["storageArea": "organizationNewsDraftImage"]
+                )
+            )
+            throw error
+        }
     }
 
     func uploadEventCoverImage(data: Data, eventID: String) async throws -> URL {
@@ -75,9 +90,24 @@ final class ImageUploadService {
     }
 
     func deleteOrganizationEventDraftImage(organizationID: String, eventID: String) async throws {
-        try await storage.reference()
-            .child(organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID))
-            .delete()
+        do {
+            try await storage.reference()
+                .child(organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID))
+                .delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "deleteOrganizationEventDraftImage",
+                    targetType: .event,
+                    targetId: eventID,
+                    organizationId: organizationID,
+                    metadata: ["storageArea": "organizationEventDraftImage"]
+                )
+            )
+            throw error
+        }
     }
 
     func uploadOrganizationLogoImage(data: Data, organizationID: String) async throws -> URL {
@@ -109,7 +139,22 @@ final class ImageUploadService {
     }
 
     func deleteOrganizationPhoto(organizationID: String, photoID: String) async throws {
-        try await storage.reference().child("organizations/\(organizationID)/photos/\(photoID).jpg").delete()
+        do {
+            try await storage.reference().child("organizations/\(organizationID)/photos/\(photoID).jpg").delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "deleteOrganizationPhoto",
+                    targetType: .organization,
+                    targetId: photoID,
+                    organizationId: organizationID,
+                    metadata: ["storageArea": "organizationPhoto"]
+                )
+            )
+            throw error
+        }
     }
 
     func uploadProfileAvatarImage(data: Data, userID: String) async throws -> URL {
@@ -151,8 +196,64 @@ final class ImageUploadService {
         let metadata = StorageMetadata()
         metadata.contentType = contentType
 
-        _ = try await reference.putDataAsync(data, metadata: metadata)
-        return try await reference.downloadURL()
+        do {
+            _ = try await reference.putDataAsync(data, metadata: metadata)
+            return try await reference.downloadURL()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Storage",
+                    operationName: "uploadProcessedImage",
+                    targetType: storageTargetType(for: storagePath),
+                    targetId: storageTargetId(for: storagePath),
+                    organizationId: storageOrganizationId(for: storagePath),
+                    metadata: [
+                        "storageArea": storageArea(for: storagePath),
+                        "contentType": contentType,
+                        "byteCount": "\(data.count)"
+                    ]
+                )
+            )
+            throw error
+        }
+    }
+
+    private func storageArea(for storagePath: String) -> String {
+        if storagePath.hasPrefix("news/") { return "news" }
+        if storagePath.hasPrefix("events/") { return "events" }
+        if storagePath.hasPrefix("organizations/") { return "organizations" }
+        if storagePath.hasPrefix("profileImages/") { return "profileImages" }
+        if storagePath.hasPrefix("featuredBanners/") { return "featuredBanners" }
+        return "unknown"
+    }
+
+    private func storageTargetType(for storagePath: String) -> SystemLogTargetType {
+        if storagePath.hasPrefix("news/") { return .newsPost }
+        if storagePath.hasPrefix("events/") { return .event }
+        if storagePath.hasPrefix("organizations/") { return .organization }
+        if storagePath.hasPrefix("profileImages/") { return .userProfile }
+        if storagePath.hasPrefix("featuredBanners/") { return .systemConfiguration }
+        return .unknown
+    }
+
+    private func storageTargetId(for storagePath: String) -> String? {
+        let parts = storagePath.split(separator: "/").map(String.init)
+        guard parts.count > 1 else { return nil }
+
+        if parts.first == "organizations", parts.count >= 4, parts[2] == "photos" {
+            return parts[3].replacingOccurrences(of: ".jpg", with: "")
+        }
+
+        return parts[1]
+            .replacingOccurrences(of: ".jpg", with: "")
+            .replacingOccurrences(of: "_cover", with: "")
+    }
+
+    private func storageOrganizationId(for storagePath: String) -> String? {
+        let parts = storagePath.split(separator: "/").map(String.init)
+        guard parts.first == "organizations", parts.count > 1 else { return nil }
+        return parts[1]
     }
 
     private func organizationNewsDraftImagePath(organizationID: String, newsID: String) -> String {

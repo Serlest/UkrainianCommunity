@@ -67,8 +67,35 @@ struct LegacyFirestoreGuideRepository: LegacyGuideRepository {
             createdBy: trimmedAuthorId
         )
 
-        try await document.setData(try makeCreateData(from: article))
-        return article
+        let createData = try makeCreateData(from: article)
+
+        do {
+            try await document.setData(createData)
+            await SystemAuditLoggingService.shared.logSuccess(
+                SystemAuditLogContext(
+                    moduleName: "Guide",
+                    operationName: "createGuideArticle",
+                    eventType: .contentCreated,
+                    targetType: .guideArticle,
+                    targetId: article.id,
+                    targetTitle: article.title,
+                    summary: "Guide article created"
+                )
+            )
+            return article
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Guide",
+                    operationName: "createGuideArticle",
+                    targetType: .guideArticle,
+                    targetId: article.id,
+                    targetTitle: article.title
+                )
+            )
+            throw error
+        }
     }
 
     func updateGuideArticle(id: String, from draft: GuideArticleDraft, editorId: String) async throws -> GuideArticle {
@@ -97,8 +124,35 @@ struct LegacyFirestoreGuideRepository: LegacyGuideRepository {
             updatedAt: updatedAt
         )
 
-        try await document.updateData(try makeUpdateData(from: article))
-        return article
+        let updateData = try makeUpdateData(from: article)
+
+        do {
+            try await document.updateData(updateData)
+            await SystemAuditLoggingService.shared.logSuccess(
+                SystemAuditLogContext(
+                    moduleName: "Guide",
+                    operationName: "updateGuideArticle",
+                    eventType: .contentUpdated,
+                    targetType: .guideArticle,
+                    targetId: article.id,
+                    targetTitle: article.title,
+                    summary: "Guide article updated"
+                )
+            )
+            return article
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Guide",
+                    operationName: "updateGuideArticle",
+                    targetType: .guideArticle,
+                    targetId: article.id,
+                    targetTitle: article.title
+                )
+            )
+            throw error
+        }
     }
 
     func submitGuideArticleForReview(id: String, submitterId: String) async throws {
@@ -122,6 +176,18 @@ struct LegacyFirestoreGuideRepository: LegacyGuideRepository {
 
         _ = try await CloudFunctionsClient.shared.approveGuideArticle(
             GuideWorkflowFunctionRequest(articleId: trimmedId)
+        )
+
+        await SystemModerationLoggingService.shared.logSuccess(
+            SystemModerationLogContext(
+                operationName: "approveGuideArticle",
+                eventType: .contentApproved,
+                targetType: .guideArticle,
+                targetId: trimmedId,
+                outcome: .approved,
+                summary: "Статтю довідника схвалено",
+                metadata: ["newStatus": ModerationStatus.approved.rawValue]
+            )
         )
     }
 
@@ -147,6 +213,17 @@ struct LegacyFirestoreGuideRepository: LegacyGuideRepository {
         _ = try await CloudFunctionsClient.shared.archiveGuideArticle(
             GuideWorkflowFunctionRequest(articleId: trimmedId)
         )
+
+        await SystemAuditLoggingService.shared.logSuccess(
+            SystemAuditLogContext(
+                moduleName: "Guide",
+                operationName: "archiveGuideArticle",
+                eventType: .contentUpdated,
+                targetType: .guideArticle,
+                targetId: trimmedId,
+                summary: "Guide article archived"
+            )
+        )
     }
 
     func deleteGuideArticle(id: String, editorId: String) async throws {
@@ -166,7 +243,21 @@ struct LegacyFirestoreGuideRepository: LegacyGuideRepository {
             throw AppError.validationFailed
         }
 
-        try await document.delete()
+        do {
+            try await document.delete()
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Guide",
+                    operationName: "deleteGuideArticle",
+                    targetType: .guideArticle,
+                    targetId: trimmedId,
+                    targetTitle: existingArticle.title
+                )
+            )
+            throw error
+        }
     }
 
     private func isEditableGuideArticle(_ article: GuideArticle) -> Bool {

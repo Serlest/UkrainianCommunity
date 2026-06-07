@@ -2321,6 +2321,92 @@ enum AppStrings {
         LocalizationStore.localizedFormat("auth.consent.current_privacy_version", defaultValue: "Privacy version %@", arguments: [version])
     }
 
+    enum SystemLogs {
+        static var ownerTitle: String { text("system_logs.owner.title", "Журнал системи") }
+        static var ownerSubtitle: String { text("system_logs.owner.subtitle", "Дії, помилки та технічна діагностика") }
+        static var ownerProfileSubtitle: String { text("system_logs.owner.profile_subtitle", "Дії, помилки, безпека та модерація") }
+        static var appAdminTitle: String { text("system_logs.app_admin.title", "Журнал модерації") }
+        static var appAdminSubtitle: String { text("system_logs.app_admin.subtitle", "Помилки, модерація та організації") }
+        static var all: String { text("system_logs.section.all", "Усі") }
+        static var actions: String { text("system_logs.section.actions", "Дії") }
+        static var errors: String { text("system_logs.section.errors", "Помилки") }
+        static var security: String { text("system_logs.section.security", "Безпека") }
+        static var moderation: String { text("system_logs.section.moderation", "Модерація") }
+        static var organizations: String { text("system_logs.section.organizations", "Організації") }
+        static var users: String { text("system_logs.section.users", "Користувачі") }
+        static var unreviewed: String { text("system_logs.filter.unreviewed", "Непереглянуті") }
+        static var critical: String { text("system_logs.filter.critical", "Критичні") }
+        static var today: String { text("system_logs.filter.today", "Сьогодні") }
+        static var sevenDays: String { text("system_logs.filter.seven_days", "7 днів") }
+        static var sectionPickerLabel: String { text("system_logs.filter.section_picker", "Розділ журналу") }
+        static var markReviewed: String { text("system_logs.action.mark_reviewed", "Позначити як переглянуте") }
+        static var filteredEmptyTitle: String { text("system_logs.empty.filtered.title", "Немає записів за вибраними фільтрами") }
+        static var reviewed: String { text("system_logs.reviewed", "Переглянуто") }
+        static var notReviewed: String { text("system_logs.not_reviewed", "Не переглянуто") }
+        static var notRecorded: String { text("system_logs.not_recorded", "Не записано") }
+        static var unknown: String { text("system_logs.unknown", "Невідомо") }
+        static var reviewedByCurrentUser: String { text("system_logs.reviewed_by.current_user", "Поточний адміністратор") }
+        static var reviewedByAdmin: String { text("system_logs.reviewed_by.admin", "Адміністратор") }
+        static var records: String { text("system_logs.records.title", "Записи") }
+        static var recordsCountSuffix: String { text("system_logs.records.count_suffix", "записів") }
+        static var loading: String { text("system_logs.loading", "Завантаження журналу") }
+        static var clearSearch: String { text("system_logs.search.clear", "Очистити пошук") }
+        static var searchPlaceholder: String { text("system_logs.search.placeholder", "Пошук у журналі") }
+        static var emptyTitle: String { text("system_logs.empty.title", "Журнал поки порожній") }
+        static var emptyMessage: String { text("system_logs.empty.message", "Події з’являться тут після підключення системного логування.") }
+        static var filteredEmptyMessage: String { text("system_logs.empty.filtered.message", "Змініть пошук або фільтри, щоб побачити інші записи.") }
+        static var detailTitle: String { text("system_logs.detail.title", "Деталі запису") }
+        static var actorSection: String { text("system_logs.detail.section.actor", "Виконавець") }
+        static var targetSection: String { text("system_logs.detail.section.target", "Ціль") }
+        static var organizationSection: String { text("system_logs.detail.section.organization", "Організація") }
+        static var classificationSection: String { text("system_logs.detail.section.classification", "Класифікація") }
+        static var diagnosticsSection: String { text("system_logs.detail.section.diagnostics", "Діагностика") }
+        static var deviceSection: String { text("system_logs.detail.section.device", "Застосунок і пристрій") }
+        static var reviewSection: String { text("system_logs.detail.section.review", "Перегляд") }
+        static var metadataSection: String { text("system_logs.detail.section.metadata", "Метадані") }
+        static var tracingSection: String { text("system_logs.detail.section.tracing", "Трасування") }
+        static var reviewStatusSection: String { text("system_logs.review_action.title", "Статус перегляду") }
+        static var reviewInstruction: String { text("system_logs.review_action.message", "Позначте запис переглянутим після перевірки, що він не потребує додаткової дії.") }
+        static var markingReviewed: String { text("system_logs.action.marking_reviewed", "Позначення") }
+        static var nameLabel: String { text("system_logs.detail.label.name", "Ім’я") }
+        static var roleLabel: String { text("system_logs.detail.label.role", "Роль") }
+        static var typeLabel: String { text("system_logs.detail.label.type", "Тип") }
+        static var titleLabel: String { text("system_logs.detail.label.title", "Назва") }
+        static var categoryLabel: String { text("system_logs.detail.label.category", "Категорія") }
+        static var severityLabel: String { text("system_logs.detail.label.severity", "Рівень") }
+        static var eventLabel: String { text("system_logs.detail.label.event", "Подія") }
+        static var outcomeLabel: String { text("system_logs.detail.label.outcome", "Результат") }
+        static var retentionLabel: String { text("system_logs.detail.label.retention", "Зберігання") }
+        static var errorCodeLabel: String { text("system_logs.detail.label.error_code", "Код помилки") }
+        static var moduleLabel: String { text("system_logs.detail.label.module", "Модуль") }
+        static var screenLabel: String { text("system_logs.detail.label.screen", "Екран") }
+        static var operationLabel: String { text("system_logs.detail.label.operation", "Операція") }
+        static var appVersionLabel: String { text("system_logs.detail.label.app_version", "Версія застосунку") }
+        static var osVersionLabel: String { text("system_logs.detail.label.os_version", "Версія ОС") }
+        static var deviceLabel: String { text("system_logs.detail.label.device", "Пристрій") }
+        static var statusLabel: String { text("system_logs.detail.label.status", "Статус") }
+        static var reviewedAtLabel: String { text("system_logs.detail.label.reviewed_at", "Переглянуто о") }
+        static var reviewedByLabel: String { text("system_logs.detail.label.reviewed_by", "Переглянув") }
+        static var createdAtLabel: String { text("system_logs.detail.label.created_at", "Створено") }
+        static var correlationIdLabel: String { text("system_logs.detail.label.correlation_id", "ID зв’язку") }
+        static var adminUnreviewedSubtitle: String { text("system_logs.metric.unreviewed.admin_subtitle", "Потребує уваги адміністратора") }
+        static var ownerUnreviewedSubtitle: String { text("system_logs.metric.unreviewed.owner_subtitle", "Потребує уваги власника") }
+        static var highestLevelSubtitle: String { text("system_logs.metric.critical.subtitle", "Найвищий рівень") }
+        static var technicalDiagnosticsSubtitle: String { text("system_logs.metric.errors.subtitle", "Технічна діагностика") }
+        static var adminAvailableSubtitle: String { text("system_logs.metric.moderation.subtitle", "Доступно адміністратору") }
+        static var restrictedJournalSubtitle: String { text("system_logs.metric.security.subtitle", "Обмежений журнал") }
+        static var ownerLoadPermissionError: String { text("system_logs.error.load.owner_permission", "Не вдалося завантажити журнал. Перевірте права доступу власника.") }
+        static var adminLoadPermissionError: String { text("system_logs.error.load.admin_permission", "Не вдалося завантажити журнал модерації. Перевірте права доступу адміністратора.") }
+        static var indexRequiredError: String { text("system_logs.error.load.index_required", "Для цього запиту журналу потрібен індекс Firestore. Перевірте налаштування індексів.") }
+        static var networkLoadError: String { text("system_logs.error.load.network", "Журнал тимчасово недоступний. Перевірте з’єднання та спробуйте ще раз.") }
+        static var genericLoadError: String { text("system_logs.error.load.generic", "Не вдалося завантажити журнал системи. Спробуйте оновити сторінку.") }
+        static var missingReviewerError: String { text("system_logs.error.review.missing_reviewer", "Не вдалося визначити користувача для позначення перегляду.") }
+        static var ownerReviewPermissionError: String { text("system_logs.error.review.owner_permission", "Не вдалося позначити запис переглянутим. Перевірте права власника.") }
+        static var adminReviewPermissionError: String { text("system_logs.error.review.admin_permission", "Не вдалося позначити запис переглянутим. Перевірте права адміністратора.") }
+        static var networkReviewError: String { text("system_logs.error.review.network", "Не вдалося зберегти статус перегляду. Перевірте з’єднання та спробуйте ще раз.") }
+        static var genericReviewError: String { text("system_logs.error.review.generic", "Не вдалося позначити запис переглянутим. Спробуйте ще раз.") }
+    }
+
     private static func text(_ key: String, _ defaultValue: String) -> String {
         LocalizationStore.localizedString(key, defaultValue: defaultValue)
     }

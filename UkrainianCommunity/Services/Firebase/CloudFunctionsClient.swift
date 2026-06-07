@@ -370,7 +370,341 @@ final class CloudFunctionsClient {
         request: Request
     ) async throws -> Response {
         let callable: Callable<Request, Response> = functions.httpsCallable(functionName.rawValue)
-        return try await callable.call(request)
+        do {
+            let response = try await callable.call(request)
+            await logSecuritySuccessIfNeeded(functionName, request: request, response: response)
+            return response
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "CloudFunctions",
+                    operationName: functionName.rawValue,
+                    targetType: targetType(for: functionName),
+                    metadata: [
+                        "functionName": functionName.rawValue,
+                        "callable": functionName.rawValue
+                    ]
+                )
+            )
+            await logSecurityFailureIfNeeded(functionName, request: request, error: error)
+            throw error
+        }
+    }
+
+    private func logSecuritySuccessIfNeeded<Request, Response>(
+        _ functionName: CloudFunctionName,
+        request: Request,
+        response: Response
+    ) async {
+        guard let context = securitySuccessContext(functionName, request: request, response: response) else { return }
+        await SystemSecurityLoggingService.shared.log(context)
+    }
+
+    private func logSecurityFailureIfNeeded<Request>(
+        _ functionName: CloudFunctionName,
+        request: Request,
+        error: Error
+    ) async {
+        guard isSecuritySensitive(functionName),
+              isPermissionFailure(error),
+              let context = securityFailureContext(functionName, request: request, error: error) else { return }
+        await SystemSecurityLoggingService.shared.log(context)
+    }
+
+    private func targetType(for functionName: CloudFunctionName) -> SystemLogTargetType {
+        switch functionName {
+        case .assignOrganizationAdmin,
+             .removeOrganizationAdmin,
+             .assignOrganizationModerator,
+             .removeOrganizationModerator,
+             .transferOrganizationOwnership,
+             .approveOrganization,
+             .rejectOrganization,
+             .requestOrganizationRevision:
+            return .organization
+        case .submitGuideArticleForReview,
+             .approveGuideArticle,
+             .publishGuideArticle,
+             .archiveGuideArticle:
+            return .guideArticle
+        case .assignAppAdmin,
+             .removeAppAdmin,
+             .assignAppModerator,
+             .removeAppModerator,
+             .assignGuideEditor,
+             .removeGuideEditor,
+             .warnUser,
+             .suspendUser,
+             .banUser,
+             .deactivateUser,
+             .restoreUser:
+            return .userProfile
+        case .acceptLegalDocument:
+            return .legalDocument
+        }
+    }
+
+    private func isSecuritySensitive(_ functionName: CloudFunctionName) -> Bool {
+        switch functionName {
+        case .assignOrganizationAdmin,
+             .removeOrganizationAdmin,
+             .assignOrganizationModerator,
+             .removeOrganizationModerator,
+             .transferOrganizationOwnership,
+             .assignAppAdmin,
+             .removeAppAdmin,
+             .assignAppModerator,
+             .removeAppModerator,
+             .assignGuideEditor,
+             .removeGuideEditor,
+             .warnUser,
+             .suspendUser,
+             .banUser,
+             .deactivateUser,
+             .restoreUser:
+            return true
+        case .approveOrganization,
+             .rejectOrganization,
+             .requestOrganizationRevision,
+             .submitGuideArticleForReview,
+             .approveGuideArticle,
+             .publishGuideArticle,
+             .archiveGuideArticle,
+             .acceptLegalDocument:
+            return false
+        }
+    }
+
+    private func isPermissionFailure(_ error: Error) -> Bool {
+        let code = FunctionsErrorCode(rawValue: (error as NSError).code)
+        return code == .permissionDenied || code == .unauthenticated
+    }
+
+    private func securitySuccessContext<Request, Response>(
+        _ functionName: CloudFunctionName,
+        request: Request,
+        response: Response
+    ) -> SystemSecurityLogContext? {
+        switch functionName {
+        case .assignOrganizationAdmin,
+             .removeOrganizationAdmin,
+             .assignOrganizationModerator,
+             .removeOrganizationModerator:
+            guard let request = request as? OrganizationRoleChangeFunctionRequest,
+                  let response = response as? OrganizationRoleChangeFunctionResponse else { return nil }
+            return organizationRoleSecurityContext(functionName, request: request, response: response)
+        case .transferOrganizationOwnership:
+            guard let request = request as? OrganizationRoleChangeFunctionRequest,
+                  let response = response as? OrganizationOwnershipTransferFunctionResponse else { return nil }
+            return organizationOwnershipSecurityContext(functionName, request: request, response: response)
+        case .assignAppAdmin,
+             .removeAppAdmin,
+             .assignAppModerator,
+             .removeAppModerator,
+             .assignGuideEditor,
+             .removeGuideEditor:
+            guard let response = response as? PlatformRoleChangeFunctionResponse else { return nil }
+            return platformRoleSecurityContext(functionName, response: response)
+        case .warnUser,
+             .suspendUser,
+             .banUser,
+             .deactivateUser,
+             .restoreUser:
+            guard let response = response as? AccountStatusChangeFunctionResponse else { return nil }
+            return accountStatusSecurityContext(functionName, response: response)
+        case .approveOrganization,
+             .rejectOrganization,
+             .requestOrganizationRevision,
+             .submitGuideArticleForReview,
+             .approveGuideArticle,
+             .publishGuideArticle,
+             .archiveGuideArticle,
+             .acceptLegalDocument:
+            return nil
+        }
+    }
+
+    private func securityFailureContext<Request>(
+        _ functionName: CloudFunctionName,
+        request: Request,
+        error: Error
+    ) -> SystemSecurityLogContext? {
+        guard isSecuritySensitive(functionName) else { return nil }
+        let nsError = error as NSError
+        let code = FunctionsErrorCode(rawValue: nsError.code)
+        let metadata = safeSecurityMetadata(functionName: functionName, request: request)
+            .merging(["errorCode": "cloudFunctions.\(code?.rawValue ?? nsError.code)"]) { current, _ in current }
+
+        return SystemSecurityLogContext(
+            moduleName: "Security",
+            operationName: functionName.rawValue,
+            eventType: .permissionDenied,
+            severity: code == .unauthenticated ? .warning : .error,
+            targetType: targetType(for: functionName),
+            targetId: securityTargetId(functionName: functionName, request: request),
+            outcome: .blocked,
+            summary: "Доступ до захищеної дії відхилено",
+            metadata: metadata
+        )
+    }
+
+    private func organizationRoleSecurityContext(
+        _ functionName: CloudFunctionName,
+        request: OrganizationRoleChangeFunctionRequest,
+        response: OrganizationRoleChangeFunctionResponse
+    ) -> SystemSecurityLogContext {
+        let isRemoval = response.newRole == .none
+        return SystemSecurityLogContext(
+            moduleName: "Security",
+            operationName: functionName.rawValue,
+            eventType: isRemoval ? .roleRemoved : .roleAssigned,
+            severity: .notice,
+            targetType: .organization,
+            targetId: response.organizationId,
+            outcome: .success,
+            summary: isRemoval ? "Роль в організації знято" : "Роль в організації призначено",
+            metadata: [
+                "functionName": functionName.rawValue,
+                "targetUserId": response.targetUserId,
+                "previousRole": response.previousRole.rawValue,
+                "newRole": response.newRole.rawValue,
+                "organizationId": request.organizationId
+            ]
+        )
+    }
+
+    private func organizationOwnershipSecurityContext(
+        _ functionName: CloudFunctionName,
+        request: OrganizationRoleChangeFunctionRequest,
+        response: OrganizationOwnershipTransferFunctionResponse
+    ) -> SystemSecurityLogContext {
+        var metadata = [
+            "functionName": functionName.rawValue,
+            "targetUserId": request.targetUserId,
+            "newOwnerId": response.newOwnerId,
+            "organizationId": response.organizationId
+        ]
+        if let previousOwnerId = response.previousOwnerId {
+            metadata["previousOwnerId"] = previousOwnerId
+        }
+
+        return SystemSecurityLogContext(
+            moduleName: "Security",
+            operationName: functionName.rawValue,
+            eventType: .roleAssigned,
+            severity: .warning,
+            targetType: .organization,
+            targetId: response.organizationId,
+            outcome: .success,
+            summary: "Власника організації змінено",
+            metadata: metadata
+        )
+    }
+
+    private func platformRoleSecurityContext(
+        _ functionName: CloudFunctionName,
+        response: PlatformRoleChangeFunctionResponse
+    ) -> SystemSecurityLogContext {
+        let isRemoval = functionName == .removeAppAdmin
+            || functionName == .removeAppModerator
+            || functionName == .removeGuideEditor
+        return SystemSecurityLogContext(
+            moduleName: "Security",
+            operationName: functionName.rawValue,
+            eventType: isRemoval ? .roleRemoved : .roleAssigned,
+            severity: .notice,
+            targetType: .userProfile,
+            targetId: response.targetUserId,
+            outcome: .success,
+            summary: isRemoval ? "Платформну роль знято" : "Платформну роль призначено",
+            metadata: [
+                "functionName": functionName.rawValue,
+                "previousGlobalRole": response.previousGlobalRole.rawValue,
+                "newGlobalRole": response.newGlobalRole.rawValue,
+                "previousCanManageGuide": String(response.previousCanManageGuide),
+                "newCanManageGuide": String(response.newCanManageGuide)
+            ]
+        )
+    }
+
+    private func accountStatusSecurityContext(
+        _ functionName: CloudFunctionName,
+        response: AccountStatusChangeFunctionResponse
+    ) -> SystemSecurityLogContext {
+        let isRestored = response.newAccountStatus == .active
+        let isWarning = response.newAccountStatus == .warned
+        return SystemSecurityLogContext(
+            moduleName: "Account",
+            operationName: functionName.rawValue,
+            eventType: isWarning ? .userWarned : (isRestored ? .accountUnblocked : .accountBlocked),
+            severity: isRestored ? .notice : .warning,
+            targetType: .userProfile,
+            targetId: response.targetUserId,
+            outcome: .success,
+            summary: accountStatusSummary(response.newAccountStatus),
+            metadata: [
+                "functionName": functionName.rawValue,
+                "previousAccountStatus": response.previousAccountStatus.rawValue,
+                "newAccountStatus": response.newAccountStatus.rawValue,
+                "previousBlockState": response.previousBlockState.rawValue,
+                "newBlockState": response.newBlockState.rawValue,
+                "warningCount": String(response.warningCount),
+                "banExpiresAt": response.banExpiresAt ?? "none"
+            ]
+        )
+    }
+
+    private func accountStatusSummary(_ status: CloudAccountStatus) -> String {
+        switch status {
+        case .active:
+            return "Доступ до облікового запису відновлено"
+        case .warned:
+            return "Користувача попереджено"
+        case .suspendedUntil:
+            return "Обліковий запис тимчасово заблоковано"
+        case .bannedPermanent:
+            return "Обліковий запис заблоковано"
+        case .deactivated:
+            return "Обліковий запис деактивовано"
+        }
+    }
+
+    private func safeSecurityMetadata<Request>(
+        functionName: CloudFunctionName,
+        request: Request
+    ) -> [String: String] {
+        var metadata = [
+            "functionName": functionName.rawValue
+        ]
+
+        if let request = request as? OrganizationRoleChangeFunctionRequest {
+            metadata["organizationId"] = request.organizationId
+            metadata["targetUserId"] = request.targetUserId
+        } else if let request = request as? PlatformRoleChangeFunctionRequest {
+            metadata["targetUserId"] = request.targetUserId
+        } else if let request = request as? AccountStatusChangeFunctionRequest {
+            metadata["targetUserId"] = request.targetUserId
+            metadata["hasUntil"] = String(request.until != nil)
+        }
+
+        return metadata
+    }
+
+    private func securityTargetId<Request>(
+        functionName: CloudFunctionName,
+        request: Request
+    ) -> String? {
+        if let request = request as? OrganizationRoleChangeFunctionRequest {
+            return request.organizationId
+        }
+        if let request = request as? PlatformRoleChangeFunctionRequest {
+            return request.targetUserId
+        }
+        if let request = request as? AccountStatusChangeFunctionRequest {
+            return request.targetUserId
+        }
+        return nil
     }
 
     private func platformRoleChangeRequest(

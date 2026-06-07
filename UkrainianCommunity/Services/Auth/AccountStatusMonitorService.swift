@@ -25,7 +25,12 @@ final class AccountStatusMonitorService: ObservableObject {
 
         guard let userID else { return }
 
-        listener = db.collection("users").document(userID).addSnapshotListener { [weak self, weak authState] snapshot, _ in
+        listener = db.collection("users").document(userID).addSnapshotListener { [weak self, weak authState] snapshot, error in
+            if let error {
+                Self.logListenerFailure(error, userID: userID)
+                return
+            }
+
             Task { @MainActor in
                 self?.handle(snapshot: snapshot, authState: authState)
             }
@@ -73,6 +78,24 @@ final class AccountStatusMonitorService: ObservableObject {
         presentedNoticeID = notice.id
         acknowledgementError = nil
         activeNotice = notice
+    }
+
+    private static func logListenerFailure(_ error: Error, userID: String) {
+        Task {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "AccountStatus",
+                    operationName: "listenAccountStatus",
+                    targetType: .userProfile,
+                    targetId: userID,
+                    metadata: [
+                        "listenerName": "accountStatus",
+                        "pathGroup": "users/{userID}"
+                    ]
+                )
+            )
+        }
     }
 
     private func makeUser(from document: DocumentSnapshot) -> AppUser? {
