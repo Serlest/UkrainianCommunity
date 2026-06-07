@@ -1186,8 +1186,10 @@ private struct UserDetailView: View {
                 }
 
                 VStack(spacing: 8) {
-                    roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
-                    roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
+                    if canShowAppAdminRoleControls {
+                        roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
+                        roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
+                    }
                     roleActionButton(.assignAppModerator, isEnabled: canAssignAppModerator)
                     roleActionButton(.removeAppModerator, isEnabled: canRemoveAppModerator)
                     roleActionButton(.assignGuideEditor, isEnabled: canAssignGuideEditor)
@@ -1387,6 +1389,11 @@ private struct UserDetailView: View {
             && !isUpdating
             && !PermissionService.hasOwnerRoleForDisplay(user: user)
             && actor.id != user.id
+    }
+
+    private var canShowAppAdminRoleControls: Bool {
+        guard let actor else { return false }
+        return PermissionService.canAssignAppAdmin(user: actor)
     }
 
     private var canAssignAppAdmin: Bool {

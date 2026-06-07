@@ -77,7 +77,7 @@ test("App Owner has full platform access and organization override", () => {
   assert.equal(permissions.canUseOrganizationOverride(owner), true);
 });
 
-test("App Admin can assist platform queues without role assignment or org override", () => {
+test("App Admin can manage limited platform roles without admin assignment or org override", () => {
   const admin = user({uid: "admin", globalRole: "admin"});
   const guideAdmin = user({uid: "guide-admin", globalRole: "admin", canManageGuide: true});
   const org = organization();
@@ -87,8 +87,8 @@ test("App Admin can assist platform queues without role assignment or org overri
   assert.equal(permissions.canManageFeedback(admin), true);
   assert.equal(permissions.canManageReports(admin), true);
   assert.equal(permissions.canAssignAppAdmin(admin), false);
-  assert.equal(permissions.canAssignAppModerator(admin), false);
-  assert.equal(permissions.canAssignGuideEditor(admin), false);
+  assert.equal(permissions.canAssignAppModerator(admin), true);
+  assert.equal(permissions.canAssignGuideEditor(admin), true);
   assert.equal(permissions.canUseOrganizationOverride(admin), false);
   assert.equal(permissions.canManageGuide(admin), false);
   assert.equal(permissions.canManageGuide(guideAdmin), true);

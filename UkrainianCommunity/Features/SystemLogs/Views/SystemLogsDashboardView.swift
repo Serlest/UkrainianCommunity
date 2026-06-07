@@ -34,12 +34,14 @@ struct SystemLogsDashboardView: View {
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     header
-                    searchBar
-                    filters
-
-                    SystemLogsOverviewCards(metrics: viewModel.overviewMetrics)
-
-                    content
+                    AppGroupedContentPlane {
+                        VStack(alignment: .leading, spacing: AppTheme.eventsControlGroupSpacing) {
+                            searchBar
+                            filters
+                            SystemLogsOverviewCards(metrics: viewModel.overviewMetrics)
+                            content
+                        }
+                    }
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.top, AppTheme.sectionSpacing)
@@ -56,38 +58,33 @@ struct SystemLogsDashboardView: View {
             await viewModel.refresh()
         }
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsControlGroupSpacing) {
-            HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                headerLeadingControl
+        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+            headerLeadingControl
 
-                AppEditorSectionCard {
-                    VStack(spacing: 6) {
-                        Text(viewModel.accessMode.title)
-                            .font(AppTheme.screenTitleFont)
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .multilineTextAlignment(.center)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(viewModel.accessMode.title)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                        Text(viewModel.accessMode.subtitle)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
+                Text(viewModel.accessMode.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if viewModel.isLoading {
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .controlSize(.small)
-                            Spacer()
-                        }
-                    }
-                }
+            if viewModel.isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.top, 3)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

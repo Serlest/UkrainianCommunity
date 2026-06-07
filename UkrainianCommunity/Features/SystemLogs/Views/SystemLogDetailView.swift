@@ -2,6 +2,8 @@ import FirebaseAuth
 import SwiftUI
 
 struct SystemLogDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+
     let log: SystemLogEntry
     let isMarkingReviewed: Bool
     let reviewErrorMessage: String?
@@ -21,6 +23,8 @@ struct SystemLogDetailView: View {
 
     var body: some View {
         DetailPageContainer {
+            detailTopBar
+
             DetailHeaderCard(title: SystemLogDisplayFormatting.summaryTitle(log.summary), subtitle: log.technicalMessage) {
                 HStack(spacing: 8) {
                     AppInfoChip(
@@ -88,6 +92,30 @@ struct SystemLogDetailView: View {
         .background(AppBackgroundView())
         .navigationTitle(AppStrings.SystemLogs.detailTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var detailTopBar: some View {
+        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                dismiss()
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(AppStrings.SystemLogs.detailTitle)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(SystemLogDisplayFormatting.dateTime(log.createdAt))
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

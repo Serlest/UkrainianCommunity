@@ -1,11 +1,18 @@
-import {initializeApp} from "firebase-admin/app";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {FieldValue} from "firebase-admin/firestore";
 import {getMessaging} from "firebase-admin/messaging";
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
 
-initializeApp();
+import {db} from "./firebase/admin";
 
-const db = getFirestore();
+export * from "./counters/aggregation";
+export * from "./guide/workflow";
+export * from "./legal/legalDocuments";
+export * from "./notifications/backendWriters";
+export * from "./organizations/approvalWorkflow";
+export * from "./organizations/roleManagement";
+export * from "./users/accountStatusManagement";
+export * from "./users/platformRoleManagement";
+
 const feedbackManagers = ["owner", "admin", "moderator"];
 
 type FeedbackData = {
