@@ -26,7 +26,7 @@ final class RemoteNotificationRegistrationService: NSObject {
         let adapter = FirebaseMessagingDelegateAdapter { [weak self] fcmToken in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.debugLog("FCM registration token callback received: \(fcmToken ?? "nil")")
+                self.debugLog(fcmToken == nil ? "FCM registration token callback received without a token." : "FCM registration token callback received.")
                 await self.saveToken(fcmToken)
             }
         }
@@ -144,7 +144,7 @@ final class RemoteNotificationRegistrationService: NSObject {
 
         do {
             let token = try await Messaging.messaging().token()
-            debugLog("FCM token received: \(token)")
+            debugLog("FCM token received.")
             await saveToken(token)
         } catch {
             debugLog("FCM token refresh failed: \(error)")
@@ -164,14 +164,14 @@ final class RemoteNotificationRegistrationService: NSObject {
 
         let tokenKey = "\(userID):\(token)"
         guard lastSavedTokenKey != tokenKey else {
-            debugLog("FCM token already uploaded for user \(userID); skipping duplicate upload.")
+            debugLog("FCM token already uploaded; skipping duplicate upload.")
             return
         }
 
         do {
             try await repository.saveCurrentDeviceToken(userID: userID, token: token)
             lastSavedTokenKey = tokenKey
-            debugLog("FCM token uploaded for user \(userID)")
+            debugLog("FCM token uploaded.")
         } catch {
             debugLog("FCM token save failed: \(error)")
         }
