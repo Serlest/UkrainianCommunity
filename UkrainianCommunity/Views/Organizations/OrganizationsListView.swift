@@ -273,13 +273,22 @@ struct OrganizationsListView: View {
                 pendingDeleteOrganizationID = nil
             }
         }
-        .alert(AppStrings.Organizations.deleteFailed, isPresented: $isShowingDeleteError) {
-            Button(AppStrings.Organizations.dismissError) {
-                deleteErrorMessage = nil
+        .appErrorDialog(Binding(
+            get: {
+                guard isShowingDeleteError else { return nil }
+                return AppErrorDialog(
+                    title: AppStrings.Organizations.deleteFailed,
+                    message: deleteErrorMessage ?? readableOrganizationErrorText(.unknown),
+                    okTitle: AppStrings.Organizations.dismissError
+                )
+            },
+            set: {
+                if $0 == nil {
+                    isShowingDeleteError = false
+                    deleteErrorMessage = nil
+                }
             }
-        } message: {
-            Text(deleteErrorMessage ?? readableOrganizationErrorText(.unknown))
-        }
+        ))
         .observesKeyboardDismissTaps()
     }
 

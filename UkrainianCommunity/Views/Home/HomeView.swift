@@ -517,10 +517,9 @@ struct HomeView: View {
                 eventsViewModel: eventsViewModel,
                 onNavigateBack: popHomeDetail
             )
-        case let .guide(id):
-            if let article = guideViewModel.articles.first(where: { $0.id == id }) {
-                LegacyGuideDetailView(article: article)
-            }
+        case .guide:
+            // TODO: Route Home guide feed items to GuideMaterialDetailView if guide cards return to the feed.
+            EmptyView()
         }
     }
 
@@ -639,7 +638,7 @@ private struct HomeFeedCard: View {
 
     var body: some View {
         SoftContentCard(padding: AppTheme.homeFeedCardPadding) {
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
                 leadingMedia
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -669,7 +668,7 @@ private struct HomeFeedCard: View {
 
                     if item.itemType == .event {
                         ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 10) {
+                            HStack(spacing: AppTheme.compactCardInnerSpacing) {
                                 metadataLine
                                 if let secondaryMetadataText {
                                     AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
@@ -738,7 +737,7 @@ private struct HomeFeedCard: View {
                     HomeEventDateBadge(date: eventStartDate)
                     Spacer(minLength: 0)
                 }
-                .frame(minHeight: thumbnailSize + 12, alignment: .center)
+                .frame(minHeight: thumbnailSize + AppTheme.compactCardInnerSpacingRelaxed, alignment: .center)
             }
         }
     }
@@ -980,7 +979,7 @@ private struct HomeEventDateBadge: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-            .frame(width: 42, height: 42)
+            .frame(width: AppTheme.homeFeedDateBadgeSize, height: AppTheme.homeFeedDateBadgeSize)
             .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
@@ -993,7 +992,7 @@ private struct HomeEventDateBadge: View {
                 .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
                 .lineLimit(1)
         }
-        .frame(width: 42)
+        .frame(width: AppTheme.homeFeedDateBadgeSize)
     }
 
     private var dayText: String {

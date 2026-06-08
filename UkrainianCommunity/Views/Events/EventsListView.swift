@@ -389,13 +389,22 @@ struct EventsListView: View {
                 pendingDeleteEventID = nil
             }
         }
-        .alert(AppStrings.Events.deleteFailed, isPresented: $isShowingDeleteError) {
-            Button(AppStrings.Events.dismissError) {
-                deleteErrorMessage = nil
+        .appErrorDialog(Binding(
+            get: {
+                guard isShowingDeleteError else { return nil }
+                return AppErrorDialog(
+                    title: AppStrings.Events.deleteFailed,
+                    message: deleteErrorMessage ?? AppStrings.Events.actionUnknownError,
+                    okTitle: AppStrings.Events.dismissError
+                )
+            },
+            set: {
+                if $0 == nil {
+                    isShowingDeleteError = false
+                    deleteErrorMessage = nil
+                }
             }
-        } message: {
-            Text(deleteErrorMessage ?? AppStrings.Events.actionUnknownError)
-        }
+        ))
     }
 
     private func scrollToTop(with scrollProxy: ScrollViewProxy) {
