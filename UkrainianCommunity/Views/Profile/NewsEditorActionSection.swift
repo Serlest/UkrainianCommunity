@@ -1,16 +1,6 @@
 import SwiftUI
 
 extension NewsEditorView {
-        var editorHeader: some View {
-            HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-                AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                    requestClose()
-                }
-
-                Spacer(minLength: 0)
-            }
-        }
-
         var bottomPublishButton: some View {
             PrimaryActionButton(
                 title: viewModel.primarySubmitButtonTitle,
@@ -37,21 +27,6 @@ extension NewsEditorView {
             } else {
                 dismiss()
             }
-        }
-
-        var editorTitleBlock: some View {
-            VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
-                Text(viewModel.isEditing ? AppStrings.NewsEditor.editTitle : AppStrings.NewsEditor.addTitle)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(AppStrings.NewsEditor.editorSubtitle)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
 
         @ViewBuilder

@@ -81,50 +81,39 @@ struct NewsEditorView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: editorSectionSpacing) {
-                editorHeader
-                    .padding(.top, AppTheme.dashboardSpacing)
+        EditorScreenShell(
+            title: viewModel.isEditing ? AppStrings.NewsEditor.editTitle : AppStrings.NewsEditor.addTitle,
+            subtitle: AppStrings.NewsEditor.editorSubtitle,
+            closeStyle: .cancel,
+            closeAction: requestClose
+        ) {
+            statusContent
 
-                editorTitleBlock
+            if showsNoOrganizerAccessState {
+                noOrganizerAccessCard
+            } else {
+                mainInformationCard
 
-                statusContent
+                coverImageCard
 
-                if showsNoOrganizerAccessState {
-                    noOrganizerAccessCard
-                } else {
-                    mainInformationCard
-
-                    coverImageCard
-
-                    if !viewModel.isEditing {
-                        organizerCard
-                    }
-
-                    bodyContentCard
-
-                    sourceCard
-
-                    tagsCard
-
-                    if viewModel.showsRegionPicker {
-                        settingsCard
-                    }
-
-                    bottomPublishButton
+                if !viewModel.isEditing {
+                    organizerCard
                 }
+
+                bodyContentCard
+
+                sourceCard
+
+                tagsCard
+
+                if viewModel.showsRegionPicker {
+                    settingsCard
+                }
+
+                bottomPublishButton
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
-        }
-        .keyboardDismissBackground {
-            AppBackgroundView()
         }
         .tint(AppTheme.accentPrimary)
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-        .scrollDismissesKeyboard(.interactively)
-        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingOrganizerPicker) {
             NewsOrganizerPickerSheet(
                 organizations: availableOrganizerOrganizations,
