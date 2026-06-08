@@ -198,8 +198,9 @@ final class NewsViewModel: ObservableObject {
         }
     }
 
-    func loadComments(for postID: String) async {
+    func loadComments(for postID: String, forceRefresh: Bool = false) async {
         startListeningComments(for: postID)
+        guard forceRefresh || !(repository is NewsRealtimeRepository) else { return }
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
 
         do {
@@ -602,8 +603,9 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
-    func loadComments(for eventID: String) async {
+    func loadComments(for eventID: String, forceRefresh: Bool = false) async {
         startListeningComments(for: eventID)
+        guard forceRefresh || !(repository is EventRealtimeRepository) else { return }
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
 
         do {
@@ -1150,8 +1152,9 @@ final class OrganizationsViewModel: ObservableObject {
         organizationCommentsByID[organizationID] ?? []
     }
 
-    func loadComments(for organizationID: String) async {
+    func loadComments(for organizationID: String, forceRefresh: Bool = false) async {
         startListeningComments(for: organizationID)
+        guard forceRefresh || !(repository is OrganizationRealtimeRepository) else { return }
         do {
             organizationCommentsByID[organizationID] = try await repository.fetchOrganizationComments(organizationID: organizationID).deduplicatedByID()
             error = nil

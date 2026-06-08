@@ -229,7 +229,7 @@ struct NewsDetailView: View {
         await viewModel.refresh()
         guard let post = viewModel.post(for: postID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
-        await viewModel.loadComments(for: postID)
+        await viewModel.loadComments(for: postID, forceRefresh: true)
     }
 
     func organizationForPermissions(organizationID: String) -> Organization? {

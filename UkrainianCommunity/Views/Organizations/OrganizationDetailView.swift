@@ -530,7 +530,7 @@ struct OrganizationDetailView: View {
         await viewModel.refresh()
         let refreshedOrganization = viewModel.organization(for: organization.id) ?? organization
         await refreshOrganizationActivity(for: refreshedOrganization)
-        await viewModel.loadComments(for: refreshedOrganization.id)
+        await viewModel.loadComments(for: refreshedOrganization.id, forceRefresh: true)
         await reloadPreviewPhotos(for: refreshedOrganization.id)
         await reloadCommunityMembers(for: refreshedOrganization)
     }

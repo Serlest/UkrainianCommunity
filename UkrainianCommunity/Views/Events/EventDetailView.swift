@@ -295,7 +295,7 @@ struct EventDetailView: View {
         guard let event = viewModel.event(for: eventID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
         await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
-        await viewModel.loadComments(for: eventID)
+        await viewModel.loadComments(for: eventID, forceRefresh: true)
     }
 
     var eventRegistrationConfirmationTitle: String {
