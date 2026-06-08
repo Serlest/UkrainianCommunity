@@ -10,6 +10,9 @@ final class LegalComplianceMonitorService: ObservableObject {
     private let legalDocumentRepository: LegalDocumentRepository
     private let userRepository: UserRepository
     private var evaluatedKey: String?
+    private var acceptingUserID: String?
+    private var locallyAcceptedUserID: String?
+    private var locallyAcceptedVersions: [LegalDocumentType: String] = [:]
 
     init(
         legalDocumentRepository: LegalDocumentRepository,
@@ -23,9 +26,19 @@ final class LegalComplianceMonitorService: ObservableObject {
         guard let user else {
             evaluatedKey = nil
             activeRequirement = nil
+            acceptingUserID = nil
+            locallyAcceptedUserID = nil
+            locallyAcceptedVersions = [:]
             errorMessage = nil
             return
         }
+
+        guard !isAccepting || acceptingUserID != user.id else { return }
+        if isAccepting {
+            isAccepting = false
+            acceptingUserID = nil
+        }
+        updateLocalAcceptedVersions(for: user)
 
         let key = [
             user.id,
@@ -42,6 +55,10 @@ final class LegalComplianceMonitorService: ObservableObject {
             let documents = try await [termsDocument, privacyDocument]
             let requiredDocuments = documents.filter { document in
                 guard document.requiresAcceptance else { return false }
+                if locallyAcceptedUserID == user.id,
+                   locallyAcceptedVersions[document.type] == document.version {
+                    return false
+                }
 
                 switch document.type {
                 case .terms:
@@ -62,28 +79,50 @@ final class LegalComplianceMonitorService: ObservableObject {
     }
 
     func acceptRequiredDocuments(authState: AuthState) async {
-        guard let requirement = activeRequirement else { return }
+        guard let requirement = activeRequirement, !isAccepting else { return }
+        let requiredDocuments = requirement.requiredDocuments
+        var acceptedVersions: [LegalDocumentType: String] = [:]
         isAccepting = true
+        acceptingUserID = requirement.userID
         errorMessage = nil
-        defer { isAccepting = false }
 
         do {
-            for document in requirement.requiredDocuments {
-                _ = try await legalDocumentRepository.acceptDocument(
+            for document in requiredDocuments {
+                let receipt = try await legalDocumentRepository.acceptDocument(
                     type: document.type,
                     version: document.version,
                     appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                     locale: AppLanguage.stored.rawValue,
                     acceptedFromPlatform: "ios"
                 )
+                acceptedVersions[receipt.documentType] = receipt.version
             }
 
-            let refreshedUser = try await userRepository.fetchCurrentUser()
-            authState.user = refreshedUser
-            activeRequirement = nil
-            evaluatedKey = nil
-            await configure(user: refreshedUser)
+            if acceptingUserID == requirement.userID {
+                rememberAcceptedVersions(acceptedVersions, userID: requirement.userID)
+                activeRequirement = nil
+                evaluatedKey = nil
+                errorMessage = nil
+                if let refreshedUser = try? await userRepository.fetchCurrentUser() {
+                    authState.user = refreshedUser
+                }
+            }
+            isAccepting = false
+            acceptingUserID = nil
+            await configure(user: authState.user)
         } catch {
+            rememberAcceptedVersions(acceptedVersions, userID: requirement.userID)
+            isAccepting = false
+            acceptingUserID = nil
+            evaluatedKey = nil
+
+            if let refreshedUser = try? await userRepository.fetchCurrentUser() {
+                authState.user = refreshedUser
+                await configure(user: refreshedUser)
+            } else if let currentUser = authState.user {
+                await configure(user: currentUser)
+            }
+
             errorMessage = AppStrings.LegalCompliance.acceptFailed
         }
     }
@@ -92,7 +131,46 @@ final class LegalComplianceMonitorService: ObservableObject {
         _ = AuthService.shared.signOut()
         activeRequirement = nil
         evaluatedKey = nil
+        acceptingUserID = nil
+        locallyAcceptedUserID = nil
+        locallyAcceptedVersions = [:]
         errorMessage = nil
+    }
+
+    private func rememberAcceptedVersions(
+        _ acceptedVersions: [LegalDocumentType: String],
+        userID: String
+    ) {
+        guard !acceptedVersions.isEmpty else { return }
+
+        if locallyAcceptedUserID != userID {
+            locallyAcceptedUserID = userID
+            locallyAcceptedVersions = [:]
+        }
+
+        for (type, version) in acceptedVersions {
+            locallyAcceptedVersions[type] = version
+        }
+    }
+
+    private func updateLocalAcceptedVersions(for user: AppUser) {
+        guard locallyAcceptedUserID == user.id else {
+            locallyAcceptedUserID = nil
+            locallyAcceptedVersions = [:]
+            return
+        }
+
+        if locallyAcceptedVersions[.terms] == user.acceptedTermsVersion {
+            locallyAcceptedVersions[.terms] = nil
+        }
+
+        if locallyAcceptedVersions[.privacy] == user.acceptedPrivacyVersion {
+            locallyAcceptedVersions[.privacy] = nil
+        }
+
+        if locallyAcceptedVersions.isEmpty {
+            locallyAcceptedUserID = nil
+        }
     }
 }
 
