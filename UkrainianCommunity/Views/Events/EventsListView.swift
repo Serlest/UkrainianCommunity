@@ -784,8 +784,8 @@ private struct EventCard: View {
     let event: Event
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.eventsCardPadding) {
-            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
+        SoftContentCard(padding: AppTheme.compactCardInnerSpacingTight) {
+            HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
                 AppEventDateBlock(date: event.startDate)
 
                 VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
@@ -803,7 +803,7 @@ private struct EventCard: View {
                             .lineLimit(1)
                     }
 
-                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    HStack(spacing: AppTheme.compactCardInnerSpacingTight) {
                         AppMetadataLine(title: timeText, systemImage: "clock")
                         AppMetadataLine(title: locationText, systemImage: locationIcon)
                     }
@@ -818,7 +818,7 @@ private struct EventCard: View {
                     tint: AppTheme.accentPrimary,
                     fill: AppTheme.badgeBlueFill,
                     size: AppTheme.eventsThumbnailSize,
-                    cornerRadius: 14,
+                    cornerRadius: AppTheme.rowCardCornerRadius,
                     source: "EventCard"
                 )
                 .padding(.trailing, 26)
