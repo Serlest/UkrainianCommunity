@@ -168,14 +168,22 @@ struct EventDetailView: View {
                 }
             }
         }
-        .confirmationDialog(AppStrings.Events.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button(AppStrings.Events.delete, role: .destructive) {
-                Task {
-                    await deleteCurrentEvent()
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard showDeleteConfirmation else { return nil }
+                return AppDestructiveActionDialog(
+                    title: AppStrings.Events.deleteConfirmation,
+                    message: "",
+                    destructiveActionTitle: AppStrings.Events.delete,
+                    cancelTitle: AppStrings.Events.cancel
+                ) {
+                    Task {
+                        await deleteCurrentEvent()
+                    }
                 }
-            }
-            Button(AppStrings.Events.cancel, role: .cancel) {}
-        }
+            },
+            set: { if $0 == nil { showDeleteConfirmation = false } }
+        ))
         .confirmationDialog(eventRegistrationConfirmationTitle, isPresented: Binding(
             get: { pendingRegistrationConfirmation != nil },
             set: { if !$0 { pendingRegistrationConfirmation = nil } }
@@ -189,20 +197,22 @@ struct EventDetailView: View {
         } message: {
             Text(eventRegistrationConfirmationMessage)
         }
-        .confirmationDialog(AppStrings.Common.deleteCommentConfirmation, isPresented: Binding(
-            get: { pendingCommentDeleteID != nil },
-            set: { if !$0 { pendingCommentDeleteID = nil } }
-        ), titleVisibility: .visible) {
-            Button(AppStrings.Action.delete, role: .destructive) {
-                guard let pendingCommentDeleteID else { return }
-                Task {
-                    await deleteComment(commentID: pendingCommentDeleteID)
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard let commentID = pendingCommentDeleteID else { return nil }
+                return AppDestructiveActionDialog(
+                    title: AppStrings.Common.deleteCommentConfirmation,
+                    message: "",
+                    destructiveActionTitle: AppStrings.Action.delete,
+                    cancelTitle: AppStrings.Events.cancel
+                ) {
+                    Task {
+                        await deleteComment(commentID: commentID)
+                    }
                 }
-            }
-            Button(AppStrings.Events.cancel, role: .cancel) {
-                pendingCommentDeleteID = nil
-            }
-        }
+            },
+            set: { if $0 == nil { pendingCommentDeleteID = nil } }
+        ))
         .appErrorDialog(Binding(
             get: {
                 deleteErrorMessage.map {

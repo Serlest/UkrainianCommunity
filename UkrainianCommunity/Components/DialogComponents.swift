@@ -113,7 +113,7 @@ extension View {
                 }
             }
         } message: {
-            if let currentDialog = dialog.wrappedValue {
+            if let currentDialog = dialog.wrappedValue, !currentDialog.message.isEmpty {
                 Text(currentDialog.message)
             }
         }

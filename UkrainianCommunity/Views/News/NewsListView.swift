@@ -88,37 +88,32 @@ struct NewsListView: View {
             }
         }
         .guestAccessAlert($guestAccessAction)
-        .confirmationDialog(
-            AppStrings.News.deleteConfirmation,
-            isPresented: Binding(
-                get: { pendingDeletePostID != nil },
-                set: { isPresented in
-                    if !isPresented {
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard let postID = pendingDeletePostID else { return nil }
+                return AppDestructiveActionDialog(
+                    title: AppStrings.News.deleteConfirmation,
+                    message: "",
+                    destructiveActionTitle: AppStrings.News.delete,
+                    cancelTitle: AppStrings.News.cancel
+                ) {
+                    Task {
+                        do {
+                            try await viewModel.deleteNews(id: postID)
+                            onNewsChanged()
+                        } catch let appError as AppError {
+                            deleteErrorMessage = readableNewsErrorText(appError)
+                            isShowingDeleteError = true
+                        } catch {
+                            deleteErrorMessage = readableNewsErrorText(.unknown)
+                            isShowingDeleteError = true
+                        }
                         pendingDeletePostID = nil
                     }
                 }
-            )
-        ) {
-            Button(AppStrings.News.delete, role: .destructive) {
-                guard let postID = pendingDeletePostID else { return }
-                Task {
-                    do {
-                        try await viewModel.deleteNews(id: postID)
-                        onNewsChanged()
-                    } catch let appError as AppError {
-                        deleteErrorMessage = readableNewsErrorText(appError)
-                        isShowingDeleteError = true
-                    } catch {
-                        deleteErrorMessage = readableNewsErrorText(.unknown)
-                        isShowingDeleteError = true
-                    }
-                    pendingDeletePostID = nil
-                }
-            }
-            Button(AppStrings.News.cancel, role: .cancel) {
-                pendingDeletePostID = nil
-            }
-        }
+            },
+            set: { if $0 == nil { pendingDeletePostID = nil } }
+        ))
         .appErrorDialog(Binding(
             get: {
                 guard isShowingDeleteError else { return nil }

@@ -135,28 +135,38 @@ struct NewsDetailView: View {
                 }
             }
         }
-        .confirmationDialog(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button(AppStrings.News.delete, role: .destructive) {
-                Task {
-                    await deleteCurrentNews()
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard showDeleteConfirmation else { return nil }
+                return AppDestructiveActionDialog(
+                    title: AppStrings.News.deleteConfirmation,
+                    message: "",
+                    destructiveActionTitle: AppStrings.News.delete,
+                    cancelTitle: AppStrings.News.cancel
+                ) {
+                    Task {
+                        await deleteCurrentNews()
+                    }
                 }
-            }
-            Button(AppStrings.News.cancel, role: .cancel) {}
-        }
-        .confirmationDialog(AppStrings.Common.deleteCommentConfirmation, isPresented: Binding(
-            get: { pendingCommentDeleteID != nil },
-            set: { if !$0 { pendingCommentDeleteID = nil } }
-        ), titleVisibility: .visible) {
-            Button(AppStrings.Action.delete, role: .destructive) {
-                guard let pendingCommentDeleteID else { return }
-                Task {
-                    await deleteComment(commentID: pendingCommentDeleteID)
+            },
+            set: { if $0 == nil { showDeleteConfirmation = false } }
+        ))
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard let commentID = pendingCommentDeleteID else { return nil }
+                return AppDestructiveActionDialog(
+                    title: AppStrings.Common.deleteCommentConfirmation,
+                    message: "",
+                    destructiveActionTitle: AppStrings.Action.delete,
+                    cancelTitle: AppStrings.News.cancel
+                ) {
+                    Task {
+                        await deleteComment(commentID: commentID)
+                    }
                 }
-            }
-            Button(AppStrings.News.cancel, role: .cancel) {
-                pendingCommentDeleteID = nil
-            }
-        }
+            },
+            set: { if $0 == nil { pendingCommentDeleteID = nil } }
+        ))
         .appErrorDialog(Binding(
             get: {
                 deleteErrorMessage.map {
