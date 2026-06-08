@@ -2,78 +2,21 @@ import SwiftUI
 
 extension OrganizationDetailView {
     func detailHeader(for organization: Organization) -> some View {
-        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+        OrganizationDetailActionHeader(
+            isBookmarked: organization.isBookmarked,
+            isBookmarkPending: viewModel.pendingOrganizationBookmarkIDs.contains(organization.id),
+            shareText: organizationShareText(for: organization),
+            onBack: {
                 if let onNavigateBack {
                     onNavigateBack()
                 } else {
                     dismiss()
                 }
+            },
+            onBookmark: {
+                toggleBookmark(for: organization)
             }
-
-            Spacer(minLength: 0)
-
-            HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                Button {
-                    toggleBookmark(for: organization)
-                } label: {
-                    organizationHeaderBookmarkIcon(for: organization)
-                }
-                .buttonStyle(.plain)
-                .disabled(viewModel.pendingOrganizationBookmarkIDs.contains(organization.id))
-                .accessibilityLabel(organization.isBookmarked ? AppStrings.Organizations.removeBookmark : AppStrings.Organizations.addBookmark)
-
-                ShareLink(item: organizationShareText(for: organization)) {
-                    organizationHeaderShareIcon
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(AppStrings.Action.share)
-            }
-        }
-    }
-
-    func organizationHeaderBookmarkIcon(for organization: Organization) -> some View {
-        Image(systemName: organization.isBookmarked ? "bookmark.fill" : "bookmark")
-            .font(AppTheme.buttonLabelFont)
-            .foregroundStyle(AppTheme.accentPrimary)
-            .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-            .background(
-                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-            )
-            .background {
-                if !reduceTransparency {
-                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-            )
-            .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 5, y: 2)
-    }
-
-    var organizationHeaderShareIcon: some View {
-        Image(systemName: "square.and.arrow.up")
-            .font(AppTheme.buttonLabelFont)
-            .foregroundStyle(AppTheme.accentPrimary)
-            .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
-            .background(
-                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-            )
-            .background {
-                if !reduceTransparency {
-                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-            )
-            .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 5, y: 2)
+        )
     }
 
     func organizationShareText(for organization: Organization) -> String {
@@ -257,5 +200,77 @@ extension OrganizationDetailView {
     func heroDescription(for organization: Organization) -> String? {
         let shortDescription = organization.shortDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return shortDescription.isEmpty ? nil : shortDescription
+    }
+}
+
+private struct OrganizationDetailActionHeader: View {
+    let isBookmarked: Bool
+    let isBookmarkPending: Bool
+    let shareText: String
+    let onBack: () -> Void
+    let onBookmark: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
+            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
+                onBack()
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                AppGlassIconButton(
+                    systemImage: isBookmarked ? "bookmark.fill" : "bookmark",
+                    accessibilityLabel: isBookmarked ? AppStrings.Organizations.removeBookmark : AppStrings.Organizations.addBookmark
+                ) {
+                    onBookmark()
+                }
+                .disabled(isBookmarkPending)
+
+                ShareLink(item: shareText) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(AppTheme.glassIconButtonIconFont)
+                        .foregroundStyle(AppTheme.accentPrimary)
+                        .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
+                        .glassIconButtonBackground()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(AppStrings.Action.share)
+            }
+        }
+    }
+}
+
+private extension View {
+    func glassIconButtonBackground() -> some View {
+        modifier(OrganizationDetailGlassIconBackground())
+    }
+}
+
+private struct OrganizationDetailGlassIconBackground: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
+                in: RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
+            )
+            .background {
+                if !reduceTransparency {
+                    RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
+                        .fill(AppTheme.glassIconButtonMaterial)
+                }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
+                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            )
+            .shadow(
+                color: AppTheme.glassShadow(for: colorScheme),
+                radius: AppTheme.glassIconButtonShadowRadius,
+                y: AppTheme.glassIconButtonShadowY
+            )
     }
 }
