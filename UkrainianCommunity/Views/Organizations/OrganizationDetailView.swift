@@ -302,38 +302,30 @@ struct OrganizationDetailView: View {
     var body: some View {
         Group {
             if let organization = viewModel.organization(for: organizationID) {
-                GeometryReader { proxy in
-                    let contentHorizontalPadding = AppTheme.pageHorizontal
-                    let contentWidth = max(proxy.size.width - (contentHorizontalPadding * 2), 0)
-
-                    ScrollView(.vertical, showsIndicators: true) {
-                        VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                            detailHeader(for: organization)
-
-                            organizationHero(for: organization)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            heroMetadata(for: organization)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            supportCard(for: organization)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            organizationSectionTabs
-                                .onTapGesture { isCommentFieldFocused = false }
-                            selectedSectionContent(for: organization)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            actionButtons(for: organization)
-                                .onTapGesture { isCommentFieldFocused = false }
-                            commentsSection(for: organization)
-                                .id("organizationCommentsSection")
-                        }
-                        .frame(width: contentWidth, alignment: .leading)
-                        .padding(.horizontal, contentHorizontalPadding)
-                        .padding(.bottom, AppTheme.homeBottomContentPadding + 160)
-                    }
-                    .frame(width: proxy.size.width)
-                    .scrollDismissesKeyboard(.interactively)
-                    .refreshable {
+                DetailScreenShell(
+                    topPadding: 0,
+                    contentSpacing: detailSectionSpacing,
+                    backAction: navigateBack,
+                    refreshAction: {
                         await refreshOrganizationDetail(for: organization)
                     }
+                ) {
+                    organizationHeaderActions(for: organization)
+                } content: {
+                    organizationHero(for: organization)
+                        .onTapGesture { isCommentFieldFocused = false }
+                    heroMetadata(for: organization)
+                        .onTapGesture { isCommentFieldFocused = false }
+                    supportCard(for: organization)
+                        .onTapGesture { isCommentFieldFocused = false }
+                    organizationSectionTabs
+                        .onTapGesture { isCommentFieldFocused = false }
+                    selectedSectionContent(for: organization)
+                        .onTapGesture { isCommentFieldFocused = false }
+                    actionButtons(for: organization)
+                        .onTapGesture { isCommentFieldFocused = false }
+                    commentsSection(for: organization)
+                        .id("organizationCommentsSection")
                 }
                 .task(id: organization.id) {
                     await loadOrganizationActivityIfNeeded(for: organization)
@@ -343,12 +335,14 @@ struct OrganizationDetailView: View {
                     recordRecentView(for: organization)
                 }
             } else {
-                EmptyStateView(title: AppStrings.Common.noItems)
+                ZStack {
+                    AppBackgroundView()
+                        .allowsHitTesting(false)
+
+                    EmptyStateView(title: AppStrings.Common.noItems)
+                }
             }
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
-        .observesKeyboardDismissTaps()
         .confirmationDialog(AppStrings.Organizations.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.Organizations.delete, role: .destructive) {
                 guard !isDeletingCurrentOrganization else { return }

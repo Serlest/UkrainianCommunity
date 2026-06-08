@@ -1,18 +1,19 @@
 import SwiftUI
 
 extension OrganizationDetailView {
-    func detailHeader(for organization: Organization) -> some View {
-        OrganizationDetailActionHeader(
+    func navigateBack() {
+        if let onNavigateBack {
+            onNavigateBack()
+        } else {
+            dismiss()
+        }
+    }
+
+    func organizationHeaderActions(for organization: Organization) -> some View {
+        OrganizationDetailHeaderActions(
             isBookmarked: organization.isBookmarked,
             isBookmarkPending: viewModel.pendingOrganizationBookmarkIDs.contains(organization.id),
             shareText: organizationShareText(for: organization),
-            onBack: {
-                if let onNavigateBack {
-                    onNavigateBack()
-                } else {
-                    dismiss()
-                }
-            },
             onBookmark: {
                 toggleBookmark(for: organization)
             }
@@ -203,40 +204,31 @@ extension OrganizationDetailView {
     }
 }
 
-private struct OrganizationDetailActionHeader: View {
+private struct OrganizationDetailHeaderActions: View {
     let isBookmarked: Bool
     let isBookmarkPending: Bool
     let shareText: String
-    let onBack: () -> Void
     let onBookmark: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                onBack()
+        Group {
+            DetailHeaderActionButton(
+                systemImage: isBookmarked ? "bookmark.fill" : "bookmark",
+                accessibilityLabel: isBookmarked ? AppStrings.Organizations.removeBookmark : AppStrings.Organizations.addBookmark,
+                isDisabled: isBookmarkPending
+            ) {
+                onBookmark()
             }
 
-            Spacer(minLength: 0)
-
-            HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                AppGlassIconButton(
-                    systemImage: isBookmarked ? "bookmark.fill" : "bookmark",
-                    accessibilityLabel: isBookmarked ? AppStrings.Organizations.removeBookmark : AppStrings.Organizations.addBookmark
-                ) {
-                    onBookmark()
-                }
-                .disabled(isBookmarkPending)
-
-                ShareLink(item: shareText) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(AppTheme.glassIconButtonIconFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
-                        .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
-                        .glassIconButtonBackground()
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(AppStrings.Action.share)
+            ShareLink(item: shareText) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(AppTheme.glassIconButtonIconFont)
+                    .foregroundStyle(AppTheme.accentPrimary)
+                    .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
+                    .glassIconButtonBackground()
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(AppStrings.Action.share)
         }
     }
 }
