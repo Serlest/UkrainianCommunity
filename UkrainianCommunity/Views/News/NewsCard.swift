@@ -5,9 +5,9 @@ struct NewsCard: View {
 
     var body: some View {
         CommunityCard {
-            RemoteCardImage(imageURL: post.imageURL, height: 220, source: "NewsCard")
+            RemoteCardImage(imageURL: post.imageURL, height: AppTheme.feedImageHeight, source: "NewsCard")
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                 Text(post.title)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.primary)

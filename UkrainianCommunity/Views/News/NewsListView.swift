@@ -189,8 +189,8 @@ struct NewsListView: View {
                 .accessibilityIdentifier("news.like.\(post.id)")
                 .accessibilityLabel(post.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like)
                 .accessibilityHint(AppStrings.Common.likes)
-                .padding(.trailing, 18)
-                .padding(.bottom, 18)
+                .padding(.trailing, AppTheme.cardPadding)
+                .padding(.bottom, AppTheme.cardPadding)
             }
             .modifier(NewsDeleteSwipeActions(isEnabled: canDeleteNews) {
                 pendingDeletePostID = post.id
