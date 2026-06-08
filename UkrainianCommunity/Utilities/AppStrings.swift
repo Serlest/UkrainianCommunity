@@ -2034,6 +2034,11 @@ enum AppStrings {
         static var appModerator: String { text("role.app_moderator", "App Moderator") }
     }
 
+    enum Dialogs {
+        static var errorTitle: String { text("dialogs.error.title", "Something went wrong") }
+        static var successTitle: String { text("dialogs.success.title", "Done") }
+    }
+
     enum Common {
         static var app: String { text("common.app", "App") }
         static var ok: String { text("common.ok", "OK") }

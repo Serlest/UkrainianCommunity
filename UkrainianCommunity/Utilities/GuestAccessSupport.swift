@@ -47,18 +47,20 @@ private struct GuestAccessAlertModifier: ViewModifier {
                 }
             ),
             presenting: action
-        ) { _ in
-            Button(AppStrings.Auth.signIn) {
+        ) { action in
+            let dialog = AppGuestAccessDialog(action: action)
+
+            Button(dialog.signInTitle) {
                 authState.presentAuthFlow(.login)
             }
 
-            Button(AppStrings.Auth.createAccount) {
+            Button(dialog.createAccountTitle) {
                 authState.presentAuthFlow(.register)
             }
 
-            Button(AppStrings.Common.ok, role: .cancel) {}
+            Button(dialog.dismissTitle, role: .cancel) {}
         } message: { action in
-            Text(AppStrings.authRequiredMessage(for: action.capabilityTitle))
+            Text(AppGuestAccessDialog(action: action).message)
         }
     }
 }

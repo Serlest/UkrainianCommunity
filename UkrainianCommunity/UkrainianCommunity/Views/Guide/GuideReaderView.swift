@@ -125,17 +125,16 @@ struct GuideReaderView: View {
         }
         .guestAccessAlert($guestAccessAction)
         .observesKeyboardDismissTaps()
-        .alert(
-            GuideCategoryPresentation.saveActionFailedTitle,
-            isPresented: Binding(
-                get: { saveError != nil },
-                set: { if !$0 { saveError = nil } }
-            )
-        ) {
-            Button(AppStrings.Common.ok, role: .cancel) {}
-        } message: {
-            Text(GuideCategoryPresentation.saveActionErrorMessage(for: saveError ?? .unknown))
-        }
+        .appErrorDialog(Binding(
+            get: {
+                guard let saveError else { return nil }
+                return AppErrorDialog(
+                    title: GuideCategoryPresentation.saveActionFailedTitle,
+                    message: GuideCategoryPresentation.saveActionErrorMessage(for: saveError)
+                )
+            },
+            set: { if $0 == nil { saveError = nil } }
+        ))
         .navigationDestination(item: $presentedBannerCategory) { category in
             GuideCategoryDetailView(
                 category: category,

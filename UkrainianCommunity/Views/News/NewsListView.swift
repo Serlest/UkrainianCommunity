@@ -119,13 +119,22 @@ struct NewsListView: View {
                 pendingDeletePostID = nil
             }
         }
-        .alert(AppStrings.News.deleteFailed, isPresented: $isShowingDeleteError) {
-            Button(AppStrings.News.dismissError) {
-                deleteErrorMessage = nil
+        .appErrorDialog(Binding(
+            get: {
+                guard isShowingDeleteError else { return nil }
+                return AppErrorDialog(
+                    title: AppStrings.News.deleteFailed,
+                    message: deleteErrorMessage ?? readableNewsErrorText(.unknown),
+                    okTitle: AppStrings.News.dismissError
+                )
+            },
+            set: {
+                if $0 == nil {
+                    isShowingDeleteError = false
+                    deleteErrorMessage = nil
+                }
             }
-        } message: {
-            Text(deleteErrorMessage ?? readableNewsErrorText(.unknown))
-        }
+        ))
         .toolbar {
             if canCreateNews {
                 Button {

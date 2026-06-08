@@ -103,17 +103,18 @@ struct ManagedOrganizationView: View {
 
             Button(AppStrings.Organizations.cancel, role: .cancel) {}
         }
-        .alert(
-            AppStrings.Organizations.deleteFailed,
-            isPresented: Binding(
-                get: { deleteErrorMessage != nil },
-                set: { if !$0 { deleteErrorMessage = nil } }
-            )
-        ) {
-            Button(AppStrings.Organizations.dismissError, role: .cancel) {}
-        } message: {
-            Text(deleteErrorMessage ?? "")
-        }
+        .appErrorDialog(Binding(
+            get: {
+                deleteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.Organizations.deleteFailed,
+                        message: $0,
+                        okTitle: AppStrings.Organizations.dismissError
+                    )
+                }
+            },
+            set: { if $0 == nil { deleteErrorMessage = nil } }
+        ))
         .task(id: currentOrganization.id) {
             await teamViewModel.load(organization: currentOrganization)
         }

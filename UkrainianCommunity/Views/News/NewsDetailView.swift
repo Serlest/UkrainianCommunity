@@ -157,22 +157,30 @@ struct NewsDetailView: View {
                 pendingCommentDeleteID = nil
             }
         }
-        .alert(AppStrings.News.deleteFailed, isPresented: Binding(
-            get: { deleteErrorMessage != nil },
-            set: { if !$0 { deleteErrorMessage = nil } }
-        )) {
-            Button(AppStrings.News.dismissError, role: .cancel) {}
-        } message: {
-            Text(deleteErrorMessage ?? "")
-        }
-        .alert(AppStrings.Common.deleteCommentFailed, isPresented: Binding(
-            get: { commentDeleteErrorMessage != nil },
-            set: { if !$0 { commentDeleteErrorMessage = nil } }
-        )) {
-            Button(AppStrings.News.dismissError, role: .cancel) {}
-        } message: {
-            Text(commentDeleteErrorMessage ?? readableNewsErrorText(.unknown))
-        }
+        .appErrorDialog(Binding(
+            get: {
+                deleteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.News.deleteFailed,
+                        message: $0,
+                        okTitle: AppStrings.News.dismissError
+                    )
+                }
+            },
+            set: { if $0 == nil { deleteErrorMessage = nil } }
+        ))
+        .appErrorDialog(Binding(
+            get: {
+                commentDeleteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.Common.deleteCommentFailed,
+                        message: $0,
+                        okTitle: AppStrings.News.dismissError
+                    )
+                }
+            },
+            set: { if $0 == nil { commentDeleteErrorMessage = nil } }
+        ))
         .sheet(isPresented: $isShowingEditSheet) {
             editSheetContent
         }

@@ -203,22 +203,30 @@ struct EventDetailView: View {
                 pendingCommentDeleteID = nil
             }
         }
-        .alert(AppStrings.Events.deleteFailed, isPresented: Binding(
-            get: { deleteErrorMessage != nil },
-            set: { if !$0 { deleteErrorMessage = nil } }
-        )) {
-            Button(AppStrings.Events.dismissError, role: .cancel) {}
-        } message: {
-            Text(deleteErrorMessage ?? "")
-        }
-        .alert(AppStrings.Common.deleteCommentFailed, isPresented: Binding(
-            get: { commentDeleteErrorMessage != nil },
-            set: { if !$0 { commentDeleteErrorMessage = nil } }
-        )) {
-            Button(AppStrings.Events.dismissError, role: .cancel) {}
-        } message: {
-            Text(commentDeleteErrorMessage ?? readableEventErrorText(.unknown))
-        }
+        .appErrorDialog(Binding(
+            get: {
+                deleteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.Events.deleteFailed,
+                        message: $0,
+                        okTitle: AppStrings.Events.dismissError
+                    )
+                }
+            },
+            set: { if $0 == nil { deleteErrorMessage = nil } }
+        ))
+        .appErrorDialog(Binding(
+            get: {
+                commentDeleteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.Common.deleteCommentFailed,
+                        message: $0,
+                        okTitle: AppStrings.Events.dismissError
+                    )
+                }
+            },
+            set: { if $0 == nil { commentDeleteErrorMessage = nil } }
+        ))
         .alert(calendarAlert?.title ?? "", isPresented: Binding(
             get: { calendarAlert != nil },
             set: { if !$0 { calendarAlert = nil } }

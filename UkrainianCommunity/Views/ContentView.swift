@@ -180,20 +180,17 @@ struct ContentView: View {
                 }
             )
         }
-        .alert(AppStrings.NotificationInbox.destinationUnavailableTitle, isPresented: Binding(
-            get: { notificationRouteErrorMessage != nil },
-            set: { newValue in
-                if !newValue {
-                    notificationRouteErrorMessage = nil
+        .appErrorDialog(Binding(
+            get: {
+                notificationRouteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.NotificationInbox.destinationUnavailableTitle,
+                        message: $0
+                    )
                 }
-            }
-        )) {
-            Button(AppStrings.Common.ok, role: .cancel) {
-                notificationRouteErrorMessage = nil
-            }
-        } message: {
-            Text(notificationRouteErrorMessage ?? AppStrings.NotificationInbox.destinationUnavailableMessage)
-        }
+            },
+            set: { if $0 == nil { notificationRouteErrorMessage = nil } }
+        ))
     }
 
     private var selectedAppearance: AppAppearance {

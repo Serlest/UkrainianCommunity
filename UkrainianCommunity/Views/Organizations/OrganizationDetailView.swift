@@ -299,6 +299,36 @@ struct OrganizationDetailView: View {
         viewModel.pendingOrganizationDeleteIDs.contains(organizationID)
     }
 
+    var deleteErrorDialog: Binding<AppErrorDialog?> {
+        Binding(
+            get: {
+                deleteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.Organizations.deleteFailed,
+                        message: $0,
+                        okTitle: AppStrings.Organizations.dismissError
+                    )
+                }
+            },
+            set: { if $0 == nil { deleteErrorMessage = nil } }
+        )
+    }
+
+    var commentDeleteErrorDialog: Binding<AppErrorDialog?> {
+        Binding(
+            get: {
+                commentDeleteErrorMessage.map {
+                    AppErrorDialog(
+                        title: AppStrings.Common.deleteCommentFailed,
+                        message: $0,
+                        okTitle: AppStrings.Organizations.dismissError
+                    )
+                }
+            },
+            set: { if $0 == nil { commentDeleteErrorMessage = nil } }
+        )
+    }
+
     var body: some View {
         Group {
             if let organization = viewModel.organization(for: organizationID) {
@@ -378,22 +408,8 @@ struct OrganizationDetailView: View {
                 pendingCommentDeleteID = nil
             }
         }
-        .alert(AppStrings.Organizations.deleteFailed, isPresented: Binding(
-            get: { deleteErrorMessage != nil },
-            set: { if !$0 { deleteErrorMessage = nil } }
-        )) {
-            Button(AppStrings.Organizations.dismissError, role: .cancel) {}
-        } message: {
-            Text(deleteErrorMessage ?? "")
-        }
-        .alert(AppStrings.Common.deleteCommentFailed, isPresented: Binding(
-            get: { commentDeleteErrorMessage != nil },
-            set: { if !$0 { commentDeleteErrorMessage = nil } }
-        )) {
-            Button(AppStrings.Organizations.dismissError, role: .cancel) {}
-        } message: {
-            Text(commentDeleteErrorMessage ?? readableOrganizationErrorText(.unknown))
-        }
+        .appErrorDialog(deleteErrorDialog)
+        .appErrorDialog(commentDeleteErrorDialog)
         .guestAccessAlert($guestAccessAction)
         .onChange(of: authState.user?.id) { _, _ in
             guard let organization = viewModel.organization(for: organizationID) else { return }
