@@ -14,6 +14,7 @@ final class RemoteNotificationRegistrationService: NSObject {
     private var currentUserID: String?
     private var currentToken: String?
     private var lastSavedTokenKey: String?
+    private var inFlightTokenKeys: Set<String> = []
     private var hasAPNSToken = false
     private var hasRequestedRemoteRegistration = false
     private var isRefreshingMessagingToken = false
@@ -85,7 +86,12 @@ final class RemoteNotificationRegistrationService: NSObject {
 
     func removeCurrentToken() async {
         guard let userID = currentUserID, let currentToken else { return }
+        let tokenKey = makeTokenKey(userID: userID, token: currentToken)
         try? await repository.deleteCurrentDeviceToken(userID: userID, token: currentToken)
+        if lastSavedTokenKey == tokenKey {
+            lastSavedTokenKey = nil
+        }
+        inFlightTokenKeys.remove(tokenKey)
     }
 
     func didRegisterForRemoteNotifications(deviceToken: Data) {
@@ -162,15 +168,26 @@ final class RemoteNotificationRegistrationService: NSObject {
 
         guard let userID = currentUserID else { return }
 
-        let tokenKey = "\(userID):\(token)"
+        let tokenKey = makeTokenKey(userID: userID, token: token)
         guard lastSavedTokenKey != tokenKey else {
             debugLog("FCM token already uploaded; skipping duplicate upload.")
             return
         }
+        guard !inFlightTokenKeys.contains(tokenKey) else {
+            debugLog("FCM token upload already in flight; skipping duplicate upload.")
+            return
+        }
+
+        inFlightTokenKeys.insert(tokenKey)
+        defer {
+            inFlightTokenKeys.remove(tokenKey)
+        }
 
         do {
             try await repository.saveCurrentDeviceToken(userID: userID, token: token)
-            lastSavedTokenKey = tokenKey
+            if inFlightTokenKeys.contains(tokenKey) {
+                lastSavedTokenKey = tokenKey
+            }
             debugLog("FCM token uploaded.")
         } catch {
             debugLog("FCM token save failed: \(error)")
@@ -181,6 +198,10 @@ final class RemoteNotificationRegistrationService: NSObject {
         guard !hasRequestedRemoteRegistration else { return }
         hasRequestedRemoteRegistration = true
         UIApplication.shared.registerForRemoteNotifications()
+    }
+
+    private func makeTokenKey(userID: String, token: String) -> String {
+        "\(userID):\(token)"
     }
 
     private func debugLog(_ message: String) {
