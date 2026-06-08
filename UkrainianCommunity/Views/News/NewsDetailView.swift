@@ -5,7 +5,6 @@ struct NewsDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.newsPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
-    @Environment(\.accessibilityReduceTransparency) var reduceTransparency
     @EnvironmentObject var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let postID: String
@@ -27,8 +26,6 @@ struct NewsDetailView: View {
     @State var permissionOrganization: Organization?
     @FocusState var isCommentFieldFocused: Bool
     let detailImageHeight: CGFloat = 220
-    let detailActionButtonSize = AppTheme.iconButtonSize
-    let detailActionButtonRadius = AppTheme.iconButtonRadius
     let detailSectionSpacing: CGFloat = AppTheme.detailSectionSpacing
 
     init(
@@ -91,62 +88,54 @@ struct NewsDetailView: View {
     var body: some View {
         Group {
             if let post = viewModel.post(for: postID) {
-                GeometryReader { proxy in
-                    let contentHorizontalPadding = AppTheme.pageHorizontal
-                    let contentWidth = max(proxy.size.width - (contentHorizontalPadding * 2), 0)
+                DetailScreenShell(
+                    topPadding: 0,
+                    contentSpacing: detailSectionSpacing,
+                    backAction: navigateBack,
+                    refreshAction: refreshNewsDetail
+                ) {
+                    newsHeaderActions(for: post)
+                } content: {
+                    articleHeader(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
 
-                    ScrollView(.vertical, showsIndicators: true) {
-                        VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                            newsDetailHeader()
+                    heroImage(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
 
-                            articleHeader(for: post)
-                                .onTapGesture { isCommentFieldFocused = false }
-
-                            heroImage(for: post)
-                                .onTapGesture { isCommentFieldFocused = false }
-
-                            if !post.subtitle.isEmpty {
-                                leadBlock(for: post)
-                                    .onTapGesture { isCommentFieldFocused = false }
-                            }
-
-                            articleBody(for: post)
-                                .onTapGesture { isCommentFieldFocused = false }
-
-                            articleSourceSection(for: post)
-                                .onTapGesture { isCommentFieldFocused = false }
-
-                            tagsSection(for: post)
-                                .onTapGesture { isCommentFieldFocused = false }
-
-                            relatedSection(for: post)
-
-                            actionsCard(for: post)
-                                .onTapGesture { isCommentFieldFocused = false }
-
-                            managementCard(for: post)
-                                .onTapGesture { isCommentFieldFocused = false }
-
-                            commentsSection(for: post)
-                        }
-                        .frame(width: contentWidth, alignment: .leading)
-                        .padding(.horizontal, contentHorizontalPadding)
-                        .padding(.bottom, AppTheme.homeBottomContentPadding + 160)
+                    if !post.subtitle.isEmpty {
+                        leadBlock(for: post)
+                            .onTapGesture { isCommentFieldFocused = false }
                     }
-                    .frame(width: proxy.size.width)
-                    .scrollDismissesKeyboard(.interactively)
-                    .refreshable {
-                        await refreshNewsDetail()
-                    }
+
+                    articleBody(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    articleSourceSection(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    tagsSection(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    relatedSection(for: post)
+
+                    actionsCard(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    managementCard(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    commentsSection(for: post)
                 }
             } else {
-                EmptyStateView(title: AppStrings.Common.noItems)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZStack {
+                    AppBackgroundView()
+                        .allowsHitTesting(false)
+
+                    EmptyStateView(title: AppStrings.Common.noItems)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
-        .observesKeyboardDismissTaps()
         .confirmationDialog(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.News.delete, role: .destructive) {
                 Task {

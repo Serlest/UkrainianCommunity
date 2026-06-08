@@ -200,6 +200,236 @@ extension PushedScreenShell where TrailingContent == EmptyView {
     }
 }
 
+/// Shell for article/entity detail screens.
+///
+/// This is foundation-only. Future migrations should use it in this order:
+/// News Detail, Event Detail, Organization Detail, Guide Material Detail, then
+/// Guide Category/Section. It does not load data, mutate navigation paths, or
+/// force any feature behavior.
+struct DetailScreenShell<Content: View, HeaderActions: View>: View {
+    let title: String?
+    let subtitle: String?
+    let tabBarHidden: Bool
+    let topPadding: CGFloat
+    let bottomPadding: CGFloat
+    let contentSpacing: CGFloat
+    let backAction: (() -> Void)?
+    let refreshAction: (() async -> Void)?
+    @ViewBuilder let headerActions: HeaderActions
+    @ViewBuilder let content: Content
+
+    init(
+        title: String? = nil,
+        subtitle: String? = nil,
+        tabBarHidden: Bool = false,
+        topPadding: CGFloat = AppTheme.detailScreenTopPadding,
+        bottomPadding: CGFloat = AppTheme.detailScreenBottomPadding,
+        contentSpacing: CGFloat = AppTheme.detailScreenContentSpacing,
+        backAction: (() -> Void)? = nil,
+        refreshAction: (() async -> Void)? = nil,
+        @ViewBuilder headerActions: () -> HeaderActions,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.tabBarHidden = tabBarHidden
+        self.topPadding = topPadding
+        self.bottomPadding = bottomPadding
+        self.contentSpacing = contentSpacing
+        self.backAction = backAction
+        self.refreshAction = refreshAction
+        self.headerActions = headerActions()
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack {
+            AppBackgroundView()
+                .allowsHitTesting(false)
+
+            GeometryReader { proxy in
+                let contentWidth = max(proxy.size.width - (AppTheme.detailScreenHorizontalPadding * 2), 0)
+
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(alignment: .leading, spacing: contentSpacing) {
+                        DetailActionHeader(
+                            title: title,
+                            subtitle: subtitle,
+                            backAction: backAction
+                        ) {
+                            headerActions
+                        }
+
+                        content
+                    }
+                    .frame(width: contentWidth, alignment: .leading)
+                    .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
+                    .padding(.top, topPadding)
+                    .padding(.bottom, bottomPadding)
+                }
+                .frame(width: proxy.size.width)
+                .detailRefreshable(refreshAction)
+            }
+        }
+        .tint(AppTheme.accentPrimary)
+        .navigationTitle(title ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbar(tabBarHidden ? .hidden : .visible, for: .tabBar)
+        .scrollDismissesKeyboard(.interactively)
+        .observesKeyboardDismissTaps()
+    }
+}
+
+extension DetailScreenShell where HeaderActions == EmptyView {
+    init(
+        title: String? = nil,
+        subtitle: String? = nil,
+        tabBarHidden: Bool = false,
+        topPadding: CGFloat = AppTheme.detailScreenTopPadding,
+        bottomPadding: CGFloat = AppTheme.detailScreenBottomPadding,
+        contentSpacing: CGFloat = AppTheme.detailScreenContentSpacing,
+        backAction: (() -> Void)? = nil,
+        refreshAction: (() async -> Void)? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(
+            title: title,
+            subtitle: subtitle,
+            tabBarHidden: tabBarHidden,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding,
+            contentSpacing: contentSpacing,
+            backAction: backAction,
+            refreshAction: refreshAction
+        ) {
+            EmptyView()
+        } content: {
+            content()
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func detailRefreshable(_ action: (() async -> Void)?) -> some View {
+        if let action {
+            refreshable {
+                await action()
+            }
+        } else {
+            self
+        }
+    }
+}
+
+/// Shared no-logo detail top bar for back, bookmark, share, and overflow/admin
+/// actions. Actions are passed as values/closures to avoid parent-capturing
+/// computed opaque view patterns in detail screens.
+struct DetailActionHeader<TrailingActions: View>: View {
+    let title: String?
+    let subtitle: String?
+    let backAction: (() -> Void)?
+    @ViewBuilder let trailingActions: TrailingActions
+
+    init(
+        title: String? = nil,
+        subtitle: String? = nil,
+        backAction: (() -> Void)? = nil,
+        @ViewBuilder trailingActions: () -> TrailingActions
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.backAction = backAction
+        self.trailingActions = trailingActions()
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: AppTheme.detailScreenHeaderSpacing) {
+            AppBackButton(action: backAction)
+
+            titleBlock
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: AppTheme.detailActionHeaderSpacing) {
+                trailingActions
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var titleBlock: some View {
+        if title != nil || subtitle != nil {
+            VStack(alignment: .leading, spacing: AppTheme.detailActionHeaderTitleSpacing) {
+                if let title, !title.isEmpty {
+                    Text(title)
+                        .font(AppTheme.detailScreenTitleFont)
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(AppTheme.detailScreenSubtitleFont)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, AppTheme.pushedScreenHeaderTitleTopOffset)
+        }
+    }
+}
+
+extension DetailActionHeader where TrailingActions == EmptyView {
+    init(
+        title: String? = nil,
+        subtitle: String? = nil,
+        backAction: (() -> Void)? = nil
+    ) {
+        self.init(title: title, subtitle: subtitle, backAction: backAction) {
+            EmptyView()
+        }
+    }
+}
+
+struct DetailHeaderActionButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    let role: ButtonRole?
+    let isDisabled: Bool
+    let action: () -> Void
+
+    init(
+        systemImage: String,
+        accessibilityLabel: String,
+        role: ButtonRole? = nil,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.systemImage = systemImage
+        self.accessibilityLabel = accessibilityLabel
+        self.role = role
+        self.isDisabled = isDisabled
+        self.action = action
+    }
+
+    var body: some View {
+        AppGlassIconButton(
+            systemImage: systemImage,
+            accessibilityLabel: accessibilityLabel,
+            role: role
+        ) {
+            action()
+        }
+        .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
+        .disabled(isDisabled)
+    }
+}
+
 /// Admin and management shell with optional filter/search/metrics areas.
 ///
 /// Admin screens should not show the app logo. The tab bar is hidden by

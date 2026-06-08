@@ -269,6 +269,17 @@ enum AppTheme {
     static let detailPageBottomPadding = homeBottomContentPadding
     static let detailPageContentSpacing = sectionSpacing
 
+    static let detailScreenHorizontalPadding = detailPageHorizontalPadding
+    static let detailScreenTopPadding = detailPageTopPadding
+    static let detailScreenBottomPadding = homeBottomContentPadding + 160
+    static let detailScreenContentSpacing = detailSectionSpacing
+    static let detailScreenHeaderSpacing = pushedScreenHeaderSpacing
+    static let detailScreenTitleFont = pushedScreenTitleFont
+    static let detailScreenSubtitleFont = pushedScreenSubtitleFont
+    static let detailActionHeaderSpacing = eventsMetadataSpacing
+    static let detailActionHeaderTitleSpacing = pushedScreenHeaderTextSpacing
+    static let detailActionButtonSize = glassIconButtonSize
+
     static let glassIconButtonSize = iconButtonSize
     static let glassIconButtonCornerRadius = iconButtonRadius
     static let glassIconButtonIconFont: Font = .subheadline.weight(.semibold)

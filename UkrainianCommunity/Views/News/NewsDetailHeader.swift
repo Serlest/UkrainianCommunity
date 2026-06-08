@@ -1,19 +1,6 @@
 import SwiftUI
 
 extension NewsDetailView {
-        func newsDetailHeader() -> some View {
-            HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-                detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                    navigateBack()
-                }
-
-                Spacer(minLength: 0)
-
-                headerActions()
-            }
-            .zIndex(10)
-        }
-
         func navigateBack() {
             if let onNavigateBack {
                 onNavigateBack()
@@ -22,42 +9,22 @@ extension NewsDetailView {
             }
         }
 
-        func headerActions() -> some View {
-            HStack(spacing: 10) {
-                if let post = viewModel.post(for: postID) {
-                    detailIconButton(
-                        systemImage: post.isBookmarked ? "bookmark.fill" : "bookmark",
-                        accessibilityLabel: AppStrings.Action.save
-                    ) {
-                        handleBookmark(for: post.id)
-                    }
+        func newsHeaderActions(for post: NewsPost) -> some View {
+            Group {
+                DetailHeaderActionButton(
+                    systemImage: post.isBookmarked ? "bookmark.fill" : "bookmark",
+                    accessibilityLabel: AppStrings.Action.save
+                ) {
+                    handleBookmark(for: post.id)
                 }
 
-                detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
-                    guard let post = viewModel.post(for: postID) else { return }
+                DetailHeaderActionButton(
+                    systemImage: "square.and.arrow.up",
+                    accessibilityLabel: AppStrings.Action.share
+                ) {
                     sharePayload = NewsSharePayload(post: post)
                 }
             }
-        }
-
-        func detailIconButton(
-            systemImage: String,
-            accessibilityLabel: String,
-            role: ButtonRole? = nil,
-            isPlaceholder: Bool = false,
-            action: @escaping () -> Void
-        ) -> some View {
-            AppGlassIconButton(
-                systemImage: systemImage,
-                accessibilityLabel: accessibilityLabel,
-                role: role,
-                isPlaceholder: isPlaceholder
-            ) {
-                action()
-            }
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
-            .zIndex(2)
         }
 
         func articleHeader(for post: NewsPost) -> some View {
