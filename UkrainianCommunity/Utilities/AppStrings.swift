@@ -2035,8 +2035,23 @@ enum AppStrings {
     }
 
     enum Dialogs {
-        static var errorTitle: String { text("dialogs.error.title", "Something went wrong") }
-        static var successTitle: String { text("dialogs.success.title", "Done") }
+        static var errorTitle: String {
+            String(
+                localized: "dialogs.error.title",
+                defaultValue: "Something went wrong",
+                bundle: .main,
+                locale: LocalizationStore.locale
+            )
+        }
+
+        static var successTitle: String {
+            String(
+                localized: "dialogs.success.title",
+                defaultValue: "Done",
+                bundle: .main,
+                locale: LocalizationStore.locale
+            )
+        }
     }
 
     enum Common {

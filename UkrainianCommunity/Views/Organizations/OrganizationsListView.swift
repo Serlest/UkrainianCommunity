@@ -241,38 +241,33 @@ struct OrganizationsListView: View {
 
             Button(AppStrings.Events.cancel, role: .cancel) {}
         }
-        .confirmationDialog(
-            AppStrings.Organizations.deleteConfirmation,
-            isPresented: Binding(
-                get: { pendingDeleteOrganizationID != nil },
-                set: { isPresented in
-                    if !isPresented {
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard let organizationID = pendingDeleteOrganizationID else { return nil }
+                return AppDestructiveActionDialog(
+                    title: AppStrings.Organizations.deleteConfirmation,
+                    message: "",
+                    destructiveActionTitle: AppStrings.Organizations.delete,
+                    cancelTitle: AppStrings.Organizations.cancel
+                ) {
+                    Task {
+                        do {
+                            try await viewModel.deleteOrganization(id: organizationID, user: authState.user)
+                            viewModel.removeDeletedOrganization(id: organizationID)
+                            onOrganizationDeleted()
+                        } catch let appError as AppError {
+                            deleteErrorMessage = readableOrganizationErrorText(appError)
+                            isShowingDeleteError = true
+                        } catch {
+                            deleteErrorMessage = readableOrganizationErrorText(.unknown)
+                            isShowingDeleteError = true
+                        }
                         pendingDeleteOrganizationID = nil
                     }
                 }
-            )
-        ) {
-            Button(AppStrings.Organizations.delete, role: .destructive) {
-                guard let organizationID = pendingDeleteOrganizationID else { return }
-                Task {
-                    do {
-                        try await viewModel.deleteOrganization(id: organizationID, user: authState.user)
-                        viewModel.removeDeletedOrganization(id: organizationID)
-                        onOrganizationDeleted()
-                    } catch let appError as AppError {
-                        deleteErrorMessage = readableOrganizationErrorText(appError)
-                        isShowingDeleteError = true
-                    } catch {
-                        deleteErrorMessage = readableOrganizationErrorText(.unknown)
-                        isShowingDeleteError = true
-                    }
-                    pendingDeleteOrganizationID = nil
-                }
-            }
-            Button(AppStrings.Organizations.cancel, role: .cancel) {
-                pendingDeleteOrganizationID = nil
-            }
-        }
+            },
+            set: { if $0 == nil { pendingDeleteOrganizationID = nil } }
+        ))
         .appErrorDialog(Binding(
             get: {
                 guard isShowingDeleteError else { return nil }

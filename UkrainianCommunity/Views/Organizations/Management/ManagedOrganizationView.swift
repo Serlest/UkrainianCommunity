@@ -90,19 +90,22 @@ struct ManagedOrganizationView: View {
                 )
             }
         }
-        .confirmationDialog(
-            AppStrings.Organizations.deleteConfirmation,
-            isPresented: $isShowingDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Organizations.delete, role: .destructive) {
-                Task {
-                    await deleteOrganization()
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard isShowingDeleteConfirmation else { return nil }
+                return AppDestructiveActionDialog(
+                    title: AppStrings.Organizations.deleteConfirmation,
+                    message: "",
+                    destructiveActionTitle: AppStrings.Organizations.delete,
+                    cancelTitle: AppStrings.Organizations.cancel
+                ) {
+                    Task {
+                        await deleteOrganization()
+                    }
                 }
-            }
-
-            Button(AppStrings.Organizations.cancel, role: .cancel) {}
-        }
+            },
+            set: { if $0 == nil { isShowingDeleteConfirmation = false } }
+        ))
         .appErrorDialog(Binding(
             get: {
                 deleteErrorMessage.map {
