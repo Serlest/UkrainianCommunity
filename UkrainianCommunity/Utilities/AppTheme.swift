@@ -222,6 +222,82 @@ enum AppTheme {
     static let groupedPlaneShadowRadius: CGFloat = 3
     static let groupedPlaneShadowY: CGFloat = 1
 
+    // Secondary screen shell tokens. These are semantic aliases over the
+    // existing app scale so pushed/admin/editor chrome can be tuned centrally.
+    static let pushedScreenHorizontalPadding = pageHorizontal
+    static let pushedScreenTopPadding = sectionSpacing
+    static let pushedScreenBottomPadding = homeBottomContentPadding
+    static let pushedScreenContentSpacing = sectionSpacing
+    static let pushedScreenHeaderSpacing = eventsMetadataSpacing
+    static let pushedScreenHeaderTextSpacing: CGFloat = 4
+    static let pushedScreenHeaderTitleTopOffset: CGFloat = 2
+    static let pushedScreenTitleFont = screenTitleFont
+    static let pushedScreenSubtitleFont = secondaryBodyFont
+
+    static let adminScreenContentSpacing = eventsControlGroupSpacing
+
+    static let editorScreenHorizontalPadding = pushedScreenHorizontalPadding
+    static let editorScreenTopPadding = pushedScreenTopPadding
+    static let editorScreenBottomPadding = pushedScreenBottomPadding
+    static let editorScreenContentSpacing = pushedScreenContentSpacing
+    static let editorScreenBottomActionPadding = sectionSpacing
+    static let editorScreenHeaderSpacing = pushedScreenHeaderSpacing
+    static let editorScreenHeaderTextSpacing = pushedScreenHeaderTextSpacing
+    static let editorScreenHeaderTitleTopOffset = pushedScreenHeaderTitleTopOffset
+    static let editorScreenTitleFont = pushedScreenTitleFont
+    static let editorScreenSubtitleFont = pushedScreenSubtitleFont
+
+    static let groupedContentPadding = contentPlanePadding
+    static let groupedContentSpacing: CGFloat = 0
+    static let groupedContentCornerRadius = contentPlaneRadius
+    static let groupedContentMaterial: Material = .ultraThinMaterial
+    static let groupedContentBorderOpacity = groupedPlaneBorderOpacity
+    static let groupedContentShadowRadius = groupedPlaneShadowRadius
+    static let groupedContentShadowY = groupedPlaneShadowY
+
+    static let appGlassCardDefaultSpacing: CGFloat = 12
+    static let appGlassCardMaterial: Material = .ultraThinMaterial
+    static let softContentCardSpacing = appGlassCardDefaultSpacing
+    static let editorSectionCardPadding = detailCardPadding
+    static let detailHeaderCardTitleFont: Font = .title2.weight(.bold)
+    static let detailHeaderCardSubtitleFont: Font = .subheadline.weight(.medium)
+    static let detailHeaderCardLineSpacing: CGFloat = 2
+    static let detailActionRowSpacing: CGFloat = 12
+
+    static let detailPageHorizontalPadding = pageHorizontal
+    static let detailPageTopPadding = sectionSpacing
+    static let detailPageBottomPadding = homeBottomContentPadding
+    static let detailPageContentSpacing = sectionSpacing
+
+    static let glassIconButtonSize = iconButtonSize
+    static let glassIconButtonCornerRadius = iconButtonRadius
+    static let glassIconButtonIconFont: Font = .subheadline.weight(.semibold)
+    static let glassIconButtonMaterial: Material = .ultraThinMaterial
+    static let glassIconButtonShadowRadius: CGFloat = 5
+    static let glassIconButtonShadowY: CGFloat = 2
+    static let glassIconButtonPlaceholderOpacity: Double = 0.58
+
+    static let backButtonSize = glassIconButtonSize
+    static let backButtonCornerRadius = glassIconButtonCornerRadius
+    static let backButtonIconFont = glassIconButtonIconFont
+
+    static func screenBackgroundOverlayColors(for colorScheme: ColorScheme) -> [Color] {
+        switch colorScheme {
+        case .dark:
+            [
+                Color(red: 0.015, green: 0.022, blue: 0.040).opacity(0.52),
+                Color(red: 0.020, green: 0.030, blue: 0.055).opacity(0.58),
+                Color(red: 0.010, green: 0.016, blue: 0.032).opacity(0.66)
+            ]
+        default:
+            [
+                Color.white.opacity(0.12),
+                Color.white.opacity(0.08),
+                accentSupport.opacity(0.06)
+            ]
+        }
+    }
+
     // Backward-compatible aliases for the existing codebase. These should be
     // migrated gradually to semantic names in later design-system phases.
     static let primaryBlue = accentPrimary

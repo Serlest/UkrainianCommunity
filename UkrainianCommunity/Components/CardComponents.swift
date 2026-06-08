@@ -67,9 +67,9 @@ struct AppGlassCard<Content: View>: View {
 
     init(
         padding: CGFloat = AppTheme.cardPadding,
-        spacing: CGFloat = 12,
+        spacing: CGFloat = AppTheme.appGlassCardDefaultSpacing,
         cornerRadius: CGFloat = AppTheme.cardRadius,
-        material: Material = .ultraThinMaterial,
+        material: Material = AppTheme.appGlassCardMaterial,
         shadowRadius: CGFloat = AppTheme.glassCardShadowRadius,
         shadowY: CGFloat = AppTheme.glassCardShadowY,
         @ViewBuilder content: () -> Content
@@ -110,7 +110,7 @@ struct SoftContentCard<Content: View>: View {
     var body: some View {
         AppGlassCard(
             padding: padding,
-            spacing: 12,
+            spacing: AppTheme.softContentCardSpacing,
             shadowRadius: AppTheme.softContentCardShadowRadius,
             shadowY: AppTheme.softContentCardShadowY
         ) {
@@ -135,12 +135,12 @@ struct DetailPageContainer<Content: View>: View {
     var body: some View {
         GeometryReader { proxy in
             ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                VStack(alignment: .leading, spacing: AppTheme.detailPageContentSpacing) {
                     content
                 }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
+                .padding(.horizontal, AppTheme.detailPageHorizontalPadding)
+                .padding(.top, AppTheme.detailPageTopPadding)
+                .padding(.bottom, AppTheme.detailPageBottomPadding)
                 .frame(width: proxy.size.width, alignment: .leading)
             }
             .frame(width: proxy.size.width)
@@ -171,16 +171,16 @@ struct DetailHeaderCard<MetadataContent: View>: View {
     var body: some View {
         DetailCard {
             Text(title)
-                .font(.title2.weight(.bold))
+                .font(AppTheme.detailHeaderCardTitleFont)
                 .foregroundStyle(AppTheme.textPrimary)
-                .lineSpacing(2)
+                .lineSpacing(AppTheme.detailHeaderCardLineSpacing)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.subheadline.weight(.medium))
+                    .font(AppTheme.detailHeaderCardSubtitleFont)
                     .foregroundStyle(AppTheme.textSecondary)
-                    .lineSpacing(2)
+                    .lineSpacing(AppTheme.detailHeaderCardLineSpacing)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -194,7 +194,7 @@ struct DetailActionRow<LeadingContent: View, TrailingContent: View>: View {
     @ViewBuilder let trailingContent: TrailingContent
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: AppTheme.detailActionRowSpacing) {
             leadingContent
             Spacer(minLength: 0)
             trailingContent

@@ -44,29 +44,33 @@ struct AppGlassIconButton: View {
     var body: some View {
         Button(role: role, action: action) {
             Image(systemName: systemImage)
-                .font(.subheadline.weight(.semibold))
+                .font(AppTheme.glassIconButtonIconFont)
                 .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
-                .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
+                .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
                 .background(
                     reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                    in: RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
                 )
                 .background {
                     if !reduceTransparency {
-                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                            .fill(.ultraThinMaterial)
+                        RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
+                            .fill(AppTheme.glassIconButtonMaterial)
                     }
                 }
                 .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
                         .strokeBorder(AppTheme.glassBorder(for: colorScheme))
                 )
-                .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 5, y: 2)
+                .shadow(
+                    color: AppTheme.glassShadow(for: colorScheme),
+                    radius: AppTheme.glassIconButtonShadowRadius,
+                    y: AppTheme.glassIconButtonShadowY
+                )
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .disabled(isPlaceholder)
-        .opacity(isPlaceholder ? 0.58 : 1)
+        .opacity(isPlaceholder ? AppTheme.glassIconButtonPlaceholderOpacity : 1)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
     }

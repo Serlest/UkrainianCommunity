@@ -52,26 +52,26 @@ struct PushedScreenHeader<TrailingContent: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+        HStack(alignment: .top, spacing: AppTheme.pushedScreenHeaderSpacing) {
             if showsBackButton {
                 AppBackButton(action: backAction)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppTheme.pushedScreenHeaderTextSpacing) {
                 Text(title)
-                    .font(AppTheme.screenTitleFont)
+                    .font(AppTheme.pushedScreenTitleFont)
                     .foregroundStyle(AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(AppTheme.secondaryBodyFont)
+                        .font(AppTheme.pushedScreenSubtitleFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, showsBackButton ? 2 : 0)
+            .padding(.top, showsBackButton ? AppTheme.pushedScreenHeaderTitleTopOffset : 0)
 
             trailingContent
         }
@@ -119,9 +119,9 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         subtitle: String? = nil,
         showsBackButton: Bool = true,
         tabBarHidden: Bool = false,
-        topPadding: CGFloat = AppTheme.sectionSpacing,
-        bottomPadding: CGFloat = AppTheme.homeBottomContentPadding,
-        contentSpacing: CGFloat = AppTheme.sectionSpacing,
+        topPadding: CGFloat = AppTheme.pushedScreenTopPadding,
+        bottomPadding: CGFloat = AppTheme.pushedScreenBottomPadding,
+        contentSpacing: CGFloat = AppTheme.pushedScreenContentSpacing,
         backAction: (() -> Void)? = nil,
         @ViewBuilder trailingContent: () -> TrailingContent,
         @ViewBuilder content: () -> Content
@@ -156,7 +156,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
 
                     content
                 }
-                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
                 .padding(.top, topPadding)
                 .padding(.bottom, bottomPadding)
             }
@@ -177,9 +177,9 @@ extension PushedScreenShell where TrailingContent == EmptyView {
         subtitle: String? = nil,
         showsBackButton: Bool = true,
         tabBarHidden: Bool = false,
-        topPadding: CGFloat = AppTheme.sectionSpacing,
-        bottomPadding: CGFloat = AppTheme.homeBottomContentPadding,
-        contentSpacing: CGFloat = AppTheme.sectionSpacing,
+        topPadding: CGFloat = AppTheme.pushedScreenTopPadding,
+        bottomPadding: CGFloat = AppTheme.pushedScreenBottomPadding,
+        contentSpacing: CGFloat = AppTheme.pushedScreenContentSpacing,
         backAction: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) {
@@ -248,7 +248,7 @@ struct AdminScreenShell<FiltersContent: View, MetricsContent: View, Content: Vie
             trailingContent
         } content: {
             AppGroupedContentPlane {
-                VStack(alignment: .leading, spacing: AppTheme.eventsControlGroupSpacing) {
+                VStack(alignment: .leading, spacing: AppTheme.adminScreenContentSpacing) {
                     filtersContent
                     metricsContent
                     content
@@ -349,18 +349,18 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                 .allowsHitTesting(false)
 
             ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                VStack(alignment: .leading, spacing: AppTheme.editorScreenContentSpacing) {
                     editorHeader
                     content
                 }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
+                .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
+                .padding(.top, AppTheme.editorScreenTopPadding)
+                .padding(.bottom, AppTheme.editorScreenBottomPadding)
             }
 
             bottomActionContent
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.bottom, AppTheme.sectionSpacing)
+                .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
+                .padding(.bottom, AppTheme.editorScreenBottomActionPadding)
         }
         .tint(AppTheme.accentPrimary)
         .navigationTitle(title)
@@ -373,7 +373,7 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
     }
 
     private var editorHeader: some View {
-        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+        HStack(alignment: .top, spacing: AppTheme.editorScreenHeaderSpacing) {
             AppGlassIconButton(systemImage: closeStyle.systemImage, accessibilityLabel: closeStyle.accessibilityLabel) {
                 if let closeAction {
                     closeAction()
@@ -382,21 +382,21 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                 }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppTheme.editorScreenHeaderTextSpacing) {
                 Text(title)
-                    .font(AppTheme.screenTitleFont)
+                    .font(AppTheme.editorScreenTitleFont)
                     .foregroundStyle(AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(AppTheme.secondaryBodyFont)
+                        .font(AppTheme.editorScreenSubtitleFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 2)
+            .padding(.top, AppTheme.editorScreenHeaderTitleTopOffset)
 
             trailingContent
         }
@@ -514,26 +514,10 @@ struct AppBackgroundView: View {
 
     private var readabilityOverlay: some View {
         LinearGradient(
-            colors: colorScheme == .dark ? darkOverlayColors : lightOverlayColors,
+            colors: AppTheme.screenBackgroundOverlayColors(for: colorScheme),
             startPoint: .top,
             endPoint: .bottom
         )
-    }
-
-    private var lightOverlayColors: [Color] {
-        [
-            Color.white.opacity(0.12),
-            Color.white.opacity(0.08),
-            AppTheme.accentSupport.opacity(0.06)
-        ]
-    }
-
-    private var darkOverlayColors: [Color] {
-        [
-            Color(red: 0.015, green: 0.022, blue: 0.040).opacity(0.52),
-            Color(red: 0.020, green: 0.030, blue: 0.055).opacity(0.58),
-            Color(red: 0.010, green: 0.016, blue: 0.032).opacity(0.66)
-        ]
     }
 }
 
@@ -542,24 +526,24 @@ struct AppGroupedContentPlane<Content: View>: View {
     @ViewBuilder let content: Content
     @Environment(\.colorScheme) private var colorScheme
 
-    init(padding: CGFloat = AppTheme.contentPlanePadding, @ViewBuilder content: () -> Content) {
+    init(padding: CGFloat = AppTheme.groupedContentPadding, @ViewBuilder content: () -> Content) {
         self.padding = padding
         self.content = content()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: AppTheme.groupedContentSpacing) {
             content
         }
         .padding(padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .appGlassCard(
-            cornerRadius: AppTheme.contentPlaneRadius,
-            material: .ultraThinMaterial,
+            cornerRadius: AppTheme.groupedContentCornerRadius,
+            material: AppTheme.groupedContentMaterial,
             surface: AppTheme.groupedPlaneSurface(for: colorScheme),
-            borderOpacity: AppTheme.groupedPlaneBorderOpacity,
-            shadowRadius: AppTheme.groupedPlaneShadowRadius,
-            shadowY: AppTheme.groupedPlaneShadowY
+            borderOpacity: AppTheme.groupedContentBorderOpacity,
+            shadowRadius: AppTheme.groupedContentShadowRadius,
+            shadowY: AppTheme.groupedContentShadowY
         )
     }
 }

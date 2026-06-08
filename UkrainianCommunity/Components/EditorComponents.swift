@@ -8,7 +8,7 @@ struct AppEditorSectionCard<Content: View>: View {
     }
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.detailCardPadding) {
+        SoftContentCard(padding: AppTheme.editorSectionCardPadding) {
             content
         }
     }
