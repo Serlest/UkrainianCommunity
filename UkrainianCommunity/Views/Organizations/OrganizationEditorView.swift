@@ -45,31 +45,21 @@ struct OrganizationEditorView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: editorSectionSpacing) {
-                editorHeader
-                    .padding(.top, AppTheme.dashboardSpacing)
-
-                editorTitleBlock
-                statusContent
-                mainInfoCard
-                contactCard
-                locationCard
-                aboutCard
-                moderationNoticeCard
-                bottomSubmitButton
-            }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
-        }
-        .keyboardDismissBackground {
-            AppBackgroundView()
+        EditorScreenShell(
+            title: viewModel.navigationTitle,
+            subtitle: AppStrings.Organizations.editorSubtitle,
+            closeStyle: .cancel,
+            closeAction: requestClose
+        ) {
+            statusContent
+            mainInfoCard
+            contactCard
+            locationCard
+            aboutCard
+            moderationNoticeCard
+            bottomSubmitButton
         }
         .tint(AppTheme.accentPrimary)
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-        .scrollDismissesKeyboard(.interactively)
-        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingLogoCrop, onDismiss: resetLogoCropSelection) {
             if let cropSourceLogoImage {
                 ImageCropView(

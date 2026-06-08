@@ -1,16 +1,6 @@
 import SwiftUI
 
 extension OrganizationEditorView {
-    var editorHeader: some View {
-        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-            AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                requestClose()
-            }
-
-            Spacer(minLength: 0)
-        }
-    }
-
     var bottomSubmitButton: some View {
         PrimaryActionButton(
             title: bottomSubmitTitle,
@@ -57,21 +47,6 @@ extension OrganizationEditorView {
         } else {
             dismiss()
         }
-    }
-
-    var editorTitleBlock: some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
-            Text(viewModel.navigationTitle)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(AppTheme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(AppStrings.Organizations.editorSubtitle)
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
