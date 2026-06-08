@@ -708,52 +708,35 @@ struct ProfileView: View {
     }
 
     private var editProfileContent: some View {
-        ZStack(alignment: .bottom) {
-            AppBackgroundView()
-                .allowsHitTesting(false)
+        EditorScreenShell(
+            title: AppStrings.Profile.editProfile,
+            subtitle: AppStrings.Profile.editProfileSubtitle,
+            closeStyle: .cancel,
+            closeAction: {
+                guard !viewModel.isSavingProfile else { return }
+                isShowingEditProfileSheet = false
+            }
+        ) {
+            ProfileAvatarEditorCard(
+                avatarURL: displayUser?.avatarURL,
+                initials: displayUser?.initials ?? "UC",
+                previewImage: avatarPreviewImage,
+                selectedPhoto: $selectedAvatarPhoto,
+                isLoadingAvatar: isLoadingAvatarSelection,
+                isSavingAvatar: viewModel.isSavingProfile && selectedAvatarImageData != nil
+            )
 
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-                        AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                            guard !viewModel.isSavingProfile else { return }
-                            isShowingEditProfileSheet = false
-                        }
+            editProfileMainInfoSection
+            editProfileAppSettingsSection
+            notificationsSection
 
-                        Spacer(minLength: 0)
-                    }
+            if let profileStatusMessage {
+                InlineMessageCard(style: profileStatusStyle, message: profileStatusMessage)
+                    .accessibilityLabel(profileStatusMessage)
+            }
 
-                    SectionHeaderBlock(
-                        title: AppStrings.Profile.editProfile,
-                        subtitle: AppStrings.Profile.editProfileSubtitle
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    ProfileAvatarEditorCard(
-                        avatarURL: displayUser?.avatarURL,
-                        initials: displayUser?.initials ?? "UC",
-                        previewImage: avatarPreviewImage,
-                        selectedPhoto: $selectedAvatarPhoto,
-                        isLoadingAvatar: isLoadingAvatarSelection,
-                        isSavingAvatar: viewModel.isSavingProfile && selectedAvatarImageData != nil
-                    )
-
-                    editProfileMainInfoSection
-                    editProfileAppSettingsSection
-                    notificationsSection
-
-                    if let profileStatusMessage {
-                        InlineMessageCard(style: profileStatusStyle, message: profileStatusMessage)
-                            .accessibilityLabel(profileStatusMessage)
-                    }
-
-                    if let profileValidationHint {
-                        InlineMessageCard(style: .info, message: profileValidationHint)
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding + 84)
+            if let profileValidationHint {
+                InlineMessageCard(style: .info, message: profileValidationHint)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -780,9 +763,7 @@ struct ProfileView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
         .interactiveDismissDisabled(viewModel.isSavingProfile)
-        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingAvatarCrop, onDismiss: resetAvatarCropSelection) {
             if let cropSourceAvatarImage {
                 ImageCropView(
