@@ -31,7 +31,7 @@ struct GuideSectionCard: View {
             HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
                 GuideReaderCardIcon(systemImage: node.displaySystemImage)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingTight) {
                     Text(node.title)
                         .font(AppTheme.cardTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)
@@ -63,7 +63,7 @@ struct GuideMaterialCard: View {
             HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
                 GuideReaderCardIcon(systemImage: "doc.text")
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingTight) {
                     Text(material.title)
                         .font(AppTheme.cardTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)

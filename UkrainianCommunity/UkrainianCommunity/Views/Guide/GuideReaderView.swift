@@ -492,7 +492,7 @@ private struct GuideCategoryLinkCard: View {
 
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                 ZStack {
                     RoundedRectangle(cornerRadius: AppTheme.feedThumbnailRadius, style: .continuous)
                         .fill(AppTheme.badgeBlueFill)
@@ -501,7 +501,7 @@ private struct GuideCategoryLinkCard: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(AppTheme.accentPrimary)
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
 
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -545,7 +545,7 @@ private struct GuideMaterialResultRow<Destination: View>: View {
     let onToggleSaved: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacingRelaxed) {
             NavigationLink(destination: destination) {
                 GuideMaterialCard(material: material)
             }
