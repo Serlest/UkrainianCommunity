@@ -24,7 +24,6 @@ struct OrganizationEditorView: View {
     let summaryInputHeight: CGFloat = 78
     let summaryTextHeight: CGFloat = 60
     let uploadMinHeight: CGFloat = 124
-    let headerLogoSize = CGSize(width: 118, height: 42)
 
     init(
         organizationsViewModel: OrganizationsViewModel,

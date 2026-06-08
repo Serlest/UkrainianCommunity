@@ -714,13 +714,13 @@ struct ProfileView: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
+                    HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
                         AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
                             guard !viewModel.isSavingProfile else { return }
                             isShowingEditProfileSheet = false
                         }
-                    } trailingContent: {
-                        EmptyView()
+
+                        Spacer(minLength: 0)
                     }
 
                     SectionHeaderBlock(

@@ -60,8 +60,6 @@ struct NewsListView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: AppTheme.eventsHeaderContentSpacing) {
-                newsHeader
-
                 newsHero
 
                 AppGroupedContentPlane {
@@ -208,12 +206,6 @@ struct NewsListView: View {
             imageSource: .none,
             displaysTextOverImage: true
         )
-    }
-
-    private var newsHeader: some View {
-        AppBrandHeader {
-            EmptyView()
-        }
     }
 
     private func handleLike(for postID: String) {

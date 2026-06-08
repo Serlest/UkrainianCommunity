@@ -53,11 +53,13 @@ struct GuideMaterialDetailView: View {
     }
 
     private var detailHeader: some View {
-        AppCenteredBrandHeader {
+        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
             detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
                 dismiss()
             }
-        } trailingContent: {
+
+            Spacer(minLength: 0)
+
             detailIconButton(
                 systemImage: viewModel.isMaterialSaved(material.id) ? "bookmark.fill" : "bookmark",
                 accessibilityLabel: AppStrings.Action.save

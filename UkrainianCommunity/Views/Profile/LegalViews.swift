@@ -82,10 +82,6 @@ struct LegalDocumentView: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppBrandHeader {
-                        EmptyView()
-                    }
-
                     AppGroupedContentPlane {
                         VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                             if viewModel.isLoading, viewModel.document == nil {

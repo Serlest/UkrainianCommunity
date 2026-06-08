@@ -2,7 +2,7 @@ import SwiftUI
 
 extension OrganizationDetailView {
     func detailHeader(for organization: Organization) -> some View {
-        AppCenteredBrandHeader {
+        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
             AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
                 if let onNavigateBack {
                     onNavigateBack()
@@ -10,7 +10,9 @@ extension OrganizationDetailView {
                     dismiss()
                 }
             }
-        } trailingContent: {
+
+            Spacer(minLength: 0)
+
             HStack(spacing: AppTheme.eventsMetadataSpacing) {
                 Button {
                     toggleBookmark(for: organization)

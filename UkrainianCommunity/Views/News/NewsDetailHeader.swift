@@ -2,11 +2,13 @@ import SwiftUI
 
 extension NewsDetailView {
         func newsDetailHeader() -> some View {
-            AppCenteredBrandHeader {
+            HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
                 detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
                     navigateBack()
                 }
-            } trailingContent: {
+
+                Spacer(minLength: 0)
+
                 headerActions()
             }
             .zIndex(10)

@@ -2,7 +2,7 @@ import SwiftUI
 
 extension EventDetailView {
         var detailHeader: some View {
-            AppCenteredBrandHeader {
+            HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
                 detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
                     if let onNavigateBack {
                         onNavigateBack()
@@ -10,7 +10,9 @@ extension EventDetailView {
                         dismiss()
                     }
                 }
-            } trailingContent: {
+
+                Spacer(minLength: 0)
+
                 HStack(spacing: 10) {
                     if let event = viewModel.event(for: eventID) {
                         detailIconButton(

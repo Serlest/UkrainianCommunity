@@ -36,7 +36,6 @@ struct EventEditorView: View {
     let detailsInputHeight: CGFloat = 104
     let locationNoteInputHeight: CGFloat = 70
     let uploadMinHeight: CGFloat = 124
-    let headerLogoSize = CGSize(width: 118, height: 42)
     let organizerLogoSize: CGFloat = 48
 
     init(

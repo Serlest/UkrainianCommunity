@@ -137,20 +137,16 @@ struct AuthHeaderView: View {
 
     var body: some View {
         AppEditorSectionCard {
-            HStack(alignment: .center, spacing: 14) {
-                BrandMarkView(size: 54, width: 54, assetName: "logo1")
+            VStack(alignment: .leading, spacing: AppTheme.pushedScreenHeaderTextSpacing) {
+                Text(title)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(title)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

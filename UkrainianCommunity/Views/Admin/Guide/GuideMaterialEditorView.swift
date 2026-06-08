@@ -81,12 +81,12 @@ struct GuideMaterialEditorView: View {
     }
 
     private var editorHeader: some View {
-        AppCenteredBrandHeader {
+        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
             AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
                 dismiss()
             }
-        } trailingContent: {
-            EmptyView()
+
+            Spacer(minLength: 0)
         }
     }
 

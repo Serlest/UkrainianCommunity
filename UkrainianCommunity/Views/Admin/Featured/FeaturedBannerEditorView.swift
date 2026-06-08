@@ -43,12 +43,12 @@ struct FeaturedBannerEditorView: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
+                    HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
                         AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
                             dismiss()
                         }
-                    } trailingContent: {
-                        EmptyView()
+
+                        Spacer(minLength: 0)
                     }
 
                     SectionHeaderBlock(
