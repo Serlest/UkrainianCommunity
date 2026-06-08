@@ -14,18 +14,15 @@ struct GuideSectionEditorView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            editorHeader
-                .padding(.top, AppTheme.dashboardSpacing)
+        EditorScreenShell(
+            title: screenTitle,
+            subtitle: headerSubtitle,
+            closeStyle: .cancel
+        ) {
             statusCard
             editorCard
             actionCard
         }
-        .keyboardDismissBackground {
-            AppBackgroundView()
-        }
-        .observesKeyboardDismissTaps()
-        .toolbar(.hidden, for: .navigationBar)
         .onChange(of: viewModel.title) { _, _ in viewModel.clearTransientState() }
         .onChange(of: viewModel.summary) { _, _ in viewModel.clearTransientState() }
         .onChange(of: viewModel.regionScope) { _, newValue in
@@ -35,16 +32,6 @@ struct GuideSectionEditorView: View {
             viewModel.clearTransientState()
         }
         .onChange(of: viewModel.federalState) { _, _ in viewModel.clearTransientState() }
-    }
-
-    private var editorHeader: some View {
-        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-            AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                dismiss()
-            }
-
-            Spacer(minLength: 0)
-        }
     }
 
     @ViewBuilder
@@ -71,11 +58,6 @@ struct GuideSectionEditorView: View {
     private var editorCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                SectionHeaderBlock(
-                    title: screenTitle,
-                    subtitle: headerSubtitle
-                )
-
                 placementContext
 
                 AppEditorField(title: GuideAuthoringPresentation.titleLabel) {
