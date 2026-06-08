@@ -90,8 +90,8 @@ struct ContentView: View {
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .task(id: authSessionKey) {
-            await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
+            await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
             await configureRemoteNotifications(for: notificationInboxUserID)
         }
@@ -100,6 +100,9 @@ struct ContentView: View {
         }
         .onChange(of: authSessionKey) { _, newKey in
             handleAuthIdentityChange(for: newKey)
+        }
+        .onChange(of: notificationInboxViewModel.snapshotVersion) { _, _ in
+            bridgeNotificationInboxSnapshotToPopupCoordinator()
         }
         .onChange(of: profileViewModel.settings.language) { _, newLanguage in
             selectedLanguageCode = newLanguage.rawValue
@@ -408,8 +411,8 @@ struct ContentView: View {
         profileViewModel.resetForAuthChange()
 
         Task {
-            await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
+            await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             await configureRemoteNotifications(for: notificationInboxUserID)
             await newsViewModel.refresh()
             await eventsViewModel.refresh()
@@ -459,6 +462,16 @@ struct ContentView: View {
             print("[Notifications] Notification preferences fetch failed during remote registration setup: \(error)")
             #endif
         }
+    }
+
+    private func bridgeNotificationInboxSnapshotToPopupCoordinator() {
+        guard notificationInboxViewModel.snapshotVersion > 0,
+              let userID = notificationInboxUserID else { return }
+
+        notificationPopupCoordinator.receiveInboxSnapshot(
+            notificationInboxViewModel.notifications,
+            userID: userID
+        )
     }
 
     private func scheduleNavigationPathResetAfterTabSwitch(for tab: AppTab) {

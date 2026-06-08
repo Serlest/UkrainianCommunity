@@ -14,6 +14,7 @@ final class NotificationInboxViewModel: ObservableObject {
     @Published private(set) var unreadCount = 0
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
+    @Published private(set) var snapshotVersion = 0
     @Published var selectedFilter: NotificationInboxFilter = .all
 
     private let repository: NotificationInboxRepository
@@ -38,6 +39,7 @@ final class NotificationInboxViewModel: ObservableObject {
         currentUserID = userID
         notifications = []
         unreadCount = 0
+        snapshotVersion = 0
         error = nil
         selectedFilter = .all
 
@@ -66,6 +68,7 @@ final class NotificationInboxViewModel: ObservableObject {
         do {
             notifications = try await repository.fetchNotifications(userID: userID, limit: notificationLimit)
             unreadCount = try await repository.fetchUnreadCount(userID: userID)
+            snapshotVersion += 1
             if clearErrorOnSuccess {
                 error = nil
             }
@@ -163,6 +166,7 @@ final class NotificationInboxViewModel: ObservableObject {
                 guard let self else { return }
                 self.notifications = notifications
                 self.unreadCount = notifications.filter(\.countsAsUnread).count
+                self.snapshotVersion += 1
                 self.isLoading = false
                 self.error = nil
             },
