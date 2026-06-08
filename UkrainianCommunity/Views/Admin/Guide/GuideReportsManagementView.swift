@@ -9,23 +9,11 @@ struct GuideReportsManagementView: View {
 
     var body: some View {
         DetailPageContainer {
-            GuideManagementNavigationHeader()
+            GuideManagementNavigationHeader(
+                title: screenTitle,
+                subtitle: screenSubtitle
+            )
                 .padding(.top, AppTheme.dashboardSpacing)
-
-            AppEditorSectionCard {
-                SectionHeaderBlock(
-                    title: GuideAuthoringPresentation.localized(
-                        uk: "Повідомлення та пропозиції",
-                        de: "Meldungen und Vorschläge",
-                        en: "Reports / Suggestions"
-                    ),
-                    subtitle: GuideAuthoringPresentation.localized(
-                        uk: "Звернення користувачів щодо помилок і покращень у матеріалах довідника.",
-                        de: "Rückmeldungen der Nutzerinnen und Nutzer zu Fehlern und Verbesserungsvorschlägen im Leitfaden.",
-                        en: "Reader-submitted issue reports and improvement suggestions."
-                    )
-                )
-            }
 
             content
         }
@@ -37,6 +25,22 @@ struct GuideReportsManagementView: View {
         .refreshable {
             await viewModel.refresh()
         }
+    }
+
+    private var screenTitle: String {
+        GuideAuthoringPresentation.localized(
+            uk: "Повідомлення та пропозиції",
+            de: "Meldungen und Vorschläge",
+            en: "Reports / Suggestions"
+        )
+    }
+
+    private var screenSubtitle: String {
+        GuideAuthoringPresentation.localized(
+            uk: "Звернення користувачів щодо помилок і покращень у матеріалах довідника.",
+            de: "Rückmeldungen der Nutzerinnen und Nutzer zu Fehlern und Verbesserungsvorschlägen im Leitfaden.",
+            en: "Reader-submitted issue reports and improvement suggestions."
+        )
     }
 
     @ViewBuilder

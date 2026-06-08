@@ -166,6 +166,8 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(tabBarHidden ? .hidden : .visible, for: .tabBar)
+        .scrollDismissesKeyboard(.interactively)
+        .observesKeyboardDismissTaps()
     }
 }
 
@@ -205,6 +207,7 @@ extension PushedScreenShell where TrailingContent == EmptyView {
 struct AdminScreenShell<FiltersContent: View, MetricsContent: View, Content: View, TrailingContent: View>: View {
     let title: String
     let subtitle: String?
+    let showsBackButton: Bool
     let tabBarHidden: Bool
     let backAction: (() -> Void)?
     @ViewBuilder let filtersContent: FiltersContent
@@ -215,6 +218,7 @@ struct AdminScreenShell<FiltersContent: View, MetricsContent: View, Content: Vie
     init(
         title: String,
         subtitle: String? = nil,
+        showsBackButton: Bool = true,
         tabBarHidden: Bool = true,
         backAction: (() -> Void)? = nil,
         @ViewBuilder filters: () -> FiltersContent,
@@ -224,6 +228,7 @@ struct AdminScreenShell<FiltersContent: View, MetricsContent: View, Content: Vie
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.showsBackButton = showsBackButton
         self.tabBarHidden = tabBarHidden
         self.backAction = backAction
         self.filtersContent = filters()
@@ -236,6 +241,7 @@ struct AdminScreenShell<FiltersContent: View, MetricsContent: View, Content: Vie
         PushedScreenShell(
             title: title,
             subtitle: subtitle,
+            showsBackButton: showsBackButton,
             tabBarHidden: tabBarHidden,
             backAction: backAction
         ) {
@@ -256,6 +262,7 @@ extension AdminScreenShell where FiltersContent == EmptyView, MetricsContent == 
     init(
         title: String,
         subtitle: String? = nil,
+        showsBackButton: Bool = true,
         tabBarHidden: Bool = true,
         backAction: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
@@ -263,6 +270,7 @@ extension AdminScreenShell where FiltersContent == EmptyView, MetricsContent == 
         self.init(
             title: title,
             subtitle: subtitle,
+            showsBackButton: showsBackButton,
             tabBarHidden: tabBarHidden,
             backAction: backAction
         ) {

@@ -1,44 +1,18 @@
 import SwiftUI
 
 struct MyFeedbackView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: MyFeedbackViewModel
     let currentUserID: String
     @State private var selectedFeedback: FeedbackItem?
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
-                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                            dismiss()
-                        }
-                    } trailingContent: {
-                        EmptyView()
-                    }
-
-                    AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                            AppEditorSectionCard {
-                                SectionHeaderBlock(
-                                    title: AppStrings.Feedback.myFeedbackTitle,
-                                    subtitle: AppStrings.Feedback.myFeedbackSubtitle
-                                )
-                            }
-
-                            feedbackContent
-                        }
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
-            }
+        PushedScreenShell(
+            title: AppStrings.Feedback.myFeedbackTitle,
+            subtitle: AppStrings.Feedback.myFeedbackSubtitle,
+            tabBarHidden: true
+        ) {
+            feedbackContent
         }
         .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.Feedback.myFeedbackTitle)
@@ -208,7 +182,6 @@ private enum FeedbackInboxFilter: String, CaseIterable, Identifiable {
 }
 
 struct FeedbackInboxView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: FeedbackInboxViewModel
     @State private var selectedFeedback: FeedbackItem?
@@ -229,46 +202,23 @@ struct FeedbackInboxView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
-                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                            dismiss()
-                        }
-                    } trailingContent: {
-                        EmptyView()
-                    }
-
-                    AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                            AppEditorSectionCard {
-                                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                                    SectionHeaderBlock(
-                                        title: AppStrings.Feedback.inboxTitle,
-                                        subtitle: AppStrings.Feedback.inboxSubtitle
-                                    )
-
-                                    Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
-                                        ForEach(FeedbackInboxFilter.allCases) { filter in
-                                            Text(filter.title).tag(filter)
-                                        }
-                                    }
-                                    .pickerStyle(.segmented)
-                                }
-                            }
-
-                            inboxContent
-                        }
-                    }
+        AdminScreenShell(
+            title: AppStrings.Feedback.inboxTitle,
+            subtitle: AppStrings.Feedback.inboxSubtitle,
+            tabBarHidden: true
+        ) {
+            Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
+                ForEach(FeedbackInboxFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
                 }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
+            .pickerStyle(.segmented)
+        } metrics: {
+            EmptyView()
+        } trailingContent: {
+            EmptyView()
+        } content: {
+            inboxContent
         }
         .tint(AppTheme.accentPrimary)
         .navigationTitle(AppStrings.Feedback.inboxTitle)

@@ -10,19 +10,15 @@ struct GuideManagementView: View {
 
     var body: some View {
         DetailPageContainer {
-            GuideManagementNavigationHeader()
-                .padding(.top, AppTheme.dashboardSpacing)
-
-            AppEditorSectionCard {
-                SectionHeaderBlock(
-                    title: GuideAuthoringPresentation.treeManagementTitle,
-                    subtitle: GuideAuthoringPresentation.localized(
-                        uk: "Робоча поверхня для керування структурою довідника.",
-                        de: "Arbeitsbereich für die Verwaltung der Leitfadenstruktur.",
-                        en: "Workspace for the guide management flow."
-                    )
+            GuideManagementNavigationHeader(
+                title: GuideAuthoringPresentation.treeManagementTitle,
+                subtitle: GuideAuthoringPresentation.localized(
+                    uk: "Робоча поверхня для керування структурою довідника.",
+                    de: "Arbeitsbereich für die Verwaltung der Leitfadenstruktur.",
+                    en: "Workspace for the guide management flow."
                 )
-            }
+            )
+                .padding(.top, AppTheme.dashboardSpacing)
 
             LazyVGrid(columns: columns, spacing: AppTheme.eventsMetadataSpacing) {
                 ForEach(viewModel.sections) { section in

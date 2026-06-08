@@ -1,61 +1,19 @@
 import SwiftUI
 
 struct ProfileDestinationLayout<Content: View>: View {
-    @Environment(\.dismiss) private var dismiss
     let title: String
     let introSubtitle: String
     @ViewBuilder let content: Content
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
-                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                            dismiss()
-                        }
-                    } trailingContent: {
-                        EmptyView()
-                    }
-
-                    AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.eventsControlGroupSpacing) {
-                            ProfileDestinationIntroCard(
-                                title: title,
-                                subtitle: introSubtitle
-                            )
-
-                            content
-                        }
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
+        PushedScreenShell(
+            title: title,
+            subtitle: introSubtitle,
+            tabBarHidden: true
+        ) {
+            AppGroupedContentPlane {
+                content
             }
-        }
-        .tint(AppTheme.accentPrimary)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
-        .observesKeyboardDismissTaps()
-    }
-}
-
-private struct ProfileDestinationIntroCard: View {
-    let title: String
-    let subtitle: String
-
-    var body: some View {
-        AppEditorSectionCard {
-            SectionHeaderBlock(
-                title: title,
-                subtitle: subtitle
-            )
-            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
         }
     }
 }

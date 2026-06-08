@@ -279,7 +279,6 @@ private final class ModerationQueueViewModel: ObservableObject {
 }
 
 struct ModerationToolsView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: ModerationQueueViewModel
     @State private var selectedOrganizationRequest: ModerationQueueItem?
@@ -344,36 +343,16 @@ struct ModerationToolsView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
-                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                            dismiss()
-                        }
-                    } trailingContent: {
-                        EmptyView()
-                    }
-
-                    AppGroupedContentPlane {
-                        moderationContent
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
-            }
-            .refreshable {
-                await viewModel.refresh()
-            }
+        AdminScreenShell(
+            title: screenTitle,
+            subtitle: AppStrings.Moderation.subtitle,
+            tabBarHidden: true
+        ) {
+            moderationContent
         }
-        .tint(AppTheme.accentPrimary)
-        .navigationTitle(screenTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
+        .refreshable {
+            await viewModel.refresh()
+        }
         .task {
             await loadPermissionOrganizationIfNeeded()
             viewModel.setAllowedSections(allowedSections)
@@ -428,13 +407,6 @@ struct ModerationToolsView: View {
     @ViewBuilder
     private var moderationContent: some View {
         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-            AppEditorSectionCard {
-                SectionHeaderBlock(
-                    title: screenTitle,
-                    subtitle: AppStrings.Moderation.subtitle
-                )
-            }
-
             if !canAccessModeration {
                 UnifiedEmptyStateCard(
                     systemImage: "lock.shield",

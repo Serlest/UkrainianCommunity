@@ -20,13 +20,13 @@ struct GuideTreeCategoryManagementView: View {
 
     var body: some View {
         DetailPageContainer {
-            GuideManagementNavigationHeader()
-                .padding(.top, AppTheme.dashboardSpacing)
-
-            DetailHeaderCard(
+            GuideManagementNavigationHeader(
                 title: GuideCategoryPresentation.publicTitle(for: category),
                 subtitle: GuideCategoryPresentation.subtitle(for: category)
-            ) {
+            )
+                .padding(.top, AppTheme.dashboardSpacing)
+
+            AppEditorSectionCard {
                 AppInfoChip(
                     title: GuideAuthoringPresentation.rootSectionsChip,
                     systemImage: "square.grid.2x2",

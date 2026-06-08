@@ -568,7 +568,6 @@ private final class UserManagementViewModel: ObservableObject {
 }
 
 struct UserManagementView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel = UserManagementViewModel()
     @State private var searchText = ""
@@ -587,35 +586,13 @@ struct UserManagementView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
-                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                            dismiss()
-                        }
-                    } trailingContent: {
-                        EmptyView()
-                    }
-
-                    AppGroupedContentPlane {
-                        userManagementContent
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
-            }
-            .scrollDismissesKeyboard(.interactively)
+        AdminScreenShell(
+            title: AppStrings.UserManagement.title,
+            subtitle: AppStrings.UserManagement.contentSubtitle,
+            tabBarHidden: true
+        ) {
+            userManagementContent
         }
-        .tint(AppTheme.accentPrimary)
-        .navigationTitle(AppStrings.UserManagement.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
-        .observesKeyboardDismissTaps()
         .task {
             await viewModel.loadIfNeeded(actor: actor)
         }
@@ -635,13 +612,6 @@ struct UserManagementView: View {
     @ViewBuilder
     private var userManagementContent: some View {
         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-            AppEditorSectionCard {
-                SectionHeaderBlock(
-                    title: AppStrings.UserManagement.title,
-                    subtitle: AppStrings.UserManagement.contentSubtitle
-                )
-            }
-
             if !canAccessUserManagement {
                 UnifiedEmptyStateCard(
                     systemImage: "lock.shield",
@@ -858,8 +828,6 @@ private enum UserDetailFocusField {
 }
 
 private struct UserDetailView: View {
-    @Environment(\.dismiss) private var dismiss
-
     let userID: String
     let fallbackUser: AppUser
     @ObservedObject var viewModel: UserManagementViewModel
@@ -932,45 +900,25 @@ private struct UserDetailView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
+        PushedScreenShell(
+            title: user.preferredDisplayName,
+            tabBarHidden: true
+        ) {
+            AppGroupedContentPlane {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
-                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                            dismiss()
-                        }
-                    } trailingContent: {
-                        EmptyView()
-                    }
-
-                    AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                            profileCard
-                            platformRolesCard
-                            accountActionsCard
-                            UserAuditHistoryCard(userId: user.id)
-                        }
-                    }
+                    profileCard
+                    platformRolesCard
+                    accountActionsCard
+                    UserAuditHistoryCard(userId: user.id)
                 }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .refreshable {
-                await viewModel.refresh(actor: actor)
-                ensureSelectedOrganization()
-                ensureSelectedRole()
             }
         }
         .contentShape(Rectangle())
-        .navigationTitle(user.preferredDisplayName)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
-        .observesKeyboardDismissTaps()
+        .refreshable {
+            await viewModel.refresh(actor: actor)
+            ensureSelectedOrganization()
+            ensureSelectedRole()
+        }
         .task {
             ensureSelectedOrganization()
             ensureSelectedRole()

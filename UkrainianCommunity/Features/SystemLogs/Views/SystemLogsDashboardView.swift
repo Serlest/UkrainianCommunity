@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SystemLogsDashboardView: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: SystemLogsViewModel
     private let embedsInNavigationStack: Bool
 
@@ -28,73 +27,31 @@ struct SystemLogsDashboardView: View {
     }
 
     private var dashboardContent: some View {
-        ZStack {
-            AppBackgroundView()
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    header
-                    AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.eventsControlGroupSpacing) {
-                            searchBar
-                            filters
-                            SystemLogsOverviewCards(metrics: viewModel.overviewMetrics)
-                            content
-                        }
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
+        AdminScreenShell(
+            title: viewModel.accessMode.title,
+            subtitle: viewModel.accessMode.subtitle,
+            showsBackButton: !embedsInNavigationStack,
+            tabBarHidden: true
+        ) {
+            searchBar
+        } metrics: {
+            SystemLogsOverviewCards(metrics: viewModel.overviewMetrics)
+        } trailingContent: {
+            if viewModel.isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.top, 3)
             }
+        } content: {
+            filters
+            content
         }
-        .navigationTitle(viewModel.accessMode.title)
-        .navigationBarTitleDisplayMode(.inline)
         .task {
             viewModel.ensureSelectedSectionIsVisible()
             await viewModel.loadIfNeeded()
         }
         .refreshable {
             await viewModel.refresh()
-        }
-        .toolbar(.hidden, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
-    }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
-            headerLeadingControl
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(viewModel.accessMode.title)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(viewModel.accessMode.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if viewModel.isLoading {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.top, 3)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private var headerLeadingControl: some View {
-        if embedsInNavigationStack {
-            EmptyView()
-        } else {
-            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                dismiss()
-            }
         }
     }
 

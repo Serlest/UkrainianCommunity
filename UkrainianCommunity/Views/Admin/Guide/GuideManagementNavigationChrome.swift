@@ -1,27 +1,30 @@
 import SwiftUI
 
 struct GuideManagementNavigationHeader<TrailingContent: View>: View {
-    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let subtitle: String?
     @ViewBuilder let trailingContent: TrailingContent
 
-    init(@ViewBuilder trailingContent: () -> TrailingContent) {
+    init(
+        title: String,
+        subtitle: String? = nil,
+        @ViewBuilder trailingContent: () -> TrailingContent
+    ) {
+        self.title = title
+        self.subtitle = subtitle
         self.trailingContent = trailingContent()
     }
 
     var body: some View {
-        AppCenteredBrandHeader {
-            AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                dismiss()
-            }
-        } trailingContent: {
+        PushedScreenHeader(title: title, subtitle: subtitle) {
             trailingContent
         }
     }
 }
 
 extension GuideManagementNavigationHeader where TrailingContent == EmptyView {
-    init() {
-        self.init {
+    init(title: String, subtitle: String? = nil) {
+        self.init(title: title, subtitle: subtitle) {
             EmptyView()
         }
     }

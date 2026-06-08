@@ -18,15 +18,11 @@ struct GuideReviewHealthManagementView: View {
 
     var body: some View {
         DetailPageContainer {
-            GuideManagementNavigationHeader()
+            GuideManagementNavigationHeader(
+                title: GuideAuthoringPresentation.reviewQueueTitle,
+                subtitle: GuideAuthoringPresentation.reviewQueueSubtitle
+            )
                 .padding(.top, AppTheme.dashboardSpacing)
-
-            AppEditorSectionCard {
-                SectionHeaderBlock(
-                    title: GuideAuthoringPresentation.reviewQueueTitle,
-                    subtitle: GuideAuthoringPresentation.reviewQueueSubtitle
-                )
-            }
 
             content
         }

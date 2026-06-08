@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct NotificationInboxView: View {
-    @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: NotificationInboxViewModel
     let onNotificationTap: (AppNotification) -> Void
 
@@ -14,34 +13,16 @@ struct NotificationInboxView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppCenteredBrandHeader {
-                        AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.done) {
-                            dismiss()
-                        }
-                    } trailingContent: {
-                        EmptyView()
-                    }
-
-                    AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                            headerCard
-                            inboxContent
-                        }
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
-            }
-            .refreshable {
-                await viewModel.refresh()
-            }
+        PushedScreenShell(
+            title: AppStrings.NotificationInbox.title,
+            subtitle: AppStrings.NotificationInbox.subtitle,
+            tabBarHidden: true
+        ) {
+            headerControls
+            inboxContent
+        }
+        .refreshable {
+            await viewModel.refresh()
         }
         .navigationTitle(AppStrings.NotificationInbox.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -51,14 +32,9 @@ struct NotificationInboxView: View {
         }
     }
 
-    private var headerCard: some View {
+    private var headerControls: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                SectionHeaderBlock(
-                    title: AppStrings.NotificationInbox.title,
-                    subtitle: AppStrings.NotificationInbox.subtitle
-                )
-
                 Picker(AppStrings.NotificationInbox.title, selection: $viewModel.selectedFilter) {
                     Text(AppStrings.NotificationInbox.filterAll).tag(NotificationInboxFilter.all)
                     Text(AppStrings.NotificationInbox.filterUnread).tag(NotificationInboxFilter.unread)

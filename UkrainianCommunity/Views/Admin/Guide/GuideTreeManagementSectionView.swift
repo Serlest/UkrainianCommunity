@@ -155,7 +155,10 @@ struct GuideTreeSectionManagementView: View {
     }
 
     private var navigationHeader: some View {
-        GuideManagementNavigationHeader {
+        GuideManagementNavigationHeader(
+            title: managedNode.title,
+            subtitle: navigationSubtitle
+        ) {
             Menu {
                 Button(GuideAuthoringPresentation.editSection) {
                     isPresentingEditEditor = true
@@ -182,11 +185,6 @@ struct GuideTreeSectionManagementView: View {
                         .foregroundStyle(AppTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Text(managedNode.title)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
 
                 if !managedNode.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(managedNode.summary)
@@ -230,6 +228,15 @@ struct GuideTreeSectionManagementView: View {
     private var pathDescription: String {
         let titles = viewModel.breadcrumbs.components.map(\.title)
         return titles.joined(separator: " → ")
+    }
+
+    private var navigationSubtitle: String? {
+        if !pathDescription.isEmpty {
+            return pathDescription
+        }
+
+        let summary = managedNode.summary.trimmingCharacters(in: .whitespacesAndNewlines)
+        return summary.isEmpty ? nil : summary
     }
 
     @ViewBuilder
@@ -483,10 +490,13 @@ struct GuideTreeMaterialManagementView: View {
 
     var body: some View {
         DetailPageContainer {
-            GuideManagementNavigationHeader()
+            GuideManagementNavigationHeader(
+                title: managedMaterial.title,
+                subtitle: managedMaterial.summary
+            )
                 .padding(.top, AppTheme.dashboardSpacing)
 
-            DetailHeaderCard(title: managedMaterial.title, subtitle: managedMaterial.summary) {
+            AppEditorSectionCard {
                 GuideManagementMetadataRow(items: materialMetadataItems)
             }
 

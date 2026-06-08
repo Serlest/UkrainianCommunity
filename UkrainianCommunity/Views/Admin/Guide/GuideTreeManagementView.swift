@@ -14,15 +14,11 @@ struct GuideTreeManagementView: View {
 
     var body: some View {
         DetailPageContainer {
-            GuideManagementNavigationHeader()
+            GuideManagementNavigationHeader(
+                title: GuideAuthoringPresentation.treeManagementTitle,
+                subtitle: GuideAuthoringPresentation.treeManagementSubtitle
+            )
                 .padding(.top, AppTheme.dashboardSpacing)
-
-            AppEditorSectionCard {
-                SectionHeaderBlock(
-                    title: GuideAuthoringPresentation.treeManagementTitle,
-                    subtitle: GuideAuthoringPresentation.treeManagementSubtitle
-                )
-            }
 
             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                 SectionHeaderBlock(
