@@ -1328,13 +1328,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die vollständige Anmeldung und Kontoerstellung folgt in der nächsten Phase. Öffentliche Inhalte bleiben bis dahin auch ohne Konto verfügbar."
+            "value" : "Erstellen Sie ein Konto oder melden Sie sich an, um persönliche Funktionen zu nutzen."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Повноцінний вхід і створення облікового запису з’являться на наступному етапі. До того часу публічний вміст залишатиметься доступним і без облікового запису."
+            "value" : "Створіть обліковий запис або увійдіть, щоб отримати доступ до персональних можливостей."
           }
         }
       }
@@ -1345,13 +1345,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anmeldung folgt im nächsten Schritt"
+            "value" : "Anmelden, um fortzufahren"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вхід з’явиться на наступному етапі"
+            "value" : "Увійдіть, щоб продовжити"
           }
         }
       }
@@ -1991,13 +1991,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Kommentaroberflache wird in einer spateren Phase erweitert."
+            "value" : "Kommentare sind vorübergehend nicht verfügbar."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Інтерфейс коментарів буде розширено на наступному етапі."
+            "value" : "Коментарі тимчасово недоступні."
           }
         }
       }
@@ -6879,7 +6879,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Featured Content"
+            "value" : "Empfohlene Inhalte"
           }
         },
         "uk" : {
@@ -6947,7 +6947,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Featured Content"
+            "value" : "Empfohlene Inhalte"
           }
         },
         "uk" : {
@@ -9470,13 +9470,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strukturierte Inhaltsblöcke werden in einem späteren Schritt ergänzt. Nutzen Sie vorerst den Body-Fallback."
+            "value" : "Fügen Sie strukturierte Inhaltsblöcke hinzu oder nutzen Sie den Haupttext."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Структуровані блоки вмісту буде додано пізніше. Поки використовуйте запасний основний текст."
+            "value" : "Додайте структуровані блоки або використайте основний текст."
           }
         }
       }
@@ -10575,13 +10575,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Blocktyp wird in einem späteren Schritt editierbar."
+            "value" : "Dieser Blocktyp kann derzeit nicht bearbeitet werden."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Цей тип блоку можна буде редагувати пізніше."
+            "value" : "Цей тип блоку зараз недоступний для редагування."
           }
         }
       }

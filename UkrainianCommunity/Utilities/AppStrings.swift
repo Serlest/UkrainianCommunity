@@ -1050,7 +1050,7 @@ enum AppStrings {
         static var isFeaturedField: String { text("guide.editor.field.is_featured", "Featured") }
         static var officialSourcesRequiredField: String { text("guide.editor.field.official_sources_required", "Official sources required") }
         static var contentBlocksField: String { text("guide.editor.field.content_blocks", "Content blocks") }
-        static var contentBlocksPlaceholder: String { text("guide.editor.content_blocks.placeholder", "Structured content blocks will be added in a later pass. Use body fallback for now.") }
+        static var contentBlocksPlaceholder: String { text("guide.editor.content_blocks.placeholder", "Add structured content blocks or use the main body text.") }
         static var contentBlocksEmpty: String { text("guide.editor.content_blocks.empty", "No structured content blocks yet.") }
         static var contentBlocksHelp: String { text("guide.editor.help.content_blocks", "If content blocks exist, readers see the blocks instead of the body. Blocks render in the order shown below.") }
         static var articleSourceLinksField: String { text("guide.editor.field.article_source_links", "Article sources") }
@@ -1110,7 +1110,7 @@ enum AppStrings {
         static var moveBlockUp: String { text("guide.editor.action.move_block_up", "Move block up") }
         static var moveBlockDown: String { text("guide.editor.action.move_block_down", "Move block down") }
         static var deleteBlock: String { text("guide.editor.action.delete_block", "Delete block") }
-        static var unsupportedBlockPlaceholder: String { text("guide.editor.unsupported_block.placeholder", "This block type will be editable in a later pass.") }
+        static var unsupportedBlockPlaceholder: String { text("guide.editor.unsupported_block.placeholder", "This block type is not editable right now.") }
         static var backendNotice: String { text("guide.editor.backend_notice", "Drafts can be saved, reopened, edited, archived, and submitted for review. Approved articles are published from the review preview.") }
         static var validateAction: String { text("guide.editor.action.validate", "Validate") }
         static var saveDraftAction: String { text("guide.editor.action.save_draft", "Save draft") }
@@ -2084,7 +2084,7 @@ enum AppStrings {
         static var noItems: String { text("common.no_items", "No items available.") }
         static var notAvailable: String { text("common.not_available", "Not available") }
         static var viewAll: String { text("common.view_all", "Дивитися всі") }
-        static var commentsPlaceholder: String { text("common.comments_placeholder", "Comments UI will be expanded in a later phase.") }
+        static var commentsPlaceholder: String { text("common.comments_placeholder", "Comments are temporarily unavailable.") }
         static var noCommentsYet: String { text("common.comments.empty", "Ще немає коментарів.") }
         static var commentInputPlaceholder: String { text("common.comments.input_placeholder", "Напишіть коментар…") }
         static var signInToComment: String { text("common.comments.sign_in", "Увійдіть, щоб коментувати") }
@@ -2181,8 +2181,8 @@ enum AppStrings {
         static var currentTermsVersion: String { text("auth.consent.current_terms_version", "Terms version %@") }
         static var currentPrivacyVersion: String { text("auth.consent.current_privacy_version", "Privacy version %@") }
         static var requiredTitle: String { text("auth.required.title", "Sign in required") }
-        static var placeholderTitle: String { text("auth.placeholder.title", "Authentication is coming in the next phase") }
-        static var placeholderMessage: String { text("auth.placeholder.message", "Full sign-in and account creation will be added in the next phase. You can keep browsing public content as a guest for now.") }
+        static var placeholderTitle: String { text("auth.placeholder.title", "Sign in to continue") }
+        static var placeholderMessage: String { text("auth.placeholder.message", "Create an account or sign in to access personal features.") }
         static var signInFailed: String { text("auth.sign_in_failed", "We couldn’t sign you in right now.") }
         static var registrationFailed: String { text("auth.registration_failed", "We couldn’t create your account right now.") }
         static var registrationInvalidEmail: String { text("auth.registration.invalid_email", "Please enter a valid email address.") }
