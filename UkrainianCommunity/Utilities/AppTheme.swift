@@ -39,6 +39,11 @@ enum AppTheme {
     static let cardPadding: CGFloat = 18
     static let detailCardPadding: CGFloat = 20
     static let dashboardCardPadding: CGFloat = 8
+    static let compactCardInnerSpacing: CGFloat = 10
+    static let compactCardInnerSpacingTight: CGFloat = 8
+    static let compactCardInnerSpacingRelaxed: CGFloat = 12
+    static let rowCardPadding: CGFloat = 12
+    static let metricCardPadding: CGFloat = 14
     static let homeSectionSpacing: CGFloat = 14
     static let homeHeaderHeroSpacing: CGFloat = 14
     static let feedRowSpacing: CGFloat = 14
@@ -55,6 +60,9 @@ enum AppTheme {
     static let iconButtonSize: CGFloat = 44
     static let metadataIconSize: CGFloat = 18
     static let inputHorizontalPadding: CGFloat = 14
+    static let fieldSurfacePadding: CGFloat = 8
+    static let fieldSurfaceCompactPadding: CGFloat = 4
+    static let fieldSurfaceRowPadding: CGFloat = 12
     static let newsDetailHeroHeight: CGFloat = 260
     static let newsDetailActionButtonSize = iconButtonSize
     static let iconButtonRadius = chipRadius
@@ -94,6 +102,7 @@ enum AppTheme {
     static let detailMetadataIconFont: Font = .caption.weight(.semibold)
     static let detailBodyLineSpacing: CGFloat = 3
     static let detailHeroImageHeight: CGFloat = 220
+    static let feedImageHeight: CGFloat = 220
     static let sectionHeroBannerHeight = heroBannerHeight
     static let eventsHeroHeight = sectionHeroBannerHeight
     static let organizationsHeroHeight = sectionHeroBannerHeight
@@ -108,12 +117,22 @@ enum AppTheme {
     static let heroRadius: CGFloat = 22
     static let imageRadius: CGFloat = 16
     static let chipRadius: CGFloat = 14
+    static let rowCardCornerRadius: CGFloat = 14
+    static let compactRowCornerRadius: CGFloat = 10
+    static let controlSurfaceCornerRadius: CGFloat = 12
+    static let metricIconSurfaceRadius: CGFloat = 8
+    static let smallIconSurfaceRadius: CGFloat = 10
     static let bannerTextScrimRadius = chipRadius
     static let bannerTextScrimHorizontalPadding = inputHorizontalPadding
     static let bannerTextScrimVerticalPadding: CGFloat = 10
     static let feedThumbnailSize: CGFloat = 58
     static let feedThumbnailRadius: CGFloat = 13
     static let heroBannerHeight: CGFloat = 146
+    static let compactIconSurfaceSize: CGFloat = 28
+    static let smallIconSurfaceSize: CGFloat = 32
+    static let rowIconSurfaceSize: CGFloat = 36
+    static let mediaOverlayFill = Color.black.opacity(0.48)
+    static let emptyMediaFill = Color.black.opacity(0.08)
 
     static let heroGradient = LinearGradient(
         colors: [accentPrimary.opacity(0.92), accentDestructive.opacity(0.82), accentSupport.opacity(0.68)],
@@ -221,6 +240,8 @@ enum AppTheme {
     static let detailCardShadowY: CGFloat = 4
     static let groupedPlaneShadowRadius: CGFloat = 3
     static let groupedPlaneShadowY: CGFloat = 1
+    static let localCardShadowSmallRadius: CGFloat = 5
+    static let localCardShadowSmallY: CGFloat = 2
 
     // Secondary screen shell tokens. These are semantic aliases over the
     // existing app scale so pushed/admin/editor chrome can be tuned centrally.

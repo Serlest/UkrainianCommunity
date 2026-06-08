@@ -11,15 +11,15 @@ struct SystemLogsOverviewCards: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 10) {
             ForEach(metrics) { metric in
-                SoftContentCard(padding: 14) {
-                    HStack(alignment: .top, spacing: 10) {
+                SoftContentCard(padding: AppTheme.metricCardPadding) {
+                    HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
                         Image(systemName: metric.systemImage)
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(SystemLogDisplayFormatting.toneTint(metric.tone))
-                            .frame(width: 28, height: 28)
+                            .frame(width: AppTheme.compactIconSurfaceSize, height: AppTheme.compactIconSurfaceSize)
                             .background(
                                 SystemLogDisplayFormatting.toneFill(metric.tone),
-                                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                in: RoundedRectangle(cornerRadius: AppTheme.metricIconSurfaceRadius, style: .continuous)
                             )
 
                         VStack(alignment: .leading, spacing: 4) {

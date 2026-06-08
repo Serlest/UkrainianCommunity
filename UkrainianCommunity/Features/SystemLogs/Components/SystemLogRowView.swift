@@ -51,17 +51,24 @@ struct SystemLogRowView: View {
                 }
             }
         }
-        .padding(12)
+        .padding(AppTheme.rowCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .appGlassCard(cornerRadius: 14, shadowRadius: 5, shadowY: 2)
+        .appGlassCard(
+            cornerRadius: AppTheme.rowCardCornerRadius,
+            shadowRadius: AppTheme.localCardShadowSmallRadius,
+            shadowY: AppTheme.localCardShadowSmallY
+        )
     }
 
     private var severityIcon: some View {
         Image(systemName: log.severity == .critical ? "exclamationmark.triangle.fill" : "doc.text.magnifyingglass")
             .font(.headline.weight(.semibold))
             .foregroundStyle(SystemLogDisplayFormatting.severityTint(log.severity))
-            .frame(width: 36, height: 36)
-            .background(SystemLogDisplayFormatting.severityFill(log.severity), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .frame(width: AppTheme.rowIconSurfaceSize, height: AppTheme.rowIconSurfaceSize)
+            .background(
+                SystemLogDisplayFormatting.severityFill(log.severity),
+                in: RoundedRectangle(cornerRadius: AppTheme.smallIconSurfaceRadius, style: .continuous)
+            )
     }
 
     private var metadataLine: some View {
