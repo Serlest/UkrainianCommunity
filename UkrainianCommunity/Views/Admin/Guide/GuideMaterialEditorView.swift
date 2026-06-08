@@ -14,13 +14,13 @@ struct GuideMaterialEditorView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            editorHeader
-                .padding(.top, AppTheme.dashboardSpacing)
+        EditorScreenShell(
+            title: screenTitle,
+            subtitle: headerSubtitle,
+            closeStyle: .cancel
+        ) {
             statusCard
             GuideMaterialEditorArticleSection(
-                screenTitle: screenTitle,
-                headerSubtitle: headerSubtitle,
                 nodePathDescription: viewModel.nodePathDescription,
                 title: $viewModel.title,
                 summary: $viewModel.summary,
@@ -45,11 +45,6 @@ struct GuideMaterialEditorView: View {
                 onSave: handleSave
             )
         }
-        .keyboardDismissBackground {
-            AppBackgroundView()
-        }
-        .observesKeyboardDismissTaps()
-        .toolbar(.hidden, for: .navigationBar)
         .onChange(of: viewModel.title) { _, _ in viewModel.clearTransientState() }
         .onChange(of: viewModel.summary) { _, _ in viewModel.clearTransientState() }
         .onChange(of: viewModel.body) { _, _ in viewModel.clearTransientState() }
@@ -78,16 +73,6 @@ struct GuideMaterialEditorView: View {
             viewModel.clearTransientState()
         }
         .onChange(of: viewModel.federalState) { _, _ in viewModel.clearTransientState() }
-    }
-
-    private var editorHeader: some View {
-        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-            AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                dismiss()
-            }
-
-            Spacer(minLength: 0)
-        }
     }
 
     @ViewBuilder

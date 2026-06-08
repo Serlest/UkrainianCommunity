@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct GuideMaterialEditorArticleSection: View {
-    let screenTitle: String
-    let headerSubtitle: String
     let nodePathDescription: String
     @Binding var title: String
     @Binding var summary: String
@@ -11,11 +9,6 @@ struct GuideMaterialEditorArticleSection: View {
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                SectionHeaderBlock(
-                    title: screenTitle,
-                    subtitle: headerSubtitle
-                )
-
                 placementContext
 
                 AppEditorField(title: GuideAuthoringPresentation.titleLabel) {
