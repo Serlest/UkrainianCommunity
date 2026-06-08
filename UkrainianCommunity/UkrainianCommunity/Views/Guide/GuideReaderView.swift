@@ -532,7 +532,7 @@ private struct GuidePlaceholderChip: View {
             RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
                 .strokeBorder(AppTheme.borderSubtle, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
         }
-        .accessibilityHint("Placeholder control")
+        .accessibilityHint(AppStrings.Guide.placeholderChipAccessibilityHint)
     }
 }
 

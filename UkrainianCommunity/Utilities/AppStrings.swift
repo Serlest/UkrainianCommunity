@@ -820,6 +820,7 @@ enum AppStrings {
         static var articleContainsSubtitle: String { text("guide.contains.subtitle", "Quick overview of the sections below.") }
         static var activeFiltersTitle: String { text("guide.filters.active.title", "Current filters") }
         static var activeFiltersEmptyHint: String { text("guide.filters.active.empty_hint", "Use filters to narrow the guide by type, place, or audience.") }
+        static var placeholderChipAccessibilityHint: String { text("guide.placeholder_chip.accessibility_hint", "Temporary filter") }
         static var filterSearchLabel: String { text("guide.filters.label.search", "Search") }
         static var filterCategoryLabel: String { text("guide.filters.label.category", "Category") }
         static var filterTypeLabel: String { text("guide.filters.label.type", "Type") }
