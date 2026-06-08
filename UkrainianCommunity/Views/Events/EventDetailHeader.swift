@@ -1,55 +1,31 @@
 import SwiftUI
 
 extension EventDetailView {
-        var detailHeader: some View {
-            HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-                detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                    if let onNavigateBack {
-                        onNavigateBack()
-                    } else {
-                        dismiss()
-                    }
-                }
-
-                Spacer(minLength: 0)
-
-                HStack(spacing: 10) {
-                    if let event = viewModel.event(for: eventID) {
-                        detailIconButton(
-                            systemImage: event.isBookmarked ? "bookmark.fill" : "bookmark",
-                            accessibilityLabel: AppStrings.Action.save
-                        ) {
-                            handleBookmark(for: event)
-                        }
-                        .disabled(viewModel.pendingEventBookmarkIDs.contains(event.id))
-                    }
-
-                    detailIconButton(systemImage: "square.and.arrow.up", accessibilityLabel: AppStrings.Action.share) {
-                        if let event = viewModel.event(for: eventID) {
-                            sharePayload = EventSharePayload(event: event)
-                        }
-                    }
-                }
+        func navigateBack() {
+            if let onNavigateBack {
+                onNavigateBack()
+            } else {
+                dismiss()
             }
-            .zIndex(10)
         }
 
-        func detailIconButton(
-            systemImage: String,
-            accessibilityLabel: String,
-            role: ButtonRole? = nil,
-            action: @escaping () -> Void
-        ) -> some View {
-            AppGlassIconButton(
-                systemImage: systemImage,
-                accessibilityLabel: accessibilityLabel,
-                role: role
-            ) {
-                action()
+        func eventHeaderActions(for event: Event) -> some View {
+            Group {
+                DetailHeaderActionButton(
+                    systemImage: event.isBookmarked ? "bookmark.fill" : "bookmark",
+                    accessibilityLabel: AppStrings.Action.save,
+                    isDisabled: viewModel.pendingEventBookmarkIDs.contains(event.id)
+                ) {
+                    handleBookmark(for: event)
+                }
+
+                DetailHeaderActionButton(
+                    systemImage: "square.and.arrow.up",
+                    accessibilityLabel: AppStrings.Action.share
+                ) {
+                    sharePayload = EventSharePayload(event: event)
+                }
             }
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
-            .zIndex(2)
         }
 
         @ViewBuilder

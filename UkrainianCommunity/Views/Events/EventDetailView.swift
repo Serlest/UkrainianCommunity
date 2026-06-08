@@ -103,81 +103,72 @@ struct EventDetailView: View {
     var body: some View {
         Group {
             if let event = viewModel.event(for: eventID) {
-                GeometryReader { proxy in
-                    let contentHorizontalPadding = AppTheme.pageHorizontal
-                    let contentWidth = max(proxy.size.width - (contentHorizontalPadding * 2), 0)
+                DetailScreenShell(
+                    topPadding: 0,
+                    contentSpacing: detailSectionSpacing,
+                    backAction: navigateBack,
+                    refreshAction: refreshEventDetail
+                ) {
+                    eventHeaderActions(for: event)
+                } scrollContent: { scrollProxy in
+                    articleHeader(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
 
-                    ScrollViewReader { scrollProxy in
-                        ScrollView(.vertical, showsIndicators: true) {
-                            VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                                detailHeader
+                    heroImageSection(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
 
-                                articleHeader(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                heroImageSection(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                if !event.summary.isEmpty {
-                                    leadBlock(for: event)
-                                        .onTapGesture { isCommentFieldFocused = false }
-                                }
-
-                                eventScheduleCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                primaryActionsCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                eventRegistrationManagementCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                aboutCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                eventTagsCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                organizerCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                eventContactCard(for: event)
-
-                                locationCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                detailsCard(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                similarEventsSection(for: event)
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                engagementCard(for: event, scrollProxy: scrollProxy)
-
-                                managementCard
-                                    .onTapGesture { isCommentFieldFocused = false }
-
-                                commentsCard(for: event)
-                                    .id(commentsSectionID)
-                            }
-                            .frame(width: contentWidth, alignment: .leading)
-                            .padding(.horizontal, contentHorizontalPadding)
-                            .padding(.bottom, AppTheme.homeBottomContentPadding + 160)
-                        }
-                        .frame(width: proxy.size.width)
-                        .scrollDismissesKeyboard(.interactively)
-                        .refreshable {
-                            await refreshEventDetail()
-                        }
+                    if !event.summary.isEmpty {
+                        leadBlock(for: event)
+                            .onTapGesture { isCommentFieldFocused = false }
                     }
+
+                    eventScheduleCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    primaryActionsCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    eventRegistrationManagementCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    aboutCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    eventTagsCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    organizerCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    eventContactCard(for: event)
+
+                    locationCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    detailsCard(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    similarEventsSection(for: event)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    engagementCard(for: event, scrollProxy: scrollProxy)
+
+                    managementCard
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    commentsCard(for: event)
+                        .id(commentsSectionID)
                 }
             } else {
-                EmptyStateView(title: AppStrings.Common.noItems)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZStack {
+                    AppBackgroundView()
+                        .allowsHitTesting(false)
+
+                    EmptyStateView(title: AppStrings.Common.noItems)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog(AppStrings.Events.deleteConfirmation, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(AppStrings.Events.delete, role: .destructive) {
                 Task {
@@ -246,7 +237,6 @@ struct EventDetailView: View {
             EventShareSheet(activityItems: payload.items)
         }
         .guestAccessAlert($guestAccessAction)
-        .observesKeyboardDismissTaps()
         .task {
             if viewModel.event(for: eventID) == nil {
                 await viewModel.loadIfNeeded()

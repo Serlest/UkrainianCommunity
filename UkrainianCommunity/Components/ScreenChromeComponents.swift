@@ -216,7 +216,7 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
     let backAction: (() -> Void)?
     let refreshAction: (() async -> Void)?
     @ViewBuilder let headerActions: HeaderActions
-    @ViewBuilder let content: Content
+    let content: (ScrollViewProxy) -> Content
 
     init(
         title: String? = nil,
@@ -228,7 +228,34 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
         backAction: (() -> Void)? = nil,
         refreshAction: (() async -> Void)? = nil,
         @ViewBuilder headerActions: () -> HeaderActions,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.init(
+            title: title,
+            subtitle: subtitle,
+            tabBarHidden: tabBarHidden,
+            topPadding: topPadding,
+            bottomPadding: bottomPadding,
+            contentSpacing: contentSpacing,
+            backAction: backAction,
+            refreshAction: refreshAction,
+            headerActions: headerActions
+        ) { _ in
+            content()
+        }
+    }
+
+    init(
+        title: String? = nil,
+        subtitle: String? = nil,
+        tabBarHidden: Bool = false,
+        topPadding: CGFloat = AppTheme.detailScreenTopPadding,
+        bottomPadding: CGFloat = AppTheme.detailScreenBottomPadding,
+        contentSpacing: CGFloat = AppTheme.detailScreenContentSpacing,
+        backAction: (() -> Void)? = nil,
+        refreshAction: (() async -> Void)? = nil,
+        @ViewBuilder headerActions: () -> HeaderActions,
+        @ViewBuilder scrollContent: @escaping (ScrollViewProxy) -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -239,7 +266,7 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
         self.backAction = backAction
         self.refreshAction = refreshAction
         self.headerActions = headerActions()
-        self.content = content()
+        self.content = scrollContent
     }
 
     var body: some View {
@@ -250,25 +277,27 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
             GeometryReader { proxy in
                 let contentWidth = max(proxy.size.width - (AppTheme.detailScreenHorizontalPadding * 2), 0)
 
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: contentSpacing) {
-                        DetailActionHeader(
-                            title: title,
-                            subtitle: subtitle,
-                            backAction: backAction
-                        ) {
-                            headerActions
-                        }
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: contentSpacing) {
+                            DetailActionHeader(
+                                title: title,
+                                subtitle: subtitle,
+                                backAction: backAction
+                            ) {
+                                headerActions
+                            }
 
-                        content
+                            content(scrollProxy)
+                        }
+                        .frame(width: contentWidth, alignment: .leading)
+                        .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
+                        .padding(.top, topPadding)
+                        .padding(.bottom, bottomPadding)
                     }
-                    .frame(width: contentWidth, alignment: .leading)
-                    .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
-                    .padding(.top, topPadding)
-                    .padding(.bottom, bottomPadding)
+                    .frame(width: proxy.size.width)
+                    .detailRefreshable(refreshAction)
                 }
-                .frame(width: proxy.size.width)
-                .detailRefreshable(refreshAction)
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -292,7 +321,7 @@ extension DetailScreenShell where HeaderActions == EmptyView {
         contentSpacing: CGFloat = AppTheme.detailScreenContentSpacing,
         backAction: (() -> Void)? = nil,
         refreshAction: (() async -> Void)? = nil,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: @escaping () -> Content
     ) {
         self.init(
             title: title,
