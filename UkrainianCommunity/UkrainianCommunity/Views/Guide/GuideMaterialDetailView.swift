@@ -4,15 +4,21 @@ struct GuideMaterialDetailView: View {
     let material: GuideMaterial
     @ObservedObject var viewModel: GuideReaderViewModel
     let feedbackRepository: FeedbackRepository
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var authState: AuthState
     @State private var guestAccessAction: GuestAccessAction?
     @State private var saveError: AppError?
     @State private var presentedFeedbackKind: GuideMaterialFeedbackKind?
 
     var body: some View {
-        DetailPageContainer {
-            detailHeader
+        DetailScreenShell {
+            DetailHeaderActionButton(
+                systemImage: viewModel.isMaterialSaved(material.id) ? "bookmark.fill" : "bookmark",
+                accessibilityLabel: AppStrings.Action.save,
+                isDisabled: viewModel.isMaterialSavePending(material.id)
+            ) {
+                handleSavedToggle()
+            }
+        } content: {
             compactHeader
             content
             GuideMaterialSourcesView(
@@ -24,9 +30,6 @@ struct GuideMaterialDetailView: View {
                 onSelectKind: handleFeedbackAction
             )
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadSavedMaterialsIfNeeded()
         }
@@ -50,25 +53,6 @@ struct GuideMaterialDetailView: View {
         } message: {
             Text(GuideCategoryPresentation.saveActionErrorMessage(for: saveError ?? .unknown))
         }
-    }
-
-    private var detailHeader: some View {
-        HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-            detailIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                dismiss()
-            }
-
-            Spacer(minLength: 0)
-
-            detailIconButton(
-                systemImage: viewModel.isMaterialSaved(material.id) ? "bookmark.fill" : "bookmark",
-                accessibilityLabel: AppStrings.Action.save
-            ) {
-                handleSavedToggle()
-            }
-            .disabled(viewModel.isMaterialSavePending(material.id))
-        }
-        .zIndex(10)
     }
 
     private var compactHeader: some View {
@@ -157,24 +141,6 @@ struct GuideMaterialDetailView: View {
         }
 
         presentedFeedbackKind = kind
-    }
-
-    private func detailIconButton(
-        systemImage: String,
-        accessibilityLabel: String,
-        role: ButtonRole? = nil,
-        action: @escaping () -> Void
-    ) -> some View {
-        AppGlassIconButton(
-            systemImage: systemImage,
-            accessibilityLabel: accessibilityLabel,
-            role: role
-        ) {
-            action()
-        }
-        .frame(width: 44, height: 44)
-        .contentShape(Rectangle())
-        .zIndex(2)
     }
 }
 

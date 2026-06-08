@@ -104,7 +104,6 @@ struct EventDetailView: View {
         Group {
             if let event = viewModel.event(for: eventID) {
                 DetailScreenShell(
-                    topPadding: 0,
                     contentSpacing: detailSectionSpacing,
                     backAction: navigateBack,
                     refreshAction: refreshEventDetail

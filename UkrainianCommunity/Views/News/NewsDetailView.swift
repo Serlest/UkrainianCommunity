@@ -89,7 +89,6 @@ struct NewsDetailView: View {
         Group {
             if let post = viewModel.post(for: postID) {
                 DetailScreenShell(
-                    topPadding: 0,
                     contentSpacing: detailSectionSpacing,
                     backAction: navigateBack,
                     refreshAction: refreshNewsDetail

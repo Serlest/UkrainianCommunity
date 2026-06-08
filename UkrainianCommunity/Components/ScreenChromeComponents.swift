@@ -164,6 +164,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         .tint(AppTheme.accentPrimary)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(tabBarHidden ? .hidden : .visible, for: .tabBar)
         .scrollDismissesKeyboard(.interactively)

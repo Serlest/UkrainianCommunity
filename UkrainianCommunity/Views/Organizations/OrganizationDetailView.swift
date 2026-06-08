@@ -303,7 +303,6 @@ struct OrganizationDetailView: View {
         Group {
             if let organization = viewModel.organization(for: organizationID) {
                 DetailScreenShell(
-                    topPadding: 0,
                     contentSpacing: detailSectionSpacing,
                     backAction: navigateBack,
                     refreshAction: {
