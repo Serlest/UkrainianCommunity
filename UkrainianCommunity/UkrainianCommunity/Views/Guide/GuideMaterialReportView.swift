@@ -203,16 +203,21 @@ struct GuideMaterialFeedbackSheet: View {
             }
         }
         .observesKeyboardDismissTaps()
-        .alert(
-            GuideCategoryPresentation.feedbackSuccessTitle,
-            isPresented: $showsSuccessAlert
-        ) {
-            Button(AppStrings.Common.ok) {
-                dismiss()
+        .appSuccessDialog(Binding(
+            get: {
+                guard showsSuccessAlert else { return nil }
+                return AppSuccessDialog(
+                    title: GuideCategoryPresentation.feedbackSuccessTitle,
+                    message: GuideCategoryPresentation.feedbackSuccessMessage
+                )
+            },
+            set: {
+                if $0 == nil {
+                    showsSuccessAlert = false
+                    dismiss()
+                }
             }
-        } message: {
-            Text(GuideCategoryPresentation.feedbackSuccessMessage)
-        }
+        ))
     }
 
     private func submitFeedback() {

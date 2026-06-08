@@ -615,14 +615,17 @@ struct GuideTreeMaterialManagementView: View {
                 Text(reviewAlertMessage ?? "")
             }
         )
-        .alert(
-            GuideAuthoringPresentation.reviewUpdatedTitle,
-            isPresented: $isShowingReviewSuccess
-        ) {
-            Button(GuideAuthoringPresentation.okLabel, role: .cancel) {}
-        } message: {
-            Text(GuideAuthoringPresentation.reviewUpdatedMessage)
-        }
+        .appSuccessDialog(Binding(
+            get: {
+                guard isShowingReviewSuccess else { return nil }
+                return AppSuccessDialog(
+                    title: GuideAuthoringPresentation.reviewUpdatedTitle,
+                    message: GuideAuthoringPresentation.reviewUpdatedMessage,
+                    okTitle: GuideAuthoringPresentation.okLabel
+                )
+            },
+            set: { if $0 == nil { isShowingReviewSuccess = false } }
+        ))
     }
 
     private var materialMetadataItems: [GuideMetadataItem] {
