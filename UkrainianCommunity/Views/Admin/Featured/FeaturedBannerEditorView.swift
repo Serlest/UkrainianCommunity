@@ -37,47 +37,22 @@ struct FeaturedBannerEditorView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-                        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: AppStrings.Common.back) {
-                            dismiss()
-                        }
-
-                        Spacer(minLength: 0)
-                    }
-
-                    SectionHeaderBlock(
-                        title: viewModel.navigationTitle,
-                        subtitle: AppStrings.FeaturedEditor.subtitle
-                    )
-
-                    statusContent
-                    basicsCard
-                    imageCard
-                    targetingCard
-                    actionCard
-                    schedulingCard
-
-                    Spacer(minLength: AppTheme.iconButtonSize + AppTheme.sectionSpacing)
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding + 72)
-            }
+        EditorScreenShell(
+            title: viewModel.navigationTitle,
+            subtitle: AppStrings.FeaturedEditor.subtitle,
+            closeStyle: .back
+        ) {
+            statusContent
+            basicsCard
+            imageCard
+            targetingCard
+            actionCard
+            schedulingCard
         }
         .safeAreaInset(edge: .bottom) {
             saveBar
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
         .tint(AppTheme.accentPrimary)
-        .scrollDismissesKeyboard(.interactively)
-        .observesKeyboardDismissTaps()
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false
