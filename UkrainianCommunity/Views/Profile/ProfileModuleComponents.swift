@@ -4,7 +4,6 @@ enum ProfileModuleStatus {
     case available
     case active
     case accountRequired
-    case soon
     case locked
 
     var title: String? {
@@ -15,8 +14,6 @@ enum ProfileModuleStatus {
             return AppStrings.Common.active
         case .accountRequired:
             return AppStrings.Profile.accountRequiredBadge
-        case .soon:
-            return AppStrings.Profile.comingSoon
         case .locked:
             return AppStrings.Profile.accessLocked
         }
@@ -26,7 +23,7 @@ enum ProfileModuleStatus {
         switch self {
         case .available, .active:
             return AppTheme.accentPrimary
-        case .accountRequired, .soon:
+        case .accountRequired:
             return AppTheme.textSecondary
         case .locked:
             return AppTheme.accentDestructive
@@ -35,7 +32,7 @@ enum ProfileModuleStatus {
 
     var isDisabled: Bool {
         switch self {
-        case .accountRequired, .soon, .locked:
+        case .accountRequired, .locked:
             return true
         case .available, .active:
             return false

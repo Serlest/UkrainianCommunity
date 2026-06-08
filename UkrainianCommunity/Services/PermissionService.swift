@@ -481,10 +481,6 @@ struct PermissionService {
         isGuideManager(user)
     }
 
-    static func canApproveGuideArticle(user: AppUser?) -> Bool {
-        Self.isOwner(user)
-    }
-
     static func canCreateNews(user: AppUser?) -> Bool {
         false
     }

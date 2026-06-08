@@ -206,6 +206,7 @@ struct NewsDetailView: View {
             guard !recordedViewKeys.contains(newsViewTaskID) else { return }
             recordedViewKeys.insert(newsViewTaskID)
             viewModel.recordView(for: postID)
+            viewModel.trackViewIfNeeded(for: post)
             RecentViewRecorder.recordNews(post)
         }
         .onChange(of: authState.user?.id) { _, _ in
@@ -213,6 +214,7 @@ struct NewsDetailView: View {
             guard !recordedViewKeys.contains(newsViewTaskID) else { return }
             recordedViewKeys.insert(newsViewTaskID)
             viewModel.recordView(for: postID)
+            viewModel.trackViewIfNeeded(for: post)
             RecentViewRecorder.recordNews(post)
         }
         .onDisappear {

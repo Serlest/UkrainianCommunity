@@ -5,7 +5,7 @@ import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import {db} from "./firebase/admin";
 
 export * from "./counters/aggregation";
-export * from "./guide/workflow";
+export * from "./analytics/trackAnalyticsEvent";
 export * from "./legal/legalDocuments";
 export * from "./notifications/backendWriters";
 export * from "./organizations/approvalWorkflow";
@@ -267,3 +267,4 @@ function displayName(value?: string): string {
   const trimmed = value?.trim() ?? "";
   return trimmed.length > 0 ? trimmed : "A user";
 }
+export { cleanupAnalyticsAggregates } from "./analytics/cleanupAnalyticsAggregates";

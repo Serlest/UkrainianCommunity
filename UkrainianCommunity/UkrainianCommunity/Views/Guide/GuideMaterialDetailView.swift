@@ -32,6 +32,8 @@ struct GuideMaterialDetailView: View {
         }
         .task {
             await viewModel.loadSavedMaterialsIfNeeded()
+            viewModel.trackMaterialViewIfNeeded(for: material)
+            RecentViewRecorder.recordGuideMaterial(material)
         }
         .sheet(item: $presentedFeedbackKind) { kind in
             GuideMaterialFeedbackSheet(

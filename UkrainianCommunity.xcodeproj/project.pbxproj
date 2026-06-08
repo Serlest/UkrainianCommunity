@@ -11,6 +11,7 @@
 		7A0F10022FB1000100F1A001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10102FB1000100F1A001 /* FirebaseCore */; };
 		7A0F10032FB1000100F1A001 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10112FB1000100F1A001 /* FirebaseFirestore */; };
 		7A0F10042FB1000100F1A001 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10132FB1000100F1A001 /* FirebaseStorage */; };
+		F303363F2FD6FAF60004B065 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = F303363E2FD6FAF60004B065 /* FirebaseAnalytics */; };
 		F32681812FD4A6AA008FCC2B /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F32681802FD4A6AA008FCC2B /* FirebaseMessaging */; };
 		F354356A2FCCCC7600FFDD3C /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = F35435692FCCCC7600FFDD3C /* FirebaseFunctions */; };
 /* End PBXBuildFile section */
@@ -66,6 +67,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F303363F2FD6FAF60004B065 /* FirebaseAnalytics in Frameworks */,
 				F32681812FD4A6AA008FCC2B /* FirebaseMessaging in Frameworks */,
 				7A0F10012FB1000100F1A001 /* FirebaseAuth in Frameworks */,
 				7A0F10022FB1000100F1A001 /* FirebaseCore in Frameworks */,
@@ -167,6 +169,7 @@
 				7A0F10132FB1000100F1A001 /* FirebaseStorage */,
 				F35435692FCCCC7600FFDD3C /* FirebaseFunctions */,
 				F32681802FD4A6AA008FCC2B /* FirebaseMessaging */,
+				F303363E2FD6FAF60004B065 /* FirebaseAnalytics */,
 			);
 			productName = UkrainianCommunity;
 			productReference = F347490C2FA0CF7400ED704A /* UkrainianCommunity.app */;
@@ -456,9 +459,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = UkrainianCommunity/UkrainianCommunity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = 438S639937;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -491,9 +495,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = UkrainianCommunity/UkrainianCommunity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = 438S639937;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -685,6 +690,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		F303363E2FD6FAF60004B065 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
 		};
 		F32681802FD4A6AA008FCC2B /* FirebaseMessaging */ = {
 			isa = XCSwiftPackageProductDependency;

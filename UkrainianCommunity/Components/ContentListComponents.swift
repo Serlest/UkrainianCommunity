@@ -35,15 +35,18 @@ extension DashboardSectionHeader where TrailingContent == EmptyView {
 struct DashboardFeedContainer<Data: RandomAccessCollection, RowContent: View>: View where Data.Element: Identifiable {
     let items: Data
     let spacing: CGFloat
+    let onItemAppear: (Data.Element) -> Void
     @ViewBuilder let rowContent: (Data.Element) -> RowContent
 
     init(
         items: Data,
         spacing: CGFloat = 14,
+        onItemAppear: @escaping (Data.Element) -> Void = { _ in },
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) {
         self.items = items
         self.spacing = spacing
+        self.onItemAppear = onItemAppear
         self.rowContent = rowContent
     }
 
@@ -51,6 +54,9 @@ struct DashboardFeedContainer<Data: RandomAccessCollection, RowContent: View>: V
         LazyVStack(spacing: spacing) {
             ForEach(items) { item in
                 rowContent(item)
+                    .onAppear {
+                        onItemAppear(item)
+                    }
             }
         }
     }

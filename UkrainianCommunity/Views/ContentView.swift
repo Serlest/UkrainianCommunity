@@ -18,13 +18,13 @@ struct ContentView: View {
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
     @StateObject private var organizationsViewModel: OrganizationsViewModel
-    @StateObject private var guideViewModel: LegacyGuideListViewModel
     @StateObject private var guideReaderViewModel: GuideReaderViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
     @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
+    @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
     @State private var isShowingNotificationInbox = false
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
@@ -32,6 +32,7 @@ struct ContentView: View {
     @State private var organizationsNavigationPath: [OrganizationNavigationRoute] = []
     @State private var profileNavigationPath: [ProfileNavigationRoute] = []
     @State private var guideBannerCategoryTarget: GuideCategory?
+    @State private var guideMaterialTargetID: String?
     @State private var homeScrollResetToken = 0
     @State private var eventsScrollResetToken = 0
     @State private var organizationsScrollResetToken = 0
@@ -49,18 +50,25 @@ struct ContentView: View {
             eventRepository: container.eventRepository,
             organizationRepository: container.organizationRepository
         ))
-        _newsViewModel = StateObject(wrappedValue: NewsViewModel(repository: container.newsRepository))
+        _newsViewModel = StateObject(wrappedValue: NewsViewModel(
+            repository: container.newsRepository,
+            analyticsService: container.analyticsService
+        ))
         _eventsViewModel = StateObject(wrappedValue: EventsViewModel(
             repository: container.eventRepository,
             notificationPreferencesRepository: container.notificationPreferencesRepository,
-            localEventReminderService: container.localEventReminderService
+            localEventReminderService: container.localEventReminderService,
+            analyticsService: container.analyticsService
         ))
         _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(
             repository: container.organizationRepository,
-            notificationInboxRepository: container.notificationInboxRepository
+            notificationInboxRepository: container.notificationInboxRepository,
+            analyticsService: container.analyticsService
         ))
-        _guideViewModel = StateObject(wrappedValue: LegacyGuideListViewModel(repository: container.guideRepository))
-        _guideReaderViewModel = StateObject(wrappedValue: GuideReaderViewModel(repository: FirestoreGuideRepository()))
+        _guideReaderViewModel = StateObject(wrappedValue: GuideReaderViewModel(
+            repository: FirestoreGuideRepository(),
+            analyticsService: container.analyticsService
+        ))
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
             repository: container.userRepository,
             feedbackRepository: container.feedbackRepository,
@@ -111,7 +119,6 @@ struct ContentView: View {
             newsViewModel.reload()
             eventsViewModel.reload()
             organizationsViewModel.reload()
-            guideViewModel.reload()
             profileViewModel.reload()
         }
         .onChange(of: profileViewModel.settings.appearance) { _, newAppearance in
@@ -204,10 +211,14 @@ struct ContentView: View {
         Binding(
             get: { selectedTab },
             set: { newTab in
-                guard newTab != selectedTab else { return }
-                let previousTab = selectedTab
+                if newTab == selectedTab {
+                    guard tabSelectionCoordinator.shouldHandleActiveTabReselection() else { return }
+                    resetNavigationPath(for: selectedTab)
+                    return
+                }
+
+                tabSelectionCoordinator.recordTabSwitch()
                 selectedTab = newTab
-                scheduleNavigationPathResetAfterTabSwitch(for: previousTab)
             }
         )
     }
@@ -270,7 +281,6 @@ struct ContentView: View {
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel,
-                guideViewModel: guideViewModel,
                 newsRepository: container.newsRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
                 navigationPath: $homeNavigationPath,
@@ -335,12 +345,12 @@ struct ContentView: View {
     private var guideTab: some View {
         NavigationStack {
             InfoView(
-                viewModel: guideViewModel,
                 guideReaderViewModel: guideReaderViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
                 feedbackRepository: container.feedbackRepository,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 guideBannerCategoryTarget: $guideBannerCategoryTarget,
+                guideMaterialTargetID: $guideMaterialTargetID,
                 scrollResetToken: guideScrollResetToken
             )
         }
@@ -366,13 +376,14 @@ struct ContentView: View {
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel,
                 guideReaderViewModel: guideReaderViewModel,
-                guideRepository: container.guideRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
                 legalDocumentRepository: container.legalDocumentRepository,
+                ownerAnalyticsRepository: container.ownerAnalyticsRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 notificationInboxViewModel: notificationInboxViewModel,
                 localEventReminderService: container.localEventReminderService,
                 onNotificationTap: handleNotificationTap,
+                onBrowseDestinationSelected: handleProfileBrowseDestination,
                 navigationPath: $profileNavigationPath,
                 scrollResetToken: profileScrollResetToken
             )
@@ -388,19 +399,16 @@ struct ContentView: View {
 
     private func handleAuthIdentityChange(for key: String) {
         guard lastHandledAuthSessionKey != key else { return }
+        guard lastHandledAuthSessionKey != nil else {
+            lastHandledAuthSessionKey = key
+            return
+        }
+
         lastHandledAuthSessionKey = key
 
-        selectedTab = .home
+        selectTabIfNeeded(.home)
         isShowingNotificationInbox = false
-        homeNavigationPath.removeAll()
-        eventsNavigationPath.removeAll()
-        organizationsNavigationPath.removeAll()
-        profileNavigationPath.removeAll()
-        homeScrollResetToken += 1
-        eventsScrollResetToken += 1
-        organizationsScrollResetToken += 1
-        guideScrollResetToken += 1
-        profileScrollResetToken += 1
+        resetNavigationStateAfterAuthChange()
         authState.dismissAuthFlow()
 
         homeViewModel.resetForAuthChange()
@@ -426,24 +434,67 @@ struct ContentView: View {
     private func resetNavigationPath(for tab: AppTab) {
         switch tab {
         case .home:
-            guard !homeNavigationPath.isEmpty else { return }
-            homeNavigationPath.removeAll()
-            homeScrollResetToken += 1
+            if !homeNavigationPath.isEmpty {
+                homeNavigationPath.removeAll()
+            }
         case .events:
-            guard !eventsNavigationPath.isEmpty else { return }
-            eventsNavigationPath.removeAll()
-            eventsScrollResetToken += 1
+            if !eventsNavigationPath.isEmpty {
+                eventsNavigationPath.removeAll()
+            }
         case .organizations:
-            guard !organizationsNavigationPath.isEmpty else { return }
-            organizationsNavigationPath.removeAll()
-            organizationsScrollResetToken += 1
+            if !organizationsNavigationPath.isEmpty {
+                organizationsNavigationPath.removeAll()
+            }
         case .guide:
             guideNavigationResetToken += 1
-            guideScrollResetToken += 1
+            return
         case .profile:
-            guard !profileNavigationPath.isEmpty else { return }
+            if !profileNavigationPath.isEmpty {
+                profileNavigationPath.removeAll()
+            }
+        }
+
+        scheduleScrollReset(for: tab)
+    }
+
+    private func resetNavigationStateAfterAuthChange() {
+        if !homeNavigationPath.isEmpty {
+            homeNavigationPath.removeAll()
+        }
+        if !eventsNavigationPath.isEmpty {
+            eventsNavigationPath.removeAll()
+        }
+        if !organizationsNavigationPath.isEmpty {
+            organizationsNavigationPath.removeAll()
+        }
+        if !profileNavigationPath.isEmpty {
             profileNavigationPath.removeAll()
-            profileScrollResetToken += 1
+        }
+
+        scheduleScrollReset(for: selectedTab)
+    }
+
+    private func selectTabIfNeeded(_ tab: AppTab) {
+        guard selectedTab != tab else { return }
+        tabSelectionCoordinator.recordTabSwitch()
+        selectedTab = tab
+    }
+
+    private func scheduleScrollReset(for tab: AppTab) {
+        Task { @MainActor in
+            await Task.yield()
+            switch tab {
+            case .home:
+                homeScrollResetToken += 1
+            case .events:
+                eventsScrollResetToken += 1
+            case .organizations:
+                organizationsScrollResetToken += 1
+            case .guide:
+                guideScrollResetToken += 1
+            case .profile:
+                profileScrollResetToken += 1
+            }
         }
     }
 
@@ -474,16 +525,6 @@ struct ContentView: View {
         )
     }
 
-    private func scheduleNavigationPathResetAfterTabSwitch(for tab: AppTab) {
-        DispatchQueue.main.async {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                resetNavigationPath(for: tab)
-            }
-        }
-    }
-
     private func handleFeaturedBannerTap(_ banner: FeaturedBanner) {
         switch featuredBannerActionResolver.resolve(banner) {
         case .noAction:
@@ -491,15 +532,15 @@ struct ContentView: View {
         case let .openURL(url):
             openURL(url)
         case let .openNews(id):
-            selectedTab = .home
+            selectTabIfNeeded(.home)
             homeNavigationPath = [.news(id: id)]
         case let .openEvent(id):
-            selectedTab = .events
+            selectTabIfNeeded(.events)
             eventsNavigationPath = [EventNavigationRoute(eventID: id)]
         case let .openOrganization(id):
             Task {
                 guard let organization = await organizationsViewModel.resolveOrganization(id: id) else { return }
-                selectedTab = .organizations
+                selectTabIfNeeded(.organizations)
                 organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organization.id)]
             }
         case let .openGuide(targetID):
@@ -513,7 +554,7 @@ struct ContentView: View {
                 #endif
                 guideBannerCategoryTarget = nil
             }
-            selectedTab = .guide
+            selectTabIfNeeded(.guide)
         }
     }
 
@@ -530,29 +571,30 @@ struct ContentView: View {
         case .openOrganization:
             routeToOrganization(notification)
         case .openOrganizationRequest:
-            selectedTab = .profile
+            selectTabIfNeeded(.profile)
             profileNavigationPath = [.moderationTools]
         case .openEvent:
             routeToEvent(notification)
         case .openGuideMaterial:
-            guideBannerCategoryTarget = nil
-            selectedTab = .guide
+            routeToGuideMaterial(notification)
         case .openGuideReport:
-            selectedTab = .profile
+            selectTabIfNeeded(.profile)
             profileNavigationPath = [.guideManagement]
         case .openLegalDocuments:
-            selectedTab = .profile
+            selectTabIfNeeded(.profile)
             profileNavigationPath = [.legal(.terms)]
         case .openProfile:
-            selectedTab = .profile
-            profileNavigationPath.removeAll()
+            selectTabIfNeeded(.profile)
+            if !profileNavigationPath.isEmpty {
+                profileNavigationPath.removeAll()
+            }
         case .openURL:
             routeToURL(notification)
         }
     }
 
     private func routeToFeedback(_ notification: AppNotification) {
-        selectedTab = .profile
+        selectTabIfNeeded(.profile)
         if notification.type == .feedbackSubmitted || PermissionService.canManageFeedback(user: authState.user) {
             profileNavigationPath = [.feedbackInbox]
         } else if let userID = authState.user?.id {
@@ -568,7 +610,7 @@ struct ContentView: View {
             return
         }
 
-        selectedTab = .organizations
+        selectTabIfNeeded(.organizations)
         organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organizationID)]
     }
 
@@ -578,8 +620,19 @@ struct ContentView: View {
             return
         }
 
-        selectedTab = .events
+        selectTabIfNeeded(.events)
         eventsNavigationPath = [EventNavigationRoute(eventID: eventID)]
+    }
+
+    private func routeToGuideMaterial(_ notification: AppNotification) {
+        guard let materialID = guideMaterialTargetID(notification) else {
+            showNotificationRouteUnavailable()
+            return
+        }
+
+        guideBannerCategoryTarget = nil
+        guideMaterialTargetID = materialID
+        selectTabIfNeeded(.guide)
     }
 
     private func routeToURL(_ notification: AppNotification) {
@@ -614,8 +667,69 @@ struct ContentView: View {
         .first { !$0.isEmpty }
     }
 
+    private func guideMaterialTargetID(_ notification: AppNotification) -> String? {
+        [
+            notification.actionTargetId,
+            notification.sourceId,
+            notification.metadata["guideMaterialId"],
+            notification.metadata["guideMaterialID"],
+            notification.metadata["materialId"],
+            notification.metadata["materialID"],
+            notification.metadata["articleId"],
+            notification.metadata["articleID"],
+            notification.metadata["targetId"],
+            notification.metadata["targetID"],
+            notification.payload["guideMaterialId"],
+            notification.payload["guideMaterialID"],
+            notification.payload["materialId"],
+            notification.payload["materialID"],
+            notification.payload["articleId"],
+            notification.payload["articleID"],
+            notification.payload["targetId"],
+            notification.payload["targetID"]
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .first { !$0.isEmpty }
+    }
+
+    private func handleProfileBrowseDestination(_ destination: ProfileBrowseDestination) {
+        switch destination {
+        case .home:
+            selectTabIfNeeded(.home)
+        case .events:
+            selectTabIfNeeded(.events)
+        case .organizations:
+            selectTabIfNeeded(.organizations)
+        case .guide:
+            selectTabIfNeeded(.guide)
+        }
+    }
+
     private func showNotificationRouteUnavailable() {
         notificationRouteErrorMessage = AppStrings.NotificationInbox.destinationUnavailableMessage
+    }
+}
+
+@MainActor
+private final class AppTabSelectionCoordinator {
+    private var lastTabSwitchTime = Date.timeIntervalSinceReferenceDate
+    private var lastActiveTabResetTime = Date.distantPast.timeIntervalSinceReferenceDate
+    private let tabSwitchQuietInterval: TimeInterval = 0.35
+    private let activeResetQuietInterval: TimeInterval = 0.35
+
+    func recordTabSwitch() {
+        lastTabSwitchTime = Date.timeIntervalSinceReferenceDate
+    }
+
+    func shouldHandleActiveTabReselection() -> Bool {
+        let now = Date.timeIntervalSinceReferenceDate
+        guard now - lastTabSwitchTime >= tabSwitchQuietInterval,
+              now - lastActiveTabResetTime >= activeResetQuietInterval else {
+            return false
+        }
+
+        lastActiveTabResetTime = now
+        return true
     }
 }
 

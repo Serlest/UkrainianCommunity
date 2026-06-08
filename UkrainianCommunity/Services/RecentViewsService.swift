@@ -209,6 +209,17 @@ enum RecentViewRecorder {
         ))
     }
 
+    static func recordGuideMaterial(_ material: GuideMaterial) {
+        record(RecentViewItem(
+            itemId: material.id,
+            itemType: .guide,
+            title: material.title,
+            subtitle: material.summary.isEmpty ? material.category.title : material.summary,
+            imageURL: nil,
+            viewedAt: Date()
+        ))
+    }
+
     private static func record(_ item: RecentViewItem) {
         Task {
             try? await repository.recordRecentView(item)

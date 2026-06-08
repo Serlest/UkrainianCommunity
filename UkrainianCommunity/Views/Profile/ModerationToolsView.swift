@@ -346,7 +346,7 @@ struct ModerationToolsView: View {
         AdminScreenShell(
             title: screenTitle,
             subtitle: AppStrings.Moderation.subtitle,
-            tabBarHidden: true
+            tabBarHidden: false
         ) {
             moderationContent
         }

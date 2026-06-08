@@ -196,10 +196,6 @@ enum MockContentBuilder {
         ]
     }
 
-    nonisolated static func guideArticles() -> [GuideArticle] {
-        GuideMockContentFactory.guideArticles()
-    }
-
     nonisolated private static func sampleComments() -> [Comment] {
         [
             Comment(

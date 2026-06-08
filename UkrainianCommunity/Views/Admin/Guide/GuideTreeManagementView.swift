@@ -15,7 +15,8 @@ struct GuideTreeManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: GuideAuthoringPresentation.treeManagementTitle,
-            subtitle: GuideAuthoringPresentation.treeManagementSubtitle
+            subtitle: GuideAuthoringPresentation.treeManagementSubtitle,
+            tabBarHidden: false
         ) {
             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                 SectionHeaderBlock(

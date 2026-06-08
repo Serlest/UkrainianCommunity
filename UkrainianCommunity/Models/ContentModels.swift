@@ -789,7 +789,6 @@ enum HomeFeedDestinationReference: Hashable {
     case news(id: String)
     case event(id: String)
     case organization(id: String)
-    case guide(id: String)
 }
 
 struct HomeFeedItem: Identifiable, Equatable {

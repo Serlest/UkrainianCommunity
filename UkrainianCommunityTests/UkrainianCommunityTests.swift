@@ -278,13 +278,13 @@ struct UkrainianCommunityTests {
         let news = try await MockNewsRepository().fetchNews()
         let events = try await MockEventRepository().fetchEvents()
         let organizations = try await MockOrganizationRepository().fetchOrganizations()
-        let info = try await MockInfoRepository().fetchGuideArticles()
+        let guideNodes = try await MockGuideRepository().fetchRootNodes(category: .health, selectedFederalState: nil)
 
         #expect(user.fullName.isEmpty == false)
         #expect(news.isEmpty == false)
         #expect(events.isEmpty == false)
         #expect(organizations.isEmpty == false)
-        #expect(info.isEmpty == false)
+        #expect(guideNodes.isEmpty == false)
     }
 
     @Test func settingsPersistenceStoresLanguageAndAppearance() async throws {

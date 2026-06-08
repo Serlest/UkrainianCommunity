@@ -8,9 +8,44 @@ struct FirestoreNewsRepository: NewsRepository {
     private let likesCollection = Firestore.firestore().collection("likes")
 
     func fetchNews() async throws -> [NewsPost] {
-        let snapshot = try await collection
+        try await fetchNewsPage(limit: 30, after: nil).items
+    }
+
+    func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
+        var query: Query = collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
             .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: max(1, limit) + 1)
+
+        if let cursor {
+            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.documentID])
+        }
+
+        let snapshot = try await query.getDocuments()
+        let documents = Array(snapshot.documents.prefix(max(1, limit)))
+        let likedNewsIDs = try await fetchLikedNewsIDs()
+        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
+        let items = try documents
+            .map { document in
+                try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
+            }
+
+        return NewsPage(
+            items: items,
+            nextCursor: documents.last.flatMap(makeNewsPageCursor),
+            hasMore: snapshot.documents.count > max(1, limit)
+        )
+    }
+
+    func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost] {
+        let snapshot = try await collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+            .order(by: "createdAt", descending: true)
+            .limit(to: max(1, limit))
             .getDocuments()
 
         let likedNewsIDs = try await fetchLikedNewsIDs()
@@ -615,6 +650,13 @@ struct FirestoreNewsRepository: NewsRepository {
             viewCount: data["viewCount"] as? Int ?? 0,
             isBookmarked: bookmarkedNewsIDs.contains(document.documentID)
         )
+    }
+
+    private func makeNewsPageCursor(from document: QueryDocumentSnapshot) -> NewsPageCursor? {
+        guard let createdAt = (document.data()["createdAt"] as? Timestamp)?.dateValue() else {
+            return nil
+        }
+        return NewsPageCursor(createdAt: createdAt, documentID: document.documentID)
     }
 
     private func likeDocumentID(newsID: String, userID: String) -> String {

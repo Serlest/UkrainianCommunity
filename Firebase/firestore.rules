@@ -224,7 +224,7 @@ service cloud.firestore {
         && request.resource.data.severity == 'info'
         && request.resource.data.outcome == 'success'
         && requestActorMatchesAuth()
-        && request.resource.data.targetType in ['newsPost', 'event', 'organization', 'guideArticle', 'systemConfiguration']
+        && request.resource.data.targetType in ['newsPost', 'event', 'organization', 'guideArticle', 'guideMaterial', 'systemConfiguration']
         && request.resource.data.moduleName is string
         && request.resource.data.operationName is string
         && (!('targetId' in request.resource.data) || request.resource.data.targetId is string)
@@ -255,6 +255,7 @@ service cloud.firestore {
           'organization',
           'organizationRequest',
           'guideArticle',
+          'guideMaterial',
           'report'
         ]
         && request.resource.data.moduleName == 'Moderation'
@@ -298,7 +299,7 @@ service cloud.firestore {
         && request.resource.data.severity in ['notice', 'warning', 'error']
         && request.resource.data.outcome in ['success', 'failed', 'blocked']
         && requestActorMatchesAuth()
-        && request.resource.data.targetType in ['userProfile', 'organization', 'guideArticle']
+        && request.resource.data.targetType in ['userProfile', 'organization', 'guideArticle', 'guideMaterial']
         && request.resource.data.moduleName in ['Security', 'Account']
         && request.resource.data.operationName is string
         && (!('targetId' in request.resource.data) || request.resource.data.targetId is string)
@@ -366,153 +367,9 @@ service cloud.firestore {
       return section is string && isPlatformModeratorTier();
     }
 
-    function guideArticleRequiredCreateFields() {
-      return [
-        'id',
-        'title',
-        'summary',
-        'body',
-        'category',
-        'regionScope',
-        'isPinned',
-        'moderationStatus',
-        'createdAt',
-        'updatedAt',
-        'status',
-        'createdBy'
-      ];
-    }
-
-    function guideArticleAllowedFields() {
-      return [
-        'id',
-        'title',
-        'summary',
-        'body',
-        'category',
-        'regionScope',
-        'federalState',
-        'city',
-        'officialSourceURL',
-        'sourceName',
-        'isPinned',
-        'moderationStatus',
-        'createdAt',
-        'updatedAt',
-        'contentType',
-        'status',
-        'contentBlocks',
-        'audience',
-        'sourceLinks',
-        'officialSourcesRequired',
-        'priority',
-        'isFeatured',
-        'createdBy',
-        'updatedBy',
-        'reviewedBy',
-        'publishedAt',
-        'lastReviewedAt',
-        'nextReviewAt',
-        'reviewInterval',
-        'archivedAt'
-      ];
-    }
-
-    function guideArticleEditableFields() {
-      return [
-        'title',
-        'summary',
-        'body',
-        'category',
-        'regionScope',
-        'federalState',
-        'city',
-        'officialSourceURL',
-        'sourceName',
-        'contentType',
-        'contentBlocks',
-        'audience',
-        'sourceLinks',
-        'officialSourcesRequired',
-        'priority',
-        'isFeatured',
-        'reviewInterval',
-        'updatedAt',
-        'updatedBy'
-      ];
-    }
-
-    function guideWorkflowFieldsAreEmptyOnCreate() {
-      return (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy == null)
-        && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == null)
-        && (!('publishedAt' in request.resource.data) || request.resource.data.publishedAt == null)
-        && (!('lastReviewedAt' in request.resource.data) || request.resource.data.lastReviewedAt == null)
-        && (!('nextReviewAt' in request.resource.data) || request.resource.data.nextReviewAt == null)
-        && (!('archivedAt' in request.resource.data) || request.resource.data.archivedAt == null);
-    }
-
-    function guideArticleIdentityFieldsArePreserved() {
-      return request.resource.data.id == resource.data.id
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.createdBy == resource.data.createdBy;
-    }
-
-    function guideArticleWorkflowFieldsArePreserved() {
-      return request.resource.data.moderationStatus == resource.data.moderationStatus
-        && request.resource.data.status == resource.data.status
-        && request.resource.data.isPinned == resource.data.isPinned
-        && request.resource.data.reviewedBy == resource.data.reviewedBy
-        && request.resource.data.publishedAt == resource.data.publishedAt
-        && request.resource.data.lastReviewedAt == resource.data.lastReviewedAt
-        && request.resource.data.nextReviewAt == resource.data.nextReviewAt
-        && request.resource.data.archivedAt == resource.data.archivedAt;
-    }
-
-    function guideArticleIsEditableManagedContent() {
-      return (!('archivedAt' in resource.data) || resource.data.archivedAt == null)
-        && (
-          (
-            resource.data.moderationStatus == 'draft'
-            && (
-              !('status' in resource.data)
-              || resource.data.status == null
-              || resource.data.status == 'draft'
-            )
-          )
-          || (
-            resource.data.moderationStatus == 'approved'
-            && resource.data.status == 'published'
-          )
-        );
-    }
-
-    function validGuideArticleCreate(articleId) {
-      return canManageGuide()
-        && request.resource.data.keys().hasAll(guideArticleRequiredCreateFields())
-        && request.resource.data.keys().hasOnly(guideArticleAllowedFields())
-        && request.resource.data.id == articleId
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.moderationStatus == 'draft'
-        && request.resource.data.status == 'draft'
-        && request.resource.data.isPinned == false
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp
-        && guideWorkflowFieldsAreEmptyOnCreate();
-    }
-
-    function validGuideArticleEditUpdate() {
-      return canManageGuide()
-        && guideArticleIsEditableManagedContent()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(guideArticleEditableFields())
-        && guideArticleIdentityFieldsArePreserved()
-        && guideArticleWorkflowFieldsArePreserved()
-        && request.resource.data.updatedBy == request.auth.uid
-        && request.resource.data.updatedAt is timestamp;
-    }
-
     function isPublishedGuideV2Resource() {
       return resource.data.moderationStatus == 'approved'
-        && (('publishedAt' in resource.data) && resource.data.publishedAt is timestamp)
+        && resource.data.publishedAt != null
         && (!('archivedAt' in resource.data) || resource.data.archivedAt == null);
     }
 
@@ -1354,6 +1211,11 @@ service cloud.firestore {
     function canListOrganization() {
       return (('moderationStatus' in resource.data) && resource.data.moderationStatus == 'approved')
         || (
+          isActiveUser()
+          && ('ownerId' in resource.data)
+          && resource.data.ownerId == request.auth.uid
+        )
+        || (
           canManageOrganizationRequests()
           && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         )
@@ -1716,9 +1578,24 @@ service cloud.firestore {
         && data.organizationId.size() > 0;
     }
 
+    function aggregateCountersAreZeroOnCreate(data) {
+      return (!('likeCount' in data) || data.likeCount == 0)
+        && (!('commentCount' in data) || data.commentCount == 0)
+        && (!('viewCount' in data) || data.viewCount == 0)
+        && (!('registeredCount' in data) || data.registeredCount == 0);
+    }
+
+    function aggregateCountersArePreservedOnUpdate() {
+      return (!('likeCount' in resource.data) || request.resource.data.likeCount == resource.data.likeCount)
+        && (!('commentCount' in resource.data) || request.resource.data.commentCount == resource.data.commentCount)
+        && (!('viewCount' in resource.data) || request.resource.data.viewCount == resource.data.viewCount)
+        && (!('registeredCount' in resource.data) || request.resource.data.registeredCount == resource.data.registeredCount);
+    }
+
     function canCreateOrganizationContent() {
       // Current policy: organization team members create approved content within their organization.
       return isOrganizationContent(request.resource.data)
+        && aggregateCountersAreZeroOnCreate(request.resource.data)
         && (canUseOrganizationOverride() || canEditOrganizationContent(request.resource.data.organizationId));
     }
 
@@ -1727,6 +1604,7 @@ service cloud.firestore {
         && isOrganizationContent(request.resource.data)
         && request.resource.data.sourceType == resource.data.sourceType
         && request.resource.data.organizationId == resource.data.organizationId
+        && aggregateCountersArePreservedOnUpdate()
         && (canUseOrganizationOverride() || canEditOrganizationContent(resource.data.organizationId));
     }
 
@@ -1973,14 +1851,7 @@ service cloud.firestore {
         || safeSelfStatusAcknowledgement(uid)
         || safeSelfAccountDeletionUpdate(uid);
 
-      allow delete: if (isOwner()
-          && uid != request.auth.uid
-          && ('globalRole' in resource.data)
-          && resource.data.globalRole != 'owner')
-        || (isSelf(uid)
-          && isActiveUser()
-          && ('globalRole' in resource.data)
-          && resource.data.globalRole != 'owner');
+      allow delete: if false;
 
       match /notificationPreferences/{docId} {
         allow read: if isSelf(uid) && docId == 'settings';
@@ -2323,6 +2194,46 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /analyticsDailyStats/{statsId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /analyticsTopContent/{periodId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /analyticsRegionStats/{periodId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /analyticsUserStats/{periodId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /analyticsContentStats/{periodId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+
+      match /items/{itemId} {
+        allow read: if isOwner();
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /analyticsOrganizationStats/{periodId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+
+      match /organizations/{organizationId} {
+        allow read: if isOwner();
+        allow create, update, delete: if false;
+      }
+    }
+
     match /auditLogs/{auditLogId} {
       allow read: if canManageUsers();
 
@@ -2365,19 +2276,6 @@ service cloud.firestore {
       allow update: if validFeaturedBannerUpdate(bannerId)
         || validFeaturedBannerLifecycleUpdate(bannerId);
       allow delete: if isActiveUser() && canManageFeaturedBanners();
-    }
-
-    match /guideArticles/{articleId} {
-      allow read: if (
-          resource.data.moderationStatus == 'approved'
-          && (('status' in resource.data) && resource.data.status == 'published')
-        )
-        || canManageGuide();
-
-      allow create: if validGuideArticleCreate(articleId);
-      allow update: if validGuideArticleEditUpdate();
-      allow delete: if canManageGuide()
-        && guideArticleIsEditableManagedContent();
     }
 
     match /guideNodes/{nodeId} {

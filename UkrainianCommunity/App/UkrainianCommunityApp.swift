@@ -9,6 +9,7 @@ private enum FirebaseBootstrap {
 
     static func ensureConfigured() {
         if !isConfigured {
+            FirebaseConfiguration.shared.setLoggerLevel(.min)
             FirebaseApp.configure()
             isConfigured = true
         }

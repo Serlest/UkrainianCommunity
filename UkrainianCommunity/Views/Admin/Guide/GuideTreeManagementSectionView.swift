@@ -36,7 +36,8 @@ struct GuideTreeSectionManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: managedNode.title,
-            subtitle: navigationSubtitle
+            subtitle: navigationSubtitle,
+            tabBarHidden: false
         ) {
             EmptyView()
         } metrics: {
@@ -486,7 +487,8 @@ struct GuideTreeMaterialManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: managedMaterial.title,
-            subtitle: managedMaterial.summary
+            subtitle: managedMaterial.summary,
+            tabBarHidden: false
         ) {
             AppEditorSectionCard {
                 GuideManagementMetadataRow(items: materialMetadataItems)

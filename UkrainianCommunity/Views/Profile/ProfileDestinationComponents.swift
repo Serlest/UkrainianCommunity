@@ -8,8 +8,7 @@ struct ProfileDestinationLayout<Content: View>: View {
     var body: some View {
         PushedScreenShell(
             title: title,
-            subtitle: introSubtitle,
-            tabBarHidden: true
+            subtitle: introSubtitle
         ) {
             AppGroupedContentPlane {
                 content

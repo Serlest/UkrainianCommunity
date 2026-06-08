@@ -10,16 +10,26 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     private let imageUploadService = ImageUploadService.shared
 
     func fetchOrganizations() async throws -> [Organization] {
-        let snapshot = try await collection
+        try await fetchOrganizationsPage(limit: 30, after: nil).items
+    }
+
+    func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage {
+        var query: Query = collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
             .order(by: "createdAt", descending: true)
-            .getDocuments()
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: max(1, limit) + 1)
 
+        if let cursor {
+            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.documentID])
+        }
+
+        let snapshot = try await query.getDocuments()
+        let documents = Array(snapshot.documents.prefix(max(1, limit)))
         let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
         let subscribedOrganizationIDs = try await fetchSubscribedOrganizationIDs()
         let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
-
-        return try snapshot.documents.map { document in
+        let items = try documents.map { document in
             try Organization(dto: makeOrganizationDTO(
                 from: document,
                 likedOrganizationIDs: likedOrganizationIDs,
@@ -27,6 +37,19 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
                 bookmarkedOrganizationIDs: bookmarkedOrganizationIDs
             ))
         }
+
+        return OrganizationPage(
+            items: items,
+            nextCursor: documents.last.flatMap(makeOrganizationPageCursor),
+            hasMore: snapshot.documents.count > max(1, limit)
+        )
+    }
+
+    private func makeOrganizationPageCursor(from document: QueryDocumentSnapshot) -> OrganizationPageCursor? {
+        guard let createdAt = (document.data()["createdAt"] as? Timestamp)?.dateValue() else {
+            return nil
+        }
+        return OrganizationPageCursor(createdAt: createdAt, documentID: document.documentID)
     }
 
     func fetchOrganization(id: String) async throws -> Organization {

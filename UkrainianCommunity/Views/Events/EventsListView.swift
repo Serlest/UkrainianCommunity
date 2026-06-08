@@ -557,7 +557,15 @@ struct EventsListView: View {
                     message: AppStrings.Events.filteredUpcomingEmpty
                 )
             } else {
-                DashboardFeedContainer(items: upcomingEvents, spacing: AppTheme.eventsListRowSpacing) { event in
+                DashboardFeedContainer(
+                    items: upcomingEvents,
+                    spacing: AppTheme.eventsListRowSpacing,
+                    onItemAppear: { event in
+                        Task {
+                            await viewModel.loadNextPageIfNeeded(currentItemID: event.id)
+                        }
+                    }
+                ) { event in
                     eventRow(for: event)
                 }
             }
@@ -568,7 +576,15 @@ struct EventsListView: View {
         VStack(alignment: .leading, spacing: AppTheme.eventsListRowSpacing) {
             EventMonthHeader(title: AppStrings.Events.pastTitle)
 
-            DashboardFeedContainer(items: content.pastEvents, spacing: AppTheme.eventsListRowSpacing) { event in
+            DashboardFeedContainer(
+                items: content.pastEvents,
+                spacing: AppTheme.eventsListRowSpacing,
+                onItemAppear: { event in
+                    Task {
+                        await viewModel.loadNextPageIfNeeded(currentItemID: event.id)
+                    }
+                }
+            ) { event in
                 eventRow(for: event)
             }
         }

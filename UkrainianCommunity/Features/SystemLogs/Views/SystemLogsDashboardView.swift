@@ -31,7 +31,7 @@ struct SystemLogsDashboardView: View {
             title: viewModel.accessMode.title,
             subtitle: viewModel.accessMode.subtitle,
             showsBackButton: !embedsInNavigationStack,
-            tabBarHidden: true
+            tabBarHidden: false
         ) {
             searchBar
         } metrics: {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-#Preview("News List") {
+#Preview("Internal News Management") {
     NavigationStack {
         NewsListView(
             viewModel: NewsViewModel(repository: MockNewsRepository()),

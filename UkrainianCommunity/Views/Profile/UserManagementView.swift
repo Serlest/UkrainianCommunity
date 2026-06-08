@@ -217,6 +217,7 @@ private final class UserManagementViewModel: ObservableObject {
     private var hasLoaded = false
 
     private var usersCollection: CollectionReference { db.collection("users") }
+    private var organizationsCollection: CollectionReference { db.collection("organizations") }
 
     init(roleManagementService: OrganizationRoleManagementService? = nil) {
         self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
@@ -243,11 +244,33 @@ private final class UserManagementViewModel: ObservableObject {
         }
 
         do {
-            let snapshot = try await usersCollection
+            async let usersSnapshotTask = usersCollection
                 .order(by: "createdAt", descending: true)
                 .getDocuments()
-            users = snapshot.documents.map(makeUser(from:))
-            organizations = []
+            async let approvedOrganizationsSnapshotTask = organizationsCollection
+                .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+                .getDocuments()
+            async let reviewableOrganizationsSnapshotTask = organizationsCollection
+                .whereField(
+                    "moderationStatus",
+                    in: [
+                        ModerationStatus.pendingReview.rawValue,
+                        ModerationStatus.needsRevision.rawValue,
+                        ModerationStatus.rejected.rawValue
+                    ]
+                )
+                .getDocuments()
+            let (usersSnapshot, approvedOrganizationsSnapshot, reviewableOrganizationsSnapshot) = try await (
+                usersSnapshotTask,
+                approvedOrganizationsSnapshotTask,
+                reviewableOrganizationsSnapshotTask
+            )
+            users = usersSnapshot.documents.map(makeUser(from:))
+            organizations = uniqueOrganizationDocuments(
+                approvedOrganizationsSnapshot.documents + reviewableOrganizationsSnapshot.documents
+            )
+                .map(makeManagedOrganization(from:))
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         } catch {
             self.error = .network
         }
@@ -551,6 +574,13 @@ private final class UserManagementViewModel: ObservableObject {
         )
     }
 
+    private func uniqueOrganizationDocuments(_ documents: [QueryDocumentSnapshot]) -> [QueryDocumentSnapshot] {
+        var seenIDs = Set<String>()
+        return documents.filter { document in
+            seenIDs.insert(document.documentID).inserted
+        }
+    }
+
     private func makeManagedOrganization(from document: QueryDocumentSnapshot) -> ManagedOrganization {
         let data = document.data()
         return ManagedOrganization(
@@ -589,7 +619,7 @@ struct UserManagementView: View {
         AdminScreenShell(
             title: AppStrings.UserManagement.title,
             subtitle: AppStrings.UserManagement.contentSubtitle,
-            tabBarHidden: true
+            tabBarHidden: false
         ) {
             userManagementContent
         }
@@ -901,13 +931,16 @@ private struct UserDetailView: View {
 
     var body: some View {
         PushedScreenShell(
-            title: user.preferredDisplayName,
-            tabBarHidden: true
+            title: user.preferredDisplayName
         ) {
             AppGroupedContentPlane {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     profileCard
                     platformRolesCard
+                    organizationRolesCard
+                    if canManageOrganizationRoles && !organizations.isEmpty {
+                        roleAssignmentCard
+                    }
                     accountActionsCard
                     UserAuditHistoryCard(userId: user.id)
                 }

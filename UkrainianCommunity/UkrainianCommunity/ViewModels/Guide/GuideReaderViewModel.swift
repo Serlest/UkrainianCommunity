@@ -45,6 +45,7 @@ final class GuideReaderViewModel: ObservableObject {
     @Published private(set) var error: AppError?
 
     private let repository: GuideRepositoryProtocol
+    private let analyticsService: AnalyticsTracking
 
     private var rootNodesByCategory: [GuideCategoryCacheKey: [GuideNode]] = [:]
     private var childNodesByParentID: [NodeRegionCacheKey: [GuideNode]] = [:]
@@ -64,13 +65,15 @@ final class GuideReaderViewModel: ObservableObject {
     private var savedMaterialIDOrder: [String] = []
     private var hasLoadedSavedMaterialIDs = false
     private var pendingSavedMaterialIDs = Set<String>()
+    private var trackedGuideMaterialViewIDs = Set<String>()
 
-    init(repository: GuideRepositoryProtocol) {
+    init(repository: GuideRepositoryProtocol, analyticsService: AnalyticsTracking = NoopAnalyticsService()) {
         self.repository = repository
+        self.analyticsService = analyticsService
     }
 
     func makeChildViewModel() -> GuideReaderViewModel {
-        let childViewModel = GuideReaderViewModel(repository: repository)
+        let childViewModel = GuideReaderViewModel(repository: repository, analyticsService: analyticsService)
         childViewModel.selectedFederalState = selectedFederalState
         childViewModel.profileFederalState = profileFederalState
         childViewModel.hasManualRegionOverride = hasManualRegionOverride
@@ -91,6 +94,7 @@ final class GuideReaderViewModel: ObservableObject {
         childViewModel.savedMaterialIDOrder = savedMaterialIDOrder
         childViewModel.hasLoadedSavedMaterialIDs = hasLoadedSavedMaterialIDs
         childViewModel.pendingSavedMaterialIDs = pendingSavedMaterialIDs
+        childViewModel.trackedGuideMaterialViewIDs = trackedGuideMaterialViewIDs
         return childViewModel
     }
 
@@ -104,6 +108,19 @@ final class GuideReaderViewModel: ObservableObject {
 
     var visibleMaterials: [GuideMaterial] {
         materials
+    }
+
+    func trackMaterialViewIfNeeded(for material: GuideMaterial, sourceScreen: String = "guide_article_detail") {
+        guard !trackedGuideMaterialViewIDs.contains(material.id) else { return }
+        trackedGuideMaterialViewIDs.insert(material.id)
+        analyticsService.track(.guideArticleView(
+            contentID: material.id,
+            contentTitle: material.title,
+            category: material.category,
+            federalState: material.federalState,
+            regionScope: material.regionScope,
+            sourceScreen: sourceScreen
+        ))
     }
 
     func nodeSortOrderUpdates(
@@ -303,6 +320,18 @@ final class GuideReaderViewModel: ObservableObject {
             nodes: nodes,
             materials: materials
         )
+    }
+
+    func material(id: String) async throws -> GuideMaterial {
+        let trimmedID = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedID.isEmpty else { throw AppError.notFound }
+        if let cachedMaterial = materialByID[trimmedID] {
+            return cachedMaterial
+        }
+
+        let material = try await repository.fetchMaterial(id: trimmedID)
+        cache(materials: [material])
+        return material
     }
 
     func loadSavedMaterialsIfNeeded() async {

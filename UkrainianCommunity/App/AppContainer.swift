@@ -11,9 +11,10 @@ struct AppContainer {
     let newsRepository: NewsRepository
     let eventRepository: EventRepository
     let organizationRepository: OrganizationRepository
-    let guideRepository: LegacyGuideRepository
     let featuredBannerRepository: FeaturedBannerRepository
     let legalDocumentRepository: LegalDocumentRepository
+    let ownerAnalyticsRepository: OwnerAnalyticsRepository
+    let analyticsService: AnalyticsTracking
 
     static var development: AppContainer {
         return AppContainer(
@@ -27,9 +28,10 @@ struct AppContainer {
             newsRepository: FirestoreNewsRepository(),
             eventRepository: FirestoreEventRepository(),
             organizationRepository: FirestoreOrganizationRepository(),
-            guideRepository: LegacyFirestoreGuideRepository(),
             featuredBannerRepository: FirestoreFeaturedBannerRepository(),
-            legalDocumentRepository: FirestoreLegalDocumentRepository()
+            legalDocumentRepository: FirestoreLegalDocumentRepository(),
+            ownerAnalyticsRepository: FirestoreOwnerAnalyticsRepository(),
+            analyticsService: FirebaseAnalyticsService()
         )
     }
 
@@ -45,9 +47,10 @@ struct AppContainer {
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
             organizationRepository: MockOrganizationRepository(),
-            guideRepository: LegacyMockGuideRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
-            legalDocumentRepository: MockLegalDocumentRepository()
+            legalDocumentRepository: MockLegalDocumentRepository(),
+            ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
+            analyticsService: NoopAnalyticsService()
         )
     }
 }

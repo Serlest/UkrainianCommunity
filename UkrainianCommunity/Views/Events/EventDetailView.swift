@@ -265,6 +265,7 @@ struct EventDetailView: View {
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
             recordedViewKeys.insert(eventViewTaskID)
             viewModel.recordView(for: eventID)
+            viewModel.trackViewIfNeeded(for: event)
             RecentViewRecorder.recordEvent(event)
         }
         .onChange(of: authState.user?.id) { _, _ in
@@ -278,6 +279,7 @@ struct EventDetailView: View {
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
             recordedViewKeys.insert(eventViewTaskID)
             viewModel.recordView(for: eventID)
+            viewModel.trackViewIfNeeded(for: event)
             RecentViewRecorder.recordEvent(event)
         }
         .onDisappear {

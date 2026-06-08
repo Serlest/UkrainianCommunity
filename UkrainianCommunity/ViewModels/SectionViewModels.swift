@@ -4,6 +4,7 @@ import Foundation
 
 nonisolated private let defaultRefreshStaleInterval: TimeInterval = 300
 nonisolated private let organizationRefreshStaleInterval: TimeInterval = 600
+nonisolated private let publicFeedPageSize = 30
 
 @MainActor
 final class HomeViewModel: ObservableObject {
@@ -49,19 +50,26 @@ final class NewsViewModel: ObservableObject {
     @Published var posts: [NewsPost]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var isLoadingNextPage = false
+    @Published private(set) var hasMorePages = false
     @Published private(set) var contentVersion = 0
     @Published private(set) var pendingNewsLikeIDs = Set<String>()
     @Published private(set) var pendingNewsBookmarkIDs = Set<String>()
     @Published private(set) var pendingNewsViewIDs = Set<String>()
     @Published private(set) var pendingNewsCommentIDs = Set<String>()
     private let repository: NewsRepository
+    private let analyticsService: AnalyticsTracking
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
+    private var nextPageTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
+    private var nextPageCursor: NewsPageCursor?
+    private var trackedNewsViewIDs = Set<String>()
 
-    init(repository: NewsRepository) {
+    init(repository: NewsRepository, analyticsService: AnalyticsTracking = NoopAnalyticsService()) {
         self.repository = repository
+        self.analyticsService = analyticsService
         posts = []
         isLoading = false
     }
@@ -98,18 +106,24 @@ final class NewsViewModel: ObservableObject {
 
     func resetForAuthChange() {
         loadTask?.cancel()
+        nextPageTask?.cancel()
         loadTask = nil
+        nextPageTask = nil
         posts = []
         isLoading = false
+        isLoadingNextPage = false
+        hasMorePages = false
         error = nil
         contentVersion &+= 1
         pendingNewsLikeIDs = []
         pendingNewsBookmarkIDs = []
         pendingNewsViewIDs = []
         pendingNewsCommentIDs = []
+        trackedNewsViewIDs = []
         listenerBag.removeAll()
         hasLoaded = false
         lastLoadedAt = nil
+        nextPageCursor = nil
     }
 
     var bookmarkedPosts: [NewsPost] {
@@ -120,6 +134,7 @@ final class NewsViewModel: ObservableObject {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         guard !pendingNewsLikeIDs.contains(postID) else { return }
         let shouldLike = posts[index].likeState == .notLiked
+        let post = posts[index]
 
         Task {
             pendingNewsLikeIDs.insert(postID)
@@ -135,6 +150,9 @@ final class NewsViewModel: ObservableObject {
                 posts[index].likeState = shouldLike ? .liked : .notLiked
                 posts[index].likeCount += shouldLike ? 1 : -1
                 contentVersion &+= 1
+                if shouldLike {
+                    analyticsService.track(.newsLike(post: post))
+                }
                 error = nil
             } catch let appError as AppError {
                 error = appError
@@ -165,6 +183,20 @@ final class NewsViewModel: ObservableObject {
         }
     }
 
+    func trackViewIfNeeded(for post: NewsPost, sourceScreen: String = "news_detail") {
+        guard !trackedNewsViewIDs.contains(post.id) else { return }
+        trackedNewsViewIDs.insert(post.id)
+        analyticsService.track(.newsView(
+            contentID: post.id,
+            contentTitle: post.title,
+            category: post.category,
+            federalState: post.federalState,
+            regionScope: post.regionScope,
+            organizationID: post.source.organizationId,
+            sourceScreen: sourceScreen
+        ))
+    }
+
     func toggleBookmark(for postID: String) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         guard !pendingNewsBookmarkIDs.contains(postID) else { return }
@@ -185,6 +217,9 @@ final class NewsViewModel: ObservableObject {
                     try await repository.unbookmarkNews(id: postID)
                 }
                 ActivityLogRecorder.recordNews(post, actionType: shouldBookmark ? .savedNews : .unsavedNews)
+                if shouldBookmark {
+                    analyticsService.track(.newsBookmark(post: post))
+                }
                 error = nil
             } catch let appError as AppError {
                 posts[index].isBookmarked.toggle()
@@ -330,8 +365,33 @@ final class NewsViewModel: ObservableObject {
         contentVersion &+= 1
     }
 
+    func loadNextPageIfNeeded(currentItemID: String? = nil) async {
+        guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
+        if let currentItemID, posts.suffix(5).contains(where: { $0.id == currentItemID }) == false {
+            return
+        }
+
+        if let nextPageTask {
+            await nextPageTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoadNextPage()
+        }
+        nextPageTask = task
+        await task.value
+        nextPageTask = nil
+    }
+
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
+        if force {
+            nextPageTask?.cancel()
+            nextPageTask = nil
+            isLoadingNextPage = false
+        }
 
         if let loadTask {
             await loadTask.value
@@ -352,9 +412,11 @@ final class NewsViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let loadedPosts = try await repository.fetchNews()
+            let page = try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nil)
             guard !Task.isCancelled else { return }
-            posts = loadedPosts
+            posts = page.items
+            nextPageCursor = page.nextCursor
+            hasMorePages = page.hasMore
             contentVersion &+= 1
             error = nil
             hasLoaded = true
@@ -368,6 +430,35 @@ final class NewsViewModel: ObservableObject {
             self.error = .unknown
         }
     }
+
+    private func performLoadNextPage() async {
+        guard let nextPageCursor else { return }
+        isLoadingNextPage = true
+        defer { isLoadingNextPage = false }
+
+        do {
+            let page = try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nextPageCursor)
+            guard !Task.isCancelled else { return }
+            appendUniquePosts(page.items)
+            self.nextPageCursor = page.nextCursor
+            hasMorePages = page.hasMore
+            contentVersion &+= 1
+            error = nil
+            lastLoadedAt = Date()
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
+    }
+
+    private func appendUniquePosts(_ newPosts: [NewsPost]) {
+        let existingIDs = Set(posts.map(\.id))
+        posts.append(contentsOf: newPosts.filter { !existingIDs.contains($0.id) })
+    }
 }
 
 @MainActor
@@ -375,6 +466,8 @@ final class EventsViewModel: ObservableObject {
     @Published var events: [Event]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var isLoadingNextPage = false
+    @Published private(set) var hasMorePages = false
     @Published private(set) var contentVersion = 0
     @Published private(set) var pendingEventLikeIDs = Set<String>()
     @Published private(set) var pendingEventRegistrationIDs = Set<String>()
@@ -382,17 +475,23 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var pendingEventViewIDs = Set<String>()
     @Published private(set) var pendingEventCommentIDs = Set<String>()
     private let repository: EventRepository
+    private let analyticsService: AnalyticsTracking
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
+    private var nextPageTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
+    private var nextPageCursor: EventPageCursor?
+    private var trackedEventViewIDs = Set<String>()
 
     init(
         repository: EventRepository,
         notificationPreferencesRepository: NotificationPreferencesRepository? = nil,
-        localEventReminderService: LocalEventReminderServiceProtocol? = nil
+        localEventReminderService: LocalEventReminderServiceProtocol? = nil,
+        analyticsService: AnalyticsTracking = NoopAnalyticsService()
     ) {
         self.repository = repository
+        self.analyticsService = analyticsService
         events = []
         isLoading = false
     }
@@ -429,9 +528,13 @@ final class EventsViewModel: ObservableObject {
 
     func resetForAuthChange() {
         loadTask?.cancel()
+        nextPageTask?.cancel()
         loadTask = nil
+        nextPageTask = nil
         events = []
         isLoading = false
+        isLoadingNextPage = false
+        hasMorePages = false
         error = nil
         contentVersion &+= 1
         pendingEventLikeIDs = []
@@ -439,9 +542,11 @@ final class EventsViewModel: ObservableObject {
         pendingEventBookmarkIDs = []
         pendingEventViewIDs = []
         pendingEventCommentIDs = []
+        trackedEventViewIDs = []
         listenerBag.removeAll()
         hasLoaded = false
         lastLoadedAt = nil
+        nextPageCursor = nil
     }
 
     var bookmarkedEvents: [Event] {
@@ -541,6 +646,7 @@ final class EventsViewModel: ObservableObject {
                 )
                 contentVersion &+= 1
                 ActivityLogRecorder.recordEvent(event, actionType: shouldRegister ? .registeredForEvent : .canceledEventRegistration)
+                analyticsService.track(shouldRegister ? .eventRegister(event: event) : .eventCancelRegistration(event: event))
                 error = nil
             } catch let appError as AppError {
                 error = appError
@@ -569,6 +675,9 @@ final class EventsViewModel: ObservableObject {
                     try await repository.unbookmarkEvent(id: eventID)
                 }
                 ActivityLogRecorder.recordEvent(event, actionType: shouldBookmark ? .savedEvent : .unsavedEvent)
+                if shouldBookmark {
+                    analyticsService.track(.eventBookmark(event: event))
+                }
                 error = nil
             } catch let appError as AppError {
                 events[index].isBookmarked.toggle()
@@ -601,6 +710,20 @@ final class EventsViewModel: ObservableObject {
                 self.error = .unknown
             }
         }
+    }
+
+    func trackViewIfNeeded(for event: Event, sourceScreen: String = "event_detail") {
+        guard !trackedEventViewIDs.contains(event.id) else { return }
+        trackedEventViewIDs.insert(event.id)
+        analyticsService.track(.eventView(
+            contentID: event.id,
+            contentTitle: event.title,
+            category: event.category,
+            federalState: event.federalState,
+            regionScope: event.regionScope,
+            organizationID: event.source.organizationId,
+            sourceScreen: sourceScreen
+        ))
     }
 
     func loadComments(for eventID: String, forceRefresh: Bool = false) async {
@@ -746,6 +869,11 @@ final class EventsViewModel: ObservableObject {
 
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
+        if force {
+            nextPageTask?.cancel()
+            nextPageTask = nil
+            isLoadingNextPage = false
+        }
 
         if let loadTask {
             await loadTask.value
@@ -761,14 +889,36 @@ final class EventsViewModel: ObservableObject {
         self.loadTask = nil
     }
 
+    func loadNextPageIfNeeded(currentItemID: String? = nil) async {
+        guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
+        if let currentItemID, events.suffix(5).contains(where: { $0.id == currentItemID }) == false {
+            return
+        }
+
+        if let nextPageTask {
+            await nextPageTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoadNextPage()
+        }
+        nextPageTask = task
+        await task.value
+        nextPageTask = nil
+    }
+
     private func performLoad() async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            let loadedEvents = try await repository.fetchEvents()
+            let page = try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nil)
             guard !Task.isCancelled else { return }
-            events = loadedEvents
+            events = page.items
+            nextPageCursor = page.nextCursor
+            hasMorePages = page.hasMore
             contentVersion &+= 1
             error = nil
             hasLoaded = true
@@ -781,6 +931,35 @@ final class EventsViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             self.error = .unknown
         }
+    }
+
+    private func performLoadNextPage() async {
+        guard let nextPageCursor else { return }
+        isLoadingNextPage = true
+        defer { isLoadingNextPage = false }
+
+        do {
+            let page = try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nextPageCursor)
+            guard !Task.isCancelled else { return }
+            appendUniqueEvents(page.items)
+            self.nextPageCursor = page.nextCursor
+            hasMorePages = page.hasMore
+            contentVersion &+= 1
+            error = nil
+            lastLoadedAt = Date()
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
+    }
+
+    private func appendUniqueEvents(_ newEvents: [Event]) {
+        let existingIDs = Set(events.map(\.id))
+        events.append(contentsOf: newEvents.filter { !existingIDs.contains($0.id) })
     }
 }
 
@@ -930,6 +1109,8 @@ final class OrganizationsViewModel: ObservableObject {
     @Published var organizations: [Organization]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var isLoadingNextPage = false
+    @Published private(set) var hasMorePages = false
     @Published private(set) var contentVersion = 0
     @Published private(set) var pendingOrganizationLikeIDs = Set<String>()
     @Published private(set) var pendingOrganizationSubscriptionIDs = Set<String>()
@@ -943,17 +1124,23 @@ final class OrganizationsViewModel: ObservableObject {
     @Published private(set) var validationErrorMessage: String?
     private let repository: OrganizationRepository
     private let notificationInboxRepository: NotificationInboxRepository?
+    private let analyticsService: AnalyticsTracking
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
+    private var nextPageTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
+    private var nextPageCursor: OrganizationPageCursor?
+    private var trackedOrganizationViewIDs = Set<String>()
 
     init(
         repository: OrganizationRepository,
-        notificationInboxRepository: NotificationInboxRepository? = nil
+        notificationInboxRepository: NotificationInboxRepository? = nil,
+        analyticsService: AnalyticsTracking = NoopAnalyticsService()
     ) {
         self.repository = repository
         self.notificationInboxRepository = notificationInboxRepository
+        self.analyticsService = analyticsService
         organizations = []
         isLoading = false
     }
@@ -990,15 +1177,20 @@ final class OrganizationsViewModel: ObservableObject {
 
     func resetForAuthChange() {
         loadTask?.cancel()
+        nextPageTask?.cancel()
         loadTask = nil
+        nextPageTask = nil
         organizations = []
         isLoading = false
+        isLoadingNextPage = false
+        hasMorePages = false
         error = nil
         contentVersion &+= 1
         pendingOrganizationLikeIDs = []
         pendingOrganizationSubscriptionIDs = []
         pendingOrganizationBookmarkIDs = []
         pendingOrganizationDeleteIDs = []
+        trackedOrganizationViewIDs = []
         organizationRequests = []
         organizationCommentsByID = [:]
         pendingOrganizationCommentIDs = []
@@ -1008,6 +1200,7 @@ final class OrganizationsViewModel: ObservableObject {
         validationErrorMessage = nil
         hasLoaded = false
         lastLoadedAt = nil
+        nextPageCursor = nil
     }
 
     func toggleLike(for organizationID: String) {
@@ -1071,6 +1264,7 @@ final class OrganizationsViewModel: ObservableObject {
                 }
 
                 ActivityLogRecorder.recordOrganization(organization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
+                analyticsService.track(shouldSubscribe ? .organizationFollow(organization: organization) : .organizationUnfollow(organization: organization))
                 error = nil
             } catch let appError as AppError {
                 organizations[index].isSubscribed = previousSubscriptionState
@@ -1108,6 +1302,9 @@ final class OrganizationsViewModel: ObservableObject {
                 }
 
                 ActivityLogRecorder.recordOrganization(organization, actionType: shouldBookmark ? .savedOrganization : .unsavedOrganization)
+                if shouldBookmark {
+                    analyticsService.track(.organizationBookmark(organization: organization))
+                }
                 error = nil
             } catch let appError as AppError {
                 organizations[index].isBookmarked = previousBookmarkState
@@ -1123,6 +1320,18 @@ final class OrganizationsViewModel: ObservableObject {
 
     func organization(for organizationID: String) -> Organization? {
         return organizations.first(where: { $0.id == organizationID })
+    }
+
+    func trackViewIfNeeded(for organization: Organization, sourceScreen: String = "organization_detail") {
+        guard !trackedOrganizationViewIDs.contains(organization.id) else { return }
+        trackedOrganizationViewIDs.insert(organization.id)
+        analyticsService.track(.organizationView(
+            organizationID: organization.id,
+            organizationName: organization.name,
+            federalState: organization.federalState,
+            regionScope: organization.regionScope,
+            sourceScreen: sourceScreen
+        ))
     }
 
     func resolveOrganization(id organizationID: String) async -> Organization? {
@@ -1342,6 +1551,11 @@ final class OrganizationsViewModel: ObservableObject {
 
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
+        if force {
+            nextPageTask?.cancel()
+            nextPageTask = nil
+            isLoadingNextPage = false
+        }
 
         if let loadTask {
             await loadTask.value
@@ -1357,14 +1571,36 @@ final class OrganizationsViewModel: ObservableObject {
         self.loadTask = nil
     }
 
+    func loadNextPageIfNeeded(currentItemID: String? = nil) async {
+        guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
+        if let currentItemID, organizations.suffix(5).contains(where: { $0.id == currentItemID }) == false {
+            return
+        }
+
+        if let nextPageTask {
+            await nextPageTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoadNextPage()
+        }
+        nextPageTask = task
+        await task.value
+        nextPageTask = nil
+    }
+
     private func performLoad() async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            let loadedOrganizations = try await repository.fetchOrganizations()
+            let page = try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nil)
             guard !Task.isCancelled else { return }
-            organizations = loadedOrganizations
+            organizations = page.items
+            nextPageCursor = page.nextCursor
+            hasMorePages = page.hasMore
             contentVersion &+= 1
             error = nil
             hasLoaded = true
@@ -1377,6 +1613,35 @@ final class OrganizationsViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             self.error = .unknown
         }
+    }
+
+    private func performLoadNextPage() async {
+        guard let nextPageCursor else { return }
+        isLoadingNextPage = true
+        defer { isLoadingNextPage = false }
+
+        do {
+            let page = try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nextPageCursor)
+            guard !Task.isCancelled else { return }
+            appendUniqueOrganizations(page.items)
+            self.nextPageCursor = page.nextCursor
+            hasMorePages = page.hasMore
+            contentVersion &+= 1
+            error = nil
+            lastLoadedAt = Date()
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled else { return }
+            self.error = .unknown
+        }
+    }
+
+    private func appendUniqueOrganizations(_ newOrganizations: [Organization]) {
+        let existingIDs = Set(organizations.map(\.id))
+        organizations.append(contentsOf: newOrganizations.filter { !existingIDs.contains($0.id) })
     }
 
     private func saveOrganization(_ organization: Organization, imageData: Data?, isEditing: Bool) async throws {
@@ -1935,13 +2200,15 @@ final class ProfileViewModel: ObservableObject {
                 }
 
                 switch stage {
+                case .ownershipCheck:
+                    return AppStrings.Profile.deleteAccountPermissionFailed
                 case .privateDataCleanup,
                         .interactionCleanup,
                         .registrationCleanup,
                         .avatarCleanup,
                         .publicProfileDelete:
                     return AppStrings.Profile.deleteAccountCleanupFailed
-                case .userDocumentDelete, .authUserDelete:
+                case .userDocumentDeactivate, .authUserDelete:
                     return AppStrings.Profile.deleteAccountFailed
                 }
             }

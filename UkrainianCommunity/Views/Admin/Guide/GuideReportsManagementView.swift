@@ -10,7 +10,8 @@ struct GuideReportsManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: screenTitle,
-            subtitle: screenSubtitle
+            subtitle: screenSubtitle,
+            tabBarHidden: false
         ) {
             content
         }

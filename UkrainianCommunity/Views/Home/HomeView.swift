@@ -16,7 +16,6 @@ struct HomeView: View {
     @ObservedObject var newsViewModel: NewsViewModel
     @ObservedObject var eventsViewModel: EventsViewModel
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
-    @ObservedObject var guideViewModel: LegacyGuideListViewModel
     let newsRepository: NewsRepository
     @Binding var navigationPath: [HomeFeedDestinationReference]
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
@@ -37,7 +36,6 @@ struct HomeView: View {
         newsViewModel: NewsViewModel,
         eventsViewModel: EventsViewModel,
         organizationsViewModel: OrganizationsViewModel,
-        guideViewModel: LegacyGuideListViewModel,
         newsRepository: NewsRepository,
         featuredBannerRepository: FeaturedBannerRepository,
         navigationPath: Binding<[HomeFeedDestinationReference]>,
@@ -48,7 +46,6 @@ struct HomeView: View {
         self.newsViewModel = newsViewModel
         self.eventsViewModel = eventsViewModel
         self.organizationsViewModel = organizationsViewModel
-        self.guideViewModel = guideViewModel
         self.newsRepository = newsRepository
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
@@ -201,7 +198,11 @@ struct HomeView: View {
             )
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
-            DashboardFeedContainer(items: filteredFeedItems, spacing: AppTheme.feedRowSpacing) { item in
+            DashboardFeedContainer(
+                items: filteredFeedItems,
+                spacing: AppTheme.feedRowSpacing,
+                onItemAppear: loadNextPageIfNeeded(for:)
+            ) { item in
                 NavigationLink(value: item.destination) {
                     HomeFeedCard(item: item)
                 }
@@ -255,8 +256,6 @@ struct HomeView: View {
             return bookmarkedEventIDs.contains(id)
         case let .organization(id):
             return bookmarkedOrganizationIDs.contains(id)
-        case .guide:
-            return false
         }
     }
 
@@ -384,8 +383,7 @@ struct HomeView: View {
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-        async let guideLoad: Void = guideViewModel.loadIfNeeded()
-        _ = await (featuredBannerLoad, newsLoad, eventsLoad, organizationsLoad, guideLoad)
+        _ = await (featuredBannerLoad, newsLoad, eventsLoad, organizationsLoad)
         synchronizeHomeFeed()
     }
 
@@ -395,8 +393,7 @@ struct HomeView: View {
         async let newsRefresh: Void = newsViewModel.refreshIfStale()
         async let eventsRefresh: Void = eventsViewModel.refreshIfStale()
         async let organizationsRefresh: Void = organizationsViewModel.refreshIfStale()
-        async let guideRefresh: Void = guideViewModel.refreshIfStale()
-        _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
         synchronizeHomeFeed()
     }
 
@@ -406,9 +403,22 @@ struct HomeView: View {
         async let newsRefresh: Void = newsViewModel.refresh()
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
-        async let guideRefresh: Void = guideViewModel.refresh()
-        _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
         synchronizeHomeFeed()
+    }
+
+    private func loadNextPageIfNeeded(for item: HomeFeedItem) {
+        Task {
+            switch item.destination {
+            case .news(let id):
+                await newsViewModel.loadNextPageIfNeeded(currentItemID: id)
+            case .event(let id):
+                await eventsViewModel.loadNextPageIfNeeded(currentItemID: id)
+            case .organization(let id):
+                await organizationsViewModel.loadNextPageIfNeeded(currentItemID: id)
+            }
+            synchronizeHomeFeed()
+        }
     }
 
     private func scheduleContentRefresh(for reason: HomeContentRefreshReason) {
@@ -517,9 +527,6 @@ struct HomeView: View {
                 eventsViewModel: eventsViewModel,
                 onNavigateBack: popHomeDetail
             )
-        case .guide:
-            // TODO: Route Home guide feed items to GuideMaterialDetailView if guide cards return to the feed.
-            EmptyView()
         }
     }
 
@@ -1025,7 +1032,6 @@ private struct HomeEventDateBadge: View {
             newsViewModel: NewsViewModel(repository: MockNewsRepository()),
             eventsViewModel: EventsViewModel(repository: MockEventRepository()),
             organizationsViewModel: OrganizationsViewModel(repository: MockOrganizationRepository()),
-            guideViewModel: LegacyGuideListViewModel(repository: LegacyMockGuideRepository()),
             newsRepository: MockNewsRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
             navigationPath: .constant([])

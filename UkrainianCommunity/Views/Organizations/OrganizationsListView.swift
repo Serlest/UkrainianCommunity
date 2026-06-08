@@ -376,7 +376,15 @@ struct OrganizationsListView: View {
 
                 DashboardSectionHeader(title: AppStrings.Organizations.popularTitle)
 
-                DashboardFeedContainer(items: filteredOrganizations, spacing: AppTheme.feedRowSpacing) { organization in
+                DashboardFeedContainer(
+                    items: filteredOrganizations,
+                    spacing: AppTheme.feedRowSpacing,
+                    onItemAppear: { organization in
+                        Task {
+                            await viewModel.loadNextPageIfNeeded(currentItemID: organization.id)
+                        }
+                    }
+                ) { organization in
                     organizationLink(for: organization)
                 }
             }

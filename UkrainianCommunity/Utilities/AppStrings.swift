@@ -1139,6 +1139,104 @@ enum AppStrings {
         }
     }
 
+    enum OwnerAnalytics {
+        static var title: String { text("owner_analytics.title", "Analytics") }
+        static var subtitle: String { text("owner_analytics.subtitle", "Views, popular content and regions") }
+        static var periodPicker: String { text("owner_analytics.period_picker", "Period") }
+        static var periodToday: String { text("owner_analytics.period.today", "Today") }
+        static var periodSevenDays: String { text("owner_analytics.period.seven_days", "7 days") }
+        static var periodThirtyDays: String { text("owner_analytics.period.thirty_days", "30 days") }
+        static var searchPlaceholder: String { text("owner_analytics.search.placeholder", "Search analytics") }
+        static var searchEmptyTitle: String { text("owner_analytics.search.empty.title", "No matching analytics") }
+        static var searchEmptyMessage: String { text("owner_analytics.search.empty.message", "Try another title, organization, content type, or region.") }
+        static var showMore: String { text("owner_analytics.show_more", "Show more") }
+        static var showLess: String { text("owner_analytics.show_less", "Show less") }
+        static var overviewTitle: String { text("owner_analytics.overview.title", "Overview") }
+        static var activityOverviewTitle: String { text("owner_analytics.activity_overview.title", "Activity overview") }
+        static var todaySummarySubtitle: String { text("owner_analytics.overview.today_subtitle", "Metrics for today") }
+        static var sevenDaysSummarySubtitle: String { text("owner_analytics.overview.seven_days_subtitle", "Metrics for the last 7 days") }
+        static var thirtyDaysSummarySubtitle: String { text("owner_analytics.overview.thirty_days_subtitle", "Metrics for the last 30 days") }
+        static var totalViews: String { text("owner_analytics.metric.total_views", "Total views") }
+        static var newsViews: String { text("owner_analytics.metric.news_views", "News views") }
+        static var eventViews: String { text("owner_analytics.metric.event_views", "Event views") }
+        static var organizationViews: String { text("owner_analytics.metric.organization_views", "Organization views") }
+        static var guideViews: String { text("owner_analytics.metric.guide_views", "Guide views") }
+        static var activeRegions: String { text("owner_analytics.metric.active_regions", "Regions") }
+        static var actionsOverviewTitle: String { text("owner_analytics.actions.title", "Actions") }
+        static var actionsOverviewSubtitle: String { text("owner_analytics.actions.subtitle", "Likes, saves, registrations, and follows") }
+        static var actionsOverviewEmpty: String { text("owner_analytics.actions.empty", "Action analytics will appear after users like, save, register, or follow content.") }
+        static var totalLikes: String { text("owner_analytics.actions.total_likes", "Likes") }
+        static var totalBookmarks: String { text("owner_analytics.actions.total_bookmarks", "Saves") }
+        static var eventRegistrations: String { text("owner_analytics.actions.event_registrations", "Event registrations") }
+        static var cancelledEventRegistrations: String { text("owner_analytics.actions.cancelled_event_registrations", "Cancelled registrations") }
+        static var organizationFollows: String { text("owner_analytics.actions.organization_follows", "Organization follows") }
+        static var organizationUnfollows: String { text("owner_analytics.actions.organization_unfollows", "Organization unfollows") }
+        static var userAnalyticsTitle: String { text("owner_analytics.user_analytics.title", "User analytics") }
+        static var userAnalyticsSubtitle: String { text("owner_analytics.user_analytics.subtitle", "Account growth, status, and activity") }
+        static var totalUsers: String { text("owner_analytics.user.total_users", "Total users") }
+        static var newRegistrations: String { text("owner_analytics.user.new_registrations", "New registrations") }
+        static var deletedAccounts: String { text("owner_analytics.user.deleted_accounts", "Deleted accounts") }
+        static var blockedUsers: String { text("owner_analytics.user.blocked_users", "Blocked users") }
+        static var deactivatedUsers: String { text("owner_analytics.user.deactivated_users", "Deactivated users") }
+        static var activeUsersToday: String { text("owner_analytics.user.active_today", "Active today") }
+        static var activeUsersSevenDays: String { text("owner_analytics.user.active_seven_days", "Active 7 days") }
+        static var activeUsersThirtyDays: String { text("owner_analytics.user.active_thirty_days", "Active 30 days") }
+        static var usersByFederalState: String { text("owner_analytics.user.by_federal_state", "Users by federal state") }
+        static var userFederalStatesEmpty: String { text("owner_analytics.user.federal_states_empty", "Federal-state user counts will appear after user profiles include a selected state.") }
+        static var users: String { text("owner_analytics.user.users", "Users") }
+        static var topContentTitle: String { text("owner_analytics.top_content.title", "Top content") }
+        static var topContentSubtitle: String { text("owner_analytics.top_content.subtitle", "Top items for the selected period") }
+        static var topContentEmptyTitle: String { text("owner_analytics.top_content.empty.title", "Top content is not ready yet") }
+        static var topContentEmptyMessage: String { text("owner_analytics.top_content.empty.message", "There are no aggregated views for this period yet.") }
+        static var popularNewsTitle: String { text("owner_analytics.popular.news", "Popular News") }
+        static var popularEventsTitle: String { text("owner_analytics.popular.events", "Popular Events") }
+        static var popularOrganizationsTitle: String { text("owner_analytics.popular.organizations", "Popular Organizations") }
+        static var popularGuideMaterialsTitle: String { text("owner_analytics.popular.guide_articles", "Popular Guide Materials") }
+        static var detailAnalyticsTitle: String { text("owner_analytics.detail.title", "Detail analytics") }
+        static var newsDetailSubtitle: String { text("owner_analytics.detail.news.subtitle", "News performance for the selected period") }
+        static var eventDetailSubtitle: String { text("owner_analytics.detail.event.subtitle", "Event performance for the selected period") }
+        static var organizationDetailSubtitle: String { text("owner_analytics.detail.organization.subtitle", "Organization performance for the selected period") }
+        static var guideDetailSubtitle: String { text("owner_analytics.detail.guide.subtitle", "Guide material performance for the selected period") }
+        static var conversionRate: String { text("owner_analytics.detail.conversion_rate", "Conversion rate") }
+        static var profileViews: String { text("owner_analytics.detail.profile_views", "Profile views") }
+        static var topNews: String { text("owner_analytics.detail.top_news", "Top news") }
+        static var topEvents: String { text("owner_analytics.detail.top_events", "Top events") }
+        static var noDetailAnalyticsTitle: String { text("owner_analytics.detail.empty.title", "No detail analytics yet") }
+        static var noDetailAnalyticsMessage: String { text("owner_analytics.detail.empty.message", "Detail analytics will appear after this item receives views or actions for the selected period.") }
+        static var likes: String { text("owner_analytics.detail.likes", "Likes") }
+        static var saves: String { text("owner_analytics.detail.saves", "Saves") }
+        static var registrations: String { text("owner_analytics.detail.registrations", "Registrations") }
+        static var cancelledRegistrations: String { text("owner_analytics.detail.cancelled_registrations", "Cancelled registrations") }
+        static var relatedOrganization: String { text("owner_analytics.detail.related_organization", "Related organization") }
+        static var titleUnavailable: String { text("owner_analytics.title_unavailable", "Title unavailable") }
+        static var views: String { text("owner_analytics.views", "Views") }
+        static var region: String { text("owner_analytics.region.label", "Region") }
+        static var organization: String { text("owner_analytics.organization.label", "Organization") }
+        static var regionActivityTitle: String { text("owner_analytics.region_activity.title", "Region activity") }
+        static var regionActivitySubtitle: String { text("owner_analytics.region_activity.subtitle", "Views grouped by Austrian region") }
+        static var regionActivityEmptyTitle: String { text("owner_analytics.region_activity.empty.title", "Region activity is empty") }
+        static var regionActivityEmptyMessage: String { text("owner_analytics.region_activity.empty.message", "Regions will appear after views include safe regional parameters.") }
+        static var emptyTitle: String { text("owner_analytics.empty.title", "No analytics data yet") }
+        static var emptyTodayMessage: String { text("owner_analytics.empty.today_message", "Analytics will appear after users start viewing content.") }
+        static var emptyRollupMessage: String { text("owner_analytics.empty.rollup_message", "This period will appear after scheduled analytics rollups are available. Today's data may already be available separately.") }
+        static var loading: String { text("owner_analytics.loading", "Loading analytics...") }
+        static var loadFailedTitle: String { text("owner_analytics.error.load_failed.title", "Failed to load analytics") }
+        static var loadFailedGeneric: String { text("owner_analytics.error.load_failed.generic", "Failed to load analytics. Please try again.") }
+        static var loadFailedPermission: String { text("owner_analytics.error.load_failed.permission", "Only the platform owner can view analytics.") }
+        static var loadFailedNetwork: String { text("owner_analytics.error.load_failed.network", "Analytics is temporarily unavailable. Check your connection and try again.") }
+        static var loadFailedNotFound: String { text("owner_analytics.error.load_failed.not_found", "Analytics data has not been created yet.") }
+        static var loadFailedValidation: String { text("owner_analytics.error.load_failed.validation", "Analytics data has an unexpected format.") }
+        static var retry: String { text("owner_analytics.retry", "Retry") }
+        static var contentItemsSuffix: String { text("owner_analytics.region_activity.content_items_suffix", "content items") }
+        static var contentTypeNews: String { text("owner_analytics.content_type.news", "News") }
+        static var contentTypeEvent: String { text("owner_analytics.content_type.event", "Event") }
+        static var contentTypeOrganization: String { text("owner_analytics.content_type.organization", "Organization") }
+        static var contentTypeGuideMaterial: String { text("owner_analytics.content_type.guide_article", "Guide") }
+        static var regionAustria: String { text("owner_analytics.region.austria", "Austria") }
+        static var regionFederalState: String { text("owner_analytics.region.federal_state", "Federal state") }
+        static var regionCity: String { text("owner_analytics.region.city", "City") }
+    }
+
     enum Profile {
         static var title: String { text("profile.title", "Profile") }
         static var guestOverline: String { text("profile.guest.overline", "Guest Access") }
@@ -1403,7 +1501,7 @@ enum AppStrings {
         static var ownerOpenModeration: String { text("profile.owner.quick.open_moderation", "Відкрити модерацію") }
         static var ownerOpenModerationSubtitle: String { text("profile.owner.quick.open_moderation.subtitle", "Матеріали, що очікують перевірки.") }
         static var ownerSendPush: String { text("profile.owner.quick.send_push", "Надіслати push") }
-        static var ownerAddGuideArticle: String { text("profile.owner.quick.add_guide_article", "Додати статтю в довідник") }
+        static var ownerAddGuideMaterial: String { text("profile.owner.quick.add_guide_article", "Додати матеріал у довідник") }
         static var ownerPlatformManagement: String { text("profile.owner.platform_management", "Керування платформою") }
         static var ownerPlatformManagementSubtitle: String { text("profile.owner.platform_management.subtitle", "Основні модулі керування контентом і доступом.") }
         static var adminPlatformManagement: String { text("profile.admin.platform_management", "Операційне керування") }

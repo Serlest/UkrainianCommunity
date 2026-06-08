@@ -5,6 +5,7 @@ struct NewsNavigationRoute: Hashable {
     let postID: String
 }
 
+/// Internal management list for app news. Public news discovery is surfaced through Home.
 struct NewsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
@@ -199,6 +200,11 @@ struct NewsListView: View {
             .modifier(NewsDeleteSwipeActions(isEnabled: canDeleteNews) {
                 pendingDeletePostID = post.id
             })
+            .onAppear {
+                Task {
+                    await viewModel.loadNextPageIfNeeded(currentItemID: post.id)
+                }
+            }
         }
         .padding(AppTheme.homeFeedPlanePadding)
     }

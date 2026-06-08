@@ -15,7 +15,8 @@ struct GuideManagementView: View {
                 uk: "Робоча поверхня для керування структурою довідника.",
                 de: "Arbeitsbereich für die Verwaltung der Leitfadenstruktur.",
                 en: "Workspace for the guide management flow."
-            )
+            ),
+            tabBarHidden: false
         ) {
             LazyVGrid(columns: columns, spacing: AppTheme.eventsMetadataSpacing) {
                 ForEach(viewModel.sections) { section in

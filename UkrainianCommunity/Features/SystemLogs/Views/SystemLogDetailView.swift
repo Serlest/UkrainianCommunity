@@ -22,8 +22,7 @@ struct SystemLogDetailView: View {
     var body: some View {
         PushedScreenShell(
             title: AppStrings.SystemLogs.detailTitle,
-            subtitle: SystemLogDisplayFormatting.dateTime(log.createdAt),
-            tabBarHidden: true
+            subtitle: SystemLogDisplayFormatting.dateTime(log.createdAt)
         ) {
             DetailHeaderCard(title: SystemLogDisplayFormatting.summaryTitle(log.summary), subtitle: log.technicalMessage) {
                 HStack(spacing: 8) {

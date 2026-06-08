@@ -9,8 +9,7 @@ struct MyFeedbackView: View {
     var body: some View {
         PushedScreenShell(
             title: AppStrings.Feedback.myFeedbackTitle,
-            subtitle: AppStrings.Feedback.myFeedbackSubtitle,
-            tabBarHidden: true
+            subtitle: AppStrings.Feedback.myFeedbackSubtitle
         ) {
             feedbackContent
         }
@@ -205,7 +204,7 @@ struct FeedbackInboxView: View {
         AdminScreenShell(
             title: AppStrings.Feedback.inboxTitle,
             subtitle: AppStrings.Feedback.inboxSubtitle,
-            tabBarHidden: true
+            tabBarHidden: false
         ) {
             Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
                 ForEach(FeedbackInboxFilter.allCases) { filter in

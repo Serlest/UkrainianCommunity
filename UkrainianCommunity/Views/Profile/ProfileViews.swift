@@ -15,6 +15,7 @@ enum ProfileNavigationRoute: Hashable {
     case userManagement
     case featuredBannerManagement
     case legalDocumentManagement
+    case ownerAnalytics
     case donationSettings
     case feedbackInbox
     case systemLogs(SystemLogsAccessMode)
@@ -23,18 +24,26 @@ enum ProfileNavigationRoute: Hashable {
     case legal(LegalDocumentKind)
 }
 
+enum ProfileBrowseDestination {
+    case home
+    case events
+    case organizations
+    case guide
+}
+
 struct ProfileView: View {
     @ObservedObject var viewModel: ProfileViewModel
     private let feedbackRepository: FeedbackRepository
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
-    private let guideRepository: LegacyGuideRepository
     private let featuredBannerRepository: FeaturedBannerRepository
     private let legalDocumentRepository: LegalDocumentRepository
+    private let ownerAnalyticsRepository: OwnerAnalyticsRepository
     private let donationConfigRepository: DonationConfigRepository
     private let notificationInboxRepository: NotificationInboxRepository
     private let onNotificationTap: (AppNotification) -> Void
+    private let onBrowseDestinationSelected: (ProfileBrowseDestination) -> Void
     @EnvironmentObject var authState: AuthState
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
@@ -85,14 +94,15 @@ struct ProfileView: View {
         eventsViewModel: EventsViewModel? = nil,
         organizationsViewModel: OrganizationsViewModel? = nil,
         guideReaderViewModel: GuideReaderViewModel? = nil,
-        guideRepository: LegacyGuideRepository = LegacyFirestoreGuideRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
+        ownerAnalyticsRepository: OwnerAnalyticsRepository = FirestoreOwnerAnalyticsRepository(),
         donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         notificationInboxViewModel: NotificationInboxViewModel? = nil,
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
         onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
+        onBrowseDestinationSelected: @escaping (ProfileBrowseDestination) -> Void = { _ in },
         navigationPath: Binding<[ProfileNavigationRoute]> = .constant([]),
         scrollResetToken: Int = 0
     ) {
@@ -108,15 +118,16 @@ struct ProfileView: View {
         )
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
         self.guideReaderViewModel = guideReaderViewModel ?? GuideReaderViewModel(repository: FirestoreGuideRepository())
-        self.guideRepository = guideRepository
         self.featuredBannerRepository = featuredBannerRepository
         self.legalDocumentRepository = legalDocumentRepository
+        self.ownerAnalyticsRepository = ownerAnalyticsRepository
         self.donationConfigRepository = donationConfigRepository
         self.notificationInboxRepository = notificationInboxRepository
         self.notificationInboxViewModel = notificationInboxViewModel ?? NotificationInboxViewModel(
             repository: notificationInboxRepository
         )
         self.onNotificationTap = onNotificationTap
+        self.onBrowseDestinationSelected = onBrowseDestinationSelected
         self.scrollResetToken = scrollResetToken
         _navigationPath = navigationPath
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(
@@ -396,6 +407,7 @@ struct ProfileView: View {
                 }
                 await ownerOrganizationsViewModel.loadIfNeeded()
                 await ownerOrganizationsViewModel.refreshIfStale()
+                await guideReaderViewModel.loadSavedMaterialsIfNeeded()
                 await loadOwnerVisibilityIfAllowed()
             } else {
                 registrationsViewModel.resetForGuest()
@@ -414,6 +426,7 @@ struct ProfileView: View {
                     await viewModel.refreshNotificationPreferences(userID: userID)
                 }
                 await ownerOrganizationsViewModel.refresh()
+                await guideReaderViewModel.refreshSavedMaterials()
                 await refreshOwnerVisibilityIfAllowed()
             }
         }
@@ -426,6 +439,7 @@ struct ProfileView: View {
                         await viewModel.refreshNotificationPreferences(userID: userID)
                     }
                     await ownerOrganizationsViewModel.refresh()
+                    await guideReaderViewModel.refreshSavedMaterials()
                     await refreshOwnerVisibilityIfAllowed()
                 } else {
                     registrationsViewModel.resetForGuest()
@@ -614,6 +628,10 @@ struct ProfileView: View {
             )
         case .legalDocumentManagement:
             LegalDocumentManagementView(repository: legalDocumentRepository)
+        case .ownerAnalytics:
+            if PermissionService.isAppOwner(user: permissionUser) {
+                OwnerAnalyticsView(repository: ownerAnalyticsRepository)
+            }
         case .donationSettings:
             DonationSettingsView(viewModel: donationConfigViewModel)
         case .feedbackInbox:
@@ -886,10 +904,10 @@ struct ProfileView: View {
             subtitle: AppStrings.Profile.guestAvailableSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileModuleRow(title: AppStrings.Profile.guestBrowseNews, subtitle: AppStrings.Profile.previewNewsSubtitle, systemImage: "newspaper", status: .available, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.guestBrowseEvents, subtitle: AppStrings.Profile.previewEventsSubtitle, systemImage: "calendar", status: .available, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.guestBrowseOrganizations, subtitle: AppStrings.Profile.previewOrganizationsSubtitle, systemImage: "building.2", status: .available, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Guide.title, subtitle: AppStrings.Profile.previewGuideSubtitle, systemImage: "book.closed", status: .available, accessory: .none)
+                guestBrowseButton(title: AppStrings.Profile.guestBrowseNews, subtitle: AppStrings.Profile.previewNewsSubtitle, systemImage: "newspaper", destination: .home)
+                guestBrowseButton(title: AppStrings.Profile.guestBrowseEvents, subtitle: AppStrings.Profile.previewEventsSubtitle, systemImage: "calendar", destination: .events)
+                guestBrowseButton(title: AppStrings.Profile.guestBrowseOrganizations, subtitle: AppStrings.Profile.previewOrganizationsSubtitle, systemImage: "building.2", destination: .organizations)
+                guestBrowseButton(title: AppStrings.Guide.title, subtitle: AppStrings.Profile.previewGuideSubtitle, systemImage: "book.closed", destination: .guide)
             }
         }
 
@@ -1024,10 +1042,23 @@ struct ProfileView: View {
     private func profileStats(for user: AppUser) -> [ProfileStatItem] {
         [
             ProfileStatItem(title: AppStrings.Profile.statRegistrations, value: registrationsViewModel.registrationsCountText, systemImage: "calendar.badge.clock"),
-            ProfileStatItem(title: AppStrings.Profile.statLiked, value: AppStrings.Profile.notAvailableValue, systemImage: "heart"),
+            ProfileStatItem(title: AppStrings.Profile.statLiked, value: "\(likedContentCount)", systemImage: "heart"),
             ProfileStatItem(title: AppStrings.Profile.statOrganizations, value: "\(profileOrganizationCount(for: user))", systemImage: "building.2"),
-            ProfileStatItem(title: AppStrings.Profile.statSaved, value: AppStrings.Profile.notAvailableValue, systemImage: "bookmark")
+            ProfileStatItem(title: AppStrings.Profile.statSaved, value: "\(savedContentCount)", systemImage: "bookmark")
         ]
+    }
+
+    private var likedContentCount: Int {
+        newsViewModel.posts.filter(\.likeState.isLiked).count
+            + eventsViewModel.events.filter(\.likeState.isLiked).count
+            + organizationsViewModel.organizations.filter(\.likeState.isLiked).count
+    }
+
+    private var savedContentCount: Int {
+        newsViewModel.posts.filter(\.isBookmarked).count
+            + eventsViewModel.events.filter(\.isBookmarked).count
+            + organizationsViewModel.organizations.filter(\.isBookmarked).count
+            + guideReaderViewModel.savedMaterialIDs.count
     }
 
     private func profileOrganizationCount(for user: AppUser) -> Int {
@@ -1036,6 +1067,25 @@ struct ProfileView: View {
             user: user
         ).count
         return organizationCount
+    }
+
+    private func guestBrowseButton(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        destination: ProfileBrowseDestination
+    ) -> some View {
+        Button {
+            onBrowseDestinationSelected(destination)
+        } label: {
+            ProfileModuleRow(
+                title: title,
+                subtitle: subtitle,
+                systemImage: systemImage,
+                status: .available
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -1090,6 +1140,16 @@ struct ProfileView: View {
                                 title: AppStrings.Profile.ownerLegalDocuments,
                                 subtitle: AppStrings.Profile.ownerLegalDocumentsSubtitle,
                                 systemImage: "doc.text.magnifyingglass",
+                                status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink(value: ProfileNavigationRoute.ownerAnalytics) {
+                            ProfileModuleRow(
+                                title: AppStrings.OwnerAnalytics.title,
+                                subtitle: AppStrings.OwnerAnalytics.subtitle,
+                                systemImage: "chart.bar.xaxis",
                                 status: .available
                             )
                         }
@@ -1336,13 +1396,15 @@ struct ProfileView: View {
                     .labelsHidden()
                 }
 
-                ProfileModuleRow(
-                    title: AppStrings.Profile.regionSettings,
-                    subtitle: readableFederalState ?? AppStrings.Profile.regionSettingsSubtitle,
-                    systemImage: "mappin.and.ellipse",
-                    status: .available,
-                    accessory: .none
-                )
+                Button(action: beginEditingProfile) {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.regionSettings,
+                        subtitle: readableFederalState ?? AppStrings.Profile.regionSettingsSubtitle,
+                        systemImage: "mappin.and.ellipse",
+                        status: .available
+                    )
+                }
+                .buttonStyle(.plain)
 
                 NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
                     ProfileModuleRow(title: AppStrings.Settings.terms, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
@@ -1703,8 +1765,8 @@ private extension String {
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
             organizationRepository: MockOrganizationRepository(),
-            guideRepository: LegacyMockGuideRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
+            ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
             notificationInboxRepository: MockNotificationInboxRepository(),
             notificationInboxViewModel: NotificationInboxViewModel(repository: MockNotificationInboxRepository())
         )

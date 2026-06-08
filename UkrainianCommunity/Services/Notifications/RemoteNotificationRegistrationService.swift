@@ -9,6 +9,7 @@ private import FirebaseMessaging
 @MainActor
 final class RemoteNotificationRegistrationService: NSObject {
     static let shared = RemoteNotificationRegistrationService()
+    private static let isDebugLoggingEnabled = false
 
     private var repository: NotificationPushTokenRepository = FirestoreNotificationPushTokenRepository()
     private var currentUserID: String?
@@ -206,6 +207,7 @@ final class RemoteNotificationRegistrationService: NSObject {
 
     private func debugLog(_ message: String) {
         #if DEBUG
+        guard Self.isDebugLoggingEnabled else { return }
         print("[Notifications] \(message)")
         #endif
     }

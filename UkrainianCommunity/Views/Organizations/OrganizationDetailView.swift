@@ -110,6 +110,7 @@ final class OrganizationActivityViewModel: ObservableObject {
     private let organizationName: String
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
+    private let activityLimit = 12
     private var hasLoaded = false
     private var loadTask: Task<Void, Never>?
 
@@ -179,8 +180,14 @@ final class OrganizationActivityViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            async let newsLoad = newsRepository.fetchNews()
-            async let eventsLoad = eventRepository.fetchEvents()
+            async let newsLoad = newsRepository.fetchOrganizationNews(
+                organizationID: organizationID,
+                limit: activityLimit
+            )
+            async let eventsLoad = eventRepository.fetchOrganizationEvents(
+                organizationID: organizationID,
+                limit: activityLimit
+            )
 
             let filteredNews = try await newsLoad
                 .filter { belongsToOrganization($0.source, organization: organization) }
@@ -272,6 +279,7 @@ struct OrganizationDetailView: View {
         photoRepository: OrganizationPhotoRepository = FirestoreOrganizationPhotoRepository(),
         newsViewModel: NewsViewModel? = nil,
         eventsViewModel: EventsViewModel? = nil,
+        analyticsService: AnalyticsTracking = NoopAnalyticsService(),
         onOrganizationSaved: @escaping @MainActor () async -> Void = {},
         onOrganizationDeleted: @escaping @MainActor () -> Void = {},
         onNavigateBack: (() -> Void)? = nil
@@ -291,8 +299,14 @@ struct OrganizationDetailView: View {
             newsRepository: newsRepository,
             eventRepository: eventRepository
         ))
-        _newsDetailViewModel = StateObject(wrappedValue: newsViewModel ?? NewsViewModel(repository: newsRepository))
-        _eventsDetailViewModel = StateObject(wrappedValue: eventsViewModel ?? EventsViewModel(repository: eventRepository))
+        _newsDetailViewModel = StateObject(wrappedValue: newsViewModel ?? NewsViewModel(
+            repository: newsRepository,
+            analyticsService: analyticsService
+        ))
+        _eventsDetailViewModel = StateObject(wrappedValue: eventsViewModel ?? EventsViewModel(
+            repository: eventRepository,
+            analyticsService: analyticsService
+        ))
     }
 
     var isDeletingCurrentOrganization: Bool {
@@ -361,6 +375,7 @@ struct OrganizationDetailView: View {
                     await viewModel.loadComments(for: organization.id)
                     await loadPreviewPhotosIfNeeded(for: organization.id)
                     await loadCommunityMembersIfNeeded(for: organization)
+                    viewModel.trackViewIfNeeded(for: organization)
                     recordRecentView(for: organization)
                 }
             } else {
@@ -423,6 +438,7 @@ struct OrganizationDetailView: View {
         .guestAccessAlert($guestAccessAction)
         .onChange(of: authState.user?.id) { _, _ in
             guard let organization = viewModel.organization(for: organizationID) else { return }
+            viewModel.trackViewIfNeeded(for: organization)
             recordRecentView(for: organization)
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { notification in
@@ -537,43 +553,12 @@ struct OrganizationDetailView: View {
 
     @MainActor
     func loadOrganizationActivityIfNeeded(for organization: Organization) async {
-        activityViewModel.update(
-            for: organization,
-            posts: newsDetailViewModel.posts,
-            events: eventsDetailViewModel.events,
-            isLoading: true,
-            error: nil
-        )
-        async let newsLoad: Void = newsDetailViewModel.loadIfNeeded()
-        async let eventsLoad: Void = eventsDetailViewModel.loadIfNeeded()
-        _ = await (newsLoad, eventsLoad)
-        updateOrganizationActivity(for: organization)
+        await activityViewModel.loadIfNeeded(for: organization)
     }
 
     @MainActor
     func refreshOrganizationActivity(for organization: Organization) async {
-        activityViewModel.update(
-            for: organization,
-            posts: newsDetailViewModel.posts,
-            events: eventsDetailViewModel.events,
-            isLoading: true,
-            error: nil
-        )
-        async let newsRefresh: Void = newsDetailViewModel.refresh()
-        async let eventsRefresh: Void = eventsDetailViewModel.refresh()
-        _ = await (newsRefresh, eventsRefresh)
-        updateOrganizationActivity(for: organization)
-    }
-
-    @MainActor
-    func updateOrganizationActivity(for organization: Organization) {
-        activityViewModel.update(
-            for: organization,
-            posts: newsDetailViewModel.posts,
-            events: eventsDetailViewModel.events,
-            isLoading: newsDetailViewModel.isLoading || eventsDetailViewModel.isLoading,
-            error: newsDetailViewModel.error ?? eventsDetailViewModel.error
-        )
+        await activityViewModel.refresh(for: organization)
     }
 
     @MainActor

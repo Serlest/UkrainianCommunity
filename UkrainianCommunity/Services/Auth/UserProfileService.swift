@@ -4,12 +4,13 @@ import FirebaseFirestore
 import FirebaseStorage
 
 enum AccountDeletionStage: String, Equatable {
+    case ownershipCheck = "ownership_check"
     case privateDataCleanup = "private_data_cleanup"
     case interactionCleanup = "interaction_cleanup"
     case registrationCleanup = "registration_cleanup"
     case avatarCleanup = "avatar_cleanup"
     case publicProfileDelete = "public_profile_delete"
-    case userDocumentDelete = "user_document_delete"
+    case userDocumentDeactivate = "user_document_deactivate"
     case authUserDelete = "auth_user_delete"
 }
 
@@ -351,13 +352,22 @@ struct FirestoreUserRepository: UserRepository {
             throw AccountDeletionError.platformOwner
         }
 
+        let database = Firestore.firestore()
+
         guard !currentUser.communityMemberships.contains(where: { $0.role == .communityOwner }) else {
             throw AccountDeletionError.ownsOrganization
         }
 
-        let database = Firestore.firestore()
-        // TODO: Enforce organization-owner deletion blocking server-side via Cloud Function or
-        // an ownedOrganizationIds/ownedOrganizationCount marker on users/{uid}.
+        do {
+            guard try await !ownsOrganization(userID: uid, database: database) else {
+                throw AccountDeletionError.ownsOrganization
+            }
+        } catch let deletionError as AccountDeletionError {
+            throw deletionError
+        } catch {
+            throw accountDeletionStageFailure(.ownershipCheck, error: error)
+        }
+
         do {
             try await cleanupPrivateUserData(userID: uid, database: database)
         } catch {
@@ -389,9 +399,9 @@ struct FirestoreUserRepository: UserRepository {
         }
 
         do {
-            try await database.collection("users").document(uid).delete()
+            try await deactivateUserDocument(userID: uid, database: database)
         } catch {
-            throw accountDeletionStageFailure(.userDocumentDelete, error: error)
+            throw accountDeletionStageFailure(.userDocumentDeactivate, error: error)
         }
 
         do {
@@ -429,6 +439,14 @@ struct FirestoreUserRepository: UserRepository {
         return AuthErrorCode(rawValue: nsError.code) == .requiresRecentLogin
     }
 
+    private func ownsOrganization(userID: String, database: Firestore) async throws -> Bool {
+        let snapshot = try await database.collection("organizations")
+            .whereField("ownerId", isEqualTo: userID)
+            .limit(to: 1)
+            .getDocuments()
+        return !snapshot.documents.isEmpty
+    }
+
     private func cleanupPrivateUserData(userID: String, database: Firestore) async throws {
         let userDocument = database.collection("users").document(userID)
         try await userDocument
@@ -443,8 +461,10 @@ struct FirestoreUserRepository: UserRepository {
             "eventBookmarks",
             "organizationBookmarks",
             "notificationInbox",
+            "notificationPushTokens",
             "eventViews",
-            "newsViews"
+            "newsViews",
+            "guideMaterialBookmarks"
         ]
 
         for subcollection in privateSubcollections {
@@ -455,9 +475,23 @@ struct FirestoreUserRepository: UserRepository {
         }
     }
 
+    private func deactivateUserDocument(userID: String, database: Firestore) async throws {
+        try await database.collection("users").document(userID).updateData([
+            "accountStatus": AccountStatus.deactivated.rawValue,
+            "blockState": UserBlockState.deactivated.rawValue,
+            "isBlocked": true,
+            "displayName": "Видалений користувач",
+            "fullName": "",
+            "bio": "",
+            "city": "",
+            "email": "",
+            "telegramUsername": FieldValue.delete(),
+            "avatarURL": FieldValue.delete(),
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
     private func cleanupInteractionDocuments(userID: String, database: Firestore) async throws {
-        // TODO: Reconcile aggregate counters server-side. Bulk client cleanup deletes the source docs
-        // without trying to decrement mixed news/event/organization counters optimistically.
         while true {
             let snapshot = try await database.collection("likes")
                 .whereField("userId", isEqualTo: userID)
@@ -476,8 +510,6 @@ struct FirestoreUserRepository: UserRepository {
     }
 
     private func cleanupRegistrationDocuments(userID: String, database: Firestore) async throws {
-        // TODO: Reconcile event registeredCount server-side. Client account deletion removes
-        // registration source docs without direct aggregate counter writes.
         try await deleteDocuments(
             in: database.collection("registrations").whereField("userId", isEqualTo: userID),
             limit: 500

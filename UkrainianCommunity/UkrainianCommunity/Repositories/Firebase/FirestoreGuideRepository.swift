@@ -25,6 +25,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
             )
             return sortNodes(documents.compactMap(makeGuideNode))
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchRootNodes",
+                collectionName: "guideNodes",
+                metadata: ["category": category.rawValue]
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -42,6 +48,11 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
             )
             return sortNodes(documents.compactMap(makeGuideNode))
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchChildNodes",
+                collectionName: "guideNodes"
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -59,6 +70,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
             )
             return sortMaterials(documents.compactMap(makeGuideMaterial))
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchMaterials",
+                collectionName: "guideMaterials",
+                targetType: .guideMaterial
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -73,6 +90,11 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
             )
             return sortNodes(documents.compactMap(makeGuideNode))
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchAllNodesForSearch",
+                collectionName: "guideNodes"
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -87,6 +109,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
             )
             return sortMaterials(documents.compactMap(makeGuideMaterial))
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchAllMaterialsForSearch",
+                collectionName: "guideMaterials",
+                targetType: .guideMaterial
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -103,6 +131,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
                     return status == .dueSoon || status == .overdue
                 }
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchMaterialsNeedingReview",
+                collectionName: "guideMaterials",
+                targetType: .guideMaterial
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -121,6 +155,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
                 document.data()["materialId"] as? String
             }
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchSavedMaterialIDs",
+                collectionName: "guideMaterialBookmarks",
+                targetType: .guideMaterial
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -138,6 +178,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
                 "createdAt": FieldValue.serverTimestamp()
             ], merge: true)
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "bookmarkMaterial",
+                collectionName: "guideMaterialBookmarks",
+                targetType: .guideMaterial
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -150,6 +196,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
         do {
             try await guideMaterialBookmarkReference(materialID: id, userID: uid).delete()
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "unbookmarkMaterial",
+                collectionName: "guideMaterialBookmarks",
+                targetType: .guideMaterial
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -175,6 +227,12 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
         } catch let error as AppError {
             throw error
         } catch {
+            await logGuidePermissionFailure(
+                error,
+                operationName: "fetchMaterial",
+                collectionName: "guideMaterials",
+                targetType: .guideMaterial
+            )
             throw mapFirestoreError(error)
         }
     }
@@ -182,6 +240,34 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
     private func removeCurrentUserBookmark(for materialID: String) async throws {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         try await guideMaterialBookmarkReference(materialID: materialID, userID: uid).delete()
+    }
+
+    private func logGuidePermissionFailure(
+        _ error: Error,
+        operationName: String,
+        collectionName: String,
+        targetType: SystemLogTargetType = .diagnosticSnapshot,
+        metadata: [String: String] = [:]
+    ) async {
+        let nsError = error as NSError
+        guard nsError.domain == FirestoreErrorDomain,
+              FirestoreErrorCode.Code(rawValue: nsError.code) == .permissionDenied else {
+            return
+        }
+
+        var metadata = metadata
+        metadata["collection"] = collectionName
+
+        await SystemTechnicalErrorLoggingService.shared.logFailure(
+            error,
+            context: SystemTechnicalErrorContext(
+                moduleName: "Guide",
+                operationName: operationName,
+                screenName: "Guide",
+                targetType: targetType,
+                metadata: metadata
+            )
+        )
     }
 }
 

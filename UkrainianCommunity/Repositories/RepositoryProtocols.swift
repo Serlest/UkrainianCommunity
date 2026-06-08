@@ -123,8 +123,43 @@ extension FeedbackItem {
     }
 }
 
+struct NewsPageCursor: Equatable {
+    let createdAt: Date
+    let documentID: String
+}
+
+struct NewsPage {
+    let items: [NewsPost]
+    let nextCursor: NewsPageCursor?
+    let hasMore: Bool
+}
+
+struct EventPageCursor: Equatable {
+    let startDate: Date
+    let documentID: String
+}
+
+struct EventPage {
+    let items: [Event]
+    let nextCursor: EventPageCursor?
+    let hasMore: Bool
+}
+
+struct OrganizationPageCursor: Equatable {
+    let createdAt: Date
+    let documentID: String
+}
+
+struct OrganizationPage {
+    let items: [Organization]
+    let nextCursor: OrganizationPageCursor?
+    let hasMore: Bool
+}
+
 protocol NewsRepository {
     func fetchNews() async throws -> [NewsPost]
+    func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage
+    func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost]
     func fetchPendingNews() async throws -> [NewsPost]
     func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost]
     func fetchOrganizationNewsCount(organizationID: String) async throws -> Int
@@ -146,6 +181,8 @@ protocol NewsRepository {
 
 protocol EventRepository {
     func fetchEvents() async throws -> [Event]
+    func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage
+    func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
     func fetchRegisteredEvents() async throws -> [Event]
     func fetchPendingEvents() async throws -> [Event]
     func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event]
@@ -171,6 +208,7 @@ protocol EventRepository {
 
 protocol OrganizationRepository {
     func fetchOrganizations() async throws -> [Organization]
+    func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage
     func fetchOrganization(id: String) async throws -> Organization
     func fetchPendingOrganizations() async throws -> [Organization]
     func fetchOrganizationRequests(submittedByUserID: String) async throws -> [Organization]
@@ -196,6 +234,81 @@ protocol OrganizationRepository {
     func approveOrganizationRequest(id: String, reviewerID: String) async throws
     func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws
     func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws
+}
+
+extension NewsRepository {
+    func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
+        let sortedItems = try await fetchNews()
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {
+            startIndex = sortedItems.index(after: cursorIndex)
+        } else {
+            startIndex = sortedItems.startIndex
+        }
+
+        let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
+        let nextCursor = pageItems.last.map { NewsPageCursor(createdAt: $0.createdAt, documentID: $0.id) }
+        return NewsPage(
+            items: pageItems,
+            nextCursor: nextCursor,
+            hasMore: sortedItems.count > startIndex + pageItems.count
+        )
+    }
+
+    func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost] {
+        Array(try await fetchNews()
+            .filter { $0.source.organizationId == organizationID }
+            .prefix(max(1, limit)))
+    }
+}
+
+extension EventRepository {
+    func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
+        let sortedItems = try await fetchEvents()
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {
+            startIndex = sortedItems.index(after: cursorIndex)
+        } else {
+            startIndex = sortedItems.startIndex
+        }
+
+        let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
+        let nextCursor = pageItems.last.map { EventPageCursor(startDate: $0.startDate, documentID: $0.id) }
+        return EventPage(
+            items: pageItems,
+            nextCursor: nextCursor,
+            hasMore: sortedItems.count > startIndex + pageItems.count
+        )
+    }
+
+    func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event] {
+        Array(try await fetchEvents()
+            .filter { $0.source.organizationId == organizationID }
+            .prefix(max(1, limit)))
+    }
+}
+
+extension OrganizationRepository {
+    func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage {
+        let sortedItems = try await fetchOrganizations()
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {
+            startIndex = sortedItems.index(after: cursorIndex)
+        } else {
+            startIndex = sortedItems.startIndex
+        }
+
+        let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
+        let nextCursor = pageItems.last.map { OrganizationPageCursor(createdAt: $0.createdAt, documentID: $0.id) }
+        return OrganizationPage(
+            items: pageItems,
+            nextCursor: nextCursor,
+            hasMore: sortedItems.count > startIndex + pageItems.count
+        )
+    }
 }
 
 protocol OrganizationPhotoRepository {

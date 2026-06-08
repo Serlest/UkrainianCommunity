@@ -16,7 +16,10 @@ struct GuideReaderView: View {
     @State private var guestAccessAction: GuestAccessAction?
     @State private var saveError: AppError?
     @State private var presentedBannerCategory: GuideCategory?
+    @State private var presentedGuideMaterialRoute: GuideMaterialNavigationRoute?
+    @State private var guideMaterialRouteError: AppError?
     @Binding private var guideBannerCategoryTarget: GuideCategory?
+    @Binding private var guideMaterialTargetID: String?
     private let feedbackRepository: FeedbackRepository
     private let onFeaturedBannerTap: (FeaturedBanner) -> Void
     private let scrollResetToken: Int
@@ -32,6 +35,7 @@ struct GuideReaderView: View {
         feedbackRepository: FeedbackRepository = FirestoreFeedbackRepository(),
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
         guideBannerCategoryTarget: Binding<GuideCategory?> = .constant(nil),
+        guideMaterialTargetID: Binding<String?> = .constant(nil),
         scrollResetToken: Int = 0
     ) {
         _viewModel = ObservedObject(wrappedValue: viewModel)
@@ -39,45 +43,14 @@ struct GuideReaderView: View {
             wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository)
         )
         _guideBannerCategoryTarget = guideBannerCategoryTarget
+        _guideMaterialTargetID = guideMaterialTargetID
         self.feedbackRepository = feedbackRepository
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
     }
 
     var body: some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                Color.clear
-                    .frame(height: 0)
-                    .id(guideRootScrollTopID)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    guideHeader
-                        .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
-
-                    featuredGuideCarousel
-
-                    placeholderFilterRow
-
-                    AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
-                        if isSearchActive {
-                            searchResultsContent
-                        } else if isSavedFilterSelected {
-                            savedMaterialsContent
-                        } else {
-                            defaultRootContent
-                        }
-                    }
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
-            }
-            .onChange(of: scrollResetToken) {
-                withAnimation(.easeInOut(duration: 0.22)) {
-                    scrollProxy.scrollTo(guideRootScrollTopID, anchor: .top)
-                }
-            }
-        }
+        guideScrollContent
         .background(AppBackgroundView().allowsHitTesting(false))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
@@ -90,6 +63,9 @@ struct GuideReaderView: View {
                 Task {
                     await viewModel.loadSavedMaterialsIfNeeded()
                 }
+            }
+            if let materialID = guideMaterialTargetID {
+                handleGuideMaterialTarget(materialID)
             }
         }
         .onChange(of: authState.user?.id) { _, newValue in
@@ -114,6 +90,10 @@ struct GuideReaderView: View {
             guard let category = newValue else { return }
             handleGuideBannerCategoryTarget(category)
         }
+        .onChange(of: guideMaterialTargetID) { _, newValue in
+            guard let materialID = newValue else { return }
+            handleGuideMaterialTarget(materialID)
+        }
         .onChange(of: searchPlaceholderText) { _, _ in
             triggerSearchDebounce()
         }
@@ -127,19 +107,77 @@ struct GuideReaderView: View {
         .observesKeyboardDismissTaps()
         .appErrorDialog(Binding(
             get: {
+                if let guideMaterialRouteError {
+                    return AppErrorDialog(
+                        title: AppStrings.NotificationInbox.destinationUnavailableTitle,
+                        message: guideMaterialRouteErrorMessage(guideMaterialRouteError)
+                    )
+                }
                 guard let saveError else { return nil }
                 return AppErrorDialog(
                     title: GuideCategoryPresentation.saveActionFailedTitle,
                     message: GuideCategoryPresentation.saveActionErrorMessage(for: saveError)
                 )
             },
-            set: { if $0 == nil { saveError = nil } }
+            set: {
+                if $0 == nil {
+                    saveError = nil
+                    guideMaterialRouteError = nil
+                }
+            }
         ))
         .navigationDestination(item: $presentedBannerCategory) { category in
             GuideCategoryDetailView(
                 category: category,
                 viewModel: viewModel.makeChildViewModel()
             )
+        }
+        .navigationDestination(item: $presentedGuideMaterialRoute) { route in
+            GuideMaterialDetailView(
+                material: route.material,
+                viewModel: viewModel,
+                feedbackRepository: feedbackRepository
+            )
+        }
+    }
+
+    private var guideScrollContent: some View {
+        ScrollViewReader { scrollProxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                Color.clear
+                    .frame(height: 0)
+                    .id(guideRootScrollTopID)
+
+                guideRootContent
+                    .padding(.horizontal, AppTheme.pageHorizontal)
+                    .padding(.bottom, AppTheme.homeBottomContentPadding)
+            }
+            .onChange(of: scrollResetToken) {
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    scrollProxy.scrollTo(guideRootScrollTopID, anchor: .top)
+                }
+            }
+        }
+    }
+
+    private var guideRootContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            guideHeader
+                .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
+
+            featuredGuideCarousel
+
+            placeholderFilterRow
+
+            AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
+                if isSearchActive {
+                    searchResultsContent
+                } else if isSavedFilterSelected {
+                    savedMaterialsContent
+                } else {
+                    defaultRootContent
+                }
+            }
         }
     }
 
@@ -461,6 +499,44 @@ struct GuideReaderView: View {
         guideBannerCategoryTarget = nil
     }
 
+    private func handleGuideMaterialTarget(_ materialID: String) {
+        searchDebounceTask?.cancel()
+        isSearchPresented = false
+        searchPlaceholderText = ""
+        searchResults = .empty
+        isSearchLoading = false
+        searchError = nil
+        isSavedFilterSelected = false
+
+        Task {
+            do {
+                let material = try await viewModel.material(id: materialID)
+                presentedGuideMaterialRoute = GuideMaterialNavigationRoute(material: material)
+                guideMaterialRouteError = nil
+            } catch let appError as AppError {
+                guideMaterialRouteError = appError
+            } catch {
+                guideMaterialRouteError = .unknown
+            }
+            guideMaterialTargetID = nil
+        }
+    }
+
+    private func guideMaterialRouteErrorMessage(_ error: AppError) -> String {
+        switch error {
+        case .notFound:
+            return AppStrings.NotificationInbox.destinationUnavailableMessage
+        case .network:
+            return AppStrings.News.loadNetworkError
+        case .permissionDenied:
+            return AppStrings.News.loadPermissionError
+        case .validationFailed:
+            return AppStrings.News.loadValidationError
+        case .unknown:
+            return AppStrings.NotificationInbox.destinationUnavailableMessage
+        }
+    }
+
     private func regionTitle(for federalState: AustrianFederalState) -> String {
         switch federalState {
         case .burgenland:
@@ -482,6 +558,20 @@ struct GuideReaderView: View {
         case .wien:
             return "Wien"
         }
+    }
+}
+
+private struct GuideMaterialNavigationRoute: Identifiable, Hashable {
+    let material: GuideMaterial
+
+    var id: String { material.id }
+
+    static func == (lhs: GuideMaterialNavigationRoute, rhs: GuideMaterialNavigationRoute) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
@@ -514,25 +604,6 @@ private struct GuideCategoryLinkCard: View {
                 alignment: .leading
             )
         }
-    }
-}
-
-private struct GuidePlaceholderChip: View {
-    let title: String
-    let systemImage: String
-
-    var body: some View {
-        AppFilterChip(
-            title: title,
-            systemImage: systemImage,
-            trailingSystemImage: "chevron.down"
-        )
-        .opacity(0.72)
-        .overlay(alignment: .center) {
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-        }
-        .accessibilityHint(AppStrings.Guide.placeholderChipAccessibilityHint)
     }
 }
 

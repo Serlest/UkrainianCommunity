@@ -10,9 +10,50 @@ struct FirestoreEventRepository: EventRepository {
     private let publicProfilesCollection = Firestore.firestore().collection("publicProfiles")
 
     func fetchEvents() async throws -> [Event] {
-        let snapshot = try await collection
+        try await fetchEventsPage(limit: 30, after: nil).items
+    }
+
+    func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
+        var query: Query = collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
             .order(by: "startDate", descending: false)
+            .order(by: FieldPath.documentID(), descending: false)
+            .limit(to: max(1, limit) + 1)
+
+        if let cursor {
+            query = query.start(after: [Timestamp(date: cursor.startDate), cursor.documentID])
+        }
+
+        let snapshot = try await query.getDocuments()
+        let documents = Array(snapshot.documents.prefix(max(1, limit)))
+        let likedEventIDs = try await fetchLikedEventIDs()
+        let registeredEventIDs = try await fetchRegisteredEventIDs()
+        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+        let items = try documents
+            .map { document in
+                try Event(dto: makeEventDTO(
+                    from: document,
+                    likedEventIDs: likedEventIDs,
+                    registeredEventIDs: registeredEventIDs,
+                    bookmarkedEventIDs: bookmarkedEventIDs
+                ))
+            }
+
+        return EventPage(
+            items: items,
+            nextCursor: documents.last.flatMap(makeEventPageCursor),
+            hasMore: snapshot.documents.count > max(1, limit)
+        )
+    }
+
+    func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event] {
+        let snapshot = try await collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+            .order(by: "createdAt", descending: true)
+            .limit(to: max(1, limit))
             .getDocuments()
 
         let likedEventIDs = try await fetchLikedEventIDs()
@@ -967,6 +1008,13 @@ struct FirestoreEventRepository: EventRepository {
             isAllDay: data["isAllDay"] as? Bool,
             isBookmarked: bookmarkedEventIDs.contains(document.documentID)
         )
+    }
+
+    private func makeEventPageCursor(from document: QueryDocumentSnapshot) -> EventPageCursor? {
+        guard let startDate = (document.data()["startDate"] as? Timestamp)?.dateValue() else {
+            return nil
+        }
+        return EventPageCursor(startDate: startDate, documentID: document.documentID)
     }
 
     private func likeDocumentID(eventID: String, userID: String) -> String {

@@ -19,7 +19,8 @@ struct GuideReviewHealthManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: GuideAuthoringPresentation.reviewQueueTitle,
-            subtitle: GuideAuthoringPresentation.reviewQueueSubtitle
+            subtitle: GuideAuthoringPresentation.reviewQueueSubtitle,
+            tabBarHidden: false
         ) {
             content
         }

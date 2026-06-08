@@ -21,7 +21,8 @@ struct GuideTreeCategoryManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: GuideCategoryPresentation.publicTitle(for: category),
-            subtitle: GuideCategoryPresentation.subtitle(for: category)
+            subtitle: GuideCategoryPresentation.subtitle(for: category),
+            tabBarHidden: false
         ) {
             AppEditorSectionCard {
                 AppInfoChip(

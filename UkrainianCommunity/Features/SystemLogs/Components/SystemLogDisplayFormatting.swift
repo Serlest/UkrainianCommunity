@@ -143,7 +143,7 @@ enum SystemLogDisplayFormatting {
         case .event: localized("target.event", "Подія")
         case .organization: localized("target.organization", "Організація")
         case .organizationRequest: localized("target.organization_request", "Запит організації")
-        case .guideArticle: localized("target.guide_article", "Стаття довідника")
+        case .guideArticle: localized("target.guide_article", "Матеріал довідника")
         case .guideMaterial: localized("target.guide_material", "Матеріал довідника")
         case .feedback: localized("target.feedback", "Звернення")
         case .report: localized("target.report", "Скарга")
