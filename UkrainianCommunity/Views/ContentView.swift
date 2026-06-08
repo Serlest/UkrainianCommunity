@@ -367,6 +367,7 @@ struct ContentView: View {
                 featuredBannerRepository: container.featuredBannerRepository,
                 legalDocumentRepository: container.legalDocumentRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
+                notificationInboxViewModel: notificationInboxViewModel,
                 localEventReminderService: container.localEventReminderService,
                 onNotificationTap: handleNotificationTap,
                 navigationPath: $profileNavigationPath,

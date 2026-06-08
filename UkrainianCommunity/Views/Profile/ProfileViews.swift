@@ -41,10 +41,10 @@ struct ProfileView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @StateObject private var registrationsViewModel: MyRegistrationsViewModel
     @StateObject private var myFeedbackViewModel: MyFeedbackViewModel
-    @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var ownerOrganizationsViewModel: OrganizationsViewModel
     @StateObject private var ownerVisibilityViewModel: OwnerProfileVisibilityViewModel
     @StateObject private var donationConfigViewModel: DonationConfigViewModel
+    @ObservedObject private var notificationInboxViewModel: NotificationInboxViewModel
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
@@ -90,6 +90,7 @@ struct ProfileView: View {
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
+        notificationInboxViewModel: NotificationInboxViewModel? = nil,
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
         onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
         navigationPath: Binding<[ProfileNavigationRoute]> = .constant([]),
@@ -112,6 +113,9 @@ struct ProfileView: View {
         self.legalDocumentRepository = legalDocumentRepository
         self.donationConfigRepository = donationConfigRepository
         self.notificationInboxRepository = notificationInboxRepository
+        self.notificationInboxViewModel = notificationInboxViewModel ?? NotificationInboxViewModel(
+            repository: notificationInboxRepository
+        )
         self.onNotificationTap = onNotificationTap
         self.scrollResetToken = scrollResetToken
         _navigationPath = navigationPath
@@ -120,9 +124,6 @@ struct ProfileView: View {
             localEventReminderService: localEventReminderService
         ))
         _myFeedbackViewModel = StateObject(wrappedValue: MyFeedbackViewModel(repository: feedbackRepository))
-        _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
-            repository: notificationInboxRepository
-        ))
         _ownerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(
             repository: organizationRepository,
             notificationInboxRepository: notificationInboxRepository
@@ -391,7 +392,6 @@ struct ProfileView: View {
                 await registrationsViewModel.refreshIfStale()
                 if let userID = authState.user?.id {
                     await myFeedbackViewModel.loadIfNeeded(userID: userID)
-                    await notificationInboxViewModel.configure(userID: userID)
                     await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)
                 }
                 await ownerOrganizationsViewModel.loadIfNeeded()
@@ -423,7 +423,6 @@ struct ProfileView: View {
                     await registrationsViewModel.refresh()
                     if let userID = authState.user?.id {
                         await myFeedbackViewModel.refresh(userID: userID)
-                        await notificationInboxViewModel.configure(userID: userID)
                         await viewModel.refreshNotificationPreferences(userID: userID)
                     }
                     await ownerOrganizationsViewModel.refresh()
@@ -431,7 +430,6 @@ struct ProfileView: View {
                 } else {
                     registrationsViewModel.resetForGuest()
                     myFeedbackViewModel.reset()
-                    await notificationInboxViewModel.configure(userID: nil)
                     ownerOrganizationsViewModel.resetForAuthChange()
                     ownerVisibilityViewModel.reset()
                     feedbackMessage = ""
@@ -444,13 +442,11 @@ struct ProfileView: View {
             Task {
                 registrationsViewModel.resetForAuthChange()
                 myFeedbackViewModel.reset()
-                await notificationInboxViewModel.configure(userID: nil)
                 ownerOrganizationsViewModel.resetForAuthChange()
                 ownerVisibilityViewModel.reset()
                 guard let newUserID else { return }
                 await registrationsViewModel.refresh()
                 await myFeedbackViewModel.refresh(userID: newUserID)
-                await notificationInboxViewModel.configure(userID: newUserID)
                 await viewModel.refreshNotificationPreferences(userID: newUserID)
                 await ownerOrganizationsViewModel.refresh()
                 await refreshOwnerVisibilityIfAllowed()
@@ -1709,7 +1705,8 @@ private extension String {
             organizationRepository: MockOrganizationRepository(),
             guideRepository: LegacyMockGuideRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
-            notificationInboxRepository: MockNotificationInboxRepository()
+            notificationInboxRepository: MockNotificationInboxRepository(),
+            notificationInboxViewModel: NotificationInboxViewModel(repository: MockNotificationInboxRepository())
         )
     }
     .environmentObject(AuthState())
