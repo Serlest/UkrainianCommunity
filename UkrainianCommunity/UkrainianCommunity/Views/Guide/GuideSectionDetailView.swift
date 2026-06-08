@@ -12,14 +12,11 @@ struct GuideSectionDetailView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
+        DetailScreenShell {
             compactHeader
 
             content
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .navigationTitle(node.title)
-        .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.openNode(node)
         }

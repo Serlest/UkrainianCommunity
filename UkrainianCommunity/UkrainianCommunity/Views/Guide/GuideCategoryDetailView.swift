@@ -10,14 +10,11 @@ struct GuideCategoryDetailView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
+        DetailScreenShell {
             compactHeader
 
             content
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .navigationTitle(GuideCategoryPresentation.publicTitle(for: category))
-        .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.selectCategory(category)
         }
