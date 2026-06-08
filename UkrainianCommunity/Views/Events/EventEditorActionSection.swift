@@ -1,31 +1,6 @@
 import SwiftUI
 
 extension EventEditorView {
-        var editorHeader: some View {
-            HStack(alignment: .center, spacing: AppTheme.pushedScreenHeaderSpacing) {
-                AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.Common.cancel) {
-                    requestClose()
-                }
-
-                Spacer(minLength: 0)
-            }
-        }
-
-        var editorTitleBlock: some View {
-            VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
-                Text(viewModel.navigationTitle)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(AppStrings.Events.editorSubtitle)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-
         @ViewBuilder
         var statusContent: some View {
             if viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage {

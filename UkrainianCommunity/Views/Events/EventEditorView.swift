@@ -72,36 +72,26 @@ struct EventEditorView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: editorSectionSpacing) {
-                editorHeader
-                    .padding(.top, AppTheme.dashboardSpacing)
-
-                editorTitleBlock
-                statusContent
-                mainCard
-                imageCard
-                dateTimeCard
-                locationCard
-                organizerCard
-                organizerContactCard
-                categoryCard
-                tagsCard
-                additionalSettingsCard
-                publishNoticeCard
-                bottomSubmitButton
-            }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
-        }
-        .keyboardDismissBackground {
-            AppBackgroundView()
+        EditorScreenShell(
+            title: viewModel.navigationTitle,
+            subtitle: AppStrings.Events.editorSubtitle,
+            closeStyle: .cancel,
+            closeAction: requestClose
+        ) {
+            statusContent
+            mainCard
+            imageCard
+            dateTimeCard
+            locationCard
+            organizerCard
+            organizerContactCard
+            categoryCard
+            tagsCard
+            additionalSettingsCard
+            publishNoticeCard
+            bottomSubmitButton
         }
         .tint(AppTheme.accentPrimary)
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-        .scrollDismissesKeyboard(.interactively)
-        .observesKeyboardDismissTaps()
         .sheet(isPresented: $isShowingMapPicker) {
             EventMapPickerView(
                 initialCoordinate: viewModel.selectedCoordinate,
