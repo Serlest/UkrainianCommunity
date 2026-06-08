@@ -3,3 +3,4 @@
 Secrets/
 *.service-account.json
 ukrainiancommunity-dbd5f-*.json
+functions/firestore-debug.log
