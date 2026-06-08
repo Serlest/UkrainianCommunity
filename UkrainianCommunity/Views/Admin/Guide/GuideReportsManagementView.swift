@@ -8,17 +8,12 @@ struct GuideReportsManagementView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            GuideManagementNavigationHeader(
-                title: screenTitle,
-                subtitle: screenSubtitle
-            )
-                .padding(.top, AppTheme.dashboardSpacing)
-
+        AdminScreenShell(
+            title: screenTitle,
+            subtitle: screenSubtitle
+        ) {
             content
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadIfNeeded()
         }

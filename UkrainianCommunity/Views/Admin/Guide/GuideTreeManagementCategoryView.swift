@@ -19,13 +19,10 @@ struct GuideTreeCategoryManagementView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            GuideManagementNavigationHeader(
-                title: GuideCategoryPresentation.publicTitle(for: category),
-                subtitle: GuideCategoryPresentation.subtitle(for: category)
-            )
-                .padding(.top, AppTheme.dashboardSpacing)
-
+        AdminScreenShell(
+            title: GuideCategoryPresentation.publicTitle(for: category),
+            subtitle: GuideCategoryPresentation.subtitle(for: category)
+        ) {
             AppEditorSectionCard {
                 AppInfoChip(
                     title: GuideAuthoringPresentation.rootSectionsChip,
@@ -42,8 +39,6 @@ struct GuideTreeCategoryManagementView: View {
 
             content
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.selectCategory(category)
         }

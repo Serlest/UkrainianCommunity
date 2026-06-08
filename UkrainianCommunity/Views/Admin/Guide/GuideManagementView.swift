@@ -9,17 +9,14 @@ struct GuideManagementView: View {
     ]
 
     var body: some View {
-        DetailPageContainer {
-            GuideManagementNavigationHeader(
-                title: GuideAuthoringPresentation.treeManagementTitle,
-                subtitle: GuideAuthoringPresentation.localized(
-                    uk: "Робоча поверхня для керування структурою довідника.",
-                    de: "Arbeitsbereich für die Verwaltung der Leitfadenstruktur.",
-                    en: "Workspace for the guide management flow."
-                )
+        AdminScreenShell(
+            title: GuideAuthoringPresentation.treeManagementTitle,
+            subtitle: GuideAuthoringPresentation.localized(
+                uk: "Робоча поверхня для керування структурою довідника.",
+                de: "Arbeitsbereich für die Verwaltung der Leitfadenstruktur.",
+                en: "Workspace for the guide management flow."
             )
-                .padding(.top, AppTheme.dashboardSpacing)
-
+        ) {
             LazyVGrid(columns: columns, spacing: AppTheme.eventsMetadataSpacing) {
                 ForEach(viewModel.sections) { section in
                     if section.id == "treeManagement" {
@@ -66,8 +63,6 @@ struct GuideManagementView: View {
                 }
             }
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
     }
 }
 

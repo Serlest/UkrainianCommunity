@@ -13,13 +13,10 @@ struct GuideTreeManagementView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            GuideManagementNavigationHeader(
-                title: GuideAuthoringPresentation.treeManagementTitle,
-                subtitle: GuideAuthoringPresentation.treeManagementSubtitle
-            )
-                .padding(.top, AppTheme.dashboardSpacing)
-
+        AdminScreenShell(
+            title: GuideAuthoringPresentation.treeManagementTitle,
+            subtitle: GuideAuthoringPresentation.treeManagementSubtitle
+        ) {
             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                 SectionHeaderBlock(
                     title: GuideAuthoringPresentation.categoriesTitle,
@@ -40,8 +37,6 @@ struct GuideTreeManagementView: View {
                 }
             }
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
     }
 }
 

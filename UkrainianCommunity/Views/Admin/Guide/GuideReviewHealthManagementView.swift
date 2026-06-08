@@ -17,17 +17,12 @@ struct GuideReviewHealthManagementView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            GuideManagementNavigationHeader(
-                title: GuideAuthoringPresentation.reviewQueueTitle,
-                subtitle: GuideAuthoringPresentation.reviewQueueSubtitle
-            )
-                .padding(.top, AppTheme.dashboardSpacing)
-
+        AdminScreenShell(
+            title: GuideAuthoringPresentation.reviewQueueTitle,
+            subtitle: GuideAuthoringPresentation.reviewQueueSubtitle
+        ) {
             content
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.loadIfNeeded()
         }

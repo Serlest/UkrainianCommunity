@@ -34,17 +34,34 @@ struct GuideTreeSectionManagementView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            navigationHeader
-                .padding(.top, AppTheme.dashboardSpacing)
-
+        AdminScreenShell(
+            title: managedNode.title,
+            subtitle: navigationSubtitle
+        ) {
+            EmptyView()
+        } metrics: {
+            EmptyView()
+        } trailingContent: {
+            Menu {
+                Button(GuideAuthoringPresentation.editSection) {
+                    isPresentingEditEditor = true
+                }
+                Button(GuideAuthoringPresentation.deleteSection, role: .destructive) {
+                    Task {
+                        await handleDeleteSectionTapped()
+                    }
+                }
+                .disabled(isDeleting)
+            } label: {
+                GuideManagementHeaderGlassControl(systemImage: "ellipsis")
+            }
+            .accessibilityLabel(GuideAuthoringPresentation.actionsTitle)
+        } content: {
             headerCard
             tabPickerCard
             tabActionCard
             content
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
         .task {
             await viewModel.openNode(managedNode)
         }
@@ -152,28 +169,6 @@ struct GuideTreeSectionManagementView: View {
                 Text(deleteAlertMessage ?? "")
             }
         )
-    }
-
-    private var navigationHeader: some View {
-        GuideManagementNavigationHeader(
-            title: managedNode.title,
-            subtitle: navigationSubtitle
-        ) {
-            Menu {
-                Button(GuideAuthoringPresentation.editSection) {
-                    isPresentingEditEditor = true
-                }
-                Button(GuideAuthoringPresentation.deleteSection, role: .destructive) {
-                    Task {
-                        await handleDeleteSectionTapped()
-                    }
-                }
-                .disabled(isDeleting)
-            } label: {
-                GuideManagementHeaderGlassControl(systemImage: "ellipsis")
-            }
-            .accessibilityLabel(GuideAuthoringPresentation.actionsTitle)
-        }
     }
 
     private var headerCard: some View {
@@ -489,13 +484,10 @@ struct GuideTreeMaterialManagementView: View {
     }
 
     var body: some View {
-        DetailPageContainer {
-            GuideManagementNavigationHeader(
-                title: managedMaterial.title,
-                subtitle: managedMaterial.summary
-            )
-                .padding(.top, AppTheme.dashboardSpacing)
-
+        AdminScreenShell(
+            title: managedMaterial.title,
+            subtitle: managedMaterial.summary
+        ) {
             AppEditorSectionCard {
                 GuideManagementMetadataRow(items: materialMetadataItems)
             }
@@ -565,8 +557,6 @@ struct GuideTreeMaterialManagementView: View {
                 }
             }
         }
-        .background(AppBackgroundView().allowsHitTesting(false))
-        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $isPresentingMaterialEditor) {
             NavigationStack {
                 GuideMaterialEditorView(

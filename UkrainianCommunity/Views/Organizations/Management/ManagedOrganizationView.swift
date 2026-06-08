@@ -59,8 +59,6 @@ struct ManagedOrganizationView: View {
             teamSectionCard
             photoSectionCard
         }
-        .navigationTitle(currentOrganization.name)
-        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isShowingNewsEditor) {
             NavigationStack {
                 NewsEditorView(
