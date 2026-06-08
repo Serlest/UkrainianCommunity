@@ -513,8 +513,8 @@ private struct OrganizationCard: View {
     let organization: Organization
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.organizationsCardPadding) {
-            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
+        SoftContentCard(padding: AppTheme.compactCardInnerSpacing) {
+            HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
                 AppFeedThumbnail(
                     imageURL: organization.imageURL,
                     fallbackSystemImage: "building.2",
@@ -526,7 +526,7 @@ private struct OrganizationCard: View {
                 )
                 .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
 
-                VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
+                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingDense) {
                     Text(organization.name)
                         .font(AppTheme.cardTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)
@@ -551,7 +551,7 @@ private struct OrganizationCard: View {
     }
 
     private var organizationMetadataChips: some View {
-        AppHorizontalChipRow(spacing: AppTheme.eventsMetadataSpacing) {
+        AppHorizontalChipRow(spacing: AppTheme.compactCardInnerSpacingTight) {
             ForEach(metadataItems, id: \.title) { item in
                 AppInfoChip(
                     title: item.title,

@@ -40,6 +40,7 @@ enum AppTheme {
     static let detailCardPadding: CGFloat = 20
     static let dashboardCardPadding: CGFloat = 8
     static let compactCardInnerSpacing: CGFloat = 10
+    static let compactCardInnerSpacingDense: CGFloat = 5
     static let compactCardInnerSpacingTight: CGFloat = 8
     static let compactCardInnerSpacingRelaxed: CGFloat = 12
     static let rowCardPadding: CGFloat = 12
@@ -48,6 +49,7 @@ enum AppTheme {
     static let homeHeaderHeroSpacing: CGFloat = 14
     static let feedRowSpacing: CGFloat = 14
     static let homeFeedCardPadding: CGFloat = 10
+    static let homeFeedDateBadgeSize: CGFloat = 42
     static let homeBottomContentPadding: CGFloat = 116
     static let appHeaderLogoSize = CGSize(width: 160, height: 56)
     static let appHeaderBottomSpacing: CGFloat = 16
