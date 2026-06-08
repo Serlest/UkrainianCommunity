@@ -27,9 +27,6 @@ struct NotificationInboxView: View {
         .navigationTitle(AppStrings.NotificationInbox.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .task {
-            await viewModel.refresh()
-        }
     }
 
     private var headerControls: some View {

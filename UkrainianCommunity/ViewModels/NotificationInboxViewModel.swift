@@ -29,7 +29,6 @@ final class NotificationInboxViewModel: ObservableObject {
         if currentUserID == userID {
             if let userID, listener == nil {
                 startListening(userID: userID)
-                await refresh()
             }
             return
         }
@@ -44,7 +43,6 @@ final class NotificationInboxViewModel: ObservableObject {
 
         guard let userID else { return }
         startListening(userID: userID)
-        await refresh()
     }
 
     var filteredNotifications: [AppNotification] {
@@ -157,6 +155,7 @@ final class NotificationInboxViewModel: ObservableObject {
     }
 
     private func startListening(userID: String) {
+        isLoading = notifications.isEmpty
         listener = repository.listenNotifications(
             userID: userID,
             limit: notificationLimit,
@@ -164,6 +163,7 @@ final class NotificationInboxViewModel: ObservableObject {
                 guard let self else { return }
                 self.notifications = notifications
                 self.unreadCount = notifications.filter(\.countsAsUnread).count
+                self.isLoading = false
                 self.error = nil
             },
             onError: { [weak self] appError in
@@ -175,6 +175,7 @@ final class NotificationInboxViewModel: ObservableObject {
     private func handleListenerError(_ appError: AppError) {
         listener?.cancel()
         listener = nil
+        isLoading = false
         error = appError
 
         Task {
