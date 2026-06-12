@@ -4,6 +4,7 @@ struct OrganizationRoleDashboardCard: View {
     let membership: CommunityMembership
     let roleTitle: String
     let user: AppUser
+    @ObservedObject var organizationsViewModel: OrganizationsViewModel
 
     private var organizationTitle: String {
         AppStrings.profileOrganizationID(membership.organizationId)
@@ -73,7 +74,10 @@ struct OrganizationRoleDashboardCard: View {
     private var ownerActions: some View {
         Group {
             NavigationLink {
-                OrganizationManagementHubView(focusedOrganizationID: membership.organizationId)
+                OrganizationManagementHubView(
+                    focusedOrganizationID: membership.organizationId,
+                    organizationsViewModel: organizationsViewModel
+                )
             } label: {
                 ProfileModuleRow(title: AppStrings.Profile.organizationEditOrganization, subtitle: organizationSubtitle, systemImage: "pencil", status: .active)
             }
@@ -86,7 +90,10 @@ struct OrganizationRoleDashboardCard: View {
     private var adminActions: some View {
         Group {
             NavigationLink {
-                OrganizationManagementHubView(focusedOrganizationID: membership.organizationId)
+                OrganizationManagementHubView(
+                    focusedOrganizationID: membership.organizationId,
+                    organizationsViewModel: organizationsViewModel
+                )
             } label: {
                 ProfileModuleRow(title: AppStrings.Profile.organizationEditInfo, subtitle: organizationSubtitle, systemImage: "pencil", status: .active)
             }

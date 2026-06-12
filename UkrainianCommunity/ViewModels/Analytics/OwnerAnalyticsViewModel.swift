@@ -31,9 +31,17 @@ struct OwnerAnalyticsFederalStateUserRowModel: Identifiable {
 struct OwnerAnalyticsOverviewMetricItem: Identifiable {
     let title: String
     let value: Int
+    let previousValue: Int?
     let systemImage: String
 
     var id: String { title }
+
+    init(title: String, value: Int, previousValue: Int? = nil, systemImage: String) {
+        self.title = title
+        self.value = value
+        self.previousValue = previousValue
+        self.systemImage = systemImage
+    }
 }
 
 struct OwnerAnalyticsRegionRowModel: Identifiable {
@@ -58,7 +66,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
     private let expandedFederalStateDisplayLimit = 9
     private let regionDisplayLimit = 5
     private let expandedRegionDisplayLimit = 9
-    private var loadedPeriods: Set<AnalyticsPeriod> = []
+    private var snapshotByPeriod: [AnalyticsPeriod: OwnerAnalyticsSnapshot] = [:]
     @Published private var expandedContentTypes: Set<AnalyticsContentType> = []
     @Published private var isUsersByFederalStateExpanded = false
     @Published private var isRegionsExpanded = false
@@ -77,10 +85,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
 
     var overviewMetricItems: [OwnerAnalyticsOverviewMetricItem] {
         [
-            OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.totalViews, value: summaryValue(for: .totalViews), systemImage: AnalyticsMetricType.totalViews.systemImage),
-            OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.totalUsers, value: snapshot.userStats.totalUsers, systemImage: "person.3"),
-            OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.newRegistrations, value: snapshot.userStats.newRegistrations, systemImage: "person.badge.plus"),
-            OwnerAnalyticsOverviewMetricItem(title: selectedPeriod.activeUsersTitle, value: activeUsersForSelectedPeriod, systemImage: "bolt")
+            overviewMetricItem(for: .totalViews)
         ]
     }
 
@@ -111,16 +116,10 @@ final class OwnerAnalyticsViewModel: ObservableObject {
         }
     }
 
-    var activityMetricItems: [OwnerAnalyticsOverviewMetricItem] {
+    var contentViewMetricItems: [OwnerAnalyticsOverviewMetricItem] {
         snapshot.summaryStats
-            .filter { $0.metricType != .totalViews }
-            .map { metric in
-                OwnerAnalyticsOverviewMetricItem(
-                    title: metric.metricType.analyticsTitle,
-                    value: metric.value,
-                    systemImage: metric.metricType.systemImage
-                )
-            }
+            .filter { [.newsViews, .eventViews, .organizationViews, .guideArticleViews].contains($0.metricType) }
+            .map { overviewMetricItem(for: $0.metricType) }
     }
 
     var actionMetricItems: [OwnerAnalyticsOverviewMetricItem] {
@@ -129,8 +128,8 @@ final class OwnerAnalyticsViewModel: ObservableObject {
             OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.totalLikes, value: stats.totalLikes, systemImage: AnalyticsMetricType.totalLikes.systemImage),
             OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.totalBookmarks, value: stats.totalBookmarks, systemImage: AnalyticsMetricType.totalBookmarks.systemImage),
             OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.eventRegistrations, value: stats.eventRegistrations, systemImage: AnalyticsMetricType.eventRegistrations.systemImage),
-            OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.cancelledEventRegistrations, value: stats.cancelledEventRegistrations, systemImage: AnalyticsMetricType.cancelledEventRegistrations.systemImage),
             OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.organizationFollows, value: stats.organizationFollows, systemImage: AnalyticsMetricType.organizationFollows.systemImage),
+            OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.cancelledEventRegistrations, value: stats.cancelledEventRegistrations, systemImage: AnalyticsMetricType.cancelledEventRegistrations.systemImage),
             OwnerAnalyticsOverviewMetricItem(title: AppStrings.OwnerAnalytics.organizationUnfollows, value: stats.organizationUnfollows, systemImage: AnalyticsMetricType.organizationUnfollows.systemImage)
         ]
     }
@@ -288,20 +287,29 @@ final class OwnerAnalyticsViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
-        guard !loadedPeriods.contains(selectedPeriod) else { return }
+        if let cachedSnapshot = snapshotByPeriod[selectedPeriod] {
+            snapshot = cachedSnapshot
+            errorMessage = nil
+            return
+        }
+
         await load()
     }
 
     func load() async {
+        let period = selectedPeriod
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            snapshot = try await repository.fetchSnapshot(period: selectedPeriod)
-            loadedPeriods.insert(selectedPeriod)
+            let loadedSnapshot = try await repository.fetchSnapshot(period: period)
+            snapshotByPeriod[period] = loadedSnapshot
+            guard selectedPeriod == period else { return }
+            snapshot = loadedSnapshot
         } catch {
-            snapshot = .empty(period: selectedPeriod)
+            guard selectedPeriod == period else { return }
+            snapshot = .empty(period: period)
             errorMessage = Self.readableErrorMessage(for: error)
         }
     }
@@ -309,23 +317,28 @@ final class OwnerAnalyticsViewModel: ObservableObject {
     func selectPeriod(_ period: AnalyticsPeriod) async {
         guard selectedPeriod != period else { return }
         selectedPeriod = period
+        errorMessage = nil
+        if let cachedSnapshot = snapshotByPeriod[period] {
+            snapshot = cachedSnapshot
+            return
+        }
+
         snapshot = .empty(period: period)
         await loadIfNeeded()
     }
 
-    private var activeUsersForSelectedPeriod: Int {
-        switch selectedPeriod {
-        case .today:
-            snapshot.userStats.activeUsersToday
-        case .sevenDays:
-            snapshot.userStats.activeUsersSevenDays
-        case .thirtyDays:
-            snapshot.userStats.activeUsersThirtyDays
-        }
-    }
-
     private func summaryValue(for metricType: AnalyticsMetricType) -> Int {
         snapshot.summaryStats.first { $0.metricType == metricType }?.value ?? 0
+    }
+
+    private func overviewMetricItem(for metricType: AnalyticsMetricType) -> OwnerAnalyticsOverviewMetricItem {
+        let summary = snapshot.summaryStats.first { $0.metricType == metricType }
+        return OwnerAnalyticsOverviewMetricItem(
+            title: metricType.analyticsTitle,
+            value: summary?.value ?? 0,
+            previousValue: summary?.previousValue,
+            systemImage: metricType.systemImage
+        )
     }
 
     private static func readableErrorMessage(for error: Error) -> String {
@@ -345,19 +358,6 @@ final class OwnerAnalyticsViewModel: ObservableObject {
         }
 
         return AppStrings.OwnerAnalytics.loadFailedGeneric
-    }
-}
-
-private extension AnalyticsPeriod {
-    var activeUsersTitle: String {
-        switch self {
-        case .today:
-            AppStrings.OwnerAnalytics.activeUsersToday
-        case .sevenDays:
-            AppStrings.OwnerAnalytics.activeUsersSevenDays
-        case .thirtyDays:
-            AppStrings.OwnerAnalytics.activeUsersThirtyDays
-        }
     }
 }
 

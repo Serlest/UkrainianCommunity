@@ -11,6 +11,7 @@ struct FeaturedBannerManagementView: View {
 
     init(
         repository: FeaturedBannerRepository,
+        publicCache: FeaturedBannerCache? = nil,
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository
@@ -19,7 +20,10 @@ struct FeaturedBannerManagementView: View {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
-        _viewModel = StateObject(wrappedValue: FeaturedBannerManagementViewModel(repository: repository))
+        _viewModel = StateObject(wrappedValue: FeaturedBannerManagementViewModel(
+            repository: repository,
+            publicCache: publicCache
+        ))
     }
 
     var body: some View {
@@ -120,6 +124,7 @@ struct FeaturedBannerManagementView: View {
                                 eventRepository: eventRepository,
                                 organizationRepository: organizationRepository
                             ) {
+                                viewModel.invalidatePublicCache()
                                 await viewModel.refresh()
                             }
                         } label: {
@@ -145,6 +150,7 @@ struct FeaturedBannerManagementView: View {
                 eventRepository: eventRepository,
                 organizationRepository: organizationRepository
             ) {
+                viewModel.invalidatePublicCache()
                 await viewModel.refresh()
             }
         } label: {

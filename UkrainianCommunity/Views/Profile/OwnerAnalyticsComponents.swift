@@ -3,6 +3,7 @@ import SwiftUI
 struct OwnerAnalyticsMetricTile: View {
     let title: String
     let value: Int
+    var previousValue: Int? = nil
     let systemImage: String
     var accentStyle: Bool = false
 
@@ -32,10 +33,45 @@ struct OwnerAnalyticsMetricTile: View {
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    if let deltaPresentation {
+                        Label(deltaPresentation.text, systemImage: deltaPresentation.systemImage)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(deltaPresentation.color)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                    }
                 }
             }
         }
     }
+
+    private var deltaPresentation: OwnerAnalyticsDeltaPresentation? {
+        guard let previousValue, previousValue > 0 else { return nil }
+
+        let delta = value - previousValue
+        guard delta != 0 else {
+            return OwnerAnalyticsDeltaPresentation(
+                text: AppStrings.OwnerAnalytics.deltaNoChange,
+                systemImage: "checkmark",
+                color: AppTheme.textSecondary
+            )
+        }
+
+        let percentage = Double(delta) / Double(previousValue)
+        let formattedPercentage = percentage.formatted(.percent.precision(.fractionLength(0)))
+        return OwnerAnalyticsDeltaPresentation(
+            text: AppStrings.OwnerAnalytics.deltaVsPreviousPeriod(formattedPercentage),
+            systemImage: delta > 0 ? "arrow.up.right" : "arrow.down.right",
+            color: delta > 0 ? AppTheme.accentPrimary : AppTheme.accentDestructive
+        )
+    }
+}
+
+private struct OwnerAnalyticsDeltaPresentation {
+    let text: String
+    let systemImage: String
+    let color: Color
 }
 
 struct OwnerAnalyticsSectionCard<Content: View>: View {

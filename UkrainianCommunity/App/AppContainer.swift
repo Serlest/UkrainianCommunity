@@ -12,12 +12,13 @@ struct AppContainer {
     let eventRepository: EventRepository
     let organizationRepository: OrganizationRepository
     let featuredBannerRepository: FeaturedBannerRepository
+    let featuredBannerCache: FeaturedBannerCache
     let legalDocumentRepository: LegalDocumentRepository
     let ownerAnalyticsRepository: OwnerAnalyticsRepository
     let analyticsService: AnalyticsTracking
 
     static var development: AppContainer {
-        return AppContainer(
+        AppContainer(
             userRepository: FirestoreUserRepository(),
             feedbackRepository: FirestoreFeedbackRepository(),
             notificationPreferencesRepository: FirestoreNotificationPreferencesRepository(),
@@ -29,6 +30,7 @@ struct AppContainer {
             eventRepository: FirestoreEventRepository(),
             organizationRepository: FirestoreOrganizationRepository(),
             featuredBannerRepository: FirestoreFeaturedBannerRepository(),
+            featuredBannerCache: FeaturedBannerCache(),
             legalDocumentRepository: FirestoreLegalDocumentRepository(),
             ownerAnalyticsRepository: FirestoreOwnerAnalyticsRepository(),
             analyticsService: FirebaseAnalyticsService()
@@ -48,6 +50,7 @@ struct AppContainer {
             eventRepository: MockEventRepository(),
             organizationRepository: MockOrganizationRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
+            featuredBannerCache: FeaturedBannerCache(),
             legalDocumentRepository: MockLegalDocumentRepository(),
             ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
             analyticsService: NoopAnalyticsService()

@@ -22,6 +22,12 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        if let userInfo = launchOptions?[.remoteNotification] as? [AnyHashable: Any],
+           let route = RemoteNotificationRoute(userInfo: userInfo) {
+            Task { @MainActor in
+                RemoteNotificationRouteCoordinator.shared.receive(route)
+            }
+        }
         return true
     }
 
@@ -30,6 +36,19 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        guard let route = RemoteNotificationRoute(
+            userInfo: response.notification.request.content.userInfo
+        ) else {
+            return
+        }
+
+        RemoteNotificationRouteCoordinator.shared.receive(route)
     }
 
     func application(

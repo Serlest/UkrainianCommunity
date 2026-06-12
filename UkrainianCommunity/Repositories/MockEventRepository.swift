@@ -15,6 +15,13 @@ struct MockEventRepository: EventRepository {
             .sorted { $0.startDate < $1.startDate }
     }
 
+    func fetchEvent(id: String) async throws -> Event {
+        guard let event = await store.events.first(where: { $0.id == id }) else {
+            throw AppError.notFound
+        }
+        return event
+    }
+
     func fetchPendingEvents() async throws -> [Event] {
         await store.pendingEvents()
     }

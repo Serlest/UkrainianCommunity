@@ -113,6 +113,11 @@ struct EventDetailView: View {
                     articleHeader(for: event)
                         .onTapGesture { isCommentFieldFocused = false }
 
+                    if event.isCancelled {
+                        cancelledEventNotice(for: event)
+                            .onTapGesture { isCommentFieldFocused = false }
+                    }
+
                     heroImageSection(for: event)
                         .onTapGesture { isCommentFieldFocused = false }
 
@@ -124,8 +129,10 @@ struct EventDetailView: View {
                     eventScheduleCard(for: event)
                         .onTapGesture { isCommentFieldFocused = false }
 
-                    primaryActionsCard(for: event)
-                        .onTapGesture { isCommentFieldFocused = false }
+                    if !event.isCancelled {
+                        primaryActionsCard(for: event)
+                            .onTapGesture { isCommentFieldFocused = false }
+                    }
 
                     eventRegistrationManagementCard(for: event)
                         .onTapGesture { isCommentFieldFocused = false }
@@ -256,11 +263,12 @@ struct EventDetailView: View {
         .guestAccessAlert($guestAccessAction)
         .task {
             if viewModel.event(for: eventID) == nil {
-                await viewModel.loadIfNeeded()
+                await viewModel.loadEventIfNeeded(eventID: eventID)
             }
             guard let event = viewModel.event(for: eventID) else { return }
             await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
             await loadEventRegistrationAttendeesIfNeeded(for: event)
+            guard !event.isCancelled else { return }
             await viewModel.loadComments(for: eventID)
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
             recordedViewKeys.insert(eventViewTaskID)
@@ -293,10 +301,15 @@ struct EventDetailView: View {
     }
 
     func refreshEventDetail() async {
-        await viewModel.refresh()
+        if viewModel.event(for: eventID)?.isCancelled == true {
+            await viewModel.loadEventIfNeeded(eventID: eventID, force: true)
+        } else {
+            await viewModel.refresh()
+        }
         guard let event = viewModel.event(for: eventID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
         await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
+        guard !event.isCancelled else { return }
         await viewModel.loadComments(for: eventID, forceRefresh: true)
     }
 

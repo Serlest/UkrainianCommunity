@@ -1737,6 +1737,21 @@ service cloud.firestore {
         && get(eventPath).data.startDate > request.time;
     }
 
+    function hasRegistrationForEvent(eventId) {
+      return isActiveUser()
+        && exists(/databases/$(database)/documents/registrations/$(registrationDocumentId(eventId)));
+    }
+
+    function registrationDocumentId(eventId) {
+      return 'event_' + eventId + '_' + request.auth.uid;
+    }
+
+    function canReadCancelledRegisteredEvent(eventId) {
+      return resource.data.moderationStatus == 'archived'
+        && resource.data.cancellationState == 'cancelled'
+        && hasRegistrationForEvent(eventId);
+    }
+
     function notificationPreferenceFields() {
       return ['notificationsEnabled', 'eventRemindersEnabled', 'reminderLeadMinutes', 'updatedAt'];
     }
@@ -2047,6 +2062,7 @@ service cloud.firestore {
 
     match /events/{eventId} {
       allow read: if isApprovedContent()
+        || canReadCancelledRegisteredEvent(eventId)
         || canReadModerationQueue('events')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if canCreateOrganizationContent();

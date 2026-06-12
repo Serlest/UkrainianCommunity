@@ -10,6 +10,7 @@ enum CloudFunctionName: String, CaseIterable {
     case approveOrganization
     case rejectOrganization
     case requestOrganizationRevision
+    case cancelEvent
     case assignAppAdmin
     case removeAppAdmin
     case assignAppModerator
@@ -153,6 +154,25 @@ struct OrganizationReviewFunctionResponse: Codable, Equatable {
     let moderationStatus: CloudOrganizationModerationStatus
     let notificationId: String
     let updatedAt: String
+}
+
+struct EventCancellationFunctionRequest: Codable, Equatable {
+    let eventId: String
+    let reason: String?
+
+    init(eventId: String, reason: String? = nil) {
+        self.eventId = eventId
+        self.reason = reason
+    }
+}
+
+struct EventCancellationFunctionResponse: Codable, Equatable {
+    let eventId: String
+    let status: String
+    let recipientCount: Int
+    let notificationCount: Int
+    let pushRecipientCount: Int
+    let cancelledAt: String
 }
 
 final class CloudFunctionsClient {
@@ -311,6 +331,12 @@ final class CloudFunctionsClient {
         try await call(.requestOrganizationRevision, request: request)
     }
 
+    func cancelEvent(
+        _ request: EventCancellationFunctionRequest
+    ) async throws -> EventCancellationFunctionResponse {
+        try await call(.cancelEvent, request: request)
+    }
+
     private func call<Request: Encodable, Response: Decodable>(
         _ functionName: CloudFunctionName,
         request: Request
@@ -367,7 +393,8 @@ final class CloudFunctionsClient {
              .transferOrganizationOwnership,
              .approveOrganization,
              .rejectOrganization,
-             .requestOrganizationRevision:
+             .requestOrganizationRevision,
+             .cancelEvent:
             return .organization
         case .assignAppAdmin,
              .removeAppAdmin,
@@ -393,6 +420,7 @@ final class CloudFunctionsClient {
              .assignOrganizationModerator,
              .removeOrganizationModerator,
              .transferOrganizationOwnership,
+             .cancelEvent,
              .assignAppAdmin,
              .removeAppAdmin,
              .assignAppModerator,
@@ -453,6 +481,7 @@ final class CloudFunctionsClient {
         case .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
+             .cancelEvent,
              .acceptLegalDocument:
             return nil
         }

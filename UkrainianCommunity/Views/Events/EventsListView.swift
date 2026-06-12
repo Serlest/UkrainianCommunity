@@ -141,6 +141,7 @@ struct EventsListView: View {
     let presentationMode: EventPresentationMode
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
     let scrollResetToken: Int
+    let searchResetToken: Int
     @State private var pendingDeleteEventID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
@@ -158,12 +159,14 @@ struct EventsListView: View {
         viewModel: EventsViewModel,
         eventRepository: EventRepository,
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         navigationPath: Binding<[EventNavigationRoute]> = .constant([]),
         onEventPublished: @escaping @MainActor () async -> Void,
         onEventDeleted: @escaping @MainActor @Sendable () -> Void,
         presentationMode: EventPresentationMode = .public,
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
-        scrollResetToken: Int = 0
+        scrollResetToken: Int = 0,
+        searchResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         self.eventRepository = eventRepository
@@ -172,7 +175,11 @@ struct EventsListView: View {
         self.presentationMode = presentationMode
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
-        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
+        self.searchResetToken = searchResetToken
+        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
+            repository: featuredBannerRepository,
+            cache: featuredBannerCache
+        ))
         _navigationPath = navigationPath
     }
 
@@ -307,6 +314,7 @@ struct EventsListView: View {
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
                 scrollToTop(with: scrollProxy)
             }
@@ -425,7 +433,7 @@ struct EventsListView: View {
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
             placeholder: AppStrings.Search.eventsPlaceholder,
-            collapseToken: scrollResetToken
+            collapseToken: searchResetToken
         )
     }
 

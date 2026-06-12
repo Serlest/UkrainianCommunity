@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @EnvironmentObject private var authState: AuthState
@@ -22,6 +23,7 @@ struct ContentView: View {
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
+    @StateObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
     @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
@@ -36,6 +38,9 @@ struct ContentView: View {
     @State private var homeScrollResetToken = 0
     @State private var eventsScrollResetToken = 0
     @State private var organizationsScrollResetToken = 0
+    @State private var homeSearchResetToken = 0
+    @State private var eventsSearchResetToken = 0
+    @State private var organizationsSearchResetToken = 0
     @State private var guideScrollResetToken = 0
     @State private var guideNavigationResetToken = 0
     @State private var profileScrollResetToken = 0
@@ -93,6 +98,12 @@ struct ContentView: View {
         TabView(selection: tabSelection) {
             rootTabs
         }
+        .background {
+            ActiveTabReselectionObserver {
+                handleActiveTabReselection()
+            }
+            .frame(width: 0, height: 0)
+        }
         .tint(AppTheme.primaryBlue)
         .preferredColorScheme(selectedAppearance.colorScheme)
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
@@ -102,6 +113,7 @@ struct ContentView: View {
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
             await configureRemoteNotifications(for: notificationInboxUserID)
+            handlePendingRemoteNotificationRouteIfReady()
         }
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.user)
@@ -111,6 +123,9 @@ struct ContentView: View {
         }
         .onChange(of: notificationInboxViewModel.snapshotVersion) { _, _ in
             bridgeNotificationInboxSnapshotToPopupCoordinator()
+        }
+        .onChange(of: remoteNotificationRouteCoordinator.pendingRoute) { _, _ in
+            handlePendingRemoteNotificationRouteIfReady()
         }
         .onChange(of: profileViewModel.settings.language) { _, newLanguage in
             selectedLanguageCode = newLanguage.rawValue
@@ -212,15 +227,20 @@ struct ContentView: View {
             get: { selectedTab },
             set: { newTab in
                 if newTab == selectedTab {
-                    guard tabSelectionCoordinator.shouldHandleActiveTabReselection() else { return }
-                    resetNavigationPath(for: selectedTab)
+                    handleActiveTabReselection()
                     return
                 }
 
                 tabSelectionCoordinator.recordTabSwitch()
                 selectedTab = newTab
+                scheduleNavigationReset(for: newTab, scrollToTop: false)
             }
         )
+    }
+
+    private func handleActiveTabReselection() {
+        guard tabSelectionCoordinator.shouldHandleActiveTabReselection() else { return }
+        scheduleNavigationReset(for: selectedTab, scrollToTop: true)
     }
 
     private var authSessionKey: String {
@@ -283,9 +303,11 @@ struct ContentView: View {
                 organizationsViewModel: organizationsViewModel,
                 newsRepository: container.newsRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
+                featuredBannerCache: container.featuredBannerCache,
                 navigationPath: $homeNavigationPath,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
-                scrollResetToken: homeScrollResetToken
+                scrollResetToken: homeScrollResetToken,
+                searchResetToken: homeSearchResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -303,11 +325,13 @@ struct ContentView: View {
                 viewModel: eventsViewModel,
                 eventRepository: container.eventRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
+                featuredBannerCache: container.featuredBannerCache,
                 navigationPath: $eventsNavigationPath,
                 onEventPublished: {},
                 onEventDeleted: {},
                 onFeaturedBannerTap: handleFeaturedBannerTap,
-                scrollResetToken: eventsScrollResetToken
+                scrollResetToken: eventsScrollResetToken,
+                searchResetToken: eventsSearchResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -326,11 +350,13 @@ struct ContentView: View {
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
+                featuredBannerCache: container.featuredBannerCache,
                 navigationPath: $organizationsNavigationPath,
                 onOrganizationSaved: {},
                 onOrganizationDeleted: {},
                 onFeaturedBannerTap: handleFeaturedBannerTap,
-                scrollResetToken: organizationsScrollResetToken
+                scrollResetToken: organizationsScrollResetToken,
+                searchResetToken: organizationsSearchResetToken
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -347,14 +373,15 @@ struct ContentView: View {
             InfoView(
                 guideReaderViewModel: guideReaderViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
+                featuredBannerCache: container.featuredBannerCache,
                 feedbackRepository: container.feedbackRepository,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 guideBannerCategoryTarget: $guideBannerCategoryTarget,
                 guideMaterialTargetID: $guideMaterialTargetID,
+                navigationResetToken: guideNavigationResetToken,
                 scrollResetToken: guideScrollResetToken
             )
         }
-        .id(guideNavigationResetToken)
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.guide")
         .tabItem {
@@ -377,6 +404,7 @@ struct ContentView: View {
                 organizationsViewModel: organizationsViewModel,
                 guideReaderViewModel: guideReaderViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
+                featuredBannerCache: container.featuredBannerCache,
                 legalDocumentRepository: container.legalDocumentRepository,
                 ownerAnalyticsRepository: container.ownerAnalyticsRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
@@ -431,7 +459,19 @@ struct ContentView: View {
         }
     }
 
-    private func resetNavigationPath(for tab: AppTab) {
+    private func scheduleNavigationReset(for tab: AppTab, scrollToTop: Bool) {
+        Task { @MainActor in
+            await Task.yield()
+            guard selectedTab == tab else { return }
+            resetNavigationState(for: tab)
+            resetSearchState(for: tab)
+            if scrollToTop {
+                scheduleScrollReset(for: tab)
+            }
+        }
+    }
+
+    private func resetNavigationState(for tab: AppTab) {
         switch tab {
         case .home:
             if !homeNavigationPath.isEmpty {
@@ -446,15 +486,27 @@ struct ContentView: View {
                 organizationsNavigationPath.removeAll()
             }
         case .guide:
+            guideBannerCategoryTarget = nil
+            guideMaterialTargetID = nil
             guideNavigationResetToken += 1
-            return
         case .profile:
             if !profileNavigationPath.isEmpty {
                 profileNavigationPath.removeAll()
             }
         }
+    }
 
-        scheduleScrollReset(for: tab)
+    private func resetSearchState(for tab: AppTab) {
+        switch tab {
+        case .home:
+            homeSearchResetToken += 1
+        case .events:
+            eventsSearchResetToken += 1
+        case .organizations:
+            organizationsSearchResetToken += 1
+        case .guide, .profile:
+            break
+        }
     }
 
     private func resetNavigationStateAfterAuthChange() {
@@ -566,13 +618,14 @@ struct ContentView: View {
         switch notification.actionType {
         case .none:
             return
+        case .openNews:
+            routeToNews(notification)
         case .openFeedback:
             routeToFeedback(notification)
         case .openOrganization:
             routeToOrganization(notification)
         case .openOrganizationRequest:
-            selectTabIfNeeded(.profile)
-            profileNavigationPath = [.moderationTools]
+            routeToOrganizationRequest(notification)
         case .openEvent:
             routeToEvent(notification)
         case .openGuideMaterial:
@@ -594,8 +647,12 @@ struct ContentView: View {
     }
 
     private func routeToFeedback(_ notification: AppNotification) {
+        routeToFeedback(feedbackID: notificationTargetID(notification))
+    }
+
+    private func routeToFeedback(feedbackID: String?) {
         selectTabIfNeeded(.profile)
-        if notification.type == .feedbackSubmitted || PermissionService.canManageFeedback(user: authState.user) {
+        if PermissionService.canManageFeedback(user: authState.user) {
             profileNavigationPath = [.feedbackInbox]
         } else if let userID = authState.user?.id {
             profileNavigationPath = [.myFeedback(userID: userID)]
@@ -604,12 +661,50 @@ struct ContentView: View {
         }
     }
 
+    private func routeToNews(_ notification: AppNotification) {
+        guard let newsID = notificationTargetID(notification) else {
+            showNotificationRouteUnavailable()
+            return
+        }
+
+        routeToNews(newsID: newsID)
+    }
+
+    private func routeToNews(newsID: String) {
+        selectTabIfNeeded(.home)
+        homeNavigationPath = [.news(id: newsID)]
+    }
+
+    private func routeToOrganizationRequest(_ notification: AppNotification) {
+        switch notification.type {
+        case .organizationRequestApproved:
+            if let organizationID = notificationTargetID(notification) {
+                routeToOrganization(organizationID: organizationID)
+            } else {
+                routeToOrganizationManagement()
+            }
+        case .organizationRequestNeedsRevision, .organizationRequestRejected:
+            routeToOrganizationManagement()
+        default:
+            routeToOrganizationManagement()
+        }
+    }
+
+    private func routeToOrganizationManagement() {
+        selectTabIfNeeded(.profile)
+        profileNavigationPath = [.organizationManagement]
+    }
+
     private func routeToOrganization(_ notification: AppNotification) {
         guard let organizationID = notificationTargetID(notification) else {
             showNotificationRouteUnavailable()
             return
         }
 
+        routeToOrganization(organizationID: organizationID)
+    }
+
+    private func routeToOrganization(organizationID: String) {
         selectTabIfNeeded(.organizations)
         organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organizationID)]
     }
@@ -620,6 +715,10 @@ struct ContentView: View {
             return
         }
 
+        routeToEvent(eventID: eventID)
+    }
+
+    private func routeToEvent(eventID: String) {
         selectTabIfNeeded(.events)
         eventsNavigationPath = [EventNavigationRoute(eventID: eventID)]
     }
@@ -645,6 +744,47 @@ struct ContentView: View {
         openURL(url)
     }
 
+    private func handlePendingRemoteNotificationRouteIfReady() {
+        guard authState.sessionState != .restoring,
+              let route = remoteNotificationRouteCoordinator.pendingRoute else {
+            return
+        }
+
+        handleRemoteNotificationRoute(route)
+        remoteNotificationRouteCoordinator.consume(route)
+    }
+
+    private func handleRemoteNotificationRoute(_ route: RemoteNotificationRoute) {
+        isShowingNotificationInbox = false
+
+        switch route.destination {
+        case .openNews(let newsId):
+            routeToNews(newsID: newsId)
+        case .openEvent(let eventId):
+            routeToEvent(eventID: eventId)
+        case .openOrganization(let organizationId):
+            routeToOrganization(organizationID: organizationId)
+        case .openFeedback(let feedbackId):
+            routeToFeedback(feedbackID: feedbackId)
+        case .openProfile:
+            selectTabIfNeeded(.profile)
+            if !profileNavigationPath.isEmpty {
+                profileNavigationPath.removeAll()
+            }
+        case .openURL(let urlString):
+            guard let url = URL(string: urlString) else {
+                showNotificationRouteUnavailable()
+                return
+            }
+            openURL(url)
+        case .systemAnnouncement:
+            if notificationInboxUserID != nil {
+                selectTabIfNeeded(.profile)
+                profileNavigationPath = [.notifications]
+            }
+        }
+    }
+
     private func notificationURLString(_ notification: AppNotification) -> String? {
         [
             notification.actionTargetId,
@@ -659,6 +799,8 @@ struct ContentView: View {
         [
             notification.actionTargetId,
             notification.sourceId,
+            notification.payload["routeTargetId"],
+            notification.metadata["routeTargetId"],
             notification.metadata["targetId"],
             notification.metadata["targetID"],
             notification.metadata["url"]
@@ -730,6 +872,65 @@ private final class AppTabSelectionCoordinator {
 
         lastActiveTabResetTime = now
         return true
+    }
+}
+
+@MainActor
+private struct ActiveTabReselectionObserver: UIViewControllerRepresentable {
+    let onReselect: @MainActor () -> Void
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let viewController = UIViewController()
+        context.coordinator.attach(from: viewController, onReselect: onReselect)
+        return viewController
+    }
+
+    func updateUIViewController(_ viewController: UIViewController, context: Context) {
+        context.coordinator.attach(from: viewController, onReselect: onReselect)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UITabBarControllerDelegate {
+        private weak var tabBarController: UITabBarController?
+        private weak var lastSelectedViewController: UIViewController?
+        private var onReselect: (@MainActor () -> Void)?
+
+        func attach(from viewController: UIViewController, onReselect: @escaping @MainActor () -> Void) {
+            self.onReselect = onReselect
+
+            Task { @MainActor in
+                guard let tabBarController = viewController.nearestTabBarController(),
+                      self.tabBarController !== tabBarController else { return }
+                self.tabBarController = tabBarController
+                self.lastSelectedViewController = tabBarController.selectedViewController
+                tabBarController.delegate = self
+            }
+        }
+
+        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            defer { lastSelectedViewController = viewController }
+
+            guard lastSelectedViewController === viewController else { return }
+            onReselect?()
+        }
+    }
+}
+
+private extension UIViewController {
+    func nearestTabBarController() -> UITabBarController? {
+        if let tabBarController {
+            return tabBarController
+        }
+
+        if let parent {
+            return parent.nearestTabBarController()
+        }
+
+        return nil
     }
 }
 

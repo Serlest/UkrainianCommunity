@@ -4,7 +4,11 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { auditLogRef, buildAuditLog } from "../audit/auditLog";
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
-import { writeUserNotification } from "../notifications/notificationPayloads";
+import {
+  resolveNotificationRecipients,
+  type WriteNotificationInput,
+  writeUserNotification,
+} from "../notifications/notificationPayloads";
 import {
   canManageOrganizationRoles,
   type OrganizationRole,
@@ -148,6 +152,17 @@ function organizationRoleName(role: OrganizationRoleResult): string {
   }
 }
 
+async function writeNotificationIfRecipientEligible(
+  input: WriteNotificationInput
+): Promise<void> {
+  const recipients = await resolveNotificationRecipients([input.targetUserId]);
+  if (!recipients.inboxRecipientIds.includes(input.targetUserId)) {
+    return;
+  }
+
+  await writeUserNotification(input);
+}
+
 function createRoleCallable(mutation: RoleMutation) {
   return onCall(callableOptions, async (request): Promise<OrganizationRoleChangeResponse> => {
     const auth = requireAuth(request);
@@ -217,7 +232,14 @@ function createRoleCallable(mutation: RoleMutation) {
       : "organizationRoleAssigned";
     const changedRole = mutation.isRemoval ? previousRole : newRole;
 
-    await writeUserNotification({
+    await writeNotificationIfRecipientEligible({
+      notificationId: [
+        notificationType,
+        roleRequest.organizationId,
+        roleRequest.targetUserId,
+        changedRole,
+        roleRequest.targetUserId,
+      ].join("_"),
       targetUserId: roleRequest.targetUserId,
       type: notificationType,
       title: mutation.isRemoval
@@ -339,7 +361,14 @@ export const transferOrganizationOwnership = onCall(
       }));
     });
 
-    await writeUserNotification({
+    await writeNotificationIfRecipientEligible({
+      notificationId: [
+        "organizationRoleAssigned",
+        roleRequest.organizationId,
+        roleRequest.targetUserId,
+        "communityOwner",
+        roleRequest.targetUserId,
+      ].join("_"),
       targetUserId: roleRequest.targetUserId,
       type: "organizationRoleAssigned",
       title: "Organization ownership transferred",
@@ -365,7 +394,14 @@ export const transferOrganizationOwnership = onCall(
     });
 
     if (previousOwnerId) {
-      await writeUserNotification({
+      await writeNotificationIfRecipientEligible({
+        notificationId: [
+          "organizationRoleRemoved",
+          roleRequest.organizationId,
+          previousOwnerId,
+          "communityOwner",
+          previousOwnerId,
+        ].join("_"),
         targetUserId: previousOwnerId,
         type: "organizationRoleRemoved",
         title: "Organization ownership transferred",

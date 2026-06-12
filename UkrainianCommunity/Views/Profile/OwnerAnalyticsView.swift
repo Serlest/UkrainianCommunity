@@ -3,6 +3,7 @@ import SwiftUI
 struct OwnerAnalyticsView: View {
     private let repository: OwnerAnalyticsRepository
     @StateObject private var viewModel: OwnerAnalyticsViewModel
+    @FocusState private var isSearchFocused: Bool
 
     init(repository: OwnerAnalyticsRepository) {
         self.repository = repository
@@ -10,37 +11,20 @@ struct OwnerAnalyticsView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    header
-                    periodPicker
-                    searchField
-                    content
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.detailPageTopPadding)
-                .padding(.bottom, AppTheme.detailPageBottomPadding)
-            }
+        ProfileDestinationLayout(
+            title: AppStrings.OwnerAnalytics.title,
+            introSubtitle: AppStrings.OwnerAnalytics.subtitle
+        ) {
+            periodPicker
+            searchField
+            content
         }
-        .navigationTitle(AppStrings.OwnerAnalytics.title)
-        .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadIfNeeded()
         }
         .refreshable {
             await viewModel.load()
         }
-    }
-
-    private var header: some View {
-        SectionHeaderBlock(
-            title: AppStrings.OwnerAnalytics.title,
-            subtitle: AppStrings.OwnerAnalytics.subtitle
-        )
     }
 
     private var periodPicker: some View {
@@ -67,6 +51,9 @@ struct OwnerAnalyticsView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.subheadline)
+                    .focused($isSearchFocused)
+                    .submitLabel(.search)
+                    .onSubmit { isSearchFocused = false }
 
                 if !viewModel.searchText.isEmpty {
                     Button {
@@ -108,10 +95,10 @@ struct OwnerAnalyticsView: View {
             )
         } else {
             overviewSection
-            actionsOverviewSection
-            userAnalyticsSection
             contentAnalyticsSection
             regionalActivitySection
+            userAnalyticsSection
+            actionsOverviewSection
         }
     }
 
@@ -122,37 +109,37 @@ struct OwnerAnalyticsView: View {
         ) {
             metricGrid(viewModel.overviewMetricItems, accentFirst: true)
 
-            if !viewModel.activityMetricItems.isEmpty {
+            if !viewModel.contentViewMetricItems.isEmpty {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     Text(AppStrings.OwnerAnalytics.activityOverviewTitle)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
-                    metricGrid(viewModel.activityMetricItems, accentFirst: false)
+                    metricGrid(viewModel.contentViewMetricItems, accentFirst: false)
                 }
             }
         }
     }
 
+    @ViewBuilder
     private var actionsOverviewSection: some View {
-        OwnerAnalyticsSectionCard(
-            title: AppStrings.OwnerAnalytics.actionsOverviewTitle,
-            subtitle: AppStrings.OwnerAnalytics.actionsOverviewSubtitle
-        ) {
-            if viewModel.snapshot.actionStats.hasData {
+        if viewModel.snapshot.actionStats.hasData {
+            OwnerAnalyticsSectionCard(
+                title: AppStrings.OwnerAnalytics.actionsOverviewTitle,
+                subtitle: AppStrings.OwnerAnalytics.actionsOverviewSubtitle
+            ) {
                 metricGrid(viewModel.actionMetricItems, accentFirst: false)
-            } else {
-                OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.actionsOverviewEmpty)
             }
         }
     }
 
+    @ViewBuilder
     private var userAnalyticsSection: some View {
-        OwnerAnalyticsSectionCard(
-            title: AppStrings.OwnerAnalytics.userAnalyticsTitle,
-            subtitle: AppStrings.OwnerAnalytics.userAnalyticsSubtitle
-        ) {
-            if viewModel.snapshot.userStats.hasData {
+        if viewModel.snapshot.userStats.hasData {
+            OwnerAnalyticsSectionCard(
+                title: AppStrings.OwnerAnalytics.userAnalyticsTitle,
+                subtitle: AppStrings.OwnerAnalytics.userAnalyticsSubtitle
+            ) {
                 metricGrid(viewModel.userMetricItems, accentFirst: false)
 
                 if viewModel.userFederalStateRows.isEmpty {
@@ -179,21 +166,13 @@ struct OwnerAnalyticsView: View {
                         }
                     }
                 }
-            } else {
-                OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.emptyRollupMessage)
             }
         }
     }
 
     @ViewBuilder
     private var contentAnalyticsSection: some View {
-        if viewModel.topContentSections.isEmpty {
-            EmptyStateCard(
-                systemImage: "list.number",
-                title: AppStrings.OwnerAnalytics.topContentEmptyTitle,
-                message: AppStrings.OwnerAnalytics.topContentEmptyMessage
-            )
-        } else {
+        if !viewModel.topContentSections.isEmpty {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 SectionHeaderBlock(
                     title: AppStrings.OwnerAnalytics.topContentTitle,
@@ -230,13 +209,7 @@ struct OwnerAnalyticsView: View {
 
     @ViewBuilder
     private var regionalActivitySection: some View {
-        if viewModel.regionRows.isEmpty {
-            EmptyStateCard(
-                systemImage: "map",
-                title: AppStrings.OwnerAnalytics.regionActivityEmptyTitle,
-                message: AppStrings.OwnerAnalytics.regionActivityEmptyMessage
-            )
-        } else {
+        if !viewModel.regionRows.isEmpty {
             OwnerAnalyticsSectionCard(
                 title: AppStrings.OwnerAnalytics.regionActivityTitle,
                 subtitle: AppStrings.OwnerAnalytics.regionActivitySubtitle
@@ -265,6 +238,7 @@ struct OwnerAnalyticsView: View {
                 OwnerAnalyticsMetricTile(
                     title: item.title,
                     value: item.value,
+                    previousValue: item.previousValue,
                     systemImage: item.systemImage,
                     accentStyle: accentFirst && index == 0
                 )
@@ -310,7 +284,12 @@ struct OwnerAnalyticsView: View {
 protocol OwnerAnalyticsMetricDisplayable {
     var title: String { get }
     var value: Int { get }
+    var previousValue: Int? { get }
     var systemImage: String { get }
+}
+
+extension OwnerAnalyticsMetricDisplayable {
+    var previousValue: Int? { nil }
 }
 
 extension OwnerAnalyticsOverviewMetricItem: OwnerAnalyticsMetricDisplayable {}

@@ -1,6 +1,30 @@
 import SwiftUI
 
 extension EventDetailView {
+        func cancelledEventNotice(for event: Event) -> some View {
+            DetailCard {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "calendar.badge.exclamationmark")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentDestructive)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(AppStrings.Events.cancelledNoticeTitle)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+
+                        Text(event.cancellationReason ?? AppStrings.Events.cancelledNoticeBody)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+
         func eventScheduleCard(for event: Event) -> some View {
             DetailCard {
                 VStack(alignment: .leading, spacing: 10) {

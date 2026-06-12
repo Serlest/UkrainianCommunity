@@ -182,6 +182,7 @@ protocol NewsRepository {
 protocol EventRepository {
     func fetchEvents() async throws -> [Event]
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage
+    func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
     func fetchRegisteredEvents() async throws -> [Event]
     func fetchPendingEvents() async throws -> [Event]

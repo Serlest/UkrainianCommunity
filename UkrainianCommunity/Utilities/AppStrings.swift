@@ -489,6 +489,8 @@ enum AppStrings {
         static var share: String { text("events.detail.share", "Поділитися") }
         static var viewOrganization: String { text("events.detail.view_organization", "Переглянути організацію") }
         static var genericEventBadge: String { text("events.detail.generic_badge", "Подія") }
+        static var cancelledNoticeTitle: String { text("events.detail.cancelled_notice.title", "Event cancelled") }
+        static var cancelledNoticeBody: String { text("events.detail.cancelled_notice.body", "This event is no longer taking place.") }
         static var expectedParticipants: String { text("events.detail.expected_participants", "Очікувано учасників") }
         static var registrationNotRequired: String { text("events.detail.registration_not_required", "Registration is not required") }
         static var registrationManagementTitle: String { text("events.detail.registration_management.title", "Registered participants") }
@@ -1152,18 +1154,22 @@ enum AppStrings {
         static var showMore: String { text("owner_analytics.show_more", "Show more") }
         static var showLess: String { text("owner_analytics.show_less", "Show less") }
         static var overviewTitle: String { text("owner_analytics.overview.title", "Overview") }
-        static var activityOverviewTitle: String { text("owner_analytics.activity_overview.title", "Activity overview") }
+        static var activityOverviewTitle: String { text("owner_analytics.activity_overview.title", "Views by content type") }
         static var todaySummarySubtitle: String { text("owner_analytics.overview.today_subtitle", "Metrics for today") }
         static var sevenDaysSummarySubtitle: String { text("owner_analytics.overview.seven_days_subtitle", "Metrics for the last 7 days") }
         static var thirtyDaysSummarySubtitle: String { text("owner_analytics.overview.thirty_days_subtitle", "Metrics for the last 30 days") }
         static var totalViews: String { text("owner_analytics.metric.total_views", "Total views") }
+        static var deltaNoChange: String { text("owner_analytics.delta.no_change", "No change") }
+        static func deltaVsPreviousPeriod(_ value: String) -> String {
+            String(format: text("owner_analytics.delta.vs_previous_period", "%@ vs previous period"), value)
+        }
         static var newsViews: String { text("owner_analytics.metric.news_views", "News views") }
         static var eventViews: String { text("owner_analytics.metric.event_views", "Event views") }
-        static var organizationViews: String { text("owner_analytics.metric.organization_views", "Organization views") }
+        static var organizationViews: String { text("owner_analytics.metric.organization_views", "Organization profile views") }
         static var guideViews: String { text("owner_analytics.metric.guide_views", "Guide views") }
-        static var activeRegions: String { text("owner_analytics.metric.active_regions", "Regions") }
-        static var actionsOverviewTitle: String { text("owner_analytics.actions.title", "Actions") }
-        static var actionsOverviewSubtitle: String { text("owner_analytics.actions.subtitle", "Likes, saves, registrations, and follows") }
+        static var activeRegions: String { text("owner_analytics.metric.active_regions", "Active regions") }
+        static var actionsOverviewTitle: String { text("owner_analytics.actions.title", "Engagement and churn") }
+        static var actionsOverviewSubtitle: String { text("owner_analytics.actions.subtitle", "Likes, saves, registrations, follows, cancellations, and unfollows") }
         static var actionsOverviewEmpty: String { text("owner_analytics.actions.empty", "Action analytics will appear after users like, save, register, or follow content.") }
         static var totalLikes: String { text("owner_analytics.actions.total_likes", "Likes") }
         static var totalBookmarks: String { text("owner_analytics.actions.total_bookmarks", "Saves") }

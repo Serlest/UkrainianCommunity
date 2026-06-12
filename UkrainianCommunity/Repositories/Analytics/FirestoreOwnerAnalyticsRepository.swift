@@ -13,6 +13,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
     func fetchSnapshot(period: AnalyticsPeriod) async throws -> OwnerAnalyticsSnapshot {
         do {
             let dailyStats = try await fetchDailyStats(for: period)
+            let previousDailyStats = try await fetchPreviousDailyStats(for: period)
             async let topContentLoad = fetchTopContent(period: period)
             async let regionStatsLoad = fetchRegionStats(period: period)
             async let userStatsLoad = fetchUserStats(period: period)
@@ -24,7 +25,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             return OwnerAnalyticsSnapshot(
                 period: period,
                 generatedAt: Date(),
-                summaryStats: makeSummaryStats(from: dailyStats),
+                summaryStats: makeSummaryStats(from: dailyStats, previousDailyStats: previousDailyStats),
                 dailyStats: dailyStats,
                 topContent: topContent,
                 regionStats: regionStats,
@@ -140,9 +141,22 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
     }
 
     private func fetchDailyStats(for period: AnalyticsPeriod) async throws -> [AnalyticsDailyStats] {
+        try await fetchDailyStats(for: dates(for: period))
+    }
+
+    private func fetchPreviousDailyStats(for period: AnalyticsPeriod) async throws -> [AnalyticsDailyStats] {
+        let today = calendar.startOfDay(for: Date())
+        guard let previousWindowEnd = calendar.date(byAdding: .day, value: -period.dayCount, to: today) else {
+            return []
+        }
+
+        return try await fetchDailyStats(for: dates(endingAt: previousWindowEnd, dayCount: period.dayCount))
+    }
+
+    private func fetchDailyStats(for dates: [Date]) async throws -> [AnalyticsDailyStats] {
         var stats: [AnalyticsDailyStats] = []
 
-        for date in dates(for: period) {
+        for date in dates {
             let snapshot = try await database
                 .collection(AnalyticsFirestoreSchema.Collection.dailyStats)
                 .document(AnalyticsFirestoreSchema.dailyDocumentID(for: date, calendar: calendar))
@@ -481,7 +495,10 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         return itemsByKey.values.compactMap { $0 as? [String: Any] }
     }
 
-    private func makeSummaryStats(from dailyStats: [AnalyticsDailyStats]) -> [AnalyticsSummaryStats] {
+    private func makeSummaryStats(
+        from dailyStats: [AnalyticsDailyStats],
+        previousDailyStats: [AnalyticsDailyStats]
+    ) -> [AnalyticsSummaryStats] {
         let includedMetrics: [AnalyticsMetricType] = [
             .totalViews,
             .newsViews,
@@ -492,19 +509,20 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         ]
 
         return includedMetrics.map { metricType in
-            let value: Int
-            if metricType == .activeRegions {
-                value = dailyStats.map { $0.value(for: metricType) }.max() ?? 0
-            } else {
-                value = dailyStats.map { $0.value(for: metricType) }.reduce(0, +)
-            }
-
             return AnalyticsSummaryStats(
                 metricType: metricType,
-                value: value,
-                previousValue: nil
+                value: summaryValue(for: metricType, in: dailyStats),
+                previousValue: summaryValue(for: metricType, in: previousDailyStats)
             )
         }
+    }
+
+    private func summaryValue(for metricType: AnalyticsMetricType, in dailyStats: [AnalyticsDailyStats]) -> Int {
+        if metricType == .activeRegions {
+            return dailyStats.map { $0.value(for: metricType) }.max() ?? 0
+        }
+
+        return dailyStats.map { $0.value(for: metricType) }.reduce(0, +)
     }
 
     private func metricValues(from data: [String: Any]) -> [AnalyticsMetricType: Int] {
@@ -542,8 +560,13 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
 
     private func dates(for period: AnalyticsPeriod) -> [Date] {
         let today = calendar.startOfDay(for: Date())
-        return (0..<period.dayCount).reversed().compactMap { offset in
-            calendar.date(byAdding: .day, value: -offset, to: today)
+        return dates(endingAt: today, dayCount: period.dayCount)
+    }
+
+    private func dates(endingAt endDate: Date, dayCount: Int) -> [Date] {
+        let normalizedEndDate = calendar.startOfDay(for: endDate)
+        return (0..<dayCount).reversed().compactMap { offset in
+            calendar.date(byAdding: .day, value: -offset, to: normalizedEndDate)
         }
     }
 

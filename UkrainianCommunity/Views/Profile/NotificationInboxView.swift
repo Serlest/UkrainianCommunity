@@ -239,6 +239,12 @@ private struct NotificationInboxRow: View {
             return "calendar.badge.clock"
         case .eventCancelled:
             return "calendar.badge.exclamationmark"
+        case .eventRegistrationConfirmed:
+            return "calendar.badge.checkmark"
+        case .organizationNewsPublished:
+            return "newspaper"
+        case .organizationEventPublished:
+            return "calendar.badge.plus"
         case .guideMaterialUpdated:
             return "book.pages"
         case .systemAnnouncement, .unknown:

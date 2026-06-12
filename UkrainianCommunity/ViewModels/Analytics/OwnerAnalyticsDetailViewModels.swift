@@ -27,7 +27,7 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
     private let contentID: String
     private let contentType: AnalyticsContentType
     private let initialTitle: String
-    private var loadedPeriods: Set<AnalyticsPeriod> = []
+    private var snapshotByPeriod: [AnalyticsPeriod: AnalyticsContentDetailSnapshot] = [:]
 
     init(
         repository: OwnerAnalyticsRepository,
@@ -118,24 +118,33 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
-        guard !loadedPeriods.contains(selectedPeriod) else { return }
+        if let cachedSnapshot = snapshotByPeriod[selectedPeriod] {
+            snapshot = cachedSnapshot
+            errorMessage = nil
+            return
+        }
+
         await load()
     }
 
     func load() async {
+        let period = selectedPeriod
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            snapshot = try await repository.fetchContentDetail(
-                period: selectedPeriod,
+            let loadedSnapshot = try await repository.fetchContentDetail(
+                period: period,
                 contentID: contentID,
                 contentType: contentType
             )
-            loadedPeriods.insert(selectedPeriod)
+            snapshotByPeriod[period] = loadedSnapshot
+            guard selectedPeriod == period else { return }
+            snapshot = loadedSnapshot
         } catch {
-            snapshot = .empty(period: selectedPeriod, contentID: contentID, contentType: contentType)
+            guard selectedPeriod == period else { return }
+            snapshot = .empty(period: period, contentID: contentID, contentType: contentType)
             errorMessage = Self.readableErrorMessage(for: error)
         }
     }
@@ -143,6 +152,12 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
     func selectPeriod(_ period: AnalyticsPeriod) async {
         guard selectedPeriod != period else { return }
         selectedPeriod = period
+        errorMessage = nil
+        if let cachedSnapshot = snapshotByPeriod[period] {
+            snapshot = cachedSnapshot
+            return
+        }
+
         snapshot = .empty(period: period, contentID: contentID, contentType: contentType)
         await loadIfNeeded()
     }
@@ -179,7 +194,7 @@ final class AnalyticsOrganizationDetailViewModel: ObservableObject {
     private let initialTitle: String
     private let collapsedTopContentLimit = 3
     private let expandedTopContentLimit = 10
-    private var loadedPeriods: Set<AnalyticsPeriod> = []
+    private var snapshotByPeriod: [AnalyticsPeriod: AnalyticsOrganizationDetailSnapshot] = [:]
     @Published private var isTopNewsExpanded = false
     @Published private var isTopEventsExpanded = false
 
@@ -262,20 +277,29 @@ final class AnalyticsOrganizationDetailViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
-        guard !loadedPeriods.contains(selectedPeriod) else { return }
+        if let cachedSnapshot = snapshotByPeriod[selectedPeriod] {
+            snapshot = cachedSnapshot
+            errorMessage = nil
+            return
+        }
+
         await load()
     }
 
     func load() async {
+        let period = selectedPeriod
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            snapshot = try await repository.fetchOrganizationDetail(period: selectedPeriod, organizationID: organizationID)
-            loadedPeriods.insert(selectedPeriod)
+            let loadedSnapshot = try await repository.fetchOrganizationDetail(period: period, organizationID: organizationID)
+            snapshotByPeriod[period] = loadedSnapshot
+            guard selectedPeriod == period else { return }
+            snapshot = loadedSnapshot
         } catch {
-            snapshot = .empty(period: selectedPeriod, organizationID: organizationID)
+            guard selectedPeriod == period else { return }
+            snapshot = .empty(period: period, organizationID: organizationID)
             errorMessage = Self.readableErrorMessage(for: error)
         }
     }
@@ -283,6 +307,12 @@ final class AnalyticsOrganizationDetailViewModel: ObservableObject {
     func selectPeriod(_ period: AnalyticsPeriod) async {
         guard selectedPeriod != period else { return }
         selectedPeriod = period
+        errorMessage = nil
+        if let cachedSnapshot = snapshotByPeriod[period] {
+            snapshot = cachedSnapshot
+            return
+        }
+
         snapshot = .empty(period: period, organizationID: organizationID)
         await loadIfNeeded()
     }

@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-nonisolated private let featuredBannerRefreshStaleInterval: TimeInterval = 1_800
+nonisolated let featuredBannerRefreshStaleInterval: TimeInterval = 1_800
 
 @MainActor
 final class FeaturedBannerListViewModel: ObservableObject {
@@ -9,34 +9,25 @@ final class FeaturedBannerListViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
 
-    private struct BannerQuery: Hashable {
-        let section: FeaturedBannerVisibleSection
-        let federalState: AustrianFederalState?
-    }
-
-    private struct CachedBanners {
-        let banners: [FeaturedBanner]
-        let lastLoadedAt: Date
-    }
-
     private let repository: FeaturedBannerRepository
-    private var cache: [BannerQuery: CachedBanners] = [:]
-    private var loadTasks: [BannerQuery: Task<Void, Never>] = [:]
-    private var loadingQueries = Set<BannerQuery>()
-    private var currentQuery: BannerQuery?
+    private let cache: FeaturedBannerCache
+    private var loadTasks: [FeaturedBannerCache.Key: Task<Void, Never>] = [:]
+    private var loadingQueries = Set<FeaturedBannerCache.Key>()
+    private var currentQuery: FeaturedBannerCache.Key?
 
-    init(repository: FeaturedBannerRepository) {
+    init(repository: FeaturedBannerRepository, cache: FeaturedBannerCache) {
         self.repository = repository
+        self.cache = cache
     }
 
     func loadIfNeeded(
         for section: FeaturedBannerVisibleSection,
         federalState: AustrianFederalState?
     ) async {
-        let query = BannerQuery(section: section, federalState: federalState)
+        let query = FeaturedBannerCache.Key(section: section, federalState: federalState)
         currentQuery = query
 
-        if let cached = cache[query] {
+        if let cached = cache.entry(for: query, maxAge: featuredBannerRefreshStaleInterval) {
             applyCachedBanners(cached, for: query)
             return
         }
@@ -48,7 +39,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         for section: FeaturedBannerVisibleSection,
         federalState: AustrianFederalState?
     ) async {
-        let query = BannerQuery(section: section, federalState: federalState)
+        let query = FeaturedBannerCache.Key(section: section, federalState: federalState)
         currentQuery = query
         await startLoad(for: query, force: true)
     }
@@ -58,17 +49,15 @@ final class FeaturedBannerListViewModel: ObservableObject {
         federalState: AustrianFederalState?,
         maxAge: TimeInterval = featuredBannerRefreshStaleInterval
     ) async {
-        let query = BannerQuery(section: section, federalState: federalState)
+        let query = FeaturedBannerCache.Key(section: section, federalState: federalState)
         currentQuery = query
 
-        guard let cached = cache[query] else {
-            await startLoad(for: query, force: false)
+        guard let cached = cache.entry(for: query, maxAge: maxAge) else {
+            await startLoad(for: query, force: false, maxAge: maxAge)
             return
         }
 
         applyCachedBanners(cached, for: query)
-        guard Date().timeIntervalSince(cached.lastLoadedAt) > maxAge else { return }
-        await startLoad(for: query, force: true)
     }
 
     func loadActiveBanners(
@@ -78,15 +67,19 @@ final class FeaturedBannerListViewModel: ObservableObject {
         await refresh(for: section, federalState: federalState)
     }
 
-    private func startLoad(for query: BannerQuery, force: Bool) async {
-        if !force, let cached = cache[query] {
+    private func startLoad(
+        for query: FeaturedBannerCache.Key,
+        force: Bool,
+        maxAge: TimeInterval = featuredBannerRefreshStaleInterval
+    ) async {
+        if !force, let cached = cache.entry(for: query, maxAge: maxAge) {
             applyCachedBanners(cached, for: query)
             return
         }
 
         if let loadTask = loadTasks[query] {
             await loadTask.value
-            if let cached = cache[query] {
+            if let cached = cache.entry(for: query, maxAge: maxAge) {
                 applyCachedBanners(cached, for: query)
             }
             return
@@ -106,7 +99,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         updateLoadingState()
     }
 
-    private func performLoad(for query: BannerQuery) async {
+    private func performLoad(for query: FeaturedBannerCache.Key) async {
         do {
             let loadedBanners = try await repository.fetchActiveBanners(
                 for: query.section,
@@ -114,8 +107,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
             )
             guard !Task.isCancelled else { return }
 
-            let cached = CachedBanners(banners: loadedBanners, lastLoadedAt: Date())
-            cache[query] = cached
+            let cached = cache.store(loadedBanners, for: query)
             applyCachedBanners(cached, for: query)
             error = nil
         } catch is CancellationError {
@@ -128,7 +120,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         }
     }
 
-    private func applyCachedBanners(_ cached: CachedBanners, for query: BannerQuery) {
+    private func applyCachedBanners(_ cached: FeaturedBannerCache.Entry, for query: FeaturedBannerCache.Key) {
         guard currentQuery == query else { return }
         banners = cached.banners
     }

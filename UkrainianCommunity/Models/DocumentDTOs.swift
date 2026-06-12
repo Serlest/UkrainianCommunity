@@ -180,6 +180,9 @@ struct EventDTO: Codable, Identifiable {
     let visibility: String?
     let isAllDay: Bool?
     let isBookmarked: Bool
+    let cancellationState: String?
+    let cancelledAt: Date?
+    let cancellationReason: String?
 }
 
 struct OrganizationDTO: Codable, Identifiable {
@@ -530,7 +533,10 @@ extension Event {
             tags: dto.tags ?? [],
             isAllDay: dto.isAllDay ?? false,
             isBookmarked: dto.isBookmarked,
-            commentCount: dto.commentCount
+            commentCount: dto.commentCount,
+            cancellationState: dto.cancellationState,
+            cancelledAt: dto.cancelledAt,
+            cancellationReason: dto.cancellationReason
         )
     }
 
@@ -579,7 +585,10 @@ extension Event {
             tags: tags,
             visibility: "public",
             isAllDay: isAllDay,
-            isBookmarked: isBookmarked
+            isBookmarked: isBookmarked,
+            cancellationState: cancellationState,
+            cancelledAt: cancelledAt,
+            cancellationReason: cancellationReason
         )
     }
 }

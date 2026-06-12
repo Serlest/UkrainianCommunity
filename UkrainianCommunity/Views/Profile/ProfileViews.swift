@@ -38,6 +38,7 @@ struct ProfileView: View {
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
     private let featuredBannerRepository: FeaturedBannerRepository
+    private let featuredBannerCache: FeaturedBannerCache
     private let legalDocumentRepository: LegalDocumentRepository
     private let ownerAnalyticsRepository: OwnerAnalyticsRepository
     private let donationConfigRepository: DonationConfigRepository
@@ -50,7 +51,8 @@ struct ProfileView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @StateObject private var registrationsViewModel: MyRegistrationsViewModel
     @StateObject private var myFeedbackViewModel: MyFeedbackViewModel
-    @StateObject private var ownerOrganizationsViewModel: OrganizationsViewModel
+    @StateObject private var recentViewsViewModel: RecentViewsViewModel
+    @StateObject private var activityLogViewModel: ActivityLogViewModel
     @StateObject private var ownerVisibilityViewModel: OwnerProfileVisibilityViewModel
     @StateObject private var donationConfigViewModel: DonationConfigViewModel
     @ObservedObject private var notificationInboxViewModel: NotificationInboxViewModel
@@ -95,6 +97,7 @@ struct ProfileView: View {
         organizationsViewModel: OrganizationsViewModel? = nil,
         guideReaderViewModel: GuideReaderViewModel? = nil,
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         ownerAnalyticsRepository: OwnerAnalyticsRepository = FirestoreOwnerAnalyticsRepository(),
         donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
@@ -119,6 +122,7 @@ struct ProfileView: View {
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
         self.guideReaderViewModel = guideReaderViewModel ?? GuideReaderViewModel(repository: FirestoreGuideRepository())
         self.featuredBannerRepository = featuredBannerRepository
+        self.featuredBannerCache = featuredBannerCache
         self.legalDocumentRepository = legalDocumentRepository
         self.ownerAnalyticsRepository = ownerAnalyticsRepository
         self.donationConfigRepository = donationConfigRepository
@@ -135,10 +139,8 @@ struct ProfileView: View {
             localEventReminderService: localEventReminderService
         ))
         _myFeedbackViewModel = StateObject(wrappedValue: MyFeedbackViewModel(repository: feedbackRepository))
-        _ownerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(
-            repository: organizationRepository,
-            notificationInboxRepository: notificationInboxRepository
-        ))
+        _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: FirestoreRecentViewsRepository()))
+        _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: FirestoreActivityLogRepository()))
         _ownerVisibilityViewModel = StateObject(wrappedValue: OwnerProfileVisibilityViewModel(
             feedbackRepository: feedbackRepository,
             organizationRepository: organizationRepository
@@ -186,7 +188,7 @@ struct ProfileView: View {
             return true
         }
         if !PermissionService.manageableOrganizations(
-            from: ownerOrganizationsViewModel.organizations,
+            from: organizationsViewModel.organizations,
             user: user
         ).isEmpty {
             return true
@@ -405,8 +407,8 @@ struct ProfileView: View {
                     await myFeedbackViewModel.loadIfNeeded(userID: userID)
                     await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)
                 }
-                await ownerOrganizationsViewModel.loadIfNeeded()
-                await ownerOrganizationsViewModel.refreshIfStale()
+                await organizationsViewModel.loadIfNeeded()
+                await organizationsViewModel.refreshIfStale()
                 await guideReaderViewModel.loadSavedMaterialsIfNeeded()
                 await loadOwnerVisibilityIfAllowed()
             } else {
@@ -425,7 +427,7 @@ struct ProfileView: View {
                     await notificationInboxViewModel.refresh()
                     await viewModel.refreshNotificationPreferences(userID: userID)
                 }
-                await ownerOrganizationsViewModel.refresh()
+                await organizationsViewModel.refresh()
                 await guideReaderViewModel.refreshSavedMaterials()
                 await refreshOwnerVisibilityIfAllowed()
             }
@@ -438,13 +440,12 @@ struct ProfileView: View {
                         await myFeedbackViewModel.refresh(userID: userID)
                         await viewModel.refreshNotificationPreferences(userID: userID)
                     }
-                    await ownerOrganizationsViewModel.refresh()
+                    await organizationsViewModel.refresh()
                     await guideReaderViewModel.refreshSavedMaterials()
                     await refreshOwnerVisibilityIfAllowed()
                 } else {
                     registrationsViewModel.resetForGuest()
                     myFeedbackViewModel.reset()
-                    ownerOrganizationsViewModel.resetForAuthChange()
                     ownerVisibilityViewModel.reset()
                     feedbackMessage = ""
                     selectedFeedbackType = .question
@@ -456,13 +457,12 @@ struct ProfileView: View {
             Task {
                 registrationsViewModel.resetForAuthChange()
                 myFeedbackViewModel.reset()
-                ownerOrganizationsViewModel.resetForAuthChange()
                 ownerVisibilityViewModel.reset()
                 guard let newUserID else { return }
                 await registrationsViewModel.refresh()
                 await myFeedbackViewModel.refresh(userID: newUserID)
                 await viewModel.refreshNotificationPreferences(userID: newUserID)
-                await ownerOrganizationsViewModel.refresh()
+                await organizationsViewModel.refresh()
                 await refreshOwnerVisibilityIfAllowed()
             }
         }
@@ -473,7 +473,7 @@ struct ProfileView: View {
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             guard authState.isAuthenticated else { return }
             Task {
-                await ownerOrganizationsViewModel.refresh()
+                await organizationsViewModel.refresh()
                 await refreshOwnerVisibilityIfAllowed()
             }
         }
@@ -578,7 +578,12 @@ struct ProfileView: View {
     private func profileDestination(for route: ProfileNavigationRoute) -> some View {
         switch route {
         case .organizationManagement:
-            OrganizationManagementHubView()
+            OrganizationManagementHubView(
+                organizationsViewModel: organizationsViewModel,
+                repository: organizationRepository,
+                newsRepository: newsRepository,
+                eventRepository: eventRepository
+            )
         case .registrations:
             MyRegistrationsView(
                 viewModel: registrationsViewModel,
@@ -600,12 +605,14 @@ struct ProfileView: View {
             )
         case .recentViews:
             RecentViewsView(
+                recentViewsViewModel: recentViewsViewModel,
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel
             )
         case .activityHistory:
             ActivityHistoryView(
+                activityLogViewModel: activityLogViewModel,
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel
@@ -622,6 +629,7 @@ struct ProfileView: View {
         case .featuredBannerManagement:
             FeaturedBannerManagementView(
                 repository: featuredBannerRepository,
+                publicCache: featuredBannerCache,
                 newsRepository: newsRepository,
                 eventRepository: eventRepository,
                 organizationRepository: organizationRepository
@@ -1063,7 +1071,7 @@ struct ProfileView: View {
 
     private func profileOrganizationCount(for user: AppUser) -> Int {
         let organizationCount = PermissionService.manageableOrganizations(
-            from: ownerOrganizationsViewModel.organizations,
+            from: organizationsViewModel.organizations,
             user: user
         ).count
         return organizationCount

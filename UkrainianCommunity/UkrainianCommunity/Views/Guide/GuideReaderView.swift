@@ -16,12 +16,14 @@ struct GuideReaderView: View {
     @State private var guestAccessAction: GuestAccessAction?
     @State private var saveError: AppError?
     @State private var presentedBannerCategory: GuideCategory?
+    @State private var presentedGuideNodeRoute: GuideNodeNavigationRoute?
     @State private var presentedGuideMaterialRoute: GuideMaterialNavigationRoute?
     @State private var guideMaterialRouteError: AppError?
     @Binding private var guideBannerCategoryTarget: GuideCategory?
     @Binding private var guideMaterialTargetID: String?
     private let feedbackRepository: FeedbackRepository
     private let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    private let navigationResetToken: Int
     private let scrollResetToken: Int
 
     private let categoryColumns = [
@@ -32,20 +34,26 @@ struct GuideReaderView: View {
     init(
         viewModel: GuideReaderViewModel,
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         feedbackRepository: FeedbackRepository = FirestoreFeedbackRepository(),
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
         guideBannerCategoryTarget: Binding<GuideCategory?> = .constant(nil),
         guideMaterialTargetID: Binding<String?> = .constant(nil),
+        navigationResetToken: Int = 0,
         scrollResetToken: Int = 0
     ) {
         _viewModel = ObservedObject(wrappedValue: viewModel)
         _featuredBannerViewModel = StateObject(
-            wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository)
+            wrappedValue: FeaturedBannerListViewModel(
+                repository: featuredBannerRepository,
+                cache: featuredBannerCache
+            )
         )
         _guideBannerCategoryTarget = guideBannerCategoryTarget
         _guideMaterialTargetID = guideMaterialTargetID
         self.feedbackRepository = feedbackRepository
         self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.navigationResetToken = navigationResetToken
         self.scrollResetToken = scrollResetToken
     }
 
@@ -94,6 +102,9 @@ struct GuideReaderView: View {
             guard let materialID = newValue else { return }
             handleGuideMaterialTarget(materialID)
         }
+        .onChange(of: navigationResetToken) { _, _ in
+            resetNavigationState()
+        }
         .onChange(of: searchPlaceholderText) { _, _ in
             triggerSearchDebounce()
         }
@@ -132,6 +143,13 @@ struct GuideReaderView: View {
                 viewModel: viewModel.makeChildViewModel()
             )
         }
+        .navigationDestination(item: $presentedGuideNodeRoute) { route in
+            GuideSectionDetailView(
+                node: route.node,
+                viewModel: viewModel.makeChildViewModel(),
+                feedbackRepository: feedbackRepository
+            )
+        }
         .navigationDestination(item: $presentedGuideMaterialRoute) { route in
             GuideMaterialDetailView(
                 material: route.material,
@@ -152,6 +170,7 @@ struct GuideReaderView: View {
                     .padding(.horizontal, AppTheme.pageHorizontal)
                     .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
                 withAnimation(.easeInOut(duration: 0.22)) {
                     scrollProxy.scrollTo(guideRootScrollTopID, anchor: .top)
@@ -253,11 +272,8 @@ struct GuideReaderView: View {
 
             LazyVGrid(columns: categoryColumns, alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 ForEach(GuideCategoryPresentation.publicTopLevelCategories) { category in
-                    NavigationLink {
-                        GuideCategoryDetailView(
-                            category: category,
-                            viewModel: viewModel.makeChildViewModel()
-                        )
+                    Button {
+                        presentedBannerCategory = category
                     } label: {
                         GuideCategoryLinkCard(
                             title: GuideCategoryPresentation.publicTitle(for: category),
@@ -297,11 +313,8 @@ struct GuideReaderView: View {
 
                         LazyVGrid(columns: categoryColumns, alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                             ForEach(searchResults.categories) { category in
-                                NavigationLink {
-                                    GuideCategoryDetailView(
-                                        category: category,
-                                        viewModel: viewModel.makeChildViewModel()
-                                    )
+                                Button {
+                                    presentedBannerCategory = category
                                 } label: {
                                     GuideCategoryLinkCard(
                                         title: GuideCategoryPresentation.publicTitle(for: category),
@@ -319,12 +332,8 @@ struct GuideReaderView: View {
                         SectionHeaderBlock(title: GuideCategoryPresentation.searchNodesTitle)
 
                         ForEach(searchResults.nodes) { node in
-                            NavigationLink {
-                                GuideSectionDetailView(
-                                    node: node,
-                                    viewModel: viewModel.makeChildViewModel(),
-                                    feedbackRepository: feedbackRepository
-                                )
+                            Button {
+                                presentedGuideNodeRoute = GuideNodeNavigationRoute(node: node)
                             } label: {
                                 GuideSectionCard(node: node)
                             }
@@ -342,11 +351,9 @@ struct GuideReaderView: View {
                                 material: material,
                                 isSaved: viewModel.isMaterialSaved(material.id),
                                 isSavePending: viewModel.isMaterialSavePending(material.id),
-                                destination: GuideMaterialDetailView(
-                                    material: material,
-                                    viewModel: viewModel,
-                                    feedbackRepository: feedbackRepository
-                                ),
+                                openMaterial: {
+                                    presentedGuideMaterialRoute = GuideMaterialNavigationRoute(material: material)
+                                },
                                 onToggleSaved: {
                                     handleSavedToggle(for: material)
                                 }
@@ -380,11 +387,9 @@ struct GuideReaderView: View {
                         material: material,
                         isSaved: true,
                         isSavePending: viewModel.isMaterialSavePending(material.id),
-                        destination: GuideMaterialDetailView(
-                            material: material,
-                            viewModel: viewModel,
-                            feedbackRepository: feedbackRepository
-                        ),
+                        openMaterial: {
+                            presentedGuideMaterialRoute = GuideMaterialNavigationRoute(material: material)
+                        },
                         onToggleSaved: {
                             handleSavedToggle(for: material)
                         }
@@ -424,7 +429,7 @@ struct GuideReaderView: View {
         searchDebounceTask?.cancel()
 
         let trimmedQuery = searchPlaceholderText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else {
+        guard trimmedQuery.count >= guideMinimumSearchQueryLength else {
             isSearchLoading = false
             searchError = nil
             searchResults = .empty
@@ -497,6 +502,23 @@ struct GuideReaderView: View {
         isSavedFilterSelected = false
         presentedBannerCategory = category
         guideBannerCategoryTarget = nil
+    }
+
+    private func resetNavigationState() {
+        searchDebounceTask?.cancel()
+        searchDebounceTask = nil
+        isSearchPresented = false
+        searchPlaceholderText = ""
+        searchResults = .empty
+        isSearchLoading = false
+        searchError = nil
+        isSavedFilterSelected = false
+        presentedBannerCategory = nil
+        presentedGuideNodeRoute = nil
+        presentedGuideMaterialRoute = nil
+        guideMaterialRouteError = nil
+        guideBannerCategoryTarget = nil
+        guideMaterialTargetID = nil
     }
 
     private func handleGuideMaterialTarget(_ materialID: String) {
@@ -575,6 +597,20 @@ private struct GuideMaterialNavigationRoute: Identifiable, Hashable {
     }
 }
 
+private struct GuideNodeNavigationRoute: Identifiable, Hashable {
+    let node: GuideNode
+
+    var id: String { node.id }
+
+    static func == (lhs: GuideNodeNavigationRoute, rhs: GuideNodeNavigationRoute) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
 private struct GuideCategoryLinkCard: View {
     let title: String
     let systemImage: String
@@ -607,16 +643,16 @@ private struct GuideCategoryLinkCard: View {
     }
 }
 
-private struct GuideMaterialResultRow<Destination: View>: View {
+private struct GuideMaterialResultRow: View {
     let material: GuideMaterial
     let isSaved: Bool
     let isSavePending: Bool
-    let destination: Destination
+    let openMaterial: () -> Void
     let onToggleSaved: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacingRelaxed) {
-            NavigationLink(destination: destination) {
+            Button(action: openMaterial) {
                 GuideMaterialCard(material: material)
             }
             .buttonStyle(.plain)

@@ -7,6 +7,8 @@ import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
   type NotificationSeverity,
+  resolveNotificationRecipients,
+  type WriteNotificationInput,
   writeUserNotification,
 } from "../notifications/notificationPayloads";
 import {
@@ -236,6 +238,23 @@ function accountStatusNotificationSeverity(status: AccountStatus): NotificationS
   return status === "active" ? "success" : "warning";
 }
 
+async function writeAccountStatusNotification(
+  input: WriteNotificationInput,
+  status: AccountStatus
+): Promise<void> {
+  if (["suspendedUntil", "bannedPermanent", "deactivated"].includes(status)) {
+    await writeUserNotification(input);
+    return;
+  }
+
+  const recipients = await resolveNotificationRecipients([input.targetUserId]);
+  if (!recipients.inboxRecipientIds.includes(input.targetUserId)) {
+    return;
+  }
+
+  await writeUserNotification(input);
+}
+
 function createAccountStatusCallable(mutation: AccountStatusMutation) {
   return onCall(callableOptions, async (request): Promise<AccountStatusChangeResponse> => {
     const auth = requireAuth(request);
@@ -324,7 +343,15 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
       }));
     });
 
-    await writeUserNotification({
+    await writeAccountStatusNotification({
+      notificationId: [
+        "accountStatusChanged",
+        statusRequest.targetUserId,
+        newAccountStatus,
+        String(warningCount),
+        banExpiresAt ?? "none",
+        statusRequest.targetUserId,
+      ].join("_"),
       targetUserId: statusRequest.targetUserId,
       type: "accountStatusChanged",
       title: accountStatusNotificationTitle(newAccountStatus),
@@ -353,7 +380,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
         String(warningCount),
         banExpiresAt ?? "none",
       ].join(":"),
-    });
+    }, newAccountStatus);
 
     return {
       targetUserId: statusRequest.targetUserId,
@@ -515,7 +542,15 @@ export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, a
 
   if (restoredCount > 0) {
     await batch.commit();
-    await Promise.all(restoredUsers.map((restoredUser) => writeUserNotification({
+    await Promise.all(restoredUsers.map((restoredUser) => writeAccountStatusNotification({
+      notificationId: [
+        "accountStatusChanged",
+        restoredUser.userId,
+        "active",
+        "expiredSuspension",
+        restoredUser.expiredAt ?? "none",
+        restoredUser.userId,
+      ].join("_"),
       targetUserId: restoredUser.userId,
       type: "accountStatusChanged",
       title: accountStatusNotificationTitle("active"),
@@ -546,6 +581,6 @@ export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, a
         "expiredSuspension",
         restoredUser.expiredAt ?? "none",
       ].join(":"),
-    })));
+    }, "active")));
   }
 });

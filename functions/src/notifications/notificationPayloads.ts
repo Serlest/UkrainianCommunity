@@ -4,9 +4,12 @@ import { db } from "../firebase/admin";
 
 export type NotificationType =
   | "accountStatusChanged"
+  | "feedbackSubmitted"
   | "feedbackReply"
   | "guideMaterialUpdated"
   | "legalDocumentsUpdated"
+  | "organizationEventPublished"
+  | "organizationNewsPublished"
   | "organizationRequestApproved"
   | "organizationRequestNeedsRevision"
   | "organizationRequestRejected"
@@ -17,12 +20,14 @@ export type NotificationType =
   | "roleChanged"
   | "systemAnnouncement"
   | "eventUpdated"
-  | "eventCancelled";
+  | "eventCancelled"
+  | "eventRegistrationConfirmed";
 
 export type NotificationSeverity = "info" | "success" | "warning" | "critical";
 
 export type NotificationActionType =
   | "none"
+  | "openNews"
   | "openEvent"
   | "openFeedback"
   | "openGuideMaterial"
@@ -33,15 +38,32 @@ export type NotificationActionType =
   | "openProfile"
   | "openURL";
 
-type NotificationSourceType =
+export type NotificationSourceType =
   | "account"
   | "event"
   | "feedback"
   | "guide"
   | "legal"
+  | "news"
   | "organization"
   | "profile"
   | "system";
+
+export interface NotificationDataPayloadInput {
+  notificationId: string;
+  type: NotificationType;
+  sourceType: NotificationSourceType;
+  sourceId: string;
+  actionType: NotificationActionType;
+  actionTargetId?: string;
+  route?: string;
+  routeTargetId?: string;
+}
+
+export interface NotificationRecipientResolution {
+  inboxRecipientIds: string[];
+  pushRecipientIds: string[];
+}
 
 interface NotificationDocumentInput {
   id: string;
@@ -63,6 +85,7 @@ interface NotificationDocumentInput {
 }
 
 export interface WriteNotificationInput {
+  notificationId: string;
   targetUserId: string;
   type: NotificationType;
   title: string;
@@ -117,50 +140,109 @@ export function buildNotification(input: NotificationInput) {
   };
 }
 
-export async function writeUserNotification(
-  input: WriteNotificationInput
-): Promise<WriteNotificationResult> {
-  const inboxReference = db
-    .collection("users")
-    .doc(input.targetUserId)
-    .collection("notificationInbox");
+export function buildNotificationDataPayload(
+  input: NotificationDataPayloadInput
+): Record<string, string> {
+  const route = input.route ?? defaultRoute(input.actionType, input.sourceType);
+  const routeTargetId = input.routeTargetId ?? input.actionTargetId ?? input.sourceId;
 
-  if (input.dedupeKey) {
-    const existingNotification = await inboxReference
-      .where("dedupeKey", "==", input.dedupeKey)
-      .limit(1)
-      .get();
-
-    if (!existingNotification.empty) {
-      return {
-        notificationId: existingNotification.docs[0].id,
-        didCreate: false,
-      };
-    }
-  }
-
-  const notificationReference = inboxReference.doc();
-  await notificationReference.set(buildNotificationDocument({
-    id: notificationReference.id,
-    targetUserId: input.targetUserId,
+  return {
+    notificationId: input.notificationId,
     type: input.type,
-    title: input.title,
-    message: input.message,
-    severity: input.severity ?? defaultSeverity(input.type),
-    actionType: input.actionType ?? defaultActionType(input.type),
-    actionTargetId: input.actionTargetId,
-    requiresPopup: input.requiresPopup ?? false,
-    metadata: input.metadata,
-    dedupeKey: input.dedupeKey,
-    actorUserId: input.actorUserId,
-    actorDisplayName: input.actorDisplayName,
-    sourceType: input.sourceType ?? defaultSourceType(input.type),
-    sourceId: input.sourceId ?? input.actionTargetId,
+    sourceType: input.sourceType,
+    sourceId: input.sourceId,
+    actionType: input.actionType,
+    actionTargetId: input.actionTargetId ?? "",
+    route,
+    routeTargetId,
+  };
+}
+
+export async function resolveNotificationRecipients(
+  candidateUserIds: string[]
+): Promise<NotificationRecipientResolution> {
+  const uniqueUserIds = Array.from(new Set(candidateUserIds.filter((userId) => userId.length > 0)));
+  const recipientStates = await Promise.all(uniqueUserIds.map(async (userId) => {
+    const [userSnapshot, preferencesSnapshot] = await Promise.all([
+      db.collection("users").doc(userId).get(),
+      db.collection("users")
+        .doc(userId)
+        .collection("notificationPreferences")
+        .doc("settings")
+        .get(),
+    ]);
+
+    const userData = userSnapshot.data();
+    const accountStatus = typeof userData?.accountStatus === "string"
+      ? userData.accountStatus
+      : "active";
+    const blockState = typeof userData?.blockState === "string"
+      ? userData.blockState
+      : accountStatus;
+    const canReceiveInbox = ["active", "warned"].includes(accountStatus)
+      && ["active", "warned"].includes(blockState);
+
+    return {
+      userId,
+      canReceiveInbox,
+      canReceivePush: canReceiveInbox
+        && preferencesSnapshot.data()?.notificationsEnabled === true,
+    };
   }));
 
   return {
-    notificationId: notificationReference.id,
-    didCreate: true,
+    inboxRecipientIds: recipientStates
+      .filter((state) => state.canReceiveInbox)
+      .map((state) => state.userId),
+    pushRecipientIds: recipientStates
+      .filter((state) => state.canReceivePush)
+      .map((state) => state.userId),
+  };
+}
+
+export async function writeUserNotification(
+  input: WriteNotificationInput
+): Promise<WriteNotificationResult> {
+  const notificationReference = db
+    .collection("users")
+    .doc(input.targetUserId)
+    .collection("notificationInbox")
+    .doc(input.notificationId);
+
+  const didCreate = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(notificationReference);
+    if (snapshot.exists) {
+      return {
+        didCreate: false,
+      };
+    }
+
+    transaction.set(notificationReference, buildNotificationDocument({
+      id: input.notificationId,
+      targetUserId: input.targetUserId,
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      severity: input.severity ?? defaultSeverity(input.type),
+      actionType: input.actionType ?? defaultActionType(input.type),
+      actionTargetId: input.actionTargetId,
+      requiresPopup: input.requiresPopup ?? false,
+      metadata: input.metadata,
+      dedupeKey: input.dedupeKey,
+      actorUserId: input.actorUserId,
+      actorDisplayName: input.actorDisplayName,
+      sourceType: input.sourceType ?? defaultSourceType(input.type),
+      sourceId: input.sourceId ?? input.actionTargetId,
+    }));
+
+    return {
+      didCreate: true,
+    };
+  });
+
+  return {
+    notificationId: input.notificationId,
+    didCreate: didCreate.didCreate,
   };
 }
 
@@ -221,8 +303,12 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
       return "success";
     case "systemAnnouncement":
       return "critical";
+    case "feedbackSubmitted":
     case "feedbackReply":
     case "eventUpdated":
+    case "eventRegistrationConfirmed":
+    case "organizationEventPublished":
+    case "organizationNewsPublished":
     case "guideMaterialUpdated":
     case "legalDocumentsUpdated":
     case "organizationRoleAssigned":
@@ -235,8 +321,14 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
 
 function defaultActionType(type: NotificationType): NotificationActionType {
   switch (type) {
+    case "feedbackSubmitted":
     case "feedbackReply":
       return "openFeedback";
+    case "organizationNewsPublished":
+      return "openNews";
+    case "organizationEventPublished":
+    case "eventRegistrationConfirmed":
+      return "openEvent";
     case "guideMaterialUpdated":
       return "openGuideMaterial";
     case "eventUpdated":
@@ -264,11 +356,16 @@ function defaultActionType(type: NotificationType): NotificationActionType {
 
 function defaultSourceType(type: NotificationType): NotificationSourceType {
   switch (type) {
+    case "feedbackSubmitted":
     case "feedbackReply":
       return "feedback";
     case "eventUpdated":
     case "eventCancelled":
+    case "eventRegistrationConfirmed":
       return "event";
+    case "organizationNewsPublished":
+    case "organizationEventPublished":
+      return "organization";
     case "guideMaterialUpdated":
     case "reportReviewed":
       return "guide";
@@ -287,5 +384,50 @@ function defaultSourceType(type: NotificationType): NotificationSourceType {
       return "profile";
     case "systemAnnouncement":
       return "system";
+  }
+}
+
+function defaultRoute(
+  actionType: NotificationActionType,
+  sourceType: NotificationSourceType
+): string {
+  switch (actionType) {
+    case "openNews":
+      return "openNews";
+    case "openEvent":
+      return "openEvent";
+    case "openFeedback":
+      return "openFeedback";
+    case "openOrganization":
+    case "openOrganizationRequest":
+      return "openOrganization";
+    case "openProfile":
+      return "openProfile";
+    case "openURL":
+      return "openURL";
+    case "none":
+    case "openGuideMaterial":
+    case "openGuideReport":
+    case "openLegalDocuments":
+      break;
+  }
+
+  switch (sourceType) {
+    case "news":
+      return "openNews";
+    case "event":
+      return "openEvent";
+    case "feedback":
+      return "openFeedback";
+    case "organization":
+      return "openOrganization";
+    case "account":
+    case "profile":
+      return "openProfile";
+    case "system":
+      return "systemAnnouncement";
+    case "guide":
+    case "legal":
+      return "none";
   }
 }

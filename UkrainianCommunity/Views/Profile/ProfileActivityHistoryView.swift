@@ -51,14 +51,14 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
 
 struct ActivityHistoryView: View {
     @EnvironmentObject private var authState: AuthState
-    @StateObject private var activityLogViewModel: ActivityLogViewModel
+    @ObservedObject private var activityLogViewModel: ActivityLogViewModel
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var selectedSegment: ActivityHistorySegment = .all
-    @State private var configuredUserID: String?
 
     init(
+        activityLogViewModel: ActivityLogViewModel? = nil,
         activityLogRepository: ActivityLogRepository = FirestoreActivityLogRepository(),
         newsViewModel: NewsViewModel? = nil,
         eventsViewModel: EventsViewModel? = nil,
@@ -67,7 +67,7 @@ struct ActivityHistoryView: View {
         eventRepository: EventRepository = FirestoreEventRepository(),
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
-        _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: activityLogRepository))
+        self.activityLogViewModel = activityLogViewModel ?? ActivityLogViewModel(repository: activityLogRepository)
         self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
         self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
@@ -106,11 +106,11 @@ struct ActivityHistoryView: View {
             activityHistoryContent
         }
         .task(id: authState.user?.id) {
-            guard configuredUserID != authState.user?.id else { return }
-            configuredUserID = authState.user?.id
-            resetActivityHistoryState()
-            guard authState.isAuthenticated else { return }
-            await loadActivityHistoryIfNeeded()
+            guard let userID = authState.user?.id, authState.isAuthenticated else {
+                activityLogViewModel.resetForAuthChange()
+                return
+            }
+            await loadActivityHistoryIfNeeded(userID: userID)
         }
         .refreshable {
             await refreshActivityHistory()
@@ -142,8 +142,8 @@ struct ActivityHistoryView: View {
         }
     }
 
-    private func loadActivityHistoryIfNeeded() async {
-        async let activityLoad: Void = activityLogViewModel.loadIfNeeded()
+    private func loadActivityHistoryIfNeeded(userID: String) async {
+        async let activityLoad: Void = activityLogViewModel.loadIfNeeded(userID: userID)
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
@@ -156,10 +156,6 @@ struct ActivityHistoryView: View {
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
         _ = await (activityRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
-    }
-
-    private func resetActivityHistoryState() {
-        activityLogViewModel.resetForAuthChange()
     }
 
     private func activityHistoryErrorMessage(_ error: AppError) -> String {

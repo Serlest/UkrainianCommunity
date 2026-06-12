@@ -687,6 +687,8 @@ struct UserManagementView: View {
                 .autocorrectionDisabled()
                 .font(.subheadline)
                 .focused($isSearchFocused)
+                .submitLabel(.search)
+                .onSubmit { isSearchFocused = false }
 
             if !searchText.isEmpty {
                 Button {

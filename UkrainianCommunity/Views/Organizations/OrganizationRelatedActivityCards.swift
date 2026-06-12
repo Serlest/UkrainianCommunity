@@ -177,7 +177,7 @@ extension OrganizationDetailView {
                         retryTitle: AppStrings.Organizations.retry
                     ) {
                         Task {
-                            await refreshOrganizationActivity(for: organization)
+                            await refreshOrganizationActivity(for: organization, section: selectedSection)
                         }
                     }
                 } else {

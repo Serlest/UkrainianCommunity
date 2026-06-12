@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 struct NotificationPreferences: Codable, Equatable {
@@ -14,7 +15,7 @@ struct NotificationPreferences: Codable, Equatable {
     )
 }
 
-enum AppNotificationType: String, Codable, CaseIterable {
+enum AppNotificationType: String, Codable, CaseIterable, Sendable {
     case feedbackSubmitted
     case feedbackReply
     case organizationRequestApproved
@@ -22,18 +23,21 @@ enum AppNotificationType: String, Codable, CaseIterable {
     case organizationRequestRejected
     case accountStatusChanged
     case legalDocumentsUpdated
+    case organizationNewsPublished
+    case organizationEventPublished
     case roleChanged
     case organizationRoleAssigned
     case organizationRoleRemoved
     case reportReviewed
     case eventUpdated
     case eventCancelled
+    case eventRegistrationConfirmed
     case guideMaterialUpdated
     case systemAnnouncement
     case unknown
 }
 
-enum AppNotificationSourceType: String, Codable {
+enum AppNotificationSourceType: String, Codable, Sendable {
     case feedback
     case organization
     case account
@@ -53,8 +57,9 @@ enum AppNotificationSeverity: String, Codable, CaseIterable {
     case critical
 }
 
-enum AppNotificationActionType: String, Codable, CaseIterable {
+enum AppNotificationActionType: String, Codable, CaseIterable, Sendable {
     case none
+    case openNews
     case openFeedback
     case openOrganization
     case openOrganizationRequest
@@ -64,6 +69,194 @@ enum AppNotificationActionType: String, Codable, CaseIterable {
     case openLegalDocuments
     case openProfile
     case openURL
+}
+
+enum RemoteNotificationRouteDestination: Equatable, Sendable {
+    case openNews(newsId: String)
+    case openEvent(eventId: String)
+    case openOrganization(organizationId: String)
+    case openFeedback(feedbackId: String?)
+    case openProfile
+    case openURL(urlString: String)
+    case systemAnnouncement
+}
+
+struct RemoteNotificationRoute: Equatable, Sendable {
+    let notificationId: String?
+    let type: AppNotificationType
+    let sourceType: AppNotificationSourceType?
+    let sourceId: String?
+    let actionType: AppNotificationActionType
+    let actionTargetId: String?
+    let destination: RemoteNotificationRouteDestination
+
+    init?(
+        notificationId: String?,
+        type: AppNotificationType,
+        sourceType: AppNotificationSourceType?,
+        sourceId: String?,
+        actionType: AppNotificationActionType,
+        actionTargetId: String?,
+        route: String?,
+        routeTargetId: String?
+    ) {
+        let resolvedRoute = Self.normalizedRoute(
+            route: route,
+            actionType: actionType,
+            sourceType: sourceType
+        )
+        let resolvedTargetId = Self.firstNonEmpty(
+            routeTargetId,
+            actionTargetId,
+            sourceId
+        )
+
+        guard let destination = Self.destination(
+            route: resolvedRoute,
+            targetId: resolvedTargetId
+        ) else {
+            return nil
+        }
+
+        self.notificationId = notificationId
+        self.type = type
+        self.sourceType = sourceType
+        self.sourceId = sourceId
+        self.actionType = actionType
+        self.actionTargetId = actionTargetId
+        self.destination = destination
+    }
+
+    init?(userInfo: [AnyHashable: Any]) {
+        let notificationId = Self.stringValue(userInfo, keys: ["notificationId", "id"])
+        let type = Self.stringValue(userInfo, keys: ["type"])
+            .flatMap(AppNotificationType.init(rawValue:)) ?? .unknown
+        let sourceType = Self.stringValue(userInfo, keys: ["sourceType"])
+            .flatMap(AppNotificationSourceType.init(rawValue:))
+        let sourceId = Self.stringValue(userInfo, keys: ["sourceId"])
+        let actionType = Self.stringValue(userInfo, keys: ["actionType"])
+            .flatMap(AppNotificationActionType.init(rawValue:)) ?? .none
+        let actionTargetId = Self.stringValue(userInfo, keys: ["actionTargetId"])
+        let route = Self.stringValue(userInfo, keys: ["route"])
+        let routeTargetId = Self.stringValue(userInfo, keys: ["routeTargetId", "targetId", "targetID"])
+
+        self.init(
+            notificationId: notificationId,
+            type: type,
+            sourceType: sourceType,
+            sourceId: sourceId,
+            actionType: actionType,
+            actionTargetId: actionTargetId,
+            route: route,
+            routeTargetId: routeTargetId
+        )
+    }
+
+    private static func destination(
+        route: String,
+        targetId: String?
+    ) -> RemoteNotificationRouteDestination? {
+        switch route {
+        case "openNews", "news":
+            return targetId.map { .openNews(newsId: $0) }
+        case "openEvent", "event":
+            return targetId.map { .openEvent(eventId: $0) }
+        case "openOrganization", "organization":
+            return targetId.map { .openOrganization(organizationId: $0) }
+        case "openFeedback", "feedback":
+            return .openFeedback(feedbackId: targetId)
+        case "openProfile", "profile":
+            return .openProfile
+        case "openURL", "url":
+            return targetId.map { .openURL(urlString: $0) }
+        case "systemAnnouncement", "announcement", "none":
+            return .systemAnnouncement
+        default:
+            return nil
+        }
+    }
+
+    private static func normalizedRoute(
+        route: String?,
+        actionType: AppNotificationActionType,
+        sourceType: AppNotificationSourceType?
+    ) -> String {
+        if let route = firstNonEmpty(route) {
+            return route
+        }
+
+        switch actionType {
+        case .openNews:
+            return "openNews"
+        case .openEvent:
+            return "openEvent"
+        case .openOrganization, .openOrganizationRequest:
+            return "openOrganization"
+        case .openFeedback:
+            return "openFeedback"
+        case .openProfile:
+            return "openProfile"
+        case .openURL:
+            return "openURL"
+        case .openGuideMaterial, .openGuideReport, .openLegalDocuments:
+            return actionType.rawValue
+        case .none:
+            switch sourceType {
+            case .some(.event):
+                return "openEvent"
+            case .some(.organization):
+                return "openOrganization"
+            case .some(.feedback):
+                return "openFeedback"
+            case .some(.system):
+                return "systemAnnouncement"
+            case .some(.account), .some(.profile):
+                return "openProfile"
+            case .some(.guideMaterial), .some(.guideReport), .some(.legal), .some(.role), .none:
+                return "none"
+            }
+        }
+    }
+
+    private static func stringValue(_ userInfo: [AnyHashable: Any], keys: [String]) -> String? {
+        for key in keys {
+            guard let value = userInfo[AnyHashable(key)] else { continue }
+            if let string = value as? String,
+               let nonEmpty = firstNonEmpty(string) {
+                return nonEmpty
+            }
+            if let number = value as? NSNumber {
+                return number.stringValue
+            }
+        }
+
+        return nil
+    }
+
+    private static func firstNonEmpty(_ values: String?...) -> String? {
+        values.lazy
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
+    }
+}
+
+@MainActor
+final class RemoteNotificationRouteCoordinator: ObservableObject {
+    static let shared = RemoteNotificationRouteCoordinator()
+
+    @Published private(set) var pendingRoute: RemoteNotificationRoute?
+
+    private init() {}
+
+    func receive(_ route: RemoteNotificationRoute) {
+        pendingRoute = route
+    }
+
+    func consume(_ route: RemoteNotificationRoute) {
+        if pendingRoute == route {
+            pendingRoute = nil
+        }
+    }
 }
 
 struct AppNotification: Identifiable, Codable, Equatable {
@@ -338,6 +531,18 @@ private enum AppNotificationDisplayResolver {
             return genericContent(title: AppStrings.NotificationInbox.eventUpdatedTitle)
         case .eventCancelled:
             return genericContent(title: AppStrings.NotificationInbox.eventCancelledTitle)
+        case .eventRegistrationConfirmed:
+            return AppNotificationDisplayContent(
+                title: firstNonEmpty(notification.title) ?? AppStrings.NotificationInbox.title,
+                body: firstNonEmpty(notification.message, notification.payload["eventTitle"], notification.metadata["eventTitle"])
+                    ?? AppStrings.NotificationInbox.genericBody
+            )
+        case .organizationNewsPublished, .organizationEventPublished:
+            return AppNotificationDisplayContent(
+                title: firstNonEmpty(notification.title) ?? AppStrings.NotificationInbox.title,
+                body: firstNonEmpty(notification.message, notification.payload["contentTitle"], notification.metadata["contentTitle"])
+                    ?? AppStrings.NotificationInbox.genericBody
+            )
         case .guideMaterialUpdated:
             return genericContent(title: AppStrings.NotificationInbox.guideMaterialUpdatedTitle)
         }

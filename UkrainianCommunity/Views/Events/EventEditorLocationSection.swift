@@ -321,6 +321,7 @@ struct EventMapPickerView: View {
     @StateObject var search = EventLocationSearchViewModel()
     @State var query: String
     @State var selection: EventLocationSelection?
+    @FocusState private var isSearchFocused: Bool
 
     private let initialCoordinate: CLLocationCoordinate2D?
     private let onSelect: (EventLocationSelection) -> Void
@@ -369,6 +370,7 @@ struct EventMapPickerView: View {
                             }
                         }
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     .frame(maxHeight: 250)
                     .background(AppTheme.surfaceGlass, in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
                 } else if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !search.isSearching {
@@ -422,6 +424,7 @@ struct EventMapPickerView: View {
             .onChange(of: query) { _, newValue in
                 search.updateQuery(newValue)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 
@@ -436,6 +439,9 @@ struct EventMapPickerView: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(AppTheme.textPrimary)
                 .textInputAutocapitalization(.words)
+                .focused($isSearchFocused)
+                .submitLabel(.search)
+                .onSubmit { isSearchFocused = false }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
         .frame(height: AppTheme.searchControlHeight)

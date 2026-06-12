@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SystemLogsDashboardView: View {
     @StateObject private var viewModel: SystemLogsViewModel
+    @FocusState private var isSearchFocused: Bool
     private let embedsInNavigationStack: Bool
 
     @MainActor
@@ -66,7 +67,9 @@ struct SystemLogsDashboardView: View {
                 .autocorrectionDisabled()
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.textPrimary)
+                .focused($isSearchFocused)
                 .submitLabel(.search)
+                .onSubmit { isSearchFocused = false }
 
             if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button {

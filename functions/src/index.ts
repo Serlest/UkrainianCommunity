@@ -3,11 +3,17 @@ import {getMessaging} from "firebase-admin/messaging";
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
 
 import {db} from "./firebase/admin";
+import {
+  buildNotificationDataPayload,
+  resolveNotificationRecipients,
+} from "./notifications/notificationPayloads";
 
 export * from "./counters/aggregation";
 export * from "./analytics/trackAnalyticsEvent";
 export * from "./legal/legalDocuments";
 export * from "./notifications/backendWriters";
+export * from "./notifications/eventRegistrationNotifications";
+export * from "./notifications/organizationFollowerNotifications";
 export * from "./organizations/approvalWorkflow";
 export * from "./organizations/roleManagement";
 export * from "./users/accountStatusManagement";
@@ -141,13 +147,15 @@ async function feedbackManagerUserIds(excludedUserId?: string): Promise<string[]
     )
   );
 
-  return Array.from(
+  const managerUserIds = Array.from(
     new Set(
       snapshots
         .flatMap((snapshot) => snapshot.docs.map((document) => document.id))
         .filter((userId) => userId !== excludedUserId)
     )
   );
+  const recipients = await resolveNotificationRecipients(managerUserIds);
+  return recipients.inboxRecipientIds;
 }
 
 async function createInboxNotificationAndPush(input: {
@@ -162,42 +170,79 @@ async function createInboxNotificationAndPush(input: {
   actorDisplayName?: string;
   payload: Record<string, string>;
 }) {
+  const recipients = await resolveNotificationRecipients([input.recipientUserId]);
+  if (!recipients.inboxRecipientIds.includes(input.recipientUserId)) {
+    return;
+  }
+
   const notificationReference = db
     .collection("users")
     .doc(input.recipientUserId)
     .collection("notificationInbox")
     .doc(input.notificationId);
 
-  await notificationReference.set(
-    {
+  const didCreate = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(notificationReference);
+    if (snapshot.exists) {
+      return false;
+    }
+
+    transaction.set(notificationReference, {
       id: input.notificationId,
+      userId: input.recipientUserId,
       recipientUserId: input.recipientUserId,
       type: input.type,
+      title: input.titleLocKey,
+      message: input.bodyLocKey,
+      severity: "info",
       sourceType: "feedback",
       sourceId: input.sourceId,
       actionType: "openFeedback",
       actionTargetId: input.sourceId,
+      requiresPopup: false,
+      popupPresentedAt: null,
+      expiresAt: null,
+      archivedAt: null,
+      deletedAt: null,
+      readAt: null,
       metadata: {
         titleLocKey: input.titleLocKey,
         bodyLocKey: input.bodyLocKey,
+        ...input.payload,
       },
       payload: input.payload,
       actorUserId: input.actorUserId ?? null,
       actorDisplayName: input.actorDisplayName ?? null,
+      dedupeKey: input.notificationId,
       isRead: false,
       createdAt: FieldValue.serverTimestamp(),
-    },
-    {merge: true}
-  );
+    });
+
+    return true;
+  });
+
+  if (!didCreate) {
+    return;
+  }
 
   try {
-    await sendPushIfEnabled(input.recipientUserId, input.notificationId, input.titleLocKey, input.bodyLocKey, input.bodyLocArgs, {
-      type: input.type,
-      sourceType: "feedback",
-      sourceId: input.sourceId,
-      actionType: "openFeedback",
-      actionTargetId: input.sourceId,
-    });
+    await sendPushIfEnabled(
+      input.recipientUserId,
+      input.notificationId,
+      input.titleLocKey,
+      input.bodyLocKey,
+      input.bodyLocArgs,
+      buildNotificationDataPayload({
+        notificationId: input.notificationId,
+        type: input.type,
+        sourceType: "feedback",
+        sourceId: input.sourceId,
+        actionType: "openFeedback",
+        actionTargetId: input.sourceId,
+        route: "openFeedback",
+        routeTargetId: input.sourceId,
+      })
+    );
   } catch (error) {
     console.error("Feedback push delivery failed after inbox notification was created.", {
       notificationId: input.notificationId,
@@ -240,8 +285,8 @@ async function sendPushIfEnabled(
   await getMessaging().sendEachForMulticast({
     tokens,
     data: {
-      notificationId,
       ...data,
+      notificationId,
     },
     apns: {
       payload: {

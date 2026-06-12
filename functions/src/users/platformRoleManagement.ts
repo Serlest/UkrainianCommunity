@@ -4,7 +4,11 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
-import { writeUserNotification } from "../notifications/notificationPayloads";
+import {
+  resolveNotificationRecipients,
+  type WriteNotificationInput,
+  writeUserNotification,
+} from "../notifications/notificationPayloads";
 import {
   assertCanManageUsers,
   canAssignAppAdmin,
@@ -183,6 +187,17 @@ function platformRoleNotificationMessage(mutation: PlatformRoleMutation): string
   }
 }
 
+async function writeNotificationIfRecipientEligible(
+  input: WriteNotificationInput
+): Promise<void> {
+  const recipients = await resolveNotificationRecipients([input.targetUserId]);
+  if (!recipients.inboxRecipientIds.includes(input.targetUserId)) {
+    return;
+  }
+
+  await writeUserNotification(input);
+}
+
 function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
   return onCall(callableOptions, async (request): Promise<PlatformRoleChangeResponse> => {
     const auth = requireAuth(request);
@@ -256,7 +271,13 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
       }));
     });
 
-    await writeUserNotification({
+    await writeNotificationIfRecipientEligible({
+      notificationId: [
+        "roleChanged",
+        roleRequest.targetUserId,
+        committedAt,
+        roleRequest.targetUserId,
+      ].join("_"),
       targetUserId: roleRequest.targetUserId,
       type: "roleChanged",
       title: platformRoleNotificationTitle(mutation),

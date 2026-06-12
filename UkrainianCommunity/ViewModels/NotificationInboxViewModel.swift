@@ -66,8 +66,9 @@ final class NotificationInboxViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            notifications = try await repository.fetchNotifications(userID: userID, limit: notificationLimit)
-            unreadCount = try await repository.fetchUnreadCount(userID: userID)
+            let loadedNotifications = try await repository.fetchNotifications(userID: userID, limit: notificationLimit)
+            notifications = loadedNotifications
+            unreadCount = loadedNotifications.filter(\.countsAsUnread).count
             snapshotVersion += 1
             if clearErrorOnSuccess {
                 error = nil

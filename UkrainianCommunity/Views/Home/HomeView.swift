@@ -20,6 +20,7 @@ struct HomeView: View {
     @Binding var navigationPath: [HomeFeedDestinationReference]
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
     let scrollResetToken: Int
+    let searchResetToken: Int
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var selectedContentType: HomeContentTypeFilter = .all
     @State private var selectedFeedFilter: HomeFeedFilter = .all
@@ -38,9 +39,11 @@ struct HomeView: View {
         organizationsViewModel: OrganizationsViewModel,
         newsRepository: NewsRepository,
         featuredBannerRepository: FeaturedBannerRepository,
+        featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         navigationPath: Binding<[HomeFeedDestinationReference]>,
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
-        scrollResetToken: Int = 0
+        scrollResetToken: Int = 0,
+        searchResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         self.newsViewModel = newsViewModel
@@ -49,7 +52,11 @@ struct HomeView: View {
         self.newsRepository = newsRepository
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
-        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
+        self.searchResetToken = searchResetToken
+        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
+            repository: featuredBannerRepository,
+            cache: featuredBannerCache
+        ))
         _navigationPath = navigationPath
     }
 
@@ -85,6 +92,7 @@ struct HomeView: View {
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
                 scrollToTop(with: scrollProxy)
             }
@@ -163,7 +171,7 @@ struct HomeView: View {
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
             placeholder: AppStrings.Search.homePlaceholder,
-            collapseToken: scrollResetToken
+            collapseToken: searchResetToken
         )
     }
 

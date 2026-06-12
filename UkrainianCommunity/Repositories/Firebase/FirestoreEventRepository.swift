@@ -47,6 +47,23 @@ struct FirestoreEventRepository: EventRepository {
         )
     }
 
+    func fetchEvent(id: String) async throws -> Event {
+        let likedEventIDs = try await fetchLikedEventIDs()
+        let registeredEventIDs = try await fetchRegisteredEventIDs()
+        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+        let snapshot = try await collection.document(id).getDocument()
+        guard snapshot.exists else {
+            throw AppError.notFound
+        }
+
+        return try Event(dto: makeEventDTO(
+            from: snapshot,
+            likedEventIDs: likedEventIDs,
+            registeredEventIDs: registeredEventIDs,
+            bookmarkedEventIDs: bookmarkedEventIDs
+        ))
+    }
+
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event] {
         let snapshot = try await collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
@@ -73,22 +90,18 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func fetchRegisteredEvents() async throws -> [Event] {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard Auth.auth().currentUser?.uid != nil else {
             throw AppError.permissionDenied
         }
 
-        let registrationsSnapshot = try await registrationsCollection
-            .whereField("userId", isEqualTo: uid)
-            .getDocuments()
-
-        let registeredEventIDs = registrationsSnapshot.documents.compactMap { $0.data()["eventId"] as? String }
+        let registeredEventIDSet = try await fetchRegisteredEventIDs()
+        let registeredEventIDs = Array(registeredEventIDSet)
         guard !registeredEventIDs.isEmpty else {
             return []
         }
 
         let likedEventIDs = try await fetchLikedEventIDs()
         let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
-        let registeredEventIDSet = Set(registeredEventIDs)
         var registeredEvents: [Event] = []
 
         for chunk in registeredEventIDs.chunked(into: 10) {
@@ -217,9 +230,10 @@ struct FirestoreEventRepository: EventRepository {
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("organizationId", isEqualTo: organizationID)
             .whereField("moderationStatus", in: organizationContentStatusValues)
-            .getDocuments()
+            .count
+            .getAggregation(source: .server)
 
-        return snapshot.documents.count
+        return snapshot.count.intValue
     }
 
     func fetchEventComments(eventID: String) async throws -> [Comment] {
@@ -508,32 +522,34 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func deleteEvent(id: String) async throws {
-        await deleteEventCoverImageIfPossible(id: id)
         do {
-            try await collection.document(id).delete()
+            let response = try await CloudFunctionsClient.shared.cancelEvent(
+                EventCancellationFunctionRequest(eventId: id)
+            )
+            if response.status == "deleted" {
+                await deleteEventCoverImageIfPossible(id: id)
+            }
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
                 context: SystemTechnicalErrorContext(
                     moduleName: "Events",
-                    operationName: "deleteEvent",
+                    operationName: "cancelEvent",
                     targetType: .event,
                     targetId: id
                 )
             )
             throw error
         }
-        await deleteRelatedLikesIfPossible(eventID: id)
-        await deleteRelatedRegistrationsIfPossible(eventID: id)
 
         await SystemAuditLoggingService.shared.logSuccess(
             SystemAuditLogContext(
                 moduleName: "Events",
-                operationName: "deleteEvent",
+                operationName: "cancelEvent",
                 eventType: .contentDeleted,
                 targetType: .event,
                 targetId: id,
-                summary: "Event deleted"
+                summary: "Event cancelled"
             )
         )
     }
@@ -938,14 +954,13 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     private func makeEventDTO(
-        from document: QueryDocumentSnapshot,
+        from document: DocumentSnapshot,
         likedEventIDs: Set<String>,
         registeredEventIDs: Set<String>,
         bookmarkedEventIDs: Set<String>
     ) throws -> EventDTO {
-        let data = document.data()
-
         guard
+            let data = document.data(),
             let title = data["title"] as? String,
             let summary = data["summary"] as? String,
             let details = data["details"] as? String,
@@ -1006,7 +1021,10 @@ struct FirestoreEventRepository: EventRepository {
             tags: data["tags"] as? [String],
             visibility: data["visibility"] as? String,
             isAllDay: data["isAllDay"] as? Bool,
-            isBookmarked: bookmarkedEventIDs.contains(document.documentID)
+            isBookmarked: bookmarkedEventIDs.contains(document.documentID),
+            cancellationState: data["cancellationState"] as? String,
+            cancelledAt: (data["cancelledAt"] as? Timestamp)?.dateValue(),
+            cancellationReason: (data["cancellationReason"] as? String)?.nilIfEmpty
         )
     }
 

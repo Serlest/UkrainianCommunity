@@ -21604,7 +21604,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Activity overview"
+            "value" : "Views by content type"
           }
         },
         "uk" : {
@@ -21703,6 +21703,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Організація"
+          }
+        }
+      }
+    },
+    "owner_analytics.delta.no_change" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Änderung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No change"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без змін"
+          }
+        }
+      }
+    },
+    "owner_analytics.delta.vs_previous_period" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ im Vergleich zum vorherigen Zeitraum"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@ vs previous period"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ порівняно з попереднім періодом"
           }
         }
       }
@@ -22317,7 +22363,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Regions"
+            "value" : "Active regions"
           }
         },
         "uk" : {
@@ -22409,7 +22455,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Organization views"
+            "value" : "Organization profile views"
           }
         },
         "uk" : {

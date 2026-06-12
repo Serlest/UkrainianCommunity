@@ -137,6 +137,7 @@ final class RecentViewsViewModel: ObservableObject {
 
     private let repository: RecentViewsRepository
     private var hasLoaded = false
+    private var loadedUserID: String?
 
     init(repository: RecentViewsRepository) {
         self.repository = repository
@@ -147,11 +148,22 @@ final class RecentViewsViewModel: ObservableObject {
         await refresh()
     }
 
+    func loadIfNeeded(userID: String) async {
+        if loadedUserID != userID {
+            resetForAuthChange()
+            loadedUserID = userID
+        }
+        guard !hasLoaded else { return }
+        await refresh()
+        loadedUserID = userID
+    }
+
     func resetForAuthChange() {
         items = []
         isLoading = false
         error = nil
         hasLoaded = false
+        loadedUserID = nil
     }
 
     func refresh() async {
@@ -163,6 +175,7 @@ final class RecentViewsViewModel: ObservableObject {
                 .sorted { $0.viewedAt > $1.viewedAt }
             error = nil
             hasLoaded = true
+            loadedUserID = Auth.auth().currentUser?.uid
         } catch let appError as AppError {
             error = appError
             hasLoaded = true

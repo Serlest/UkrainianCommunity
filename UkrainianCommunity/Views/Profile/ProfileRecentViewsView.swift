@@ -58,16 +58,16 @@ private enum RecentViewsSegment: String, CaseIterable, Identifiable {
 
 struct RecentViewsView: View {
     @EnvironmentObject private var authState: AuthState
-    @StateObject private var recentViewsViewModel: RecentViewsViewModel
+    @ObservedObject private var recentViewsViewModel: RecentViewsViewModel
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @StateObject private var guideReaderViewModel: GuideReaderViewModel
     private let feedbackRepository: FeedbackRepository
     @State private var selectedSegment: RecentViewsSegment = .all
-    @State private var configuredUserID: String?
 
     init(
+        recentViewsViewModel: RecentViewsViewModel? = nil,
         recentViewsRepository: RecentViewsRepository = FirestoreRecentViewsRepository(),
         newsViewModel: NewsViewModel? = nil,
         eventsViewModel: EventsViewModel? = nil,
@@ -78,7 +78,7 @@ struct RecentViewsView: View {
         guideRepository: GuideRepositoryProtocol = FirestoreGuideRepository(),
         feedbackRepository: FeedbackRepository = FirestoreFeedbackRepository()
     ) {
-        _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: recentViewsRepository))
+        self.recentViewsViewModel = recentViewsViewModel ?? RecentViewsViewModel(repository: recentViewsRepository)
         self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
         self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
@@ -119,11 +119,11 @@ struct RecentViewsView: View {
             recentViewsContent
         }
         .task(id: authState.user?.id) {
-            guard configuredUserID != authState.user?.id else { return }
-            configuredUserID = authState.user?.id
-            resetRecentViewsState()
-            guard authState.isAuthenticated else { return }
-            await loadRecentViewsIfNeeded()
+            guard let userID = authState.user?.id, authState.isAuthenticated else {
+                recentViewsViewModel.resetForAuthChange()
+                return
+            }
+            await loadRecentViewsIfNeeded(userID: userID)
         }
         .refreshable {
             await refreshRecentViews()
@@ -155,8 +155,8 @@ struct RecentViewsView: View {
         }
     }
 
-    private func loadRecentViewsIfNeeded() async {
-        async let recentViewsLoad: Void = recentViewsViewModel.loadIfNeeded()
+    private func loadRecentViewsIfNeeded(userID: String) async {
+        async let recentViewsLoad: Void = recentViewsViewModel.loadIfNeeded(userID: userID)
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
@@ -169,10 +169,6 @@ struct RecentViewsView: View {
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
         _ = await (recentViewsRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
-    }
-
-    private func resetRecentViewsState() {
-        recentViewsViewModel.resetForAuthChange()
     }
 
     private func recentViewsErrorMessage(_ error: AppError) -> String {

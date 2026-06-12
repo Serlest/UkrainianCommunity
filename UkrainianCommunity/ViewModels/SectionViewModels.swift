@@ -831,6 +831,20 @@ final class EventsViewModel: ObservableObject {
         events.first(where: { $0.id == eventID })
     }
 
+    func loadEventIfNeeded(eventID: String, force: Bool = false) async {
+        guard force || event(for: eventID) == nil else { return }
+
+        do {
+            let event = try await repository.fetchEvent(id: eventID)
+            cacheEvent(event)
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
     func cacheEvent(_ event: Event) {
         if let index = events.firstIndex(where: { $0.id == event.id }) {
             events[index] = event
@@ -1470,10 +1484,16 @@ final class OrganizationsViewModel: ObservableObject {
             return
         }
 
-        startListeningOrganizationRequests(for: user.id)
+        if startListeningOrganizationRequests(for: user.id) {
+            return
+        }
 
+        await fetchOrganizationRequestsOnce(userID: user.id)
+    }
+
+    private func fetchOrganizationRequestsOnce(userID: String) async {
         do {
-            organizationRequests = try await repository.fetchOrganizationRequests(submittedByUserID: user.id).deduplicatedByID()
+            organizationRequests = try await repository.fetchOrganizationRequests(submittedByUserID: userID).deduplicatedByID()
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -1482,11 +1502,11 @@ final class OrganizationsViewModel: ObservableObject {
         }
     }
 
-    private func startListeningOrganizationRequests(for userID: String) {
+    private func startListeningOrganizationRequests(for userID: String) -> Bool {
         let key = "submittedOrganizationRequests:\(userID)"
         listenerBag.removeAll(except: key, matchingPrefix: "submittedOrganizationRequests:")
-        guard !listenerBag.contains(key),
-              let realtimeRepository = repository as? OrganizationRealtimeRepository else { return }
+        guard let realtimeRepository = repository as? OrganizationRealtimeRepository else { return false }
+        guard !listenerBag.contains(key) else { return true }
 
         listenerBag.set(realtimeRepository.listenSubmittedOrganizationRequests(userID: userID) { [weak self] requests in
             self?.organizationRequests = requests.deduplicatedByID()
@@ -1494,10 +1514,12 @@ final class OrganizationsViewModel: ObservableObject {
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
             self?.error = appError
+            Task { await self?.fetchOrganizationRequestsOnce(userID: userID) }
             #if DEBUG
             print("Realtime listener failed: purpose=submittedOrganizationRequests key=\(key) error=\(appError)")
             #endif
         }, for: key)
+        return true
     }
 
     func updateOrganization(
@@ -2281,13 +2303,18 @@ final class MyFeedbackViewModel: ObservableObject {
     }
 
     func loadIfNeeded(userID: String) async {
-        startListeningMyFeedback(userID: userID)
+        if startListeningMyFeedback(userID: userID) {
+            if loadedUserID != userID && items.isEmpty {
+                isLoading = true
+            }
+            return
+        }
         guard loadedUserID != userID || items.isEmpty else { return }
         await refresh(userID: userID)
     }
 
     func refresh(userID: String) async {
-        startListeningMyFeedback(userID: userID)
+        _ = startListeningMyFeedback(userID: userID)
         isLoading = true
         error = nil
         defer {
@@ -2295,8 +2322,14 @@ final class MyFeedbackViewModel: ObservableObject {
             loadedUserID = userID
         }
 
+        await fetchMyFeedbackOnce(userID: userID)
+    }
+
+    private func fetchMyFeedbackOnce(userID: String) async {
         do {
             items = try await repository.fetchFeedback(userID: userID)
+            loadedUserID = userID
+            error = nil
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -2320,11 +2353,17 @@ final class MyFeedbackViewModel: ObservableObject {
     }
 
     func loadMessages(for item: FeedbackItem) async {
-        startListeningMessages(for: item)
+        if startListeningMessages(for: item) {
+            return
+        }
         guard !loadingMessageFeedbackIDs.contains(item.id) else { return }
         loadingMessageFeedbackIDs.insert(item.id)
         defer { loadingMessageFeedbackIDs.remove(item.id) }
 
+        await fetchMessagesOnce(for: item)
+    }
+
+    private func fetchMessagesOnce(for item: FeedbackItem) async {
         do {
             messagesByFeedbackID[item.id] = try await repository.fetchFeedbackMessages(feedback: item)
             error = nil
@@ -2339,39 +2378,49 @@ final class MyFeedbackViewModel: ObservableObject {
         listenerBag.remove("feedbackMessages:\(feedbackID)")
     }
 
-    private func startListeningMyFeedback(userID: String) {
+    private func startListeningMyFeedback(userID: String) -> Bool {
         let key = "myFeedback:\(userID)"
-        guard !listenerBag.contains(key),
-              let realtimeRepository = repository as? FeedbackRealtimeRepository else { return }
+        listenerBag.removeAll(except: key, matchingPrefix: "myFeedback:")
+        guard let realtimeRepository = repository as? FeedbackRealtimeRepository else { return false }
+        guard !listenerBag.contains(key) else { return true }
 
         listenerBag.set(realtimeRepository.listenMyFeedback(userID: userID) { [weak self] items in
             self?.items = items
             self?.loadedUserID = userID
+            self?.isLoading = false
             self?.error = nil
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
+            self?.isLoading = false
             self?.error = appError
+            Task { await self?.fetchMyFeedbackOnce(userID: userID) }
             #if DEBUG
             print("Realtime listener failed: purpose=myFeedback key=\(key) error=\(appError)")
             #endif
         }, for: key)
+        return true
     }
 
-    private func startListeningMessages(for item: FeedbackItem) {
+    private func startListeningMessages(for item: FeedbackItem) -> Bool {
         let key = "feedbackMessages:\(item.id)"
-        guard !listenerBag.contains(key),
-              let realtimeRepository = repository as? FeedbackRealtimeRepository else { return }
+        guard let realtimeRepository = repository as? FeedbackRealtimeRepository else { return false }
+        guard !listenerBag.contains(key) else { return true }
 
         listenerBag.set(realtimeRepository.listenFeedbackMessages(feedback: item) { [weak self] messages in
             self?.messagesByFeedbackID[item.id] = messages
+            self?.loadingMessageFeedbackIDs.remove(item.id)
             self?.error = nil
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
+            self?.loadingMessageFeedbackIDs.remove(item.id)
             self?.error = appError
+            Task { await self?.fetchMessagesOnce(for: item) }
             #if DEBUG
             print("Realtime listener failed: purpose=feedbackMessages key=\(key) error=\(appError)")
             #endif
         }, for: key)
+        loadingMessageFeedbackIDs.insert(item.id)
+        return true
     }
 
     func sendMessage(_ text: String, feedback: FeedbackItem, user: AppUser) async -> Bool {
@@ -2387,10 +2436,13 @@ final class MyFeedbackViewModel: ObservableObject {
 
         do {
             try await repository.sendUserFeedbackMessage(feedback: feedback, text: trimmedText, user: user)
-            await refresh(userID: user.id)
-            if let updatedItem = items.first(where: { $0.id == feedback.id }) {
-                await loadMessages(for: updatedItem)
+            if repository is FeedbackRealtimeRepository {
+                _ = startListeningMyFeedback(userID: user.id)
+            } else {
+                await refresh(userID: user.id)
             }
+            let itemForMessages = items.first(where: { $0.id == feedback.id }) ?? feedback
+            await loadMessages(for: itemForMessages)
             error = nil
             return true
         } catch let appError as AppError {
@@ -2426,13 +2478,18 @@ final class FeedbackInboxViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
-        startListeningInbox()
+        if startListeningInbox() {
+            if !hasLoaded && items.isEmpty {
+                isLoading = true
+            }
+            return
+        }
         guard !hasLoaded else { return }
         await refresh()
     }
 
     func refresh() async {
-        startListeningInbox()
+        _ = startListeningInbox()
         isLoading = true
         error = nil
         defer {
@@ -2440,8 +2497,14 @@ final class FeedbackInboxViewModel: ObservableObject {
             hasLoaded = true
         }
 
+        await fetchInboxOnce()
+    }
+
+    private func fetchInboxOnce() async {
         do {
             items = try await repository.fetchFeedback()
+            hasLoaded = true
+            error = nil
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -2475,10 +2538,13 @@ final class FeedbackInboxViewModel: ObservableObject {
 
         do {
             try await repository.sendOwnerFeedbackReply(feedback: item, text: trimmedReply, owner: owner)
-            await refresh()
-            if let updatedItem = items.first(where: { $0.id == item.id }) {
-                await loadMessages(for: updatedItem)
+            if repository is FeedbackRealtimeRepository {
+                _ = startListeningInbox()
+            } else {
+                await refresh()
             }
+            let itemForMessages = items.first(where: { $0.id == item.id }) ?? item
+            await loadMessages(for: itemForMessages)
             error = nil
             return true
         } catch let appError as AppError {
@@ -2514,11 +2580,17 @@ final class FeedbackInboxViewModel: ObservableObject {
     }
 
     func loadMessages(for item: FeedbackItem) async {
-        startListeningMessages(for: item)
+        if startListeningMessages(for: item) {
+            return
+        }
         guard !loadingMessageFeedbackIDs.contains(item.id) else { return }
         loadingMessageFeedbackIDs.insert(item.id)
         defer { loadingMessageFeedbackIDs.remove(item.id) }
 
+        await fetchMessagesOnce(for: item)
+    }
+
+    private func fetchMessagesOnce(for item: FeedbackItem) async {
         do {
             messagesByFeedbackID[item.id] = try await repository.fetchFeedbackMessages(feedback: item)
             error = nil
@@ -2533,39 +2605,48 @@ final class FeedbackInboxViewModel: ObservableObject {
         listenerBag.remove("feedbackMessages:\(feedbackID)")
     }
 
-    private func startListeningInbox() {
+    private func startListeningInbox() -> Bool {
         let key = "feedbackInbox"
-        guard !listenerBag.contains(key),
-              let realtimeRepository = repository as? FeedbackRealtimeRepository else { return }
+        guard let realtimeRepository = repository as? FeedbackRealtimeRepository else { return false }
+        guard !listenerBag.contains(key) else { return true }
 
         listenerBag.set(realtimeRepository.listenOwnerFeedbackInbox { [weak self] items in
             self?.items = items
             self?.hasLoaded = true
+            self?.isLoading = false
             self?.error = nil
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
+            self?.isLoading = false
             self?.error = appError
+            Task { await self?.fetchInboxOnce() }
             #if DEBUG
             print("Realtime listener failed: purpose=feedbackInbox key=\(key) error=\(appError)")
             #endif
         }, for: key)
+        return true
     }
 
-    private func startListeningMessages(for item: FeedbackItem) {
+    private func startListeningMessages(for item: FeedbackItem) -> Bool {
         let key = "feedbackMessages:\(item.id)"
-        guard !listenerBag.contains(key),
-              let realtimeRepository = repository as? FeedbackRealtimeRepository else { return }
+        guard let realtimeRepository = repository as? FeedbackRealtimeRepository else { return false }
+        guard !listenerBag.contains(key) else { return true }
 
         listenerBag.set(realtimeRepository.listenFeedbackMessages(feedback: item) { [weak self] messages in
             self?.messagesByFeedbackID[item.id] = messages
+            self?.loadingMessageFeedbackIDs.remove(item.id)
             self?.error = nil
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
+            self?.loadingMessageFeedbackIDs.remove(item.id)
             self?.error = appError
+            Task { await self?.fetchMessagesOnce(for: item) }
             #if DEBUG
             print("Realtime listener failed: purpose=feedbackMessages key=\(key) error=\(appError)")
             #endif
         }, for: key)
+        loadingMessageFeedbackIDs.insert(item.id)
+        return true
     }
 
     private func update(_ item: FeedbackItem, status: FeedbackStatus) async {

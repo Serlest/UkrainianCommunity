@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "test:rules:systemLogs": "firebase emulators:exec --only firestore \"node --test smoke-tests/systemLogsRules.test.mjs\""
+    "test:rules:systemLogs": "firebase emulators:exec --only firestore \"node --test smoke-tests/systemLogsRules.test.mjs\"",
+    "test:rules:cancelledEvents": "firebase emulators:exec --only firestore \"node --test smoke-tests/cancelledEventRules.test.mjs\""
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",

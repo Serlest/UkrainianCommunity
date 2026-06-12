@@ -1,6 +1,38 @@
 import Combine
 import SwiftUI
 
+private let organizationManagementContentStatsTTL: TimeInterval = 600
+
+private struct CachedManagedOrganizationContentStats {
+    let stats: ManagedOrganizationContentStats
+    let loadedAt: Date
+}
+
+@MainActor
+private enum OrganizationManagementContentStatsCache {
+    static var cachedStatsByOrganizationID: [String: CachedManagedOrganizationContentStats] = [:]
+
+    static func stats(for organizationID: String) -> ManagedOrganizationContentStats? {
+        guard let cached = cachedStatsByOrganizationID[organizationID],
+              Date().timeIntervalSince(cached.loadedAt) <= organizationManagementContentStatsTTL else {
+            cachedStatsByOrganizationID[organizationID] = nil
+            return nil
+        }
+        return cached.stats
+    }
+
+    static func store(_ stats: ManagedOrganizationContentStats, for organizationID: String) {
+        cachedStatsByOrganizationID[organizationID] = CachedManagedOrganizationContentStats(
+            stats: stats,
+            loadedAt: Date()
+        )
+    }
+
+    static func removeAll() {
+        cachedStatsByOrganizationID = [:]
+    }
+}
+
 struct OrganizationManagementHubView: View {
     @EnvironmentObject private var authState: AuthState
     let focusedOrganizationID: String?
@@ -8,7 +40,7 @@ struct OrganizationManagementHubView: View {
     private let repository: OrganizationRepository
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
-    @StateObject private var organizationsViewModel: OrganizationsViewModel
+    @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var isShowingCreateOrganization = false
     @State private var editingOrganizationRequest: Organization?
     @State private var previewingOrganizationRequest: Organization?
@@ -21,15 +53,16 @@ struct OrganizationManagementHubView: View {
 
     init(
         focusedOrganizationID: String? = nil,
+        organizationsViewModel: OrganizationsViewModel,
         repository: OrganizationRepository = FirestoreOrganizationRepository(),
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository()
     ) {
         self.focusedOrganizationID = focusedOrganizationID
+        self.organizationsViewModel = organizationsViewModel
         self.repository = repository
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
-        _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: repository))
     }
 
     private var manageableOrganizations: [Organization] {
@@ -119,12 +152,12 @@ struct OrganizationManagementHubView: View {
                 isShowingCreateOrganization = false
                 organizationContentStats = [:]
                 loadingContentStatOrganizationIDs = []
-                organizationsViewModel.resetForAuthChange()
+                OrganizationManagementContentStatsCache.removeAll()
             } else {
                 Task {
-                    organizationsViewModel.resetForAuthChange()
                     organizationContentStats = [:]
                     loadingContentStatOrganizationIDs = []
+                    OrganizationManagementContentStatsCache.removeAll()
                     await organizationsViewModel.refresh()
                     await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                     await loadManageableOrganizationContentStats(force: true)
@@ -256,6 +289,10 @@ struct OrganizationManagementHubView: View {
             if !force && organizationContentStats[organizationID] != nil {
                 continue
             }
+            if !force, let cachedStats = OrganizationManagementContentStatsCache.stats(for: organizationID) {
+                organizationContentStats[organizationID] = cachedStats
+                continue
+            }
             if loadingContentStatOrganizationIDs.contains(organizationID) {
                 continue
             }
@@ -264,10 +301,12 @@ struct OrganizationManagementHubView: View {
             do {
                 async let newsCount = newsRepository.fetchOrganizationNewsCount(organizationID: organizationID)
                 async let eventCount = eventRepository.fetchOrganizationEventCount(organizationID: organizationID)
-                organizationContentStats[organizationID] = ManagedOrganizationContentStats(
+                let stats = ManagedOrganizationContentStats(
                     newsCount: try await newsCount,
                     eventCount: try await eventCount
                 )
+                organizationContentStats[organizationID] = stats
+                OrganizationManagementContentStatsCache.store(stats, for: organizationID)
             } catch {
                 organizationContentStats[organizationID] = nil
             }

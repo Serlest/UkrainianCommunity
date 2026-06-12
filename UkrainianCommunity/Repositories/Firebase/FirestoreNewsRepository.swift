@@ -95,9 +95,10 @@ struct FirestoreNewsRepository: NewsRepository {
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("organizationId", isEqualTo: organizationID)
             .whereField("moderationStatus", in: organizationContentStatusValues)
-            .getDocuments()
+            .count
+            .getAggregation(source: .server)
 
-        return snapshot.documents.count
+        return snapshot.count.intValue
     }
 
     func createNews(_ news: NewsPost) async throws {

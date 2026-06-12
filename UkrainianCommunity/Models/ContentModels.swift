@@ -426,6 +426,9 @@ struct Event: Identifiable, Codable {
     let isAllDay: Bool
     var isBookmarked: Bool
     var commentCount: Int
+    let cancellationState: String?
+    let cancelledAt: Date?
+    let cancellationReason: String?
 
     nonisolated init(
         id: String,
@@ -467,7 +470,10 @@ struct Event: Identifiable, Codable {
         tags: [String] = [],
         isAllDay: Bool = false,
         isBookmarked: Bool = false,
-        commentCount: Int? = nil
+        commentCount: Int? = nil,
+        cancellationState: String? = nil,
+        cancelledAt: Date? = nil,
+        cancellationReason: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -510,6 +516,13 @@ struct Event: Identifiable, Codable {
         self.isAllDay = isAllDay
         self.isBookmarked = isBookmarked
         self.commentCount = max(0, commentCount ?? comments.filter { !$0.isDeleted }.count)
+        self.cancellationState = Self.trimmedOptional(cancellationState)
+        self.cancelledAt = cancelledAt
+        self.cancellationReason = Self.trimmedOptional(cancellationReason)
+    }
+
+    var isCancelled: Bool {
+        cancellationState == "cancelled"
     }
 
     nonisolated private static func normalizedTags(_ tags: [String]) -> [String] {

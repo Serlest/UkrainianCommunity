@@ -2,6 +2,7 @@ import Combine
 import Foundation
 
 nonisolated private let guideTreeRefreshStaleInterval: TimeInterval = 86_400
+nonisolated let guideMinimumSearchQueryLength = 3
 
 enum GuideReaderEmptyState: Equatable {
     case noCategorySelected
@@ -284,7 +285,7 @@ final class GuideReaderViewModel: ObservableObject {
 
     func searchResults(for query: String) async throws -> GuideSearchResults {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else {
+        guard trimmedQuery.count >= guideMinimumSearchQueryLength else {
             return .empty
         }
 

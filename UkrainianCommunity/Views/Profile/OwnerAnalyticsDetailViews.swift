@@ -19,9 +19,11 @@ struct AnalyticsContentDetailView: View {
 
     var body: some View {
         AnalyticsDetailContainer(navigationTitle: AppStrings.OwnerAnalytics.detailAnalyticsTitle) {
-            header
-            periodPicker
-            content
+            AppGroupedContentPlane {
+                header
+                periodPicker
+                content
+            }
         }
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.load() }
@@ -100,10 +102,12 @@ struct AnalyticsOrganizationDetailView: View {
 
     var body: some View {
         AnalyticsDetailContainer(navigationTitle: AppStrings.OwnerAnalytics.detailAnalyticsTitle) {
-            header
-            periodPicker
-            searchField
-            content
+            AppGroupedContentPlane {
+                header
+                periodPicker
+                searchField
+                content
+            }
         }
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.load() }
@@ -190,21 +194,9 @@ private struct AnalyticsDetailContainer<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    content
-                }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.detailPageTopPadding)
-                .padding(.bottom, AppTheme.detailPageBottomPadding)
-            }
+        PushedScreenShell(title: navigationTitle) {
+            content
         }
-        .navigationTitle(navigationTitle)
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -223,6 +215,7 @@ private struct AnalyticsDetailPeriodPicker: View {
 
 private struct AnalyticsDetailSearchField: View {
     @Binding var text: String
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         AppGlassCard(padding: 12, spacing: 8, shadowRadius: 8, shadowY: 4) {
@@ -234,6 +227,9 @@ private struct AnalyticsDetailSearchField: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.subheadline)
+                    .focused($isSearchFocused)
+                    .submitLabel(.search)
+                    .onSubmit { isSearchFocused = false }
 
                 if !text.isEmpty {
                     Button {

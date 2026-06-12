@@ -9,11 +9,13 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
     @Published private(set) var updatingBannerIDs: Set<String> = []
 
     private let repository: FeaturedBannerRepository
+    private let publicCache: FeaturedBannerCache?
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
 
-    init(repository: FeaturedBannerRepository) {
+    init(repository: FeaturedBannerRepository, publicCache: FeaturedBannerCache? = nil) {
         self.repository = repository
+        self.publicCache = publicCache
     }
 
     func loadIfNeeded() async {
@@ -42,6 +44,7 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
         do {
             try await repository.setBannerActive(id: banner.id, isActive: isActive, updatedBy: trimmedUserID)
             replaceBanner(banner.settingActive(isActive, updatedBy: trimmedUserID))
+            invalidatePublicCache()
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -63,6 +66,7 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
         do {
             try await repository.archiveBanner(id: banner.id, updatedBy: trimmedUserID)
             replaceBanner(banner.settingActive(false, updatedBy: trimmedUserID))
+            invalidatePublicCache()
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -84,12 +88,17 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
         do {
             try await repository.deleteBanner(id: banner.id)
             banners.removeAll { $0.id == banner.id }
+            invalidatePublicCache()
             error = nil
         } catch let appError as AppError {
             error = appError
         } catch {
             self.error = .unknown
         }
+    }
+
+    func invalidatePublicCache() {
+        publicCache?.invalidateAll()
     }
 
     private func startLoad(force: Bool) async {

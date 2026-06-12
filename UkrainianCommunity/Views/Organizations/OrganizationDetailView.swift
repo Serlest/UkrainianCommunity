@@ -111,7 +111,7 @@ final class OrganizationActivityViewModel: ObservableObject {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let activityLimit = 12
-    private var hasLoaded = false
+    private var loadedItemTypes = Set<OrganizationActivityItemType>()
     private var loadTask: Task<Void, Never>?
 
     init(
@@ -126,13 +126,23 @@ final class OrganizationActivityViewModel: ObservableObject {
         self.eventRepository = eventRepository
     }
 
-    func loadIfNeeded(for organization: Organization) async {
-        guard !hasLoaded else { return }
-        await startLoad(for: organization, force: false)
+    func loadIfNeeded(for organization: Organization, section: OrganizationDetailSection) async {
+        let requestedTypes = activityItemTypes(for: section)
+        guard !requestedTypes.isEmpty else {
+            ensureProfileItem(for: organization)
+            return
+        }
+        guard !requestedTypes.isSubset(of: loadedItemTypes) else { return }
+        await startLoad(for: organization, itemTypes: requestedTypes, force: false)
     }
 
-    func refresh(for organization: Organization) async {
-        await startLoad(for: organization, force: true)
+    func refresh(for organization: Organization, section: OrganizationDetailSection) async {
+        let requestedTypes = activityItemTypes(for: section)
+        guard !requestedTypes.isEmpty else {
+            ensureProfileItem(for: organization)
+            return
+        }
+        await startLoad(for: organization, itemTypes: requestedTypes, force: true)
     }
 
     func update(
@@ -155,11 +165,15 @@ final class OrganizationActivityViewModel: ObservableObject {
         items = [profileItem] + activityItems
         self.isLoading = isLoading
         self.error = error
-        hasLoaded = true
+        loadedItemTypes = [.news, .event]
     }
 
-    private func startLoad(for organization: Organization, force: Bool) async {
-        guard force || !hasLoaded else { return }
+    private func startLoad(
+        for organization: Organization,
+        itemTypes: Set<OrganizationActivityItemType>,
+        force: Bool
+    ) async {
+        guard force || !itemTypes.isSubset(of: loadedItemTypes) else { return }
 
         if let loadTask {
             await loadTask.value
@@ -168,42 +182,45 @@ final class OrganizationActivityViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad(for: organization)
+            await self.performLoad(for: organization, itemTypes: itemTypes)
         }
         loadTask = task
         await task.value
         self.loadTask = nil
     }
 
-    private func performLoad(for organization: Organization) async {
+    private func performLoad(for organization: Organization, itemTypes: Set<OrganizationActivityItemType>) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            async let newsLoad = newsRepository.fetchOrganizationNews(
-                organizationID: organizationID,
-                limit: activityLimit
-            )
-            async let eventsLoad = eventRepository.fetchOrganizationEvents(
-                organizationID: organizationID,
-                limit: activityLimit
-            )
+            var loadedItems: [OrganizationActivityItem] = []
 
-            let filteredNews = try await newsLoad
+            if itemTypes.contains(.news) {
+                let filteredNews = try await newsRepository.fetchOrganizationNews(
+                    organizationID: organizationID,
+                    limit: activityLimit
+                )
                 .filter { belongsToOrganization($0.source, organization: organization) }
                 .map(OrganizationActivityItem.init(post:))
-            let filteredEvents = try await eventsLoad
+                loadedItems.append(contentsOf: filteredNews)
+            }
+
+            if itemTypes.contains(.event) {
+                let filteredEvents = try await eventRepository.fetchOrganizationEvents(
+                    organizationID: organizationID,
+                    limit: activityLimit
+                )
                 .filter { belongsToOrganization($0.source, organization: organization) }
                 .map(OrganizationActivityItem.init(event:))
+                loadedItems.append(contentsOf: filteredEvents)
+            }
 
             guard !Task.isCancelled else { return }
 
-            let profileItem = OrganizationActivityItem(profile: organization)
-            let activityItems = (filteredNews + filteredEvents)
-                .sorted { $0.publishedAt > $1.publishedAt }
-            items = [profileItem] + activityItems
+            replaceActivityItems(ofTypes: itemTypes, with: loadedItems, organization: organization)
             error = nil
-            hasLoaded = true
+            loadedItemTypes.formUnion(itemTypes)
         } catch is CancellationError {
         } catch let appError as AppError {
             guard !Task.isCancelled else { return }
@@ -212,6 +229,40 @@ final class OrganizationActivityViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             self.error = .unknown
         }
+    }
+
+    private func activityItemTypes(for section: OrganizationDetailSection) -> Set<OrganizationActivityItemType> {
+        switch section {
+        case .news:
+            [.news]
+        case .events:
+            [.event]
+        case .about, .photos, .team, .contacts:
+            []
+        }
+    }
+
+    private func ensureProfileItem(for organization: Organization) {
+        let profileItem = OrganizationActivityItem(profile: organization)
+        if let index = items.firstIndex(where: { $0.itemType == .organizationProfile }) {
+            items[index] = profileItem
+        } else {
+            items.insert(profileItem, at: 0)
+        }
+    }
+
+    private func replaceActivityItems(
+        ofTypes itemTypes: Set<OrganizationActivityItemType>,
+        with loadedItems: [OrganizationActivityItem],
+        organization: Organization
+    ) {
+        let profileItem = OrganizationActivityItem(profile: organization)
+        let existingUnchangedItems = items.filter { item in
+            item.itemType != .organizationProfile && !itemTypes.contains(item.itemType)
+        }
+        let activityItems = (existingUnchangedItems + loadedItems)
+                .sorted { $0.publishedAt > $1.publishedAt }
+        items = [profileItem] + activityItems
     }
 
     var isEmptyStateWithoutProfile: Bool {
@@ -257,6 +308,7 @@ struct OrganizationDetailView: View {
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var pendingSubscriptionConfirmation: OrganizationSubscriptionConfirmation?
+    @State var loadedCommentsOrganizationID: String?
     @StateObject var activityViewModel: OrganizationActivityViewModel
     @StateObject var newsDetailViewModel: NewsViewModel
     @StateObject var eventsDetailViewModel: EventsViewModel
@@ -367,14 +419,17 @@ struct OrganizationDetailView: View {
                         .onTapGesture { isCommentFieldFocused = false }
                     actionButtons(for: organization)
                         .onTapGesture { isCommentFieldFocused = false }
-                    commentsSection(for: organization)
-                        .id("organizationCommentsSection")
+                    LazyVStack(spacing: 0) {
+                        commentsSection(for: organization)
+                            .id("organizationCommentsSection")
+                            .onAppear {
+                                Task {
+                                    await loadCommentsIfNeeded(for: organization.id)
+                                }
+                            }
+                    }
                 }
                 .task(id: organization.id) {
-                    await loadOrganizationActivityIfNeeded(for: organization)
-                    await viewModel.loadComments(for: organization.id)
-                    await loadPreviewPhotosIfNeeded(for: organization.id)
-                    await loadCommunityMembersIfNeeded(for: organization)
                     viewModel.trackViewIfNeeded(for: organization)
                     recordRecentView(for: organization)
                 }
@@ -441,14 +496,18 @@ struct OrganizationDetailView: View {
             viewModel.trackViewIfNeeded(for: organization)
             recordRecentView(for: organization)
         }
+        .onChange(of: selectedSection) { _, _ in
+            guard let organization = viewModel.organization(for: organizationID) else { return }
+            Task {
+                await loadSelectedSectionDataIfNeeded(for: organization)
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { notification in
             guard AppContentChangeBus.organizationID(from: notification) == organizationID else { return }
             Task {
                 await viewModel.refresh()
                 if let organization = viewModel.organization(for: organizationID) {
-                    await refreshOrganizationActivity(for: organization)
-                    await reloadPreviewPhotos(for: organization.id)
-                    await reloadCommunityMembers(for: organization)
+                    await refreshSelectedSectionData(for: organization)
                 }
             }
         }
@@ -456,18 +515,21 @@ struct OrganizationDetailView: View {
             guard AppContentChangeBus.organizationID(from: notification) == organizationID else { return }
             guard let organization = viewModel.organization(for: organizationID) else { return }
             Task {
-                await refreshOrganizationActivity(for: organization)
+                guard selectedSection == .news else { return }
+                await refreshOrganizationActivity(for: organization, section: .news)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .eventsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { notification in
             guard AppContentChangeBus.organizationID(from: notification) == organizationID else { return }
             guard let organization = viewModel.organization(for: organizationID) else { return }
             Task {
-                await refreshOrganizationActivity(for: organization)
+                guard selectedSection == .events else { return }
+                await refreshOrganizationActivity(for: organization, section: .events)
             }
         }
         .onDisappear {
             viewModel.stopListeningComments(for: organizationID)
+            loadedCommentsOrganizationID = nil
             guard let pendingRemovalOrganizationID else { return }
             withTransaction(Transaction(animation: nil)) {
                 viewModel.removeDeletedOrganization(id: pendingRemovalOrganizationID)
@@ -545,20 +607,55 @@ struct OrganizationDetailView: View {
     func refreshOrganizationDetail(for organization: Organization) async {
         await viewModel.refresh()
         let refreshedOrganization = viewModel.organization(for: organization.id) ?? organization
-        await refreshOrganizationActivity(for: refreshedOrganization)
-        await viewModel.loadComments(for: refreshedOrganization.id, forceRefresh: true)
-        await reloadPreviewPhotos(for: refreshedOrganization.id)
-        await reloadCommunityMembers(for: refreshedOrganization)
+        await refreshCommentsIfLoaded(for: refreshedOrganization.id)
+        await refreshSelectedSectionData(for: refreshedOrganization)
     }
 
     @MainActor
-    func loadOrganizationActivityIfNeeded(for organization: Organization) async {
-        await activityViewModel.loadIfNeeded(for: organization)
+    func loadCommentsIfNeeded(for organizationID: String) async {
+        guard loadedCommentsOrganizationID != organizationID else { return }
+        loadedCommentsOrganizationID = organizationID
+        await viewModel.loadComments(for: organizationID)
     }
 
     @MainActor
-    func refreshOrganizationActivity(for organization: Organization) async {
-        await activityViewModel.refresh(for: organization)
+    func refreshCommentsIfLoaded(for organizationID: String) async {
+        guard loadedCommentsOrganizationID == organizationID else { return }
+        await viewModel.loadComments(for: organizationID, forceRefresh: true)
+    }
+
+    @MainActor
+    func loadSelectedSectionDataIfNeeded(for organization: Organization) async {
+        switch selectedSection {
+        case .news, .events:
+            await loadOrganizationActivityIfNeeded(for: organization, section: selectedSection)
+        case .team:
+            await loadCommunityMembersIfNeeded(for: organization)
+        case .about, .photos, .contacts:
+            break
+        }
+    }
+
+    @MainActor
+    func refreshSelectedSectionData(for organization: Organization) async {
+        switch selectedSection {
+        case .news, .events:
+            await refreshOrganizationActivity(for: organization, section: selectedSection)
+        case .team:
+            await reloadCommunityMembers(for: organization)
+        case .about, .photos, .contacts:
+            break
+        }
+    }
+
+    @MainActor
+    func loadOrganizationActivityIfNeeded(for organization: Organization, section: OrganizationDetailSection) async {
+        await activityViewModel.loadIfNeeded(for: organization, section: section)
+    }
+
+    @MainActor
+    func refreshOrganizationActivity(for organization: Organization, section: OrganizationDetailSection) async {
+        await activityViewModel.refresh(for: organization, section: section)
     }
 
     @MainActor

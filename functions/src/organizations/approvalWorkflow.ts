@@ -6,6 +6,7 @@ import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
   type NotificationType,
+  resolveNotificationRecipients,
   writeUserNotification,
 } from "../notifications/notificationPayloads";
 import { canManageOrganizationRequests, getUserPermissions } from "../permissions/userPermissions";
@@ -278,30 +279,41 @@ function createReviewCallable(workflow: ReviewWorkflow) {
       };
     });
 
-    const notification = await writeUserNotification({
-      targetUserId: reviewedOrganization.submittedByUserId,
-      type: workflow.notificationType,
-      title: notificationTitle(workflow),
-      message: notificationMessage(reviewedOrganization, workflow, text),
-      severity: workflow.action === "approve" ? "success" : "warning",
-      actionType: "openOrganizationRequest",
-      actionTargetId: reviewedOrganization.organizationId,
-      requiresPopup: false,
-      actorUserId: auth.uid,
-      sourceType: "organization",
-      sourceId: reviewedOrganization.organizationId,
-      metadata: notificationPayload(reviewedOrganization, workflow, text),
-      dedupeKey: [
-        "organizationRequest",
-        reviewedOrganization.organizationId,
-        workflow.moderationStatus,
-      ].join(":"),
-    });
+    const notificationId = [
+      workflow.notificationType,
+      reviewedOrganization.organizationId,
+      reviewedOrganization.submittedByUserId,
+    ].join("_");
+    const recipients = await resolveNotificationRecipients([
+      reviewedOrganization.submittedByUserId,
+    ]);
+    if (recipients.inboxRecipientIds.includes(reviewedOrganization.submittedByUserId)) {
+      await writeUserNotification({
+        notificationId,
+        targetUserId: reviewedOrganization.submittedByUserId,
+        type: workflow.notificationType,
+        title: notificationTitle(workflow),
+        message: notificationMessage(reviewedOrganization, workflow, text),
+        severity: workflow.action === "approve" ? "success" : "warning",
+        actionType: "openOrganizationRequest",
+        actionTargetId: reviewedOrganization.organizationId,
+        requiresPopup: false,
+        actorUserId: auth.uid,
+        sourceType: "organization",
+        sourceId: reviewedOrganization.organizationId,
+        metadata: notificationPayload(reviewedOrganization, workflow, text),
+        dedupeKey: [
+          "organizationRequest",
+          reviewedOrganization.organizationId,
+          workflow.moderationStatus,
+        ].join(":"),
+      });
+    }
 
     return {
       organizationId: reviewRequest.organizationId,
       moderationStatus: workflow.moderationStatus,
-      notificationId: notification.notificationId,
+      notificationId,
       updatedAt: committedAt,
     };
   });

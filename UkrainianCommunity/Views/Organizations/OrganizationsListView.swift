@@ -101,6 +101,7 @@ struct OrganizationsListView: View {
     let presentationMode: OrganizationPresentationMode
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
     let scrollResetToken: Int
+    let searchResetToken: Int
     @State private var pendingDeleteOrganizationID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
@@ -119,12 +120,14 @@ struct OrganizationsListView: View {
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
+        featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         navigationPath: Binding<[OrganizationNavigationRoute]> = .constant([]),
         onOrganizationSaved: @escaping @MainActor () async -> Void = {},
         onOrganizationDeleted: @escaping @MainActor () -> Void = {},
         presentationMode: OrganizationPresentationMode = .public,
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
-        scrollResetToken: Int = 0
+        scrollResetToken: Int = 0,
+        searchResetToken: Int = 0
     ) {
         self.viewModel = viewModel
         _newsViewModel = StateObject(wrappedValue: newsViewModel ?? NewsViewModel(repository: newsRepository))
@@ -134,7 +137,11 @@ struct OrganizationsListView: View {
         self.presentationMode = presentationMode
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
-        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(repository: featuredBannerRepository))
+        self.searchResetToken = searchResetToken
+        _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
+            repository: featuredBannerRepository,
+            cache: featuredBannerCache
+        ))
         _navigationPath = navigationPath
     }
 
@@ -191,6 +198,7 @@ struct OrganizationsListView: View {
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
                 scrollToTop(with: scrollProxy)
             }
@@ -300,7 +308,7 @@ struct OrganizationsListView: View {
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
             placeholder: AppStrings.Search.organizationsPlaceholder,
-            collapseToken: scrollResetToken
+            collapseToken: searchResetToken
         )
     }
 
