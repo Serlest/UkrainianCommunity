@@ -1700,6 +1700,295 @@
         }
       }
     },
+    "auth.email_verification.already_verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese E-Mail-Adresse ist bereits bestätigt."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цю електронну адресу вже підтверджено."
+          }
+        }
+      }
+    },
+    "auth.email_verification.check" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich habe bestätigt, bitte prüfen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевірити, я підтвердив"
+          }
+        }
+      }
+    },
+    "auth.email_verification.check_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Verifizierungsstatus konnte gerade nicht geprüft werden. Bitte erneut versuchen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося перевірити статус підтвердження. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "auth.email_verification.checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Überprüfung..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевірка..."
+          }
+        }
+      }
+    },
+    "auth.email_verification.change_account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abmelden und anderes Konto nutzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вийти та змінити акаунт"
+          }
+        }
+      }
+    },
+    "auth.email_verification.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir haben Ihnen eine Bestätigungsmail gesendet. Öffnen Sie den Link, um Ihr Konto zu aktivieren."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ми надіслали лист із підтвердженням. Відкрийте посилання, щоб активувати обліковий запис."
+          }
+        }
+      }
+    },
+    "auth.email_verification.resend" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigungs-E-Mail erneut senden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надіслати лист повторно"
+          }
+        }
+      }
+    },
+    "auth.email_verification.resend_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigungs-E-Mail konnte gerade nicht gesendet werden. Bitte später erneut versuchen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Наразі неможливо надіслати лист із підтвердженням. Спробуйте пізніше."
+          }
+        }
+      }
+    },
+    "auth.email_verification.resending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird erneut gesendet..."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надсилання повторно..."
+          }
+        }
+      }
+    },
+    "auth.email_verification.resent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigungs-E-Mail erneut gesendet."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посилання для підтвердження надіслано повторно."
+          }
+        }
+      }
+    },
+    "auth.email_verification.sent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto erstellt. Bestätigungs-E-Mail wurde gesendet."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обліковий запис створено. Лист із підтвердженням надіслано."
+          }
+        }
+      }
+    },
+    "auth.email_verification.sent_to" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesendet an"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надіслано на"
+          }
+        }
+      }
+    },
+    "auth.email_verification.spam_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falls Sie die Mail nicht finden, prüfen Sie bitte auch Ihren Spam-/Junk-Ordner."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Якщо листа немає, перевірте також папку спаму/небажаних."
+          }
+        }
+      }
+    },
+    "auth.email_verification.still_pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Verifizierung ist noch ausstehend."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердження ще не завершено."
+          }
+        }
+      }
+    },
+    "auth.email_verification.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail bestätigt. Vollzugriff ist jetzt aktiv."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Електронну адресу підтверджено. Доступ надано."
+          }
+        }
+      }
+    },
+    "auth.email_verification.too_many_requests" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu viele Anfragen. Bitte versuchen Sie es später erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Занадто багато запитів. Спробуйте пізніше."
+          }
+        }
+      }
+    },
+    "auth.email_verification.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-Mail bestätigen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердити email"
+          }
+        }
+      }
+    },
     "auth.sign_in" : {
       "extractionState" : "manual",
       "localizations" : {

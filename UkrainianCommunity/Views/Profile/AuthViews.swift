@@ -27,6 +27,8 @@ struct AuthFlowContainerView: View {
             LoginView()
         case .register:
             RegisterView()
+        case .emailVerification:
+            EmailVerificationView()
         case .passwordReset:
             PasswordResetView()
         }
@@ -172,19 +174,28 @@ struct LoginView: View {
         isSubmitting = true
         errorMessage = nil
 
-        Task {
-            defer { isSubmitting = false }
+            Task {
+                defer { isSubmitting = false }
 
-            do {
-                _ = try await AuthService.shared.signIn(
-                    email: email.trimmingCharacters(in: .whitespacesAndNewlines),
-                    password: password
-                )
-            } catch {
-                errorMessage = readableAuthErrorMessage(error, fallback: AppStrings.Auth.signInFailed)
+                do {
+                    _ = try await AuthService.shared.signIn(
+                        email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                        password: password
+                    )
+                } catch {
+                    if let verificationError = error as? AuthVerificationError {
+                        switch verificationError {
+                        case .emailNotVerified:
+                            errorMessage = nil
+                        default:
+                            errorMessage = readableAuthErrorMessage(error, fallback: AppStrings.Auth.signInFailed)
+                        }
+                    } else {
+                        errorMessage = readableAuthErrorMessage(error, fallback: AppStrings.Auth.signInFailed)
+                    }
+                }
             }
         }
-    }
 
     private var validationErrors: [String] {
         validationService.validateLogin(email: email, password: password)
@@ -336,6 +347,154 @@ struct RegisterView: View {
     }
 }
 
+struct EmailVerificationView: View {
+    @EnvironmentObject private var authState: AuthState
+    @State private var message: String?
+    @State private var isResending = false
+    @State private var isChecking = false
+
+    private var pendingEmail: String {
+        authState.pendingVerificationEmail ?? authState.user?.email ?? ""
+    }
+
+    private var isBusy: Bool {
+        isResending || isChecking
+    }
+
+    private var messageStyle: InlineMessageStyle {
+        guard let message else { return .success }
+
+        let successMessages = [
+            AppStrings.Auth.emailVerificationSent,
+            AppStrings.Auth.emailVerificationResent,
+            AppStrings.Auth.emailVerificationSuccess,
+            AppStrings.Auth.emailVerificationAlreadyVerified
+        ]
+
+        if successMessages.contains(message) {
+            return .success
+        }
+
+        if message == AppStrings.Auth.emailVerificationStillPending {
+            return .info
+        }
+
+        return .error
+    }
+
+    var body: some View {
+        AuthScreenScaffold {
+            AuthHeaderView(
+                title: AppStrings.Auth.emailVerificationTitle,
+                subtitle: AppStrings.Auth.emailVerificationDescription
+            )
+
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    if let message {
+                        InlineMessageCard(style: messageStyle, message: message)
+                    } else if let authError = authState.errorMessage {
+                        InlineMessageCard(style: .error, message: authError)
+                    } else {
+                        InlineMessageCard(style: .success, message: AppStrings.Auth.emailVerificationSent)
+                    }
+
+                    if !pendingEmail.isEmpty {
+                        Text(AppStrings.Auth.emailVerificationSentTo)
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textSecondary)
+
+                        Text(pendingEmail)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(AppTheme.textPrimary)
+                    }
+
+                    InlineMessageCard(style: .info, message: AppStrings.Auth.emailVerificationSpamHint)
+
+                    PrimaryActionButton(
+                        title: AppStrings.Auth.emailVerificationCheck,
+                        loadingTitle: AppStrings.Auth.emailVerificationChecking,
+                        isEnabled: !isBusy,
+                        isLoading: isChecking,
+                        systemImage: "checkmark.seal"
+                    ) {
+                        checkVerification()
+                    }
+                    .accessibilityIdentifier("auth.verification.check")
+
+                    PrimaryActionButton(
+                        title: AppStrings.Auth.emailVerificationResend,
+                        loadingTitle: AppStrings.Auth.emailVerificationResending,
+                        isEnabled: !isBusy,
+                        isLoading: isResending,
+                        systemImage: "arrow.clockwise"
+                    ) {
+                        resendVerification()
+                    }
+                    .accessibilityIdentifier("auth.verification.resend")
+
+                    Button(AppStrings.Auth.emailVerificationChangeAccount) {
+                        if AuthService.shared.signOut() {
+                            authState.dismissAuthFlow()
+                        }
+                    }
+                    .appActionButtonStyle(.secondary)
+                    .frame(height: AppTheme.iconButtonSize)
+                    .disabled(isBusy)
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .onAppear {
+            if message == nil {
+                if let authError = authState.errorMessage {
+                    message = authError
+                } else {
+                    message = AppStrings.Auth.emailVerificationSent
+                }
+            }
+        }
+        .navigationTitle(AppStrings.Auth.emailVerificationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("auth.verify.screen")
+    }
+
+    private func resendVerification() {
+        isResending = true
+
+        Task {
+            defer { isResending = false }
+
+            do {
+                try await AuthService.shared.sendEmailVerification()
+                message = AppStrings.Auth.emailVerificationResent
+            } catch {
+                message = readableVerificationErrorMessage(error, fallback: AppStrings.Auth.emailVerificationResendFailed)
+            }
+        }
+    }
+
+    private func checkVerification() {
+        isChecking = true
+
+        Task {
+            defer { isChecking = false }
+
+            do {
+                _ = try await AuthService.shared.verifyEmailAndAuthenticate()
+                message = AppStrings.Auth.emailVerificationSuccess
+            } catch {
+                if error is AuthVerificationError {
+                    message = readableVerificationErrorMessage(error, fallback: AppStrings.Auth.emailVerificationCheckFailed)
+                    return
+                }
+
+                message = readableAuthErrorMessage(error, fallback: AppStrings.Auth.emailVerificationCheckFailed)
+            }
+        }
+    }
+}
+
 struct PasswordResetView: View {
     @State private var email: String
     @State private var message: String?
@@ -475,19 +634,38 @@ struct TermsPrivacyConsentView: View {
 }
 
 private func readableAuthErrorMessage(_ error: Error, fallback: String) -> String {
+    if let verificationError = error as? AuthVerificationError {
+        switch verificationError {
+        case .alreadyVerified:
+            return AppStrings.Auth.emailVerificationAlreadyVerified
+        case .emailNotVerified:
+            return AppStrings.Auth.emailVerificationStillPending
+        case .checkFailed:
+            return AppStrings.Auth.emailVerificationCheckFailed
+        case .tooManyRequests:
+            return AppStrings.Auth.emailVerificationTooManyRequests
+        case .noCurrentUser, .unknown:
+            return fallback
+        }
+    }
+
     guard let authError = error as NSError? else { return fallback }
     guard let code = AuthErrorCode(rawValue: authError.code) else { return fallback }
 
     switch code {
     case .wrongPassword, .invalidCredential, .invalidEmail, .userNotFound:
         return fallback
+    case .tooManyRequests:
+        return AppStrings.Auth.emailVerificationTooManyRequests
     case .emailAlreadyInUse:
         return AppStrings.Auth.registrationFailed
-    case .tooManyRequests:
-        return fallback
     default:
         return fallback
     }
+}
+
+private func readableVerificationErrorMessage(_ error: Error, fallback: String) -> String {
+    readableAuthErrorMessage(error, fallback: fallback)
 }
 
 private func readableRegistrationErrorMessage(_ error: Error) -> String {

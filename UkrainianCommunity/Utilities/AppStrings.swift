@@ -2268,6 +2268,23 @@ enum AppStrings {
         static var resetPasswordSubtitle: String { text("auth.reset_password.subtitle", "Enter the email linked to your account and we will send a reset link.") }
         static var resetPasswordSuccess: String { text("auth.reset_password.success", "The reset link has been sent.") }
         static var registerTitle: String { text("auth.register.title", "Create Account") }
+        static var emailVerificationTitle: String { text("auth.email_verification.title", "Verify your email") }
+        static var emailVerificationDescription: String { text("auth.email_verification.description", "We sent a verification link. Check your inbox and open it to activate your account.") }
+        static var emailVerificationSent: String { text("auth.email_verification.sent", "Account created. Verification email sent.") }
+        static var emailVerificationResent: String { text("auth.email_verification.resent", "Verification email has been resent.") }
+        static var emailVerificationSentTo: String { text("auth.email_verification.sent_to", "Sent to") }
+        static var emailVerificationSpamHint: String { text("auth.email_verification.spam_hint", "Check your spam/junk folder if you do not see the message.") }
+        static var emailVerificationResend: String { text("auth.email_verification.resend", "Resend verification email") }
+        static var emailVerificationResending: String { text("auth.email_verification.resending", "Resending...") }
+        static var emailVerificationCheck: String { text("auth.email_verification.check", "I verified, check again") }
+        static var emailVerificationChecking: String { text("auth.email_verification.checking", "Checking...") }
+        static var emailVerificationSuccess: String { text("auth.email_verification.success", "Email verified. You now have full account access.") }
+        static var emailVerificationStillPending: String { text("auth.email_verification.still_pending", "Verification is still pending.") }
+        static var emailVerificationAlreadyVerified: String { text("auth.email_verification.already_verified", "This email is already verified.") }
+        static var emailVerificationCheckFailed: String { text("auth.email_verification.check_failed", "Unable to confirm verification status yet. Try again.") }
+        static var emailVerificationTooManyRequests: String { text("auth.email_verification.too_many_requests", "Too many requests. Please wait a bit and try again.") }
+        static var emailVerificationResendFailed: String { text("auth.email_verification.resend_failed", "Could not send verification email now. Try again later.") }
+        static var emailVerificationChangeAccount: String { text("auth.email_verification.change_account", "Sign out and change account") }
         static var loginTitle: String { text("auth.login.title", "Sign In") }
         static var loginSubtitle: String { text("auth.login.subtitle", "Use your account email and password.") }
         static var signInAction: String { text("auth.sign_in.action", "Sign In") }

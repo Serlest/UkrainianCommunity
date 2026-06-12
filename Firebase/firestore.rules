@@ -40,20 +40,28 @@ service cloud.firestore {
         );
     }
 
+    function isVerifiedEmailUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isVerifiedActiveUser() {
+      return isVerifiedEmailUser() && isActiveUser();
+    }
+
     function isAppOwner() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
         && currentUserData().globalRole == 'owner';
     }
 
     function isAppAdmin() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
         && currentUserData().globalRole == 'admin';
     }
 
     function isAppModerator() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
         && currentUserData().globalRole == 'moderator';
     }
@@ -63,7 +71,7 @@ service cloud.firestore {
     }
 
     function isGuideEditor() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && (
           isAppOwner()
           || (('canManageGuide' in currentUserData()) && currentUserData().canManageGuide == true)
@@ -166,13 +174,13 @@ service cloud.firestore {
     }
 
     function isOwnerOrAppAdmin() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
         && currentUserData().globalRole in ['owner', 'admin'];
     }
 
     function isModerationLogActor() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
         && currentUserData().globalRole in ['owner', 'admin', 'moderator'];
     }
@@ -657,7 +665,7 @@ service cloud.firestore {
     }
 
     function validNotificationPushTokenWrite(uid, tokenId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(notificationPushTokenFields())
         && request.resource.data.id == tokenId
@@ -729,7 +737,7 @@ service cloud.firestore {
     }
 
     function safeFeedbackCreate(feedbackId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.resource.data.keys().hasOnly(feedbackCreateFields())
         && request.resource.data.id == feedbackId
         && request.resource.data.userId == request.auth.uid
@@ -770,7 +778,7 @@ service cloud.firestore {
     }
 
     function safeFeedbackUserReplyUpdate() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && resource.data.userId == request.auth.uid
         && resource.data.status != 'closed'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(feedbackUserReplyUpdateFields())
@@ -796,7 +804,7 @@ service cloud.firestore {
       let parent = get(/databases/$(database)/documents/feedback/$(feedbackId)).data;
       // TODO: Enforce message creation and parent summary updates as one logical
       // operation with getAfter() or a server-side function in a later pass.
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && parent.status != 'closed'
         && request.resource.data.keys().hasOnly(feedbackMessageFields())
         && request.resource.data.id == messageId
@@ -817,7 +825,7 @@ service cloud.firestore {
     }
 
     function safeRecentViewWrite(uid, recentViewId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(recentViewFields())
         && request.resource.data.itemId is string
@@ -830,7 +838,7 @@ service cloud.firestore {
     }
 
     function safeActivityLogWrite(uid, activityLogId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(activityLogFields())
         && request.resource.data.id == activityLogId
@@ -993,7 +1001,7 @@ service cloud.firestore {
     }
 
     function validFeaturedBannerCreate(bannerId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && canManageFeaturedBanners()
         && featuredBannerStructurallyValid(request.resource.data, bannerId)
         && request.resource.data.createdBy == request.auth.uid
@@ -1012,7 +1020,7 @@ service cloud.firestore {
     }
 
     function validFeaturedBannerUpdate(bannerId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && canManageFeaturedBanners()
         && featuredBannerStructurallyValid(request.resource.data, bannerId)
         && featuredBannerIdentityFieldsArePreserved(bannerId)
@@ -1020,7 +1028,7 @@ service cloud.firestore {
     }
 
     function validFeaturedBannerLifecycleUpdate(bannerId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && canManageFeaturedBanners()
         && resource.data.id == bannerId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -1067,12 +1075,14 @@ service cloud.firestore {
 
     function safeSelfUserUpdate(uid) {
       return isSelf(uid)
+        && isVerifiedActiveUser()
         && request.resource.data.id == resource.data.id
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfEditableFields());
     }
 
     function safeSelfStatusAcknowledgement(uid) {
       return isSelf(uid)
+        && isVerifiedActiveUser()
         && request.resource.data.id == resource.data.id
         && ('statusUpdatedAt' in resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAcknowledgedAt'])
@@ -1130,7 +1140,7 @@ service cloud.firestore {
     }
 
     function hasOrganizationRole(organizationId, role) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && organizationId is string
         && (
           (
@@ -1184,7 +1194,7 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
           )
           || (
-            isActiveUser()
+            isVerifiedActiveUser()
             && ('submittedByUserId' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
             && get(/databases/$(database)/documents/organizations/$(organizationId)).data.submittedByUserId == request.auth.uid
             && get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
@@ -1200,7 +1210,7 @@ service cloud.firestore {
           && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         )
         || (
-          isActiveUser()
+          isVerifiedActiveUser()
           && ('submittedByUserId' in resource.data)
           && resource.data.submittedByUserId == request.auth.uid
           && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
@@ -1211,7 +1221,7 @@ service cloud.firestore {
     function canListOrganization() {
       return (('moderationStatus' in resource.data) && resource.data.moderationStatus == 'approved')
         || (
-          isActiveUser()
+          isVerifiedActiveUser()
           && ('ownerId' in resource.data)
           && resource.data.ownerId == request.auth.uid
         )
@@ -1220,7 +1230,7 @@ service cloud.firestore {
           && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         )
         || (
-          isActiveUser()
+          isVerifiedActiveUser()
           && ('submittedByUserId' in resource.data)
           && resource.data.submittedByUserId == request.auth.uid
           && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
@@ -1448,7 +1458,7 @@ service cloud.firestore {
     }
 
     function safeOrganizationRequestCreate(organizationId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.resource.data.keys().hasOnly(organizationRequestCreateFields())
         && request.resource.data.id is string
         && request.resource.data.id == organizationId
@@ -1463,7 +1473,7 @@ service cloud.firestore {
     }
 
     function safeOrganizationRequestUpdate() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && ('submittedByUserId' in resource.data)
         && resource.data.submittedByUserId == request.auth.uid
         && request.resource.data.submittedByUserId == resource.data.submittedByUserId
@@ -1478,22 +1488,22 @@ service cloud.firestore {
     }
 
     function ownDocumentRead() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && resource.data.userId == request.auth.uid;
     }
 
     function ownLikeDocumentRead(likeId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && likeId.matches('^.+_' + request.auth.uid + '$');
     }
 
     function ownDocumentCreate() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.resource.data.userId == request.auth.uid;
     }
 
     function ownDocumentDelete() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && resource.data.userId == request.auth.uid;
     }
 
@@ -1514,7 +1524,7 @@ service cloud.firestore {
     }
 
     function validBaseLikeCreate(likeId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.resource.data.id == likeId
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.createdAt is timestamp;
@@ -1632,7 +1642,7 @@ service cloud.firestore {
     }
 
     function canReadManagedEventRegistration() {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && ('eventId' in resource.data)
         && resource.data.eventId is string
         && exists(/databases/$(database)/documents/events/$(resource.data.eventId))
@@ -1722,7 +1732,7 @@ service cloud.firestore {
 
     function validRegistrationCreate(registrationId) {
       let eventPath = /databases/$(database)/documents/events/$(request.resource.data.eventId);
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.resource.data.keys().hasOnly(registrationFields())
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.eventId is string
@@ -1738,7 +1748,7 @@ service cloud.firestore {
     }
 
     function hasRegistrationForEvent(eventId) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && exists(/databases/$(database)/documents/registrations/$(registrationDocumentId(eventId)));
     }
 
@@ -1783,7 +1793,7 @@ service cloud.firestore {
     }
 
     function validNotificationPreferencesWrite(uid) {
-      return isActiveUser()
+      return isVerifiedActiveUser()
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(notificationPreferenceFields())
         && request.resource.data.notificationsEnabled is bool
@@ -1815,10 +1825,10 @@ service cloud.firestore {
     match /publicProfiles/{uid} {
       allow read: if true;
 
-      allow create, update: if (isActiveUser() && request.auth.uid == uid && validPublicProfileWrite(uid))
+      allow create, update: if (isVerifiedActiveUser() && request.auth.uid == uid && validPublicProfileWrite(uid))
         || (isOwner() && validPublicProfileWrite(uid));
 
-      allow delete: if isOwner() || (isActiveUser() && request.auth.uid == uid);
+      allow delete: if isOwner() || (isVerifiedActiveUser() && request.auth.uid == uid);
     }
 
     match /legalDocuments/{documentType} {
@@ -1874,7 +1884,7 @@ service cloud.firestore {
         allow create, update: if docId == 'settings'
           && validNotificationPreferencesWrite(uid);
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && docId == 'settings';
       }
@@ -1900,7 +1910,7 @@ service cloud.firestore {
       match /newsBookmarks/{newsId} {
         allow read: if isSelf(uid);
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && request.resource.data.id == newsId
           && request.resource.data.newsId == newsId
@@ -1908,7 +1918,7 @@ service cloud.firestore {
 
         allow update: if false;
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && resource.data.newsId == newsId
           && resource.data.userId == uid;
@@ -1917,7 +1927,7 @@ service cloud.firestore {
       match /eventBookmarks/{eventId} {
         allow read: if isSelf(uid);
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && request.resource.data.id == eventId
           && request.resource.data.eventId == eventId
@@ -1925,7 +1935,7 @@ service cloud.firestore {
 
         allow update: if false;
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && resource.data.eventId == eventId
           && resource.data.userId == uid;
@@ -1934,7 +1944,7 @@ service cloud.firestore {
       match /organizationBookmarks/{organizationId} {
         allow read: if isSelf(uid);
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && request.resource.data.id == organizationId
           && request.resource.data.organizationId == organizationId
@@ -1942,7 +1952,7 @@ service cloud.firestore {
 
         allow update: if false;
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && resource.data.organizationId == organizationId
           && resource.data.userId == uid;
@@ -1951,7 +1961,7 @@ service cloud.firestore {
       match /guideMaterialBookmarks/{materialId} {
         allow read: if isSelf(uid);
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && request.resource.data.id == materialId
           && request.resource.data.materialId == materialId
@@ -1959,7 +1969,7 @@ service cloud.firestore {
 
         allow update: if false;
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && resource.data.materialId == materialId
           && resource.data.userId == uid;
@@ -1968,7 +1978,7 @@ service cloud.firestore {
       match /eventViews/{eventId} {
         allow read: if isSelf(uid);
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && request.resource.data.id == eventId
           && request.resource.data.eventId == eventId
@@ -1976,14 +1986,14 @@ service cloud.firestore {
 
         allow update: if false;
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid;
       }
 
       match /newsViews/{newsId} {
         allow read: if isSelf(uid);
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && request.resource.data.id == newsId
           && request.resource.data.newsId == newsId
@@ -1991,7 +2001,7 @@ service cloud.firestore {
 
         allow update: if false;
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid;
       }
 
@@ -2000,7 +2010,7 @@ service cloud.firestore {
 
         allow create, update: if safeRecentViewWrite(uid, recentViewId);
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid;
       }
 
@@ -2011,7 +2021,7 @@ service cloud.firestore {
 
         allow update: if false;
 
-        allow delete: if isActiveUser()
+        allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid;
       }
     }
@@ -2033,7 +2043,7 @@ service cloud.firestore {
         allow read: if get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved'
           || canReadModerationQueue('news');
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.resource.data.id == commentId
           && request.resource.data.parentType == 'news'
           && request.resource.data.parentId == newsId
@@ -2045,7 +2055,7 @@ service cloud.firestore {
           && request.resource.data.createdAt is timestamp
           && request.resource.data.isDeleted == false;
 
-        allow update: if isActiveUser()
+        allow update: if isVerifiedActiveUser()
           && resource.data.authorId == request.auth.uid
           && request.resource.data.authorId == resource.data.authorId
           && request.resource.data.parentId == resource.data.parentId
@@ -2055,7 +2065,7 @@ service cloud.firestore {
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 1000;
 
-        allow delete: if (isActiveUser() && resource.data.authorId == request.auth.uid)
+        allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
           || canModerateNewsComment(newsId);
       }
     }
@@ -2078,7 +2088,7 @@ service cloud.firestore {
         allow read: if get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved'
           || canReadModerationQueue('events');
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.resource.data.id == commentId
           && request.resource.data.parentType == 'event'
           && request.resource.data.parentId == eventId
@@ -2090,7 +2100,7 @@ service cloud.firestore {
           && request.resource.data.createdAt is timestamp
           && request.resource.data.isDeleted == false;
 
-        allow update: if isActiveUser()
+        allow update: if isVerifiedActiveUser()
           && resource.data.authorId == request.auth.uid
           && request.resource.data.authorId == resource.data.authorId
           && request.resource.data.parentId == resource.data.parentId
@@ -2100,7 +2110,7 @@ service cloud.firestore {
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 1000;
 
-        allow delete: if (isActiveUser() && resource.data.authorId == request.auth.uid)
+        allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
           || canModerateEventComment(eventId);
       }
     }
@@ -2124,7 +2134,7 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if canReadOrganizationByLookup(organizationId);
 
-        allow create: if isActiveUser()
+        allow create: if isVerifiedActiveUser()
           && request.resource.data.id == commentId
           && request.resource.data.parentType == 'organization'
           && request.resource.data.parentId == organizationId
@@ -2136,7 +2146,7 @@ service cloud.firestore {
           && request.resource.data.createdAt is timestamp
           && request.resource.data.isDeleted == false;
 
-        allow update: if isActiveUser()
+        allow update: if isVerifiedActiveUser()
           && resource.data.authorId == request.auth.uid
           && request.resource.data.authorId == resource.data.authorId
           && request.resource.data.parentId == resource.data.parentId
@@ -2146,7 +2156,7 @@ service cloud.firestore {
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 1000;
 
-        allow delete: if (isActiveUser() && resource.data.authorId == request.auth.uid)
+        allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
           || canModerateOrganizationComment(organizationId);
       }
     }
@@ -2291,7 +2301,7 @@ service cloud.firestore {
       allow create: if validFeaturedBannerCreate(bannerId);
       allow update: if validFeaturedBannerUpdate(bannerId)
         || validFeaturedBannerLifecycleUpdate(bannerId);
-      allow delete: if isActiveUser() && canManageFeaturedBanners();
+      allow delete: if isVerifiedActiveUser() && canManageFeaturedBanners();
     }
 
     match /guideNodes/{nodeId} {

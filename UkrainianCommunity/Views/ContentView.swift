@@ -255,6 +255,8 @@ struct ContentView: View {
             return "loading:restoring"
         case .authenticated:
             return "loading:authenticated"
+        case .verificationPending:
+            return "verificationPending:\(authState.pendingVerificationEmail ?? "pending")"
         }
     }
 

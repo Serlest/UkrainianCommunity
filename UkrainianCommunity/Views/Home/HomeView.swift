@@ -31,6 +31,9 @@ struct HomeView: View {
     @State private var searchText = ""
     @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
     @State private var pendingContentRefreshTask: Task<Void, Never>?
+    @State private var visibleFeedItems: [HomeFeedItem] = []
+    @State private var seenPaginationItems: Set<String> = []
+    private let paginationTriggerWindow = 6
 
     init(
         viewModel: HomeViewModel,
@@ -144,6 +147,24 @@ struct HomeView: View {
         .onChange(of: organizationsViewModel.contentVersion) { _, _ in
             synchronizeHomeFeed()
         }
+        .onChange(of: viewModel.feedItems) { _, _ in
+            rebuildVisibleFeedItems()
+        }
+        .onChange(of: selectedContentType) { _, _ in
+            rebuildVisibleFeedItems()
+        }
+        .onChange(of: selectedFeedFilter) { _, _ in
+            rebuildVisibleFeedItems()
+        }
+        .onChange(of: selectedFederalState) { _, _ in
+            rebuildVisibleFeedItems()
+        }
+        .onChange(of: searchText) { _, _ in
+            rebuildVisibleFeedItems()
+        }
+        .onChange(of: authState.user?.id) { _, _ in
+            rebuildVisibleFeedItems()
+        }
         .observesKeyboardDismissTaps()
     }
 
@@ -198,7 +219,7 @@ struct HomeView: View {
                 message: AppStrings.Common.noItems
             )
             .frame(maxWidth: .infinity, minHeight: 180)
-        } else if filteredFeedItems.isEmpty {
+        } else if visibleFeedItems.isEmpty {
             EmptyStateCard(
                 systemImage: emptyStateSystemImage,
                 title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Tabs.home,
@@ -207,7 +228,7 @@ struct HomeView: View {
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             DashboardFeedContainer(
-                items: filteredFeedItems,
+                items: visibleFeedItems,
                 spacing: AppTheme.feedRowSpacing,
                 onItemAppear: loadNextPageIfNeeded(for:)
             ) { item in
@@ -219,74 +240,31 @@ struct HomeView: View {
         }
     }
 
-    private var filteredHomeItems: [HomeFeedItem] {
-        viewModel.feedItems.filter { item in
-            matchesSelectedRegion(item)
-                && selectedContentType.matches(item)
-                && matchesSelectedFilter(item)
-        }
-    }
-
-    private var filteredFeedItems: [HomeFeedItem] {
-        filteredHomeItems.filter(matchesSearch)
-    }
-
     private var hasActiveSearch: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func matchesSelectedRegion(_ item: HomeFeedItem) -> Bool {
-        RegionVisibilityMatcher.isVisible(
-            regionScope: item.regionScope,
-            federalState: item.federalState,
-            selectedFederalState: selectedFederalState
+    private func rebuildVisibleFeedItems() {
+        let bookmarkedNewsIDs = Set(newsViewModel.posts.filter(\.isBookmarked).map(\.id))
+        let bookmarkedEventIDs = Set(eventsViewModel.events.filter(\.isBookmarked).map(\.id))
+        let bookmarkedOrganizationIDs = Set(organizationsViewModel.organizations.filter(\.isBookmarked).map(\.id))
+        let subscribedOrganizationIDs = Set(organizationsViewModel.organizations.filter(\.isSubscribed).map(\.id))
+
+        let rebuiltItems = HomeFeedSnapshotBuilder.buildSnapshot(
+            from: viewModel.feedItems,
+            selectedContentType: selectedContentType,
+            selectedFeedFilter: selectedFeedFilter,
+            selectedFederalState: selectedFederalState,
+            searchText: searchText,
+            bookmarkedNewsIDs: bookmarkedNewsIDs,
+            bookmarkedEventIDs: bookmarkedEventIDs,
+            bookmarkedOrganizationIDs: bookmarkedOrganizationIDs,
+            subscribedOrganizationIDs: subscribedOrganizationIDs,
+            isAuthenticated: authState.isAuthenticated
         )
-    }
 
-    private func matchesSelectedFilter(_ item: HomeFeedItem) -> Bool {
-        switch selectedFeedFilter {
-        case .all:
-            return true
-        case .saved:
-            return isSaved(item)
-        case .subscribed:
-            return isSubscribedSource(item)
-        }
-    }
-
-    private func isSaved(_ item: HomeFeedItem) -> Bool {
-        guard authState.user != nil else { return false }
-
-        switch item.destination {
-        case let .news(id):
-            return bookmarkedNewsIDs.contains(id)
-        case let .event(id):
-            return bookmarkedEventIDs.contains(id)
-        case let .organization(id):
-            return bookmarkedOrganizationIDs.contains(id)
-        }
-    }
-
-    private var bookmarkedNewsIDs: Set<String> {
-        Set(newsViewModel.posts.filter(\.isBookmarked).map(\.id))
-    }
-
-    private var bookmarkedEventIDs: Set<String> {
-        Set(eventsViewModel.events.filter(\.isBookmarked).map(\.id))
-    }
-
-    private var bookmarkedOrganizationIDs: Set<String> {
-        Set(organizationsViewModel.organizations.filter(\.isBookmarked).map(\.id))
-    }
-
-    private func isSubscribedSource(_ item: HomeFeedItem) -> Bool {
-        guard authState.user != nil else { return false }
-        guard let organizationId = item.organizationId else { return false }
-        return subscribedOrganizationIDs.contains(organizationId)
-    }
-
-    private var subscribedOrganizationIDs: Set<String> {
-        Set(organizationsViewModel.organizations.filter(\.isSubscribed).map(\.id))
+        visibleFeedItems = rebuiltItems
+        seenPaginationItems.removeAll()
     }
 
     private func toggleFeedFilter(_ filter: HomeFeedFilter) {
@@ -311,6 +289,8 @@ struct HomeView: View {
             "guest"
         case .authenticated:
             "authenticated:\(authState.user?.id ?? "pending")"
+        case .verificationPending:
+            "verificationPending:\(authState.pendingVerificationEmail ?? "pending")"
         }
     }
 
@@ -369,22 +349,6 @@ struct HomeView: View {
         }
     }
 
-    private func matchesSearch(_ item: HomeFeedItem) -> Bool {
-        LocalSearchMatcher.matches(
-            query: searchText,
-            values: [
-                item.title,
-                item.summary,
-                item.organizationName,
-                item.organizationType,
-                item.authorName,
-                item.city,
-                item.eventVenue,
-                item.itemType.searchTitle
-            ]
-        )
-    }
-
     private func loadContentIfNeeded() async {
         synchronizeHomeFeed(isLoading: true)
         async let featuredBannerLoad: Void = loadFeaturedBannersIfNeeded()
@@ -416,6 +380,8 @@ struct HomeView: View {
     }
 
     private func loadNextPageIfNeeded(for item: HomeFeedItem) {
+        guard shouldLoadNextPage(for: item) else { return }
+
         Task {
             switch item.destination {
             case .news(let id):
@@ -425,8 +391,19 @@ struct HomeView: View {
             case .organization(let id):
                 await organizationsViewModel.loadNextPageIfNeeded(currentItemID: id)
             }
-            synchronizeHomeFeed()
         }
+    }
+
+    private func shouldLoadNextPage(for item: HomeFeedItem) -> Bool {
+        guard !seenPaginationItems.contains(item.id) else { return false }
+
+        guard let itemIndex = visibleFeedItems.firstIndex(where: { $0.id == item.id }) else { return false }
+        let triggerIndex = max(visibleFeedItems.count - paginationTriggerWindow, 0)
+
+        guard itemIndex >= triggerIndex else { return false }
+
+        seenPaginationItems.insert(item.id)
+        return true
     }
 
     private func scheduleContentRefresh(for reason: HomeContentRefreshReason) {
@@ -496,6 +473,8 @@ struct HomeView: View {
             isLoading: isLoading ?? (newsViewModel.isLoading || eventsViewModel.isLoading || organizationsViewModel.isLoading),
             error: newsViewModel.error ?? eventsViewModel.error ?? organizationsViewModel.error
         )
+
+        rebuildVisibleFeedItems()
     }
 
     private var homeErrorText: String {
@@ -541,6 +520,118 @@ struct HomeView: View {
     private func popHomeDetail() {
         guard !navigationPath.isEmpty else { return }
         navigationPath.removeLast()
+    }
+}
+
+private struct HomeFeedSnapshotBuilder {
+    static func buildSnapshot(
+        from feedItems: [HomeFeedItem],
+        selectedContentType: HomeContentTypeFilter,
+        selectedFeedFilter: HomeFeedFilter,
+        selectedFederalState: AustrianFederalState?,
+        searchText: String,
+        bookmarkedNewsIDs: Set<String>,
+        bookmarkedEventIDs: Set<String>,
+        bookmarkedOrganizationIDs: Set<String>,
+        subscribedOrganizationIDs: Set<String>,
+        isAuthenticated: Bool
+    ) -> [HomeFeedItem] {
+        let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return feedItems.filter { item in
+            guard selectedContentType.matches(item) else { return false }
+            guard isMatchingRegion(item, selectedFederalState: selectedFederalState) else { return false }
+
+            if !isMatchingFilter(
+                item,
+                selectedFilter: selectedFeedFilter,
+                isAuthenticated: isAuthenticated,
+                bookmarkedNewsIDs: bookmarkedNewsIDs,
+                bookmarkedEventIDs: bookmarkedEventIDs,
+                bookmarkedOrganizationIDs: bookmarkedOrganizationIDs,
+                subscribedOrganizationIDs: subscribedOrganizationIDs
+            ) {
+                return false
+            }
+
+            if normalizedSearchText.isEmpty {
+                return true
+            }
+
+            return matchesSearch(item, query: normalizedSearchText)
+        }
+    }
+
+    private static func isMatchingRegion(_ item: HomeFeedItem, selectedFederalState: AustrianFederalState?) -> Bool {
+        RegionVisibilityMatcher.isVisible(
+            regionScope: item.regionScope,
+            federalState: item.federalState,
+            selectedFederalState: selectedFederalState
+        )
+    }
+
+    private static func isMatchingFilter(
+        _ item: HomeFeedItem,
+        selectedFilter: HomeFeedFilter,
+        isAuthenticated: Bool,
+        bookmarkedNewsIDs: Set<String>,
+        bookmarkedEventIDs: Set<String>,
+        bookmarkedOrganizationIDs: Set<String>,
+        subscribedOrganizationIDs: Set<String>
+    ) -> Bool {
+        guard selectedFilter != .all else { return true }
+        guard isAuthenticated else { return false }
+
+        switch selectedFilter {
+        case .all:
+            return true
+        case .saved:
+            return isSaved(
+                item,
+                bookmarkedNewsIDs: bookmarkedNewsIDs,
+                bookmarkedEventIDs: bookmarkedEventIDs,
+                bookmarkedOrganizationIDs: bookmarkedOrganizationIDs
+            )
+        case .subscribed:
+            return isSubscribedSource(item, subscribedOrganizationIDs: subscribedOrganizationIDs)
+        }
+    }
+
+    private static func isSaved(
+        _ item: HomeFeedItem,
+        bookmarkedNewsIDs: Set<String>,
+        bookmarkedEventIDs: Set<String>,
+        bookmarkedOrganizationIDs: Set<String>
+    ) -> Bool {
+        switch item.destination {
+        case let .news(id):
+            return bookmarkedNewsIDs.contains(id)
+        case let .event(id):
+            return bookmarkedEventIDs.contains(id)
+        case let .organization(id):
+            return bookmarkedOrganizationIDs.contains(id)
+        }
+    }
+
+    private static func isSubscribedSource(_ item: HomeFeedItem, subscribedOrganizationIDs: Set<String>) -> Bool {
+        guard let organizationId = item.organizationId else { return false }
+        return subscribedOrganizationIDs.contains(organizationId)
+    }
+
+    private static func matchesSearch(_ item: HomeFeedItem, query: String) -> Bool {
+        LocalSearchMatcher.matches(
+            query: query,
+            values: [
+                item.title,
+                item.summary,
+                item.organizationName,
+                item.organizationType,
+                item.authorName,
+                item.city,
+                item.eventVenue,
+                item.itemType.searchTitle
+            ]
+        )
     }
 }
 

@@ -5,6 +5,7 @@ enum AuthSessionState: Equatable {
     case restoring
     case guest
     case authenticated
+    case verificationPending
 }
 
 enum AuthFlowDestination: String, Identifiable {
@@ -12,6 +13,7 @@ enum AuthFlowDestination: String, Identifiable {
     case login
     case register
     case passwordReset
+    case emailVerification
 
     var id: String { rawValue }
 }
@@ -20,6 +22,7 @@ final class AuthState: ObservableObject {
     @Published var user: AppUser?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published var pendingVerificationEmail: String?
     @Published private(set) var sessionState: AuthSessionState = .restoring
     @Published var presentedAuthFlow: AuthFlowDestination?
 
@@ -29,6 +32,10 @@ final class AuthState: ObservableObject {
 
     var isAuthenticated: Bool {
         sessionState == .authenticated
+    }
+
+    var isVerificationPending: Bool {
+        sessionState == .verificationPending
     }
 
     var isRestoring: Bool {
@@ -44,13 +51,23 @@ final class AuthState: ObservableObject {
     @MainActor
     func setGuestSession() {
         user = nil
+        pendingVerificationEmail = nil
         sessionState = .guest
         errorMessage = nil
     }
 
     @MainActor
     func setAuthenticatedSession() {
+        pendingVerificationEmail = nil
         sessionState = .authenticated
+    }
+
+    @MainActor
+    func setVerificationPendingSession(email: String?) {
+        user = nil
+        pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        sessionState = .verificationPending
+        errorMessage = nil
     }
 
     @MainActor
