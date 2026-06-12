@@ -2935,6 +2935,74 @@
         }
       }
     },
+    "events.cancel_event" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltung absagen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасувати подію"
+          }
+        }
+      }
+    },
+    "events.cancel_event.confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Veranstaltung absagen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасувати цю подію?"
+          }
+        }
+      }
+    },
+    "events.cancel_event.confirmation.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrierte Teilnehmende werden benachrichtigt. Die Veranstaltung erscheint nicht mehr in öffentlichen Listen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зареєстровані учасники отримають сповіщення. Подія більше не відображатиметься у публічних списках."
+          }
+        }
+      }
+    },
+    "events.cancel_event.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Absagen fehlgeschlagen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося скасувати подію"
+          }
+        }
+      }
+    },
     "events.delete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -26461,19 +26529,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In-App-Benachrichtigungen"
+            "value" : "Push-Benachrichtigungen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In-app notifications"
+            "value" : "Push notifications"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Внутрішні сповіщення"
+            "value" : "Push-сповіщення"
           }
         }
       }
@@ -26483,19 +26551,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erhalte Antworten und wichtige Updates im Benachrichtigungseingang der App."
+            "value" : "Benachrichtigungen im Posteingang der App bleiben weiterhin verfügbar."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Get replies and important updates in the app notification inbox."
+            "value" : "You will still receive notifications in the app inbox."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку."
+            "value" : "Ви все одно отримуватимете сповіщення у внутрішній скриньці додатку."
           }
         }
       }

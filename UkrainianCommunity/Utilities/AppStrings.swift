@@ -573,6 +573,10 @@ enum AppStrings {
         static var organizationRegionRequired: String { text("events.editor.validation.organization_region_required", "Перед публікацією заповніть регіон організації.") }
         static var deleteConfirmation: String { text("events.delete.confirmation", "Delete this event?") }
         static var delete: String { text("events.delete", "Delete") }
+        static var cancelEvent: String { text("events.cancel_event", "Cancel event") }
+        static var cancelEventConfirmation: String { text("events.cancel_event.confirmation", "Cancel this event?") }
+        static var cancelEventConfirmationMessage: String { text("events.cancel_event.confirmation.message", "Registered participants will be notified. The event will no longer appear in public lists.") }
+        static var cancelEventFailed: String { text("events.cancel_event.failed", "Cancel event failed") }
         static var cancel: String { text("events.cancel", "Cancel") }
         static var deleteFailed: String { text("events.delete_failed", "Delete Failed") }
         static var dismissError: String { text("events.dismiss_error", "OK") }
@@ -1617,10 +1621,10 @@ enum AppStrings {
         static var notificationSettingsSubtitle: String { text("profile.notifications.settings.subtitle", "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку.") }
         static var notificationsSectionSubtitle: String { text("profile.notifications.section_subtitle", "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку.") }
         static var notificationsEnabled: String {
-            String(localized: "profile.notifications.enabled", defaultValue: "Внутрішні сповіщення", bundle: .main, locale: LocalizationStore.locale)
+            String(localized: "profile.notifications.enabled", defaultValue: "Push-сповіщення", bundle: .main, locale: LocalizationStore.locale)
         }
         static var notificationsEnabledSubtitle: String {
-            String(localized: "profile.notifications.enabled.subtitle", defaultValue: "Отримуйте відповіді та важливі оновлення у вхідних сповіщеннях застосунку.", bundle: .main, locale: LocalizationStore.locale)
+            String(localized: "profile.notifications.enabled.subtitle", defaultValue: "Ви все одно отримуватимете сповіщення у внутрішній скриньці додатку.", bundle: .main, locale: LocalizationStore.locale)
         }
         static var eventRemindersEnabled: String {
             String(localized: "profile.notifications.event_reminders.enabled", defaultValue: "Нагадування про події", bundle: .main, locale: LocalizationStore.locale)

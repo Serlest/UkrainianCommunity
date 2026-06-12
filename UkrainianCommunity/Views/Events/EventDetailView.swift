@@ -177,11 +177,12 @@ struct EventDetailView: View {
         }
         .appDestructiveActionDialog(Binding(
             get: {
-                guard showDeleteConfirmation else { return nil }
+                guard showDeleteConfirmation,
+                      let event = viewModel.event(for: eventID) else { return nil }
                 return AppDestructiveActionDialog(
-                    title: AppStrings.Events.deleteConfirmation,
-                    message: "",
-                    destructiveActionTitle: AppStrings.Events.delete,
+                    title: eventDestructiveActionConfirmationTitle(for: event),
+                    message: eventDestructiveActionConfirmationMessage(for: event),
+                    destructiveActionTitle: eventDestructiveActionTitle(for: event),
                     cancelTitle: AppStrings.Events.cancel
                 ) {
                     Task {
@@ -224,7 +225,7 @@ struct EventDetailView: View {
             get: {
                 deleteErrorMessage.map {
                     AppErrorDialog(
-                        title: AppStrings.Events.deleteFailed,
+                        title: viewModel.event(for: eventID).map(eventDestructiveActionFailedTitle(for:)) ?? AppStrings.Events.deleteFailed,
                         message: $0,
                         okTitle: AppStrings.Events.dismissError
                     )
@@ -592,6 +593,26 @@ struct EventDetailView: View {
         guard let url else { return }
         UIApplication.shared.open(url)
     }
+}
+
+func eventUsesCancellationWording(_ event: Event) -> Bool {
+    event.moderationStatus == .approved || event.registeredCount > 0
+}
+
+func eventDestructiveActionTitle(for event: Event) -> String {
+    eventUsesCancellationWording(event) ? AppStrings.Events.cancelEvent : AppStrings.Events.delete
+}
+
+func eventDestructiveActionConfirmationTitle(for event: Event) -> String {
+    eventUsesCancellationWording(event) ? AppStrings.Events.cancelEventConfirmation : AppStrings.Events.deleteConfirmation
+}
+
+func eventDestructiveActionConfirmationMessage(for event: Event) -> String {
+    eventUsesCancellationWording(event) ? AppStrings.Events.cancelEventConfirmationMessage : ""
+}
+
+func eventDestructiveActionFailedTitle(for event: Event) -> String {
+    eventUsesCancellationWording(event) ? AppStrings.Events.cancelEventFailed : AppStrings.Events.deleteFailed
 }
 
 struct EventSharePayload: Identifiable {

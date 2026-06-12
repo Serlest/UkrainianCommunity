@@ -143,6 +143,7 @@ struct EventsListView: View {
     let scrollResetToken: Int
     let searchResetToken: Int
     @State private var pendingDeleteEventID: String?
+    @State private var deleteErrorEvent: Event?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
     @State private var selectedFilter: EventDiscoveryFilter = .all
@@ -369,10 +370,11 @@ struct EventsListView: View {
         .appDestructiveActionDialog(Binding(
             get: {
                 guard let eventID = pendingDeleteEventID else { return nil }
+                let event = viewModel.event(for: eventID)
                 return AppDestructiveActionDialog(
-                    title: AppStrings.Events.deleteConfirmation,
-                    message: "",
-                    destructiveActionTitle: AppStrings.Events.delete,
+                    title: event.map(eventDestructiveActionConfirmationTitle(for:)) ?? AppStrings.Events.deleteConfirmation,
+                    message: event.map(eventDestructiveActionConfirmationMessage(for:)) ?? "",
+                    destructiveActionTitle: event.map(eventDestructiveActionTitle(for:)) ?? AppStrings.Events.delete,
                     cancelTitle: AppStrings.Events.cancel
                 ) {
                     Task {
@@ -380,9 +382,11 @@ struct EventsListView: View {
                             try await viewModel.deleteEvent(id: eventID)
                             onEventDeleted()
                         } catch let appError as AppError {
+                            deleteErrorEvent = event
                             deleteErrorMessage = readableEventErrorText(appError)
                             isShowingDeleteError = true
                         } catch {
+                            deleteErrorEvent = event
                             deleteErrorMessage = AppStrings.Events.actionUnknownError
                             isShowingDeleteError = true
                         }
@@ -395,8 +399,9 @@ struct EventsListView: View {
         .appErrorDialog(Binding(
             get: {
                 guard isShowingDeleteError else { return nil }
+                let event = deleteErrorEvent ?? pendingDeleteEventID.flatMap { viewModel.event(for: $0) }
                 return AppErrorDialog(
-                    title: AppStrings.Events.deleteFailed,
+                    title: event.map(eventDestructiveActionFailedTitle(for:)) ?? AppStrings.Events.deleteFailed,
                     message: deleteErrorMessage ?? AppStrings.Events.actionUnknownError,
                     okTitle: AppStrings.Events.dismissError
                 )
@@ -404,6 +409,7 @@ struct EventsListView: View {
             set: {
                 if $0 == nil {
                     isShowingDeleteError = false
+                    deleteErrorEvent = nil
                     deleteErrorMessage = nil
                 }
             }
@@ -763,7 +769,7 @@ private struct EventDiscoveryRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("event.card.\(event.id)")
-        .modifier(EventDeleteSwipeActions(isEnabled: canDeleteEvent) {
+        .modifier(EventDeleteSwipeActions(isEnabled: canDeleteEvent, title: eventDestructiveActionTitle(for: event)) {
             pendingDeleteEventID = event.id
         })
     }
@@ -896,13 +902,14 @@ private struct EventCard: View {
 
 struct EventDeleteSwipeActions: ViewModifier {
     let isEnabled: Bool
+    let title: String
     let onDelete: () -> Void
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if isEnabled {
             content.swipeActions(edge: .trailing) {
-                Button(AppStrings.Events.delete, role: .destructive) {
+                Button(title, role: .destructive) {
                     onDelete()
                 }
             }

@@ -284,7 +284,7 @@ extension EventDetailView {
                 ? .cancel(event.id)
                 : .register(event.id)
             } label: {
-                Label(event.registrationState == .registered ? AppStrings.Events.registered : AppStrings.Events.register, systemImage: event.registrationState == .registered ? "checkmark.circle.fill" : "checkmark.circle")
+                Label(event.registrationState == .registered ? AppStrings.Action.cancelRegistration : AppStrings.Events.register, systemImage: event.registrationState == .registered ? "xmark.circle" : "checkmark.circle")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)

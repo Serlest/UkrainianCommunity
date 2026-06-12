@@ -642,7 +642,7 @@ extension EventDetailView {
                         }
 
                         if canDeleteEvent(event) {
-                            eventManagementButton(title: AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
+                            eventManagementButton(title: eventDestructiveActionTitle(for: event), systemImage: "trash", role: .destructive) {
                                 showDeleteConfirmation = true
                             }
                             .disabled(isDeleting)
