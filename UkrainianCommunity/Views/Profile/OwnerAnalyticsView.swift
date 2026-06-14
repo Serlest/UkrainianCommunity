@@ -15,9 +15,11 @@ struct OwnerAnalyticsView: View {
             title: AppStrings.OwnerAnalytics.title,
             introSubtitle: AppStrings.OwnerAnalytics.subtitle
         ) {
-            periodPicker
-            searchField
-            content
+            VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                periodPicker
+                searchField
+                content
+            }
         }
         .task {
             await viewModel.loadIfNeeded()
@@ -94,11 +96,13 @@ struct OwnerAnalyticsView: View {
                 message: AppStrings.OwnerAnalytics.searchEmptyMessage
             )
         } else {
-            overviewSection
-            contentAnalyticsSection
-            regionalActivitySection
-            userAnalyticsSection
-            actionsOverviewSection
+            VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                overviewSection
+                contentAnalyticsSection
+                regionalActivitySection
+                userAnalyticsSection
+                actionsOverviewSection
+            }
         }
     }
 
@@ -110,7 +114,7 @@ struct OwnerAnalyticsView: View {
             metricGrid(viewModel.overviewMetricItems, accentFirst: true)
 
             if !viewModel.contentViewMetricItems.isEmpty {
-                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                VStack(alignment: .leading, spacing: AppTheme.sectionHeaderContentSpacing) {
                     Text(AppStrings.OwnerAnalytics.activityOverviewTitle)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
@@ -145,12 +149,12 @@ struct OwnerAnalyticsView: View {
                 if viewModel.userFederalStateRows.isEmpty {
                     OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.userFederalStatesEmpty)
                 } else {
-                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                    VStack(alignment: .leading, spacing: AppTheme.sectionHeaderContentSpacing) {
                         Text(AppStrings.OwnerAnalytics.usersByFederalState)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(AppTheme.textPrimary)
 
-                        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        VStack(spacing: AppTheme.analyticsRowSpacing) {
                             ForEach(viewModel.userFederalStateRows) { row in
                                 OwnerAnalyticsFederalStateUserRow(row: row)
                             }
@@ -173,7 +177,7 @@ struct OwnerAnalyticsView: View {
     @ViewBuilder
     private var contentAnalyticsSection: some View {
         if !viewModel.topContentSections.isEmpty {
-            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            VStack(alignment: .leading, spacing: AppTheme.cardStackSpacing) {
                 SectionHeaderBlock(
                     title: AppStrings.OwnerAnalytics.topContentTitle,
                     subtitle: AppStrings.OwnerAnalytics.topContentSubtitle
@@ -181,7 +185,7 @@ struct OwnerAnalyticsView: View {
 
                 ForEach(viewModel.topContentSections) { section in
                     OwnerAnalyticsSectionCard(title: section.title) {
-                        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        VStack(spacing: AppTheme.analyticsRowSpacing) {
                             ForEach(section.items) { item in
                                 NavigationLink {
                                     analyticsDetailDestination(for: item)
@@ -214,7 +218,7 @@ struct OwnerAnalyticsView: View {
                 title: AppStrings.OwnerAnalytics.regionActivityTitle,
                 subtitle: AppStrings.OwnerAnalytics.regionActivitySubtitle
             ) {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                VStack(spacing: AppTheme.analyticsRowSpacing) {
                     ForEach(viewModel.regionRows) { row in
                         OwnerAnalyticsRegionRow(row: row)
                     }
@@ -233,7 +237,7 @@ struct OwnerAnalyticsView: View {
     }
 
     private func metricGrid<T: Identifiable>(_ items: [T], accentFirst: Bool) -> some View where T: OwnerAnalyticsMetricDisplayable {
-        LazyVGrid(columns: metricColumns, spacing: AppTheme.eventsMetadataSpacing) {
+        LazyVGrid(columns: metricColumns, spacing: AppTheme.analyticsGridSpacing) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 OwnerAnalyticsMetricTile(
                     title: item.title,
@@ -248,8 +252,8 @@ struct OwnerAnalyticsView: View {
 
     private var metricColumns: [GridItem] {
         [
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
+            GridItem(.flexible(), spacing: AppTheme.analyticsGridSpacing),
+            GridItem(.flexible(), spacing: AppTheme.analyticsGridSpacing)
         ]
     }
 

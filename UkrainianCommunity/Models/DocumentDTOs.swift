@@ -225,6 +225,7 @@ struct OrganizationDTO: Codable, Identifiable {
     let ownerId: String?
     let adminIds: [String]
     let moderatorIds: [String]
+    let adminCanEditOrganizationInfo: Bool?
     let isSystemManaged: Bool?
     let sourceType: String?
     let pinnedNewsId: String?
@@ -595,14 +596,22 @@ extension Event {
 
 extension Organization {
     init(dto: OrganizationDTO) {
+        let resolvedRegionScope: RegionScope = .init(rawValue: dto.regionScope ?? "") ?? .city
+        let resolvedFederalState: AustrianFederalState = .init(rawValue: dto.federalState ?? "") ?? .tirol
+        let resolvedSourceType: ContentSourceType? = dto.sourceType.flatMap(ContentSourceType.init(rawValue:))
+        let resolvedModerationStatus: ModerationStatus = .init(rawValue: dto.moderationStatus) ?? .draft
+        let resolvedLikeState: LikeState = .init(rawValue: dto.likeState) ?? .notLiked
+        let normalizedLanguages: [String] = dto.languages ?? []
+        let normalizedSocialLinks: [String: String] = dto.socialLinks ?? [:]
+
         self.init(
             id: dto.id,
             name: dto.name,
             description: dto.description,
             shortDescription: dto.shortDescription,
             fullDescription: dto.fullDescription,
-            regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .city,
-            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
+            regionScope: resolvedRegionScope,
+            federalState: resolvedFederalState,
             city: dto.city,
             imageURL: dto.imageURL,
             logoURL: dto.logoURL,
@@ -617,8 +626,8 @@ extension Organization {
             organizationType: dto.organizationType,
             foundedYear: dto.foundedYear,
             foundedMonth: dto.foundedMonth,
-            languages: dto.languages ?? [],
-            socialLinks: dto.socialLinks ?? [:],
+            languages: normalizedLanguages,
+            socialLinks: normalizedSocialLinks,
             telegramURL: dto.telegramURL,
             donationURL: dto.donationURL,
             facebookURL: dto.facebookURL,
@@ -634,9 +643,10 @@ extension Organization {
             helpedPeopleCount: dto.helpedPeopleCount,
             ownerId: dto.ownerId,
             adminIds: dto.adminIds,
+            adminCanEditOrganizationInfo: dto.adminCanEditOrganizationInfo,
             moderatorIds: dto.moderatorIds,
             isSystemManaged: dto.isSystemManaged,
-            sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)),
+            sourceType: resolvedSourceType,
             pinnedNewsId: dto.pinnedNewsId,
             pinnedEventId: dto.pinnedEventId,
             submittedByUserId: dto.submittedByUserId,
@@ -648,9 +658,9 @@ extension Organization {
             rejectionReason: dto.rejectionReason,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
-            moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
+            moderationStatus: resolvedModerationStatus,
             likeCount: dto.likeCount,
-            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
+            likeState: resolvedLikeState,
             isSubscribed: dto.isSubscribed,
             isBookmarked: dto.isBookmarked
         )
@@ -697,6 +707,7 @@ extension Organization {
             ownerId: ownerId,
             adminIds: adminIds,
             moderatorIds: moderatorIds,
+            adminCanEditOrganizationInfo: adminCanEditOrganizationInfo,
             isSystemManaged: isSystemManaged,
             sourceType: sourceType?.rawValue,
             pinnedNewsId: pinnedNewsId,

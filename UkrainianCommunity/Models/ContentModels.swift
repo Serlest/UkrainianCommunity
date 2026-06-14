@@ -581,6 +581,7 @@ struct Organization: Identifiable, Codable {
     let helpedPeopleCount: Int
     let ownerId: String?
     let adminIds: [String]
+    let adminCanEditOrganizationInfo: Bool?
     let moderatorIds: [String]
     let isSystemManaged: Bool?
     let sourceType: ContentSourceType?
@@ -640,6 +641,7 @@ struct Organization: Identifiable, Codable {
         helpedPeopleCount: Int = 0,
         ownerId: String? = nil,
         adminIds: [String] = [],
+        adminCanEditOrganizationInfo: Bool? = nil,
         moderatorIds: [String] = [],
         isSystemManaged: Bool? = nil,
         sourceType: ContentSourceType? = nil,
@@ -698,6 +700,7 @@ struct Organization: Identifiable, Codable {
         self.helpedPeopleCount = max(0, helpedPeopleCount)
         self.ownerId = Self.normalizedOptionalString(ownerId)
         self.adminIds = adminIds
+        self.adminCanEditOrganizationInfo = adminCanEditOrganizationInfo
         self.moderatorIds = moderatorIds
         self.isSystemManaged = isSystemManaged
         self.sourceType = sourceType

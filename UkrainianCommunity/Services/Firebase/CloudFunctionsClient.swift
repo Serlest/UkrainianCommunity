@@ -23,6 +23,7 @@ enum CloudFunctionName: String, CaseIterable {
     case deactivateUser
     case restoreUser
     case acceptLegalDocument
+    case deleteUserAccount
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -173,6 +174,19 @@ struct EventCancellationFunctionResponse: Codable, Equatable {
     let notificationCount: Int
     let pushRecipientCount: Int
     let cancelledAt: String
+}
+
+struct DeleteUserAccountFunctionRequest: Codable, Equatable {
+    let acknowledged: Bool
+
+    init(acknowledged: Bool = true) {
+        self.acknowledged = acknowledged
+    }
+}
+
+struct DeleteUserAccountFunctionResponse: Codable, Equatable {
+    let deletedUserId: String
+    let deletedAt: String
 }
 
 final class CloudFunctionsClient {
@@ -337,6 +351,15 @@ final class CloudFunctionsClient {
         try await call(.cancelEvent, request: request)
     }
 
+    func deleteUserAccount(
+        acknowledged: Bool = true
+    ) async throws -> DeleteUserAccountFunctionResponse {
+        try await call(
+            .deleteUserAccount,
+            request: DeleteUserAccountFunctionRequest(acknowledged: acknowledged)
+        )
+    }
+
     private func call<Request: Encodable, Response: Decodable>(
         _ functionName: CloudFunctionName,
         request: Request
@@ -410,6 +433,8 @@ final class CloudFunctionsClient {
             return .userProfile
         case .acceptLegalDocument:
             return .legalDocument
+        case .deleteUserAccount:
+            return .userProfile
         }
     }
 
@@ -438,6 +463,8 @@ final class CloudFunctionsClient {
              .requestOrganizationRevision,
              .acceptLegalDocument:
             return false
+        case .deleteUserAccount:
+            return true
         }
     }
 
@@ -482,7 +509,8 @@ final class CloudFunctionsClient {
              .rejectOrganization,
              .requestOrganizationRevision,
              .cancelEvent,
-             .acceptLegalDocument:
+             .acceptLegalDocument,
+             .deleteUserAccount:
             return nil
         }
     }

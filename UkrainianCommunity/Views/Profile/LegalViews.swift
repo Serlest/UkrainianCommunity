@@ -39,6 +39,7 @@ struct LegalDocumentView: View {
     let document: LegalDocumentKind
 
     @StateObject private var viewModel: LegalDocumentReaderViewModel
+    @Environment(\.locale) private var locale
 
     init(
         document: LegalDocumentKind,
@@ -58,13 +59,17 @@ struct LegalDocumentView: View {
     }
 
     private var displayedContent: LegalDocumentLocaleContent {
-        displayedDocument.content(preferredLocale: AppLanguage.stored.rawValue)
+        displayedDocument.content(preferredLocale: preferredLocale)
             ?? LegalDocumentLocaleContent(
                 title: document.title,
                 contentMarkdown: "",
                 contentText: nil,
                 contentHash: nil
             )
+    }
+
+    private var preferredLocale: String {
+        DonationLocalization.language(from: locale).rawValue
     }
 
     private var lastUpdatedText: String? {

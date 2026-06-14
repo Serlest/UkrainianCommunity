@@ -20,9 +20,11 @@ struct AnalyticsContentDetailView: View {
     var body: some View {
         AnalyticsDetailContainer(navigationTitle: AppStrings.OwnerAnalytics.detailAnalyticsTitle) {
             AppGroupedContentPlane {
-                header
-                periodPicker
-                content
+                VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                    header
+                    periodPicker
+                    content
+                }
             }
         }
         .task { await viewModel.loadIfNeeded() }
@@ -68,19 +70,21 @@ struct AnalyticsContentDetailView: View {
                 message: AppStrings.OwnerAnalytics.noDetailAnalyticsMessage
             )
         } else {
-            OwnerAnalyticsSectionCard(title: AppStrings.OwnerAnalytics.overviewTitle) {
-                AnalyticsDetailMetricGrid(items: viewModel.metricItems)
+            VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                OwnerAnalyticsSectionCard(title: AppStrings.OwnerAnalytics.overviewTitle) {
+                    AnalyticsDetailMetricGrid(items: viewModel.metricItems)
 
-                if let conversionRateText = viewModel.conversionRateText {
-                    AnalyticsDetailValueRow(
-                        title: AppStrings.OwnerAnalytics.conversionRate,
-                        value: conversionRateText,
-                        systemImage: "arrow.triangle.branch"
-                    )
+                    if let conversionRateText = viewModel.conversionRateText {
+                        AnalyticsDetailValueRow(
+                            title: AppStrings.OwnerAnalytics.conversionRate,
+                            value: conversionRateText,
+                            systemImage: "arrow.triangle.branch"
+                        )
+                    }
                 }
-            }
 
-            AnalyticsDetailRegionSection(rows: viewModel.regionRows)
+                AnalyticsDetailRegionSection(rows: viewModel.regionRows)
+            }
         }
     }
 }
@@ -103,10 +107,12 @@ struct AnalyticsOrganizationDetailView: View {
     var body: some View {
         AnalyticsDetailContainer(navigationTitle: AppStrings.OwnerAnalytics.detailAnalyticsTitle) {
             AppGroupedContentPlane {
-                header
-                periodPicker
-                searchField
-                content
+                VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                    header
+                    periodPicker
+                    searchField
+                    content
+                }
             }
         }
         .task { await viewModel.loadIfNeeded() }
@@ -162,29 +168,31 @@ struct AnalyticsOrganizationDetailView: View {
                 message: AppStrings.OwnerAnalytics.searchEmptyMessage
             )
         } else {
-            OwnerAnalyticsSectionCard(title: AppStrings.OwnerAnalytics.overviewTitle) {
-                AnalyticsDetailMetricGrid(items: viewModel.metricItems)
-            }
+            VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                OwnerAnalyticsSectionCard(title: AppStrings.OwnerAnalytics.overviewTitle) {
+                    AnalyticsDetailMetricGrid(items: viewModel.metricItems)
+                }
 
-            AnalyticsOrganizationTopContentSection(
-                title: AppStrings.OwnerAnalytics.topNews,
-                items: viewModel.topNewsItems,
-                hasMoreItems: viewModel.hasMoreTopNews,
-                canCollapse: viewModel.canCollapseTopNews
-            ) {
-                viewModel.toggleTopNewsExpansion()
-            }
+                AnalyticsOrganizationTopContentSection(
+                    title: AppStrings.OwnerAnalytics.topNews,
+                    items: viewModel.topNewsItems,
+                    hasMoreItems: viewModel.hasMoreTopNews,
+                    canCollapse: viewModel.canCollapseTopNews
+                ) {
+                    viewModel.toggleTopNewsExpansion()
+                }
 
-            AnalyticsOrganizationTopContentSection(
-                title: AppStrings.OwnerAnalytics.topEvents,
-                items: viewModel.topEventsItems,
-                hasMoreItems: viewModel.hasMoreTopEvents,
-                canCollapse: viewModel.canCollapseTopEvents
-            ) {
-                viewModel.toggleTopEventsExpansion()
-            }
+                AnalyticsOrganizationTopContentSection(
+                    title: AppStrings.OwnerAnalytics.topEvents,
+                    items: viewModel.topEventsItems,
+                    hasMoreItems: viewModel.hasMoreTopEvents,
+                    canCollapse: viewModel.canCollapseTopEvents
+                ) {
+                    viewModel.toggleTopEventsExpansion()
+                }
 
-            AnalyticsDetailRegionSection(rows: viewModel.regionRows)
+                AnalyticsDetailRegionSection(rows: viewModel.regionRows)
+            }
         }
     }
 }
@@ -250,7 +258,7 @@ private struct AnalyticsDetailMetricGrid: View {
     let items: [OwnerAnalyticsDetailMetricItem]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: AppTheme.eventsMetadataSpacing) {
+        LazyVGrid(columns: columns, spacing: AppTheme.analyticsGridSpacing) {
             ForEach(items) { item in
                 OwnerAnalyticsMetricTile(
                     title: item.title,
@@ -263,8 +271,8 @@ private struct AnalyticsDetailMetricGrid: View {
 
     private var columns: [GridItem] {
         [
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
+            GridItem(.flexible(), spacing: AppTheme.analyticsGridSpacing),
+            GridItem(.flexible(), spacing: AppTheme.analyticsGridSpacing)
         ]
     }
 }
@@ -309,7 +317,7 @@ private struct AnalyticsDetailValueRow: View {
                 .foregroundStyle(AppTheme.textPrimary)
                 .monospacedDigit()
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, AppTheme.eventsMetadataSpacing)
     }
 }
 
@@ -324,7 +332,7 @@ private struct AnalyticsDetailRegionSection: View {
             if rows.isEmpty {
                 OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.regionActivityEmptyMessage)
             } else {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                VStack(spacing: AppTheme.analyticsRowSpacing) {
                     ForEach(rows) { row in
                         AnalyticsDetailRegionRow(row: row)
                     }
@@ -378,7 +386,7 @@ private struct AnalyticsDetailRegionRow: View {
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, AppTheme.eventsMetadataSpacing)
     }
 }
 
@@ -394,7 +402,7 @@ private struct AnalyticsOrganizationTopContentSection: View {
             if items.isEmpty {
                 OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.noDetailAnalyticsMessage)
             } else {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                VStack(spacing: AppTheme.analyticsRowSpacing) {
                     ForEach(items) { item in
                         AnalyticsOrganizationTopContentRow(item: item)
                     }
@@ -453,7 +461,7 @@ private struct AnalyticsOrganizationTopContentRow: View {
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, AppTheme.eventsMetadataSpacing)
     }
 }
 

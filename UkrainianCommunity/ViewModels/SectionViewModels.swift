@@ -2205,7 +2205,10 @@ final class ProfileViewModel: ObservableObject {
 
         do {
             try await repository.deleteAccount(currentUser: currentUser)
-            _ = AuthService.shared.signOut()
+            let didSignOut = AuthService.shared.signOut()
+            if !didSignOut {
+                return AppStrings.Profile.deleteAccountFailed
+            }
             resetForAuthChange()
             return nil
         } catch let deletionError as AccountDeletionError {
@@ -2214,6 +2217,10 @@ final class ProfileViewModel: ObservableObject {
                 return AppStrings.Profile.deleteAccountPlatformOwnerBlocked
             case .ownsOrganization:
                 return AppStrings.Profile.deleteAccountOrganizationOwnerBlocked
+            case .blockedBannedUser:
+                return AppStrings.Profile.deleteAccountBannedBlocked
+            case .sessionInvalid:
+                return AppStrings.Profile.deleteAccountSessionInvalid
             case .requiresRecentLogin:
                 return AppStrings.Profile.deleteAccountRequiresRecentLogin
             case .stageFailed(let stage, let permissionDenied):

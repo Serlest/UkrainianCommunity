@@ -714,6 +714,7 @@ struct FeedbackComposerCard: View {
     let statusMessage: String?
     let isSubmitting: Bool
     let onSubmit: () -> Void
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -725,10 +726,11 @@ struct FeedbackComposerCard: View {
             LabeledContent(AppStrings.Feedback.fieldType) {
                 Picker(AppStrings.Feedback.fieldType, selection: $selectedFeedbackType) {
                     ForEach(FeedbackType.allCases) { feedbackType in
-                        Text(feedbackType.title).tag(feedbackType)
+                        Text(localizedFeedbackTypeTitle(feedbackType)).tag(feedbackType)
                     }
                 }
                 .pickerStyle(.menu)
+                .id("feedback-type-picker-\(locale.identifier)")
             }
             .accessibilityLabel(AppStrings.Feedback.fieldType)
 
@@ -778,5 +780,20 @@ struct FeedbackComposerCard: View {
             .accessibilityLabel(AppStrings.Feedback.submit)
         }
         .padding(.vertical, 2)
+    }
+}
+
+private extension FeedbackComposerCard {
+    func localizedFeedbackTypeTitle(_ feedbackType: FeedbackType) -> String {
+        switch feedbackType {
+        case .question:
+            AppStrings.Feedback.typeQuestion
+        case .suggestion:
+            AppStrings.Feedback.typeSuggestion
+        case .bug:
+            AppStrings.Feedback.typeBug
+        case .report:
+            AppStrings.Feedback.typeReport
+        }
     }
 }

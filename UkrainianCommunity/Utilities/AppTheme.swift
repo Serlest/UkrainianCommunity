@@ -51,6 +51,12 @@ enum AppTheme {
     static let homeFeedCardPadding: CGFloat = 10
     static let homeFeedDateBadgeSize: CGFloat = 42
     static let homeBottomContentPadding: CGFloat = 116
+    static let screenSectionSpacing = sectionSpacing
+    static let sectionHeaderContentSpacing = dashboardSpacing
+    static let cardStackSpacing = feedRowSpacing
+    static let profileCardStackSpacing = feedRowSpacing
+    static let analyticsGridSpacing = dashboardSpacing
+    static let analyticsRowSpacing: CGFloat = 10
     static let appHeaderLogoSize = CGSize(width: 160, height: 56)
     static let appHeaderBottomSpacing: CGFloat = 16
     static let appHeaderLeadingAdjustment: CGFloat = 0
@@ -271,7 +277,7 @@ enum AppTheme {
     static let editorScreenSubtitleFont = pushedScreenSubtitleFont
 
     static let groupedContentPadding = contentPlanePadding
-    static let groupedContentSpacing: CGFloat = 0
+    static let groupedContentSpacing = screenSectionSpacing
     static let groupedContentCornerRadius = contentPlaneRadius
     static let groupedContentMaterial: Material = .ultraThinMaterial
     static let groupedContentBorderOpacity = groupedPlaneBorderOpacity

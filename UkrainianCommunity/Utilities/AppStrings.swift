@@ -1688,12 +1688,14 @@ enum AppStrings {
         static var deleteAccountConfirmationKeyword: String { text("profile.settings.delete_account.keyword", "ВИДАЛИТИ") }
         static var deleteAccountFinalAction: String { text("profile.settings.delete_account.final_action", "Видалити акаунт") }
         static var deleteAccountInProgress: String { text("profile.settings.delete_account.in_progress", "Видаляємо акаунт…") }
+        static var deleteAccountSessionInvalid: String { text("profile.settings.delete_account.session_invalid", "Сесію завершено. Увійдіть знову, щоб виконати видалення акаунта.") }
         static var deleteAccountFailed: String { text("profile.settings.delete_account.failed", "Не вдалося видалити акаунт. Спробуйте ще раз.") }
         static var deleteAccountCleanupFailed: String { text("profile.settings.delete_account.cleanup_failed", "Не вдалося очистити дані акаунта. Акаунт не видалено. Спробуйте ще раз.") }
         static var deleteAccountPermissionFailed: String { text("profile.settings.delete_account.permission_failed", "Немає доступу для завершення видалення акаунта. Акаунт не видалено. Спробуйте вийти й увійти знову.") }
         static var deleteAccountRequiresRecentLogin: String { text("profile.settings.delete_account.requires_recent_login", "Для видалення акаунта потрібно повторно увійти.") }
-        static var deleteAccountOrganizationOwnerBlocked: String { text("profile.settings.delete_account.owner_blocked", "Неможливо видалити акаунт, поки ви є власником організації. Передайте організацію іншому власнику.") }
+        static var deleteAccountOrganizationOwnerBlocked: String { text("profile.settings.delete_account.owner_blocked", "Неможливо видалити акаунт, поки ви є власником організації. Передайте або видаліть свої організації перед цим.") }
         static var deleteAccountPlatformOwnerBlocked: String { text("profile.settings.delete_account.platform_owner_blocked", "Platform owner акаунт не можна видалити з профілю.") }
+        static var deleteAccountBannedBlocked: String { text("profile.settings.delete_account.banned_blocked", "Акаунт з обмеженим або заблокованим статусом неможливо видалити з профілю. Зверніться в підтримку.") }
         static var deletedUserDisplayName: String { text("profile.deleted_user.display_name", "Видалений користувач") }
         static var supportSectionSubtitle: String { text("profile.support.subtitle", "Зв’язок з командою, довідка та юридична інформація.") }
         static var sendFeedback: String { text("profile.support.send_feedback", "Надіслати відгук") }

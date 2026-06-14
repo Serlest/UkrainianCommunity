@@ -11,7 +11,9 @@ struct ProfileDestinationLayout<Content: View>: View {
             subtitle: introSubtitle
         ) {
             AppGroupedContentPlane {
-                content
+                VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                    content
+                }
             }
         }
     }

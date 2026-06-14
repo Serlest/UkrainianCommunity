@@ -37,7 +37,7 @@ struct ProfileOrganizationPreviewCard: View {
                     .lineLimit(1)
             }
         }
-        .padding(AppTheme.eventsMetadataSpacing)
+        .padding(AppTheme.rowCardPadding)
         .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)

@@ -293,8 +293,13 @@ struct PermissionService {
                 return true
             }
             return isOrganizationOwner(organization, user: user)
-                || isOrganizationAdmin(organization, user: user)
+                || (isOrganizationAdmin(organization, user: user)
+                    && Self.canAdminUpdateOrganizationInfo(organization))
         }
+    }
+
+    private static func canAdminUpdateOrganizationInfo(_ organization: Organization) -> Bool {
+        organization.adminCanEditOrganizationInfo ?? true
     }
 
     @available(*, unavailable, message: "Load the Organization and use canEditOrganizationInfo(_:user:) instead.")

@@ -8,8 +8,8 @@ struct OwnerAnalyticsMetricTile: View {
     var accentStyle: Bool = false
 
     var body: some View {
-        AppGlassCard(padding: 14, spacing: 8, shadowRadius: 8, shadowY: 4) {
-            VStack(alignment: .leading, spacing: 10) {
+        AppGlassCard(padding: AppTheme.metricCardPadding, spacing: AppTheme.eventsMetadataSpacing, shadowRadius: 8, shadowY: 4) {
+            VStack(alignment: .leading, spacing: AppTheme.analyticsRowSpacing) {
                 HStack(spacing: 8) {
                     Image(systemName: systemImage)
                         .font(.subheadline.weight(.semibold))
@@ -86,7 +86,7 @@ struct OwnerAnalyticsSectionCard<Content: View>: View {
     }
 
     var body: some View {
-        AppGlassCard(spacing: AppTheme.eventsMetadataSpacing) {
+        AppGlassCard(spacing: AppTheme.sectionHeaderContentSpacing) {
             SectionHeaderBlock(title: title, subtitle: subtitle)
             content
         }
@@ -144,7 +144,7 @@ struct OwnerAnalyticsContentRow: View {
 
             trailingValue(item.viewCount, label: AppStrings.OwnerAnalytics.views)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, AppTheme.eventsMetadataSpacing)
     }
 
     private var rankBadge: some View {
@@ -202,7 +202,7 @@ struct OwnerAnalyticsRegionRow: View {
 
             trailingValue(row.viewCount, label: AppStrings.OwnerAnalytics.views)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, AppTheme.eventsMetadataSpacing)
     }
 }
 
@@ -226,7 +226,7 @@ struct OwnerAnalyticsFederalStateUserRow: View {
 
             trailingValue(row.userCount, label: AppStrings.OwnerAnalytics.users)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, AppTheme.eventsMetadataSpacing)
     }
 }
 

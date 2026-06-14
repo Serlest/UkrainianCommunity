@@ -31924,6 +31924,23 @@
         }
       }
     },
+    "profile.settings.delete_account.session_invalid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sitzung ist abgelaufen. Bitte erneut anmelden, um das Konto zu entfernen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сесію завершено. Увійдіть знову, щоб виконати видалення акаунта."
+          }
+        }
+      }
+    },
     "profile.settings.delete_account.in_progress" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -31964,13 +31981,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du kannst den Account nicht löschen, solange du Inhaber einer Organisation bist. Übertrage die Organisation zuerst an eine andere Person."
+            "value" : "Du kannst den Account nicht löschen, solange du Inhaber einer Organisation bist. Übertrage oder lösche zuerst deine Organisation(en)."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Неможливо видалити акаунт, поки ви є власником організації. Передайте організацію іншому власнику."
+            "value" : "Неможливо видалити акаунт, поки ви є власником організації. Передайте або видаліть свої організації перед цим."
           }
         }
       }
@@ -32005,6 +32022,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Акаунт власника платформи не можна видалити з профілю."
+          }
+        }
+      }
+    },
+    "profile.settings.delete_account.banned_blocked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dieser eingeschränkte oder gesperrte Account kann nicht gelöscht werden. Bitte kontaktiere den Support."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Акаунт із обмеженим або заблокованим статусом неможливо видалити з профілю. Зверніться в підтримку."
           }
         }
       }

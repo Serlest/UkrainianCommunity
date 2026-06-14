@@ -866,10 +866,11 @@ struct ProfileView: View {
                 ) {
                     Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
                         ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
+                            Text(localizedLanguageTitle(language)).tag(language)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-edit-language-picker-\(locale.identifier)")
                 }
 
                 ProfileSettingsPickerRow(
@@ -879,10 +880,11 @@ struct ProfileView: View {
                 ) {
                     Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
                         ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
+                            Text(localizedAppearanceTitle(appearance)).tag(appearance)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-edit-appearance-picker-\(locale.identifier)")
                 }
             }
         }
@@ -1353,19 +1355,21 @@ struct ProfileView: View {
                 ProfileSettingsPickerRow(title: AppStrings.Profile.appLanguage, subtitle: AppStrings.Profile.languageSettingsSubtitle, systemImage: "globe") {
                     Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
                         ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
+                            Text(localizedLanguageTitle(language)).tag(language)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-owner-language-picker-\(locale.identifier)")
                 }
 
                 ProfileSettingsPickerRow(title: AppStrings.Profile.appAppearance, subtitle: AppStrings.Profile.appearanceSettingsSubtitle, systemImage: "circle.lefthalf.filled") {
                     Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
                         ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
+                            Text(localizedAppearanceTitle(appearance)).tag(appearance)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-owner-appearance-picker-\(locale.identifier)")
                 }
 
             }
@@ -1385,10 +1389,11 @@ struct ProfileView: View {
                 ) {
                     Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
                         ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
+                            Text(localizedLanguageTitle(language)).tag(language)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-language-picker-\(locale.identifier)")
                 }
 
                 ProfileSettingsPickerRow(
@@ -1398,10 +1403,11 @@ struct ProfileView: View {
                 ) {
                     Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
                         ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
+                            Text(localizedAppearanceTitle(appearance)).tag(appearance)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-appearance-picker-\(locale.identifier)")
                 }
 
                 Button(action: beginEditingProfile) {
@@ -1469,10 +1475,11 @@ struct ProfileView: View {
                 ) {
                     Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
                         ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
+                            Text(localizedLanguageTitle(language)).tag(language)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-guest-language-picker-\(locale.identifier)")
                 }
 
                 ProfileSettingsPickerRow(
@@ -1482,10 +1489,11 @@ struct ProfileView: View {
                 ) {
                     Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
                         ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
+                            Text(localizedAppearanceTitle(appearance)).tag(appearance)
                         }
                     }
                     .labelsHidden()
+                    .id("profile-guest-appearance-picker-\(locale.identifier)")
                 }
 
                 NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
@@ -1681,6 +1689,28 @@ struct ProfileView: View {
                 selectedFeedbackType = .question
                 await myFeedbackViewModel.refresh(userID: user.id)
             }
+        }
+    }
+}
+
+private extension ProfileView {
+    func localizedLanguageTitle(_ language: AppLanguage) -> String {
+        switch language {
+        case .german:
+            AppStrings.Settings.german
+        case .ukrainian:
+            AppStrings.Settings.ukrainian
+        }
+    }
+
+    func localizedAppearanceTitle(_ appearance: AppAppearance) -> String {
+        switch appearance {
+        case .system:
+            AppStrings.Settings.system
+        case .light:
+            AppStrings.Settings.light
+        case .dark:
+            AppStrings.Settings.dark
         }
     }
 }

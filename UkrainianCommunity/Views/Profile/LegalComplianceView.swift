@@ -8,6 +8,11 @@ struct LegalComplianceView: View {
     let decline: () -> Void
 
     @State private var isConfirmingDecline = false
+    @Environment(\.locale) private var locale
+
+    private var preferredLocale: String {
+        DonationLocalization.language(from: locale).rawValue
+    }
 
     var body: some View {
         NavigationStack {
@@ -84,9 +89,9 @@ struct LegalComplianceView: View {
         VStack(spacing: 10) {
             ForEach(requirement.requiredDocuments) { document in
                 NavigationLink {
-                    LegalMarkdownDocumentView(document: document)
+                    LegalMarkdownDocumentView(document: document, preferredLocale: preferredLocale)
                 } label: {
-                    LegalComplianceDocumentRow(document: document)
+                    LegalComplianceDocumentRow(document: document, preferredLocale: preferredLocale)
                 }
                 .buttonStyle(.plain)
             }
@@ -96,6 +101,7 @@ struct LegalComplianceView: View {
 
 private struct LegalComplianceDocumentRow: View {
     let document: LegalDocument
+    let preferredLocale: String
 
     var body: some View {
         HStack(spacing: 12) {
@@ -127,15 +133,16 @@ private struct LegalComplianceDocumentRow: View {
     }
 
     private var title: String {
-        document.content(preferredLocale: AppLanguage.stored.rawValue)?.title ?? document.type.title
+        document.content(preferredLocale: preferredLocale)?.title ?? document.type.title
     }
 }
 
 private struct LegalMarkdownDocumentView: View {
     let document: LegalDocument
+    let preferredLocale: String
 
     private var content: LegalDocumentLocaleContent {
-        document.content(preferredLocale: AppLanguage.stored.rawValue)
+        document.content(preferredLocale: preferredLocale)
             ?? LegalDocumentLocaleContent(
                 title: document.type.title,
                 contentMarkdown: "",

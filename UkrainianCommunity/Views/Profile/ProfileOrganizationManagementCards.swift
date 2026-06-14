@@ -142,7 +142,7 @@ struct OrganizationRequestCard: View {
 
     var body: some View {
         AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            VStack(alignment: .leading, spacing: AppTheme.sectionHeaderContentSpacing) {
                 HStack(alignment: .top, spacing: 12) {
                     AppFeedThumbnail(
                         imageURL: organization.imageURL,
@@ -251,7 +251,7 @@ struct ManagedOrganizationCard: View {
 
     var body: some View {
         AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            VStack(alignment: .leading, spacing: AppTheme.sectionHeaderContentSpacing) {
                 HStack(alignment: .top, spacing: 12) {
                     AppFeedThumbnail(
                         imageURL: organization.imageURL,
@@ -284,7 +284,7 @@ struct ManagedOrganizationCard: View {
 
                 statsRow
 
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                HStack(spacing: AppTheme.sectionHeaderContentSpacing) {
                     NavigationLink {
                         OrganizationDetailView(
                             viewModel: organizationsViewModel,

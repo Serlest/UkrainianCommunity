@@ -1259,8 +1259,15 @@ service cloud.firestore {
         || isOrganizationModerator(organizationId);
     }
 
+    function organizationAdminInfoEditAllowed(organizationId) {
+      return !('adminCanEditOrganizationInfo' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
+        || get(/databases/$(database)/documents/organizations/$(organizationId)).data.adminCanEditOrganizationInfo == true;
+    }
+
     function canEditOrganizationInfo(organizationId) {
-      return canUseOrganizationOverride() || isOrganizationOwner(organizationId) || isOrganizationAdmin(organizationId);
+      return canUseOrganizationOverride()
+        || isOrganizationOwner(organizationId)
+        || (isOrganizationAdmin(organizationId) && organizationAdminInfoEditAllowed(organizationId));
     }
 
     function organizationSafeInfoFields() {
@@ -1896,7 +1903,7 @@ service cloud.firestore {
 
         allow update: if validNotificationUserUpdate(uid);
 
-        allow delete: if false;
+        allow delete: if isSelf(uid);
       }
 
       match /notificationPushTokens/{tokenId} {

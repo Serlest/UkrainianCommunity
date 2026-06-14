@@ -226,9 +226,6 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setUpdateValue(organization.linkedinURL, forKey: "linkedinURL", in: &data)
         setUpdateValue(organization.missionStatement, forKey: "missionStatement", in: &data)
         setUpdateValue(organization.contactPerson, forKey: "contactPerson", in: &data)
-        setUpdateValue(organization.submittedAt.map(Timestamp.init(date:)), forKey: "submittedAt", in: &data)
-        setUpdateValue(organization.reviewMessage, forKey: "reviewMessage", in: &data)
-        setUpdateValue(organization.rejectionReason, forKey: "rejectionReason", in: &data)
 
         return data
     }
@@ -825,6 +822,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             ownerId: data["ownerId"] as? String,
             adminIds: data["adminIds"] as? [String] ?? [],
             moderatorIds: data["moderatorIds"] as? [String] ?? [],
+            adminCanEditOrganizationInfo: data["adminCanEditOrganizationInfo"] as? Bool,
             isSystemManaged: data["isSystemManaged"] as? Bool,
             sourceType: data["sourceType"] as? String,
             pinnedNewsId: data["pinnedNewsId"] as? String,
@@ -913,6 +911,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             helpedPeopleCount: organization.helpedPeopleCount,
             ownerId: organization.ownerId,
             adminIds: organization.adminIds,
+            adminCanEditOrganizationInfo: organization.adminCanEditOrganizationInfo,
             moderatorIds: organization.moderatorIds,
             isSystemManaged: organization.isSystemManaged,
             sourceType: organization.sourceType,
@@ -982,6 +981,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setCreateValue(organization.linkedinURL, forKey: "linkedinURL", in: &data)
         setCreateValue(organization.missionStatement, forKey: "missionStatement", in: &data)
         setCreateValue(organization.contactPerson, forKey: "contactPerson", in: &data)
+        setCreateValue(organization.adminCanEditOrganizationInfo, forKey: "adminCanEditOrganizationInfo", in: &data)
         setCreateValue(organization.ownerId, forKey: "ownerId", in: &data)
         setCreateValue(organization.isSystemManaged, forKey: "isSystemManaged", in: &data)
         setCreateValue(organization.sourceType?.rawValue, forKey: "sourceType", in: &data)

@@ -18,6 +18,7 @@ export * from "./organizations/approvalWorkflow";
 export * from "./organizations/roleManagement";
 export * from "./users/accountStatusManagement";
 export * from "./users/platformRoleManagement";
+export * from "./users/deleteUserAccount";
 
 const feedbackManagers = ["owner", "admin", "moderator"];
 

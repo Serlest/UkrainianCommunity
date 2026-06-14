@@ -56,7 +56,7 @@ struct ManagedNewsContentView: View {
                             message: AppStrings.Profile.managedNewsEmptyMessage
                         )
                     } else {
-                        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        VStack(spacing: AppTheme.profileCardStackSpacing) {
                             ForEach(managedPosts) { post in
                                 ManagedContentCard(
                                     title: post.title,
@@ -178,7 +178,7 @@ struct ManagedEventsContentView: View {
                             message: AppStrings.Profile.managedEventsEmptyMessage
                         )
                     } else {
-                        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        VStack(spacing: AppTheme.profileCardStackSpacing) {
                             ForEach(managedEvents) { event in
                                 ManagedContentCard(
                                     title: event.title,

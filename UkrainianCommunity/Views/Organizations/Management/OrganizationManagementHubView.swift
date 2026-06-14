@@ -224,56 +224,62 @@ struct OrganizationManagementHubView: View {
                 message: AppStrings.Profile.noOrganizations
             )
         } else {
-            if !manageableOrganizations.isEmpty {
-                VStack(spacing: AppTheme.feedRowSpacing) {
-                    ForEach(manageableOrganizations) { organization in
-                        ManagedOrganizationCard(
-                            organization: organization,
-                            role: organizationRole(for: organization) ?? .moderator,
-                            organizationsViewModel: organizationsViewModel,
-                            contentStats: organizationContentStats[organization.id],
-                            isLoadingContentStats: loadingContentStatOrganizationIDs.contains(organization.id)
-                        )
-                    }
-                }
-            }
-
-            if !organizationRequests.isEmpty {
-                AppEditorSectionCard {
-                    AppEditorSectionTitle(title: AppStrings.Profile.organizationRequests)
-                }
-
-                VStack(spacing: AppTheme.feedRowSpacing) {
-                    ForEach(organizationRequests) { organization in
-                        OrganizationRequestCard(
-                            organization: organization,
-                            previewAction: {
-                                previewingOrganizationRequest = organization
-                            },
-                            editAction: {
-                                editingOrganizationRequest = organization
-                            }
-                        )
-                    }
-                }
-            }
-
-            if !subscribedOrganizations.isEmpty {
-                AppEditorSectionCard {
-                    AppEditorSectionTitle(title: AppStrings.Profile.subscribedOrganizations)
-                }
-
-                VStack(spacing: AppTheme.feedRowSpacing) {
-                    ForEach(subscribedOrganizations) { organization in
-                        NavigationLink {
-                            OrganizationDetailView(
-                                viewModel: organizationsViewModel,
-                                organizationID: organization.id
+            VStack(alignment: .leading, spacing: AppTheme.screenSectionSpacing) {
+                if !manageableOrganizations.isEmpty {
+                    VStack(spacing: AppTheme.profileCardStackSpacing) {
+                        ForEach(manageableOrganizations) { organization in
+                            ManagedOrganizationCard(
+                                organization: organization,
+                                role: organizationRole(for: organization) ?? .moderator,
+                                organizationsViewModel: organizationsViewModel,
+                                contentStats: organizationContentStats[organization.id],
+                                isLoadingContentStats: loadingContentStatOrganizationIDs.contains(organization.id)
                             )
-                        } label: {
-                            ProfileOrganizationListCard(organization: organization)
                         }
-                        .buttonStyle(.plain)
+                    }
+                }
+
+                if !organizationRequests.isEmpty {
+                    VStack(alignment: .leading, spacing: AppTheme.sectionHeaderContentSpacing) {
+                        AppEditorSectionCard {
+                            AppEditorSectionTitle(title: AppStrings.Profile.organizationRequests)
+                        }
+
+                        VStack(spacing: AppTheme.profileCardStackSpacing) {
+                            ForEach(organizationRequests) { organization in
+                                OrganizationRequestCard(
+                                    organization: organization,
+                                    previewAction: {
+                                        previewingOrganizationRequest = organization
+                                    },
+                                    editAction: {
+                                        editingOrganizationRequest = organization
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if !subscribedOrganizations.isEmpty {
+                    VStack(alignment: .leading, spacing: AppTheme.sectionHeaderContentSpacing) {
+                        AppEditorSectionCard {
+                            AppEditorSectionTitle(title: AppStrings.Profile.subscribedOrganizations)
+                        }
+
+                        VStack(spacing: AppTheme.profileCardStackSpacing) {
+                            ForEach(subscribedOrganizations) { organization in
+                                NavigationLink {
+                                    OrganizationDetailView(
+                                        viewModel: organizationsViewModel,
+                                        organizationID: organization.id
+                                    )
+                                } label: {
+                                    ProfileOrganizationListCard(organization: organization)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
                 }
             }

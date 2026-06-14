@@ -118,6 +118,9 @@ struct ContentView: View {
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.user)
         }
+        .onAppear {
+            syncAppSettingsFromStorage()
+        }
         .onChange(of: authSessionKey) { _, newKey in
             handleAuthIdentityChange(for: newKey)
         }
@@ -127,17 +130,41 @@ struct ContentView: View {
         .onChange(of: remoteNotificationRouteCoordinator.pendingRoute) { _, _ in
             handlePendingRemoteNotificationRouteIfReady()
         }
+        .onChange(of: selectedLanguageCode) { _, newLanguageCode in
+            guard let language = AppLanguage(rawValue: newLanguageCode) else {
+                let fallback = AppLanguage.stored.rawValue
+                if selectedLanguageCode != fallback {
+                    selectedLanguageCode = fallback
+                }
+                return
+            }
+
+            syncProfileSettings(for: language)
+        }
+        .onChange(of: selectedAppearanceCode) { _, newAppearanceCode in
+            guard let appearance = AppAppearance(rawValue: newAppearanceCode) else {
+                let fallback = AppAppearance.stored.rawValue
+                if selectedAppearanceCode != fallback {
+                    selectedAppearanceCode = fallback
+                }
+                return
+            }
+
+            syncProfileAppearance(for: appearance)
+        }
         .onChange(of: profileViewModel.settings.language) { _, newLanguage in
-            selectedLanguageCode = newLanguage.rawValue
-            LocalizationStore.language = newLanguage
+            if selectedLanguageCode != newLanguage.rawValue {
+                selectedLanguageCode = newLanguage.rawValue
+            }
+            if LocalizationStore.language != newLanguage {
+                LocalizationStore.language = newLanguage
+            }
             UserSettings.stored = profileViewModel.settings
-            newsViewModel.reload()
-            eventsViewModel.reload()
-            organizationsViewModel.reload()
-            profileViewModel.reload()
         }
         .onChange(of: profileViewModel.settings.appearance) { _, newAppearance in
-            selectedAppearanceCode = newAppearance.rawValue
+            if selectedAppearanceCode != newAppearance.rawValue {
+                selectedAppearanceCode = newAppearance.rawValue
+            }
             UserSettings.stored = profileViewModel.settings
         }
         .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in
@@ -220,6 +247,36 @@ struct ContentView: View {
 
     private var selectedAppearance: AppAppearance {
         AppAppearance(rawValue: selectedAppearanceCode) ?? .system
+    }
+
+    private func syncAppSettingsFromStorage() {
+        syncProfileSettings(for: selectedLanguage())
+        syncProfileAppearance(for: selectedAppearance)
+    }
+
+    private func selectedLanguage() -> AppLanguage {
+        AppLanguage(rawValue: selectedLanguageCode) ?? AppLanguage.stored
+    }
+
+    private func syncProfileSettings(for language: AppLanguage) {
+        if LocalizationStore.language != language {
+            LocalizationStore.language = language
+        }
+
+        if profileViewModel.settings.language != language {
+            profileViewModel.settings.language = language
+            UserSettings.stored = profileViewModel.settings
+            return
+        } else {
+            UserSettings.stored = profileViewModel.settings
+        }
+    }
+
+    private func syncProfileAppearance(for appearance: AppAppearance) {
+        if profileViewModel.settings.appearance != appearance {
+            profileViewModel.settings.appearance = appearance
+            UserSettings.stored = profileViewModel.settings
+        }
     }
 
     private var tabSelection: Binding<AppTab> {

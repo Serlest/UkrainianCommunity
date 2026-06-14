@@ -15,7 +15,7 @@ struct OrganizationRoleDashboardCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+        VStack(alignment: .leading, spacing: AppTheme.sectionHeaderContentSpacing) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "building.2")
                     .font(.headline.weight(.semibold))
@@ -48,7 +48,7 @@ struct OrganizationRoleDashboardCard: View {
                     .lineLimit(1)
             }
 
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+            VStack(spacing: AppTheme.profileCardStackSpacing) {
                 switch membership.role {
                 case .communityOwner:
                     ownerActions
@@ -61,7 +61,7 @@ struct OrganizationRoleDashboardCard: View {
                 }
             }
         }
-        .padding(AppTheme.eventsMetadataSpacing)
+        .padding(AppTheme.rowCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
