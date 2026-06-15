@@ -1,7 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { db } from "../firebase/admin";
-import { isOwner, type UserPermissionSnapshot } from "./userPermissions";
+import { isActiveUser, isOwner, type UserPermissionSnapshot } from "./userPermissions";
 
 export type OrganizationRole = "communityOwner" | "communityAdmin" | "communityModerator";
 
@@ -50,5 +50,6 @@ export function canManageOrganizationRoles(
   user: UserPermissionSnapshot,
   roles: OrganizationRoleSnapshot
 ): boolean {
-  return isOwner(user) || hasOrganizationRole(roles, user.uid, "communityOwner");
+  return isOwner(user)
+    || (isActiveUser(user) && hasOrganizationRole(roles, user.uid, "communityOwner"));
 }

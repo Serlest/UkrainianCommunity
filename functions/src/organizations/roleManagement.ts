@@ -14,7 +14,7 @@ import {
   type OrganizationRole,
   type OrganizationRoleSnapshot,
 } from "../permissions/organizationPermissions";
-import { assertOwner, getUserPermissions } from "../permissions/userPermissions";
+import { assertOwner, getUserPermissions, isActiveUser } from "../permissions/userPermissions";
 
 type AssignableOrganizationRole = "communityAdmin" | "communityModerator";
 type OrganizationRoleResult = "none" | OrganizationRole;
@@ -152,6 +152,21 @@ function organizationRoleName(role: OrganizationRoleResult): string {
   }
 }
 
+function assertUsableTargetUser(uid: string, data: DocumentData | undefined): void {
+  const target = {
+    uid,
+    accountStatus: data?.accountStatus,
+    blockState: data?.blockState,
+  };
+
+  if (!isActiveUser(target)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Target user must have a usable account."
+    );
+  }
+}
+
 async function writeNotificationIfRecipientEligible(
   input: WriteNotificationInput
 ): Promise<void> {
@@ -194,6 +209,16 @@ function createRoleCallable(mutation: RoleMutation) {
           "permission-denied",
           "Organization owner role cannot be changed here."
         );
+      }
+
+      if (!mutation.isRemoval) {
+        const targetSnapshot = await transaction.get(
+          db.collection("users").doc(roleRequest.targetUserId)
+        );
+        if (!targetSnapshot.exists) {
+          throw new HttpsError("not-found", "Target user does not exist.");
+        }
+        assertUsableTargetUser(roleRequest.targetUserId, targetSnapshot.data());
       }
 
       const adminIdsWithoutTarget = withoutUser(roles.adminIds, roleRequest.targetUserId);
@@ -331,6 +356,14 @@ export const transferOrganizationOwnership = onCall(
       if (roles.ownerId === roleRequest.targetUserId) {
         throw new HttpsError("failed-precondition", "Target user already owns this organization.");
       }
+
+      const targetSnapshot = await transaction.get(
+        db.collection("users").doc(roleRequest.targetUserId)
+      );
+      if (!targetSnapshot.exists) {
+        throw new HttpsError("not-found", "Target user does not exist.");
+      }
+      assertUsableTargetUser(roleRequest.targetUserId, targetSnapshot.data());
 
       transaction.update(organizationReference, {
         ownerId: roleRequest.targetUserId,

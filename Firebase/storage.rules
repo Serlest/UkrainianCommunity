@@ -25,9 +25,31 @@ service firebase.storage {
       return userData(request.auth.uid);
     }
 
-    function isOwner() {
+    function isActiveUser() {
       return isSignedIn()
         && existsUser(request.auth.uid)
+        && (
+          !('accountStatus' in currentUserData())
+          || currentUserData().accountStatus == 'active'
+          || currentUserData().accountStatus == 'warned'
+        )
+        && (
+          !('blockState' in currentUserData())
+          || currentUserData().blockState == 'active'
+          || currentUserData().blockState == 'warned'
+        );
+    }
+
+    function isVerifiedEmailUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isVerifiedActiveUser() {
+      return isVerifiedEmailUser() && isActiveUser();
+    }
+
+    function isOwner() {
+      return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
         && currentUserData().globalRole == 'owner';
     }
@@ -46,7 +68,7 @@ service firebase.storage {
     }
 
     function existsOrganization(organizationId) {
-      return isSignedIn()
+      return isVerifiedActiveUser()
         && organizationExists(organizationId);
     }
 
@@ -171,12 +193,12 @@ service firebase.storage {
       allow create, update: if (
           canManageContentImages('organizations')
           || canEditOrganizationContent(organizationId)
-          || isOrganizationRequestCreator(organizationId)
+          || (isVerifiedActiveUser() && isOrganizationRequestCreator(organizationId))
         )
         && isSafeImageUpload();
       allow delete: if canManageContentImages('organizations')
         || canEditOrganizationContent(organizationId)
-        || isOrganizationRequestCreator(organizationId);
+        || (isVerifiedActiveUser() && isOrganizationRequestCreator(organizationId));
     }
 
     match /organizations/{organizationId}/cover.jpg {
@@ -184,7 +206,7 @@ service firebase.storage {
       allow create, update: if false;
       allow delete: if canManageContentImages('organizations')
         || canEditOrganizationContent(organizationId)
-        || isOrganizationRequestCreator(organizationId);
+        || (isVerifiedActiveUser() && isOrganizationRequestCreator(organizationId));
     }
 
     match /organizations/{organizationId}/photos/{fileName} {
@@ -217,9 +239,9 @@ service firebase.storage {
 
     match /profileImages/{uid}/{filePath=**} {
       allow read: if true;
-      allow create, update: if (isSelf(uid) || isOwner())
+      allow create, update: if ((isSelf(uid) && isVerifiedActiveUser()) || isOwner())
         && isSafeImageUpload();
-      allow delete: if isSelf(uid) || isOwner();
+      allow delete: if (isSelf(uid) && isVerifiedActiveUser()) || isOwner();
     }
 
     match /featuredBanners/{bannerId}/hero.jpg {

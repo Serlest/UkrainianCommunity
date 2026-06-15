@@ -1669,6 +1669,11 @@ service cloud.firestore {
         || canModerateOrganizationContent(organizationId);
     }
 
+    function isSystemOrganizationDocument(organizationId) {
+      return organizationId == 'ukrainian-community'
+        || (('isSystemManaged' in resource.data) && resource.data.isSystemManaged == true);
+    }
+
     function isAppManagedHeroBannerDocument(bannerId) {
       return bannerId == 'homeBanner'
         || bannerId == 'eventsBanner'
@@ -2038,7 +2043,7 @@ service cloud.firestore {
         || canReadModerationQueue('news')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if canCreateOrganizationContent();
-      allow delete: if canWriteContent('news') || canDeleteOrganizationContent();
+      allow delete: if isOwner() || canDeleteOrganizationContent();
       allow update: if canUpdateOrganizationContent()
         || (
           isOrganizationContent(resource.data)
@@ -2126,7 +2131,7 @@ service cloud.firestore {
       allow get: if canReadOrganization(organizationId);
       allow list: if canListOrganization();
       allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
-      allow delete: if isOwner();
+      allow delete: if isOwner() && !isSystemOrganizationDocument(organizationId);
       allow update: if safeOrganizationInfoUpdate(organizationId)
         || safeOrganizationRequestUpdate();
 
