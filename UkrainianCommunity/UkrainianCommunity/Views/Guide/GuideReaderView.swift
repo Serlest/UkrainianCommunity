@@ -620,11 +620,11 @@ private struct GuideCategoryLinkCard: View {
             VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                 ZStack {
                     RoundedRectangle(cornerRadius: AppTheme.feedThumbnailRadius, style: .continuous)
-                        .fill(AppTheme.badgeBlueFill)
+                        .fill(AppTheme.passiveIconFill)
 
                     Image(systemName: systemImage)
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.passiveIcon)
                 }
                 .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
 

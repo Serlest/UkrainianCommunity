@@ -17,7 +17,7 @@ extension EventDetailView {
                     HStack(spacing: AppTheme.dashboardSpacing) {
                         Image(systemName: "info.circle")
                             .font(AppTheme.buttonLabelFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.passiveIcon)
 
                         VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
                             Text(AppStrings.Events.expectedParticipants)
@@ -38,11 +38,11 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AppStrings.Events.aboutSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     Text(event.details)
                         .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -56,7 +56,7 @@ extension EventDetailView {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                         Text(AppStrings.Events.tagsSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         AppHorizontalChipRow(spacing: 8) {
                             ForEach(event.tags, id: \.self) { tag in
@@ -78,7 +78,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Events.publishedBySectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     HStack(spacing: AppTheme.dashboardSpacing) {
                         AppFeedThumbnail(
@@ -125,7 +125,7 @@ extension EventDetailView {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(AppStrings.Events.organizerContactSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
                             ForEach(rows) { row in
@@ -154,7 +154,7 @@ extension EventDetailView {
             HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
                 Image(systemName: row.systemImage)
                     .font(AppTheme.metadataStrongFont)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(row.url == nil ? AppTheme.passiveIcon : AppTheme.accentPrimary)
                     .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -276,7 +276,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Events.detailsSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                     if event.requiresRegistration {
                         EventDetailRow(systemImage: "tag", title: AppStrings.Events.priceTitle, value: eventPriceText(for: event))
                         EventDetailRow(systemImage: "person.2", title: AppStrings.Events.expectedParticipants, value: eventParticipantsText(for: event))
@@ -293,7 +293,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     Text(AppStrings.Events.locationSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     if let coordinate = eventCoordinate(for: event) {
                         ViewThatFits(in: .horizontal) {
@@ -364,7 +364,7 @@ extension EventDetailView {
                     HStack(alignment: .top, spacing: 5) {
                         Image(systemName: "info.circle")
                             .font(AppTheme.metadataStrongFont)
-                            .foregroundStyle(AppTheme.accentPrimary.opacity(0.86))
+                            .foregroundStyle(AppTheme.passiveIcon)
                             .padding(.top, 1)
 
                         Text(locationNote)
@@ -420,7 +420,7 @@ extension EventDetailView {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                         Text(AppStrings.Events.similarEvents)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
                             ForEach(similarEvents) { relatedEvent in
@@ -509,7 +509,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Common.comments)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     eventCommentComposer(eventID: event.id)
 
@@ -621,7 +621,7 @@ extension EventDetailView {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(AppTheme.sectionTitleFont)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.passiveIcon)
                     .frame(width: 34, height: 34)
                     .contentShape(Circle())
             }

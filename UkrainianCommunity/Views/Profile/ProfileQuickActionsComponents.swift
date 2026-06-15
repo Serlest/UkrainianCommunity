@@ -23,7 +23,7 @@ struct ProfileQuickStatsGrid: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Image(systemName: stat.systemImage)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.passiveIcon)
 
                     Text(stat.value)
                         .font(AppTheme.cardTitleFont)

@@ -93,11 +93,11 @@ private struct GuideReaderCardIcon: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: AppTheme.feedThumbnailRadius, style: .continuous)
-                .fill(AppTheme.badgeBlueFill)
+                .fill(AppTheme.passiveIconFill)
 
             Image(systemName: systemImage)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.passiveIcon)
         }
         .frame(width: AppTheme.organizationsThumbnailSize, height: AppTheme.organizationsThumbnailSize)
     }

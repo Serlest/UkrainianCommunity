@@ -86,7 +86,7 @@ extension NewsDetailView {
                 HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
                     Image(systemName: "info.circle")
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.passiveIcon)
                         .frame(width: 24)
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -109,11 +109,11 @@ extension NewsDetailView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AppStrings.News.bodySectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     Text(post.body)
                         .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -127,7 +127,7 @@ extension NewsDetailView {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(AppStrings.News.sourceSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         if let url = source.url {
                             Link(destination: url) {
@@ -179,7 +179,7 @@ extension NewsDetailView {
                 DetailCard {
                     Text(AppStrings.News.tagsSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     AppHorizontalChipRow {
                         ForEach(post.tags, id: \.self) { tag in
@@ -319,7 +319,7 @@ extension NewsDetailView {
                     VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                         Text(AppStrings.News.relatedSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
                             ForEach(relatedPosts) { relatedPost in
@@ -394,9 +394,9 @@ extension NewsDetailView {
             } else {
                 Image(systemName: "newspaper")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.passiveIcon)
                     .frame(width: 82, height: 62)
-                    .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
+                    .background(AppTheme.passiveIconFill, in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
             }
         }
 

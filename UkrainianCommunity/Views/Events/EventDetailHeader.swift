@@ -120,7 +120,7 @@ extension EventDetailView {
                 HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
                     Image(systemName: "info.circle")
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.passiveIcon)
                         .frame(width: 24)
 
                     VStack(alignment: .leading, spacing: 3) {

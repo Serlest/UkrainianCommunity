@@ -8,11 +8,11 @@ struct GuideTreeCategoryCard: View {
             HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
                 ZStack {
                     RoundedRectangle(cornerRadius: AppTheme.feedThumbnailRadius, style: .continuous)
-                        .fill(AppTheme.badgeBlueFill)
+                        .fill(AppTheme.passiveIconFill)
 
                     Image(systemName: category.systemImage)
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.passiveIcon)
                 }
                 .frame(width: AppTheme.organizationsThumbnailSize, height: AppTheme.organizationsThumbnailSize)
 
@@ -46,11 +46,11 @@ struct GuideManagementSectionCardView: View {
             HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
                 ZStack {
                     RoundedRectangle(cornerRadius: AppTheme.feedThumbnailRadius, style: .continuous)
-                        .fill(AppTheme.badgeBlueFill)
+                        .fill(AppTheme.passiveIconFill)
 
                     Image(systemName: "folder")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.passiveIcon)
                 }
                 .frame(width: AppTheme.organizationsThumbnailSize, height: AppTheme.organizationsThumbnailSize)
 

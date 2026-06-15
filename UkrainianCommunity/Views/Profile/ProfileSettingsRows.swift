@@ -17,9 +17,9 @@ struct ProfileSettingsPickerRow<PickerContent: View>: View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.passiveIcon)
                 .frame(width: 30, height: 30)
-                .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(AppTheme.passiveIconFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -52,9 +52,9 @@ struct ProfileSettingsToggleRow: View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.passiveIcon)
                 .frame(width: 30, height: 30)
-                .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(AppTheme.passiveIconFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)

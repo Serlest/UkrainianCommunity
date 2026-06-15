@@ -6,7 +6,7 @@ extension NewsDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Common.comments)
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     commentComposer(parentID: post.id)
 
@@ -81,7 +81,7 @@ extension NewsDetailView {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(.title3.weight(.semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.passiveIcon)
                     .frame(width: 34, height: 34)
                     .contentShape(Circle())
             }
