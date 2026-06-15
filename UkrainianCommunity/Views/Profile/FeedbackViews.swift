@@ -203,8 +203,7 @@ struct FeedbackInboxView: View {
     var body: some View {
         AdminScreenShell(
             title: AppStrings.Feedback.inboxTitle,
-            subtitle: AppStrings.Feedback.inboxSubtitle,
-            tabBarHidden: false
+            subtitle: AppStrings.Feedback.inboxSubtitle
         ) {
             Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
                 ForEach(FeedbackInboxFilter.allCases) { filter in

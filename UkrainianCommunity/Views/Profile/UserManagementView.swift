@@ -618,8 +618,7 @@ struct UserManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: AppStrings.UserManagement.title,
-            subtitle: AppStrings.UserManagement.contentSubtitle,
-            tabBarHidden: false
+            subtitle: AppStrings.UserManagement.contentSubtitle
         ) {
             userManagementContent
         }

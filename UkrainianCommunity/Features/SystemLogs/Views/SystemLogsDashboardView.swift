@@ -31,8 +31,7 @@ struct SystemLogsDashboardView: View {
         AdminScreenShell(
             title: viewModel.accessMode.title,
             subtitle: viewModel.accessMode.subtitle,
-            showsBackButton: !embedsInNavigationStack,
-            tabBarHidden: false
+            showsBackButton: !embedsInNavigationStack
         ) {
             searchBar
         } metrics: {
