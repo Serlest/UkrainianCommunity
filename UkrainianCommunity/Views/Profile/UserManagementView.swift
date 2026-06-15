@@ -620,6 +620,17 @@ struct UserManagementView: View {
             title: AppStrings.UserManagement.title,
             subtitle: AppStrings.UserManagement.contentSubtitle
         ) {
+            if canAccessUserManagement {
+                searchField
+                filterRow
+            }
+        } metrics: {
+            if canAccessUserManagement {
+                summaryCard
+            }
+        } trailingContent: {
+            EmptyView()
+        } content: {
             userManagementContent
         }
         .task {
@@ -640,19 +651,14 @@ struct UserManagementView: View {
 
     @ViewBuilder
     private var userManagementContent: some View {
-        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-            if !canAccessUserManagement {
-                UnifiedEmptyStateCard(
-                    systemImage: "lock.shield",
-                    title: AppStrings.UserManagement.title,
-                    message: AppStrings.UserManagement.permission
-                )
-            } else {
-                summaryCard
-                searchField
-                filterRow
-                contentList
-            }
+        if !canAccessUserManagement {
+            UnifiedEmptyStateCard(
+                systemImage: "lock.shield",
+                title: AppStrings.UserManagement.title,
+                message: AppStrings.UserManagement.permission
+            )
+        } else {
+            contentList
         }
     }
 
@@ -746,7 +752,7 @@ struct UserManagementView: View {
                 message: AppStrings.UserManagement.noResultsMessage
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 ForEach(filteredUsers) { user in
                     NavigationLink {
                         UserDetailView(
@@ -759,8 +765,10 @@ struct UserManagementView: View {
                         ManagedUserRow(user: user, organizationRoles: viewModel.organizationRoles(for: user))
                     }
                     .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -801,22 +809,10 @@ private struct ManagedUserRow: View {
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
 
-                    HStack(spacing: 6) {
-                        UserStatusBadge(title: user.blockState.title, tint: statusTint)
-
-                        if !user.city.isEmpty {
-                            UserStatusBadge(title: user.city, tint: AppTheme.textSecondary)
-                        }
-
-                        if let primaryOrganizationRole {
-                            UserStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimary)
-                        }
-
-                        if organizationRoles.count > 1 {
-                            UserStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimary)
-                        }
-                    }
+                    statusBadges
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
 
                 Spacer(minLength: 0)
 
@@ -824,7 +820,9 @@ private struct ManagedUserRow: View {
                     .font(.caption2)
                     .foregroundStyle(AppTheme.textSecondary)
                     .multilineTextAlignment(.trailing)
+                    .frame(width: 68, alignment: .trailing)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -850,6 +848,52 @@ private struct ManagedUserRow: View {
         if organizationRoles.contains(where: { $0.role == .communityAdmin }) { return AppStrings.UserManagement.organizationAdminRole }
         if organizationRoles.contains(where: { $0.role == .communityModerator }) { return AppStrings.UserManagement.organizationModeratorRole }
         return nil
+    }
+
+    @ViewBuilder
+    private var statusBadges: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) {
+                badgeViews
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    UserStatusBadge(title: user.blockState.title, tint: statusTint)
+
+                    if !user.city.isEmpty {
+                        UserStatusBadge(title: user.city, tint: AppTheme.textSecondary)
+                    }
+                }
+
+                HStack(spacing: 6) {
+                    if let primaryOrganizationRole {
+                        UserStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimary)
+                    }
+
+                    if organizationRoles.count > 1 {
+                        UserStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimary)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var badgeViews: some View {
+        UserStatusBadge(title: user.blockState.title, tint: statusTint)
+
+        if !user.city.isEmpty {
+            UserStatusBadge(title: user.city, tint: AppTheme.textSecondary)
+        }
+
+        if let primaryOrganizationRole {
+            UserStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimary)
+        }
+
+        if organizationRoles.count > 1 {
+            UserStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimary)
+        }
     }
 }
 
