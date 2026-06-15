@@ -142,7 +142,7 @@ struct FirestoreGuideRepository: GuideRepositoryProtocol {
     }
 
     func fetchSavedMaterialIDs() async throws -> [String] {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -375,5 +375,18 @@ extension FirestoreGuideRepository {
     func guideMaterialBookmarkReference(materialID: String, userID: String) -> DocumentReference {
         guideMaterialBookmarksCollection(userID: userID)
             .document(materialID)
+    }
+
+    private func verifiedAppUserID() -> String? {
+        guard
+            AuthService.shared.authState.isAuthenticated,
+            let appUserID = AuthService.shared.authState.user?.id,
+            let authUserID = Auth.auth().currentUser?.uid,
+            appUserID == authUserID
+        else {
+            return nil
+        }
+
+        return authUserID
     }
 }

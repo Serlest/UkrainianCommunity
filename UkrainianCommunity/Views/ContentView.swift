@@ -496,7 +496,9 @@ struct ContentView: View {
         selectTabIfNeeded(.home)
         isShowingNotificationInbox = false
         resetNavigationStateAfterAuthChange()
-        authState.dismissAuthFlow()
+        if authState.sessionState != .verificationPending {
+            authState.dismissAuthFlow()
+        }
 
         homeViewModel.resetForAuthChange()
         newsViewModel.resetForAuthChange()

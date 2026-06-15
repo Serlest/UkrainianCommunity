@@ -75,9 +75,16 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
     }
 
     func recordRecentView(_ item: RecentViewItem) async throws {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard
+            AuthService.shared.authState.isAuthenticated,
+            let appUserID = AuthService.shared.authState.user?.id,
+            let authUserID = Auth.auth().currentUser?.uid,
+            appUserID == authUserID
+        else {
+            return
+        }
 
-        let collection = recentViewsCollection(userID: uid)
+        let collection = recentViewsCollection(userID: authUserID)
         try await collection.document(item.id).setData([
             "itemId": item.itemId,
             "itemType": item.itemType.rawValue,

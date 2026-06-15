@@ -37,7 +37,7 @@ private struct GuestAccessAlertModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content.alert(
-            AppStrings.Auth.requiredTitle,
+            alertTitle,
             isPresented: Binding(
                 get: { action != nil },
                 set: { isPresented in
@@ -48,20 +48,38 @@ private struct GuestAccessAlertModifier: ViewModifier {
             ),
             presenting: action
         ) { action in
-            let dialog = AppGuestAccessDialog(action: action)
+            if authState.isVerificationPending {
+                Button(AppStrings.Auth.emailVerificationCheck) {
+                    authState.presentAuthFlow(.emailVerification)
+                }
+            } else {
+                let dialog = AppGuestAccessDialog(action: action)
 
-            Button(dialog.signInTitle) {
-                authState.presentAuthFlow(.login)
+                Button(dialog.signInTitle) {
+                    authState.presentAuthFlow(.login)
+                }
+
+                Button(dialog.createAccountTitle) {
+                    authState.presentAuthFlow(.register)
+                }
             }
 
-            Button(dialog.createAccountTitle) {
-                authState.presentAuthFlow(.register)
-            }
-
-            Button(dialog.dismissTitle, role: .cancel) {}
+            Button(AppStrings.Common.ok, role: .cancel) {}
         } message: { action in
-            Text(AppGuestAccessDialog(action: action).message)
+            Text(alertMessage(for: action))
         }
+    }
+
+    private var alertTitle: String {
+        authState.isVerificationPending ? AppStrings.Auth.emailVerificationTitle : AppStrings.Auth.requiredTitle
+    }
+
+    private func alertMessage(for action: GuestAccessAction) -> String {
+        if authState.isVerificationPending {
+            return AppStrings.Auth.emailVerificationDescription
+        }
+
+        return AppGuestAccessDialog(action: action).message
     }
 }
 

@@ -712,7 +712,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     private func fetchLikedOrganizationIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -724,7 +724,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     private func fetchSubscribedOrganizationIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -736,7 +736,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func fetchBookmarkedOrganizationIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -747,6 +747,19 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .getDocuments()
 
         return Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
+    }
+
+    private func verifiedAppUserID() -> String? {
+        guard
+            AuthService.shared.authState.isAuthenticated,
+            let appUserID = AuthService.shared.authState.user?.id,
+            let authUserID = Auth.auth().currentUser?.uid,
+            appUserID == authUserID
+        else {
+            return nil
+        }
+
+        return authUserID
     }
 
     private func makeOrganizationDTO(

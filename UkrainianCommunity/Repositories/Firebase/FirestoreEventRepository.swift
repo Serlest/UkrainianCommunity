@@ -647,7 +647,7 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func recordEventView(id: String) async throws -> Bool {
-        guard let uid = Auth.auth().currentUser?.uid else { return false }
+        guard let uid = verifiedAppUserID() else { return false }
 
         let eventReference = collection.document(id)
         let viewReference = eventViewReference(eventID: id, userID: uid)
@@ -916,7 +916,7 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     private func fetchLikedEventIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -928,7 +928,7 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     private func fetchRegisteredEventIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -940,7 +940,7 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     private func fetchBookmarkedEventIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -951,6 +951,19 @@ struct FirestoreEventRepository: EventRepository {
             .getDocuments()
 
         return Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+    }
+
+    private func verifiedAppUserID() -> String? {
+        guard
+            AuthService.shared.authState.isAuthenticated,
+            let appUserID = AuthService.shared.authState.user?.id,
+            let authUserID = Auth.auth().currentUser?.uid,
+            appUserID == authUserID
+        else {
+            return nil
+        }
+
+        return authUserID
     }
 
     private func makeEventDTO(

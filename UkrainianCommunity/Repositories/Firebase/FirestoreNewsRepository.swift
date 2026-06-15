@@ -414,7 +414,7 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func recordNewsView(id: String) async throws -> Bool {
-        guard let uid = Auth.auth().currentUser?.uid else { return false }
+        guard let uid = verifiedAppUserID() else { return false }
 
         let newsReference = collection.document(id)
         let viewReference = viewReference(newsID: id, userID: uid)
@@ -576,7 +576,7 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     private func fetchLikedNewsIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -588,7 +588,7 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     private func fetchBookmarkedNewsIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = verifiedAppUserID() else {
             return []
         }
 
@@ -599,6 +599,19 @@ struct FirestoreNewsRepository: NewsRepository {
             .getDocuments()
 
         return Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
+    }
+
+    private func verifiedAppUserID() -> String? {
+        guard
+            AuthService.shared.authState.isAuthenticated,
+            let appUserID = AuthService.shared.authState.user?.id,
+            let authUserID = Auth.auth().currentUser?.uid,
+            appUserID == authUserID
+        else {
+            return nil
+        }
+
+        return authUserID
     }
 
     private func makeNewsPostDTO(from document: QueryDocumentSnapshot, likedNewsIDs: Set<String>, bookmarkedNewsIDs: Set<String>) throws -> NewsPostDTO {
