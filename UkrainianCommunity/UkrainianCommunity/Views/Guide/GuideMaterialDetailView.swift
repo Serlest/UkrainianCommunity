@@ -19,16 +19,18 @@ struct GuideMaterialDetailView: View {
                 handleSavedToggle()
             }
         } content: {
-            compactHeader
-            content
-            GuideMaterialSourcesView(
-                links: material.sourceLinks,
-                legacyURL: material.officialSourceURL,
-                legacyTitle: material.sourceName
-            )
-            GuideMaterialFeedbackSection(
-                onSelectKind: handleFeedbackAction
-            )
+            AppGroupedContentPlane {
+                compactHeader
+                content
+                GuideMaterialSourcesView(
+                    links: material.sourceLinks,
+                    legacyURL: material.officialSourceURL,
+                    legacyTitle: material.sourceName
+                )
+                GuideMaterialFeedbackSection(
+                    onSelectKind: handleFeedbackAction
+                )
+            }
         }
         .task {
             await viewModel.loadSavedMaterialsIfNeeded()

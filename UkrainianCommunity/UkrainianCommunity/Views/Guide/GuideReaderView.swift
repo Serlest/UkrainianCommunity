@@ -618,15 +618,7 @@ private struct GuideCategoryLinkCard: View {
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
             VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: AppTheme.feedThumbnailRadius, style: .continuous)
-                        .fill(AppTheme.passiveIconFill)
-
-                    Image(systemName: systemImage)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.passiveIcon)
-                }
-                .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
+                GuideRowIcon(systemImage: systemImage)
 
                 Text(title)
                     .font(.subheadline.weight(.semibold))

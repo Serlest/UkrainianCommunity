@@ -11,9 +11,11 @@ struct GuideCategoryDetailView: View {
 
     var body: some View {
         DetailScreenShell {
-            compactHeader
+            AppGroupedContentPlane {
+                compactHeader
 
-            content
+                content
+            }
         }
         .task {
             await viewModel.selectCategory(category)

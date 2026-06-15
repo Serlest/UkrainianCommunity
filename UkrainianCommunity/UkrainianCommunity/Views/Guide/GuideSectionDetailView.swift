@@ -13,9 +13,11 @@ struct GuideSectionDetailView: View {
 
     var body: some View {
         DetailScreenShell {
-            compactHeader
+            AppGroupedContentPlane {
+                compactHeader
 
-            content
+                content
+            }
         }
         .task {
             await viewModel.openNode(node)

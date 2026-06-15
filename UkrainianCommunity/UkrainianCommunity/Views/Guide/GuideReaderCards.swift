@@ -29,7 +29,7 @@ struct GuideSectionCard: View {
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
             HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
-                GuideReaderCardIcon(systemImage: node.displaySystemImage)
+                GuideRowIcon(systemImage: node.displaySystemImage)
 
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingTight) {
                     Text(node.title)
@@ -47,8 +47,8 @@ struct GuideSectionCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
                     .padding(.top, 4)
             }
         }
@@ -61,7 +61,7 @@ struct GuideMaterialCard: View {
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
             HStack(alignment: .top, spacing: AppTheme.eventsCardHorizontalSpacing) {
-                GuideReaderCardIcon(systemImage: "doc.text")
+                GuideRowIcon(systemImage: "doc.text")
 
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingTight) {
                     Text(material.title)
@@ -79,26 +79,26 @@ struct GuideMaterialCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
                     .padding(.top, 4)
             }
         }
     }
 }
 
-private struct GuideReaderCardIcon: View {
+struct GuideRowIcon: View {
     let systemImage: String
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: AppTheme.feedThumbnailRadius, style: .continuous)
-                .fill(AppTheme.passiveIconFill)
+                .fill(AppTheme.accentPrimarySoft)
 
             Image(systemName: systemImage)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.passiveIcon)
+                .foregroundStyle(AppTheme.accentPrimary)
         }
-        .frame(width: AppTheme.organizationsThumbnailSize, height: AppTheme.organizationsThumbnailSize)
+        .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
     }
 }
