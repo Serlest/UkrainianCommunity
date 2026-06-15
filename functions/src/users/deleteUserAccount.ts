@@ -163,6 +163,26 @@ function isAccountBlockedForDeletion(
     || !["active", "warned"].includes(normalizedBlockState);
 }
 
+async function getDeletionPermissions(
+  uid: string,
+  correlationId: string
+) {
+  try {
+    return await getUserPermissions(uid);
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "permission-denied") {
+      logger.warn("User profile missing during account deletion retry.", {
+        correlationId,
+        stage: "ownership-profile-missing",
+        category: anonymousErrorCodePrefix,
+      });
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 function anonymizedUserId(value: unknown): string {
   void value;
   return anonymousUserId;
@@ -184,6 +204,14 @@ function buildFeedbackAnonymizationUpdate(
 
   if ("userEmail" in data) {
     update.userEmail = anonymousEmail;
+  }
+
+  if ("lastMessageByUserId" in data && data.lastMessageByUserId === userId) {
+    update.lastMessageByUserId = anonymousUserId;
+  }
+
+  if ("repliedByUserId" in data && data.repliedByUserId === userId) {
+    update.repliedByUserId = anonymousUserId;
   }
 
   if ("authorUserId" in data && data.authorUserId === userId) {
@@ -214,6 +242,13 @@ function buildFeedbackMessageAnonymizationUpdate(
     }
     if ("authorEmail" in data) {
       update.authorEmail = anonymousEmail;
+    }
+  }
+
+  if ("senderId" in data && data.senderId === userId) {
+    update.senderId = anonymousUserId;
+    if ("senderDisplayName" in data) {
+      update.senderDisplayName = anonymousDisplayName;
     }
   }
 
@@ -435,28 +470,30 @@ export const deleteUserAccount = onCall(callableOptions, async (request) => {
     stage: "ownership-check",
     category: anonymousErrorCodePrefix,
   });
-  const permissions = await getUserPermissions(uid);
+  const permissions = await getDeletionPermissions(uid, correlationId);
 
-  if (isAppOwner(permissions)) {
-    logger.warn("Blocked app owner deletion attempt.", {
-      correlationId,
-      stage: "ownership-block-owner",
-      category: anonymousErrorCodePrefix,
-    });
-    throw new HttpsError("permission-denied", "Blocked: app owner account cannot be deleted.", {
-      code: "blocked-owner",
-    });
-  }
+  if (permissions) {
+    if (isAppOwner(permissions)) {
+      logger.warn("Blocked app owner deletion attempt.", {
+        correlationId,
+        stage: "ownership-block-owner",
+        category: anonymousErrorCodePrefix,
+      });
+      throw new HttpsError("permission-denied", "Blocked: app owner account cannot be deleted.", {
+        code: "blocked-owner",
+      });
+    }
 
-  if (isAccountBlockedForDeletion(permissions.accountStatus, permissions.blockState)) {
-    logger.warn("Blocked banned/deactivated account deletion attempt.", {
-      correlationId,
-      stage: "ownership-block-banned",
-      category: anonymousErrorCodePrefix,
-    });
-    throw new HttpsError("permission-denied", "Blocked: banned account deletion blocked.", {
-      code: "blocked-banned-user",
-    });
+    if (isAccountBlockedForDeletion(permissions.accountStatus, permissions.blockState)) {
+      logger.warn("Blocked banned/deactivated account deletion attempt.", {
+        correlationId,
+        stage: "ownership-block-banned",
+        category: anonymousErrorCodePrefix,
+      });
+      throw new HttpsError("permission-denied", "Blocked: banned account deletion blocked.", {
+        code: "blocked-banned-user",
+      });
+    }
   }
 
   const ownsOrganizationSnapshot = await db.collection("organizations")
@@ -503,26 +540,27 @@ export const deleteUserAccount = onCall(callableOptions, async (request) => {
   try {
     await adminAuth.deleteUser(uid);
   } catch (error) {
-    const parsed = safeErrorContext(error);
-    logger.error("Auth user deletion failed.", {
-      correlationId,
-      uid,
-      stage: "auth-delete-failed",
-      errorCode: parsed.code,
-      errorMessage: parsed.message?.slice(0, 500),
-      category: anonymousErrorCodePrefix,
-    });
-
     const authCode = parseErrorCode((error as { code?: unknown })?.code);
     if (authCode === "auth/user-not-found") {
       logger.warn("Auth user was already deleted before cleanup-auth step.", {
         uid,
         correlationId,
+        stage: "auth-delete-already-complete",
         category: anonymousErrorCodePrefix,
       });
+    } else {
+      const parsed = safeErrorContext(error);
+      logger.error("Auth user deletion failed.", {
+        correlationId,
+        uid,
+        stage: "auth-delete-failed",
+        errorCode: parsed.code,
+        errorMessage: parsed.message?.slice(0, 500),
+        category: anonymousErrorCodePrefix,
+      });
+
       throwWithCode("Firebase Auth user deletion failed.", "auth-delete-failed");
     }
-    throwWithCode("Firebase Auth user deletion failed.", "auth-delete-failed");
   }
 
   logger.info("Account deletion completed.", {
