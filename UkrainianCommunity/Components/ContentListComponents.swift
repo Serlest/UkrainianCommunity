@@ -78,7 +78,7 @@ struct AppEventDateBlock: View {
             VStack(spacing: 1) {
                 Text(dayText)
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .lineLimit(1)
 
                 Text(monthText.uppercased())
@@ -238,7 +238,7 @@ struct MetadataRow: View {
             }
         } icon: {
             Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.passiveIcon)
         }
         .font(.subheadline)
     }
@@ -305,7 +305,7 @@ struct AppNavigationRow: View {
         title: String,
         subtitle: String? = nil,
         systemImage: String,
-        tint: Color = AppTheme.accentPrimary,
+        tint: Color = AppTheme.passiveIcon,
         accessory: AppNavigationRowAccessory = .chevron
     ) {
         self.title = title
@@ -321,7 +321,7 @@ struct AppNavigationRow: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(tint)
                 .frame(width: 30, height: 30)
-                .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(iconBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -348,5 +348,9 @@ struct AppNavigationRow: View {
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+    }
+
+    private var iconBackground: Color {
+        tint == AppTheme.accentDestructive ? tint.opacity(0.10) : AppTheme.passiveIconFill
     }
 }

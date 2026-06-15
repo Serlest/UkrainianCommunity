@@ -33,9 +33,9 @@ struct UnifiedEmptyStateCard<ActionContent: View>: View {
             VStack(alignment: .center, spacing: UnifiedEmptyStateMetrics.contentSpacing) {
                 Image(systemName: systemImage)
                     .font(.system(size: UnifiedEmptyStateMetrics.iconFontSize, weight: .semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.passiveIcon)
                     .frame(width: UnifiedEmptyStateMetrics.iconSize, height: UnifiedEmptyStateMetrics.iconSize)
-                    .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                    .background(AppTheme.passiveIconFill, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
 
                 VStack(spacing: UnifiedEmptyStateMetrics.textSpacing) {
                     Text(title)

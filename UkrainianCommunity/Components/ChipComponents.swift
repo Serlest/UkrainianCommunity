@@ -55,8 +55,8 @@ struct AppInfoChip: View {
     init(
         title: String,
         systemImage: String? = nil,
-        tint: Color = AppTheme.accentPrimary,
-        fill: Color = AppTheme.badgeBlueFill,
+        tint: Color = AppTheme.textSecondary,
+        fill: Color = AppTheme.passiveIconFill,
         border: Color? = nil,
         trailingSystemImage: String? = nil,
         size: Size = .regular
