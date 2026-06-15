@@ -767,17 +767,22 @@ struct AppBackgroundView: View {
                 .scaledToFill()
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .clipped()
-                .overlay(readabilityOverlay)
+                .appBackgroundReadabilityOverlay(for: colorScheme)
         }
         .ignoresSafeArea()
     }
+}
 
-    private var readabilityOverlay: some View {
-        LinearGradient(
-            colors: AppTheme.screenBackgroundOverlayColors(for: colorScheme),
-            startPoint: .top,
-            endPoint: .bottom
-        )
+extension View {
+    func appBackgroundReadabilityOverlay(for colorScheme: ColorScheme) -> some View {
+        overlay {
+            LinearGradient(
+                colors: AppTheme.screenBackgroundOverlayColors(for: colorScheme),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum AppTheme {
     // Primary blue is the main interaction accent used for navigation,
@@ -6,7 +7,13 @@ enum AppTheme {
     static let accentPrimary = Color(red: 0.10, green: 0.26, blue: 0.56)
 
     // Soft blue is intended for subtle badge fills, borders, and tinted surfaces.
-    static let accentPrimarySoft = accentPrimary.opacity(0.12)
+    static let accentPrimarySoft = Color(uiColor: UIColor { traitCollection in
+        if traitCollection.userInterfaceStyle == .dark {
+            return .tertiarySystemFill
+        }
+
+        return UIColor(red: 0.10, green: 0.26, blue: 0.56, alpha: 0.12)
+    })
 
     // Yellow is a support/highlight accent and should stay restrained.
     static let accentSupport = Color(red: 0.93, green: 0.76, blue: 0.23)
@@ -28,6 +35,8 @@ enum AppTheme {
     static let textPrimary = Color.primary
     static let textSecondary = Color.secondary
     static let textOnHero = Color.white
+    static let passiveIcon = Color.secondary
+    static let passiveIconFill = Color(uiColor: .tertiarySystemFill)
     static let badgeBlueFill = accentPrimarySoft
     static let badgeRedFill = accentDestructive.opacity(0.12)
     static let badgeGreenFill = Color.green.opacity(0.12)

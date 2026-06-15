@@ -25,6 +25,7 @@ struct SplashVideoBackgroundView: View {
                 if shouldAnimate {
                     LoopingSplashVideoView(videoURL: videoURL)
                         .ignoresSafeArea()
+                        .appBackgroundReadabilityOverlay(for: colorScheme)
                 } else {
                     SplashVideoFirstFrameView(videoURL: videoURL)
                         .ignoresSafeArea()
@@ -41,12 +42,8 @@ struct SplashVideoBackgroundView: View {
                 AppTheme.glassFallbackSurface(for: colorScheme)
                     .ignoresSafeArea()
 
-                LinearGradient(
-                    colors: AppTheme.screenBackgroundOverlayColors(for: colorScheme),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .allowsHitTesting(false)
+                Color.clear
+                    .appBackgroundReadabilityOverlay(for: colorScheme)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -203,6 +200,7 @@ private struct SplashVideoFirstFrameView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .clipped()
                 }
+                .appBackgroundReadabilityOverlay(for: colorScheme)
                 .ignoresSafeArea()
             } else if didFail {
                 fallbackBackground
@@ -221,14 +219,7 @@ private struct SplashVideoFirstFrameView: View {
 
     private var fallbackBackground: some View {
         AppTheme.glassFallbackSurface(for: colorScheme)
-            .overlay {
-                LinearGradient(
-                    colors: AppTheme.screenBackgroundOverlayColors(for: colorScheme),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .opacity(0.86)
-            }
+            .appBackgroundReadabilityOverlay(for: colorScheme)
             .ignoresSafeArea()
     }
 
