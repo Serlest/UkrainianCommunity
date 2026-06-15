@@ -134,6 +134,26 @@ async function runCleanupOperation(
   }
 }
 
+async function runBestEffortCleanupOperation(
+  _uid: string,
+  correlationId: string,
+  stage: string,
+  operation: () => Promise<void>
+): Promise<void> {
+  try {
+    await operation();
+  } catch (error) {
+    const parsedError = safeErrorContext(error);
+    logger.warn("Best-effort account cleanup step failed.", {
+      correlationId,
+      stage,
+      errorCode: parsedError.code,
+      errorMessage: parsedError.message?.slice(0, 500),
+      category: anonymousErrorCodePrefix,
+    });
+  }
+}
+
 function requireAuthWithErrorCode(request: CallableRequest): { uid: string } {
   try {
     return requireAuth(request);
@@ -427,7 +447,7 @@ async function deleteUserLinkedData(userId: string): Promise<void> {
       "registrations",
       () => deleteByQuery(db.collection("registrations").where("userId", "==", userId))
     ),
-    runCleanupOperation(
+    runBestEffortCleanupOperation(
       userId,
       correlationId,
       "feedback-data",
