@@ -17,12 +17,15 @@ final class UkrainianCommunityUITests: XCTestCase {
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
     ]
 
-    private func launchApp() -> XCUIApplication {
+    private func launchApp(holdingSplash: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launchEnvironment["UITestForceGuestSession"] = "1"
+        if holdingSplash {
+            app.launchEnvironment["UITestHoldSplash"] = "1"
+        }
         app.launch()
         return app
     }
@@ -128,7 +131,7 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testStartupSplashTransitionsToMainInterface() throws {
-        let app = launchApp()
+        let app = launchApp(holdingSplash: true)
         let splash = app.otherElements["startup.splash"]
         XCTAssertTrue(splash.waitForExistence(timeout: 2))
         XCTAssertTrue(app.images["startup.logo"].waitForExistence(timeout: 2))
@@ -138,6 +141,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 2)
         attachScreenshot(named: "Startup Splash", from: app)
 
+        splash.tap()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
         XCTAssertFalse(splash.exists)
         attachScreenshot(named: "Main Interface After Splash", from: app)
