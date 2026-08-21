@@ -66,4 +66,4 @@ jobs:
           -configuration Debug
           -sdk iphonesimulator
           CODE_SIGNING_ALLOWED=NO
-          clean build
+          build
