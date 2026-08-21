@@ -80,7 +80,7 @@ struct UkrainianCommunityTests {
         )
     }
 
-    @Test func moderatorPermissionsAreScopedCorrectly() {
+    @Test func legacyRolesDoNotGrantPlatformPermissions() {
         let userPermissions = PermissionService(role: .user)
         let moderatorPermissions = PermissionService(role: .moderator)
         let adminPermissions = PermissionService(role: .admin)
@@ -88,10 +88,10 @@ struct UkrainianCommunityTests {
 
         #expect(userPermissions.canCreateNews == false)
         #expect(userPermissions.canBlockUsers == false)
-        #expect(moderatorPermissions.canCreateNews == true)
+        #expect(moderatorPermissions.canCreateNews == false)
         #expect(moderatorPermissions.canDeleteNews == false)
-        #expect(adminPermissions.canAssignModerator == true)
-        #expect(adminPermissions.canBlockUsers == true)
+        #expect(adminPermissions.canAssignModerator == false)
+        #expect(adminPermissions.canBlockUsers == false)
         #expect(adminPermissions.canAssignAdmin == false)
         #expect(ownerPermissions.canManageUsers == true)
         #expect(ownerPermissions.canDeleteEvent == true)
@@ -411,7 +411,7 @@ struct UkrainianCommunityTests {
         let payload = UserProfileService.makeRegisteredUserDocumentData(uid: "user-123", draft: draft)
 
         #expect(payload.id == "user-123")
-        #expect(payload.role == UserRole.user.rawValue)
+        #expect(payload.role == nil)
         #expect(payload.globalRole == GlobalRole.user.rawValue)
         #expect(payload.accountStatus == AccountStatus.active.rawValue)
         #expect(payload.blockState == UserBlockState.active.rawValue)
