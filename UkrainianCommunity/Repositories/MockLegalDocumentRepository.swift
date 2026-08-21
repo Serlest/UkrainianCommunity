@@ -4,19 +4,19 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
     private let storage = MockLegalDocumentStorage.shared
 
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
-        storage.activeDocument(type: type)
+        await storage.activeDocument(type: type)
     }
 
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState {
-        storage.managementState(type: type)
+        await storage.managementState(type: type)
     }
 
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws {
-        storage.saveDraft(draft)
+        await storage.saveDraft(draft)
     }
 
     func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) async throws {
-        storage.publishDraft(draft, publishedBy: userID)
+        await storage.publishDraft(draft, publishedBy: userID)
     }
 
     func acceptDocument(
@@ -34,8 +34,7 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
     }
 }
 
-@MainActor
-private final class MockLegalDocumentStorage {
+private actor MockLegalDocumentStorage {
     static let shared = MockLegalDocumentStorage()
 
     private var activeDocuments: [LegalDocumentType: LegalDocument] = [
