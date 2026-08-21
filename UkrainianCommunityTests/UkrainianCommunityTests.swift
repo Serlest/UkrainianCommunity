@@ -102,12 +102,10 @@ struct UkrainianCommunityTests {
         let owner = makeUser(id: "owner", globalRole: .owner)
         let admin = makeUser(id: "admin", globalRole: .admin)
         let guideAdmin = makeUser(id: "guide-admin", globalRole: .admin, canManageGuide: true)
-        let moderator = makeUser(id: "moderator", globalRole: .moderator)
         let guideEditor = makeUser(id: "guide-editor", globalRole: .user, canManageGuide: true)
         let normalUser = makeUser(id: "normal-user", globalRole: .user)
 
         #expect(PermissionService.canAssignAppAdmin(user: owner))
-        #expect(PermissionService.canAssignAppModerator(user: owner))
         #expect(PermissionService.canAssignGuideEditor(user: owner))
         #expect(PermissionService.canManageUsers(user: owner))
         #expect(PermissionService.canManageGuide(user: owner))
@@ -128,20 +126,10 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canTemporarilyBan(user: admin))
         #expect(PermissionService.canPermanentlyBan(user: admin))
         #expect(PermissionService.canAssignAppAdmin(user: admin) == false)
-        #expect(PermissionService.canAssignAppModerator(user: admin))
         #expect(PermissionService.canAssignGuideEditor(user: admin))
         #expect(PermissionService.canUseOrganizationOverride(user: admin) == false)
         #expect(PermissionService.canManageGuide(user: admin) == false)
         #expect(PermissionService.canManageGuide(user: guideAdmin))
-
-        #expect(PermissionService.canAccessModerationTools(user: moderator))
-        #expect(PermissionService.canManageFeedback(user: moderator))
-        #expect(PermissionService.canManageReports(user: moderator))
-        #expect(PermissionService.canManageOrganizationRequests(user: moderator) == false)
-        #expect(PermissionService.canAssignAppAdmin(user: moderator) == false)
-        #expect(PermissionService.canAssignAppModerator(user: moderator) == false)
-        #expect(PermissionService.canAssignGuideEditor(user: moderator) == false)
-        #expect(PermissionService.canUseOrganizationOverride(user: moderator) == false)
 
         #expect(PermissionService.canManageGuide(user: guideEditor))
         #expect(PermissionService.canManageUsers(user: guideEditor) == false)
@@ -170,7 +158,6 @@ struct UkrainianCommunityTests {
             accountStatus: .warned
         )
         let legacyTopAdmin = makeUser(id: "legacy-top-admin", globalRole: .topAdmin)
-        let legacyModerator = makeUser(id: "legacy-moderator", globalRole: .appModerator)
 
         #expect(PermissionService.isUsableAccount(user: suspendedOwner) == false)
         #expect(PermissionService.canManageUsers(user: suspendedOwner) == false)
@@ -182,10 +169,10 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canAccessModerationTools(user: warnedAdmin))
 
         #expect(legacyTopAdmin.globalRole.authorizationRole == .user)
-        #expect(legacyModerator.globalRole.authorizationRole == .user)
         #expect(PermissionService.canAccessModerationTools(user: legacyTopAdmin) == false)
-        #expect(PermissionService.canAccessModerationTools(user: legacyModerator) == false)
         #expect(PermissionService.canManageGuide(user: legacyTopAdmin) == false)
+        #expect(GlobalRole(rawValue: "moderator") == nil)
+        #expect(GlobalRole(rawValue: "appModerator") == nil)
     }
 
     @Test func authStateSupportsRestoringGuestAndAuthenticatedSessions() async {

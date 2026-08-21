@@ -14,7 +14,7 @@ export type BlockState =
   | "suspendedUntil"
   | "bannedPermanent"
   | "deactivated";
-export type GlobalRole = "owner" | "admin" | "moderator" | "user" | "topAdmin" | "appModerator";
+export type GlobalRole = "owner" | "admin" | "user" | "topAdmin";
 
 export interface UserPermissionSnapshot {
   uid: string;
@@ -62,10 +62,6 @@ export function isAppAdmin(user: UserPermissionSnapshot): boolean {
   return isActiveUser(user) && user.globalRole === "admin";
 }
 
-export function isAppModerator(user: UserPermissionSnapshot): boolean {
-  return isActiveUser(user) && user.globalRole === "moderator";
-}
-
 export function canManageOrganizationRequests(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user) || isAppAdmin(user);
 }
@@ -78,16 +74,12 @@ export function canAssignAppAdmin(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user);
 }
 
-export function canAssignAppModerator(user: UserPermissionSnapshot): boolean {
-  return isAppOwner(user) || isAppAdmin(user);
-}
-
 export function canAssignGuideEditor(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user) || isAppAdmin(user);
 }
 
 export function canAccessModerationTools(user: UserPermissionSnapshot): boolean {
-  return isAppOwner(user) || isAppAdmin(user) || isAppModerator(user);
+  return isAppOwner(user) || isAppAdmin(user);
 }
 
 export function canManageFeedback(user: UserPermissionSnapshot): boolean {

@@ -1492,15 +1492,12 @@ enum AppStrings {
         static var platformStatQueue: String { text("profile.platform.stat.queue", "Queue") }
         static var platformOwnerBadge: String { text("profile.owner.badge", "Власник платформи") }
         static var platformAdminBadge: String { text("profile.admin.badge", "Адміністратор") }
-        static var platformModeratorBadge: String { text("profile.moderator.badge", "Модератор") }
         static var guideEditorBadge: String { text("profile.guide_editor.badge", "Guide Editor") }
         static var ownerHeroStatus: String { text("profile.owner.hero_status", "Повний доступ до керування застосунком.") }
         static var adminHeroStatus: String { text("profile.admin.hero_status", "Операційне керування контентом, організаціями та модерацією.") }
-        static var moderatorHeroStatus: String { text("profile.moderator.hero_status", "Фокус на перевірці матеріалів і роботі зі скаргами.") }
         static var guideEditorHeroStatus: String { text("profile.guide_editor.hero_status", "Доступ до керування довідником і матеріалами Guide.") }
         static var ownerFullAccess: String { text("profile.owner.full_access", "Повний доступ") }
         static var adminOperationalAccess: String { text("profile.admin.operational_access", "Операційний доступ") }
-        static var moderatorContentAccess: String { text("profile.moderator.content_access", "Модерація контенту") }
         static var guideEditorAccess: String { text("profile.guide_editor.access", "Керування довідником") }
         static var ownerCreateNews: String { text("profile.owner.quick.create_news", "Створити новину") }
         static var ownerCreateNewsSubtitle: String { text("profile.owner.quick.create_news.subtitle", "Редакційний центр новин.") }
@@ -1605,12 +1602,8 @@ enum AppStrings {
         static var ownerIntegrationsAPISubtitle: String { text("profile.owner.integrations_api.subtitle", "Майбутні інтеграції та API-доступ платформи.") }
         static var ownerBackupSystems: String { text("profile.owner.backup_systems", "Backup systems") }
         static var ownerBackupSystemsSubtitle: String { text("profile.owner.backup_systems.subtitle", "Backup, restore та operational safety modules.") }
-        static var moderatorModerationQueue: String { text("profile.moderator.moderation_queue", "Черга модерації") }
-        static var moderatorReviewQueues: String { text("profile.moderator.review_queues", "Review queues") }
-        static var moderatorReviewQueuesSubtitle: String { text("profile.moderator.review_queues.subtitle", "Матеріали, які можуть потребувати перевірки за вашими секціями.") }
-        static var moderatorNewsReviewSubtitle: String { text("profile.moderator.news_review.subtitle", "Перевірка новин і редакційних матеріалів.") }
-        static var moderatorEventsReviewSubtitle: String { text("profile.moderator.events_review.subtitle", "Перевірка подій і пов’язаного контенту.") }
-        static var moderatorOrganizationsReviewSubtitle: String { text("profile.moderator.organizations_review.subtitle", "Перевірка організацій і профілів спільнот.") }
+        static var moderationQueue: String { text("profile.moderation.queue", "Черга модерації") }
+        static var organizationRequestsReviewSubtitle: String { text("profile.organization_requests.review.subtitle", "Перевірка організацій і профілів спільнот.") }
         static var ownerAdminActionLog: String { text("profile.owner.admin_action_log", "Журнал дій адміністраторів") }
         static var ownerModerationHistory: String { text("profile.owner.moderation_history", "Історія модерації") }
         static var ownerRoleChanges: String { text("profile.owner.role_changes", "Зміни ролей") }
@@ -1913,15 +1906,13 @@ enum AppStrings {
         static var assignRoleSectionTitle: String { text("user_management.assign_role.section_title", "Призначити роль") }
         static var assignRoleSectionSubtitle: String { text("user_management.assign_role.section_subtitle", "Owner платформи може призначити роль тільки в конкретній організації.") }
         static var platformRolesTitle: String { text("user_management.platform_roles.title", "Ролі платформи") }
-        static var platformRolesSubtitle: String { text("user_management.platform_roles.subtitle", "App Admin, App Moderator і Guide Editor не повʼязані з ролями в організаціях.") }
+        static var platformRolesSubtitle: String { text("user_management.platform_roles.subtitle", "App Admin і Guide Editor не повʼязані з ролями в організаціях.") }
         static var currentPlatformRole: String { text("user_management.platform_roles.current_role", "Поточна роль") }
         static var guideEditorRole: String { text("user_management.platform_roles.guide_editor", "Guide Editor") }
         static var guideEditorEnabled: String { text("user_management.platform_roles.guide_editor.enabled", "Так") }
         static var guideEditorDisabled: String { text("user_management.platform_roles.guide_editor.disabled", "Ні") }
         static var assignAppAdmin: String { text("user_management.platform_roles.assign_app_admin", "Призначити App Admin") }
         static var removeAppAdmin: String { text("user_management.platform_roles.remove_app_admin", "Зняти App Admin") }
-        static var assignAppModerator: String { text("user_management.platform_roles.assign_app_moderator", "Призначити App Moderator") }
-        static var removeAppModerator: String { text("user_management.platform_roles.remove_app_moderator", "Зняти App Moderator") }
         static var assignGuideEditor: String { text("user_management.platform_roles.assign_guide_editor", "Призначити Guide Editor") }
         static var removeGuideEditor: String { text("user_management.platform_roles.remove_guide_editor", "Зняти Guide Editor") }
         static var platformRoleActionFallbackTitle: String { text("user_management.platform_roles.action_title", "Зміна ролі платформи") }
@@ -2140,7 +2131,6 @@ enum AppStrings {
         static var admin: String { text("role.admin", "Admin") }
         static var owner: String { text("role.owner", "Owner") }
         static var topAdmin: String { text("role.top_admin", "Top Admin") }
-        static var appModerator: String { text("role.app_moderator", "App Moderator") }
     }
 
     enum Dialogs {

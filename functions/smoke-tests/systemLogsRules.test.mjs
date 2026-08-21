@@ -393,10 +393,10 @@ describe("systemLogs client create restrictions", () => {
     })));
   });
 
-  test("moderator can create constrained moderation logs but cannot create audit or diagnostics logs", async () => {
+  test("removed platform moderator cannot create privileged logs", async () => {
     const db = auth("moderator");
 
-    await assertSucceeds(setDoc(doc(db, "systemLogs", "moderator-created-moderation"), moderationCreate({
+    await assertFails(setDoc(doc(db, "systemLogs", "moderator-created-moderation"), moderationCreate({
       id: "moderator-created-moderation",
       actorUserId: "moderator",
       actorRole: "moderator",
@@ -449,7 +449,7 @@ describe("systemLogs client create restrictions", () => {
     })));
   });
 
-  test("security create rejects normal users, moderators, and spoofed actors", async () => {
+  test("security create rejects users, removed moderator values, and spoofed actors", async () => {
     const normalDb = auth("normal-user");
     const moderatorDb = auth("moderator");
     const adminDb = auth("admin");
