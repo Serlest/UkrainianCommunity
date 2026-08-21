@@ -62,8 +62,9 @@ jobs:
         run: >
           xcodebuild
           -project UkrainianCommunity.xcodeproj
-          -target UkrainianCommunity
+          -scheme UkrainianCommunity
           -configuration Debug
-          -sdk iphonesimulator
+          -destination "generic/platform=iOS Simulator"
+          -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
           CODE_SIGNING_ALLOWED=NO
           build
