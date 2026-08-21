@@ -1,6 +1,27 @@
+# macOS
+.DS_Store
+
+# Xcode user state and local build products
+DerivedData/
+build/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+xcuserdata/
+
+# Swift Package Manager local state
+.swiftpm/
+.build/
+
+# Firebase local files and logs
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+functions/firestore-debug.log
+*.local
 
 # Local secrets
 Secrets/
 *.service-account.json
 ukrainiancommunity-dbd5f-*.json
-functions/firestore-debug.log
