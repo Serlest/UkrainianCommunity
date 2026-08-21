@@ -37,18 +37,23 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
 private actor MockLegalDocumentStorage {
     static let shared = MockLegalDocumentStorage()
 
-    private var activeDocuments: [LegalDocumentType: LegalDocument] = [
-        .terms: LegalDocument.hardcodedFallback(type: .terms),
-        .privacy: LegalDocument.hardcodedFallback(type: .privacy)
-    ]
+    private var activeDocuments: [LegalDocumentType: LegalDocument] = [:]
     private var drafts: [LegalDocumentType: LegalDocumentDraft] = [:]
 
-    func activeDocument(type: LegalDocumentType) -> LegalDocument {
-        activeDocuments[type] ?? LegalDocument.hardcodedFallback(type: type)
+    func activeDocument(type: LegalDocumentType) async -> LegalDocument {
+        if let activeDocument = activeDocuments[type] {
+            return activeDocument
+        }
+
+        let fallback = await MainActor.run {
+            LegalDocument.hardcodedFallback(type: type)
+        }
+        activeDocuments[type] = fallback
+        return fallback
     }
 
-    func managementState(type: LegalDocumentType) -> LegalDocumentManagementState {
-        let activeDocument = activeDocument(type: type)
+    func managementState(type: LegalDocumentType) async -> LegalDocumentManagementState {
+        let activeDocument = await activeDocument(type: type)
         return LegalDocumentManagementState(
             type: type,
             activeDocument: activeDocument,
