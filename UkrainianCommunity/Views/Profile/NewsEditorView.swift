@@ -220,7 +220,7 @@ struct NewsEditorView: View {
         switch user.globalRole.authorizationRole {
         case .owner:
             return organizations
-        case .admin, .moderator, .user, .topAdmin, .appModerator:
+        case .admin, .user, .topAdmin:
             return PermissionService.manageableOrganizations(from: organizations, user: user)
         }
     }

@@ -98,8 +98,6 @@ private enum UserAdminAction: String {
 private enum PlatformRoleAction: Identifiable {
     case assignAppAdmin
     case removeAppAdmin
-    case assignAppModerator
-    case removeAppModerator
     case assignGuideEditor
     case removeGuideEditor
 
@@ -111,10 +109,6 @@ private enum PlatformRoleAction: Identifiable {
             AppStrings.UserManagement.assignAppAdmin
         case .removeAppAdmin:
             AppStrings.UserManagement.removeAppAdmin
-        case .assignAppModerator:
-            AppStrings.UserManagement.assignAppModerator
-        case .removeAppModerator:
-            AppStrings.UserManagement.removeAppModerator
         case .assignGuideEditor:
             AppStrings.UserManagement.assignGuideEditor
         case .removeGuideEditor:
@@ -126,8 +120,6 @@ private enum PlatformRoleAction: Identifiable {
         switch self {
         case .assignAppAdmin, .removeAppAdmin:
             "person.badge.key"
-        case .assignAppModerator, .removeAppModerator:
-            "shield"
         case .assignGuideEditor, .removeGuideEditor:
             "book"
         }
@@ -135,9 +127,9 @@ private enum PlatformRoleAction: Identifiable {
 
     var isRemoval: Bool {
         switch self {
-        case .removeAppAdmin, .removeAppModerator, .removeGuideEditor:
+        case .removeAppAdmin, .removeGuideEditor:
             true
-        case .assignAppAdmin, .assignAppModerator, .assignGuideEditor:
+        case .assignAppAdmin, .assignGuideEditor:
             false
         }
     }
@@ -148,10 +140,6 @@ private enum PlatformRoleAction: Identifiable {
             "App admin assigned"
         case .removeAppAdmin:
             "App admin removed"
-        case .assignAppModerator:
-            "App moderator assigned"
-        case .removeAppModerator:
-            "App moderator removed"
         case .assignGuideEditor:
             "Guide editor assigned"
         case .removeGuideEditor:
@@ -391,10 +379,6 @@ private final class UserManagementViewModel: ObservableObject {
                 _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: finalReason)
             case .removeAppAdmin:
                 _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: finalReason)
-            case .assignAppModerator:
-                _ = try await CloudFunctionsClient.shared.assignAppModerator(userId: target.id, reason: finalReason)
-            case .removeAppModerator:
-                _ = try await CloudFunctionsClient.shared.removeAppModerator(userId: target.id, reason: finalReason)
             case .assignGuideEditor:
                 _ = try await CloudFunctionsClient.shared.assignGuideEditor(userId: target.id, reason: finalReason)
             case .removeGuideEditor:
@@ -1210,8 +1194,6 @@ private struct UserDetailView: View {
                         roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
                         roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
                     }
-                    roleActionButton(.assignAppModerator, isEnabled: canAssignAppModerator)
-                    roleActionButton(.removeAppModerator, isEnabled: canRemoveAppModerator)
                     roleActionButton(.assignGuideEditor, isEnabled: canAssignGuideEditor)
                     roleActionButton(.removeGuideEditor, isEnabled: canRemoveGuideEditor)
                 }
@@ -1385,9 +1367,7 @@ private struct UserDetailView: View {
             "crown"
         case .admin:
             "person.badge.key"
-        case .moderator:
-            "shield"
-        case .user, .topAdmin, .appModerator:
+        case .user, .topAdmin:
             "person"
         }
     }
@@ -1396,9 +1376,9 @@ private struct UserDetailView: View {
         switch user.globalRole.authorizationRole {
         case .owner:
             AppTheme.accentSupport
-        case .admin, .moderator:
+        case .admin:
             AppTheme.accentPrimary
-        case .user, .topAdmin, .appModerator:
+        case .user, .topAdmin:
             AppTheme.textSecondary
         }
     }
@@ -1428,20 +1408,6 @@ private struct UserDetailView: View {
         return canChangePlatformRoles
             && PermissionService.canAssignAppAdmin(user: actor)
             && user.globalRole.authorizationRole == .admin
-    }
-
-    private var canAssignAppModerator: Bool {
-        guard let actor else { return false }
-        return canChangePlatformRoles
-            && PermissionService.canAssignAppModerator(user: actor)
-            && user.globalRole.authorizationRole != .moderator
-    }
-
-    private var canRemoveAppModerator: Bool {
-        guard let actor else { return false }
-        return canChangePlatformRoles
-            && PermissionService.canAssignAppModerator(user: actor)
-            && user.globalRole.authorizationRole == .moderator
     }
 
     private var canAssignGuideEditor: Bool {
