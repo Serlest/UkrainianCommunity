@@ -1,0 +1,69 @@
+name: Quality checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  firebase:
+    name: Firebase and rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Type-check
+        working-directory: functions
+        run: npm run lint
+
+      - name: Build functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+
+      - name: Test Firestore rules
+        working-directory: functions
+        run: npm run test:rules:all
+
+  ios:
+    name: iOS debug build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app target
+        run: >
+          xcodebuild
+          -project UkrainianCommunity.xcodeproj
+          -target UkrainianCommunity
+          -configuration Debug
+          -sdk iphonesimulator
+          CODE_SIGNING_ALLOWED=NO
+          clean build
