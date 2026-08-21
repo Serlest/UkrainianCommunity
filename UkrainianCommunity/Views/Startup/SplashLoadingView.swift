@@ -31,6 +31,7 @@ struct SplashLoadingView: View {
                     .frame(width: SplashTiming.logoSize, height: SplashTiming.logoSize)
                     .opacity(logoOpacity)
                     .scaleEffect(logoScale)
+                    .accessibilityIdentifier("startup.logo")
 
                 if showLoadingIndicator {
                     ProgressView()
@@ -42,6 +43,8 @@ struct SplashLoadingView: View {
             }
             .padding(.horizontal, 24)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("startup.splash")
         .onAppear {
             beginSplashSequence()
         }

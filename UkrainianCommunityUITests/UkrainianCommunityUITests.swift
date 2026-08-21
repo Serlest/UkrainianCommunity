@@ -37,6 +37,17 @@ final class UkrainianCommunityUITests: XCTestCase {
         return app
     }
 
+    private func attachScreenshot(
+        named name: String,
+        from app: XCUIApplication,
+        lifetime: XCTAttachment.Lifetime = .keepAlways
+    ) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = lifetime
+        add(attachment)
+    }
+
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
 
@@ -113,6 +124,23 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testAppLaunchesAndShowsTabBar() throws {
         let app = launchApp()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testStartupSplashTransitionsToMainInterface() throws {
+        let app = launchApp()
+        let splash = app.otherElements["startup.splash"]
+        XCTAssertTrue(splash.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.images["startup.logo"].waitForExistence(timeout: 2))
+
+        // Capture the logo after its reveal animation, while the four-second
+        // startup gate is still visible.
+        Thread.sleep(forTimeInterval: 2)
+        attachScreenshot(named: "Startup Splash", from: app)
+
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertFalse(splash.exists)
+        attachScreenshot(named: "Main Interface After Splash", from: app)
     }
 
     @MainActor

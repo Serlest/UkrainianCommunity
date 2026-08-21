@@ -52,9 +52,9 @@ jobs:
         run: npm run test:rules:all
 
   ios:
-    name: iOS build and unit tests
+    name: iOS build, unit and UI tests
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -80,3 +80,27 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           test
           -only-testing:UkrainianCommunityTests
+
+      - name: Run UI smoke tests
+        run: >
+          xcodebuild
+          -project UkrainianCommunity.xcodeproj
+          -scheme UkrainianCommunity
+          -configuration Debug
+          -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5"
+          -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
+          -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityUI.xcresult"
+          CODE_SIGNING_ALLOWED=NO
+          test
+          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testStartupSplashTransitionsToMainInterface
+          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testEachTabOpensExpectedRootScreen
+          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testGuestProfileShowsAuthEntryPoints
+
+      - name: Upload UI smoke test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UkrainianCommunityUI-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/UkrainianCommunityUI.xcresult
+          if-no-files-found: warn
+          retention-days: 14
