@@ -149,3 +149,9 @@ test("restricted accounts and legacy roles do not receive elevated access", () =
   assert.equal(permissions.canManageFeedback(removedModerator), false);
   assert.equal(permissions.canManageReports(removedModerator), false);
 });
+
+test("feedback notifications target only active platform management roles", () => {
+  assert.deepEqual(permissions.feedbackManagerGlobalRoles, ["owner", "admin"]);
+  assert.equal(permissions.feedbackManagerGlobalRoles.includes("moderator"), false);
+  assert.equal(permissions.feedbackManagerGlobalRoles.includes("appModerator"), false);
+});

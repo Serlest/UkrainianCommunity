@@ -37352,23 +37352,6 @@
         }
       }
     },
-    "user_management.assign_moderator" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moderator zuweisen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Призначити модератора"
-          }
-        }
-      }
-    },
     "user_management.assign_role.button" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37811,23 +37794,6 @@
         }
       }
     },
-    "user_management.issue.moderator_sections_missing" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legacy-Moderator hat keine zugewiesenen Bereiche"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legacy-модератор не має призначених секцій"
-          }
-        }
-      }
-    },
     "user_management.issue.owner_global_role_mismatch" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37892,23 +37858,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Зараз не вдається завантажити діагностику користувачів."
-          }
-        }
-      }
-    },
-    "user_management.moderator_sections" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moderationsbereiche"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Секції модератора"
           }
         }
       }

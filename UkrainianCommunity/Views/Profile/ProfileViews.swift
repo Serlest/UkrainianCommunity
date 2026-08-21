@@ -1031,22 +1031,6 @@ struct ProfileView: View {
         .buttonStyle(.plain)
     }
 
-    private var moderatorQuickActionsSection: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-            ],
-            spacing: AppTheme.eventsMetadataSpacing
-        ) {
-            NavigationLink(value: ProfileNavigationRoute.moderationTools) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(title: AppStrings.Profile.moderationQueue, subtitle: AppStrings.Profile.ownerPendingReviewSubtitle, systemImage: "clock.badge.exclamationmark", status: canShowModerationTools ? .active : .locked))
-            }
-            .buttonStyle(.plain)
-
-        }
-    }
-
     private func profileStats(for user: AppUser) -> [ProfileStatItem] {
         [
             ProfileStatItem(title: AppStrings.Profile.statRegistrations, value: registrationsViewModel.registrationsCountText, systemImage: "calendar.badge.clock"),

@@ -24,6 +24,8 @@ export interface UserPermissionSnapshot {
   canManageGuide?: boolean;
 }
 
+export const feedbackManagerGlobalRoles = ["owner", "admin"] as const;
+
 export async function getUserPermissions(uid: string): Promise<UserPermissionSnapshot> {
   const snapshot = await db.collection("users").doc(uid).get();
 

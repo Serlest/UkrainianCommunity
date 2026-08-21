@@ -1884,7 +1884,6 @@ enum AppStrings {
         static var subtitle: String { text("user_management.subtitle", "Пошук, статуси та ролі користувачів.") }
         static var viewUsers: String { text("user_management.view_users", "View users") }
         static var blockUser: String { text("user_management.block_user", "Block user") }
-        static var assignModerator: String { text("user_management.assign_moderator", "Assign moderator") }
         static var assignAdmin: String { text("user_management.assign_admin", "Assign admin") }
         static var retry: String { text("user_management.retry", "Retry") }
         static var empty: String { text("user_management.empty", "No roles backfill issues found.") }
@@ -1970,10 +1969,8 @@ enum AppStrings {
         static var uid: String { text("user_management.uid", "UID") }
         static var legacyRole: String { text("user_management.legacy_role", "Legacy Role") }
         static var globalRole: String { text("user_management.global_role", "Global Role") }
-        static var moderatorSections: String { text("user_management.moderator_sections", "Moderator Sections") }
         static var accountStatus: String { text("user_management.account_status", "Account Status") }
         static var issue: String { text("user_management.issue", "Issue") }
-        static var issueModeratorSectionsMissing: String { text("user_management.issue.moderator_sections_missing", "Legacy moderator has no assigned sections") }
         static var issueAdminGlobalRoleMismatch: String { text("user_management.issue.admin_global_role_mismatch", "Legacy admin is not mapped to Top Admin") }
         static var issueOwnerGlobalRoleMismatch: String { text("user_management.issue.owner_global_role_mismatch", "Legacy owner is not mapped to Owner") }
         static var issueUserGlobalRoleMissing: String { text("user_management.issue.user_global_role_missing", "Legacy user is missing global role") }
