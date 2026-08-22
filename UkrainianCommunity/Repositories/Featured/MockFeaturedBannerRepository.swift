@@ -90,13 +90,13 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         [
             FeaturedBanner(
                 id: "featured-emergency-support",
-                internalName: "Emergency support guide hero",
+                internalName: "Emergency support hero",
                 title: "Emergency support contacts",
                 subtitle: "Fast access to urgent help and community support resources.",
                 imageURL: "https://example.com/featured/emergency-support.jpg",
                 actionType: .none,
                 regionScope: .allAustria,
-                visibleSections: [.home, .guide],
+                visibleSections: [.home],
                 displayDurationSeconds: 5,
                 priority: 90,
                 startsAt: now.addingTimeInterval(-3_600),
@@ -134,7 +134,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
                 actionType: .externalURL,
                 externalURL: "https://example.com/legal-advice",
                 regionScope: .allAustria,
-                visibleSections: [.organizations, .guide],
+                visibleSections: [.organizations],
                 displayDurationSeconds: 6,
                 priority: 40,
                 startsAt: now.addingTimeInterval(-3_600),
@@ -158,23 +158,6 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
                 endsAt: now.addingTimeInterval(-86_400),
                 createdAt: now.addingTimeInterval(-691_200),
                 updatedAt: now.addingTimeInterval(-604_800),
-                createdBy: "mock-owner"
-            ),
-            FeaturedBanner(
-                id: "featured-inactive-guide",
-                internalName: "Inactive guide spotlight draft",
-                title: "Inactive guide spotlight",
-                subtitle: "A draft spotlight for upcoming practical guidance.",
-                imageURL: "https://example.com/featured/inactive-guide.jpg",
-                actionType: .guide,
-                actionTargetID: "mock-guide-inactive",
-                regionScope: .allAustria,
-                visibleSections: [.guide],
-                displayDurationSeconds: 6,
-                priority: 80,
-                isActive: false,
-                createdAt: now.addingTimeInterval(-172_800),
-                updatedAt: now.addingTimeInterval(-86_400),
                 createdBy: "mock-owner"
             )
         ]

@@ -281,13 +281,11 @@ struct UkrainianCommunityTests {
         let news = try await MockNewsRepository().fetchNews()
         let events = try await MockEventRepository().fetchEvents()
         let organizations = try await MockOrganizationRepository().fetchOrganizations()
-        let guideNodes = try await MockGuideRepository().fetchRootNodes(category: .health, selectedFederalState: nil)
 
         #expect(user.fullName.isEmpty == false)
         #expect(news.isEmpty == false)
         #expect(events.isEmpty == false)
         #expect(organizations.isEmpty == false)
-        #expect(guideNodes.isEmpty == false)
     }
 
     @Test func settingsPersistenceStoresLanguageAndAppearance() async throws {
@@ -346,6 +344,31 @@ struct UkrainianCommunityTests {
 
         #expect(newsErrors.isEmpty == false)
         #expect(eventErrors.isEmpty == false)
+    }
+
+    @Test func featuredBannerEditorNormalizesLegacyGuideConfiguration() {
+        let now = Date()
+        let legacyBanner = FeaturedBanner(
+            id: "legacy-guide-banner",
+            title: "Legacy guide banner",
+            imageURL: "https://example.com/banner.jpg",
+            actionType: .guide,
+            actionTargetID: "firstSteps",
+            visibleSections: [.home, .guide],
+            createdAt: now,
+            updatedAt: now,
+            createdBy: "owner"
+        )
+
+        let viewModel = FeaturedBannerEditorViewModel(
+            repository: MockFeaturedBannerRepository(banners: [legacyBanner]),
+            mode: .edit(legacyBanner)
+        )
+
+        #expect(viewModel.actionType == .none)
+        #expect(viewModel.actionTargetID.isEmpty)
+        #expect(viewModel.visibleSections == [.home])
+        #expect([legacyBanner].activeFeaturedBanners(for: .home, federalState: nil).isEmpty)
     }
 
     @Test func authValidationRejectsInvalidRegistrationAndResetInputs() {

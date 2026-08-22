@@ -7,7 +7,6 @@ enum RecentViewItemType: String, CaseIterable, Codable, Identifiable {
     case news
     case event
     case organization
-    case guide
 
     var id: String { rawValue }
 
@@ -19,8 +18,6 @@ enum RecentViewItemType: String, CaseIterable, Codable, Identifiable {
             return AppStrings.Events.title
         case .organization:
             return AppStrings.Tabs.organizations
-        case .guide:
-            return AppStrings.Guide.title
         }
     }
 
@@ -32,8 +29,6 @@ enum RecentViewItemType: String, CaseIterable, Codable, Identifiable {
             return "calendar"
         case .organization:
             return "building.2"
-        case .guide:
-            return "book.closed"
         }
     }
 }
@@ -218,17 +213,6 @@ enum RecentViewRecorder {
             title: organization.name,
             subtitle: organization.shortDescription.isEmpty ? organization.city : organization.shortDescription,
             imageURL: organization.logoURL ?? organization.imageURL ?? organization.coverURL,
-            viewedAt: Date()
-        ))
-    }
-
-    static func recordGuideMaterial(_ material: GuideMaterial) {
-        record(RecentViewItem(
-            itemId: material.id,
-            itemType: .guide,
-            title: material.title,
-            subtitle: material.summary.isEmpty ? material.category.title : material.summary,
-            imageURL: nil,
             viewedAt: Date()
         ))
     }

@@ -23,6 +23,7 @@ extension Array where Element == FeaturedBanner {
     ) -> [FeaturedBanner] {
         filter { banner in
             banner.isActive
+                && banner.actionType.isSupported
                 && banner.visibleSections.contains(section)
                 && banner.isVisible(on: now)
                 && banner.matchesRegion(federalState)

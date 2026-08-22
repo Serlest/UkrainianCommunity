@@ -27,7 +27,6 @@ enum ProfileBrowseDestination {
     case home
     case events
     case organizations
-    case guide
 }
 
 struct ProfileView: View {
@@ -58,7 +57,6 @@ struct ProfileView: View {
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
-    @ObservedObject private var guideReaderViewModel: GuideReaderViewModel
     @State private var isShowingEditProfileSheet = false
     @State private var fullNameDraft = ""
     @State private var displayNameDraft = ""
@@ -94,7 +92,6 @@ struct ProfileView: View {
         newsViewModel: NewsViewModel? = nil,
         eventsViewModel: EventsViewModel? = nil,
         organizationsViewModel: OrganizationsViewModel? = nil,
-        guideReaderViewModel: GuideReaderViewModel? = nil,
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
@@ -119,7 +116,6 @@ struct ProfileView: View {
             localEventReminderService: localEventReminderService
         )
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
-        self.guideReaderViewModel = guideReaderViewModel ?? GuideReaderViewModel(repository: FirestoreGuideRepository())
         self.featuredBannerRepository = featuredBannerRepository
         self.featuredBannerCache = featuredBannerCache
         self.legalDocumentRepository = legalDocumentRepository
@@ -404,7 +400,6 @@ struct ProfileView: View {
                 }
                 await organizationsViewModel.loadIfNeeded()
                 await organizationsViewModel.refreshIfStale()
-                await guideReaderViewModel.loadSavedMaterialsIfNeeded()
                 await loadOwnerVisibilityIfAllowed()
             } else {
                 registrationsViewModel.resetForGuest()
@@ -423,7 +418,6 @@ struct ProfileView: View {
                     await viewModel.refreshNotificationPreferences(userID: userID)
                 }
                 await organizationsViewModel.refresh()
-                await guideReaderViewModel.refreshSavedMaterials()
                 await refreshOwnerVisibilityIfAllowed()
             }
         }
@@ -436,7 +430,6 @@ struct ProfileView: View {
                         await viewModel.refreshNotificationPreferences(userID: userID)
                     }
                     await organizationsViewModel.refresh()
-                    await guideReaderViewModel.refreshSavedMaterials()
                     await refreshOwnerVisibilityIfAllowed()
                 } else {
                     registrationsViewModel.resetForGuest()
@@ -589,9 +582,7 @@ struct ProfileView: View {
             SavedContentView(
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
-                organizationsViewModel: organizationsViewModel,
-                guideReaderViewModel: guideReaderViewModel,
-                feedbackRepository: feedbackRepository
+                organizationsViewModel: organizationsViewModel
             )
         case .followedOrganizations:
             FollowedOrganizationsView(
@@ -1042,7 +1033,6 @@ struct ProfileView: View {
         newsViewModel.posts.filter(\.isBookmarked).count
             + eventsViewModel.events.filter(\.isBookmarked).count
             + organizationsViewModel.organizations.filter(\.isBookmarked).count
-            + guideReaderViewModel.savedMaterialIDs.count
     }
 
     private func profileOrganizationCount(for user: AppUser) -> Int {

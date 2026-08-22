@@ -75,29 +75,6 @@ extension AppAnalyticsEvent {
         return AppAnalyticsEvent(name: .organizationView, parameters: parameters)
     }
 
-    static func guideArticleView(
-        contentID: String,
-        contentTitle: String,
-        category: GuideCategory,
-        federalState: AustrianFederalState?,
-        regionScope: RegionScope?,
-        sourceScreen: String,
-        language: AppLanguage = .stored
-    ) -> AppAnalyticsEvent {
-        let parameters = baseContentParameters(
-            contentID: contentID,
-            contentTitle: contentTitle,
-            contentType: "guide_article",
-            category: category.rawValue,
-            federalState: federalState,
-            regionScope: regionScope,
-            sourceScreen: sourceScreen,
-            language: language
-        )
-
-        return AppAnalyticsEvent(name: .guideArticleView, parameters: parameters)
-    }
-
     static func baseContentParameters(
         contentID: String,
         contentTitle: String,

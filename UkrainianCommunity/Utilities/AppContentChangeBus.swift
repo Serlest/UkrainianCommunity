@@ -5,7 +5,6 @@ extension Notification.Name {
     static let newsChanged = Notification.Name("newsChanged")
     static let eventsChanged = Notification.Name("eventsChanged")
     static let organizationsChanged = Notification.Name("organizationsChanged")
-    static let guideChanged = Notification.Name("guideChanged")
     static let registrationsChanged = Notification.Name("registrationsChanged")
 }
 
@@ -22,11 +21,6 @@ enum AppContentChangeBus {
 
     static func postOrganizationsChanged(organizationID: String? = nil) {
         post(name: .organizationsChanged, organizationID: organizationID)
-    }
-
-    static func postGuideChanged() {
-        NotificationCenter.default.post(name: .guideChanged, object: nil)
-        NotificationCenter.default.post(name: .appContentChanged, object: nil)
     }
 
     static func postRegistrationsChanged(organizationID: String? = nil) {

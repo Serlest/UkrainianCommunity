@@ -5,7 +5,6 @@ private enum SavedContentSegment: String, CaseIterable, Identifiable {
     case news
     case events
     case organizations
-    case guide
 
     var id: String { rawValue }
 
@@ -19,8 +18,6 @@ private enum SavedContentSegment: String, CaseIterable, Identifiable {
             return AppStrings.Events.title
         case .organizations:
             return AppStrings.Tabs.organizations
-        case .guide:
-            return AppStrings.Guide.title
         }
     }
 
@@ -34,8 +31,6 @@ private enum SavedContentSegment: String, CaseIterable, Identifiable {
             return "calendar"
         case .organizations:
             return "building.2"
-        case .guide:
-            return "book.closed"
         }
     }
 }
@@ -44,7 +39,6 @@ private enum SavedContentItem: Identifiable {
     case news(NewsPost)
     case event(Event)
     case organization(Organization)
-    case guideMaterial(GuideMaterial)
 
     var id: String {
         switch self {
@@ -54,8 +48,6 @@ private enum SavedContentItem: Identifiable {
             return "event-\(event.id)"
         case let .organization(organization):
             return "organization-\(organization.id)"
-        case let .guideMaterial(material):
-            return "guide-\(material.id)"
         }
     }
 
@@ -67,8 +59,6 @@ private enum SavedContentItem: Identifiable {
             return event.startDate
         case let .organization(organization):
             return organization.updatedAt
-        case let .guideMaterial(material):
-            return material.updatedAt
         }
     }
 }
@@ -78,41 +68,32 @@ struct SavedContentView: View {
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
-    @ObservedObject private var guideReaderViewModel: GuideReaderViewModel
-    private let feedbackRepository: FeedbackRepository
     @State private var selectedSegment: SavedContentSegment = .all
 
     init(
         newsViewModel: NewsViewModel? = nil,
         eventsViewModel: EventsViewModel? = nil,
         organizationsViewModel: OrganizationsViewModel? = nil,
-        guideReaderViewModel: GuideReaderViewModel? = nil,
-        feedbackRepository: FeedbackRepository = FirestoreFeedbackRepository(),
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        guideRepository: GuideRepositoryProtocol = FirestoreGuideRepository()
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
         self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
         self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
-        self.guideReaderViewModel = guideReaderViewModel ?? GuideReaderViewModel(repository: guideRepository)
-        self.feedbackRepository = feedbackRepository
     }
 
     private var isLoading: Bool {
         (newsViewModel.isLoading
             || eventsViewModel.isLoading
-            || organizationsViewModel.isLoading
-            || guideReaderViewModel.isLoadingSavedMaterials)
+            || organizationsViewModel.isLoading)
             && newsViewModel.bookmarkedPosts.isEmpty
             && eventsViewModel.bookmarkedEvents.isEmpty
             && bookmarkedOrganizations.isEmpty
-            && guideReaderViewModel.savedMaterials.isEmpty
     }
 
     private var loadError: AppError? {
-        newsViewModel.error ?? eventsViewModel.error ?? organizationsViewModel.error ?? guideReaderViewModel.error
+        newsViewModel.error ?? eventsViewModel.error ?? organizationsViewModel.error
     }
 
     var body: some View {
@@ -189,10 +170,6 @@ struct SavedContentView: View {
                     ForEach(bookmarkedOrganizations) { organization in
                         savedOrganizationLink(organization)
                     }
-                case .guide:
-                    ForEach(guideReaderViewModel.savedMaterials) { material in
-                        savedGuideMaterialLink(material)
-                    }
                 }
             }
         }
@@ -203,7 +180,6 @@ struct SavedContentView: View {
             newsViewModel.bookmarkedPosts.map(SavedContentItem.news)
             + eventsViewModel.bookmarkedEvents.map(SavedContentItem.event)
             + bookmarkedOrganizations.map(SavedContentItem.organization)
-            + guideReaderViewModel.savedMaterials.map(SavedContentItem.guideMaterial)
         )
         .sorted { $0.savedSortDate > $1.savedSortDate }
     }
@@ -222,8 +198,6 @@ struct SavedContentView: View {
             return eventsViewModel.bookmarkedEvents.isEmpty
         case .organizations:
             return bookmarkedOrganizations.isEmpty
-        case .guide:
-            return guideReaderViewModel.savedMaterials.isEmpty
         }
     }
 
@@ -237,8 +211,6 @@ struct SavedContentView: View {
             return "calendar"
         case .organizations:
             return "building.2"
-        case .guide:
-            return "book.closed"
         }
     }
 
@@ -252,8 +224,6 @@ struct SavedContentView: View {
             return AppStrings.Profile.savedEmptyEvents
         case .organizations:
             return AppStrings.Profile.savedEmptyOrganizations
-        case .guide:
-            return GuideCategoryPresentation.savedMaterialsEmptyMessage
         }
     }
 
@@ -261,16 +231,14 @@ struct SavedContentView: View {
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-        async let guideLoad: Void = guideReaderViewModel.loadSavedMaterialsIfNeeded()
-        _ = await (newsLoad, eventsLoad, organizationsLoad, guideLoad)
+        _ = await (newsLoad, eventsLoad, organizationsLoad)
     }
 
     private func refreshSavedContent() async {
         async let newsRefresh: Void = newsViewModel.refresh()
         async let eventsRefresh: Void = eventsViewModel.refresh()
         async let organizationsRefresh: Void = organizationsViewModel.refresh()
-        async let guideRefresh: Void = guideReaderViewModel.refreshSavedMaterials()
-        _ = await (newsRefresh, eventsRefresh, organizationsRefresh, guideRefresh)
+        _ = await (newsRefresh, eventsRefresh, organizationsRefresh)
     }
 
     private func savedErrorMessage(_ error: AppError) -> String {
@@ -295,8 +263,6 @@ struct SavedContentView: View {
             savedEventLink(event)
         case let .organization(organization):
             savedOrganizationLink(organization)
-        case let .guideMaterial(material):
-            savedGuideMaterialLink(material)
         }
     }
 
@@ -331,19 +297,6 @@ struct SavedContentView: View {
             OrganizationDetailView(viewModel: organizationsViewModel, organizationID: organization.id)
         } label: {
             ProfileOrganizationListCard(organization: organization)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func savedGuideMaterialLink(_ material: GuideMaterial) -> some View {
-        NavigationLink {
-            GuideMaterialDetailView(
-                material: material,
-                viewModel: guideReaderViewModel,
-                feedbackRepository: feedbackRepository
-            )
-        } label: {
-            SavedGuideMaterialCard(material: material)
         }
         .buttonStyle(.plain)
     }
@@ -501,45 +454,6 @@ private struct SavedEventCard: View {
                         .lineLimit(2)
 
                     Label(LocalizationStore.dateString(from: event.startDate), systemImage: "clock")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-        }
-    }
-}
-
-private struct SavedGuideMaterialCard: View {
-    let material: GuideMaterial
-
-    var body: some View {
-        AppEditorSectionCard {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "book.closed")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
-                    .frame(width: 38, height: 38)
-                    .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(material.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-
-                    Text(material.summary)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-
-                    Label(LocalizationStore.dateString(from: material.updatedAt), systemImage: "clock")
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)

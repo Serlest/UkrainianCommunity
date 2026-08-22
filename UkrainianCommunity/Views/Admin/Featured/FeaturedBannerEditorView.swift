@@ -254,7 +254,7 @@ struct FeaturedBannerEditorView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
-                    ForEach(FeaturedBannerVisibleSection.allCases) { section in
+                    ForEach(FeaturedBannerVisibleSection.supportedCases) { section in
                         Toggle(isOn: Binding(
                             get: { viewModel.visibleSections.contains(section) },
                             set: { viewModel.toggleVisibleSection(section, isVisible: $0) }
@@ -274,7 +274,7 @@ struct FeaturedBannerEditorView: View {
                 AppEditorSectionTitle(title: AppStrings.FeaturedEditor.actionSection)
 
                 Picker(AppStrings.FeaturedEditor.actionTypeField, selection: $viewModel.actionType) {
-                    ForEach(FeaturedBannerActionType.allCases) { actionType in
+                    ForEach(FeaturedBannerActionType.supportedCases) { actionType in
                         Text(actionType.editorTitle).tag(actionType)
                     }
                 }
@@ -316,8 +316,6 @@ struct FeaturedBannerEditorView: View {
                             .foregroundStyle(AppTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                } else if viewModel.supportsGuideTargetSelection {
-                    guideTargetSection
                 }
 
                 if viewModel.requiresExternalURL {
@@ -331,79 +329,6 @@ struct FeaturedBannerEditorView: View {
                     )
                 }
             }
-        }
-    }
-
-    private var guideTargetSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-            AppEditorField(
-                title: featuredBannerEditorText(
-                    uk: "Що відкривати",
-                    de: "Was geöffnet werden soll",
-                    en: "Open destination"
-                )
-            ) {
-                Picker(
-                    featuredBannerEditorText(
-                        uk: "Що відкривати",
-                        de: "Was geöffnet werden soll",
-                        en: "Open destination"
-                    ),
-                    selection: Binding(
-                        get: { viewModel.guideTargetMode },
-                        set: { newMode in
-                            viewModel.setGuideTargetMode(
-                                newMode,
-                                defaultCategory: GuideCategoryPresentation.publicTopLevelCategories.first
-                            )
-                        }
-                    )
-                ) {
-                    Text(featuredBannerEditorText(uk: "Головна довідника", de: "Leitfaden-Startseite", en: "Guide root"))
-                        .tag(FeaturedBannerEditorViewModel.GuideTargetMode.root)
-                    Text(featuredBannerEditorText(uk: "Категорія довідника", de: "Leitfaden-Kategorie", en: "Guide category"))
-                        .tag(FeaturedBannerEditorViewModel.GuideTargetMode.category)
-                }
-                .pickerStyle(.segmented)
-            }
-
-            if viewModel.guideTargetMode == .category {
-                AppEditorField(
-                    title: featuredBannerEditorText(
-                        uk: "Категорія",
-                        de: "Kategorie",
-                        en: "Category"
-                    )
-                ) {
-                    Picker(
-                        featuredBannerEditorText(
-                            uk: "Категорія",
-                            de: "Kategorie",
-                            en: "Category"
-                        ),
-                        selection: Binding(
-                            get: { viewModel.selectedGuideCategory ?? GuideCategoryPresentation.publicTopLevelCategories.first ?? .firstSteps },
-                            set: { viewModel.selectGuideCategory($0) }
-                        )
-                    ) {
-                        ForEach(GuideCategoryPresentation.publicTopLevelCategories) { category in
-                            Text(GuideCategoryPresentation.publicTitle(for: category)).tag(category)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
-            }
-
-            Text(
-                featuredBannerEditorText(
-                    uk: "Банер для довідника може відкрити лише головну сторінку або одну з публічних категорій. Посилання на розділи та матеріали поки не підтримуються.",
-                    de: "Ein Leitfaden-Banner kann nur die Startseite oder eine öffentliche Kategorie öffnen. Links zu Abschnitten oder Artikeln werden derzeit nicht unterstützt.",
-                    en: "Guide banners can open only the root screen or a public category. Section and material deep links are not supported yet."
-                )
-            )
-            .font(.caption)
-            .foregroundStyle(AppTheme.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
