@@ -237,10 +237,10 @@ final class UkrainianCommunityUITests: XCTestCase {
         let app = launchApp()
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
 
-        let signInButton = app.buttons["profile.guest.signIn"].firstMatch
+        let signInButton = app.buttons["Anmelden"].firstMatch
         XCTAssertTrue(signInButton.waitForExistence(timeout: 10))
         signInButton.tap()
-        XCTAssertTrue(app.otherElements["auth.login.screen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Anmelden"].waitForExistence(timeout: 10))
     }
 
     @MainActor
