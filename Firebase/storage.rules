@@ -109,20 +109,15 @@ service firebase.storage {
     }
 
     function canManageOrganizationPhotos(organizationId) {
-      return isOwner()
-        || canEditOrganizationContent(organizationId)
-        || isOrganizationModerator(organizationId);
+      return canEditOrganizationContent(organizationId);
     }
 
     function canReadOrganizationMedia(organizationId) {
       return organizationExists(organizationId)
         && (
           organizationData(organizationId).moderationStatus == 'approved'
-          || isOwner()
           || isOrganizationRequestCreator(organizationId)
-          || isOrganizationOwner(organizationId)
-          || isOrganizationAdmin(organizationId)
-          || isOrganizationModerator(organizationId)
+          || canEditOrganizationContent(organizationId)
         );
     }
 
@@ -191,22 +186,19 @@ service firebase.storage {
     match /organizations/{organizationId}/logo.jpg {
       allow read: if canReadOrganizationMedia(organizationId);
       allow create, update: if (
-          canManageContentImages('organizations')
+          isOrganizationRequestCreator(organizationId)
           || canEditOrganizationContent(organizationId)
-          || isOrganizationRequestCreator(organizationId)
         )
         && isSafeImageUpload();
-      allow delete: if canManageContentImages('organizations')
-        || canEditOrganizationContent(organizationId)
-        || isOrganizationRequestCreator(organizationId);
+      allow delete: if isOrganizationRequestCreator(organizationId)
+        || canEditOrganizationContent(organizationId);
     }
 
     match /organizations/{organizationId}/cover.jpg {
       allow read: if canReadOrganizationMedia(organizationId);
       allow create, update: if false;
-      allow delete: if canManageContentImages('organizations')
-        || canEditOrganizationContent(organizationId)
-        || isOrganizationRequestCreator(organizationId);
+      allow delete: if isOrganizationRequestCreator(organizationId)
+        || canEditOrganizationContent(organizationId);
     }
 
     match /organizations/{organizationId}/photos/{fileName} {
