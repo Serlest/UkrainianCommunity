@@ -25,9 +25,31 @@ service firebase.storage {
       return userData(request.auth.uid);
     }
 
-    function isOwner() {
+    function isActiveUser() {
       return isSignedIn()
         && existsUser(request.auth.uid)
+        && (
+          !('accountStatus' in currentUserData())
+          || currentUserData().accountStatus == 'active'
+          || currentUserData().accountStatus == 'warned'
+        )
+        && (
+          !('blockState' in currentUserData())
+          || currentUserData().blockState == 'active'
+          || currentUserData().blockState == 'warned'
+        );
+    }
+
+    function isVerifiedEmailUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isVerifiedActiveUser() {
+      return isVerifiedEmailUser() && isActiveUser();
+    }
+
+    function isOwner() {
+      return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
         && currentUserData().globalRole == 'owner';
     }
@@ -46,7 +68,7 @@ service firebase.storage {
     }
 
     function existsOrganization(organizationId) {
-      return isSignedIn()
+      return isVerifiedActiveUser()
         && organizationExists(organizationId);
     }
 
@@ -107,13 +129,13 @@ service firebase.storage {
     function isSafeImageUpload() {
       return request.resource != null
         && request.resource.size < 3 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+        && request.resource.contentType == 'image/jpeg';
     }
 
     function isSafeFeaturedBannerImageUpload() {
       return request.resource != null
         && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+        && request.resource.contentType == 'image/jpeg';
     }
 
     function canManageNewsCover(newsId) {
@@ -151,7 +173,7 @@ service firebase.storage {
 
     match /news/{filePath=**} {
       allow read: if true;
-      allow write: if canManageContentImages('news');
+      allow write: if false;
     }
 
     match /events/{eventId}/cover.jpg {
@@ -199,15 +221,19 @@ service firebase.storage {
     match /organizations/{organizationId}/draftUploads/news/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
       allow create, update: if canEditOrganizationContent(organizationId)
+        && fileName.matches('^.+_cover\\.jpg$')
         && isSafeImageUpload();
-      allow delete: if canEditOrganizationContent(organizationId);
+      allow delete: if canEditOrganizationContent(organizationId)
+        && fileName.matches('^.+_cover\\.jpg$');
     }
 
     match /organizations/{organizationId}/draftUploads/events/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
       allow create, update: if canEditOrganizationContent(organizationId)
+        && fileName.matches('^.+_cover\\.jpg$')
         && isSafeImageUpload();
-      allow delete: if canEditOrganizationContent(organizationId);
+      allow delete: if canEditOrganizationContent(organizationId)
+        && fileName.matches('^.+_cover\\.jpg$');
     }
 
     match /organizations/{organizationId}/{filePath=**} {
@@ -215,11 +241,14 @@ service firebase.storage {
       allow write: if false;
     }
 
-    match /profileImages/{uid}/{filePath=**} {
+    match /profileImages/{uid}/avatar.jpg {
       allow read: if true;
-      allow create, update: if (isSelf(uid) || isOwner())
+      allow create, update: if (
+          (isSelf(uid) && isVerifiedActiveUser())
+          || isOwner()
+        )
         && isSafeImageUpload();
-      allow delete: if isSelf(uid) || isOwner();
+      allow delete: if (isSelf(uid) && isVerifiedActiveUser()) || isOwner();
     }
 
     match /featuredBanners/{bannerId}/hero.jpg {
