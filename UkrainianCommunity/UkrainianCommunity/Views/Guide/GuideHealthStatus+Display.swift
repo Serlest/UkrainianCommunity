@@ -4,13 +4,13 @@ extension GuideHealthStatus {
     var displayTitle: String {
         switch self {
         case .current:
-            GuideAuthoringPresentation.reviewCurrentTitle
+            AppStrings.Common.active
         case .dueSoon:
-            GuideAuthoringPresentation.dueSoonTitle
+            AppStrings.Guide.reviewDueSoon
         case .overdue:
-            GuideAuthoringPresentation.overdueTitle
+            AppStrings.Guide.reviewOverdue
         case .archived:
-            GuideAuthoringPresentation.reviewArchivedTitle
+            AppStrings.Guide.reviewArchived
         }
     }
 

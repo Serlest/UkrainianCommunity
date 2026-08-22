@@ -70,7 +70,7 @@ struct GuideMaterialDetailView: View {
     private var content: some View {
         if !material.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             DetailCard {
-                GuideBlockTitleView(title: GuideAuthoringPresentation.descriptionSectionTitle)
+                GuideBlockTitleView(title: AppStrings.Guide.articleOverviewLabel)
 
                 Text(material.body)
                     .font(AppTheme.detailBodyFont)
