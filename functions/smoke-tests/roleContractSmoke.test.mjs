@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {notificationDefaults} from "../lib/notifications/notificationPayloads.js";
 import * as permissions from "../lib/permissions/userPermissions.js";
+import * as platformRoles from "../lib/users/platformRoleManagement.js";
 
 function user({
   uid,
   globalRole = "user",
-  canManageGuide = false,
   accountStatus = "active",
   blockState = "active",
 }) {
   return {
     uid,
     globalRole,
-    canManageGuide,
     accountStatus,
     blockState,
   };
@@ -65,9 +65,7 @@ test("App Owner has full platform access and organization override", () => {
   const owner = user({uid: "owner", globalRole: "owner"});
 
   assert.equal(permissions.canAssignAppAdmin(owner), true);
-  assert.equal(permissions.canAssignGuideEditor(owner), true);
   assert.equal(permissions.canManageUsers(owner), true);
-  assert.equal(permissions.canManageGuide(owner), true);
   assert.equal(permissions.canManageOrganizationRequests(owner), true);
   assert.equal(permissions.canAccessModerationTools(owner), true);
   assert.equal(permissions.canManageFeedback(owner), true);
@@ -76,9 +74,8 @@ test("App Owner has full platform access and organization override", () => {
   assert.equal(permissions.canUseOrganizationOverride(owner), true);
 });
 
-test("App Admin can manage limited platform roles without admin assignment or org override", () => {
+test("App Admin has limited platform access without admin assignment or org override", () => {
   const admin = user({uid: "admin", globalRole: "admin"});
-  const guideAdmin = user({uid: "guide-admin", globalRole: "admin", canManageGuide: true});
   const org = organization();
 
   assert.equal(permissions.canManageOrganizationRequests(admin), true);
@@ -86,25 +83,29 @@ test("App Admin can manage limited platform roles without admin assignment or or
   assert.equal(permissions.canManageFeedback(admin), true);
   assert.equal(permissions.canManageReports(admin), true);
   assert.equal(permissions.canAssignAppAdmin(admin), false);
-  assert.equal(permissions.canAssignGuideEditor(admin), true);
   assert.equal(permissions.canUseOrganizationOverride(admin), false);
-  assert.equal(permissions.canManageGuide(admin), false);
-  assert.equal(permissions.canManageGuide(guideAdmin), true);
   assert.equal(canManageOrganizationContent(org, admin), false);
 });
 
-test("Guide Editor has guide-only platform access", () => {
-  const guideEditor = user({uid: "guide-editor", canManageGuide: true});
-  const org = organization();
+test("retired platform permission exports stay unavailable", () => {
+  assert.equal("canAssignGuideEditor" in permissions, false);
+  assert.equal("canManageGuide" in permissions, false);
+  assert.equal("assertCanManageGuide" in permissions, false);
+});
 
-  assert.equal(permissions.canManageGuide(guideEditor), true);
-  assert.equal(permissions.canManageUsers(guideEditor), false);
-  assert.equal(permissions.canManageOrganizationRequests(guideEditor), false);
-  assert.equal(permissions.canAccessModerationTools(guideEditor), false);
-  assert.equal(permissions.canManageFeedback(guideEditor), false);
-  assert.equal(permissions.canManageReports(guideEditor), false);
-  assert.equal(permissions.canUseOrganizationOverride(guideEditor), false);
-  assert.equal(canManageOrganizationContent(org, guideEditor), false);
+test("platform role callables only expose App Admin mutations", () => {
+  assert.equal(typeof platformRoles.assignAppAdmin, "function");
+  assert.equal(typeof platformRoles.removeAppAdmin, "function");
+  assert.equal("assignGuideEditor" in platformRoles, false);
+  assert.equal("removeGuideEditor" in platformRoles, false);
+});
+
+test("reviewed reports use a neutral notification route", () => {
+  assert.deepEqual(notificationDefaults("reportReviewed"), {
+    severity: "info",
+    actionType: "none",
+    sourceType: "system",
+  });
 });
 
 test("Organization roles stay scoped to organization membership arrays", () => {
@@ -144,7 +145,6 @@ test("restricted accounts and legacy roles do not receive elevated access", () =
   assert.equal(permissions.canUseOrganizationOverride(suspendedOwner), false);
   assert.equal(permissions.canAccessModerationTools(legacyTopAdmin), false);
   assert.equal(permissions.canAccessModerationTools(legacyModerator), false);
-  assert.equal(permissions.canManageGuide(legacyTopAdmin), false);
   assert.equal(permissions.canAccessModerationTools(removedModerator), false);
   assert.equal(permissions.canManageFeedback(removedModerator), false);
   assert.equal(permissions.canManageReports(removedModerator), false);

@@ -6,7 +6,7 @@ enum FeaturedBannerActionType: String, CaseIterable, Codable, Identifiable {
     case event
     case organization
     // Retained only to decode and retire existing Firestore banners.
-    case guide
+    case unsupportedLegacy = "guide"
     case externalURL
 
     var id: String { rawValue }
@@ -14,7 +14,7 @@ enum FeaturedBannerActionType: String, CaseIterable, Codable, Identifiable {
     static let supportedCases: [Self] = [.none, .news, .event, .organization, .externalURL]
 
     var isSupported: Bool {
-        self != .guide
+        self != .unsupportedLegacy
     }
 
     init(from decoder: Decoder) throws {
@@ -53,14 +53,14 @@ enum FeaturedBannerVisibleSection: String, CaseIterable, Codable, Identifiable, 
     case events
     case organizations
     // Retained only to decode and retire existing Firestore banners.
-    case guide
+    case unsupportedLegacy = "guide"
 
     var id: String { rawValue }
 
     static let supportedCases: [Self] = [.home, .events, .organizations]
 
     var isSupported: Bool {
-        self != .guide
+        self != .unsupportedLegacy
     }
 }
 
@@ -87,6 +87,10 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
     let updatedAt: Date
     let createdBy: String
     let updatedBy: String?
+
+    var hasUnsupportedLegacyConfiguration: Bool {
+        !actionType.isSupported || visibleSections.contains { !$0.isSupported }
+    }
 
     init(
         id: String,

@@ -51,9 +51,9 @@ jobs:
         working-directory: functions
         run: npm run build
 
-      - name: Test retention policy
+      - name: Run Functions unit tests
         working-directory: functions
-        run: npm run test:retention
+        run: npm run test:unit
 
       - name: Install Firebase CLI
         run: npm install --global firebase-tools
@@ -121,6 +121,7 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           test
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testStartupSplashTransitionsToMainInterface
+          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testTabBarShowsFinalTabOrderWithoutLegacyTabs
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testEachTabOpensExpectedRootScreen
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testGuestProfileShowsAuthEntryPoints
 

@@ -50,6 +50,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     private let bannerID: String
     private let createdAt: Date
     private let createdBy: String
+    let isReadOnlyLegacyBanner: Bool
     private var selectedProcessedImage: ProcessedImageSelection?
     private var actionTargetLoadTasks: [FeaturedBannerActionTargetKind: Task<[FeaturedBannerActionTargetItem], Error>] = [:]
 
@@ -91,6 +92,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             endsAt = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
             createdAt = now
             createdBy = ""
+            isReadOnlyLegacyBanner = false
         case let .edit(existing):
             bannerID = existing.id
             internalName = existing.internalName ?? ""
@@ -99,10 +101,9 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             imageURL = existing.imageURL ?? ""
             regionScope = existing.regionScope
             federalState = existing.federalState
-            let supportedSections = Set(existing.visibleSections.filter(\.isSupported))
-            visibleSections = supportedSections.isEmpty ? [.home] : supportedSections
-            actionType = existing.actionType.isSupported ? existing.actionType : .none
-            actionTargetID = existing.actionType.isSupported ? existing.actionTargetID ?? "" : ""
+            visibleSections = existing.visibleSections
+            actionType = existing.actionType
+            actionTargetID = existing.actionTargetID ?? ""
             externalURL = existing.externalURL ?? ""
             displayDurationSeconds = existing.displayDurationSeconds
             priority = existing.priority
@@ -113,6 +114,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             endsAt = existing.endsAt ?? Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
             createdAt = existing.createdAt
             createdBy = existing.createdBy
+            isReadOnlyLegacyBanner = existing.hasUnsupportedLegacyConfiguration
         }
     }
 
@@ -134,10 +136,14 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     var canSave: Bool {
-        !isSaving && !isProcessingImage && validationMessage == nil
+        !isReadOnlyLegacyBanner && !isSaving && !isProcessingImage && validationMessage == nil
     }
 
     var validationMessage: String? {
+        if isReadOnlyLegacyBanner {
+            return AppStrings.FeaturedManagement.unsupportedLegacy
+        }
+
         if selectedImageData == nil && imageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return AppStrings.FeaturedEditor.validationImageRequired
         }
@@ -179,7 +185,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         switch actionType {
         case .news, .event, .organization:
             return true
-        case .none, .externalURL, .guide:
+        case .none, .externalURL, .unsupportedLegacy:
             return false
         }
     }
@@ -188,7 +194,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         switch actionType {
         case .externalURL:
             return true
-        case .none, .news, .event, .organization, .guide:
+        case .none, .news, .event, .organization, .unsupportedLegacy:
             return false
         }
     }
@@ -328,9 +334,9 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             let now = Date()
             let resolvedActionTargetID: String? = {
                 switch actionType {
-                case .guide, .news, .event, .organization:
+                case .news, .event, .organization:
                     return nonEmpty(actionTargetID)
-                case .none, .externalURL:
+                case .none, .externalURL, .unsupportedLegacy:
                     return nil
                 }
             }()
@@ -484,7 +490,7 @@ enum FeaturedBannerActionTargetKind: String, CaseIterable, Identifiable, Hashabl
             self = .event
         case .organization:
             self = .organization
-        case .none, .guide, .externalURL:
+        case .none, .unsupportedLegacy, .externalURL:
             return nil
         }
     }

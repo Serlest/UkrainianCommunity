@@ -12,7 +12,6 @@ enum AnalyticsEventName: String, Sendable, CaseIterable {
     case organizationFollow = "organization_follow"
     case organizationUnfollow = "organization_unfollow"
     case organizationBookmark = "organization_bookmark"
-    case guideArticleView = "guide_article_view"
     case searchUsed = "search_used"
     case filterUsed = "filter_used"
     case languageChanged = "language_changed"

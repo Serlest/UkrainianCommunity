@@ -251,10 +251,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
 
         guard !metrics.isEmpty else { return nil }
 
-        let totalViews = metrics[.totalViews]
-            ?? [.newsViews, .eventViews, .organizationViews, .guideArticleViews]
-                .map { metrics[$0, default: 0] }
-                .reduce(0, +)
+        let totalViews = AnalyticsFirestoreSchema.activeViewCount(in: metrics)
         metrics[.totalViews] = totalViews
 
         return AnalyticsDailyStats(date: calendar.startOfDay(for: date), metrics: metrics)
@@ -291,15 +288,28 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
 
         let federalState = nonEmptyString(data[AnalyticsFirestoreSchema.RegionStatsField.federalState])
             .flatMap(AustrianFederalState.init(rawValue:))
-        let contentCount = intValue(data[AnalyticsFirestoreSchema.RegionStatsField.contentCount])
-        let contentKeysCount = (data[AnalyticsFirestoreSchema.RegionStatsField.contentKeys] as? [String: Any])?.count ?? 0
+        var metrics = metricValues(
+            from: data[AnalyticsFirestoreSchema.RegionStatsField.metrics] as? [String: Any] ?? [:]
+        )
+        let viewCount = AnalyticsFirestoreSchema.activeViewCount(in: metrics)
+        metrics[.totalViews] = viewCount
+
+        let contentKeys = data[AnalyticsFirestoreSchema.RegionStatsField.contentKeys] as? [String: Any]
+        let activeContentCount = contentKeys.map(AnalyticsFirestoreSchema.activeContentCount)
+        let resolvedContentCount = activeContentCount ?? 0
+        guard AnalyticsFirestoreSchema.hasActiveRegionAnalytics(
+            viewCount: viewCount,
+            contentCount: resolvedContentCount
+        ) else {
+            return nil
+        }
 
         return AnalyticsRegionStats(
             regionScope: regionScope,
             federalState: federalState,
-            viewCount: intValue(data[AnalyticsFirestoreSchema.RegionStatsField.viewCount]),
-            contentCount: contentCount > 0 ? contentCount : contentKeysCount,
-            metrics: metricValues(from: data[AnalyticsFirestoreSchema.RegionStatsField.metrics] as? [String: Any] ?? [:])
+            viewCount: viewCount,
+            contentCount: resolvedContentCount,
+            metrics: metrics
         )
     }
 
@@ -504,7 +514,6 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             .newsViews,
             .eventViews,
             .organizationViews,
-            .guideArticleViews,
             .activeRegions
         ]
 
@@ -538,7 +547,6 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         metrics[.newsViews] = metrics[.newsViews] ?? intValue(data[AnalyticsFirestoreSchema.DailyStatsField.newsViews])
         metrics[.eventViews] = metrics[.eventViews] ?? intValue(data[AnalyticsFirestoreSchema.DailyStatsField.eventViews])
         metrics[.organizationViews] = metrics[.organizationViews] ?? intValue(data[AnalyticsFirestoreSchema.DailyStatsField.organizationViews])
-        metrics[.guideArticleViews] = metrics[.guideArticleViews] ?? intValue(data[AnalyticsFirestoreSchema.DailyStatsField.guideArticleViews])
         metrics[.activeRegions] = metrics[.activeRegions] ?? intValue(data[AnalyticsFirestoreSchema.DailyStatsField.activeRegions])
         metrics[.totalLikes] = metrics[.totalLikes] ?? intValue(data[AnalyticsFirestoreSchema.DailyStatsField.totalLikes])
         metrics[.totalBookmarks] = metrics[.totalBookmarks] ?? intValue(data[AnalyticsFirestoreSchema.DailyStatsField.totalBookmarks])

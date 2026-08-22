@@ -116,7 +116,7 @@ async function anonymizeUserDocument(uid: string): Promise<void> {
     blockState: "deactivated",
     isBlocked: true,
     globalRole: "user",
-    canManageGuide: false,
+    canManageGuide: FieldValue.delete(),
     communityMemberships: [],
     displayName: deletedUserDisplayName,
     fullName: "",

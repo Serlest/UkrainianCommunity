@@ -1,122 +1,58 @@
 # Firestore Security Plan
 
-## Planned Collections
+## Active security contract
 
-- `users`
-- `news`
-- `events`
-- `organizations`
-- `guideArticles`
-- `feedback`
-- `comments`
-- `registrations`
-- `likes`
+`Firebase/firestore.rules` is the authoritative access layer. Swift and SwiftUI permission checks only shape the interface and must never be treated as data protection.
 
-## Roles
+The active platform roles are `user`, `admin`, and `owner`:
 
-- `user`
-- `moderator`
-- `admin`
-- `owner`
+- App Owner controls platform administration, App Admin assignment, featured banners, legal documents, analytics, and the explicit organization override.
+- App Admin manages the limited platform workflows allowed by Rules, without owner assignment, featured-banner management, or organization override.
+- User receives no platform-management authority.
 
-## Security Principle
+Organization Owner, Admin, and Moderator permissions are independent and derive from membership arrays on each organization document. Legacy role values and retired capability fields are migration data only and must never authorize a request.
 
-Firestore Rules are the real security layer. SwiftUI checks are not enough.
+## Access boundaries
 
-Client-side role checks are useful for UI and UX, but they do not protect data by themselves. Every important permission must also be enforced in Firestore Security Rules.
+### Public content
 
-## Planned Access Rules
+- Approved News, Events, and Organizations are publicly readable under their collection-specific visibility rules.
+- Comment reads follow the parent content and deletion state.
+- Archived cancelled Events are readable only by the affected registrant or an authorized manager.
 
-### Public Content
+### Authenticated user activity
 
-- Users can read public content from `news`, `events`, `organizations`, and `guideArticles`.
-- Public read access for `comments` can be allowed where the related content is public.
+- A verified active user may create only their own permitted likes, bookmarks, follows, registrations, comments, feedback, recent views, and activity records.
+- Document identifiers and embedded user/content identifiers must match the authenticated user and request path.
+- Self-service profile updates are limited to explicitly allowlisted personal fields.
+- Users cannot change their own platform role, organization membership, block state, or warning state.
 
-### Users
+### Platform and organization management
 
-- Users can like content and register for events.
-- Users can later edit only their own profile fields in `users/{userId}`.
-- Users must not be able to change their own role.
-- Users must not be able to unblock themselves if blocked by admins or owner.
+- Platform management checks require a verified, active account and the exact current platform role.
+- Organization management checks require current membership in the relevant organization, except for the owner's explicit override.
+- Content create/update rules validate source ownership, organization linkage, immutable identity fields, moderation state, and allowed field sets.
+- Role mutations and account deletion run through trusted callable Cloud Functions where server-side authority is required.
 
-### Moderators
+### Sensitive and operational data
 
-- Moderators can create and edit content in:
-  - `news`
-  - `events`
-  - `organizations`
-  - `guideArticles`
-- Moderators should not manage user roles.
-- Moderators should not have full access to all user documents.
+- System logs are readable only within the owner/admin category boundaries and accept only constrained client-created payloads.
+- Notification outbox/inbox documents, analytics aggregates, moderation queues, and audit records have collection-specific deny-by-default write rules.
+- App configuration accepts only the active Home, Events, and Organizations banner documents plus the donation configuration.
+- Collections without an explicit match fall through to `allow read, write: if false`.
 
-### Admins
+## Account state requirements
 
-- Admins have moderator rights.
-- Admins can manage moderators.
-- Admins can block users.
-- Admins should not be allowed to promote themselves or others to `owner`.
+- Elevated access requires verified email and an account whose `accountStatus` and `blockState` are `active` or `warned`.
+- Suspended, banned, deactivated, or otherwise restricted accounts receive no elevated authorization even if stale role data remains.
+- Profile bootstrap remains possible before email verification, but interaction and management writes require verification.
 
-### Owner
+## Change and deployment discipline
 
-- Owner has full access to all content.
-- Owner can manage all roles.
-- Owner can manage all users.
-- Owner can block or unblock users.
+Every authorization change must update Firestore Rules, Storage Rules, trusted Functions, client presentation gates, and emulator/unit tests together. Before deployment:
 
-## Collection Notes
-
-### `users`
-
-- Stores user profile and role data.
-- Only the user should later edit safe personal fields.
-- Role changes should be restricted to `admin` and `owner`, with final owner-level control over the highest privileges.
-
-### `news`
-
-- Readable by users if public/published.
-- Writable by `moderator`, `admin`, and `owner`.
-
-### `events`
-
-- Readable by users if public/published.
-- Writable by `moderator`, `admin`, and `owner`.
-
-### `organizations`
-
-- Readable by users if public/published.
-- Writable by `moderator`, `admin`, and `owner`.
-
-### `guideArticles`
-
-- Readable by users if public/published.
-- Writable by `moderator`, `admin`, and `owner`.
-
-### `feedback`
-
-- Readable by the submitting user and privileged app administrators.
-- Writable by authenticated users for their own submissions.
-- Status and review lifecycle should be restricted to privileged roles.
-
-### `comments`
-
-- Read rules should follow the visibility of the parent content.
-- Write rules can later allow authenticated users, with moderation or ownership checks for edits/deletes.
-
-### `registrations`
-
-- Users can create and manage only their own event registrations.
-- Moderators, admins, and owner may later get read access for event management.
-
-### `likes`
-
-- Users can create and remove only their own likes.
-- Users must not modify likes that belong to another user.
-
-## Recommended Rule Strategy
-
-- Use `request.auth != null` for authenticated actions.
-- Read the caller role from `users/{uid}`.
-- Separate public reads from privileged writes.
-- Restrict role mutation to trusted roles only.
-- Treat blocked users as denied for write actions.
-- Keep Firestore Rules aligned with app role logic, but never depend on the app alone for enforcement.
+1. Run all Firestore and Storage emulator regression tests.
+2. Review the exact rule and index diff against the intended Firebase project.
+3. Export or back up production data where the rollout can affect availability or deletion.
+4. Deploy Rules and indexes from the reviewed release commit.
+5. Verify representative guest, user, owner/admin, and organization-role requests in production logs without using production user data destructively.

@@ -1,6 +1,28 @@
 import Foundation
 
 enum AnalyticsFirestoreSchema {
+    static let activeViewMetricTypes: [AnalyticsMetricType] = [
+        .newsViews,
+        .eventViews,
+        .organizationViews
+    ]
+
+    static func activeViewCount(in metrics: [AnalyticsMetricType: Int]) -> Int {
+        activeViewMetricTypes
+            .map { metrics[$0, default: 0] }
+            .reduce(0, +)
+    }
+
+    static func activeContentCount(in contentKeys: [String: Any]) -> Int {
+        contentKeys.keys.filter { key in
+            AnalyticsContentType.allCases.contains { key.hasPrefix("\($0.rawValue)_") }
+        }.count
+    }
+
+    static func hasActiveRegionAnalytics(viewCount: Int, contentCount: Int) -> Bool {
+        viewCount > 0 || contentCount > 0
+    }
+
     enum Collection {
         static let dailyStats = "analyticsDailyStats"
         static let topContent = "analyticsTopContent"
@@ -35,7 +57,6 @@ enum AnalyticsFirestoreSchema {
         static let newsViews = "newsViews"
         static let eventViews = "eventViews"
         static let organizationViews = "organizationViews"
-        static let guideArticleViews = "guideArticleViews"
         static let activeRegions = "activeRegions"
         static let totalLikes = "totalLikes"
         static let totalBookmarks = "totalBookmarks"

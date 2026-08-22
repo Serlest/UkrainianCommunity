@@ -245,8 +245,6 @@ private struct NotificationInboxRow: View {
             return "newspaper"
         case .organizationEventPublished:
             return "calendar.badge.plus"
-        case .guideMaterialUpdated:
-            return "book.pages"
         case .systemAnnouncement, .unknown:
             return "megaphone"
         }

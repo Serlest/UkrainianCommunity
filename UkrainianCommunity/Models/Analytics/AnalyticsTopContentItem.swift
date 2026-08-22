@@ -4,7 +4,6 @@ enum AnalyticsContentType: String, CaseIterable, Codable, Identifiable {
     case news
     case event
     case organization
-    case guideArticle
 
     var id: String { rawValue }
 }

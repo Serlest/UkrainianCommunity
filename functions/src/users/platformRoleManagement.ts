@@ -10,9 +10,7 @@ import {
   writeUserNotification,
 } from "../notifications/notificationPayloads";
 import {
-  assertCanManageUsers,
   canAssignAppAdmin,
-  canAssignGuideEditor,
   isActiveUser,
   type AccountStatus,
   type BlockState,
@@ -30,27 +28,25 @@ interface PlatformRoleChangeResponse {
   targetUserId: string;
   previousGlobalRole: ActiveGlobalRole;
   newGlobalRole: ActiveGlobalRole;
-  previousCanManageGuide: boolean;
-  newCanManageGuide: boolean;
   updatedAt: string;
 }
 
-interface PlatformRoleMutation {
-  actionType: AuditActionType;
+type AppAdminActionType = Extract<
+  AuditActionType,
+  "appAdminAssigned" | "appAdminRemoved"
+>;
+
+interface AppAdminRoleMutation {
+  actionType: AppAdminActionType;
   defaultReason: string;
+  notificationTitle: string;
+  notificationMessage: string;
   requiresUsableTarget: boolean;
-  canPerform(actor: UserPermissionSnapshot): boolean;
-  apply(current: UserRoleSnapshot): UserRoleUpdate;
+  nextGlobalRole(current: ActiveGlobalRole): ActiveGlobalRole;
 }
 
 interface UserRoleSnapshot extends UserPermissionSnapshot {
   globalRole: ActiveGlobalRole;
-  canManageGuide: boolean;
-}
-
-interface UserRoleUpdate {
-  globalRole: ActiveGlobalRole;
-  canManageGuide: boolean;
 }
 
 const callableOptions = {
@@ -120,13 +116,12 @@ function userRoleSnapshotFromData(uid: string, data: DocumentData | undefined): 
     accountStatus: data?.accountStatus as AccountStatus | undefined,
     blockState: data?.blockState as BlockState | undefined,
     globalRole: normalizeGlobalRole(data?.globalRole),
-    canManageGuide: data?.canManageGuide === true,
   };
 }
 
 function assertMutableTarget(
   target: UserRoleSnapshot,
-  mutation: PlatformRoleMutation
+  mutation: AppAdminRoleMutation
 ): void {
   if (target.globalRole === "owner") {
     throw new HttpsError("permission-denied", "Owner role cannot be changed here.");
@@ -137,42 +132,9 @@ function assertMutableTarget(
   }
 }
 
-function assertChanged(current: UserRoleSnapshot, next: UserRoleUpdate): void {
-  if (
-    current.globalRole === next.globalRole
-    && current.canManageGuide === next.canManageGuide
-  ) {
+function assertChanged(current: UserRoleSnapshot, nextGlobalRole: ActiveGlobalRole): void {
+  if (current.globalRole === nextGlobalRole) {
     throw new HttpsError("failed-precondition", "Requested role change is already applied.");
-  }
-}
-
-function platformRoleNotificationTitle(mutation: PlatformRoleMutation): string {
-  switch (mutation.actionType) {
-    case "appAdminAssigned":
-      return "App admin role assigned";
-    case "appAdminRemoved":
-      return "App admin role removed";
-    case "guideEditorAssigned":
-      return "Guide editor access assigned";
-    case "guideEditorRemoved":
-      return "Guide editor access removed";
-    default:
-      return "Role changed";
-  }
-}
-
-function platformRoleNotificationMessage(mutation: PlatformRoleMutation): string {
-  switch (mutation.actionType) {
-    case "appAdminAssigned":
-      return "Your platform role was changed to app admin.";
-    case "appAdminRemoved":
-      return "Your app admin role was removed.";
-    case "guideEditorAssigned":
-      return "You can now manage guide content.";
-    case "guideEditorRemoved":
-      return "Your guide editor access was removed.";
-    default:
-      return "Your platform role was changed.";
   }
 }
 
@@ -187,7 +149,7 @@ async function writeNotificationIfRecipientEligible(
   await writeUserNotification(input);
 }
 
-function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
+function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
   return onCall(callableOptions, async (request): Promise<PlatformRoleChangeResponse> => {
     const auth = requireAuth(request);
     const roleRequest = parsePlatformRoleChangeRequest(request.data);
@@ -198,10 +160,8 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
     }
 
     const actorPermissions = userRoleSnapshotFromData(auth.uid, actorSnapshot.data());
-    assertCanManageUsers(actorPermissions);
-
-    if (!mutation.canPerform(actorPermissions)) {
-      throw new HttpsError("permission-denied", "Platform role permissions are required.");
+    if (!canAssignAppAdmin(actorPermissions)) {
+      throw new HttpsError("permission-denied", "App owner permissions are required.");
     }
 
     if (roleRequest.targetUserId === auth.uid) {
@@ -212,8 +172,6 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
     const committedAt = new Date().toISOString();
     let previousGlobalRole: ActiveGlobalRole = "user";
     let newGlobalRole: ActiveGlobalRole = "user";
-    let previousCanManageGuide = false;
-    let newCanManageGuide = false;
 
     await db.runTransaction(async (transaction) => {
       const targetSnapshot = await transaction.get(targetReference);
@@ -225,17 +183,14 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
       const target = userRoleSnapshotFromData(roleRequest.targetUserId, targetSnapshot.data());
       assertMutableTarget(target, mutation);
 
-      const next = mutation.apply(target);
-      assertChanged(target, next);
+      const nextRole = mutation.nextGlobalRole(target.globalRole);
+      assertChanged(target, nextRole);
 
       previousGlobalRole = target.globalRole;
-      newGlobalRole = next.globalRole;
-      previousCanManageGuide = target.canManageGuide;
-      newCanManageGuide = next.canManageGuide;
+      newGlobalRole = nextRole;
 
       transaction.update(targetReference, {
-        globalRole: next.globalRole,
-        canManageGuide: next.canManageGuide,
+        globalRole: nextRole,
         roleUpdatedAt: FieldValue.serverTimestamp(),
         roleUpdatedBy: auth.uid,
       });
@@ -247,13 +202,11 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
         reason: roleRequest.reason ?? mutation.defaultReason,
         previousValue: {
           globalRole: target.globalRole,
-          canManageGuide: target.canManageGuide,
           accountStatus: target.accountStatus ?? "active",
           blockState: target.blockState ?? "active",
         },
         newValue: {
-          globalRole: next.globalRole,
-          canManageGuide: next.canManageGuide,
+          globalRole: nextRole,
           roleUpdatedAt: committedAt,
           roleUpdatedBy: auth.uid,
         },
@@ -269,8 +222,8 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
       ].join("_"),
       targetUserId: roleRequest.targetUserId,
       type: "roleChanged",
-      title: platformRoleNotificationTitle(mutation),
-      message: platformRoleNotificationMessage(mutation),
+      title: mutation.notificationTitle,
+      message: mutation.notificationMessage,
       severity: "info",
       actionType: "openProfile",
       actionTargetId: roleRequest.targetUserId,
@@ -279,8 +232,6 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
       metadata: {
         previousGlobalRole,
         newGlobalRole,
-        previousCanManageGuide,
-        newCanManageGuide,
         updatedAt: committedAt,
       },
       dedupeKey: [
@@ -288,7 +239,6 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
         mutation.actionType,
         roleRequest.targetUserId,
         newGlobalRole,
-        String(newCanManageGuide),
       ].join(":"),
     });
 
@@ -296,61 +246,29 @@ function createPlatformRoleCallable(mutation: PlatformRoleMutation) {
       targetUserId: roleRequest.targetUserId,
       previousGlobalRole,
       newGlobalRole,
-      previousCanManageGuide,
-      newCanManageGuide,
       updatedAt: committedAt,
     };
   });
 }
 
-export const assignAppAdmin = createPlatformRoleCallable({
+export const assignAppAdmin = createAppAdminRoleCallable({
   actionType: "appAdminAssigned",
   defaultReason: "App admin assigned",
+  notificationTitle: "App admin role assigned",
+  notificationMessage: "Your platform role was changed to app admin.",
   requiresUsableTarget: true,
-  canPerform: canAssignAppAdmin,
-  apply(current) {
-    return {
-      globalRole: "admin",
-      canManageGuide: current.canManageGuide,
-    };
+  nextGlobalRole() {
+    return "admin";
   },
 });
 
-export const removeAppAdmin = createPlatformRoleCallable({
+export const removeAppAdmin = createAppAdminRoleCallable({
   actionType: "appAdminRemoved",
   defaultReason: "App admin removed",
+  notificationTitle: "App admin role removed",
+  notificationMessage: "Your app admin role was removed.",
   requiresUsableTarget: false,
-  canPerform: canAssignAppAdmin,
-  apply(current) {
-    return {
-      globalRole: current.globalRole === "admin" ? "user" : current.globalRole,
-      canManageGuide: current.canManageGuide,
-    };
-  },
-});
-
-export const assignGuideEditor = createPlatformRoleCallable({
-  actionType: "guideEditorAssigned",
-  defaultReason: "Guide editor assigned",
-  requiresUsableTarget: true,
-  canPerform: canAssignGuideEditor,
-  apply(current) {
-    return {
-      globalRole: current.globalRole,
-      canManageGuide: true,
-    };
-  },
-});
-
-export const removeGuideEditor = createPlatformRoleCallable({
-  actionType: "guideEditorRemoved",
-  defaultReason: "Guide editor removed",
-  requiresUsableTarget: false,
-  canPerform: canAssignGuideEditor,
-  apply(current) {
-    return {
-      globalRole: current.globalRole,
-      canManageGuide: false,
-    };
+  nextGlobalRole(current) {
+    return current === "admin" ? "user" : current;
   },
 });

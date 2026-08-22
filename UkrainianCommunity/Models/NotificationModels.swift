@@ -32,9 +32,18 @@ enum AppNotificationType: String, Codable, CaseIterable, Sendable {
     case eventUpdated
     case eventCancelled
     case eventRegistrationConfirmed
-    case guideMaterialUpdated
     case systemAnnouncement
     case unknown
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self = Self(rawValue: try container.decode(String.self)) ?? .unknown
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 enum AppNotificationSourceType: String, Codable, Sendable {
@@ -42,12 +51,19 @@ enum AppNotificationSourceType: String, Codable, Sendable {
     case organization
     case account
     case legal
-    case role
     case profile
     case event
-    case guideMaterial
-    case guideReport
     case system
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self = Self(rawValue: try container.decode(String.self)) ?? .system
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 enum AppNotificationSeverity: String, Codable, CaseIterable {
@@ -64,11 +80,19 @@ enum AppNotificationActionType: String, Codable, CaseIterable, Sendable {
     case openOrganization
     case openOrganizationRequest
     case openEvent
-    case openGuideMaterial
-    case openGuideReport
     case openLegalDocuments
     case openProfile
     case openURL
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self = Self(rawValue: try container.decode(String.self)) ?? .none
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 enum RemoteNotificationRouteDestination: Equatable, Sendable {
@@ -100,6 +124,10 @@ struct RemoteNotificationRoute: Equatable, Sendable {
         route: String?,
         routeTargetId: String?
     ) {
+        guard type != .reportReviewed, type != .unknown else {
+            return nil
+        }
+
         let resolvedRoute = Self.normalizedRoute(
             route: route,
             actionType: actionType,
@@ -131,11 +159,25 @@ struct RemoteNotificationRoute: Equatable, Sendable {
         let notificationId = Self.stringValue(userInfo, keys: ["notificationId", "id"])
         let type = Self.stringValue(userInfo, keys: ["type"])
             .flatMap(AppNotificationType.init(rawValue:)) ?? .unknown
-        let sourceType = Self.stringValue(userInfo, keys: ["sourceType"])
-            .flatMap(AppNotificationSourceType.init(rawValue:))
+        let sourceType: AppNotificationSourceType?
+        if let rawSourceType = Self.stringValue(userInfo, keys: ["sourceType"]) {
+            guard let parsedSourceType = AppNotificationSourceType(rawValue: rawSourceType) else {
+                return nil
+            }
+            sourceType = parsedSourceType
+        } else {
+            sourceType = nil
+        }
         let sourceId = Self.stringValue(userInfo, keys: ["sourceId"])
-        let actionType = Self.stringValue(userInfo, keys: ["actionType"])
-            .flatMap(AppNotificationActionType.init(rawValue:)) ?? .none
+        let actionType: AppNotificationActionType
+        if let rawActionType = Self.stringValue(userInfo, keys: ["actionType"]) {
+            guard let parsedActionType = AppNotificationActionType(rawValue: rawActionType) else {
+                return nil
+            }
+            actionType = parsedActionType
+        } else {
+            actionType = .none
+        }
         let actionTargetId = Self.stringValue(userInfo, keys: ["actionTargetId"])
         let route = Self.stringValue(userInfo, keys: ["route"])
         let routeTargetId = Self.stringValue(userInfo, keys: ["routeTargetId", "targetId", "targetID"])
@@ -198,7 +240,7 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             return "openProfile"
         case .openURL:
             return "openURL"
-        case .openGuideMaterial, .openGuideReport, .openLegalDocuments:
+        case .openLegalDocuments:
             return actionType.rawValue
         case .none:
             switch sourceType {
@@ -212,7 +254,7 @@ struct RemoteNotificationRoute: Equatable, Sendable {
                 return "systemAnnouncement"
             case .some(.account), .some(.profile):
                 return "openProfile"
-            case .some(.guideMaterial), .some(.guideReport), .some(.legal), .some(.role), .none:
+            case .some(.legal), .none:
                 return "none"
             }
         }
@@ -543,8 +585,6 @@ private enum AppNotificationDisplayResolver {
                 body: firstNonEmpty(notification.message, notification.payload["contentTitle"], notification.metadata["contentTitle"])
                     ?? AppStrings.NotificationInbox.genericBody
             )
-        case .guideMaterialUpdated:
-            return genericContent(title: AppStrings.NotificationInbox.guideMaterialUpdatedTitle)
         }
     }
 

@@ -170,32 +170,6 @@ enum MockContentBuilder {
         ]
     }
 
-    nonisolated static func infoItems() -> [InfoItem] {
-        [
-            InfoItem(
-                id: "info-1",
-                title: localized("info.card.resettlement.title", "Settling in Tirol"),
-                body: localized("info.card.resettlement.body", "Use this section later for official links, local procedures, and practical checklists for new arrivals."),
-                systemImage: "map",
-                regionScope: .austria
-            ),
-            InfoItem(
-                id: "info-2",
-                title: localized("info.card.services.title", "Support Services"),
-                body: localized("info.card.services.body", "Reserve this space for healthcare, education, legal support, and emergency contacts."),
-                systemImage: "cross.case",
-                regionScope: .austria
-            ),
-            InfoItem(
-                id: "info-3",
-                title: localized("info.card.community.title", "Community Life"),
-                body: localized("info.card.community.body", "Later this can host FAQs, etiquette tips, and recurring local resources for families."),
-                systemImage: "person.3",
-                regionScope: .austria
-            )
-        ]
-    }
-
     nonisolated private static func sampleComments() -> [Comment] {
         [
             Comment(

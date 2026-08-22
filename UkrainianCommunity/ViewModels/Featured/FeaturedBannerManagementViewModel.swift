@@ -32,6 +32,13 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
     }
 
     func setActive(_ isActive: Bool, for banner: FeaturedBanner, updatedBy userID: String?) async {
+        if banner.hasUnsupportedLegacyConfiguration {
+            guard banner.isActive, !isActive else {
+                error = .validationFailed
+                return
+            }
+        }
+
         let trimmedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmedUserID.isEmpty else {
             error = .permissionDenied
@@ -76,6 +83,11 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
     }
 
     func delete(_ banner: FeaturedBanner, requestedBy userID: String?) async {
+        guard !banner.hasUnsupportedLegacyConfiguration else {
+            error = .validationFailed
+            return
+        }
+
         let trimmedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmedUserID.isEmpty else {
             error = .permissionDenied

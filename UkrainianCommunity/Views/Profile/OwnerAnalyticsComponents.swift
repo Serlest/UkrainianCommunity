@@ -297,8 +297,6 @@ extension AnalyticsContentType {
             AppStrings.OwnerAnalytics.contentTypeEvent
         case .organization:
             AppStrings.OwnerAnalytics.contentTypeOrganization
-        case .guideArticle:
-            AppStrings.OwnerAnalytics.contentTypeGuideMaterial
         }
     }
 }
@@ -314,8 +312,6 @@ extension AnalyticsMetricType {
             AppStrings.OwnerAnalytics.eventViews
         case .organizationViews:
             AppStrings.OwnerAnalytics.organizationViews
-        case .guideArticleViews:
-            AppStrings.OwnerAnalytics.guideViews
         case .activeRegions:
             AppStrings.OwnerAnalytics.activeRegions
         case .totalLikes:
@@ -343,8 +339,6 @@ extension AnalyticsMetricType {
             "calendar"
         case .organizationViews:
             "building.2"
-        case .guideArticleViews:
-            "book.closed"
         case .activeRegions:
             "map"
         case .totalLikes:

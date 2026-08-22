@@ -5,7 +5,6 @@ enum AnalyticsMetricType: String, CaseIterable, Codable, Identifiable {
     case newsViews
     case eventViews
     case organizationViews
-    case guideArticleViews
     case activeRegions
     case totalLikes
     case totalBookmarks

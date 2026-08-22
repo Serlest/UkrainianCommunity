@@ -154,7 +154,6 @@ service firebase.storage {
           bannerId == 'homeBanner'
           || bannerId == 'eventsBanner'
           || bannerId == 'organizationsBanner'
-          || bannerId == 'guideBanner'
         )
         && fileName == 'banner.jpg';
     }

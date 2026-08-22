@@ -18,7 +18,7 @@ This inventory is a release aid, not a substitute for the answers entered in App
 | Contact Info — Email Address | Authentication and profile email | Yes | App Functionality | Firebase Authentication and user profile |
 | Contact Info — Other User Contact Info | Optional Telegram username; organization/event contact email, phone and links | Usually | App Functionality | User-supplied profile or published content |
 | User Content — Photos or Videos | Avatar, news/event/organization images and gallery media | Yes | App Functionality | Uploaded to Firebase Storage; current client selects images |
-| User Content — Other User Content | Bios, posts, events, organizations, comments, feedback, reports and guide submissions | Yes | App Functionality | Firestore content and moderation flows |
+| User Content — Other User Content | Bios, posts, events, organizations, comments, feedback and reports | Yes | App Functionality | Firestore content and moderation flows |
 | Identifiers — User ID | Firebase UID and internal document IDs | Yes | App Functionality | Authentication, authorization and ownership |
 | Identifiers — Device ID | FCM registration token and its hashed document identifier | Yes | App Functionality | Push notifications; not used for tracking |
 | Usage Data — Product Interaction | Views, likes, bookmarks, follows, registrations and comparable actions | Yes for server aggregates; Firebase Analytics depends on consent | App Functionality; Analytics | Analytics must remain disabled until explicit opt-in |

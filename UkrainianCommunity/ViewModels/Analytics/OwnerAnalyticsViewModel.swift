@@ -118,7 +118,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
 
     var contentViewMetricItems: [OwnerAnalyticsOverviewMetricItem] {
         snapshot.summaryStats
-            .filter { [.newsViews, .eventViews, .organizationViews, .guideArticleViews].contains($0.metricType) }
+            .filter { [.newsViews, .eventViews, .organizationViews].contains($0.metricType) }
             .map { overviewMetricItem(for: $0.metricType) }
     }
 
@@ -381,8 +381,7 @@ private extension AnalyticsRegionStats {
         [
             (.newsViews, AppStrings.OwnerAnalytics.newsViews),
             (.eventViews, AppStrings.OwnerAnalytics.eventViews),
-            (.organizationViews, AppStrings.OwnerAnalytics.organizationViews),
-            (.guideArticleViews, AppStrings.OwnerAnalytics.guideViews)
+            (.organizationViews, AppStrings.OwnerAnalytics.organizationViews)
         ].compactMap { metricType, title in
             guard let value = metrics[metricType], value > 0 else { return nil }
             return "\(title): \(value.formatted())"
@@ -399,8 +398,6 @@ private extension AnalyticsContentType {
             AppStrings.OwnerAnalytics.popularEventsTitle
         case .organization:
             AppStrings.OwnerAnalytics.popularOrganizationsTitle
-        case .guideArticle:
-            AppStrings.OwnerAnalytics.popularGuideMaterialsTitle
         }
     }
 }

@@ -49,7 +49,6 @@ struct UkrainianCommunityTests {
         id: String = UUID().uuidString,
         role: UserRole = .user,
         globalRole: GlobalRole? = nil,
-        canManageGuide: Bool = false,
         blockState: UserBlockState = .active,
         accountStatus: AccountStatus? = nil,
         moderatorSections: [AppSection] = [],
@@ -65,7 +64,6 @@ struct UkrainianCommunityTests {
             role: role,
             globalRole: globalRole,
             moderatorSections: moderatorSections,
-            canManageGuide: canManageGuide,
             blockState: blockState,
             accountStatus: accountStatus,
             communityMemberships: communityMemberships,
@@ -117,14 +115,10 @@ struct UkrainianCommunityTests {
     @Test func finalPlatformRoleMatrixMatchesContract() {
         let owner = makeUser(id: "owner", globalRole: .owner)
         let admin = makeUser(id: "admin", globalRole: .admin)
-        let guideAdmin = makeUser(id: "guide-admin", globalRole: .admin, canManageGuide: true)
-        let guideEditor = makeUser(id: "guide-editor", globalRole: .user, canManageGuide: true)
         let normalUser = makeUser(id: "normal-user", globalRole: .user)
 
         #expect(PermissionService.canAssignAppAdmin(user: owner))
-        #expect(PermissionService.canAssignGuideEditor(user: owner))
         #expect(PermissionService.canManageUsers(user: owner))
-        #expect(PermissionService.canManageGuide(user: owner))
         #expect(PermissionService.canManageOrganizationRequests(user: owner))
         #expect(PermissionService.canAccessModerationTools(user: owner))
         #expect(PermissionService.canManageFeedback(user: owner))
@@ -142,22 +136,10 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canTemporarilyBan(user: admin))
         #expect(PermissionService.canPermanentlyBan(user: admin))
         #expect(PermissionService.canAssignAppAdmin(user: admin) == false)
-        #expect(PermissionService.canAssignGuideEditor(user: admin))
         #expect(PermissionService.canUseOrganizationOverride(user: admin) == false)
-        #expect(PermissionService.canManageGuide(user: admin) == false)
-        #expect(PermissionService.canManageGuide(user: guideAdmin))
-
-        #expect(PermissionService.canManageGuide(user: guideEditor))
-        #expect(PermissionService.canManageUsers(user: guideEditor) == false)
-        #expect(PermissionService.canManageOrganizationRequests(user: guideEditor) == false)
-        #expect(PermissionService.canAccessModerationTools(user: guideEditor) == false)
-        #expect(PermissionService.canManageFeedback(user: guideEditor) == false)
-        #expect(PermissionService.canManageReports(user: guideEditor) == false)
-        #expect(PermissionService.canUseOrganizationOverride(user: guideEditor) == false)
 
         #expect(PermissionService.canManageUsers(user: normalUser) == false)
         #expect(PermissionService.canAccessModerationTools(user: normalUser) == false)
-        #expect(PermissionService.canManageGuide(user: normalUser) == false)
     }
 
     @Test func restrictedAndLegacyPlatformRolesDoNotGrantElevatedAccess() {
@@ -186,7 +168,6 @@ struct UkrainianCommunityTests {
 
         #expect(legacyTopAdmin.globalRole.authorizationRole == .user)
         #expect(PermissionService.canAccessModerationTools(user: legacyTopAdmin) == false)
-        #expect(PermissionService.canManageGuide(user: legacyTopAdmin) == false)
         #expect(GlobalRole(rawValue: "moderator") == nil)
         #expect(GlobalRole(rawValue: "appModerator") == nil)
     }
@@ -346,29 +327,142 @@ struct UkrainianCommunityTests {
         #expect(eventErrors.isEmpty == false)
     }
 
-    @Test func featuredBannerEditorNormalizesLegacyGuideConfiguration() {
+    @Test func unsupportedLegacyFeaturedBannerIsReadOnly() throws {
         let now = Date()
         let legacyBanner = FeaturedBanner(
             id: "legacy-guide-banner",
             title: "Legacy guide banner",
             imageURL: "https://example.com/banner.jpg",
-            actionType: .guide,
+            actionType: .unsupportedLegacy,
             actionTargetID: "firstSteps",
-            visibleSections: [.home, .guide],
+            visibleSections: [.home, .unsupportedLegacy],
             createdAt: now,
             updatedAt: now,
             createdBy: "owner"
         )
 
+        #expect(FeaturedBannerActionType.normalized(from: "guide") == .unsupportedLegacy)
+        #expect(FeaturedBannerVisibleSection(rawValue: "guide") == .unsupportedLegacy)
+        #expect(legacyBanner.hasUnsupportedLegacyConfiguration)
+        try FeaturedBannerValidationService().validate(legacyBanner, allowsUnsupportedLegacy: true)
+        #expect(throws: AppError.self) {
+            try FeaturedBannerValidationService().validate(legacyBanner)
+        }
+        #expect(FeaturedBannerActionResolver().resolve(legacyBanner) == .noAction)
+
+        let repository = MockFeaturedBannerRepository(banners: [legacyBanner])
         let viewModel = FeaturedBannerEditorViewModel(
-            repository: MockFeaturedBannerRepository(banners: [legacyBanner]),
+            repository: repository,
             mode: .edit(legacyBanner)
         )
 
-        #expect(viewModel.actionType == .none)
-        #expect(viewModel.actionTargetID.isEmpty)
-        #expect(viewModel.visibleSections == [.home])
+        #expect(viewModel.isReadOnlyLegacyBanner)
+        #expect(viewModel.actionType == .unsupportedLegacy)
+        #expect(viewModel.actionTargetID == "firstSteps")
+        #expect(viewModel.visibleSections == [.home, .unsupportedLegacy])
+        #expect(viewModel.canSave == false)
+        #expect(viewModel.validationMessage == AppStrings.FeaturedManagement.unsupportedLegacy)
         #expect([legacyBanner].activeFeaturedBanners(for: .home, federalState: nil).isEmpty)
+    }
+
+    @Test func unsupportedLegacyFeaturedBannerRepositoryOnlyAllowsDeactivation() async throws {
+        let now = Date()
+        let legacyBanner = FeaturedBanner(
+            id: "legacy-guide-banner",
+            title: "Legacy guide banner",
+            imageURL: "https://example.com/banner.jpg",
+            actionType: .unsupportedLegacy,
+            actionTargetID: "firstSteps",
+            visibleSections: [.home, .unsupportedLegacy],
+            createdAt: now,
+            updatedAt: now,
+            createdBy: "owner"
+        )
+        let repository = MockFeaturedBannerRepository(banners: [legacyBanner])
+
+        try await repository.setBannerActive(id: legacyBanner.id, isActive: false, updatedBy: "owner")
+        let storedBanners = try await repository.fetchAllBannersForOwner()
+        let storedBanner = try #require(storedBanners.first)
+        #expect(storedBanner.isActive == false)
+
+        await #expect(throws: AppError.self) {
+            try await repository.setBannerActive(id: legacyBanner.id, isActive: true, updatedBy: "owner")
+        }
+        await #expect(throws: AppError.self) {
+            try await repository.deleteBanner(id: legacyBanner.id)
+        }
+
+        let supportedReplacement = FeaturedBanner(
+            id: legacyBanner.id,
+            title: "Replacement",
+            imageURL: "https://example.com/replacement.jpg",
+            actionType: .none,
+            visibleSections: [.home],
+            createdAt: now,
+            updatedAt: now,
+            createdBy: "owner"
+        )
+        await #expect(throws: AppError.self) {
+            try await repository.updateBanner(supportedReplacement)
+        }
+    }
+
+    @Test func retiredGuideNotificationValuesDecodeToSafeFallbacks() throws {
+        let decoder = JSONDecoder()
+
+        let notificationType = try decoder.decode(
+            AppNotificationType.self,
+            from: Data(#""guideMaterialUpdated""#.utf8)
+        )
+        let sourceType = try decoder.decode(
+            AppNotificationSourceType.self,
+            from: Data(#""guideMaterial""#.utf8)
+        )
+        let actionType = try decoder.decode(
+            AppNotificationActionType.self,
+            from: Data(#""openGuideMaterial""#.utf8)
+        )
+
+        #expect(notificationType == .unknown)
+        #expect(sourceType == .system)
+        #expect(actionType == .none)
+
+        let retiredReportUserInfo: [AnyHashable: Any] = [
+            "type": "reportReviewed",
+            "sourceType": "guideReport",
+            "actionType": "openGuideReport"
+        ]
+        let retiredMaterialUserInfo: [AnyHashable: Any] = [
+            "type": "guideMaterialUpdated",
+            "sourceType": "guideMaterial",
+            "actionType": "openGuideMaterial"
+        ]
+
+        #expect(RemoteNotificationRoute(userInfo: retiredReportUserInfo) == nil)
+        #expect(RemoteNotificationRoute(userInfo: retiredMaterialUserInfo) == nil)
+    }
+
+    @Test func legacyGuideAnalyticsIsExcludedFromActiveTotalsAndContent() {
+        let metrics: [AnalyticsMetricType: Int] = [
+            .totalViews: 999,
+            .newsViews: 4,
+            .eventViews: 3,
+            .organizationViews: 2
+        ]
+        let contentKeys: [String: Any] = [
+            "news_current": true,
+            "organization_current": true,
+            "guideArticle_retired": true,
+            "unknown_retired": true
+        ]
+
+        #expect(AnalyticsFirestoreSchema.activeViewCount(in: metrics) == 9)
+        #expect(AnalyticsFirestoreSchema.activeContentCount(in: contentKeys) == 2)
+        #expect(AnalyticsFirestoreSchema.activeContentCount(in: [:]) == 0)
+        #expect(AnalyticsFirestoreSchema.hasActiveRegionAnalytics(viewCount: 0, contentCount: 0) == false)
+        #expect(AnalyticsFirestoreSchema.hasActiveRegionAnalytics(viewCount: 1, contentCount: 0))
+        #expect(AnalyticsFirestoreSchema.hasActiveRegionAnalytics(viewCount: 0, contentCount: 1))
+        #expect(AnalyticsContentType(rawValue: "guideArticle") == nil)
     }
 
     @Test func authValidationRejectsInvalidRegistrationAndResetInputs() {

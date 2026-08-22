@@ -555,8 +555,6 @@ struct ContentView: View {
                 selectTabIfNeeded(.organizations)
                 organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organization.id)]
             }
-        case .openGuide:
-            showNotificationRouteUnavailable()
         }
     }
 
@@ -578,8 +576,6 @@ struct ContentView: View {
             routeToOrganizationRequest(notification)
         case .openEvent:
             routeToEvent(notification)
-        case .openGuideMaterial, .openGuideReport:
-            showNotificationRouteUnavailable()
         case .openLegalDocuments:
             selectTabIfNeeded(.profile)
             profileNavigationPath = [.legal(.terms)]

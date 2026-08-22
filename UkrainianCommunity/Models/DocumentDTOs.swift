@@ -13,7 +13,6 @@ struct UserDTO: Codable, Identifiable {
     let blockState: String
     let globalRole: String?
     let moderatorSections: [String]?
-    let canManageGuide: Bool?
     let accountStatus: String?
     let banExpiresAt: Date?
     let warningCount: Int?
@@ -266,7 +265,6 @@ extension AppUser {
             role: legacyRole,
             globalRole: resolvedGlobalRole,
             moderatorSections: resolvedModeratorSections,
-            canManageGuide: dto.canManageGuide ?? false,
             blockState: resolvedBlockState,
             accountStatus: resolvedAccountStatus,
             banExpiresAt: dto.banExpiresAt,
@@ -308,7 +306,6 @@ extension AppUser {
             blockState: blockState.rawValue,
             globalRole: globalRole.rawValue,
             moderatorSections: moderatorSections.map(\.rawValue),
-            canManageGuide: canManageGuide,
             accountStatus: accountStatus.rawValue,
             banExpiresAt: banExpiresAt,
             warningCount: warningCount,

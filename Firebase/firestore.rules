@@ -64,18 +64,6 @@ service cloud.firestore {
       return isAppOwner() || isAppAdmin();
     }
 
-    function isGuideEditor() {
-      return isVerifiedActiveUser()
-        && (
-          isAppOwner()
-          || (('canManageGuide' in currentUserData()) && currentUserData().canManageGuide == true)
-        );
-    }
-
-    function canManageGuide() {
-      return isGuideEditor();
-    }
-
     function canManageFeedback() {
       return isPlatformManagementTier();
     }
@@ -226,7 +214,7 @@ service cloud.firestore {
         && request.resource.data.severity == 'info'
         && request.resource.data.outcome == 'success'
         && requestActorMatchesAuth()
-        && request.resource.data.targetType in ['newsPost', 'event', 'organization', 'guideArticle', 'guideMaterial', 'systemConfiguration']
+        && request.resource.data.targetType in ['newsPost', 'event', 'organization', 'systemConfiguration']
         && request.resource.data.moduleName is string
         && request.resource.data.operationName is string
         && (!('targetId' in request.resource.data) || request.resource.data.targetId is string)
@@ -256,8 +244,6 @@ service cloud.firestore {
           'event',
           'organization',
           'organizationRequest',
-          'guideArticle',
-          'guideMaterial',
           'report'
         ]
         && request.resource.data.moduleName == 'Moderation'
@@ -301,7 +287,7 @@ service cloud.firestore {
         && request.resource.data.severity in ['notice', 'warning', 'error']
         && request.resource.data.outcome in ['success', 'failed', 'blocked']
         && requestActorMatchesAuth()
-        && request.resource.data.targetType in ['userProfile', 'organization', 'guideArticle', 'guideMaterial']
+        && request.resource.data.targetType in ['userProfile', 'organization']
         && request.resource.data.moduleName in ['Security', 'Account']
         && request.resource.data.operationName is string
         && (!('targetId' in request.resource.data) || request.resource.data.targetId is string)
@@ -367,145 +353,6 @@ service cloud.firestore {
       // Legacy role fields and moderatorSections are migration-only and are
       // not active authorization sources.
       return section is string && isPlatformManagementTier();
-    }
-
-    function isPublishedGuideV2Resource() {
-      return resource.data.moderationStatus == 'approved'
-        && resource.data.publishedAt != null
-        && (!('archivedAt' in resource.data) || resource.data.archivedAt == null);
-    }
-
-    function guideNodeAllowedFields() {
-      return [
-        'id',
-        'parentID',
-        'category',
-        'kind',
-        'title',
-        'summary',
-        'sortOrder',
-        'regionScope',
-        'federalState',
-        'healthStatus',
-        'moderationStatus',
-        'publishedAt',
-        'createdAt',
-        'updatedAt',
-        'createdBy',
-        'updatedBy',
-        'archivedAt'
-      ];
-    }
-
-    function guideMaterialAllowedFields() {
-      return [
-        'id',
-        'kind',
-        'category',
-        'nodeID',
-        'nodePath',
-        'title',
-        'summary',
-        'body',
-        'sortOrder',
-        'contentBlocks',
-        'sourceLinks',
-        'officialSourceURL',
-        'sourceName',
-        'officialSourcesRequired',
-        'regionScope',
-        'federalState',
-        'reviewInterval',
-        'lastReviewedAt',
-        'nextReviewAt',
-        'reviewedBy',
-        'healthStatus',
-        'moderationStatus',
-        'publishedAt',
-        'createdAt',
-        'updatedAt',
-        'createdBy',
-        'updatedBy',
-        'archivedAt'
-      ];
-    }
-
-    function hasOptionalGuideV2Timestamps(data) {
-      return (!('publishedAt' in data) || data.publishedAt == null || data.publishedAt is timestamp)
-        && (!('archivedAt' in data) || data.archivedAt == null || data.archivedAt is timestamp)
-        && (!('lastReviewedAt' in data) || data.lastReviewedAt == null || data.lastReviewedAt is timestamp)
-        && (!('nextReviewAt' in data) || data.nextReviewAt == null || data.nextReviewAt is timestamp);
-    }
-
-    function validGuideNodeWrite(nodeId) {
-      return canManageGuide()
-        && request.resource.data.keys().hasAll([
-          'id',
-          'parentID',
-          'category',
-          'kind',
-          'title',
-          'sortOrder',
-          'moderationStatus',
-          'createdAt',
-          'updatedAt'
-        ])
-        && request.resource.data.keys().hasOnly(guideNodeAllowedFields())
-        && request.resource.data.id == nodeId
-        && request.resource.data.parentID is string
-        && request.resource.data.category is string
-        && request.resource.data.kind in ['section', 'folder']
-        && request.resource.data.title is string
-        && (!('summary' in request.resource.data) || request.resource.data.summary is string)
-        && request.resource.data.sortOrder is number
-        && request.resource.data.moderationStatus is string
-        && (!('healthStatus' in request.resource.data) || request.resource.data.healthStatus is string)
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp
-        && (!('createdBy' in request.resource.data) || request.resource.data.createdBy == null || request.resource.data.createdBy is string)
-        && (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy == null || request.resource.data.updatedBy is string)
-        && (!('regionScope' in request.resource.data) || request.resource.data.regionScope == null || request.resource.data.regionScope is string)
-        && (!('federalState' in request.resource.data) || request.resource.data.federalState == null || request.resource.data.federalState is string)
-        && hasOptionalGuideV2Timestamps(request.resource.data);
-    }
-
-    function validGuideMaterialWrite(materialId) {
-      return canManageGuide()
-        && request.resource.data.keys().hasAll([
-          'id',
-          'kind',
-          'category',
-          'nodeID',
-          'title',
-          'sortOrder',
-          'moderationStatus',
-          'createdAt',
-          'updatedAt'
-        ])
-        && request.resource.data.keys().hasOnly(guideMaterialAllowedFields())
-        && request.resource.data.id == materialId
-        && request.resource.data.kind in ['page', 'catalog']
-        && request.resource.data.category is string
-        && request.resource.data.nodeID is string
-        && (!('nodePath' in request.resource.data) || request.resource.data.nodePath is map)
-        && request.resource.data.title is string
-        && (!('summary' in request.resource.data) || request.resource.data.summary is string)
-        && (!('body' in request.resource.data) || request.resource.data.body is string)
-        && request.resource.data.sortOrder is number
-        && request.resource.data.moderationStatus is string
-        && (!('healthStatus' in request.resource.data) || request.resource.data.healthStatus is string)
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedAt is timestamp
-        && (!('createdBy' in request.resource.data) || request.resource.data.createdBy == null || request.resource.data.createdBy is string)
-        && (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy == null || request.resource.data.updatedBy is string)
-        && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == null || request.resource.data.reviewedBy is string)
-        && (!('officialSourceURL' in request.resource.data) || request.resource.data.officialSourceURL == null || request.resource.data.officialSourceURL is string)
-        && (!('sourceName' in request.resource.data) || request.resource.data.sourceName == null || request.resource.data.sourceName is string)
-        && (!('officialSourcesRequired' in request.resource.data) || request.resource.data.officialSourcesRequired is bool)
-        && (!('regionScope' in request.resource.data) || request.resource.data.regionScope == null || request.resource.data.regionScope is string)
-        && (!('federalState' in request.resource.data) || request.resource.data.federalState == null || request.resource.data.federalState is string)
-        && (!('reviewInterval' in request.resource.data) || request.resource.data.reviewInterval == null || request.resource.data.reviewInterval is string)
-        && hasOptionalGuideV2Timestamps(request.resource.data);
     }
 
     function isApprovedContent() {
@@ -823,7 +670,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(recentViewFields())
         && request.resource.data.itemId is string
-        && request.resource.data.itemType in ['news', 'event', 'organization', 'guide']
+        && request.resource.data.itemType in ['news', 'event', 'organization']
         && request.resource.data.title is string
         && (!('subtitle' in request.resource.data) || request.resource.data.subtitle is string || request.resource.data.subtitle == null)
         && (!('imageURL' in request.resource.data) || request.resource.data.imageURL is string || request.resource.data.imageURL == null)
@@ -903,13 +750,12 @@ service cloud.firestore {
         'news',
         'event',
         'organization',
-        'guide',
         'externalURL'
       ];
     }
 
     function featuredBannerTargetActionTypes() {
-      return ['news', 'event', 'organization', 'guide'];
+      return ['news', 'event', 'organization'];
     }
 
     function featuredBannerExternalActionTypes() {
@@ -921,7 +767,7 @@ service cloud.firestore {
     }
 
     function featuredBannerVisibleSections() {
-      return ['home', 'events', 'organizations', 'guide'];
+      return ['home', 'events', 'organizations'];
     }
 
     function featuredBannerHasValidSections(data) {
@@ -1016,6 +862,7 @@ service cloud.firestore {
     function validFeaturedBannerUpdate(bannerId) {
       return isVerifiedActiveUser()
         && canManageFeaturedBanners()
+        && featuredBannerStructurallyValid(resource.data, bannerId)
         && featuredBannerStructurallyValid(request.resource.data, bannerId)
         && featuredBannerIdentityFieldsArePreserved(bannerId)
         && request.resource.data.updatedBy == request.auth.uid;
@@ -1031,13 +878,18 @@ service cloud.firestore {
           'updatedBy'
         ])
         && request.resource.data.isActive is bool
+        && (
+          request.resource.data.isActive == false
+          || featuredBannerStructurallyValid(resource.data, bannerId)
+        )
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.updatedBy == request.auth.uid
         && featuredBannerIdentityFieldsArePreserved(bannerId);
     }
 
     function canReadFeaturedBanner(bannerId) {
-      return resource.data.isActive == true;
+      return resource.data.isActive == true
+        && featuredBannerStructurallyValid(resource.data, bannerId);
     }
 
     function safeUserCreate(uid) {
@@ -1050,10 +902,10 @@ service cloud.firestore {
         && request.resource.data.bio is string
         && !('role' in request.resource.data)
         && !('moderatorSections' in request.resource.data)
+        && !('canManageGuide' in request.resource.data)
         && request.resource.data.isBlocked == false
         && request.resource.data.blockState == 'active'
         && request.resource.data.globalRole == 'user'
-        && request.resource.data.canManageGuide == false
         && request.resource.data.selectedFederalState is string
         && request.resource.data.accountStatus == 'active'
         && request.resource.data.warningCount == 0
@@ -1659,8 +1511,7 @@ service cloud.firestore {
     function isAppManagedHeroBannerDocument(bannerId) {
       return bannerId == 'homeBanner'
         || bannerId == 'eventsBanner'
-        || bannerId == 'organizationsBanner'
-        || bannerId == 'guideBanner';
+        || bannerId == 'organizationsBanner';
     }
 
     function donationConfigFields() {
@@ -1949,23 +1800,6 @@ service cloud.firestore {
         allow delete: if isVerifiedActiveUser()
           && request.auth.uid == uid
           && resource.data.organizationId == organizationId
-          && resource.data.userId == uid;
-      }
-
-      match /guideMaterialBookmarks/{materialId} {
-        allow read: if isSelf(uid);
-
-        allow create: if isVerifiedActiveUser()
-          && request.auth.uid == uid
-          && request.resource.data.id == materialId
-          && request.resource.data.materialId == materialId
-          && request.resource.data.userId == uid;
-
-        allow update: if false;
-
-        allow delete: if isVerifiedActiveUser()
-          && request.auth.uid == uid
-          && resource.data.materialId == materialId
           && resource.data.userId == uid;
       }
 
@@ -2295,21 +2129,9 @@ service cloud.firestore {
       allow create: if validFeaturedBannerCreate(bannerId);
       allow update: if validFeaturedBannerUpdate(bannerId)
         || validFeaturedBannerLifecycleUpdate(bannerId);
-      allow delete: if isVerifiedActiveUser() && canManageFeaturedBanners();
-    }
-
-    match /guideNodes/{nodeId} {
-      allow read: if isPublishedGuideV2Resource() || canManageGuide();
-      allow create: if validGuideNodeWrite(nodeId);
-      allow update: if validGuideNodeWrite(nodeId);
-      allow delete: if canManageGuide();
-    }
-
-    match /guideMaterials/{materialId} {
-      allow read: if isPublishedGuideV2Resource() || canManageGuide();
-      allow create: if validGuideMaterialWrite(materialId);
-      allow update: if validGuideMaterialWrite(materialId);
-      allow delete: if canManageGuide();
+      allow delete: if isVerifiedActiveUser()
+        && canManageFeaturedBanners()
+        && featuredBannerStructurallyValid(resource.data, bannerId);
     }
 
     match /{document=**} {

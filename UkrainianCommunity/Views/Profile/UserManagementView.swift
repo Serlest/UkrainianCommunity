@@ -98,8 +98,6 @@ private enum UserAdminAction: String {
 private enum PlatformRoleAction: Identifiable {
     case assignAppAdmin
     case removeAppAdmin
-    case assignGuideEditor
-    case removeGuideEditor
 
     var id: String { title }
 
@@ -109,10 +107,6 @@ private enum PlatformRoleAction: Identifiable {
             AppStrings.UserManagement.assignAppAdmin
         case .removeAppAdmin:
             AppStrings.UserManagement.removeAppAdmin
-        case .assignGuideEditor:
-            AppStrings.UserManagement.assignGuideEditor
-        case .removeGuideEditor:
-            AppStrings.UserManagement.removeGuideEditor
         }
     }
 
@@ -120,16 +114,14 @@ private enum PlatformRoleAction: Identifiable {
         switch self {
         case .assignAppAdmin, .removeAppAdmin:
             "person.badge.key"
-        case .assignGuideEditor, .removeGuideEditor:
-            "book"
         }
     }
 
     var isRemoval: Bool {
         switch self {
-        case .removeAppAdmin, .removeGuideEditor:
+        case .removeAppAdmin:
             true
-        case .assignAppAdmin, .assignGuideEditor:
+        case .assignAppAdmin:
             false
         }
     }
@@ -140,10 +132,6 @@ private enum PlatformRoleAction: Identifiable {
             "App admin assigned"
         case .removeAppAdmin:
             "App admin removed"
-        case .assignGuideEditor:
-            "Guide editor assigned"
-        case .removeGuideEditor:
-            "Guide editor removed"
         }
     }
 }
@@ -379,10 +367,6 @@ private final class UserManagementViewModel: ObservableObject {
                 _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: finalReason)
             case .removeAppAdmin:
                 _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: finalReason)
-            case .assignGuideEditor:
-                _ = try await CloudFunctionsClient.shared.assignGuideEditor(userId: target.id, reason: finalReason)
-            case .removeGuideEditor:
-                _ = try await CloudFunctionsClient.shared.removeGuideEditor(userId: target.id, reason: finalReason)
             }
         }
     }
@@ -537,7 +521,6 @@ private final class UserManagementViewModel: ObservableObject {
             role: legacyRole,
             globalRole: globalRole,
             moderatorSections: (data["moderatorSections"] as? [String] ?? []).compactMap(AppSection.init(rawValue:)),
-            canManageGuide: data["canManageGuide"] as? Bool ?? false,
             blockState: blockState,
             accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:)) ?? (blockState.isRestricted ? .suspendedUntil : .active),
             banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
@@ -1163,21 +1146,12 @@ private struct UserDetailView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    platformRoleStatusRow(
-                        systemImage: platformRoleIcon,
-                        title: AppStrings.UserManagement.currentPlatformRole,
-                        value: user.globalRole.title,
-                        tint: platformRoleTint
-                    )
-
-                    platformRoleStatusRow(
-                        systemImage: "book",
-                        title: AppStrings.UserManagement.guideEditorRole,
-                        value: user.canManageGuide ? AppStrings.UserManagement.guideEditorEnabled : AppStrings.UserManagement.guideEditorDisabled,
-                        tint: user.canManageGuide ? AppTheme.accentPrimary : AppTheme.textSecondary
-                    )
-                }
+                platformRoleStatusRow(
+                    systemImage: platformRoleIcon,
+                    title: AppStrings.UserManagement.currentPlatformRole,
+                    value: user.globalRole.title,
+                    tint: platformRoleTint
+                )
 
                 if PermissionService.hasOwnerRoleForDisplay(user: user) {
                     Text(AppStrings.UserManagement.ownerRoleImmutableNotice)
@@ -1194,8 +1168,6 @@ private struct UserDetailView: View {
                         roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
                         roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
                     }
-                    roleActionButton(.assignGuideEditor, isEnabled: canAssignGuideEditor)
-                    roleActionButton(.removeGuideEditor, isEnabled: canRemoveGuideEditor)
                 }
             }
         }
@@ -1408,20 +1380,6 @@ private struct UserDetailView: View {
         return canChangePlatformRoles
             && PermissionService.canAssignAppAdmin(user: actor)
             && user.globalRole.authorizationRole == .admin
-    }
-
-    private var canAssignGuideEditor: Bool {
-        guard let actor else { return false }
-        return canChangePlatformRoles
-            && PermissionService.canAssignGuideEditor(user: actor)
-            && !user.canManageGuide
-    }
-
-    private var canRemoveGuideEditor: Bool {
-        guard let actor else { return false }
-        return canChangePlatformRoles
-            && PermissionService.canAssignGuideEditor(user: actor)
-            && user.canManageGuide
     }
 
     private func actionLabel(_ action: UserAdminAction, tint: Color) -> some View {

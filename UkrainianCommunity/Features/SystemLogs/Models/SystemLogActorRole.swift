@@ -6,7 +6,7 @@ enum SystemLogActorRole: String, Codable, CaseIterable, Hashable {
     case organizationModerator
     case organizationAdmin
     case organizationOwner
-    case guideEditor
+    case retiredGuideEditor = "guideEditor"
     case moderator
     case admin
     case owner

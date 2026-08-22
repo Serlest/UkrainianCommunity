@@ -121,7 +121,6 @@ function user(uid, overrides = {}) {
     blockState: "active",
     accountStatus: "active",
     warningCount: 0,
-    canManageGuide: false,
     selectedFederalState: "Vienna",
     acceptedTermsAt: new Date("2026-06-01T09:00:00Z"),
     acceptedPrivacyAt: new Date("2026-06-01T09:00:00Z"),

@@ -117,7 +117,6 @@ final class AccountStatusMonitorService: ObservableObject {
             role: legacyRole,
             globalRole: globalRole,
             moderatorSections: (data["moderatorSections"] as? [String] ?? []).compactMap(AppSection.init(rawValue:)),
-            canManageGuide: data["canManageGuide"] as? Bool ?? false,
             blockState: blockState,
             accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:)) ?? (blockState.isRestricted ? .suspendedUntil : .active),
             banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),

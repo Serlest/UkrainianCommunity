@@ -3,7 +3,6 @@ import Foundation
 enum FeaturedBannerActionIntent: Equatable {
     case noAction
     case openURL(URL)
-    case openGuide(targetID: String?)
     case openNews(id: String)
     case openEvent(id: String)
     case openOrganization(id: String)
@@ -39,8 +38,8 @@ struct FeaturedBannerActionResolver {
             return .noAction
         case .externalURL:
             return externalURLIntent(from: banner.externalURL)
-        case .guide:
-            return .openGuide(targetID: normalizedTargetID(from: banner.actionTargetID))
+        case .unsupportedLegacy:
+            return .noAction
         case .news:
             return targetIntent(banner.actionTargetID, makeIntent: FeaturedBannerActionIntent.openNews)
         case .event:

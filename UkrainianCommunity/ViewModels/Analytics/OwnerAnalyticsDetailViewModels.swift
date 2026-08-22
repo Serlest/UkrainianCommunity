@@ -55,8 +55,6 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
             AppStrings.OwnerAnalytics.eventDetailSubtitle
         case .organization:
             AppStrings.OwnerAnalytics.organizationDetailSubtitle
-        case .guideArticle:
-            AppStrings.OwnerAnalytics.guideDetailSubtitle
         }
     }
 
@@ -84,10 +82,6 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
                 OwnerAnalyticsDetailMetricItem(title: AppStrings.OwnerAnalytics.organizationFollows, value: metrics.follows, systemImage: "person.crop.circle.badge.plus"),
                 OwnerAnalyticsDetailMetricItem(title: AppStrings.OwnerAnalytics.organizationUnfollows, value: metrics.unfollows, systemImage: "person.crop.circle.badge.minus"),
                 OwnerAnalyticsDetailMetricItem(title: AppStrings.OwnerAnalytics.saves, value: metrics.bookmarks, systemImage: "bookmark")
-            ]
-        case .guideArticle:
-            return [
-                OwnerAnalyticsDetailMetricItem(title: AppStrings.OwnerAnalytics.views, value: metrics.views, systemImage: "eye")
             ]
         }
     }
