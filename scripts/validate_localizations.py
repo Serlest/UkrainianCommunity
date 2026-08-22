@@ -10,9 +10,6 @@ from pathlib import Path
 
 CATALOG = Path("UkrainianCommunity/Localization/Localizable.xcstrings")
 REQUIRED_LANGUAGES = ("de", "uk")
-FORMAT_ONLY_KEY = re.compile(r"^[%0-9$@#./: ·+()_-]*[a-zA-Z]*$")
-
-
 def is_locale_invariant(key: str) -> bool:
     if not key:
         return True
