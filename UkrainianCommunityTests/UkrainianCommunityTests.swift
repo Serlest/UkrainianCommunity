@@ -703,6 +703,11 @@ struct UkrainianCommunityTests {
         #expect(item.type == .bug)
     }
 
+    @Test func accountDeletionUsesDedicatedServerCallable() {
+        #expect(CloudFunctionName.deleteOwnAccount.rawValue == "deleteOwnAccount")
+        #expect(CloudFunctionName.allCases.contains(.deleteOwnAccount))
+    }
+
     private func makeEvent(id: String, startDate: Date, endDate: Date) -> Event {
         Event(
             id: id,
