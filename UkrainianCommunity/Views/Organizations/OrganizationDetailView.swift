@@ -688,7 +688,7 @@ struct OrganizationDetailView: View {
         let roleByUserID = communityRoleMap(for: organization)
         let roleUserIDs = Array(roleByUserID.keys)
 
-        if PermissionService.canManageOrganizationRoles(organization, user: authState.user) {
+        if PermissionService.canViewOrganizationSubscriberIdentities(organization, user: authState.user) {
             do {
                 let page = try await organizationRepository.fetchOrganizationSubscriberPage(
                     organizationID: organization.id,
