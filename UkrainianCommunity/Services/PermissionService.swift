@@ -363,6 +363,27 @@ struct PermissionService {
         false
     }
 
+    // Subscriber lists expose private relationship data. Keep this semantic
+    // permission separate even while it intentionally matches role management.
+    static func canViewOrganizationSubscriberIdentities(
+        _ organization: Organization,
+        user: AppUser?
+    ) -> Bool {
+        canManageOrganizationRoles(organization, user: user)
+    }
+
+    @available(
+        *,
+        unavailable,
+        message: "Load the Organization and use canViewOrganizationSubscriberIdentities(_:user:) instead."
+    )
+    static func canViewOrganizationSubscriberIdentities(
+        organizationId: String,
+        user: AppUser?
+    ) -> Bool {
+        false
+    }
+
     @available(*, unavailable, message: "Load the Organization and use a Cloud Function-backed ownership workflow permission.")
     static func canTransferOrganizationOwnership(organizationId: String, user: AppUser?) -> Bool {
         false
