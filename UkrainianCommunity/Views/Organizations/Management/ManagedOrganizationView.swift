@@ -119,7 +119,7 @@ struct ManagedOrganizationView: View {
             set: { if $0 == nil { deleteErrorMessage = nil } }
         ))
         .task(id: currentOrganization.id) {
-            await teamViewModel.load(organization: currentOrganization)
+            await teamViewModel.load(organization: currentOrganization, actor: authState.user)
         }
         .sheet(isPresented: $isShowingTeamSearch) {
             NavigationStack {
@@ -137,6 +137,7 @@ struct ManagedOrganizationView: View {
             .task(id: isChangingOwner) {
                 await teamViewModel.loadCandidateUsers(
                     excluding: currentOrganization,
+                    actor: authState.user,
                     allowsExistingTeamMembers: isChangingOwner
                 )
             }
@@ -536,7 +537,7 @@ struct ManagedOrganizationView: View {
         guard didUpdate else { return }
         await organizationsViewModel.refresh()
         let refreshedOrganization = organizationsViewModel.organization(for: currentOrganization.id) ?? currentOrganization
-        await teamViewModel.load(organization: refreshedOrganization)
+        await teamViewModel.load(organization: refreshedOrganization, actor: actor)
 
         switch action {
         case let .assign(member, _):

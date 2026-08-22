@@ -1412,11 +1412,12 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/organizations/$(request.resource.data.subscribedOrganizationId));
     }
 
-    function isOrganizationSubscriptionRead() {
-      // Query-compatible public read for organization subscriber lists.
-      // Strict shape validation stays on create; legacy docs may have extra fields.
+    function canReadOrganizationSubscription() {
+      // Subscriber identities are private. Organization owners may query their
+      // own subscriber list; users and App Owner retain the own/override paths.
       return ('subscribedOrganizationId' in resource.data)
-        && resource.data.subscribedOrganizationId is string;
+        && resource.data.subscribedOrganizationId is string
+        && isOrganizationOwner(resource.data.subscribedOrganizationId);
     }
 
     function validLikeCreate(likeId) {
@@ -1992,7 +1993,7 @@ service cloud.firestore {
     match /likes/{likeId} {
       allow read: if ownDocumentRead()
         || ownLikeDocumentRead(likeId)
-        || isOrganizationSubscriptionRead()
+        || canReadOrganizationSubscription()
         || isOwner();
 
       allow create: if validLikeCreate(likeId);

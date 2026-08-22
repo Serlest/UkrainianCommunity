@@ -688,21 +688,28 @@ struct OrganizationDetailView: View {
         let roleByUserID = communityRoleMap(for: organization)
         let roleUserIDs = Array(roleByUserID.keys)
 
-        do {
-            let page = try await organizationRepository.fetchOrganizationSubscriberPage(
-                organizationID: organization.id,
-                limit: communityPageSize,
-                after: reset ? nil : communitySubscriberCursor
-            )
-            communitySubscriberCursor = page.nextCursor
-            hasMoreCommunitySubscribers = page.hasMore
-            mergeCommunitySubscriberReferences(page.items, reset: reset)
-        } catch {
-            if reset {
-                communitySubscriberReferences = []
-                communitySubscriberCursor = nil
-                hasMoreCommunitySubscribers = false
+        if PermissionService.canManageOrganizationRoles(organization, user: authState.user) {
+            do {
+                let page = try await organizationRepository.fetchOrganizationSubscriberPage(
+                    organizationID: organization.id,
+                    limit: communityPageSize,
+                    after: reset ? nil : communitySubscriberCursor
+                )
+                communitySubscriberCursor = page.nextCursor
+                hasMoreCommunitySubscribers = page.hasMore
+                mergeCommunitySubscriberReferences(page.items, reset: reset)
+            } catch {
+                if reset {
+                    communitySubscriberReferences = []
+                    communitySubscriberCursor = nil
+                    hasMoreCommunitySubscribers = false
+                }
             }
+        } else {
+            // Public team pages show official roles without exposing subscriber identities.
+            communitySubscriberReferences = []
+            communitySubscriberCursor = nil
+            hasMoreCommunitySubscribers = false
         }
 
         let followedAtByUserID = Dictionary(uniqueKeysWithValues: communitySubscriberReferences.map { ($0.userID, $0.followedAt) })
