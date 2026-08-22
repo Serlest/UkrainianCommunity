@@ -11,6 +11,7 @@
 		7A0F10022FB1000100F1A001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10102FB1000100F1A001 /* FirebaseCore */; };
 		7A0F10032FB1000100F1A001 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10112FB1000100F1A001 /* FirebaseFirestore */; };
 		7A0F10042FB1000100F1A001 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0F10132FB1000100F1A001 /* FirebaseStorage */; };
+		A1C5A0013000000100A1C501 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = A1C5A0023000000100A1C501 /* FirebaseAppCheck */; };
 		F303363F2FD6FAF60004B065 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = F303363E2FD6FAF60004B065 /* FirebaseAnalytics */; };
 		F32681812FD4A6AA008FCC2B /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F32681802FD4A6AA008FCC2B /* FirebaseMessaging */; };
 		F354356A2FCCCC7600FFDD3C /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = F35435692FCCCC7600FFDD3C /* FirebaseFunctions */; };
@@ -67,6 +68,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1C5A0013000000100A1C501 /* FirebaseAppCheck in Frameworks */,
 				F303363F2FD6FAF60004B065 /* FirebaseAnalytics in Frameworks */,
 				F32681812FD4A6AA008FCC2B /* FirebaseMessaging in Frameworks */,
 				7A0F10012FB1000100F1A001 /* FirebaseAuth in Frameworks */,
@@ -163,6 +165,7 @@
 			);
 			name = UkrainianCommunity;
 			packageProductDependencies = (
+				A1C5A0023000000100A1C501 /* FirebaseAppCheck */,
 				7A0F10102FB1000100F1A001 /* FirebaseCore */,
 				7A0F10112FB1000100F1A001 /* FirebaseFirestore */,
 				7A0F10122FB1000100F1A001 /* FirebaseAuth */,
@@ -671,6 +674,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A1C5A0023000000100A1C501 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
 		7A0F10102FB1000100F1A001 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
