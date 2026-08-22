@@ -1,4 +1,5 @@
 import FirebaseAuth
+import FirebaseAppCheck
 import FirebaseCore
 import SwiftUI
 import UIKit
@@ -10,9 +11,24 @@ private enum FirebaseBootstrap {
     static func ensureConfigured() {
         if !isConfigured {
             FirebaseConfiguration.shared.setLoggerLevel(.min)
+            configureAppCheck()
             FirebaseApp.configure()
             isConfigured = true
         }
+    }
+
+    private static func configureAppCheck() {
+#if DEBUG
+        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+#else
+        AppCheck.setAppCheckProviderFactory(ProductionAppCheckProviderFactory())
+#endif
+    }
+}
+
+private final class ProductionAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        AppAttestProvider(app: app)
     }
 }
 
