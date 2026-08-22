@@ -19,7 +19,7 @@ final class AnalyticsConsentService: AnalyticsConsentProviding {
 
     var isAnalyticsEnabled: Bool {
         guard let storedValue = userDefaults.object(forKey: storageKey) as? Bool else {
-            return true
+            return false
         }
 
         return storedValue
