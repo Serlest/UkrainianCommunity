@@ -29,7 +29,7 @@ final class OrganizationTeamViewModel: ObservableObject {
 
         do {
             let subscriberIDs: [String]
-            if PermissionService.canManageOrganizationRoles(organization, user: actor) {
+            if PermissionService.canViewOrganizationSubscriberIdentities(organization, user: actor) {
                 subscriberIDs = try await fetchSubscriberIDs(organizationID: organization.id)
             } else {
                 subscriberIDs = []
