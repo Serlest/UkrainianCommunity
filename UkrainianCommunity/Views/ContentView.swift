@@ -292,7 +292,6 @@ struct ContentView: View {
         homeTab
         eventsTab
         organizationsTab
-        guideTab
         profileTab
     }
 
@@ -368,29 +367,6 @@ struct ContentView: View {
                 .accessibilityIdentifier("tab.organizations")
         }
         .tag(AppTab.organizations)
-    }
-
-    private var guideTab: some View {
-        NavigationStack {
-            InfoView(
-                guideReaderViewModel: guideReaderViewModel,
-                featuredBannerRepository: container.featuredBannerRepository,
-                featuredBannerCache: container.featuredBannerCache,
-                feedbackRepository: container.feedbackRepository,
-                onFeaturedBannerTap: handleFeaturedBannerTap,
-                guideBannerCategoryTarget: $guideBannerCategoryTarget,
-                guideMaterialTargetID: $guideMaterialTargetID,
-                navigationResetToken: guideNavigationResetToken,
-                scrollResetToken: guideScrollResetToken
-            )
-        }
-        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
-        .accessibilityIdentifier("screen.guide")
-        .tabItem {
-            Label(AppStrings.Tabs.info, systemImage: "info.circle.fill")
-                .accessibilityIdentifier("tab.guide")
-        }
-        .tag(AppTab.guide)
     }
 
     private var profileTab: some View {
@@ -597,18 +573,8 @@ struct ContentView: View {
                 selectTabIfNeeded(.organizations)
                 organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organization.id)]
             }
-        case let .openGuide(targetID):
-            if let targetID, let category = GuideCategory(rawValue: targetID) {
-                guideBannerCategoryTarget = category
-            } else {
-                #if DEBUG
-                if let targetID {
-                    debugPrint("Guide featured banner deep link target is unsupported and falls back to root:", targetID)
-                }
-                #endif
-                guideBannerCategoryTarget = nil
-            }
-            selectTabIfNeeded(.guide)
+        case .openGuide:
+            showNotificationRouteUnavailable()
         }
     }
 
@@ -630,11 +596,8 @@ struct ContentView: View {
             routeToOrganizationRequest(notification)
         case .openEvent:
             routeToEvent(notification)
-        case .openGuideMaterial:
-            routeToGuideMaterial(notification)
-        case .openGuideReport:
-            selectTabIfNeeded(.profile)
-            profileNavigationPath = [.guideManagement]
+        case .openGuideMaterial, .openGuideReport:
+            showNotificationRouteUnavailable()
         case .openLegalDocuments:
             selectTabIfNeeded(.profile)
             profileNavigationPath = [.legal(.terms)]
@@ -845,7 +808,7 @@ struct ContentView: View {
         case .organizations:
             selectTabIfNeeded(.organizations)
         case .guide:
-            selectTabIfNeeded(.guide)
+            showNotificationRouteUnavailable()
         }
     }
 

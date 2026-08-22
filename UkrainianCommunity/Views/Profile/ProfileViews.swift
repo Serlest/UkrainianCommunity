@@ -915,7 +915,6 @@ struct ProfileView: View {
                 guestBrowseButton(title: AppStrings.Profile.guestBrowseNews, subtitle: AppStrings.Profile.previewNewsSubtitle, systemImage: "newspaper", destination: .home)
                 guestBrowseButton(title: AppStrings.Profile.guestBrowseEvents, subtitle: AppStrings.Profile.previewEventsSubtitle, systemImage: "calendar", destination: .events)
                 guestBrowseButton(title: AppStrings.Profile.guestBrowseOrganizations, subtitle: AppStrings.Profile.previewOrganizationsSubtitle, systemImage: "building.2", destination: .organizations)
-                guestBrowseButton(title: AppStrings.Guide.title, subtitle: AppStrings.Profile.previewGuideSubtitle, systemImage: "book.closed", destination: .guide)
             }
         }
 
