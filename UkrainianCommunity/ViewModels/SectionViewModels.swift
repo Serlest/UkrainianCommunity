@@ -2222,16 +2222,8 @@ final class ProfileViewModel: ObservableObject {
                 }
 
                 switch stage {
-                case .ownershipCheck:
-                    return AppStrings.Profile.deleteAccountPermissionFailed
-                case .privateDataCleanup,
-                        .interactionCleanup,
-                        .registrationCleanup,
-                        .avatarCleanup,
-                        .publicProfileDelete:
+                case .serverDeletion:
                     return AppStrings.Profile.deleteAccountCleanupFailed
-                case .userDocumentDeactivate, .authUserDelete:
-                    return AppStrings.Profile.deleteAccountFailed
                 }
             }
         } catch let appError as AppError {
