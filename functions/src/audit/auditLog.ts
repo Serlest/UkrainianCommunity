@@ -16,6 +16,8 @@ export type AuditActionType =
   | "userSuspensionExpired"
   | "appAdminAssigned"
   | "appAdminRemoved"
+  | "appModeratorAssigned"
+  | "appModeratorRemoved"
   | "guideEditorAssigned"
   | "guideEditorRemoved"
   | "organizationRoleAssigned"

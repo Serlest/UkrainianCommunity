@@ -121,7 +121,7 @@ struct UkrainianCommunityApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppStartupGate(container: container)
+            ContentView(container: container)
                 .environmentObject(authState)
         }
     }

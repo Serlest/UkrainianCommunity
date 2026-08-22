@@ -104,6 +104,10 @@ struct PermissionService {
         hasUsableAccount(user) && user?.globalRole.authorizationRole == .admin
     }
 
+    static func isAppModerator(user: AppUser?) -> Bool {
+        hasUsableAccount(user) && user?.globalRole.authorizationRole == .moderator
+    }
+
     static func isGuideEditor(user: AppUser?) -> Bool {
         canManageGuide(user: user)
     }
@@ -140,6 +144,10 @@ struct PermissionService {
         isOwner(user)
     }
 
+    static func canAssignAppModerator(user: AppUser?) -> Bool {
+        isOwner(user) || isAppAdmin(user: user)
+    }
+
     static func canAssignGuideEditor(user: AppUser?) -> Bool {
         isOwner(user) || isAppAdmin(user: user)
     }
@@ -152,11 +160,11 @@ struct PermissionService {
     }
 
     static func canManageFeedback(user: AppUser?) -> Bool {
-        isOwner(user) || isAppAdmin(user: user)
+        isOwner(user) || isAppAdmin(user: user) || isAppModerator(user: user)
     }
 
     static func canManageReports(user: AppUser?) -> Bool {
-        isOwner(user) || isAppAdmin(user: user)
+        isOwner(user) || isAppAdmin(user: user) || isAppModerator(user: user)
     }
 
     static func canManageModeration(user: AppUser?) -> Bool {
@@ -201,13 +209,13 @@ struct PermissionService {
     }
 
     static func canModerate(section: AppSection, user: AppUser) -> Bool {
-        // Legacy role fields and moderatorSections are decoded for migration
-        // safety only; platform moderation is limited to Owner and App Admin.
+        // Legacy topAdmin, appModerator, and moderatorSections are decoded for
+        // migration safety only; active moderation comes from GlobalRole.
         guard hasUsableAccount(user) else { return false }
         switch user.globalRole.authorizationRole {
-        case .owner, .admin:
+        case .owner, .admin, .moderator:
             return true
-        case .user, .topAdmin:
+        case .user, .topAdmin, .appModerator:
             return false
         }
     }
@@ -279,7 +287,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             if organization.submittedByUserId == user.id
                 && (organization.moderationStatus == .pendingReview || organization.moderationStatus == .needsRevision) {
                 return true
@@ -305,7 +313,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return isOrganizationOwner(organization, user: user)
                 || isOrganizationAdmin(organization, user: user)
                 || isOrganizationModerator(organization, user: user)
@@ -337,7 +345,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return isOrganizationOwner(organization, user: user)
                 || isOrganizationAdmin(organization, user: user)
                 || isOrganizationModerator(organization, user: user)
@@ -366,7 +374,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return isOrganizationOwner(organization, user: user)
         }
     }
@@ -397,7 +405,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return isOrganizationOwner(organization, user: user)
                 || isOrganizationAdmin(organization, user: user)
                 || isOrganizationModerator(organization, user: user)
@@ -436,7 +444,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return eligibleOrganizations
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return eligibleOrganizations.filter { canAccessManagedOrganization($0, user: user) }
         }
     }
@@ -504,7 +512,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return false
         }
     }
@@ -544,7 +552,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return false
         }
     }
@@ -588,7 +596,7 @@ struct PermissionService {
         switch user.globalRole.authorizationRole {
         case .owner:
             return true
-        case .admin, .user, .topAdmin:
+        case .admin, .moderator, .user, .topAdmin, .appModerator:
             return false
         }
     }
@@ -610,7 +618,7 @@ struct PermissionService {
     }
 
     static func canAccessModerationTools(user: AppUser?) -> Bool {
-        Self.isOwner(user) || isAppAdmin(user: user)
+        Self.isOwner(user) || isAppAdmin(user: user) || isAppModerator(user: user)
     }
 
     private var isModeratorTier: Bool {

@@ -15,10 +15,11 @@ import {
   assertCanManageUsers,
   type AccountStatus,
   type BlockState,
+  type GlobalRole,
   type UserPermissionSnapshot,
 } from "../permissions/userPermissions";
 
-type ActiveGlobalRole = "owner" | "admin" | "user";
+type ActiveGlobalRole = "owner" | "admin" | "moderator" | "user";
 
 interface AccountStatusChangeRequest {
   targetUserId: string;
@@ -118,13 +119,14 @@ function optionalTrimmedString(value: unknown, field: string): string | undefine
 }
 
 function normalizeGlobalRole(value: unknown): ActiveGlobalRole {
-  switch (value) {
+  switch (value as GlobalRole | undefined) {
     case "owner":
       return "owner";
     case "admin":
       return "admin";
-    case "user":
     case "moderator":
+      return "moderator";
+    case "user":
     case "topAdmin":
     case "appModerator":
     default:

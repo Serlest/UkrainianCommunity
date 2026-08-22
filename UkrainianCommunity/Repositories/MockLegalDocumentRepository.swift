@@ -4,19 +4,19 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
     private let storage = MockLegalDocumentStorage.shared
 
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
-        await storage.activeDocument(type: type)
+        storage.activeDocument(type: type)
     }
 
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState {
-        await storage.managementState(type: type)
+        storage.managementState(type: type)
     }
 
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws {
-        await storage.saveDraft(draft)
+        storage.saveDraft(draft)
     }
 
     func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) async throws {
-        await storage.publishDraft(draft, publishedBy: userID)
+        storage.publishDraft(draft, publishedBy: userID)
     }
 
     func acceptDocument(
@@ -34,26 +34,22 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
     }
 }
 
-private actor MockLegalDocumentStorage {
+@MainActor
+private final class MockLegalDocumentStorage {
     static let shared = MockLegalDocumentStorage()
 
-    private var activeDocuments: [LegalDocumentType: LegalDocument] = [:]
+    private var activeDocuments: [LegalDocumentType: LegalDocument] = [
+        .terms: LegalDocument.hardcodedFallback(type: .terms),
+        .privacy: LegalDocument.hardcodedFallback(type: .privacy)
+    ]
     private var drafts: [LegalDocumentType: LegalDocumentDraft] = [:]
 
-    func activeDocument(type: LegalDocumentType) async -> LegalDocument {
-        if let activeDocument = activeDocuments[type] {
-            return activeDocument
-        }
-
-        let fallback = await MainActor.run {
-            LegalDocument.hardcodedFallback(type: type)
-        }
-        activeDocuments[type] = fallback
-        return fallback
+    func activeDocument(type: LegalDocumentType) -> LegalDocument {
+        activeDocuments[type] ?? LegalDocument.hardcodedFallback(type: type)
     }
 
-    func managementState(type: LegalDocumentType) async -> LegalDocumentManagementState {
-        let activeDocument = await activeDocument(type: type)
+    func managementState(type: LegalDocumentType) -> LegalDocumentManagementState {
+        let activeDocument = activeDocument(type: type)
         return LegalDocumentManagementState(
             type: type,
             activeDocument: activeDocument,

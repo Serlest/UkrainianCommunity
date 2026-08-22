@@ -105,7 +105,7 @@ struct OrganizationRoleDashboardCard: View {
 
     private var moderatorActions: some View {
         Group {
-            organizationModerationLink(title: AppStrings.Profile.moderationQueue)
+            organizationModerationLink(title: AppStrings.Profile.moderatorModerationQueue)
         }
     }
 

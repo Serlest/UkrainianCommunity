@@ -1,30 +1,42 @@
 # Role Smoke Test Plan
 
-## Platform roles
+This plan covers the final platform and organization role contract.
 
-- App Owner has full platform access and organization override.
-- App Owner alone assigns or removes App Admin.
-- App Owner and App Admin may assign or remove Guide Editor access.
-- App Admin manages users, organization requests, moderation, feedback, and reports without organization override.
-- Guide Editor manages Guide content only.
-- User has no platform management access.
-- Persisted `topAdmin`, `appModerator`, and removed `moderator` values grant no elevated access.
+## Automated Now
 
-## Organization roles
+- Swift unit tests cover `PermissionService` platform role gates, usable-account gates, legacy role non-elevation, and organization array boundaries.
+- Functions smoke tests cover exported backend permission predicates and organization-role boundary behavior without requiring Firebase services.
 
-- Organization Owner manages information, team roles, News, Events, and organization moderation.
-- Organization Admin edits information and manages organization content, but not team roles.
-- Organization Moderator manages organization content only.
-- Platform Admin and Guide Editor receive no implicit organization access.
+Run:
 
-## Restricted accounts
+```sh
+npm --prefix functions run smoke:roles
+```
 
-- Suspended, permanently banned, and deactivated accounts receive no elevated access.
-- Verified email is required for user-generated writes.
+Run Swift tests from Xcode, or with the active Xcode test action.
 
-## Required automated coverage
+## Requires Firebase Emulator Setup
 
-- Swift unit tests verify client presentation gates.
-- Role contract smoke tests verify Cloud Functions permission helpers.
-- Firestore emulator tests verify server-side Rules.
-- Storage emulator coverage must be added before release.
+Firestore rules tests should be added with `@firebase/rules-unit-testing` and the Firestore emulator to verify:
+
+- direct writes to `globalRole` and `canManageGuide` are rejected,
+- owner/admin/moderator/guide editor reads and writes match `Firebase/firestore.rules`,
+- App Admin and App Moderator cannot edit arbitrary organizations,
+- Guide Editor can write guide collections only,
+- owner-only featured banner and organization override paths remain owner-only.
+
+Cloud Function callable tests should be added with emulator-backed seeded Firestore data to verify:
+
+- `assignAppAdmin`, `removeAppAdmin`, `assignAppModerator`, `removeAppModerator`, `assignGuideEditor`, and `removeGuideEditor` are owner-only,
+- App Admin, App Moderator, Guide Editor, and normal users are denied role assignment,
+- protected owner targets, self role changes, missing targets, unusable targets, and no-op changes fail cleanly,
+- audit logs are written with previous and new role values,
+- organization request review callables allow App Owner/App Admin and deny App Moderator/Guide Editor.
+
+## Manual UI Smoke Test
+
+- Owner sees User Management role controls and can trigger confirmation dialogs.
+- App Admin sees organization requests, moderation, feedback/reports, and guide only with `canManageGuide`.
+- App Moderator sees moderation and feedback/reports without organization request counts.
+- Guide Editor sees Guide Management only.
+- Platform roles do not appear as organization roles in organization team screens.

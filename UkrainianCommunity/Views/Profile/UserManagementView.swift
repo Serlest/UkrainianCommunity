@@ -98,6 +98,8 @@ private enum UserAdminAction: String {
 private enum PlatformRoleAction: Identifiable {
     case assignAppAdmin
     case removeAppAdmin
+    case assignAppModerator
+    case removeAppModerator
     case assignGuideEditor
     case removeGuideEditor
 
@@ -109,6 +111,10 @@ private enum PlatformRoleAction: Identifiable {
             AppStrings.UserManagement.assignAppAdmin
         case .removeAppAdmin:
             AppStrings.UserManagement.removeAppAdmin
+        case .assignAppModerator:
+            AppStrings.UserManagement.assignAppModerator
+        case .removeAppModerator:
+            AppStrings.UserManagement.removeAppModerator
         case .assignGuideEditor:
             AppStrings.UserManagement.assignGuideEditor
         case .removeGuideEditor:
@@ -120,6 +126,8 @@ private enum PlatformRoleAction: Identifiable {
         switch self {
         case .assignAppAdmin, .removeAppAdmin:
             "person.badge.key"
+        case .assignAppModerator, .removeAppModerator:
+            "shield"
         case .assignGuideEditor, .removeGuideEditor:
             "book"
         }
@@ -127,9 +135,9 @@ private enum PlatformRoleAction: Identifiable {
 
     var isRemoval: Bool {
         switch self {
-        case .removeAppAdmin, .removeGuideEditor:
+        case .removeAppAdmin, .removeAppModerator, .removeGuideEditor:
             true
-        case .assignAppAdmin, .assignGuideEditor:
+        case .assignAppAdmin, .assignAppModerator, .assignGuideEditor:
             false
         }
     }
@@ -140,6 +148,10 @@ private enum PlatformRoleAction: Identifiable {
             "App admin assigned"
         case .removeAppAdmin:
             "App admin removed"
+        case .assignAppModerator:
+            "App moderator assigned"
+        case .removeAppModerator:
+            "App moderator removed"
         case .assignGuideEditor:
             "Guide editor assigned"
         case .removeGuideEditor:
@@ -379,6 +391,10 @@ private final class UserManagementViewModel: ObservableObject {
                 _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: finalReason)
             case .removeAppAdmin:
                 _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: finalReason)
+            case .assignAppModerator:
+                _ = try await CloudFunctionsClient.shared.assignAppModerator(userId: target.id, reason: finalReason)
+            case .removeAppModerator:
+                _ = try await CloudFunctionsClient.shared.removeAppModerator(userId: target.id, reason: finalReason)
             case .assignGuideEditor:
                 _ = try await CloudFunctionsClient.shared.assignGuideEditor(userId: target.id, reason: finalReason)
             case .removeGuideEditor:
@@ -916,10 +932,6 @@ private struct UserDetailView: View {
     }
 
     var body: some View {
-        platformRoleConfirmationScreen
-    }
-
-    private var baseScreen: some View {
         PushedScreenShell(
             title: user.preferredDisplayName
         ) {
@@ -936,130 +948,97 @@ private struct UserDetailView: View {
                 }
             }
         }
-    }
-
-    private var lifecycleScreen: some View {
-        baseScreen
-            .contentShape(Rectangle())
-            .refreshable {
-                await viewModel.refresh(actor: actor)
-                ensureSelectedOrganization()
-                ensureSelectedRole()
-            }
-            .task {
-                ensureSelectedOrganization()
-                ensureSelectedRole()
-            }
-            .onChange(of: viewModel.organizations.count) { _, _ in
-                ensureSelectedOrganization()
-                ensureSelectedRole()
-            }
-            .onChange(of: selectedOrganizationID) { _, _ in
-                ensureSelectedRole()
-            }
-            .onChange(of: selectedOrganization?.ownerId) { _, _ in
-                ensureSelectedRole()
-            }
-            .onChange(of: organizationSearchText) { _, _ in
-                ensureSelectedOrganization(allowFilteredMatch: true)
-                ensureSelectedRole()
-            }
-    }
-
-    private var accountActionConfirmationScreen: some View {
-        lifecycleScreen
-            .confirmationDialog(
-                pendingAction?.title ?? AppStrings.UserManagement.actionFallbackTitle,
-                isPresented: Binding(
-                    get: { pendingAction != nil },
-                    set: { if !$0 { pendingAction = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let pendingAction {
-                    Button(pendingAction.title, role: pendingAction == .unblocked ? nil : .destructive) {
-                        guard let actor else { return }
-                        let currentUser = user
-                        Task {
-                            await viewModel.perform(
-                                pendingAction,
-                                target: currentUser,
-                                actor: actor,
-                                reason: reason
-                            )
-                        }
-                        reason = ""
-                    }
+        .contentShape(Rectangle())
+        .refreshable {
+            await viewModel.refresh(actor: actor)
+            ensureSelectedOrganization()
+            ensureSelectedRole()
+        }
+        .task {
+            ensureSelectedOrganization()
+            ensureSelectedRole()
+        }
+        .onChange(of: viewModel.organizations.count) { _, _ in
+            ensureSelectedOrganization()
+            ensureSelectedRole()
+        }
+        .onChange(of: selectedOrganizationID) { _, _ in
+            ensureSelectedRole()
+        }
+        .onChange(of: selectedOrganization?.ownerId) { _, _ in
+            ensureSelectedRole()
+        }
+        .onChange(of: organizationSearchText) { _, _ in
+            ensureSelectedOrganization(allowFilteredMatch: true)
+            ensureSelectedRole()
+        }
+        .confirmationDialog(
+            pendingAction?.title ?? AppStrings.UserManagement.actionFallbackTitle,
+            isPresented: Binding(
+                get: { pendingAction != nil },
+                set: { if !$0 { pendingAction = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let pendingAction {
+                Button(pendingAction.title, role: pendingAction == .unblocked ? nil : .destructive) {
+                    guard let actor else { return }
+                    let currentUser = user
+                    Task { await viewModel.perform(pendingAction, target: currentUser, actor: actor, reason: reason) }
+                    reason = ""
                 }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.UserManagement.actionAuditNotice)
             }
-    }
-
-    private var roleRemovalConfirmationScreen: some View {
-        accountActionConfirmationScreen
-            .confirmationDialog(
-                AppStrings.UserManagement.removeOrganizationRoleTitle,
-                isPresented: Binding(
-                    get: { pendingRoleRemoval != nil },
-                    set: { if !$0 { pendingRoleRemoval = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let pendingRoleRemoval {
-                    Button(AppStrings.UserManagement.removeOrganizationRoleButton, role: .destructive) {
-                        guard let actor else { return }
-                        let currentUser = user
-                        Task {
-                            await viewModel.removeRole(
-                                in: pendingRoleRemoval,
-                                from: currentUser,
-                                actor: actor,
-                                reason: reason
-                            )
-                        }
-                        reason = ""
-                    }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.UserManagement.actionAuditNotice)
+        }
+        .confirmationDialog(
+            AppStrings.UserManagement.removeOrganizationRoleTitle,
+            isPresented: Binding(
+                get: { pendingRoleRemoval != nil },
+                set: { if !$0 { pendingRoleRemoval = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let pendingRoleRemoval {
+                Button(AppStrings.UserManagement.removeOrganizationRoleButton, role: .destructive) {
+                    guard let actor else { return }
+                    let currentUser = user
+                    Task { await viewModel.removeRole(in: pendingRoleRemoval, from: currentUser, actor: actor, reason: reason) }
+                    reason = ""
                 }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.UserManagement.removeOwnerRoleWarning)
             }
-    }
-
-    private var platformRoleConfirmationScreen: some View {
-        roleRemovalConfirmationScreen
-            .confirmationDialog(
-                pendingPlatformRoleAction?.title ?? AppStrings.UserManagement.platformRoleActionFallbackTitle,
-                isPresented: Binding(
-                    get: { pendingPlatformRoleAction != nil },
-                    set: { if !$0 { pendingPlatformRoleAction = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let pendingPlatformRoleAction {
-                    Button(
-                        pendingPlatformRoleAction.title,
-                        role: pendingPlatformRoleAction.isRemoval ? .destructive : nil
-                    ) {
-                        guard let actor else { return }
-                        let currentUser = user
-                        Task {
-                            await viewModel.performPlatformRoleAction(
-                                pendingPlatformRoleAction,
-                                target: currentUser,
-                                actor: actor,
-                                reason: reason
-                            )
-                        }
-                        reason = ""
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.UserManagement.removeOwnerRoleWarning)
+        }
+        .confirmationDialog(
+            pendingPlatformRoleAction?.title ?? AppStrings.UserManagement.platformRoleActionFallbackTitle,
+            isPresented: Binding(
+                get: { pendingPlatformRoleAction != nil },
+                set: { if !$0 { pendingPlatformRoleAction = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let pendingPlatformRoleAction {
+                Button(pendingPlatformRoleAction.title, role: pendingPlatformRoleAction.isRemoval ? .destructive : nil) {
+                    guard let actor else { return }
+                    let currentUser = user
+                    Task {
+                        await viewModel.performPlatformRoleAction(
+                            pendingPlatformRoleAction,
+                            target: currentUser,
+                            actor: actor,
+                            reason: reason
+                        )
                     }
+                    reason = ""
                 }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.UserManagement.platformRoleAuditNotice)
             }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.UserManagement.platformRoleAuditNotice)
+        }
     }
 
     private var profileCard: some View {
@@ -1194,6 +1173,8 @@ private struct UserDetailView: View {
                         roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
                         roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
                     }
+                    roleActionButton(.assignAppModerator, isEnabled: canAssignAppModerator)
+                    roleActionButton(.removeAppModerator, isEnabled: canRemoveAppModerator)
                     roleActionButton(.assignGuideEditor, isEnabled: canAssignGuideEditor)
                     roleActionButton(.removeGuideEditor, isEnabled: canRemoveGuideEditor)
                 }
@@ -1367,7 +1348,9 @@ private struct UserDetailView: View {
             "crown"
         case .admin:
             "person.badge.key"
-        case .user, .topAdmin:
+        case .moderator:
+            "shield"
+        case .user, .topAdmin, .appModerator:
             "person"
         }
     }
@@ -1376,9 +1359,9 @@ private struct UserDetailView: View {
         switch user.globalRole.authorizationRole {
         case .owner:
             AppTheme.accentSupport
-        case .admin:
+        case .admin, .moderator:
             AppTheme.accentPrimary
-        case .user, .topAdmin:
+        case .user, .topAdmin, .appModerator:
             AppTheme.textSecondary
         }
     }
@@ -1408,6 +1391,20 @@ private struct UserDetailView: View {
         return canChangePlatformRoles
             && PermissionService.canAssignAppAdmin(user: actor)
             && user.globalRole.authorizationRole == .admin
+    }
+
+    private var canAssignAppModerator: Bool {
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignAppModerator(user: actor)
+            && user.globalRole.authorizationRole != .moderator
+    }
+
+    private var canRemoveAppModerator: Bool {
+        guard let actor else { return false }
+        return canChangePlatformRoles
+            && PermissionService.canAssignAppModerator(user: actor)
+            && user.globalRole.authorizationRole == .moderator
     }
 
     private var canAssignGuideEditor: Bool {

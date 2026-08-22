@@ -12,14 +12,16 @@ import {
 import {
   assertCanManageUsers,
   canAssignAppAdmin,
+  canAssignAppModerator,
   canAssignGuideEditor,
   isActiveUser,
   type AccountStatus,
   type BlockState,
+  type GlobalRole,
   type UserPermissionSnapshot,
 } from "../permissions/userPermissions";
 
-type ActiveGlobalRole = "owner" | "admin" | "user";
+type ActiveGlobalRole = "owner" | "admin" | "moderator" | "user";
 
 interface PlatformRoleChangeRequest {
   targetUserId: string;
@@ -100,13 +102,14 @@ function optionalTrimmedString(value: unknown, field: string): string | undefine
 }
 
 function normalizeGlobalRole(value: unknown): ActiveGlobalRole {
-  switch (value) {
+  switch (value as GlobalRole | undefined) {
     case "owner":
       return "owner";
     case "admin":
       return "admin";
-    case "user":
     case "moderator":
+      return "moderator";
+    case "user":
     case "topAdmin":
     case "appModerator":
     default:
@@ -152,6 +155,10 @@ function platformRoleNotificationTitle(mutation: PlatformRoleMutation): string {
       return "App admin role assigned";
     case "appAdminRemoved":
       return "App admin role removed";
+    case "appModeratorAssigned":
+      return "App moderator role assigned";
+    case "appModeratorRemoved":
+      return "App moderator role removed";
     case "guideEditorAssigned":
       return "Guide editor access assigned";
     case "guideEditorRemoved":
@@ -167,6 +174,10 @@ function platformRoleNotificationMessage(mutation: PlatformRoleMutation): string
       return "Your platform role was changed to app admin.";
     case "appAdminRemoved":
       return "Your app admin role was removed.";
+    case "appModeratorAssigned":
+      return "Your platform role was changed to app moderator.";
+    case "appModeratorRemoved":
+      return "Your app moderator role was removed.";
     case "guideEditorAssigned":
       return "You can now manage guide content.";
     case "guideEditorRemoved":
@@ -324,6 +335,32 @@ export const removeAppAdmin = createPlatformRoleCallable({
   apply(current) {
     return {
       globalRole: current.globalRole === "admin" ? "user" : current.globalRole,
+      canManageGuide: current.canManageGuide,
+    };
+  },
+});
+
+export const assignAppModerator = createPlatformRoleCallable({
+  actionType: "appModeratorAssigned",
+  defaultReason: "App moderator assigned",
+  requiresUsableTarget: true,
+  canPerform: canAssignAppModerator,
+  apply(current) {
+    return {
+      globalRole: "moderator",
+      canManageGuide: current.canManageGuide,
+    };
+  },
+});
+
+export const removeAppModerator = createPlatformRoleCallable({
+  actionType: "appModeratorRemoved",
+  defaultReason: "App moderator removed",
+  requiresUsableTarget: false,
+  canPerform: canAssignAppModerator,
+  apply(current) {
+    return {
+      globalRole: current.globalRole === "moderator" ? "user" : current.globalRole,
       canManageGuide: current.canManageGuide,
     };
   },

@@ -14,7 +14,7 @@ export type BlockState =
   | "suspendedUntil"
   | "bannedPermanent"
   | "deactivated";
-export type GlobalRole = "owner" | "admin" | "user" | "topAdmin";
+export type GlobalRole = "owner" | "admin" | "moderator" | "user" | "topAdmin" | "appModerator";
 
 export interface UserPermissionSnapshot {
   uid: string;
@@ -23,8 +23,6 @@ export interface UserPermissionSnapshot {
   globalRole?: GlobalRole;
   canManageGuide?: boolean;
 }
-
-export const feedbackManagerGlobalRoles = ["owner", "admin"] as const;
 
 export async function getUserPermissions(uid: string): Promise<UserPermissionSnapshot> {
   const snapshot = await db.collection("users").doc(uid).get();
@@ -64,6 +62,10 @@ export function isAppAdmin(user: UserPermissionSnapshot): boolean {
   return isActiveUser(user) && user.globalRole === "admin";
 }
 
+export function isAppModerator(user: UserPermissionSnapshot): boolean {
+  return isActiveUser(user) && user.globalRole === "moderator";
+}
+
 export function canManageOrganizationRequests(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user) || isAppAdmin(user);
 }
@@ -76,12 +78,16 @@ export function canAssignAppAdmin(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user);
 }
 
+export function canAssignAppModerator(user: UserPermissionSnapshot): boolean {
+  return isAppOwner(user) || isAppAdmin(user);
+}
+
 export function canAssignGuideEditor(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user) || isAppAdmin(user);
 }
 
 export function canAccessModerationTools(user: UserPermissionSnapshot): boolean {
-  return isAppOwner(user) || isAppAdmin(user);
+  return isAppOwner(user) || isAppAdmin(user) || isAppModerator(user);
 }
 
 export function canManageFeedback(user: UserPermissionSnapshot): boolean {
