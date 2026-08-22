@@ -48,6 +48,10 @@ jobs:
         working-directory: functions
         run: npm run build
 
+      - name: Test retention policy
+        working-directory: functions
+        run: npm run test:retention
+
       - name: Install Firebase CLI
         run: npm install --global firebase-tools
 
