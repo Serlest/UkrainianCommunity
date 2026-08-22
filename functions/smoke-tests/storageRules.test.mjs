@@ -14,7 +14,7 @@ import {
 } from "firebase/storage";
 import {readFileSync} from "node:fs";
 
-const PROJECT_ID = "ukrainian-community-storage-rules";
+const PROJECT_ID = "demo-ukrainian-community-rules";
 const FIRESTORE_RULES_PATH = "../../Firebase/firestore.rules";
 const STORAGE_RULES_PATH = "../../Firebase/storage.rules";
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
