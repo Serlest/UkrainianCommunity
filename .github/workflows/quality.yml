@@ -36,6 +36,10 @@ jobs:
         working-directory: functions
         run: npm ci
 
+      - name: Audit production dependencies
+        working-directory: functions
+        run: npm run audit:prod
+
       - name: Type-check
         working-directory: functions
         run: npm run lint

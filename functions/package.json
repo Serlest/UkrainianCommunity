@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
     "test:rules": "npm run test:rules:all",
     "test:rules:all": "firebase emulators:exec --only firestore \"node --test smoke-tests/*.test.mjs\"",
     "test:rules:systemLogs": "firebase emulators:exec --only firestore \"node --test smoke-tests/systemLogsRules.test.mjs\"",
@@ -16,8 +17,8 @@
     "test:rules:roleContract": "firebase emulators:exec --only firestore \"node --test smoke-tests/roleContractSmoke.test.mjs\""
   },
   "dependencies": {
-    "firebase-admin": "^13.0.0",
-    "firebase-functions": "^6.2.0"
+    "firebase-admin": "^14.3.0",
+    "firebase-functions": "^7.3.2"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
