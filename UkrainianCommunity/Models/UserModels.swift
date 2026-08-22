@@ -306,7 +306,6 @@ struct AppUser: Identifiable, Codable {
     let role: UserRole
     let globalRole: GlobalRole
     let moderatorSections: [AppSection]
-    let canManageGuide: Bool
     let blockState: UserBlockState
     let accountStatus: AccountStatus
     let banExpiresAt: Date?
@@ -373,7 +372,6 @@ struct AppUser: Identifiable, Codable {
         role: UserRole,
         globalRole: GlobalRole? = nil,
         moderatorSections: [AppSection] = [],
-        canManageGuide: Bool = false,
         blockState: UserBlockState,
         accountStatus: AccountStatus? = nil,
         banExpiresAt: Date? = nil,
@@ -405,7 +403,6 @@ struct AppUser: Identifiable, Codable {
         self.role = role
         self.globalRole = globalRole ?? .user
         self.moderatorSections = moderatorSections
-        self.canManageGuide = canManageGuide
         self.blockState = blockState
         self.accountStatus = accountStatus ?? (blockState.isRestricted ? .suspendedUntil : .active)
         self.banExpiresAt = banExpiresAt

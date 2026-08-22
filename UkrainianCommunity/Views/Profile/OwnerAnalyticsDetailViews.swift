@@ -481,8 +481,6 @@ private extension AnalyticsContentType {
             "calendar"
         case .organization:
             "building.2"
-        case .guideArticle:
-            "book.closed"
         }
     }
 }

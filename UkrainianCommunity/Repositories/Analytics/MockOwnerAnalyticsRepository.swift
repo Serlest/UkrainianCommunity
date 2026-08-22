@@ -61,11 +61,10 @@ extension MockOwnerAnalyticsRepository {
     }
 
     static func sampleSnapshot(for period: AnalyticsPeriod) -> OwnerAnalyticsSnapshot {
-        let totalViews = 428 * period.dayCount
+        let totalViews = 318 * period.dayCount
         let newsViews = 134 * period.dayCount
         let eventViews = 96 * period.dayCount
         let organizationViews = 88 * period.dayCount
-        let guideArticleViews = 110 * period.dayCount
 
         return OwnerAnalyticsSnapshot(
             period: period,
@@ -75,7 +74,6 @@ extension MockOwnerAnalyticsRepository {
                 AnalyticsSummaryStats(metricType: .newsViews, value: newsViews, previousValue: max(0, newsViews - 74)),
                 AnalyticsSummaryStats(metricType: .eventViews, value: eventViews, previousValue: max(0, eventViews - 41)),
                 AnalyticsSummaryStats(metricType: .organizationViews, value: organizationViews, previousValue: max(0, organizationViews - 36)),
-                AnalyticsSummaryStats(metricType: .guideArticleViews, value: guideArticleViews, previousValue: max(0, guideArticleViews - 58)),
                 AnalyticsSummaryStats(metricType: .activeRegions, value: 6, previousValue: 5)
             ],
             dailyStats: sampleDailyStats(period: period),
@@ -99,8 +97,7 @@ extension MockOwnerAnalyticsRepository {
                     .newsViews: 112 + index * 6,
                     .eventViews: 74 + index * 4,
                     .organizationViews: 63 + index * 3,
-                    .guideArticleViews: 91 + index * 5,
-                    .totalViews: 340 + index * 18,
+                    .totalViews: 249 + index * 13,
                     .activeRegions: min(6, 3 + index % 4),
                     .totalLikes: 18 + index * 2,
                     .totalBookmarks: 12 + index,
@@ -117,16 +114,6 @@ extension MockOwnerAnalyticsRepository {
         let multiplier = max(1, period.dayCount)
         return [
             AnalyticsTopContentItem(
-                contentID: "guide-anmeldung-first-steps",
-                contentType: .guideArticle,
-                title: "First steps after arriving in Austria",
-                category: "firstSteps",
-                regionScope: .federalState,
-                federalState: .wien,
-                viewCount: 86 * multiplier,
-                rank: 1
-            ),
-            AnalyticsTopContentItem(
                 contentID: "event-community-consultation-tirol",
                 contentType: .event,
                 title: "Community consultation evening in Innsbruck",
@@ -136,7 +123,7 @@ extension MockOwnerAnalyticsRepository {
                 regionScope: .federalState,
                 federalState: .tirol,
                 viewCount: 64 * multiplier,
-                rank: 2
+                rank: 1
             ),
             AnalyticsTopContentItem(
                 contentID: "news-language-courses-update",
@@ -148,7 +135,7 @@ extension MockOwnerAnalyticsRepository {
                 regionScope: .federalState,
                 federalState: .wien,
                 viewCount: 58 * multiplier,
-                rank: 3
+                rank: 2
             ),
             AnalyticsTopContentItem(
                 contentID: "org-ukrainian-center-vienna",
@@ -160,7 +147,7 @@ extension MockOwnerAnalyticsRepository {
                 regionScope: .federalState,
                 federalState: .wien,
                 viewCount: 47 * multiplier,
-                rank: 4
+                rank: 3
             ),
             AnalyticsTopContentItem(
                 contentID: "news-volunteer-network-linz",
@@ -172,7 +159,7 @@ extension MockOwnerAnalyticsRepository {
                 regionScope: .federalState,
                 federalState: .oberoesterreich,
                 viewCount: 42 * multiplier,
-                rank: 5
+                rank: 4
             ),
             AnalyticsTopContentItem(
                 contentID: "8CF5A7D2-5E42-4C88-A1B0-7B7B5F5F5C11",
@@ -182,7 +169,7 @@ extension MockOwnerAnalyticsRepository {
                 regionScope: .federalState,
                 federalState: .steiermark,
                 viewCount: 39 * multiplier,
-                rank: 6
+                rank: 5
             ),
             AnalyticsTopContentItem(
                 contentID: "event-family-day-salzburg",
@@ -194,7 +181,7 @@ extension MockOwnerAnalyticsRepository {
                 regionScope: .federalState,
                 federalState: .salzburg,
                 viewCount: 36 * multiplier,
-                rank: 7
+                rank: 6
             ),
             AnalyticsTopContentItem(
                 contentID: "org-graz-culture-club",
@@ -206,17 +193,7 @@ extension MockOwnerAnalyticsRepository {
                 regionScope: .federalState,
                 federalState: .steiermark,
                 viewCount: 34 * multiplier,
-                rank: 8
-            ),
-            AnalyticsTopContentItem(
-                contentID: "guide-school-enrollment",
-                contentType: .guideArticle,
-                title: "School enrollment checklist",
-                category: "education",
-                regionScope: .austria,
-                federalState: nil,
-                viewCount: 31 * multiplier,
-                rank: 9
+                rank: 7
             )
         ]
     }
@@ -224,16 +201,16 @@ extension MockOwnerAnalyticsRepository {
     private static func sampleRegionStats(period: AnalyticsPeriod) -> [AnalyticsRegionStats] {
         let multiplier = max(1, period.dayCount)
         return [
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .wien, viewCount: 118 * multiplier, contentCount: 18, metrics: [.newsViews: 42 * multiplier, .eventViews: 22 * multiplier, .organizationViews: 18 * multiplier, .guideArticleViews: 36 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .tirol, viewCount: 92 * multiplier, contentCount: 14, metrics: [.newsViews: 24 * multiplier, .eventViews: 28 * multiplier, .organizationViews: 16 * multiplier, .guideArticleViews: 24 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .niederoesterreich, viewCount: 76 * multiplier, contentCount: 10, metrics: [.newsViews: 20 * multiplier, .eventViews: 18 * multiplier, .organizationViews: 14 * multiplier, .guideArticleViews: 24 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .oberoesterreich, viewCount: 61 * multiplier, contentCount: 9, metrics: [.newsViews: 16 * multiplier, .eventViews: 13 * multiplier, .organizationViews: 12 * multiplier, .guideArticleViews: 20 * multiplier]),
-            AnalyticsRegionStats(regionScope: .austria, federalState: nil, viewCount: 54 * multiplier, contentCount: 12, metrics: [.newsViews: 18 * multiplier, .eventViews: 10 * multiplier, .organizationViews: 8 * multiplier, .guideArticleViews: 18 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .steiermark, viewCount: 48 * multiplier, contentCount: 8, metrics: [.newsViews: 14 * multiplier, .eventViews: 9 * multiplier, .organizationViews: 10 * multiplier, .guideArticleViews: 15 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .salzburg, viewCount: 37 * multiplier, contentCount: 7, metrics: [.newsViews: 10 * multiplier, .eventViews: 12 * multiplier, .organizationViews: 5 * multiplier, .guideArticleViews: 10 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .kaernten, viewCount: 26 * multiplier, contentCount: 5, metrics: [.newsViews: 7 * multiplier, .eventViews: 6 * multiplier, .guideArticleViews: 13 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .vorarlberg, viewCount: 18 * multiplier, contentCount: 4, metrics: [.newsViews: 5 * multiplier, .organizationViews: 4 * multiplier, .guideArticleViews: 9 * multiplier]),
-            AnalyticsRegionStats(regionScope: .federalState, federalState: .burgenland, viewCount: 12 * multiplier, contentCount: 3, metrics: [.newsViews: 4 * multiplier, .eventViews: 3 * multiplier, .guideArticleViews: 5 * multiplier])
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .wien, viewCount: 82 * multiplier, contentCount: 18, metrics: [.newsViews: 42 * multiplier, .eventViews: 22 * multiplier, .organizationViews: 18 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .tirol, viewCount: 68 * multiplier, contentCount: 14, metrics: [.newsViews: 24 * multiplier, .eventViews: 28 * multiplier, .organizationViews: 16 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .niederoesterreich, viewCount: 52 * multiplier, contentCount: 10, metrics: [.newsViews: 20 * multiplier, .eventViews: 18 * multiplier, .organizationViews: 14 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .oberoesterreich, viewCount: 41 * multiplier, contentCount: 9, metrics: [.newsViews: 16 * multiplier, .eventViews: 13 * multiplier, .organizationViews: 12 * multiplier]),
+            AnalyticsRegionStats(regionScope: .austria, federalState: nil, viewCount: 36 * multiplier, contentCount: 12, metrics: [.newsViews: 18 * multiplier, .eventViews: 10 * multiplier, .organizationViews: 8 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .steiermark, viewCount: 33 * multiplier, contentCount: 8, metrics: [.newsViews: 14 * multiplier, .eventViews: 9 * multiplier, .organizationViews: 10 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .salzburg, viewCount: 27 * multiplier, contentCount: 7, metrics: [.newsViews: 10 * multiplier, .eventViews: 12 * multiplier, .organizationViews: 5 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .kaernten, viewCount: 13 * multiplier, contentCount: 5, metrics: [.newsViews: 7 * multiplier, .eventViews: 6 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .vorarlberg, viewCount: 9 * multiplier, contentCount: 4, metrics: [.newsViews: 5 * multiplier, .organizationViews: 4 * multiplier]),
+            AnalyticsRegionStats(regionScope: .federalState, federalState: .burgenland, viewCount: 7 * multiplier, contentCount: 3, metrics: [.newsViews: 4 * multiplier, .eventViews: 3 * multiplier])
         ]
     }
 

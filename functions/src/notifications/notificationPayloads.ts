@@ -6,14 +6,12 @@ export type NotificationType =
   | "accountStatusChanged"
   | "feedbackSubmitted"
   | "feedbackReply"
-  | "guideMaterialUpdated"
   | "legalDocumentsUpdated"
   | "organizationEventPublished"
   | "organizationNewsPublished"
   | "organizationRequestApproved"
   | "organizationRequestNeedsRevision"
   | "organizationRequestRejected"
-  | "organizationRequestRevisionRequested"
   | "organizationRoleAssigned"
   | "organizationRoleRemoved"
   | "reportReviewed"
@@ -30,8 +28,6 @@ export type NotificationActionType =
   | "openNews"
   | "openEvent"
   | "openFeedback"
-  | "openGuideMaterial"
-  | "openGuideReport"
   | "openLegalDocuments"
   | "openOrganization"
   | "openOrganizationRequest"
@@ -42,9 +38,7 @@ export type NotificationSourceType =
   | "account"
   | "event"
   | "feedback"
-  | "guide"
   | "legal"
-  | "news"
   | "organization"
   | "profile"
   | "system";
@@ -296,7 +290,6 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
     case "accountStatusChanged":
     case "organizationRequestNeedsRevision":
     case "organizationRequestRejected":
-    case "organizationRequestRevisionRequested":
     case "eventCancelled":
       return "warning";
     case "organizationRequestApproved":
@@ -309,7 +302,6 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
     case "eventRegistrationConfirmed":
     case "organizationEventPublished":
     case "organizationNewsPublished":
-    case "guideMaterialUpdated":
     case "legalDocumentsUpdated":
     case "organizationRoleAssigned":
     case "organizationRoleRemoved":
@@ -329,8 +321,6 @@ function defaultActionType(type: NotificationType): NotificationActionType {
     case "organizationEventPublished":
     case "eventRegistrationConfirmed":
       return "openEvent";
-    case "guideMaterialUpdated":
-      return "openGuideMaterial";
     case "eventUpdated":
     case "eventCancelled":
       return "openEvent";
@@ -339,13 +329,12 @@ function defaultActionType(type: NotificationType): NotificationActionType {
     case "organizationRequestApproved":
     case "organizationRequestNeedsRevision":
     case "organizationRequestRejected":
-    case "organizationRequestRevisionRequested":
       return "openOrganizationRequest";
     case "organizationRoleAssigned":
     case "organizationRoleRemoved":
       return "openOrganization";
     case "reportReviewed":
-      return "openGuideReport";
+      return "none";
     case "accountStatusChanged":
     case "roleChanged":
       return "openProfile";
@@ -366,15 +355,13 @@ function defaultSourceType(type: NotificationType): NotificationSourceType {
     case "organizationNewsPublished":
     case "organizationEventPublished":
       return "organization";
-    case "guideMaterialUpdated":
     case "reportReviewed":
-      return "guide";
+      return "system";
     case "legalDocumentsUpdated":
       return "legal";
     case "organizationRequestApproved":
     case "organizationRequestNeedsRevision":
     case "organizationRequestRejected":
-    case "organizationRequestRevisionRequested":
     case "organizationRoleAssigned":
     case "organizationRoleRemoved":
       return "organization";
@@ -406,15 +393,11 @@ function defaultRoute(
     case "openURL":
       return "openURL";
     case "none":
-    case "openGuideMaterial":
-    case "openGuideReport":
     case "openLegalDocuments":
       break;
   }
 
   switch (sourceType) {
-    case "news":
-      return "openNews";
     case "event":
       return "openEvent";
     case "feedback":
@@ -426,8 +409,15 @@ function defaultRoute(
       return "openProfile";
     case "system":
       return "systemAnnouncement";
-    case "guide":
     case "legal":
       return "none";
   }
+}
+
+export function notificationDefaults(type: NotificationType) {
+  return {
+    severity: defaultSeverity(type),
+    actionType: defaultActionType(type),
+    sourceType: defaultSourceType(type),
+  };
 }

@@ -104,15 +104,6 @@ struct PermissionService {
         hasUsableAccount(user) && user?.globalRole.authorizationRole == .admin
     }
 
-    static func isGuideEditor(user: AppUser?) -> Bool {
-        canManageGuide(user: user)
-    }
-
-    private static func isGuideManager(_ user: AppUser?) -> Bool {
-        guard let user, hasUsableAccount(user) else { return false }
-        return user.globalRole.authorizationRole == .owner || user.canManageGuide
-    }
-
     // Owner surfaces are named here so views and view models can ask for intent
     // without checking globalRole directly. Owner organization override does not
     // mutate organization.ownerId, adminIds, or moderatorIds.
@@ -138,10 +129,6 @@ struct PermissionService {
 
     static func canAssignAppAdmin(user: AppUser?) -> Bool {
         isOwner(user)
-    }
-
-    static func canAssignGuideEditor(user: AppUser?) -> Bool {
-        isOwner(user) || isAppAdmin(user: user)
     }
 
     static func canManageUserTarget(actor: AppUser?, target: AppUser?) -> Bool {
@@ -467,10 +454,6 @@ struct PermissionService {
     static func canCreateOrganization(user: AppUser?) -> Bool {
         guard let user else { return false }
         return hasUsableAccount(user)
-    }
-
-    static func canManageGuide(user: AppUser?) -> Bool {
-        isGuideManager(user)
     }
 
     static func canCreateNews(user: AppUser?) -> Bool {

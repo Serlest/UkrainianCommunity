@@ -9,6 +9,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
+import {hasActiveRegionAnalytics} from "./analyticsRollupSanitization";
 
 type AnalyticsEventName =
   | "news_view"
@@ -21,14 +22,12 @@ type AnalyticsEventName =
   | "organization_view"
   | "organization_follow"
   | "organization_unfollow"
-  | "organization_bookmark"
-  | "guide_article_view";
+  | "organization_bookmark";
 
 type AnalyticsContentType =
   | "news"
   | "event"
-  | "organization"
-  | "guideArticle";
+  | "organization";
 type AnalyticsEventKind = "view" | "action";
 
 interface AnalyticsEventConfig {
@@ -272,13 +271,19 @@ const eventConfigs: Record<AnalyticsEventName, AnalyticsEventConfig> = {
     organizationMetricField: "bookmarks",
     compatibilityMetricFields: ["totalBookmarks"],
   },
-  guide_article_view: {
-    contentType: "guideArticle",
-    metricField: "guideArticleViews",
-    eventKind: "view",
-    contentMetricField: "views",
-  },
 };
+
+const activeRegionViewMetricFields = [
+  "newsViews",
+  "eventViews",
+  "organizationViews",
+] as const;
+
+const activeContentKeyPrefixes = [
+  "news_",
+  "event_",
+  "organization_",
+] as const;
 
 const federalStates = new Set([
   "burgenland",
@@ -875,8 +880,7 @@ async function rollupAnalyticsPeriod(period: RollupPeriod): Promise<void> {
       [schema.topContentFields.itemsByKey]: topContentMap(topContent),
       sourceDocumentIDs,
       updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true }
+    }
   );
 
   batch.set(
@@ -886,8 +890,7 @@ async function rollupAnalyticsPeriod(period: RollupPeriod): Promise<void> {
       [schema.regionStatsFields.regionsByKey]: regionStatsMap(regionStats),
       sourceDocumentIDs,
       updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true }
+    }
   );
 
   await batch.commit();
@@ -1224,17 +1227,22 @@ function regionStatsItemFromUnknown(value: unknown): RollupRegionStatsItem[] {
   }
 
   const federalState = stringValue(value[schema.regionStatsFields.federalState]);
-  const contentKeys = recordKeys(value[schema.regionStatsFields.contentKeys]);
-  const contentCount = positiveInteger(value[schema.regionStatsFields.contentCount]);
-  const metrics = metricMap(value[schema.regionStatsFields.metrics]);
+  const contentKeys = activeContentKeys(value[schema.regionStatsFields.contentKeys]);
+  const metrics = activeRegionMetricMap(value[schema.regionStatsFields.metrics]);
+  const viewCount = Array.from(metrics.values()).reduce(
+    (total, metricValue) => total + metricValue,
+    0
+  );
+  if (!hasActiveRegionAnalytics(viewCount, contentKeys.length)) {
+    return [];
+  }
+  metrics.set(schema.dailyStatsFields.totalViews, viewCount);
 
   return [{
     regionScope,
     federalState,
-    viewCount: positiveInteger(value[schema.regionStatsFields.viewCount]),
-    contentKeys: contentKeys.length > 0
-      ? new Set(contentKeys)
-      : fallbackContentKeys(contentCount, regionScope, federalState),
+    viewCount,
+    contentKeys: new Set(contentKeys),
     metrics,
   }];
 }
@@ -1416,28 +1424,29 @@ function analyticsContentType(value: unknown): AnalyticsContentType | undefined 
     case "news":
     case "event":
     case "organization":
-    case "guideArticle":
       return value;
-    case "guide_article":
-      return "guideArticle";
     default:
       return undefined;
   }
 }
 
-function recordKeys(value: unknown): string[] {
-  return isRecord(value)
-    ? Object.keys(value).filter((key) => key.length > 0)
-    : [];
+function activeContentKeys(value: unknown): string[] {
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  return Object.keys(value).filter((key) =>
+    activeContentKeyPrefixes.some((prefix) => key.startsWith(prefix))
+  );
 }
 
-function metricMap(value: unknown): Map<string, number> {
+function activeRegionMetricMap(value: unknown): Map<string, number> {
   if (!isRecord(value)) {
     return new Map();
   }
 
-  return new Map(Object.entries(value)
-    .map(([key, metricValue]) => [key, positiveInteger(metricValue)] as const)
+  return new Map(activeRegionViewMetricFields
+    .map((field) => [field, positiveInteger(value[field])] as const)
     .filter(([, metricValue]) => metricValue > 0));
 }
 
@@ -1452,16 +1461,6 @@ function combinedMetrics(
   }
 
   return metrics;
-}
-
-function fallbackContentKeys(
-  contentCount: number,
-  regionScope: string,
-  federalState: string | undefined
-): Set<string> {
-  return new Set(Array.from({ length: contentCount }, (_, index) =>
-    ["legacy", regionScope, federalState ?? "all", index.toString()].join("_")
-  ));
 }
 
 function isRestrictedUser(user: DocumentData): boolean {

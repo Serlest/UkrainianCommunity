@@ -141,7 +141,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     private func makeNotification(from document: QueryDocumentSnapshot) -> AppNotification {
         let data = document.data()
         let type = (data["type"] as? String).flatMap(AppNotificationType.init(rawValue:)) ?? .unknown
-        let sourceType = (data["sourceType"] as? String).flatMap(AppNotificationSourceType.init(rawValue:)) ?? .feedback
+        let sourceType = (data["sourceType"] as? String).flatMap(AppNotificationSourceType.init(rawValue:)) ?? .system
         let severity = (data["severity"] as? String).flatMap(AppNotificationSeverity.init(rawValue:)) ?? defaultSeverity(for: type)
         let actionType = (data["actionType"] as? String).flatMap(AppNotificationActionType.init(rawValue:)) ?? defaultActionType(for: type)
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
@@ -278,7 +278,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .warning
         case .legalDocumentsUpdated, .systemAnnouncement:
             .critical
-        case .feedbackSubmitted, .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .eventRegistrationConfirmed, .organizationNewsPublished, .organizationEventPublished, .guideMaterialUpdated, .unknown:
+        case .feedbackSubmitted, .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .eventRegistrationConfirmed, .organizationNewsPublished, .organizationEventPublished, .unknown:
             .info
         }
     }
@@ -295,10 +295,8 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .openEvent
         case .organizationNewsPublished:
             .openNews
-        case .guideMaterialUpdated:
-            .openGuideMaterial
         case .reportReviewed:
-            .openGuideReport
+            .none
         case .legalDocumentsUpdated:
             .openLegalDocuments
         case .accountStatusChanged, .roleChanged:

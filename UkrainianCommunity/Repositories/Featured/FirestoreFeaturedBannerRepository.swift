@@ -38,7 +38,9 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                 .whereField(Field.visibleSections.rawValue, arrayContains: section.rawValue)
                 .getDocuments()
 
-            let banners = try snapshot.documents.map(makeBanner)
+            let banners = try snapshot.documents.map {
+                try makeBanner(from: $0, allowsUnsupportedLegacy: true)
+            }
             return banners.activeFeaturedBanners(for: section, federalState: federalState)
         } catch {
             throw appError(from: error)
@@ -53,7 +55,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         do {
             let snapshot = try await collection.getDocuments()
             return try snapshot.documents
-                .map(makeBanner)
+                .map { try makeBanner(from: $0, allowsUnsupportedLegacy: true) }
                 .sorted { lhs, rhs in
                     if lhs.priority != rhs.priority {
                         return lhs.priority > rhs.priority
@@ -105,7 +107,14 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         guard snapshot.exists else {
             throw AppError.notFound
         }
-        let existingBanner = try makeBanner(id: banner.id, data: snapshot.data() ?? [:])
+        let existingBanner = try makeBanner(
+            id: banner.id,
+            data: snapshot.data() ?? [:],
+            allowsUnsupportedLegacy: true
+        )
+        guard !existingBanner.hasUnsupportedLegacyConfiguration else {
+            throw AppError.validationFailed
+        }
         let updatedBanner = FeaturedBanner(
             id: banner.id,
             internalName: banner.internalName,
@@ -172,6 +181,16 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         guard snapshot.exists else {
             throw AppError.notFound
         }
+        let existingBanner = try makeBanner(
+            id: trimmedID,
+            data: snapshot.data() ?? [:],
+            allowsUnsupportedLegacy: true
+        )
+        if existingBanner.hasUnsupportedLegacyConfiguration {
+            guard existingBanner.isActive, !isActive else {
+                throw AppError.validationFailed
+            }
+        }
 
         do {
             try await document.updateData([
@@ -216,8 +235,22 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             throw AppError.validationFailed
         }
 
+        let document = collection.document(trimmedID)
+        let snapshot = try await document.getDocument()
+        guard snapshot.exists else {
+            throw AppError.notFound
+        }
+        let existingBanner = try makeBanner(
+            id: trimmedID,
+            data: snapshot.data() ?? [:],
+            allowsUnsupportedLegacy: true
+        )
+        guard !existingBanner.hasUnsupportedLegacyConfiguration else {
+            throw AppError.validationFailed
+        }
+
         do {
-            try await collection.document(trimmedID).delete()
+            try await document.delete()
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -243,12 +276,23 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         )
     }
 
-    private func makeBanner(from document: QueryDocumentSnapshot) throws -> FeaturedBanner {
+    private func makeBanner(
+        from document: QueryDocumentSnapshot,
+        allowsUnsupportedLegacy: Bool = false
+    ) throws -> FeaturedBanner {
         let data = document.data()
-        return try makeBanner(id: document.documentID, data: data)
+        return try makeBanner(
+            id: document.documentID,
+            data: data,
+            allowsUnsupportedLegacy: allowsUnsupportedLegacy
+        )
     }
 
-    private func makeBanner(id documentID: String, data: [String: Any]) throws -> FeaturedBanner {
+    private func makeBanner(
+        id documentID: String,
+        data: [String: Any],
+        allowsUnsupportedLegacy: Bool = false
+    ) throws -> FeaturedBanner {
         guard
             let actionTypeValue = data[Field.actionType.rawValue] as? String,
             let actionType = FeaturedBannerActionType.normalized(from: actionTypeValue),
@@ -293,7 +337,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             createdBy: createdBy,
             updatedBy: data[Field.updatedBy.rawValue] as? String
         )
-        try validationService.validate(banner)
+        try validationService.validate(banner, allowsUnsupportedLegacy: allowsUnsupportedLegacy)
         return banner
     }
 

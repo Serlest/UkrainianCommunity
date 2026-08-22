@@ -4,14 +4,14 @@ struct FeaturedBannerValidationService {
     static let displayDurationBounds = 3...12
     static let priorityBounds = 0...1000
 
-    func validate(_ banner: FeaturedBanner) throws {
+    func validate(_ banner: FeaturedBanner, allowsUnsupportedLegacy: Bool = false) throws {
         guard !trimmed(banner.id).isEmpty,
               !trimmed(banner.createdBy).isEmpty else {
             throw AppError.validationFailed
         }
 
-        guard banner.actionType.isSupported,
-              banner.visibleSections.allSatisfy(\.isSupported) else {
+        guard allowsUnsupportedLegacy
+                || (banner.actionType.isSupported && banner.visibleSections.allSatisfy(\.isSupported)) else {
             throw AppError.validationFailed
         }
 
@@ -56,7 +56,7 @@ struct FeaturedBannerValidationService {
         switch actionType {
         case .news, .event, .organization:
             return true
-        case .none, .externalURL, .guide:
+        case .none, .externalURL, .unsupportedLegacy:
             return false
         }
     }
@@ -65,7 +65,7 @@ struct FeaturedBannerValidationService {
         switch actionType {
         case .externalURL:
             return true
-        case .none, .news, .event, .organization, .guide:
+        case .none, .news, .event, .organization, .unsupportedLegacy:
             return false
         }
     }

@@ -148,6 +148,21 @@ describe("Storage upload validation", () => {
   });
 });
 
+describe("removed Guide storage paths", () => {
+  test("denies the retired appConfig Guide banner path to every client", async () => {
+    const path = "appConfig/guideBanner/banner.jpg";
+
+    await assertFails(imageUpload(storage("owner"), path));
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await imageUpload(context.storage(), path);
+    });
+
+    await assertFails(getBytes(ref(guestStorage(), path)));
+    await assertFails(deleteObject(ref(storage("owner"), path)));
+  });
+});
+
 describe("account state enforcement", () => {
   test("requires verified email for privileged and self uploads", async () => {
     await assertFails(imageUpload(storage("owner", false), "appConfig/homeBanner/banner.jpg"));

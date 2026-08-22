@@ -105,7 +105,7 @@ struct FeaturedBannerManagementView: View {
                         FeaturedBannerManagementRow(
                             banner: banner,
                             isUpdating: viewModel.updatingBannerIDs.contains(banner.id),
-                            canDelete: canDeleteBanners,
+                            canDelete: canDeleteBanners && !banner.hasUnsupportedLegacyConfiguration,
                             onActiveChange: { isActive in
                                 Task {
                                     await viewModel.setActive(isActive, for: banner, updatedBy: authState.user?.id)
@@ -116,26 +116,28 @@ struct FeaturedBannerManagementView: View {
                             }
                         )
 
-                        NavigationLink {
-                            FeaturedBannerEditorView(
-                                repository: repository,
-                                mode: .edit(banner),
-                                newsRepository: newsRepository,
-                                eventRepository: eventRepository,
-                                organizationRepository: organizationRepository
-                            ) {
-                                viewModel.invalidatePublicCache()
-                                await viewModel.refresh()
+                        if !banner.hasUnsupportedLegacyConfiguration {
+                            NavigationLink {
+                                FeaturedBannerEditorView(
+                                    repository: repository,
+                                    mode: .edit(banner),
+                                    newsRepository: newsRepository,
+                                    eventRepository: eventRepository,
+                                    organizationRepository: organizationRepository
+                                ) {
+                                    viewModel.invalidatePublicCache()
+                                    await viewModel.refresh()
+                                }
+                            } label: {
+                                ProfileModuleRow(
+                                    title: AppStrings.FeaturedEditor.editBanner,
+                                    subtitle: managementTitle(for: banner),
+                                    systemImage: "slider.horizontal.3",
+                                    status: .available
+                                )
                             }
-                        } label: {
-                            ProfileModuleRow(
-                                title: AppStrings.FeaturedEditor.editBanner,
-                                subtitle: managementTitle(for: banner),
-                                systemImage: "slider.horizontal.3",
-                                status: .available
-                            )
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -237,7 +239,7 @@ private struct FeaturedBannerManagementRow: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                 }
-                .disabled(isUpdating)
+                .disabled(isUpdating || (banner.hasUnsupportedLegacyConfiguration && !banner.isActive))
 
                 if canDelete {
                     Button(role: .destructive, action: onDelete) {
@@ -356,8 +358,8 @@ private extension FeaturedBannerVisibleSection {
             return AppStrings.Tabs.events
         case .organizations:
             return AppStrings.Tabs.organizations
-        case .guide:
-            return AppStrings.Guide.title
+        case .unsupportedLegacy:
+            return AppStrings.FeaturedManagement.unsupportedLegacy
         }
     }
 }
@@ -373,8 +375,8 @@ private extension FeaturedBannerActionType {
             return AppStrings.Tabs.events
         case .organization:
             return AppStrings.Tabs.organizations
-        case .guide:
-            return AppStrings.Guide.title
+        case .unsupportedLegacy:
+            return AppStrings.FeaturedManagement.unsupportedLegacy
         case .externalURL:
             return AppStrings.FeaturedManagement.actionExternalURL
         }

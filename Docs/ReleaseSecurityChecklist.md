@@ -15,10 +15,13 @@ Use this checklist for the first release after the security and privacy hardenin
 
 - [ ] Confirm the intended Firebase project with `firebase use` and a second human-readable project-ID check.
 - [ ] Back up or export production data according to the operating procedure.
+- [ ] Run the removed-feature inventory and deactivate every legacy featured banner before deploying the restrictive Rules.
 - [ ] Deploy the reviewed Functions, Firestore rules/indexes and Storage rules from the release commit.
 - [ ] Verify callable account deletion and scheduled retention jobs in production logs with non-destructive test accounts/data.
 - [ ] Confirm scheduled retention policy, region, time zone, runtime identity, permissions, monitoring and alerting.
 - [ ] Confirm the agreed retention period remains six months after content completion, subject to legally required exceptions.
+- [ ] Define and legally review an explicit `auditLogs` retention period; no automatic `auditLogs` cleanup exists yet.
+- [ ] Before deploying Rules that reject `canManageGuide`, confirm no supported older build still sends the field during registration or stage a temporary `false`-only compatibility rule.
 
 ## App Check rollout gate
 
@@ -41,7 +44,7 @@ Use this checklist for the first release after the security and privacy hardenin
 ## Functional release gate
 
 - [ ] Test registration, email verification, login, password reset and logout.
-- [ ] Test guest and authenticated permissions plus owner/admin/guide/organization role boundaries.
+- [ ] Test guest and authenticated permissions plus owner/admin/organization role boundaries.
 - [ ] Test create/read/update/delete flows for content, uploads, comments, reports and feedback.
 - [ ] Test push registration, delivery, opt-out and token cleanup.
 - [ ] Test analytics disabled on fresh install, then explicit opt-in and opt-out.

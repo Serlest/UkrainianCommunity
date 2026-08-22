@@ -10,7 +10,6 @@ enum LikeState: String, Codable {
         isLiked ? .notLiked : .liked
     }
 }
-
 enum AustrianFederalState: String, CaseIterable, Codable, Identifiable {
     case burgenland
     case kaernten
@@ -971,34 +970,5 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         organizationId = event.source.displayOrganizationId ?? ""
         organizationName = event.source.displayOrganizationName ?? ""
         destination = .event(id: event.id)
-    }
-}
-
-
-struct InfoItem: Identifiable {
-    let id: String
-    let title: String
-    let body: String
-    let systemImage: String
-    let regionScope: RegionScope?
-    let federalState: AustrianFederalState?
-    let city: String?
-
-    nonisolated init(
-        id: String,
-        title: String,
-        body: String,
-        systemImage: String,
-        regionScope: RegionScope? = .austria,
-        federalState: AustrianFederalState? = nil,
-        city: String? = nil
-    ) {
-        self.id = id
-        self.title = title
-        self.body = body
-        self.systemImage = systemImage
-        self.regionScope = regionScope
-        self.federalState = federalState
-        self.city = city
     }
 }

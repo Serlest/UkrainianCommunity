@@ -41,6 +41,9 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         guard let index = banners.firstIndex(where: { $0.id == banner.id }) else {
             throw AppError.notFound
         }
+        guard !banners[index].hasUnsupportedLegacyConfiguration else {
+            throw AppError.validationFailed
+        }
         banners[index] = banner
     }
 
@@ -50,6 +53,11 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         }
 
         let existingBanner = banners[index]
+        if existingBanner.hasUnsupportedLegacyConfiguration {
+            guard existingBanner.isActive, !isActive else {
+                throw AppError.validationFailed
+            }
+        }
         banners[index] = FeaturedBanner(
             id: existingBanner.id,
             internalName: existingBanner.internalName,
@@ -79,11 +87,13 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
     }
 
     func deleteBanner(id: String) async throws {
-        let originalCount = banners.count
-        banners.removeAll { $0.id == id }
-        if banners.count == originalCount {
+        guard let index = banners.firstIndex(where: { $0.id == id }) else {
             throw AppError.notFound
         }
+        guard !banners[index].hasUnsupportedLegacyConfiguration else {
+            throw AppError.validationFailed
+        }
+        banners.remove(at: index)
     }
 
     private static func defaultBanners(now: Date = Date()) -> [FeaturedBanner] {

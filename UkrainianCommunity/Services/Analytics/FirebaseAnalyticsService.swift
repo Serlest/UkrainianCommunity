@@ -100,8 +100,7 @@ final class FirebaseAnalyticsService: AnalyticsTracking {
              .organizationView,
              .organizationFollow,
              .organizationUnfollow,
-             .organizationBookmark,
-             .guideArticleView:
+             .organizationBookmark:
             true
         case .searchUsed,
              .filterUsed,

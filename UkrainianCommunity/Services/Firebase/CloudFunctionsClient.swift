@@ -13,8 +13,6 @@ enum CloudFunctionName: String, CaseIterable {
     case cancelEvent
     case assignAppAdmin
     case removeAppAdmin
-    case assignGuideEditor
-    case removeGuideEditor
     case warnUser
     case suspendUser
     case banUser
@@ -85,8 +83,6 @@ struct PlatformRoleChangeFunctionResponse: Codable, Equatable {
     let targetUserId: String
     let previousGlobalRole: CloudPlatformGlobalRole
     let newGlobalRole: CloudPlatformGlobalRole
-    let previousCanManageGuide: Bool
-    let newCanManageGuide: Bool
     let updatedAt: String
 }
 
@@ -229,20 +225,6 @@ final class CloudFunctionsClient {
     func removeAppAdmin(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
         try await call(
             .removeAppAdmin,
-            request: platformRoleChangeRequest(userId: userId, reason: reason)
-        )
-    }
-
-    func assignGuideEditor(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
-        try await call(
-            .assignGuideEditor,
-            request: platformRoleChangeRequest(userId: userId, reason: reason)
-        )
-    }
-
-    func removeGuideEditor(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
-        try await call(
-            .removeGuideEditor,
             request: platformRoleChangeRequest(userId: userId, reason: reason)
         )
     }
@@ -393,8 +375,6 @@ final class CloudFunctionsClient {
             return .organization
         case .assignAppAdmin,
              .removeAppAdmin,
-             .assignGuideEditor,
-             .removeGuideEditor,
              .warnUser,
              .suspendUser,
              .banUser,
@@ -417,8 +397,6 @@ final class CloudFunctionsClient {
              .cancelEvent,
              .assignAppAdmin,
              .removeAppAdmin,
-             .assignGuideEditor,
-             .removeGuideEditor,
              .warnUser,
              .suspendUser,
              .banUser,
@@ -457,9 +435,7 @@ final class CloudFunctionsClient {
                   let response = response as? OrganizationOwnershipTransferFunctionResponse else { return nil }
             return organizationOwnershipSecurityContext(functionName, request: request, response: response)
         case .assignAppAdmin,
-             .removeAppAdmin,
-             .assignGuideEditor,
-             .removeGuideEditor:
+             .removeAppAdmin:
             guard let response = response as? PlatformRoleChangeFunctionResponse else { return nil }
             return platformRoleSecurityContext(functionName, response: response)
         case .warnUser,
@@ -561,7 +537,6 @@ final class CloudFunctionsClient {
         response: PlatformRoleChangeFunctionResponse
     ) -> SystemSecurityLogContext {
         let isRemoval = functionName == .removeAppAdmin
-            || functionName == .removeGuideEditor
         return SystemSecurityLogContext(
             moduleName: "Security",
             operationName: functionName.rawValue,
@@ -574,9 +549,7 @@ final class CloudFunctionsClient {
             metadata: [
                 "functionName": functionName.rawValue,
                 "previousGlobalRole": response.previousGlobalRole.rawValue,
-                "newGlobalRole": response.newGlobalRole.rawValue,
-                "previousCanManageGuide": String(response.previousCanManageGuide),
-                "newCanManageGuide": String(response.newCanManageGuide)
+                "newGlobalRole": response.newGlobalRole.rawValue
             ]
         )
     }

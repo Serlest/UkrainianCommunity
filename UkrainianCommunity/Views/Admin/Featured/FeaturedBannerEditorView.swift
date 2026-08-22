@@ -703,8 +703,8 @@ private extension FeaturedBannerVisibleSection {
             return AppStrings.Tabs.events
         case .organizations:
             return AppStrings.Tabs.organizations
-        case .guide:
-            return AppStrings.Guide.title
+        case .unsupportedLegacy:
+            return AppStrings.FeaturedManagement.unsupportedLegacy
         }
     }
 }
@@ -714,8 +714,10 @@ private extension FeaturedBannerActionType {
         switch self {
         case .none:
             return AppStrings.FeaturedEditor.actionHelperNoTap
-        case .news, .event, .organization, .guide:
+        case .news, .event, .organization:
             return AppStrings.FeaturedEditor.actionHelperTarget
+        case .unsupportedLegacy:
+            return AppStrings.FeaturedManagement.unsupportedLegacy
         case .externalURL:
             return AppStrings.FeaturedEditor.actionHelperExternalURL
         }
@@ -731,8 +733,8 @@ private extension FeaturedBannerActionType {
             return AppStrings.Tabs.events
         case .organization:
             return AppStrings.Tabs.organizations
-        case .guide:
-            return AppStrings.Guide.title
+        case .unsupportedLegacy:
+            return AppStrings.FeaturedManagement.unsupportedLegacy
         case .externalURL:
             return AppStrings.FeaturedManagement.actionExternalURL
         }

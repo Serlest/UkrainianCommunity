@@ -7,8 +7,8 @@ enum SystemLogTargetType: String, Codable, CaseIterable, Hashable {
     case event
     case organization
     case organizationRequest
-    case guideArticle
-    case guideMaterial
+    case retiredGuideArticle = "guideArticle"
+    case retiredGuideMaterial = "guideMaterial"
     case feedback
     case report
     case notification

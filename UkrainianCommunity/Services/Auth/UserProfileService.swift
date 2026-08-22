@@ -26,7 +26,6 @@ struct RegisteredUserDocumentData: Equatable {
     let isBlocked: Bool
     let blockState: String
     let globalRole: String
-    let canManageGuide: Bool
     let selectedFederalState: String
     let accountStatus: String
     let warningCount: Int
@@ -50,7 +49,6 @@ struct RegisteredUserDocumentData: Equatable {
             "isBlocked": isBlocked,
             "blockState": blockState,
             "globalRole": globalRole,
-            "canManageGuide": canManageGuide,
             "selectedFederalState": selectedFederalState,
             "accountStatus": accountStatus,
             "warningCount": warningCount,
@@ -148,7 +146,6 @@ final class UserProfileService {
                 blockState: data["blockState"] as? String ?? (isBlocked ? UserBlockState.suspendedUntil.rawValue : UserBlockState.active.rawValue),
                 globalRole: data["globalRole"] as? String,
                 moderatorSections: data["moderatorSections"] as? [String],
-                canManageGuide: data["canManageGuide"] as? Bool,
                 accountStatus: data["accountStatus"] as? String,
                 banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
                 warningCount: data["warningCount"] as? Int,
@@ -257,7 +254,6 @@ extension UserProfileService {
             isBlocked: false,
             blockState: UserBlockState.active.rawValue,
             globalRole: GlobalRole.user.rawValue,
-            canManageGuide: false,
             selectedFederalState: draft.selectedFederalState.rawValue,
             accountStatus: AccountStatus.active.rawValue,
             warningCount: 0,

@@ -5,7 +5,6 @@ enum AppStrings {
         static var home: String { text("tab.home", "Home") }
         static var events: String { text("tab.events", "Events") }
         static var organizations: String { text("tab.organizations", "Organizations") }
-        static var info: String { text("tab.info", "Guide") }
         static var profile: String { text("tab.profile", "Profile") }
     }
 
@@ -52,7 +51,6 @@ enum AppStrings {
         static var reportReviewedTitle: String { text("notifications.inbox.report_reviewed.title", "Report reviewed") }
         static var eventUpdatedTitle: String { text("notifications.inbox.event_updated.title", "Event updated") }
         static var eventCancelledTitle: String { text("notifications.inbox.event_cancelled.title", "Event cancelled") }
-        static var guideMaterialUpdatedTitle: String { text("notifications.inbox.guide_material_updated.title", "Guide material updated") }
         static var systemAnnouncementTitle: String { text("notifications.inbox.system_announcement.title", "System announcement") }
         static var genericBody: String { text("notifications.inbox.generic.body", "Open this notification for details.") }
         static var severityInfo: String { text("notifications.inbox.severity.info", "Info") }
@@ -135,7 +133,6 @@ enum AppStrings {
         static var homePlaceholder: String { text("search.placeholder.home", "Search updates, events, and organizations") }
         static var eventsPlaceholder: String { text("search.placeholder.events", "Search events") }
         static var organizationsPlaceholder: String { text("search.placeholder.organizations", "Search organizations") }
-        static var guidePlaceholder: String { text("search.placeholder.guide", "Search guide") }
     }
 
     enum Images {
@@ -155,7 +152,7 @@ enum AppStrings {
     enum FeaturedManagement {
         static var title: String { text("featured.management.title", "Featured Content") }
         static var profileEntryTitle: String { text("featured.management.profile_entry.title", "Featured Content") }
-        static var profileEntrySubtitle: String { text("featured.management.profile_entry.subtitle", "Manage highlights shown across Home, Events, Organizations, and Guide.") }
+        static var profileEntrySubtitle: String { text("featured.management.profile_entry.subtitle", "Manage highlights shown across Home, Events, and Organizations.") }
         static var subtitle: String { text("featured.management.subtitle", "Review active and scheduled highlights. Full create and edit tools will be added in the next pass.") }
         static var emptyTitle: String { text("featured.management.empty.title", "No featured banners yet") }
         static var emptyMessage: String { text("featured.management.empty.message", "Create/edit controls will be added in the next pass.") }
@@ -178,6 +175,7 @@ enum AppStrings {
         static var missingRegion: String { text("featured.management.missing_region", "Missing region") }
         static var actionNone: String { text("featured.management.action.none", "No tap action") }
         static var actionExternalURL: String { text("featured.management.action.external_url", "External URL") }
+        static var unsupportedLegacy: String { text("featured.management.unsupported_legacy", "No longer supported") }
         static var networkError: String { text("featured.management.error.network", "Unable to load featured content. Check your connection and try again.") }
         static var permissionError: String { text("featured.management.error.permission", "You do not have permission to manage featured content.") }
         static var validationError: String { text("featured.management.error.validation", "Featured content data is incomplete or invalid.") }
@@ -795,356 +793,6 @@ enum AppStrings {
         static var dismissError: String { text("organizations.dismiss_error", "OK") }
     }
 
-    enum Guide {
-        static var title: String { text("info.title", "Guide") }
-        static var subtitle: String { text("guide.subtitle", "Curated practical guidance, official references, and everyday orientation for families in Austria.") }
-        static var heroTitle: String { text("guide.hero.title", "Довідник громади") }
-        static var heroSubtitle: String { text("guide.hero.subtitle", "Практичні поради, документи та корисні контакти для життя в Австрії.") }
-        static var pinnedTitle: String { text("guide.pinned", "Important Now") }
-        static var categoriesTitle: String { text("guide.categories", "Categories") }
-        static var popularCategoriesTitle: String { text("guide.categories.popular", "Популярні категорії") }
-        static var allCategories: String { text("guide.categories.all", "All") }
-        static var allArticlesTitle: String { text("guide.articles", "Articles") }
-        static var moreArticlesTitle: String { text("guide.articles.more", "More articles") }
-        static var newcomersTitle: String { text("guide.section.newcomers", "First steps") }
-        static var featuredTitle: String { text("guide.section.featured", "Featured guidance") }
-        static var recentlyUpdatedTitle: String { text("guide.section.recently_updated", "Recently updated") }
-        static var emergencyTitle: String { text("guide.section.emergency", "Emergency and urgent help") }
-        static var officialSource: String { text("guide.official_source", "Official source") }
-        static var sourceSectionTitle: String { text("guide.sources.title", "Sources") }
-        static var sourceSectionSubtitle: String { text("guide.sources.subtitle", "Open the source directly to verify details and check the latest official information.") }
-        static var sourceSectionPrimaryTitle: String { text("guide.sources.primary_title", "Primary source") }
-        static var sourceSectionPrimarySubtitle: String { text("guide.sources.primary_subtitle", "Official information used as the main reference for this article.") }
-        static var sourceSectionSupportingTitle: String { text("guide.sources.supporting_title", "Supporting sources") }
-        static var sourceSectionSupportingSubtitle: String { text("guide.sources.supporting_subtitle", "Additional references and practical links related to this topic.") }
-        static var openSourceAction: String { text("guide.sources.open", "Open source") }
-        static var openOfficialSourceAction: String { text("guide.sources.open_official", "Open official source") }
-        static var openExternalSourceAction: String { text("guide.sources.open_external", "Open external source") }
-        static var opensExternalWebsiteHint: String { text("guide.sources.opens_external", "Opens external website") }
-        static var articleOverviewLabel: String { text("guide.detail.overview_label", "Overview") }
-        static var articleContainsTitle: String { text("guide.contains.title", "In this article") }
-        static var articleContainsSubtitle: String { text("guide.contains.subtitle", "Quick overview of the sections below.") }
-        static var activeFiltersTitle: String { text("guide.filters.active.title", "Current filters") }
-        static var activeFiltersEmptyHint: String { text("guide.filters.active.empty_hint", "Use filters to narrow the guide by type, place, or audience.") }
-        static var placeholderChipAccessibilityHint: String { text("guide.placeholder_chip.accessibility_hint", "Temporary filter") }
-        static var filterSearchLabel: String { text("guide.filters.label.search", "Search") }
-        static var filterCategoryLabel: String { text("guide.filters.label.category", "Category") }
-        static var filterTypeLabel: String { text("guide.filters.label.type", "Type") }
-        static var filterRegionLabel: String { text("guide.filters.label.region", "Region") }
-        static var filterAudienceLabel: String { text("guide.filters.label.audience", "Audience") }
-        static var searchPlaceholder: String { text("guide.search", "Search the guide") }
-        static var filterAllTypes: String { text("guide.filter.all_types", "All types") }
-        static var filterAllAudiences: String { text("guide.filter.all_audiences", "All audiences") }
-        static var filterClear: String { text("guide.filter.clear", "Clear") }
-        static var contentTypeGuide: String { text("guide.content_type.guide", "Guide") }
-        static var contentTypeQuickInfo: String { text("guide.content_type.quick_info", "Quick info") }
-        static var contentTypeChecklist: String { text("guide.content_type.checklist", "Checklist") }
-        static var contentTypeContact: String { text("guide.content_type.contact", "Contacts") }
-        static var contentTypeProcess: String { text("guide.content_type.process", "Process") }
-        static var reviewDueSoon: String { text("guide.review.due_soon", "Review soon") }
-        static var reviewOverdue: String { text("guide.review.overdue", "Needs review") }
-        static var reviewArchived: String { text("guide.review.archived", "Archived") }
-        static var loading: String { text("guide.loading", "Loading guide articles...") }
-        static var emptyTitle: String { text("guide.empty.title", "No guide articles yet") }
-        static var emptyMessage: String { text("guide.empty.message", "Practical guidance will appear here once it has been published.") }
-        static var noMatchesTitle: String { text("guide.no_matches.title", "No matching articles") }
-        static var noResults: String { text("guide.no_results", "No guide articles match this search right now.") }
-        static var noResultsNarrowHint: String { text("guide.no_results.narrow_hint", "Your current search or filters may be too narrow. Try clearing one filter or broadening the search.") }
-        static var sourceAvailableLabel: String { text("guide.source.available", "Source available") }
-        static var officialSourceAvailableLabel: String { text("guide.source.official_available", "Official source") }
-        static var blockTypeText: String { text("guide.block_type.text", "Text") }
-        static var blockTypeWarning: String { text("guide.block_type.warning", "Warning") }
-        static var blockTypeInfoBox: String { text("guide.block_type.info_box", "Info box") }
-        static var blockTypeSteps: String { text("guide.block_type.steps", "Steps") }
-        static var blockTypeChecklist: String { text("guide.block_type.checklist", "Checklist") }
-        static var blockTypeLinks: String { text("guide.block_type.links", "Links") }
-        static var blockTypeContacts: String { text("guide.block_type.contacts", "Contacts") }
-        static var loadNetworkError: String { text("guide.error.load.network", "Unable to load guide articles. Check your connection and try again.") }
-        static var loadPermissionError: String { text("guide.error.load.permission", "You do not have permission to view guide articles.") }
-        static var loadValidationError: String { text("guide.error.load.validation", "The guide data could not be loaded.") }
-        static var loadUnknownError: String { text("guide.error.load.unknown", "Something went wrong while loading guide articles.") }
-        static var articleDetailTitle: String { text("guide.detail.title", "Guide Article") }
-        static var categoryFirstSteps: String { text("guide.category.first_steps", "First steps") }
-        static var categoryDocuments: String { text("guide.category.documents", "Documents") }
-        static var categoryAnmeldung: String { text("guide.category.anmeldung", "Anmeldung") }
-        static var categoryWork: String { text("guide.category.work", "Work") }
-        static var categoryFinance: String { text("guide.category.finance", "Finance") }
-        static var categoryFamily: String { text("guide.category.family", "Family") }
-        static var categoryHealth: String { text("guide.category.health", "Health") }
-        static var categoryHousing: String { text("guide.category.housing", "Housing") }
-        static var categoryTransport: String { text("guide.category.transport", "Transport") }
-        static var categoryEducation: String { text("guide.category.education", "Education") }
-        static var categoryLaw: String { text("guide.category.law", "Law") }
-        static var categoryEmergency: String { text("guide.category.emergency", "Emergency") }
-        static var categoryUkrainianCommunity: String { text("guide.category.ukrainian_community", "Ukrainian community") }
-        static var categoryLifeInAustria: String { text("guide.category.life_in_austria", "Life in Austria") }
-        static var categoryAMS: String { text("guide.category.ams", "AMS") }
-        static var categoryMedicine: String { text("guide.category.medicine", "Medicine") }
-        static var categoryChildren: String { text("guide.category.children", "Children") }
-        static var categoryBusiness: String { text("guide.category.business", "Business") }
-        static var categoryContacts: String { text("guide.category.contacts", "Contacts") }
-
-        static func resultsCount(_ count: Int) -> String {
-            LocalizationStore.localizedFormat(
-                "guide.results.count",
-                defaultValue: "%lld articles",
-                arguments: [count]
-            )
-        }
-
-        static func noResultsForSummary(_ summary: String) -> String {
-            LocalizationStore.localizedFormat(
-                "guide.no_results.summary",
-                defaultValue: "No guide articles match %@ right now.",
-                arguments: [summary.lowercased()]
-            )
-        }
-
-        static func filterSummaryItem(_ label: String, _ value: String) -> String {
-            LocalizationStore.localizedFormat(
-                "guide.filters.summary_item",
-                defaultValue: "%1$@: %2$@",
-                arguments: [label, value]
-            )
-        }
-    }
-
-    enum Info {
-        static var title: String { Guide.title }
-        static var subtitle: String { Guide.subtitle }
-        static var heroTitle: String { Guide.heroTitle }
-        static var heroSubtitle: String { Guide.heroSubtitle }
-        static var pinnedTitle: String { Guide.pinnedTitle }
-        static var categoriesTitle: String { Guide.categoriesTitle }
-        static var popularCategoriesTitle: String { Guide.popularCategoriesTitle }
-        static var allCategories: String { Guide.allCategories }
-        static var allArticlesTitle: String { Guide.allArticlesTitle }
-        static var newcomersTitle: String { Guide.newcomersTitle }
-        static var featuredTitle: String { Guide.featuredTitle }
-        static var recentlyUpdatedTitle: String { Guide.recentlyUpdatedTitle }
-        static var emergencyTitle: String { Guide.emergencyTitle }
-        static var officialSource: String { Guide.officialSource }
-        static var searchPlaceholder: String { Guide.searchPlaceholder }
-        static var filterAllTypes: String { Guide.filterAllTypes }
-        static var filterAllAudiences: String { Guide.filterAllAudiences }
-        static var filterClear: String { Guide.filterClear }
-        static var contentTypeGuide: String { Guide.contentTypeGuide }
-        static var contentTypeQuickInfo: String { Guide.contentTypeQuickInfo }
-        static var contentTypeChecklist: String { Guide.contentTypeChecklist }
-        static var contentTypeContact: String { Guide.contentTypeContact }
-        static var contentTypeProcess: String { Guide.contentTypeProcess }
-        static var reviewDueSoon: String { Guide.reviewDueSoon }
-        static var reviewOverdue: String { Guide.reviewOverdue }
-        static var reviewArchived: String { Guide.reviewArchived }
-        static var loading: String { Guide.loading }
-        static var emptyTitle: String { Guide.emptyTitle }
-        static var emptyMessage: String { Guide.emptyMessage }
-        static var noMatchesTitle: String { Guide.noMatchesTitle }
-        static var noResults: String { Guide.noResults }
-        static var loadNetworkError: String { Guide.loadNetworkError }
-        static var loadPermissionError: String { Guide.loadPermissionError }
-        static var loadValidationError: String { Guide.loadValidationError }
-        static var loadUnknownError: String { Guide.loadUnknownError }
-        static var articleDetailTitle: String { Guide.articleDetailTitle }
-        static var categoryFirstSteps: String { Guide.categoryFirstSteps }
-        static var categoryDocuments: String { Guide.categoryDocuments }
-        static var categoryAnmeldung: String { Guide.categoryAnmeldung }
-        static var categoryWork: String { Guide.categoryWork }
-        static var categoryFinance: String { Guide.categoryFinance }
-        static var categoryFamily: String { Guide.categoryFamily }
-        static var categoryHealth: String { Guide.categoryHealth }
-        static var categoryHousing: String { Guide.categoryHousing }
-        static var categoryTransport: String { Guide.categoryTransport }
-        static var categoryEducation: String { Guide.categoryEducation }
-        static var categoryLaw: String { Guide.categoryLaw }
-        static var categoryEmergency: String { Guide.categoryEmergency }
-        static var categoryUkrainianCommunity: String { Guide.categoryUkrainianCommunity }
-        static var categoryLifeInAustria: String { Guide.categoryLifeInAustria }
-        static var categoryAMS: String { Guide.categoryAMS }
-        static var categoryMedicine: String { Guide.categoryMedicine }
-        static var categoryChildren: String { Guide.categoryChildren }
-        static var categoryBusiness: String { Guide.categoryBusiness }
-        static var categoryContacts: String { Guide.categoryContacts }
-    }
-
-    enum GuideManagement {
-        static var title: String { text("guide.management.title", "Guide management") }
-        static var subtitle: String { text("guide.management.subtitle", "Create, edit, and organize guide drafts before review.") }
-        static var entrySubtitle: String { text("guide.management.entry.subtitle", "Prepare articles, reviews, reports, categories, and archive workflows.") }
-        static var placeholderStatus: String { text("guide.management.placeholder.status", "Planned") }
-        static var localEditorStatus: String { text("guide.management.local_editor.status", "Local editor") }
-        static var createMaterial: String { text("guide.management.create_material", "Create material") }
-        static var createMaterialSubtitle: String { text("guide.management.create_material.subtitle", "Draft a new guide item for the knowledge base.") }
-        static var drafts: String { text("guide.management.drafts", "Drafts") }
-        static var draftsSubtitle: String { text("guide.management.drafts.subtitle", "Materials that are not ready for review yet.") }
-        static var inReview: String { text("guide.management.in_review", "In review") }
-        static var inReviewSubtitle: String { text("guide.management.in_review.subtitle", "Items waiting for owner or editor review.") }
-        static var approved: String { text("guide.management.approved", "Approved") }
-        static var approvedSubtitle: String { text("guide.management.approved.subtitle", "Approved materials waiting for publishing.") }
-        static var published: String { text("guide.management.published", "Published") }
-        static var publishedSubtitle: String { text("guide.management.published.subtitle", "Live guide materials visible to the community.") }
-        static var needsReview: String { text("guide.management.needs_review", "Needs review") }
-        static var needsReviewSubtitle: String { text("guide.management.needs_review.subtitle", "Outdated or flagged materials to re-check.") }
-        static var errorReports: String { text("guide.management.error_reports", "Error reports") }
-        static var errorReportsSubtitle: String { text("guide.management.error_reports.subtitle", "Future user reports about incorrect or missing information.") }
-        static var subcategories: String { text("guide.management.subcategories", "Subcategories") }
-        static var subcategoriesSubtitle: String { text("guide.management.subcategories.subtitle", "Future organization for nested guide topics.") }
-        static var archive: String { text("guide.management.archive", "Archive") }
-        static var archiveSubtitle: String { text("guide.management.archive.subtitle", "Retired guide materials kept out of active use.") }
-        static var editAction: String { text("guide.management.edit.action", "Edit") }
-        static var deleteAction: String { text("guide.management.delete.action", "Delete") }
-        static var deleteConfirmationTitle: String { text("guide.management.delete.confirm.title", "Delete guide article?") }
-        static func deleteConfirmationMessage(_ title: String) -> String {
-            LocalizationStore.localizedFormat(
-                "guide.management.delete.confirm.message",
-                defaultValue: "This permanently deletes “%@”. This cannot be undone.",
-                arguments: [title]
-            )
-        }
-        static var approveAction: String { text("guide.management.approve.action", "Approve") }
-        static var approveConfirmationTitle: String { text("guide.management.approve.confirm.title", "Approve article?") }
-        static var approveConfirmationMessage: String { text("guide.management.approve.confirm.message", "This marks the article approved but does not publish it yet.") }
-        static var approving: String { text("guide.management.approve.saving", "Approving...") }
-        static var approvePermissionError: String { text("guide.management.approve.error.permission", "Only owners can approve guide articles.") }
-        static var approveValidationError: String { text("guide.management.approve.error.validation", "This article is no longer ready for approval.") }
-        static var approveNotFoundError: String { text("guide.management.approve.error.not_found", "The selected guide article could not be found.") }
-        static var approveFailed: String { text("guide.management.approve.error.unknown", "Something went wrong while approving this article.") }
-        static var reviewMetadataTitle: String { text("guide.management.review_metadata.title", "Review metadata") }
-        static var submittedAtLabel: String { text("guide.management.review_metadata.submitted_at", "Submitted") }
-        static var submittedByLabel: String { text("guide.management.review_metadata.submitted_by", "Submitted by") }
-        static var reviewedByLabel: String { text("guide.management.review_metadata.reviewed_by", "Reviewed by") }
-        static var lastReviewedAtLabel: String { text("guide.management.review_metadata.last_reviewed_at", "Last reviewed") }
-        static var nextReviewAtLabel: String { text("guide.management.review_metadata.next_review_at", "Next review") }
-        static var reviewIntervalLabel: String { text("guide.management.review_metadata.review_interval", "Review interval") }
-        static var reviewIntervalCritical: String { text("guide.management.review_interval.critical_months", "3 months") }
-        static var reviewIntervalNormal: String { text("guide.management.review_interval.normal_months", "6 months") }
-        static var reviewIntervalStable: String { text("guide.management.review_interval.stable_months", "12 months") }
-        static var publishAction: String { text("guide.management.publish.action", "Publish") }
-        static var publishConfirmationTitle: String { text("guide.management.publish.confirm.title", "Publish article?") }
-        static var publishConfirmationMessage: String { text("guide.management.publish.confirm.message", "This makes the guide article visible to the community.") }
-        static var publishing: String { text("guide.management.publish.saving", "Publishing...") }
-        static var publishPermissionError: String { text("guide.management.publish.error.permission", "Only owners can publish guide articles.") }
-        static var publishValidationError: String { text("guide.management.publish.error.validation", "This article is no longer ready for publishing.") }
-        static var publishNotFoundError: String { text("guide.management.publish.error.not_found", "The selected guide article could not be found.") }
-        static var publishFailed: String { text("guide.management.publish.error.unknown", "Something went wrong while publishing this article.") }
-    }
-
-    enum GuideEditor {
-        static var title: String { text("guide.editor.title", "Create guide material") }
-        static var subtitle: String { text("guide.editor.subtitle", "Draft editor for creating and updating guide materials before review.") }
-        static var basicsSection: String { text("guide.editor.section.basics", "Basics") }
-        static var classificationSection: String { text("guide.editor.section.classification", "Classification") }
-        static var contentSection: String { text("guide.editor.section.content", "Content") }
-        static var reviewSection: String { text("guide.editor.section.review", "Review settings") }
-        static var titleField: String { text("guide.editor.field.title", "Title") }
-        static var titlePlaceholder: String { text("guide.editor.placeholder.title", "Short, clear article title") }
-        static var titleHelp: String { text("guide.editor.help.title", "Readers see this first in lists and again at the top of the article.") }
-        static var summaryField: String { text("guide.editor.field.summary", "Summary") }
-        static var summaryHelp: String { text("guide.editor.help.summary", "Use one or two short sentences. This appears in cards and under the article title.") }
-        static var bodyFallbackField: String { text("guide.editor.field.body_fallback", "Body fallback") }
-        static var bodyFallbackHelp: String { text("guide.editor.help.body_fallback", "Body is fallback content. Readers see it only when no content blocks are added below.") }
-        static var categoryField: String { text("guide.editor.field.category", "Category") }
-        static var categoryPlaceholder: String { text("guide.editor.placeholder.category", "Select category") }
-        static var contentTypeField: String { text("guide.editor.field.content_type", "Content type") }
-        static var federalStateField: String { text("guide.editor.field.federal_state", "Federal state") }
-        static var austriaWide: String { text("guide.editor.option.austria_wide", "Austria-wide") }
-        static var audienceField: String { text("guide.editor.field.audience", "Audience") }
-        static var audiencePlaceholder: String { text("guide.editor.placeholder.audience", "newcomers, families, students") }
-        static var audienceHelp: String { text("guide.editor.help.audience", "Separate audience values with commas.") }
-        static var reviewIntervalField: String { text("guide.editor.field.review_interval", "Review interval") }
-        static var priorityField: String { text("guide.editor.field.priority", "Priority") }
-        static var isFeaturedField: String { text("guide.editor.field.is_featured", "Featured") }
-        static var officialSourcesRequiredField: String { text("guide.editor.field.official_sources_required", "Official sources required") }
-        static var contentBlocksField: String { text("guide.editor.field.content_blocks", "Content blocks") }
-        static var contentBlocksPlaceholder: String { text("guide.editor.content_blocks.placeholder", "Add structured content blocks or use the main body text.") }
-        static var contentBlocksEmpty: String { text("guide.editor.content_blocks.empty", "No structured content blocks yet.") }
-        static var contentBlocksHelp: String { text("guide.editor.help.content_blocks", "If content blocks exist, readers see the blocks instead of the body. Blocks render in the order shown below.") }
-        static var articleSourceLinksField: String { text("guide.editor.field.article_source_links", "Article sources") }
-        static var articleSourceLinksEmpty: String { text("guide.editor.article_source_links.empty", "No article sources yet.") }
-        static var articleSourceLinksHelp: String { text("guide.editor.help.article_source_links", "If Official sources required is enabled, add at least one article source and mark it as Official source.") }
-        static var addArticleSourceLink: String { text("guide.editor.action.add_article_source_link", "Add article source") }
-        static var addContentBlock: String { text("guide.editor.action.add_content_block", "Add content block") }
-        static var readerOrderTitle: String { text("guide.editor.reader_order.title", "Reader order") }
-        static var readerOrderHelp: String { text("guide.editor.reader_order.help", "This is the order readers see on the article page. Use the arrows on each block to move it earlier or later.") }
-        static var blockSummaryUntitled: String { text("guide.editor.block_summary.untitled", "Untitled") }
-        static var blockSummaryEmpty: String { text("guide.editor.block_summary.empty", "Add content to show a reader summary.") }
-        static var blockTitlePlaceholder: String { text("guide.editor.placeholder.block_title", "Optional block title") }
-        static var blockTextField: String { text("guide.editor.field.block_text", "Text") }
-        static var blockMessageField: String { text("guide.editor.field.block_message", "Message") }
-        static var blockStepsField: String { text("guide.editor.field.block_steps", "Steps") }
-        static var blockStepsEmpty: String { text("guide.editor.block_steps.empty", "No steps yet.") }
-        static var stepTextPlaceholder: String { text("guide.editor.placeholder.step_text", "Step text") }
-        static var addStep: String { text("guide.editor.action.add_step", "Add step") }
-        static var deleteStep: String { text("guide.editor.action.delete_step", "Delete step") }
-        static var moveStepUp: String { text("guide.editor.action.move_step_up", "Move step up") }
-        static var moveStepDown: String { text("guide.editor.action.move_step_down", "Move step down") }
-        static var blockChecklistField: String { text("guide.editor.field.block_checklist", "Checklist") }
-        static var blockChecklistEmpty: String { text("guide.editor.block_checklist.empty", "No checklist items yet.") }
-        static var checklistItemPlaceholder: String { text("guide.editor.placeholder.checklist_item", "Checklist item") }
-        static var addChecklistItem: String { text("guide.editor.action.add_checklist_item", "Add checklist item") }
-        static var deleteChecklistItem: String { text("guide.editor.action.delete_checklist_item", "Delete checklist item") }
-        static var moveChecklistItemUp: String { text("guide.editor.action.move_checklist_item_up", "Move checklist item up") }
-        static var moveChecklistItemDown: String { text("guide.editor.action.move_checklist_item_down", "Move checklist item down") }
-        static var blockLinksField: String { text("guide.editor.field.block_links", "Links") }
-        static var blockLinksEmpty: String { text("guide.editor.block_links.empty", "No links yet.") }
-        static var linkTitlePlaceholder: String { text("guide.editor.placeholder.link_title", "Link title") }
-        static var linkURLPlaceholder: String { text("guide.editor.placeholder.link_url", "https://example.at") }
-        static var linkSourceNamePlaceholder: String { text("guide.editor.placeholder.link_source_name", "Source name") }
-        static var linkIsOfficial: String { text("guide.editor.field.link_is_official", "Official source") }
-        static var addLink: String { text("guide.editor.action.add_link", "Add link") }
-        static var deleteLink: String { text("guide.editor.action.delete_link", "Delete link") }
-        static var moveLinkUp: String { text("guide.editor.action.move_link_up", "Move link up") }
-        static var moveLinkDown: String { text("guide.editor.action.move_link_down", "Move link down") }
-        static var blockContactsField: String { text("guide.editor.field.block_contacts", "Contacts") }
-        static var blockContactsEmpty: String { text("guide.editor.block_contacts.empty", "No contacts yet.") }
-        static var contactNamePlaceholder: String { text("guide.editor.placeholder.contact_name", "Contact name") }
-        static var contactDescriptionPlaceholder: String { text("guide.editor.placeholder.contact_description", "Description") }
-        static var contactPhonePlaceholder: String { text("guide.editor.placeholder.contact_phone", "Phone") }
-        static var contactEmailPlaceholder: String { text("guide.editor.placeholder.contact_email", "Email") }
-        static var contactWebsitePlaceholder: String { text("guide.editor.placeholder.contact_website", "Website") }
-        static var addContact: String { text("guide.editor.action.add_contact", "Add contact") }
-        static var deleteContact: String { text("guide.editor.action.delete_contact", "Delete contact") }
-        static var moveContactUp: String { text("guide.editor.action.move_contact_up", "Move contact up") }
-        static var moveContactDown: String { text("guide.editor.action.move_contact_down", "Move contact down") }
-        static var blockTypeText: String { text("guide.editor.block_type.text", "Text") }
-        static var blockTypeWarning: String { text("guide.editor.block_type.warning", "Warning") }
-        static var blockTypeInfoBox: String { text("guide.editor.block_type.info_box", "Info box") }
-        static var blockTypeSteps: String { text("guide.editor.block_type.steps", "Steps") }
-        static var blockTypeChecklist: String { text("guide.editor.block_type.checklist", "Checklist") }
-        static var blockTypeLinks: String { text("guide.editor.block_type.links", "Links") }
-        static var blockTypeContacts: String { text("guide.editor.block_type.contacts", "Contacts") }
-        static var moveBlockUp: String { text("guide.editor.action.move_block_up", "Move block up") }
-        static var moveBlockDown: String { text("guide.editor.action.move_block_down", "Move block down") }
-        static var deleteBlock: String { text("guide.editor.action.delete_block", "Delete block") }
-        static var unsupportedBlockPlaceholder: String { text("guide.editor.unsupported_block.placeholder", "This block type is not editable right now.") }
-        static var backendNotice: String { text("guide.editor.backend_notice", "Drafts can be saved, reopened, edited, archived, and submitted for review. Approved articles are published from the review preview.") }
-        static var validateAction: String { text("guide.editor.action.validate", "Validate") }
-        static var saveDraftAction: String { text("guide.editor.action.save_draft", "Save draft") }
-        static var saveChangesAction: String { text("guide.editor.action.save_changes", "Save changes") }
-        static var submitForReviewAction: String { text("guide.editor.action.submit_for_review", "Submit for review") }
-        static var submitForReviewConfirmationTitle: String { text("guide.editor.submit.confirm.title", "Submit for review?") }
-        static var submitForReviewConfirmationMessage: String { text("guide.editor.submit.confirm.message", "This moves the draft out of editable drafts and into review.") }
-        static var validationSuccess: String { text("guide.editor.validation.success", "Draft looks valid.") }
-        static var savingDraft: String { text("guide.editor.save.saving", "Saving draft...") }
-        static var draftSaved: String { text("guide.editor.save.saved", "Draft saved.") }
-        static var missingAuthorError: String { text("guide.editor.save.missing_author", "Sign in before saving guide materials.") }
-        static var archiveUnavailable: String { text("guide.editor.archive.unavailable", "Archive is available only for existing guide materials.") }
-        static var submitUnavailable: String { text("guide.editor.submit.unavailable", "Save this draft before submitting it for review.") }
-        static var submitUnsavedChanges: String { text("guide.editor.submit.unsaved_changes", "Save draft changes before submitting for review.") }
-        static var saveNotImplemented: String { text("guide.editor.save.not_implemented", "This guide draft could not be saved. Check the draft state and try again.") }
-        static var saveNetworkError: String { text("guide.editor.save.error.network", "Unable to save the guide draft. Check your connection and try again.") }
-        static var savePermissionError: String { text("guide.editor.save.error.permission", "You do not have permission to save guide materials.") }
-        static var saveNotFoundError: String { text("guide.editor.save.error.not_found", "The selected guide material could not be found.") }
-        static var saveFailed: String { text("guide.editor.save.error.unknown", "Something went wrong while saving the guide draft.") }
-        static var reviewIntervalCritical: String { text("guide.editor.review_interval.critical", "Critical") }
-        static var reviewIntervalNormal: String { text("guide.editor.review_interval.normal", "Normal") }
-        static var reviewIntervalStable: String { text("guide.editor.review_interval.stable", "Stable") }
-
-        static func readerOrderPosition(_ position: Int, _ total: Int) -> String {
-            "Reader order \(position) of \(total)"
-        }
-    }
-
     enum OwnerAnalytics {
         static var title: String { text("owner_analytics.title", "Analytics") }
         static var subtitle: String { text("owner_analytics.subtitle", "Views, popular content and regions") }
@@ -1170,7 +818,6 @@ enum AppStrings {
         static var newsViews: String { text("owner_analytics.metric.news_views", "News views") }
         static var eventViews: String { text("owner_analytics.metric.event_views", "Event views") }
         static var organizationViews: String { text("owner_analytics.metric.organization_views", "Organization profile views") }
-        static var guideViews: String { text("owner_analytics.metric.guide_views", "Guide views") }
         static var activeRegions: String { text("owner_analytics.metric.active_regions", "Active regions") }
         static var actionsOverviewTitle: String { text("owner_analytics.actions.title", "Engagement and churn") }
         static var actionsOverviewSubtitle: String { text("owner_analytics.actions.subtitle", "Likes, saves, registrations, follows, cancellations, and unfollows") }
@@ -1201,12 +848,10 @@ enum AppStrings {
         static var popularNewsTitle: String { text("owner_analytics.popular.news", "Popular News") }
         static var popularEventsTitle: String { text("owner_analytics.popular.events", "Popular Events") }
         static var popularOrganizationsTitle: String { text("owner_analytics.popular.organizations", "Popular Organizations") }
-        static var popularGuideMaterialsTitle: String { text("owner_analytics.popular.guide_articles", "Popular Guide Materials") }
         static var detailAnalyticsTitle: String { text("owner_analytics.detail.title", "Detail analytics") }
         static var newsDetailSubtitle: String { text("owner_analytics.detail.news.subtitle", "News performance for the selected period") }
         static var eventDetailSubtitle: String { text("owner_analytics.detail.event.subtitle", "Event performance for the selected period") }
         static var organizationDetailSubtitle: String { text("owner_analytics.detail.organization.subtitle", "Organization performance for the selected period") }
-        static var guideDetailSubtitle: String { text("owner_analytics.detail.guide.subtitle", "Guide material performance for the selected period") }
         static var conversionRate: String { text("owner_analytics.detail.conversion_rate", "Conversion rate") }
         static var profileViews: String { text("owner_analytics.detail.profile_views", "Profile views") }
         static var topNews: String { text("owner_analytics.detail.top_news", "Top news") }
@@ -1241,7 +886,6 @@ enum AppStrings {
         static var contentTypeNews: String { text("owner_analytics.content_type.news", "News") }
         static var contentTypeEvent: String { text("owner_analytics.content_type.event", "Event") }
         static var contentTypeOrganization: String { text("owner_analytics.content_type.organization", "Organization") }
-        static var contentTypeGuideMaterial: String { text("owner_analytics.content_type.guide_article", "Guide") }
         static var regionAustria: String { text("owner_analytics.region.austria", "Austria") }
         static var regionFederalState: String { text("owner_analytics.region.federal_state", "Federal state") }
         static var regionCity: String { text("owner_analytics.region.city", "City") }
@@ -1370,14 +1014,14 @@ enum AppStrings {
         static var signOutFailed: String { text("profile.sign_out.failed", "We couldn’t sign you out right now.") }
         static var accountSectionSummary: String { text("profile.account.section_summary", "Your personal details, account state, and photo live here.") }
         static var guestSectionSummary: String { text("profile.guest.section_summary", "Browse publicly now, then sign in only when you need an account feature.") }
-        static var guestPlatformDescription: String { text("profile.guest.platform_description", "Новини, події, організації та довідник доступні для перегляду. Акаунт відкриває збереження, реєстрації та участь у спільнотах.") }
+        static var guestPlatformDescription: String { text("profile.guest.platform_description", "Новини, події та організації доступні для перегляду. Акаунт відкриває збереження, реєстрації та участь у спільнотах.") }
         static var guestWelcomeTitle: String { text("profile.guest.welcome_title", "Ласкаво просимо") }
         static var guestWelcomeSubtitle: String { text("profile.guest.welcome_subtitle", "Створіть акаунт, щоб зберігати події, підписуватись на організації та отримувати сповіщення.") }
         static var continueAsGuest: String { text("profile.guest.continue", "Продовжити як гість") }
         static var afterRegistrationTitle: String { text("profile.guest.after_registration.title", "Після реєстрації") }
         static var afterRegistrationSubtitle: String { text("profile.guest.after_registration.subtitle", "Особистий профіль відкриває збереження, підписки та персональні оновлення.") }
         static var afterRegistrationEventsSubtitle: String { text("profile.guest.after_registration.events", "Реєстрації та історія участі в одному місці.") }
-        static var afterRegistrationSavedSubtitle: String { text("profile.guest.after_registration.saved", "Новини, події та довідник для швидкого повернення.") }
+        static var afterRegistrationSavedSubtitle: String { text("profile.guest.after_registration.saved", "Новини, події та організації для швидкого повернення.") }
         static var personalRegion: String { text("profile.guest.personal_region", "Персональний регіон") }
         static var personalRegionSubtitle: String { text("profile.guest.personal_region.subtitle", "Локальні події та організації у вашій федеральній землі.") }
         static var guestAvailableTitle: String { text("profile.guest.available.title", "Доступно без акаунта") }
@@ -1392,7 +1036,6 @@ enum AppStrings {
         static var previewNewsSubtitle: String { text("profile.preview.news", "Оновлення громади та важливі повідомлення.") }
         static var previewEventsSubtitle: String { text("profile.preview.events", "Зустрічі, консультації та події поруч.") }
         static var previewOrganizationsSubtitle: String { text("profile.preview.organizations", "Перевірені організації та ініціативи.") }
-        static var previewGuideSubtitle: String { text("profile.preview.guide", "Практичний довідник для життя в Австрії.") }
         static var statRegistrations: String { text("profile.stat.registrations", "Реєстрації") }
         static var statLiked: String { text("profile.stat.liked", "Вподобано") }
         static var statOrganizations: String { text("profile.stat.organizations", "Організації") }
@@ -1401,7 +1044,7 @@ enum AppStrings {
         static var loadingStatValue: String { text("profile.stat.loading", "…") }
         static var myEvents: String { text("profile.my_events", "Мої події") }
         static var myEventsSubtitle: String { text("profile.my_events.subtitle", "Реєстрації, найближчі події та історія участі.") }
-        static var quickActionSavedSubtitle: String { text("profile.quick_action.saved.subtitle", "Новини, події та довідник.") }
+        static var quickActionSavedSubtitle: String { text("profile.quick_action.saved.subtitle", "Новини, події та організації.") }
         static var quickActionRegisteredEventsSubtitle: String { text("profile.quick_action.registered_events.subtitle", "Зареєстровані події") }
         static var quickActionSavedContentSubtitle: String { text("profile.quick_action.saved_content.subtitle", "Новини, події та організації") }
         static var quickActionSubscriptionsSubtitle: String { text("profile.quick_action.subscriptions.subtitle", "Організації, за якими ви стежите.") }
@@ -1431,7 +1074,7 @@ enum AppStrings {
         static var likedEvents: String { text("profile.activity.liked_events", "Вподобані події") }
         static var likedEventsSubtitle: String { text("profile.activity.liked_events.subtitle", "Події, до яких хочеться повернутися.") }
         static var recentlyViewed: String { text("profile.activity.recently_viewed", "Нещодавно переглянуте") }
-        static var recentlyViewedSubtitle: String { text("profile.activity.recently_viewed.subtitle", "Останні відкриті новини, події та довідник.") }
+        static var recentlyViewedSubtitle: String { text("profile.activity.recently_viewed.subtitle", "Останні відкриті новини, події та організації.") }
         static var recentlyViewedIntro: String { text("profile.activity.recently_viewed.intro", "Останні матеріали, які ви відкривали.") }
         static var recentlyViewedEmptyTitle: String { text("profile.activity.recently_viewed.empty_title", "Тут поки немає переглянутих матеріалів.") }
         static var recentlyViewedEmptyMessage: String { text("profile.activity.recently_viewed.empty_message", "Відкривайте новини, події та організації, щоб швидко повертатися до них.") }
@@ -1453,13 +1096,11 @@ enum AppStrings {
         static var participationRequests: String { text("profile.community.participation_requests", "Заявки / участь") }
         static var communityBadges: String { text("profile.community.badges", "Значки спільноти") }
         static var savedContent: String { text("profile.saved_content", "Збережене") }
-        static var savedContentSubtitle: String { text("profile.saved_content.subtitle", "Новини, події та довідкові матеріали, до яких ви повернетеся пізніше.") }
+        static var savedContentSubtitle: String { text("profile.saved_content.subtitle", "Новини, події та організації, до яких ви повернетеся пізніше.") }
         static var savedNews: String { text("profile.saved.news", "Збережені новини") }
         static var savedNewsSubtitle: String { text("profile.saved.news.subtitle", "Підбірка новин буде доступна після запуску збережень.") }
         static var savedEvents: String { text("profile.saved.events", "Збережені події") }
         static var savedEventsSubtitle: String { text("profile.saved.events.subtitle", "Події для швидкого повернення з’являться тут.") }
-        static var savedGuides: String { text("profile.saved.guides", "Збережений довідник") }
-        static var savedGuidesSubtitle: String { text("profile.saved.guides.subtitle", "Корисні статті та категорії будуть доступні тут.") }
         static var organizationEventActionSubtitle: String { text("profile.organization.event_action.subtitle", "Опублікувати подію від імені організації.") }
         static var organizationNewsActionSubtitle: String { text("profile.organization.news_action.subtitle", "Опублікувати новину від імені організації.") }
         static var organizationMembers: String { text("profile.organization.members", "Керування учасниками") }
@@ -1476,8 +1117,6 @@ enum AppStrings {
         static var platformEventsSubtitle: String { text("profile.platform.events.subtitle", "Керування всіма подіями платформи.") }
         static var platformNews: String { text("profile.platform.news", "Новини") }
         static var platformNewsSubtitle: String { text("profile.platform.news.subtitle", "Керування новинами та редакційними матеріалами.") }
-        static var platformGuide: String { text("profile.platform.guide", "Довідник") }
-        static var platformGuideSubtitle: String { text("profile.platform.guide.subtitle", "Статті, категорії та регіональні матеріали.") }
         static var platformModeration: String { text("profile.platform.moderation", "Модерація") }
         static var platformModerationSubtitle: String { text("profile.platform.moderation.subtitle", "Pending review, reports and rejected content.") }
         static var platformFeedbackQueue: String { text("profile.platform.feedback_queue", "Підтримка / feedback") }
@@ -1492,13 +1131,10 @@ enum AppStrings {
         static var platformStatQueue: String { text("profile.platform.stat.queue", "Queue") }
         static var platformOwnerBadge: String { text("profile.owner.badge", "Власник платформи") }
         static var platformAdminBadge: String { text("profile.admin.badge", "Адміністратор") }
-        static var guideEditorBadge: String { text("profile.guide_editor.badge", "Guide Editor") }
         static var ownerHeroStatus: String { text("profile.owner.hero_status", "Повний доступ до керування застосунком.") }
         static var adminHeroStatus: String { text("profile.admin.hero_status", "Операційне керування контентом, організаціями та модерацією.") }
-        static var guideEditorHeroStatus: String { text("profile.guide_editor.hero_status", "Доступ до керування довідником і матеріалами Guide.") }
         static var ownerFullAccess: String { text("profile.owner.full_access", "Повний доступ") }
         static var adminOperationalAccess: String { text("profile.admin.operational_access", "Операційний доступ") }
-        static var guideEditorAccess: String { text("profile.guide_editor.access", "Керування довідником") }
         static var ownerCreateNews: String { text("profile.owner.quick.create_news", "Створити новину") }
         static var ownerCreateNewsSubtitle: String { text("profile.owner.quick.create_news.subtitle", "Редакційний центр новин.") }
         static var ownerCreateEvent: String { text("profile.owner.quick.create_event", "Створити подію") }
@@ -1508,14 +1144,11 @@ enum AppStrings {
         static var ownerOpenModeration: String { text("profile.owner.quick.open_moderation", "Відкрити модерацію") }
         static var ownerOpenModerationSubtitle: String { text("profile.owner.quick.open_moderation.subtitle", "Матеріали, що очікують перевірки.") }
         static var ownerSendPush: String { text("profile.owner.quick.send_push", "Надіслати push") }
-        static var ownerAddGuideMaterial: String { text("profile.owner.quick.add_guide_article", "Додати матеріал у довідник") }
         static var ownerPlatformManagement: String { text("profile.owner.platform_management", "Керування платформою") }
         static var ownerPlatformManagementSubtitle: String { text("profile.owner.platform_management.subtitle", "Основні модулі керування контентом і доступом.") }
         static var adminPlatformManagement: String { text("profile.admin.platform_management", "Операційне керування") }
-        static var adminPlatformManagementSubtitle: String { text("profile.admin.platform_management.subtitle", "Контент, організації, довідник і частина user management.") }
-        static var adminAssistanceSubtitle: String { text("profile.admin.assistance.subtitle", "Заявки організацій, модерація, feedback/reports і довідник лише за окремою роллю.") }
-        static var guideEditorManagement: String { text("profile.guide_editor.management", "Керування довідником") }
-        static var guideEditorManagementSubtitle: String { text("profile.guide_editor.management.subtitle", "Створення, редагування, перевірка здоровʼя та звіти Guide.") }
+        static var adminPlatformManagementSubtitle: String { text("profile.admin.platform_management.subtitle", "Контент, організації та частина user management.") }
+        static var adminAssistanceSubtitle: String { text("profile.admin.assistance.subtitle", "Заявки організацій, модерація та feedback/reports.") }
         static var ownerUsers: String { text("profile.owner.users", "Користувачі") }
         static var ownerUsersSubtitle: String { text("profile.owner.users.subtitle", "Ролі, блокування, статус акаунтів.") }
         static var adminUsersSubtitle: String { text("profile.admin.users.subtitle", "Статуси акаунтів і базова модерація користувачів.") }
@@ -1525,8 +1158,6 @@ enum AppStrings {
         static var ownerNewsSubtitle: String { text("profile.owner.news.subtitle", "Публікація, редагування, видалення.") }
         static var ownerEvents: String { text("profile.owner.events", "Події") }
         static var ownerEventsSubtitle: String { text("profile.owner.events.subtitle", "Створення, редагування, реєстрації.") }
-        static var ownerGuide: String { text("profile.owner.guide", "Довідник") }
-        static var ownerGuideSubtitle: String { text("profile.owner.guide.subtitle", "Категорії, статті, корисна інформація.") }
         static var ownerModeration: String { text("profile.owner.moderation", "Модерація") }
         static var ownerModerationSubtitle: String { text("profile.owner.moderation.subtitle", "Перевірка матеріалів і майбутня робота зі скаргами.") }
         static var ownerPendingReview: String { text("profile.owner.pending_review", "Очікують перевірки") }
@@ -1905,15 +1536,10 @@ enum AppStrings {
         static var assignRoleSectionTitle: String { text("user_management.assign_role.section_title", "Призначити роль") }
         static var assignRoleSectionSubtitle: String { text("user_management.assign_role.section_subtitle", "Owner платформи може призначити роль тільки в конкретній організації.") }
         static var platformRolesTitle: String { text("user_management.platform_roles.title", "Ролі платформи") }
-        static var platformRolesSubtitle: String { text("user_management.platform_roles.subtitle", "App Admin і Guide Editor не повʼязані з ролями в організаціях.") }
+        static var platformRolesSubtitle: String { text("user_management.platform_roles.subtitle", "App Admin не повʼязаний із ролями в організаціях.") }
         static var currentPlatformRole: String { text("user_management.platform_roles.current_role", "Поточна роль") }
-        static var guideEditorRole: String { text("user_management.platform_roles.guide_editor", "Guide Editor") }
-        static var guideEditorEnabled: String { text("user_management.platform_roles.guide_editor.enabled", "Так") }
-        static var guideEditorDisabled: String { text("user_management.platform_roles.guide_editor.disabled", "Ні") }
         static var assignAppAdmin: String { text("user_management.platform_roles.assign_app_admin", "Призначити App Admin") }
         static var removeAppAdmin: String { text("user_management.platform_roles.remove_app_admin", "Зняти App Admin") }
-        static var assignGuideEditor: String { text("user_management.platform_roles.assign_guide_editor", "Призначити Guide Editor") }
-        static var removeGuideEditor: String { text("user_management.platform_roles.remove_guide_editor", "Зняти Guide Editor") }
         static var platformRoleActionFallbackTitle: String { text("user_management.platform_roles.action_title", "Зміна ролі платформи") }
         static var platformRoleAuditNotice: String { text("user_management.platform_roles.audit_notice", "Зміна ролі буде виконана через Cloud Function і записана в audit log. За потреби вкажіть причину в полі нижче перед підтвердженням.") }
         static var platformRolePermissionDenied: String { text("user_management.platform_roles.permission_denied", "Недостатньо прав для зміни ролі платформи.") }
@@ -2039,7 +1665,7 @@ enum AppStrings {
         static var lastUpdatedLabel: String { text("legal.last_updated_label", "Last updated %@") }
 
         static var termsIntroTitle: String { text("legal.terms.intro.title", "Using the app") }
-        static var termsIntroBody: String { text("legal.terms.intro.body", "Ukrainian Community Tirol helps people discover public updates, events, organizations, and practical guide content. By using the app with an account, you agree to use it lawfully, respectfully, and only for its intended community purpose.") }
+        static var termsIntroBody: String { text("legal.terms.intro.body", "Ukrainian Community Tirol helps people discover public updates, events, organizations, and practical community information. By using the app with an account, you agree to use it lawfully, respectfully, and only for its intended community purpose.") }
         static var termsAccountTitle: String { text("legal.terms.account.title", "Account responsibilities") }
         static var termsAccountBody: String { text("legal.terms.account.body", "You are responsible for the accuracy of the profile details you provide, for keeping your sign-in credentials private, and for the actions taken through your account. You may not impersonate other people or create accounts to evade moderation.") }
         static var termsContentTitle: String { text("legal.terms.content.title", "Community content and moderation") }
@@ -2219,11 +1845,6 @@ enum AppStrings {
         static var newsTitleRequired: String { text("validation.news.title_required", "News title is required.") }
         static var newsSubtitleRequired: String { text("validation.news.subtitle_required", "News subtitle is required.") }
         static var newsBodyTooShort: String { text("validation.news.body_too_short", "News body is too short.") }
-        static var guideTitleRequired: String { text("validation.guide.title_required", "Guide title is required.") }
-        static var guideSummaryRequired: String { text("validation.guide.summary_required", "Guide summary is required.") }
-        static var guideCategoryRequired: String { text("validation.guide.category_required", "Select a guide category.") }
-        static var guideContentRequired: String { text("validation.guide.content_required", "Add at least one content block or body text.") }
-        static var guideOfficialSourceRequired: String { text("validation.guide.official_source_required", "Add at least one official source.") }
         static var eventTitleRequired: String { text("validation.event.title_required", "Event title is required.") }
         static var eventDetailsTooShort: String { text("validation.event.details_too_short", "Event details are too short.") }
         static var eventCityRequired: String { text("validation.event.city_required", "Event city is required.") }

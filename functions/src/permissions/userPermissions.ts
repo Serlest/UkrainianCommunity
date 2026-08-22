@@ -21,7 +21,6 @@ export interface UserPermissionSnapshot {
   accountStatus?: AccountStatus;
   blockState?: BlockState;
   globalRole?: GlobalRole;
-  canManageGuide?: boolean;
 }
 
 export const feedbackManagerGlobalRoles = ["owner", "admin"] as const;
@@ -40,7 +39,6 @@ export async function getUserPermissions(uid: string): Promise<UserPermissionSna
     accountStatus: data.accountStatus,
     blockState: data.blockState,
     globalRole: data.globalRole,
-    canManageGuide: data.canManageGuide,
   };
 }
 
@@ -76,10 +74,6 @@ export function canAssignAppAdmin(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user);
 }
 
-export function canAssignGuideEditor(user: UserPermissionSnapshot): boolean {
-  return isAppOwner(user) || isAppAdmin(user);
-}
-
 export function canAccessModerationTools(user: UserPermissionSnapshot): boolean {
   return isAppOwner(user) || isAppAdmin(user);
 }
@@ -100,10 +94,6 @@ export function canUseOrganizationOverride(user: UserPermissionSnapshot): boolea
   return isAppOwner(user);
 }
 
-export function canManageGuide(user: UserPermissionSnapshot): boolean {
-  return isActiveUser(user) && (user.globalRole === "owner" || user.canManageGuide === true);
-}
-
 export function assertOwner(user: UserPermissionSnapshot): void {
   if (!isOwner(user)) {
     throw new HttpsError("permission-denied", "Owner permissions are required.");
@@ -113,11 +103,5 @@ export function assertOwner(user: UserPermissionSnapshot): void {
 export function assertCanManageUsers(user: UserPermissionSnapshot): void {
   if (!canManageUsers(user)) {
     throw new HttpsError("permission-denied", "Platform user management permissions are required.");
-  }
-}
-
-export function assertCanManageGuide(user: UserPermissionSnapshot): void {
-  if (!canManageGuide(user)) {
-    throw new HttpsError("permission-denied", "Guide management permissions are required.");
   }
 }
