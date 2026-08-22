@@ -22,13 +22,18 @@ final class OrganizationTeamViewModel: ObservableObject {
         self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
     }
 
-    func load(organization: Organization) async {
+    func load(organization: Organization, actor: AppUser?) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let subscriberIDs = try await fetchSubscriberIDs(organizationID: organization.id)
+            let subscriberIDs: [String]
+            if PermissionService.canManageOrganizationRoles(organization, user: actor) {
+                subscriberIDs = try await fetchSubscriberIDs(organizationID: organization.id)
+            } else {
+                subscriberIDs = []
+            }
             let teamIDs = Self.teamIDs(for: organization)
             let profiles = try await organizationRepository.fetchPublicUserProfiles(
                 userIDs: Array(Set(teamIDs + subscriberIDs))
@@ -62,12 +67,21 @@ final class OrganizationTeamViewModel: ObservableObject {
         return Array(NSOrderedSet(array: userIDs)) as? [String] ?? userIDs
     }
 
-    func loadCandidateUsers(excluding organization: Organization, allowsExistingTeamMembers: Bool = false) async {
+    func loadCandidateUsers(
+        excluding organization: Organization,
+        actor: AppUser?,
+        allowsExistingTeamMembers: Bool = false
+    ) async {
         isLoadingCandidates = true
         defer { isLoadingCandidates = false }
 
+        guard PermissionService.canManageOrganizationRoles(organization, user: actor) else {
+            candidateMembers = []
+            return
+        }
+
         if members.isEmpty {
-            await load(organization: organization)
+            await load(organization: organization, actor: actor)
         }
 
         let excludedIDs: Set<String>
@@ -114,7 +128,11 @@ final class OrganizationTeamViewModel: ObservableObject {
             return false
         }
 
-        return await update(targetUserID: target.userID, organization: organization) {
+        return await update(
+            targetUserID: target.userID,
+            organization: organization,
+            actor: actor
+        ) {
             try await roleManagementService.updateRole(
                 role: role.communityRole,
                 organization: organization,
@@ -142,7 +160,11 @@ final class OrganizationTeamViewModel: ObservableObject {
             return false
         }
 
-        return await update(targetUserID: member.userID, organization: organization) {
+        return await update(
+            targetUserID: member.userID,
+            organization: organization,
+            actor: actor
+        ) {
             try await roleManagementService.updateRole(
                 role: .member,
                 organization: organization,
@@ -169,7 +191,11 @@ final class OrganizationTeamViewModel: ObservableObject {
             return false
         }
 
-        return await update(targetUserID: target.userID, organization: organization) {
+        return await update(
+            targetUserID: target.userID,
+            organization: organization,
+            actor: actor
+        ) {
             try await roleManagementService.transferOwner(
                 organization: organization,
                 newOwnerID: target.userID,
@@ -181,6 +207,7 @@ final class OrganizationTeamViewModel: ObservableObject {
     private func update(
         targetUserID: String,
         organization: Organization,
+        actor: AppUser,
         operation: () async throws -> Void
     ) async -> Bool {
         guard !updatingUserIDs.contains(targetUserID) else { return false }
@@ -192,7 +219,7 @@ final class OrganizationTeamViewModel: ObservableObject {
         do {
             try await operation()
             statusMessage = AppStrings.Profile.organizationTeamUpdated
-            await load(organization: organization)
+            await load(organization: organization, actor: actor)
             return true
         } catch {
             errorMessage = AppStrings.Profile.organizationTeamSaveFailed
