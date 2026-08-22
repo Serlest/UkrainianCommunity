@@ -8,12 +8,19 @@ struct AppStartupGate: View {
     @State private var isShowingSplash = true
     @State private var minimumSplashDurationElapsed = false
     @State private var minimumSplashTask: Task<Void, Never>?
+    @State private var uiTestReleasedSplash = false
 
     private let minimumSplashDuration: UInt64 = 4_000_000_000
     private let transitionDuration = 0.45
 
     private var reduceMotionEnabled: Bool {
         UIAccessibility.isReduceMotionEnabled
+    }
+
+    private var shouldHoldSplashForUITesting: Bool {
+        let processInfo = ProcessInfo.processInfo
+        return processInfo.arguments.contains("-ui-testing")
+            && processInfo.environment["UITestHoldSplash"] == "1"
     }
 
     var body: some View {
@@ -24,7 +31,7 @@ struct AppStartupGate: View {
                 .accessibilityHidden(isShowingSplash)
 
             if isShowingSplash {
-                SplashLoadingView()
+                splashView
                     .opacity(1)
                     .transition(.opacity)
             }
@@ -39,6 +46,18 @@ struct AppStartupGate: View {
         }
         .onChange(of: authState.isRestoring) { _, _ in
             evaluateStartupState()
+        }
+    }
+
+    @ViewBuilder
+    private var splashView: some View {
+        if shouldHoldSplashForUITesting {
+            SplashLoadingView()
+                .onTapGesture {
+                    releaseSplashForUITesting()
+                }
+        } else {
+            SplashLoadingView()
         }
     }
 
@@ -66,6 +85,10 @@ struct AppStartupGate: View {
             return
         }
 
+        guard !shouldHoldSplashForUITesting || uiTestReleasedSplash else {
+            return
+        }
+
         guard minimumSplashDurationElapsed else {
             return
         }
@@ -81,5 +104,17 @@ struct AppStartupGate: View {
                 isShowingSplash = false
             }
         }
+    }
+
+    private func releaseSplashForUITesting() {
+        guard shouldHoldSplashForUITesting else {
+            return
+        }
+
+        minimumSplashTask?.cancel()
+        minimumSplashTask = nil
+        minimumSplashDurationElapsed = true
+        uiTestReleasedSplash = true
+        evaluateStartupState()
     }
 }
