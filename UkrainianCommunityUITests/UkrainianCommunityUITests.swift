@@ -8,12 +8,11 @@
 import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
-    private let expectedTabs = ["Start", "Veranstaltungen", "Organisationen", "Guide", "Profil"]
+    private let expectedTabs = ["Start", "Veranstaltungen", "Organisationen", "Profil"]
     private let stressTabs: [MainTabSpec] = [
         MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Start"),
         MainTabSpec(screenIdentifier: "screen.events", tabIdentifier: "tab.events", tabLabel: "Veranstaltungen"),
         MainTabSpec(screenIdentifier: "screen.organizations", tabIdentifier: "tab.organizations", tabLabel: "Organisationen"),
-        MainTabSpec(screenIdentifier: "screen.guide", tabIdentifier: "tab.guide", tabLabel: "Guide"),
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
     ]
 
@@ -171,7 +170,6 @@ final class UkrainianCommunityUITests: XCTestCase {
         assertRootScreen(screenIdentifier: "screen.home", tabLabel: "Start", in: app)
         assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)
         assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
-        assertRootScreen(screenIdentifier: "screen.guide", tabLabel: "Guide", in: app)
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
     }
 
@@ -198,8 +196,8 @@ final class UkrainianCommunityUITests: XCTestCase {
             XCTAssertTrue(app.otherElements["screen.events"].waitForExistence(timeout: 10))
         }
 
+        tapRootTab(stressTabs[2], in: app)
         tapRootTab(stressTabs[3], in: app)
-        tapRootTab(stressTabs[4], in: app)
         tapRootTab(stressTabs[0], in: app)
 
         XCTAssertEqual(app.state, .runningForeground)
