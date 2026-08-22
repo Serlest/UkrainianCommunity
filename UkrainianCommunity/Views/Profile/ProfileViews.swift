@@ -1031,22 +1031,6 @@ struct ProfileView: View {
         .buttonStyle(.plain)
     }
 
-    private var moderatorQuickActionsSection: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-            ],
-            spacing: AppTheme.eventsMetadataSpacing
-        ) {
-            NavigationLink(value: ProfileNavigationRoute.moderationTools) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(title: AppStrings.Profile.moderatorModerationQueue, subtitle: AppStrings.Profile.ownerPendingReviewSubtitle, systemImage: "clock.badge.exclamationmark", status: canShowModerationTools ? .active : .locked))
-            }
-            .buttonStyle(.plain)
-
-        }
-    }
-
     private func profileStats(for user: AppUser) -> [ProfileStatItem] {
         [
             ProfileStatItem(title: AppStrings.Profile.statRegistrations, value: registrationsViewModel.registrationsCountText, systemImage: "calendar.badge.clock"),
@@ -1190,7 +1174,7 @@ struct ProfileView: View {
                         NavigationLink(value: ProfileNavigationRoute.moderationTools) {
                             ProfileModuleRow(
                                 title: AppStrings.Profile.ownerOrganizationRequests,
-                                subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
+                                subtitle: AppStrings.Profile.organizationRequestsReviewSubtitle,
                                 systemImage: "clock.badge.exclamationmark",
                                 status: .available,
                                 countBadge: ownerVisibilityViewModel.pendingOrganizationRequestCount
@@ -1245,9 +1229,6 @@ struct ProfileView: View {
         if PermissionService.isAppAdmin(user: permissionUser) {
             return AppStrings.Profile.adminPlatformManagement
         }
-        if PermissionService.isAppModerator(user: permissionUser) {
-            return AppStrings.Profile.moderatorReviewQueues
-        }
         return AppStrings.Profile.guideEditorManagement
     }
 
@@ -1257,9 +1238,6 @@ struct ProfileView: View {
         }
         if PermissionService.isAppAdmin(user: permissionUser) {
             return AppStrings.Profile.adminAssistanceSubtitle
-        }
-        if PermissionService.isAppModerator(user: permissionUser) {
-            return AppStrings.Profile.moderatorReviewQueuesSubtitle
         }
         return AppStrings.Profile.guideEditorManagementSubtitle
     }
@@ -1297,7 +1275,7 @@ struct ProfileView: View {
                 NavigationLink(value: ProfileNavigationRoute.moderationTools) {
                     ProfileModuleRow(
                         title: AppStrings.Profile.ownerOrganizationRequests,
-                        subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
+                        subtitle: AppStrings.Profile.organizationRequestsReviewSubtitle,
                         systemImage: "clock.badge.exclamationmark",
                         status: canShowOrganizationRequests ? .available : .locked,
                         countBadge: canShowOrganizationRequests ? ownerVisibilityViewModel.pendingOrganizationRequestCount : nil
@@ -1315,34 +1293,6 @@ struct ProfileView: View {
                     )
                 }
                 .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func moderatorReviewQueuesSection(for user: AppUser) -> some View {
-        ProfileSectionCard(title: AppStrings.Profile.moderatorReviewQueues, subtitle: AppStrings.Profile.moderatorReviewQueuesSubtitle) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileModuleRow(
-                    title: AppStrings.Profile.ownerNews,
-                    subtitle: AppStrings.Profile.moderatorNewsReviewSubtitle,
-                    systemImage: "newspaper",
-                    status: PermissionService.canModerate(section: .news, user: user) ? .active : .locked,
-                    accessory: .none
-                )
-                ProfileModuleRow(
-                    title: AppStrings.Profile.ownerEvents,
-                    subtitle: AppStrings.Profile.moderatorEventsReviewSubtitle,
-                    systemImage: "calendar",
-                    status: PermissionService.canModerate(section: .events, user: user) ? .active : .locked,
-                    accessory: .none
-                )
-                ProfileModuleRow(
-                    title: AppStrings.Profile.ownerOrganizations,
-                    subtitle: AppStrings.Profile.moderatorOrganizationsReviewSubtitle,
-                    systemImage: "building.2",
-                    status: PermissionService.canManageOrganizationRequests(user: user) ? .active : .locked,
-                    accessory: .none
-                )
             }
         }
     }

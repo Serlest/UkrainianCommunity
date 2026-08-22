@@ -7,6 +7,7 @@ import {
   buildNotificationDataPayload,
   resolveNotificationRecipients,
 } from "./notifications/notificationPayloads";
+import {feedbackManagerGlobalRoles} from "./permissions/userPermissions";
 
 export * from "./counters/aggregation";
 export * from "./analytics/trackAnalyticsEvent";
@@ -18,8 +19,6 @@ export * from "./organizations/approvalWorkflow";
 export * from "./organizations/roleManagement";
 export * from "./users/accountStatusManagement";
 export * from "./users/platformRoleManagement";
-
-const feedbackManagers = ["owner", "admin", "moderator"];
 
 type FeedbackData = {
   id?: string;
@@ -142,7 +141,7 @@ export const notifyFeedbackMessageCreated = onDocumentCreated(
 
 async function feedbackManagerUserIds(excludedUserId?: string): Promise<string[]> {
   const snapshots = await Promise.all(
-    feedbackManagers.map((role) =>
+    feedbackManagerGlobalRoles.map((role) =>
       db.collection("users").where("globalRole", "==", role).get()
     )
   );

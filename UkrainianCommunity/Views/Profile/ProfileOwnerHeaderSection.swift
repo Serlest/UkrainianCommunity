@@ -3,7 +3,6 @@ import SwiftUI
 enum ProfileDashboardMode {
     case owner
     case admin
-    case moderator
     case guideEditor
 
     init?(user: AppUser) {
@@ -12,9 +11,7 @@ enum ProfileDashboardMode {
             self = .owner
         case .admin:
             self = .admin
-        case .moderator:
-            self = .moderator
-        case .user, .topAdmin, .appModerator:
+        case .user, .topAdmin:
             guard user.canManageGuide else { return nil }
             self = .guideEditor
         }
@@ -26,8 +23,6 @@ enum ProfileDashboardMode {
             return AppStrings.Profile.platformOwnerBadge
         case .admin:
             return AppStrings.Profile.platformAdminBadge
-        case .moderator:
-            return AppStrings.Profile.platformModeratorBadge
         case .guideEditor:
             return AppStrings.Profile.guideEditorBadge
         }
@@ -39,8 +34,6 @@ enum ProfileDashboardMode {
             return AppStrings.Profile.ownerHeroStatus
         case .admin:
             return AppStrings.Profile.adminHeroStatus
-        case .moderator:
-            return AppStrings.Profile.moderatorHeroStatus
         case .guideEditor:
             return AppStrings.Profile.guideEditorHeroStatus
         }
@@ -52,8 +45,6 @@ enum ProfileDashboardMode {
             return AppStrings.Profile.ownerFullAccess
         case .admin:
             return AppStrings.Profile.adminOperationalAccess
-        case .moderator:
-            return AppStrings.Profile.moderatorContentAccess
         case .guideEditor:
             return AppStrings.Profile.guideEditorAccess
         }
@@ -65,8 +56,6 @@ enum ProfileDashboardMode {
             return "crown"
         case .admin:
             return "person.badge.key"
-        case .moderator:
-            return "shield"
         case .guideEditor:
             return "book.closed"
         }

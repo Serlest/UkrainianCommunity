@@ -42,7 +42,7 @@ after(async () => {
 });
 
 function auth(uid) {
-  return testEnv.authenticatedContext(uid).firestore();
+  return testEnv.authenticatedContext(uid, {email_verified: true}).firestore();
 }
 
 function unauthenticated() {

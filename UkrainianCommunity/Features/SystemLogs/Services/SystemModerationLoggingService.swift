@@ -132,8 +132,6 @@ struct FirebaseSystemModerationActorResolver: SystemModerationActorResolving {
             return .owner
         case GlobalRole.admin.rawValue:
             return .admin
-        case GlobalRole.moderator.rawValue:
-            return .moderator
         default:
             return nil
         }

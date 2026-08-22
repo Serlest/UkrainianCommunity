@@ -17,12 +17,15 @@ final class UkrainianCommunityUITests: XCTestCase {
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
     ]
 
-    private func launchApp() -> XCUIApplication {
+    private func launchApp(holdingSplash: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launchEnvironment["UITestForceGuestSession"] = "1"
+        if holdingSplash {
+            app.launchEnvironment["UITestHoldSplash"] = "1"
+        }
         app.launch()
         return app
     }
@@ -35,6 +38,17 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestForceAuthenticatedSession"] = "1"
         app.launch()
         return app
+    }
+
+    private func attachScreenshot(
+        named name: String,
+        from app: XCUIApplication,
+        lifetime: XCTAttachment.Lifetime = .keepAlways
+    ) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = lifetime
+        add(attachment)
     }
 
     override func setUpWithError() throws {
@@ -113,6 +127,24 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testAppLaunchesAndShowsTabBar() throws {
         let app = launchApp()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testStartupSplashTransitionsToMainInterface() throws {
+        let app = launchApp(holdingSplash: true)
+        let splash = app.otherElements["startup.splash"]
+        XCTAssertTrue(splash.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.images["startup.logo"].waitForExistence(timeout: 2))
+
+        // Capture the logo after its reveal animation, while the four-second
+        // startup gate is still visible.
+        Thread.sleep(forTimeInterval: 2)
+        attachScreenshot(named: "Startup Splash", from: app)
+
+        splash.tap()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertFalse(splash.exists)
+        attachScreenshot(named: "Main Interface After Splash", from: app)
     }
 
     @MainActor

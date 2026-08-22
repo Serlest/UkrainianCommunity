@@ -65,7 +65,6 @@ test("App Owner has full platform access and organization override", () => {
   const owner = user({uid: "owner", globalRole: "owner"});
 
   assert.equal(permissions.canAssignAppAdmin(owner), true);
-  assert.equal(permissions.canAssignAppModerator(owner), true);
   assert.equal(permissions.canAssignGuideEditor(owner), true);
   assert.equal(permissions.canManageUsers(owner), true);
   assert.equal(permissions.canManageGuide(owner), true);
@@ -87,27 +86,11 @@ test("App Admin can manage limited platform roles without admin assignment or or
   assert.equal(permissions.canManageFeedback(admin), true);
   assert.equal(permissions.canManageReports(admin), true);
   assert.equal(permissions.canAssignAppAdmin(admin), false);
-  assert.equal(permissions.canAssignAppModerator(admin), true);
   assert.equal(permissions.canAssignGuideEditor(admin), true);
   assert.equal(permissions.canUseOrganizationOverride(admin), false);
   assert.equal(permissions.canManageGuide(admin), false);
   assert.equal(permissions.canManageGuide(guideAdmin), true);
   assert.equal(canManageOrganizationContent(org, admin), false);
-});
-
-test("App Moderator is moderation-only and has no organization request access", () => {
-  const moderator = user({uid: "moderator", globalRole: "moderator"});
-  const org = organization();
-
-  assert.equal(permissions.canAccessModerationTools(moderator), true);
-  assert.equal(permissions.canManageFeedback(moderator), true);
-  assert.equal(permissions.canManageReports(moderator), true);
-  assert.equal(permissions.canManageOrganizationRequests(moderator), false);
-  assert.equal(permissions.canAssignAppAdmin(moderator), false);
-  assert.equal(permissions.canAssignAppModerator(moderator), false);
-  assert.equal(permissions.canAssignGuideEditor(moderator), false);
-  assert.equal(permissions.canUseOrganizationOverride(moderator), false);
-  assert.equal(canManageOrganizationContent(org, moderator), false);
 });
 
 test("Guide Editor has guide-only platform access", () => {
@@ -154,6 +137,7 @@ test("restricted accounts and legacy roles do not receive elevated access", () =
   });
   const legacyTopAdmin = user({uid: "legacy-top-admin", globalRole: "topAdmin"});
   const legacyModerator = user({uid: "legacy-moderator", globalRole: "appModerator"});
+  const removedModerator = user({uid: "removed-moderator", globalRole: "moderator"});
 
   assert.equal(permissions.isActiveUser(suspendedOwner), false);
   assert.equal(permissions.canManageUsers(suspendedOwner), false);
@@ -161,4 +145,13 @@ test("restricted accounts and legacy roles do not receive elevated access", () =
   assert.equal(permissions.canAccessModerationTools(legacyTopAdmin), false);
   assert.equal(permissions.canAccessModerationTools(legacyModerator), false);
   assert.equal(permissions.canManageGuide(legacyTopAdmin), false);
+  assert.equal(permissions.canAccessModerationTools(removedModerator), false);
+  assert.equal(permissions.canManageFeedback(removedModerator), false);
+  assert.equal(permissions.canManageReports(removedModerator), false);
+});
+
+test("feedback notifications target only active platform management roles", () => {
+  assert.deepEqual(permissions.feedbackManagerGlobalRoles, ["owner", "admin"]);
+  assert.equal(permissions.feedbackManagerGlobalRoles.includes("moderator"), false);
+  assert.equal(permissions.feedbackManagerGlobalRoles.includes("appModerator"), false);
 });

@@ -60,14 +60,8 @@ service cloud.firestore {
         && currentUserData().globalRole == 'admin';
     }
 
-    function isAppModerator() {
-      return isVerifiedActiveUser()
-        && ('globalRole' in currentUserData())
-        && currentUserData().globalRole == 'moderator';
-    }
-
-    function isPlatformModeratorTier() {
-      return isAppOwner() || isAppAdmin() || isAppModerator();
+    function isPlatformManagementTier() {
+      return isAppOwner() || isAppAdmin();
     }
 
     function isGuideEditor() {
@@ -83,11 +77,11 @@ service cloud.firestore {
     }
 
     function canManageFeedback() {
-      return isPlatformModeratorTier();
+      return isPlatformManagementTier();
     }
 
     function canManageReports() {
-      return isPlatformModeratorTier();
+      return isPlatformManagementTier();
     }
 
     function canManageOrganizationRequests() {
@@ -182,7 +176,7 @@ service cloud.firestore {
     function isModerationLogActor() {
       return isVerifiedActiveUser()
         && ('globalRole' in currentUserData())
-        && currentUserData().globalRole in ['owner', 'admin', 'moderator'];
+        && currentUserData().globalRole in ['owner', 'admin'];
     }
 
     function requestActorMatchesAuth() {
@@ -193,7 +187,7 @@ service cloud.firestore {
 
     function requestModerationActorMatchesAuth() {
       return request.resource.data.actorUserId == request.auth.uid
-        && request.resource.data.actorRole in ['owner', 'admin', 'moderator']
+        && request.resource.data.actorRole in ['owner', 'admin']
         && request.resource.data.actorRole == currentUserData().globalRole;
     }
 
@@ -370,9 +364,9 @@ service cloud.firestore {
     }
 
     function canModerateSection(section) {
-      // topAdmin, appModerator, and moderatorSections are migration-only and
-      // are not active authorization sources.
-      return section is string && isPlatformModeratorTier();
+      // Legacy role fields and moderatorSections are migration-only and are
+      // not active authorization sources.
+      return section is string && isPlatformManagementTier();
     }
 
     function isPublishedGuideV2Resource() {

@@ -26348,75 +26348,7 @@
         }
       }
     },
-    "profile.moderator.badge" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moderator"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Модератор"
-          }
-        }
-      }
-    },
-    "profile.moderator.content_access" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inhaltsmoderation"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Модерація контенту"
-          }
-        }
-      }
-    },
-    "profile.moderator.events_review.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prüfung von Veranstaltungen und zugehörigen Inhalten."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевірка подій і пов’язаного контенту."
-          }
-        }
-      }
-    },
-    "profile.moderator.hero_status" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fokus auf Inhaltsprüfung und Bearbeitung von Meldungen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Фокус на перевірці матеріалів і роботі зі скаргами."
-          }
-        }
-      }
-    },
-    "profile.moderator.moderation_queue" : {
+    "profile.moderation.queue" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -26433,24 +26365,7 @@
         }
       }
     },
-    "profile.moderator.news_review.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prüfung von News und redaktionellen Inhalten."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевірка новин і редакційних матеріалів."
-          }
-        }
-      }
-    },
-    "profile.moderator.organizations_review.subtitle" : {
+    "profile.organization_requests.review.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -26463,40 +26378,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перевірка організацій і профілів спільнот."
-          }
-        }
-      }
-    },
-    "profile.moderator.review_queues" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prüfwarteschlangen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Черги перевірки"
-          }
-        }
-      }
-    },
-    "profile.moderator.review_queues.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inhalte, die in deinen Bereichen geprüft werden müssen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Матеріали, які можуть потребувати перевірки за вашими секціями."
           }
         }
       }
@@ -32655,23 +32536,6 @@
         }
       }
     },
-    "role.app_moderator" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App-Moderator"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Модератор застосунку"
-          }
-        }
-      }
-    },
     "role.moderator" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37488,23 +37352,6 @@
         }
       }
     },
-    "user_management.assign_moderator" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moderator zuweisen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Призначити модератора"
-          }
-        }
-      }
-    },
     "user_management.assign_role.button" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37947,23 +37794,6 @@
         }
       }
     },
-    "user_management.issue.moderator_sections_missing" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legacy-Moderator hat keine zugewiesenen Bereiche"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legacy-модератор не має призначених секцій"
-          }
-        }
-      }
-    },
     "user_management.issue.owner_global_role_mismatch" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38028,23 +37858,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Зараз не вдається завантажити діагностику користувачів."
-          }
-        }
-      }
-    },
-    "user_management.moderator_sections" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Moderationsbereiche"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Секції модератора"
           }
         }
       }
@@ -38372,23 +38185,6 @@
         }
       }
     },
-    "user_management.platform_roles.assign_app_moderator" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App Moderator zuweisen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Призначити App Moderator"
-          }
-        }
-      }
-    },
     "user_management.platform_roles.assign_guide_editor" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38627,23 +38423,6 @@
         }
       }
     },
-    "user_management.platform_roles.remove_app_moderator" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App Moderator entfernen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Зняти App Moderator"
-          }
-        }
-      }
-    },
     "user_management.platform_roles.remove_guide_editor" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38684,13 +38463,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Rollen App-Admin, App-Moderator und Guide-Redakteur sind nicht mit Organisationsrollen verbunden."
+            "value" : "Die Rollen App-Admin und Guide-Redakteur sind nicht mit Organisationsrollen verbunden."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ролі адміністратора застосунку, модератора застосунку й редактора довідника не пов’язані з ролями в організаціях."
+            "value" : "Ролі адміністратора застосунку й редактора довідника не пов’язані з ролями в організаціях."
           }
         }
       }
