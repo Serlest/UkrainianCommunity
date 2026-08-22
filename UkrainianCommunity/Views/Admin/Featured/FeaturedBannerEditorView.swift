@@ -337,14 +337,14 @@ struct FeaturedBannerEditorView: View {
     private var guideTargetSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
             AppEditorField(
-                title: GuideAuthoringPresentation.localized(
+                title: featuredBannerEditorText(
                     uk: "Що відкривати",
                     de: "Was geöffnet werden soll",
                     en: "Open destination"
                 )
             ) {
                 Picker(
-                    GuideAuthoringPresentation.localized(
+                    featuredBannerEditorText(
                         uk: "Що відкривати",
                         de: "Was geöffnet werden soll",
                         en: "Open destination"
@@ -359,9 +359,9 @@ struct FeaturedBannerEditorView: View {
                         }
                     )
                 ) {
-                    Text(GuideAuthoringPresentation.localized(uk: "Головна довідника", de: "Leitfaden-Startseite", en: "Guide root"))
+                    Text(featuredBannerEditorText(uk: "Головна довідника", de: "Leitfaden-Startseite", en: "Guide root"))
                         .tag(FeaturedBannerEditorViewModel.GuideTargetMode.root)
-                    Text(GuideAuthoringPresentation.localized(uk: "Категорія довідника", de: "Leitfaden-Kategorie", en: "Guide category"))
+                    Text(featuredBannerEditorText(uk: "Категорія довідника", de: "Leitfaden-Kategorie", en: "Guide category"))
                         .tag(FeaturedBannerEditorViewModel.GuideTargetMode.category)
                 }
                 .pickerStyle(.segmented)
@@ -369,14 +369,14 @@ struct FeaturedBannerEditorView: View {
 
             if viewModel.guideTargetMode == .category {
                 AppEditorField(
-                    title: GuideAuthoringPresentation.localized(
+                    title: featuredBannerEditorText(
                         uk: "Категорія",
                         de: "Kategorie",
                         en: "Category"
                     )
                 ) {
                     Picker(
-                        GuideAuthoringPresentation.localized(
+                        featuredBannerEditorText(
                             uk: "Категорія",
                             de: "Kategorie",
                             en: "Category"
@@ -395,7 +395,7 @@ struct FeaturedBannerEditorView: View {
             }
 
             Text(
-                GuideAuthoringPresentation.localized(
+                featuredBannerEditorText(
                     uk: "Банер для довідника може відкрити лише головну сторінку або одну з публічних категорій. Посилання на розділи та матеріали поки не підтримуються.",
                     de: "Ein Leitfaden-Banner kann nur die Startseite oder eine öffentliche Kategorie öffnen. Links zu Abschnitten oder Artikeln werden derzeit nicht unterstützt.",
                     en: "Guide banners can open only the root screen or a public category. Section and material deep links are not supported yet."
@@ -812,6 +812,17 @@ private extension FeaturedBannerActionType {
             return AppStrings.FeaturedManagement.actionExternalURL
         }
     }
+}
+
+private func featuredBannerEditorText(uk: String, de: String, en: String) -> String {
+    let identifier = LocalizationStore.locale.identifier.lowercased()
+    if identifier.hasPrefix("uk") {
+        return uk
+    }
+    if identifier.hasPrefix("de") {
+        return de
+    }
+    return en
 }
 
 #Preview {

@@ -9,7 +9,7 @@ struct GuideMaterialSourcesView: View {
         if !visibleLinks.isEmpty {
             DetailCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(GuideAuthoringPresentation.sourcesTitle)
+                    Text(AppStrings.Guide.sourceSectionTitle)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
@@ -21,7 +21,7 @@ struct GuideMaterialSourcesView: View {
         } else if let legacyLink {
             DetailCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(GuideAuthoringPresentation.sourcesTitle)
+                    Text(AppStrings.Guide.sourceSectionTitle)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 

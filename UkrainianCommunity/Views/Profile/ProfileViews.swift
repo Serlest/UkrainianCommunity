@@ -11,7 +11,6 @@ enum ProfileNavigationRoute: Hashable {
     case recentViews
     case activityHistory
     case moderationTools
-    case guideManagement
     case userManagement
     case featuredBannerManagement
     case legalDocumentManagement
@@ -196,10 +195,6 @@ struct ProfileView: View {
         return false
     }
 
-    private var canShowGuideManagement: Bool {
-        PermissionService.canManageGuide(user: permissionUser)
-    }
-
     private var displayUser: AppUser? {
         guard authState.isAuthenticated else {
             return nil
@@ -222,7 +217,7 @@ struct ProfileView: View {
     }
 
     private var hasAdministrationSection: Bool {
-        canShowModerationTools || canShowAdminTools || canShowGuideManagement
+        canShowModerationTools || canShowAdminTools
     }
 
     private var profileDashboardMode: ProfileDashboardMode? {
@@ -622,8 +617,6 @@ struct ProfileView: View {
                 organizationRepository: organizationRepository,
                 notificationInboxRepository: notificationInboxRepository
             )
-        case .guideManagement:
-            GuideManagementView()
         case .userManagement:
             UserManagementView()
         case .featuredBannerManagement:
@@ -1091,18 +1084,6 @@ struct ProfileView: View {
                         .buttonStyle(.plain)
                     }
 
-                    if canShowGuideManagement {
-                        NavigationLink(value: ProfileNavigationRoute.guideManagement) {
-                            ProfileModuleRow(
-                                title: AppStrings.GuideManagement.title,
-                                subtitle: AppStrings.GuideManagement.entrySubtitle,
-                                systemImage: "book.closed",
-                                status: .available
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
                     if canShowFeaturedBanners {
                         NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
                             ProfileModuleRow(
@@ -1213,7 +1194,6 @@ struct ProfileView: View {
 
     private var hasPlatformManagementItems: Bool {
         canShowAdminTools
-            || canShowGuideManagement
             || canShowFeaturedBanners
             || PermissionService.isAppOwner(user: permissionUser)
             || canShowOrganizationRequests
@@ -1228,7 +1208,7 @@ struct ProfileView: View {
         if PermissionService.isAppAdmin(user: permissionUser) {
             return AppStrings.Profile.adminPlatformManagement
         }
-        return AppStrings.Profile.guideEditorManagement
+        return AppStrings.Profile.appManagement
     }
 
     private var platformManagementSubtitle: String {
@@ -1236,9 +1216,9 @@ struct ProfileView: View {
             return AppStrings.Profile.ownerPlatformManagementSubtitle
         }
         if PermissionService.isAppAdmin(user: permissionUser) {
-            return AppStrings.Profile.adminAssistanceSubtitle
+            return AppStrings.Profile.appManagementSubtitle
         }
-        return AppStrings.Profile.guideEditorManagementSubtitle
+        return AppStrings.Profile.appManagementSubtitle
     }
 
     private var ownerPlatformManagementSection: some View {
@@ -1248,18 +1228,6 @@ struct ProfileView: View {
                     ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.ownerUsersSubtitle, systemImage: "person.3", status: canShowAdminTools ? .active : .locked)
                 }
                 .buttonStyle(.plain)
-
-                if canShowGuideManagement {
-                    NavigationLink(value: ProfileNavigationRoute.guideManagement) {
-                        ProfileModuleRow(
-                            title: AppStrings.GuideManagement.title,
-                            subtitle: AppStrings.GuideManagement.entrySubtitle,
-                            systemImage: "book.closed",
-                            status: .available
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
 
                 NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
                     ProfileModuleRow(
