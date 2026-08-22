@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
+    "audit:prod": "npm audit --omit=dev",
     "test:rules": "npm run test:rules:all",
     "test:rules:all": "firebase emulators:exec --only firestore \"node --test smoke-tests/*.test.mjs\"",
     "test:rules:systemLogs": "firebase emulators:exec --only firestore \"node --test smoke-tests/systemLogsRules.test.mjs\"",

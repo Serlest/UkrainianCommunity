@@ -36,6 +36,10 @@ jobs:
         working-directory: functions
         run: npm ci
 
+      - name: Audit production dependencies
+        working-directory: functions
+        run: npm run audit:prod
+
       - name: Type-check
         working-directory: functions
         run: npm run lint
@@ -50,30 +54,6 @@ jobs:
       - name: Test Firestore rules
         working-directory: functions
         run: npm run test:rules:all
-
-  refresh-functions-lockfile:
-    name: Refresh Functions lockfile
-    if: github.head_ref == 'security/update-functions-dependencies'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Resolve updated dependencies
-        working-directory: functions
-        run: npm install --package-lock-only --ignore-scripts
-
-      - name: Upload generated lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: functions-package-lock-${{ github.run_attempt }}
-          path: functions/package-lock.json
-          if-no-files-found: error
-          retention-days: 1
 
   ios:
     name: iOS build, unit and UI tests
