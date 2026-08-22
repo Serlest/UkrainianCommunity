@@ -257,6 +257,51 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canCreateOrganizationEvent(organization, user: organizationModerator))
     }
 
+    @Test func subscriberIdentityVisibilityMatchesBackendOwnerContract() {
+        let appOwner = makeUser(id: "app-owner", globalRole: .owner)
+        let appAdmin = makeUser(id: "app-admin", globalRole: .admin)
+        let organizationOwner = makeUser(id: "organization-owner")
+        let organizationAdmin = makeUser(id: "organization-admin")
+        let organizationModerator = makeUser(id: "organization-moderator")
+        let unrelatedUser = makeUser(id: "unrelated-user")
+        let suspendedAppOwner = makeUser(
+            id: "suspended-app-owner",
+            globalRole: .owner,
+            blockState: .suspendedUntil,
+            accountStatus: .suspendedUntil
+        )
+        let organization = makeOrganization(
+            ownerId: organizationOwner.id,
+            adminIds: [organizationAdmin.id],
+            moderatorIds: [organizationModerator.id]
+        )
+
+        #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: appOwner))
+        #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: organizationOwner))
+        #expect(
+            PermissionService.canViewOrganizationSubscriberIdentities(organization, user: appAdmin) == false
+        )
+        #expect(
+            PermissionService.canViewOrganizationSubscriberIdentities(organization, user: organizationAdmin) == false
+        )
+        #expect(
+            PermissionService.canViewOrganizationSubscriberIdentities(
+                organization,
+                user: organizationModerator
+            ) == false
+        )
+        #expect(
+            PermissionService.canViewOrganizationSubscriberIdentities(organization, user: unrelatedUser) == false
+        )
+        #expect(
+            PermissionService.canViewOrganizationSubscriberIdentities(
+                organization,
+                user: suspendedAppOwner
+            ) == false
+        )
+        #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: nil) == false)
+    }
+
     @Test func mockRepositoriesProvideFoundationContent() async throws {
         let user = try await MockUserRepository().fetchCurrentUser()
         let news = try await MockNewsRepository().fetchNews()
