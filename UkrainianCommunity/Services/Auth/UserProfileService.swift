@@ -1,17 +1,10 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseStorage
+import FirebaseFunctions
 
 enum AccountDeletionStage: String, Equatable {
-    case ownershipCheck = "ownership_check"
-    case privateDataCleanup = "private_data_cleanup"
-    case interactionCleanup = "interaction_cleanup"
-    case registrationCleanup = "registration_cleanup"
-    case avatarCleanup = "avatar_cleanup"
-    case publicProfileDelete = "public_profile_delete"
-    case userDocumentDeactivate = "user_document_deactivate"
-    case authUserDelete = "auth_user_delete"
+    case serverDeletion = "server_deletion"
 }
 
 enum AccountDeletionError: Error, Equatable {
@@ -342,7 +335,6 @@ struct FirestoreUserRepository: UserRepository {
         guard let authUser = Auth.auth().currentUser, authUser.uid == currentUser.id else {
             throw AppError.permissionDenied
         }
-        let uid = authUser.uid
 
         guard isRecentlyAuthenticated(authUser) else {
             throw AccountDeletionError.requiresRecentLogin
@@ -352,65 +344,27 @@ struct FirestoreUserRepository: UserRepository {
             throw AccountDeletionError.platformOwner
         }
 
-        let database = Firestore.firestore()
-
         guard !currentUser.communityMemberships.contains(where: { $0.role == .communityOwner }) else {
             throw AccountDeletionError.ownsOrganization
         }
 
         do {
-            guard try await !ownsOrganization(userID: uid, database: database) else {
-                throw AccountDeletionError.ownsOrganization
-            }
-        } catch let deletionError as AccountDeletionError {
-            throw deletionError
+            _ = try await CloudFunctionsClient.shared.deleteOwnAccount()
         } catch {
-            throw accountDeletionStageFailure(.ownershipCheck, error: error)
-        }
-
-        do {
-            try await cleanupPrivateUserData(userID: uid, database: database)
-        } catch {
-            throw accountDeletionStageFailure(.privateDataCleanup, error: error)
-        }
-
-        do {
-            try await cleanupInteractionDocuments(userID: uid, database: database)
-        } catch {
-            throw accountDeletionStageFailure(.interactionCleanup, error: error)
-        }
-
-        do {
-            try await cleanupRegistrationDocuments(userID: uid, database: database)
-        } catch {
-            throw accountDeletionStageFailure(.registrationCleanup, error: error)
-        }
-
-        do {
-            try await cleanupProfileAvatar(userID: uid)
-        } catch {
-            throw accountDeletionStageFailure(.avatarCleanup, error: error)
-        }
-
-        do {
-            try await database.collection("publicProfiles").document(uid).delete()
-        } catch {
-            throw accountDeletionStageFailure(.publicProfileDelete, error: error)
-        }
-
-        do {
-            try await deactivateUserDocument(userID: uid, database: database)
-        } catch {
-            throw accountDeletionStageFailure(.userDocumentDeactivate, error: error)
-        }
-
-        do {
-            try await authUser.delete()
-        } catch {
-            if isRequiresRecentLogin(error) {
+            let functionError = error as NSError
+            if functionError.domain == FunctionsErrorDomain,
+               FunctionsErrorCode(rawValue: functionError.code) == .unauthenticated {
                 throw AccountDeletionError.requiresRecentLogin
             }
-            throw accountDeletionStageFailure(.authUserDelete, error: error)
+            if functionError.domain == FunctionsErrorDomain,
+               FunctionsErrorCode(rawValue: functionError.code) == .failedPrecondition {
+                throw AccountDeletionError.ownsOrganization
+            }
+            if functionError.domain == FunctionsErrorDomain,
+               FunctionsErrorCode(rawValue: functionError.code) == .permissionDenied {
+                throw AccountDeletionError.platformOwner
+            }
+            throw accountDeletionStageFailure(.serverDeletion, error: error)
         }
     }
 
@@ -434,134 +388,6 @@ struct FirestoreUserRepository: UserRepository {
         return .stageFailed(stage, permissionDenied: isPermissionDenied)
     }
 
-    private func isRequiresRecentLogin(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        return AuthErrorCode(rawValue: nsError.code) == .requiresRecentLogin
-    }
-
-    private func ownsOrganization(userID: String, database: Firestore) async throws -> Bool {
-        let snapshot = try await database.collection("organizations")
-            .whereField("ownerId", isEqualTo: userID)
-            .limit(to: 1)
-            .getDocuments()
-        return !snapshot.documents.isEmpty
-    }
-
-    private func cleanupPrivateUserData(userID: String, database: Firestore) async throws {
-        let userDocument = database.collection("users").document(userID)
-        try await userDocument
-            .collection("notificationPreferences")
-            .document("settings")
-            .delete()
-
-        let privateSubcollections = [
-            "recentViews",
-            "activityLog",
-            "newsBookmarks",
-            "eventBookmarks",
-            "organizationBookmarks",
-            "notificationInbox",
-            "notificationPushTokens",
-            "eventViews",
-            "newsViews",
-            "guideMaterialBookmarks"
-        ]
-
-        for subcollection in privateSubcollections {
-            try await deleteDocuments(
-                in: userDocument.collection(subcollection),
-                limit: 100
-            )
-        }
-    }
-
-    private func deactivateUserDocument(userID: String, database: Firestore) async throws {
-        try await database.collection("users").document(userID).updateData([
-            "accountStatus": AccountStatus.deactivated.rawValue,
-            "blockState": UserBlockState.deactivated.rawValue,
-            "isBlocked": true,
-            "displayName": "Видалений користувач",
-            "fullName": "",
-            "bio": "",
-            "city": "",
-            "email": "",
-            "telegramUsername": FieldValue.delete(),
-            "avatarURL": FieldValue.delete(),
-            "updatedAt": FieldValue.serverTimestamp()
-        ])
-    }
-
-    private func cleanupInteractionDocuments(userID: String, database: Firestore) async throws {
-        while true {
-            let snapshot = try await database.collection("likes")
-                .whereField("userId", isEqualTo: userID)
-                .limit(to: 500)
-                .getDocuments()
-            guard !snapshot.documents.isEmpty else { return }
-
-            let batch = database.batch()
-            snapshot.documents.forEach { batch.deleteDocument($0.reference) }
-            try await batch.commit()
-
-            if snapshot.documents.count < 500 {
-                return
-            }
-        }
-    }
-
-    private func cleanupRegistrationDocuments(userID: String, database: Firestore) async throws {
-        try await deleteDocuments(
-            in: database.collection("registrations").whereField("userId", isEqualTo: userID),
-            limit: 500
-        )
-    }
-
-    private func cleanupProfileAvatar(userID: String) async throws {
-        do {
-            try await Storage.storage()
-                .reference()
-                .child("profileImages/\(userID)/avatar.jpg")
-                .delete()
-        } catch {
-            let nsError = error as NSError
-            if nsError.domain == StorageErrorDomain,
-               StorageErrorCode(rawValue: nsError.code) == .objectNotFound {
-                return
-            }
-
-            throw error
-        }
-    }
-
-    private func deleteDocuments(in collection: CollectionReference, limit: Int) async throws {
-        while true {
-            let snapshot = try await collection.limit(to: limit).getDocuments()
-            guard !snapshot.documents.isEmpty else { return }
-
-            let batch = Firestore.firestore().batch()
-            snapshot.documents.forEach { batch.deleteDocument($0.reference) }
-            try await batch.commit()
-
-            if snapshot.documents.count < limit {
-                return
-            }
-        }
-    }
-
-    private func deleteDocuments(in query: Query, limit: Int) async throws {
-        while true {
-            let snapshot = try await query.limit(to: limit).getDocuments()
-            guard !snapshot.documents.isEmpty else { return }
-
-            let batch = Firestore.firestore().batch()
-            snapshot.documents.forEach { batch.deleteDocument($0.reference) }
-            try await batch.commit()
-
-            if snapshot.documents.count < limit {
-                return
-            }
-        }
-    }
 }
 
 struct FirestoreFeedbackRepository: FeedbackRepository {

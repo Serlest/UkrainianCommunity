@@ -240,7 +240,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         let signInButton = app.buttons["Anmelden"].firstMatch
         XCTAssertTrue(signInButton.waitForExistence(timeout: 10))
         signInButton.tap()
-        XCTAssertTrue(app.buttons["auth.login.submit"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Anmelden"].waitForExistence(timeout: 10))
     }
 
     @MainActor

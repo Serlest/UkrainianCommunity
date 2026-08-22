@@ -21,6 +21,7 @@ enum CloudFunctionName: String, CaseIterable {
     case deactivateUser
     case restoreUser
     case acceptLegalDocument
+    case deleteOwnAccount
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -172,6 +173,13 @@ struct EventCancellationFunctionResponse: Codable, Equatable {
     let cancelledAt: String
 }
 
+struct AccountDeletionFunctionRequest: Codable, Equatable {}
+
+struct AccountDeletionFunctionResponse: Codable, Equatable {
+    let status: String
+    let completedAt: String
+}
+
 final class CloudFunctionsClient {
     static let shared = CloudFunctionsClient()
 
@@ -320,6 +328,10 @@ final class CloudFunctionsClient {
         try await call(.cancelEvent, request: request)
     }
 
+    func deleteOwnAccount() async throws -> AccountDeletionFunctionResponse {
+        try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
+    }
+
     private func call<Request: Encodable, Response: Decodable>(
         _ functionName: CloudFunctionName,
         request: Request
@@ -387,7 +399,8 @@ final class CloudFunctionsClient {
              .suspendUser,
              .banUser,
              .deactivateUser,
-             .restoreUser:
+             .restoreUser,
+             .deleteOwnAccount:
             return .userProfile
         case .acceptLegalDocument:
             return .legalDocument
@@ -415,7 +428,8 @@ final class CloudFunctionsClient {
         case .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
-             .acceptLegalDocument:
+             .acceptLegalDocument,
+             .deleteOwnAccount:
             return false
         }
     }
@@ -459,7 +473,8 @@ final class CloudFunctionsClient {
              .rejectOrganization,
              .requestOrganizationRevision,
              .cancelEvent,
-             .acceptLegalDocument:
+             .acceptLegalDocument,
+             .deleteOwnAccount:
             return nil
         }
     }
