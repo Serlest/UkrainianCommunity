@@ -114,7 +114,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             createdAt = existing.createdAt
             createdBy = existing.createdBy
         }
-
     }
 
     deinit {
