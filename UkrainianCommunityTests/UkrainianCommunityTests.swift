@@ -29,6 +29,22 @@ private actor RecordingFeedbackRepository: FeedbackRepository {
 
 @MainActor
 struct UkrainianCommunityTests {
+    @Test func analyticsRequiresExplicitConsentAndPersistsTheChoice() {
+        let suiteName = "AnalyticsConsentServiceTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let service = AnalyticsConsentService(userDefaults: defaults)
+
+        #expect(service.isAnalyticsEnabled == false)
+
+        service.setAnalyticsEnabled(true)
+        #expect(service.isAnalyticsEnabled == true)
+
+        service.setAnalyticsEnabled(false)
+        #expect(service.isAnalyticsEnabled == false)
+    }
+
     private func makeUser(
         id: String = UUID().uuidString,
         role: UserRole = .user,
