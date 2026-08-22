@@ -5,7 +5,6 @@ private enum RecentViewsSegment: String, CaseIterable, Identifiable {
     case news
     case events
     case organizations
-    case guide
 
     var id: String { rawValue }
 
@@ -19,8 +18,6 @@ private enum RecentViewsSegment: String, CaseIterable, Identifiable {
             return AppStrings.Events.title
         case .organizations:
             return AppStrings.Tabs.organizations
-        case .guide:
-            return AppStrings.Guide.title
         }
     }
 
@@ -34,8 +31,6 @@ private enum RecentViewsSegment: String, CaseIterable, Identifiable {
             return RecentViewItemType.event.systemImage
         case .organizations:
             return RecentViewItemType.organization.systemImage
-        case .guide:
-            return RecentViewItemType.guide.systemImage
         }
     }
 
@@ -49,8 +44,6 @@ private enum RecentViewsSegment: String, CaseIterable, Identifiable {
             return item.itemType == .event
         case .organizations:
             return item.itemType == .organization
-        case .guide:
-            return item.itemType == .guide
         }
     }
 }
@@ -62,8 +55,6 @@ struct RecentViewsView: View {
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
-    @StateObject private var guideReaderViewModel: GuideReaderViewModel
-    private let feedbackRepository: FeedbackRepository
     @State private var selectedSegment: RecentViewsSegment = .all
 
     init(
@@ -74,16 +65,12 @@ struct RecentViewsView: View {
         organizationsViewModel: OrganizationsViewModel? = nil,
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        guideRepository: GuideRepositoryProtocol = FirestoreGuideRepository(),
-        feedbackRepository: FeedbackRepository = FirestoreFeedbackRepository()
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
         self.recentViewsViewModel = recentViewsViewModel ?? RecentViewsViewModel(repository: recentViewsRepository)
         self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
         self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
-        _guideReaderViewModel = StateObject(wrappedValue: GuideReaderViewModel(repository: guideRepository))
-        self.feedbackRepository = feedbackRepository
     }
 
     private var filteredItems: [RecentViewItem] {
@@ -218,86 +205,6 @@ struct RecentViewsView: View {
                 RecentViewRow(item: item)
             }
             .buttonStyle(.plain)
-        case .guide:
-            NavigationLink {
-                RecentGuideMaterialDetailContainer(
-                    materialID: item.itemId,
-                    viewModel: guideReaderViewModel,
-                    feedbackRepository: feedbackRepository
-                )
-            } label: {
-                RecentViewRow(item: item)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-}
-
-private struct RecentGuideMaterialDetailContainer: View {
-    let materialID: String
-    @ObservedObject var viewModel: GuideReaderViewModel
-    let feedbackRepository: FeedbackRepository
-    @State private var material: GuideMaterial?
-    @State private var error: AppError?
-    @State private var isLoading = false
-
-    var body: some View {
-        Group {
-            if let material {
-                GuideMaterialDetailView(
-                    material: material,
-                    viewModel: viewModel,
-                    feedbackRepository: feedbackRepository
-                )
-            } else {
-                PushedScreenShell(title: AppStrings.Guide.title) {
-                    AppGroupedContentPlane {
-                        if isLoading {
-                            LoadingStateCard(title: AppStrings.Guide.title)
-                        } else {
-                            UnifiedEmptyStateCard(
-                                systemImage: "doc.questionmark",
-                                title: AppStrings.NotificationInbox.destinationUnavailableTitle,
-                                message: routeErrorMessage
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        .task(id: materialID) {
-            await loadMaterial()
-        }
-    }
-
-    private var routeErrorMessage: String {
-        switch error {
-        case .notFound:
-            return AppStrings.NotificationInbox.destinationUnavailableMessage
-        case .network:
-            return AppStrings.News.loadNetworkError
-        case .permissionDenied:
-            return AppStrings.News.loadPermissionError
-        case .validationFailed:
-            return AppStrings.News.loadValidationError
-        case .unknown, nil:
-            return AppStrings.NotificationInbox.destinationUnavailableMessage
-        }
-    }
-
-    private func loadMaterial() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            material = try await viewModel.material(id: materialID)
-            error = nil
-        } catch let appError as AppError {
-            material = nil
-            error = appError
-        } catch {
-            material = nil
-            self.error = .unknown
         }
     }
 }

@@ -8,7 +8,6 @@ struct ContentView: View {
         case home
         case events
         case organizations
-        case guide
         case profile
     }
 
@@ -19,7 +18,6 @@ struct ContentView: View {
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
     @StateObject private var organizationsViewModel: OrganizationsViewModel
-    @StateObject private var guideReaderViewModel: GuideReaderViewModel
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
@@ -33,16 +31,12 @@ struct ContentView: View {
     @State private var eventsNavigationPath: [EventNavigationRoute] = []
     @State private var organizationsNavigationPath: [OrganizationNavigationRoute] = []
     @State private var profileNavigationPath: [ProfileNavigationRoute] = []
-    @State private var guideBannerCategoryTarget: GuideCategory?
-    @State private var guideMaterialTargetID: String?
     @State private var homeScrollResetToken = 0
     @State private var eventsScrollResetToken = 0
     @State private var organizationsScrollResetToken = 0
     @State private var homeSearchResetToken = 0
     @State private var eventsSearchResetToken = 0
     @State private var organizationsSearchResetToken = 0
-    @State private var guideScrollResetToken = 0
-    @State private var guideNavigationResetToken = 0
     @State private var profileScrollResetToken = 0
     @State private var lastHandledAuthSessionKey: String?
     @State private var notificationRouteErrorMessage: String?
@@ -68,10 +62,6 @@ struct ContentView: View {
         _organizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(
             repository: container.organizationRepository,
             notificationInboxRepository: container.notificationInboxRepository,
-            analyticsService: container.analyticsService
-        ))
-        _guideReaderViewModel = StateObject(wrappedValue: GuideReaderViewModel(
-            repository: FirestoreGuideRepository(),
             analyticsService: container.analyticsService
         ))
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
@@ -380,7 +370,6 @@ struct ContentView: View {
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel,
-                guideReaderViewModel: guideReaderViewModel,
                 featuredBannerRepository: container.featuredBannerRepository,
                 featuredBannerCache: container.featuredBannerCache,
                 legalDocumentRepository: container.legalDocumentRepository,
@@ -421,7 +410,6 @@ struct ContentView: View {
         newsViewModel.resetForAuthChange()
         eventsViewModel.resetForAuthChange()
         organizationsViewModel.resetForAuthChange()
-        guideReaderViewModel.resetSavedMaterialsState()
         profileViewModel.resetForAuthChange()
 
         Task {
@@ -463,10 +451,6 @@ struct ContentView: View {
             if !organizationsNavigationPath.isEmpty {
                 organizationsNavigationPath.removeAll()
             }
-        case .guide:
-            guideBannerCategoryTarget = nil
-            guideMaterialTargetID = nil
-            guideNavigationResetToken += 1
         case .profile:
             if !profileNavigationPath.isEmpty {
                 profileNavigationPath.removeAll()
@@ -482,7 +466,7 @@ struct ContentView: View {
             eventsSearchResetToken += 1
         case .organizations:
             organizationsSearchResetToken += 1
-        case .guide, .profile:
+        case .profile:
             break
         }
     }
@@ -520,8 +504,6 @@ struct ContentView: View {
                 eventsScrollResetToken += 1
             case .organizations:
                 organizationsScrollResetToken += 1
-            case .guide:
-                guideScrollResetToken += 1
             case .profile:
                 profileScrollResetToken += 1
             }
@@ -688,17 +670,6 @@ struct ContentView: View {
         eventsNavigationPath = [EventNavigationRoute(eventID: eventID)]
     }
 
-    private func routeToGuideMaterial(_ notification: AppNotification) {
-        guard let materialID = guideMaterialTargetID(notification) else {
-            showNotificationRouteUnavailable()
-            return
-        }
-
-        guideBannerCategoryTarget = nil
-        guideMaterialTargetID = materialID
-        selectTabIfNeeded(.guide)
-    }
-
     private func routeToURL(_ notification: AppNotification) {
         guard let urlString = notificationURLString(notification),
               let url = URL(string: urlString) else {
@@ -774,31 +745,6 @@ struct ContentView: View {
         .first { !$0.isEmpty }
     }
 
-    private func guideMaterialTargetID(_ notification: AppNotification) -> String? {
-        [
-            notification.actionTargetId,
-            notification.sourceId,
-            notification.metadata["guideMaterialId"],
-            notification.metadata["guideMaterialID"],
-            notification.metadata["materialId"],
-            notification.metadata["materialID"],
-            notification.metadata["articleId"],
-            notification.metadata["articleID"],
-            notification.metadata["targetId"],
-            notification.metadata["targetID"],
-            notification.payload["guideMaterialId"],
-            notification.payload["guideMaterialID"],
-            notification.payload["materialId"],
-            notification.payload["materialID"],
-            notification.payload["articleId"],
-            notification.payload["articleID"],
-            notification.payload["targetId"],
-            notification.payload["targetID"]
-        ]
-        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .first { !$0.isEmpty }
-    }
-
     private func handleProfileBrowseDestination(_ destination: ProfileBrowseDestination) {
         switch destination {
         case .home:
@@ -807,8 +753,6 @@ struct ContentView: View {
             selectTabIfNeeded(.events)
         case .organizations:
             selectTabIfNeeded(.organizations)
-        case .guide:
-            showNotificationRouteUnavailable()
         }
     }
 

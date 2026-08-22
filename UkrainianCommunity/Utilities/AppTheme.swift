@@ -108,7 +108,6 @@ enum AppTheme {
     static let sectionHeroBannerHeight = heroBannerHeight
     static let eventsHeroHeight = sectionHeroBannerHeight
     static let organizationsHeroHeight = sectionHeroBannerHeight
-    static let guideHeroHeight = sectionHeroBannerHeight
     static let organizationsCardPadding: CGFloat = 10
     static let organizationsThumbnailSize: CGFloat = 64
     static let organizationsCategoryCardWidth: CGFloat = 128

@@ -5,10 +5,17 @@ enum FeaturedBannerActionType: String, CaseIterable, Codable, Identifiable {
     case news
     case event
     case organization
+    // Retained only to decode and retire existing Firestore banners.
     case guide
     case externalURL
 
     var id: String { rawValue }
+
+    static let supportedCases: [Self] = [.none, .news, .event, .organization, .externalURL]
+
+    var isSupported: Bool {
+        self != .guide
+    }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -45,9 +52,16 @@ enum FeaturedBannerVisibleSection: String, CaseIterable, Codable, Identifiable, 
     case home
     case events
     case organizations
+    // Retained only to decode and retire existing Firestore banners.
     case guide
 
     var id: String { rawValue }
+
+    static let supportedCases: [Self] = [.home, .events, .organizations]
+
+    var isSupported: Bool {
+        self != .guide
+    }
 }
 
 struct FeaturedBanner: Identifiable, Equatable, Codable {

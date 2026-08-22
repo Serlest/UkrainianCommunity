@@ -204,9 +204,8 @@ extension PushedScreenShell where TrailingContent == EmptyView {
 /// Shell for article/entity detail screens.
 ///
 /// This is foundation-only. Future migrations should use it in this order:
-/// News Detail, Event Detail, Organization Detail, Guide Material Detail, then
-/// Guide Category/Section. It does not load data, mutate navigation paths, or
-/// force any feature behavior.
+/// News Detail, Event Detail, and Organization Detail. It does not load data,
+/// mutate navigation paths, or force any feature behavior.
 struct DetailScreenShell<Content: View, HeaderActions: View>: View {
     let title: String?
     let subtitle: String?

@@ -3,13 +3,6 @@ import Foundation
 
 @MainActor
 final class FeaturedBannerEditorViewModel: ObservableObject {
-    enum GuideTargetMode: String, CaseIterable, Identifiable {
-        case root
-        case category
-
-        var id: String { rawValue }
-    }
-
     enum Mode {
         case create
         case edit(FeaturedBanner)
@@ -106,9 +99,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             imageURL = existing.imageURL ?? ""
             regionScope = existing.regionScope
             federalState = existing.federalState
-            visibleSections = existing.visibleSections
-            actionType = existing.actionType
-            actionTargetID = existing.actionTargetID ?? ""
+            let supportedSections = Set(existing.visibleSections.filter(\.isSupported))
+            visibleSections = supportedSections.isEmpty ? [.home] : supportedSections
+            actionType = existing.actionType.isSupported ? existing.actionType : .none
+            actionTargetID = existing.actionType.isSupported ? existing.actionTargetID ?? "" : ""
             externalURL = existing.externalURL ?? ""
             displayDurationSeconds = existing.displayDurationSeconds
             priority = existing.priority
@@ -121,7 +115,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             createdBy = existing.createdBy
         }
 
-        sanitizeGuideTargetIfNeeded()
     }
 
     deinit {
@@ -209,18 +202,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         actionTargetPickerKind != nil
     }
 
-    var supportsGuideTargetSelection: Bool {
-        actionType == .guide
-    }
-
-    var selectedGuideCategory: GuideCategory? {
-        nonEmpty(actionTargetID).flatMap(GuideCategory.init(rawValue:))
-    }
-
-    var guideTargetMode: GuideTargetMode {
-        selectedGuideCategory == nil ? .root : .category
-    }
-
     var selectedActionTargetItem: FeaturedBannerActionTargetItem? {
         guard let kind = actionTargetPickerKind,
               let targetID = nonEmpty(actionTargetID) else {
@@ -250,9 +231,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
         let oldKind = FeaturedBannerActionTargetKind(actionType: oldActionType)
         let newKind = FeaturedBannerActionTargetKind(actionType: newActionType)
-        if newActionType == .guide {
-            actionTargetID = ""
-        } else if !requiresActionTarget || oldKind != newKind {
+        if !requiresActionTarget || oldKind != newKind {
             actionTargetID = ""
         }
 
@@ -260,7 +239,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             externalURL = ""
         }
 
-        sanitizeGuideTargetIfNeeded()
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -319,28 +297,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     func selectActionTarget(_ item: FeaturedBannerActionTargetItem) {
         actionTargetID = item.id
         selectedActionTargetSnapshot = item
-        actionTargetLoadError = nil
-    }
-
-    func setGuideTargetMode(_ mode: GuideTargetMode, defaultCategory: GuideCategory?) {
-        switch mode {
-        case .root:
-            actionTargetID = ""
-        case .category:
-            if let selectedGuideCategory {
-                actionTargetID = selectedGuideCategory.rawValue
-            } else {
-                actionTargetID = defaultCategory?.rawValue ?? ""
-            }
-        }
-
-        selectedActionTargetSnapshot = nil
-        actionTargetLoadError = nil
-    }
-
-    func selectGuideCategory(_ category: GuideCategory) {
-        actionTargetID = category.rawValue
-        selectedActionTargetSnapshot = nil
         actionTargetLoadError = nil
     }
 
@@ -496,19 +452,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     private func nonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func sanitizeGuideTargetIfNeeded() {
-        guard actionType == .guide else { return }
-
-        guard let targetID = nonEmpty(actionTargetID) else {
-            actionTargetID = ""
-            return
-        }
-
-        if GuideCategory(rawValue: targetID) == nil {
-            actionTargetID = ""
-        }
     }
 
     private func errorText(_ error: AppError) -> String {

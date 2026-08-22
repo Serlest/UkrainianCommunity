@@ -10,6 +10,11 @@ struct FeaturedBannerValidationService {
             throw AppError.validationFailed
         }
 
+        guard banner.actionType.isSupported,
+              banner.visibleSections.allSatisfy(\.isSupported) else {
+            throw AppError.validationFailed
+        }
+
         if requiresActionTarget(banner.actionType) {
             guard !trimmed(banner.actionTargetID).isEmpty else {
                 throw AppError.validationFailed
