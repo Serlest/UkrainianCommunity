@@ -19,6 +19,7 @@ struct FeaturedBannerCarouselView: View {
     let sizing: FeaturedBannerCarouselSizing
     let onBannerTap: (FeaturedBanner) -> Void
     private let actionResolver = FeaturedBannerActionResolver()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedBannerID: FeaturedBanner.ID?
     @State private var isUserInteracting = false
     @State private var isRestartingCarousel = false
@@ -126,9 +127,10 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private var rotationTaskID: String {
-        banners
+        let bannerConfiguration = banners
             .map { "\($0.id)-\($0.displayDurationSeconds)" }
             .joined(separator: "|")
+        return "\(bannerConfiguration)-reduceMotion:\(reduceMotion)"
     }
 
     private var interactionGesture: some Gesture {
@@ -155,6 +157,8 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func runRotationLoop() async {
+        guard !reduceMotion else { return }
+
         while !Task.isCancelled {
             guard banners.count > 1 else { return }
 

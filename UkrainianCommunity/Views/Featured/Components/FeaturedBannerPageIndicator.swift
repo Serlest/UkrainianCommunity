@@ -7,6 +7,7 @@ struct FeaturedBannerPageIndicator: View {
 
     let count: Int
     let selectedIndex: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         if count > 1 {
@@ -15,7 +16,7 @@ struct FeaturedBannerPageIndicator: View {
                     Capsule()
                         .fill(index == selectedIndex ? AppTheme.accentPrimary : AppTheme.textSecondary.opacity(0.28))
                         .frame(width: index == selectedIndex ? Self.selectedDotWidth : Self.dotSize, height: Self.dotSize)
-                        .animation(.easeInOut(duration: 0.2), value: selectedIndex)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: selectedIndex)
                 }
             }
             .frame(maxWidth: .infinity)
