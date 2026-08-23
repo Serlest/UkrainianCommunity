@@ -121,6 +121,7 @@ struct NewsPostDTO: Codable, Identifiable {
     let sourceURL: String?
     let imageURL: String?
     let body: String
+    let authorId: String?
     let authorName: String
     let publishedAt: Date
     let createdAt: Date
@@ -436,6 +437,7 @@ extension NewsPost {
             sourceURL: dto.sourceURL,
             imageURL: dto.imageURL,
             body: dto.body,
+            authorId: dto.authorId,
             authorName: dto.authorName,
             publishedAt: dto.publishedAt,
             createdAt: dto.createdAt,
@@ -468,6 +470,7 @@ extension NewsPost {
             sourceURL: sourceURL,
             imageURL: imageURL,
             body: body,
+            authorId: authorId,
             authorName: authorName,
             publishedAt: publishedAt,
             createdAt: createdAt,

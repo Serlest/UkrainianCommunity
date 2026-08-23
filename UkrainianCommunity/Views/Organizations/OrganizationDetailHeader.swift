@@ -16,8 +16,19 @@ extension OrganizationDetailView {
             shareText: organizationShareText(for: organization),
             onBookmark: {
                 toggleBookmark(for: organization)
-            }
+            },
+            onReport: organization.ownerId != authState.user?.id || !authState.isAuthenticated
+                ? { presentContentReport(.organization(organization)) }
+                : nil
         )
+    }
+
+    func presentContentReport(_ target: ContentReportTarget) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = .feedback
+            return
+        }
+        contentReportPresentation.present(target)
     }
 
     func organizationShareText(for organization: Organization) -> String {
@@ -209,6 +220,7 @@ private struct OrganizationDetailHeaderActions: View {
     let isBookmarkPending: Bool
     let shareText: String
     let onBookmark: () -> Void
+    let onReport: (() -> Void)?
 
     var body: some View {
         Group {
@@ -229,6 +241,15 @@ private struct OrganizationDetailHeaderActions: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(AppStrings.Action.share)
+
+            if let onReport {
+                DetailHeaderActionButton(
+                    systemImage: "exclamationmark.bubble",
+                    accessibilityLabel: AppStrings.Safety.reportAction
+                ) {
+                    onReport()
+                }
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ extension NewsDetailView {
                     } else {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(post.comments.enumerated()), id: \.element.id) { index, comment in
-                                commentRow(comment)
+                                commentRow(comment, parentTitle: post.title)
 
                                 if index < post.comments.count - 1 {
                                     Divider()
@@ -31,7 +31,7 @@ extension NewsDetailView {
             }
         }
 
-        func commentRow(_ comment: Comment) -> some View {
+        func commentRow(_ comment: Comment, parentTitle: String) -> some View {
             HStack(alignment: .top, spacing: 10) {
                 commentAvatar(comment)
 
@@ -48,8 +48,8 @@ extension NewsDetailView {
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
 
-                        if canEditComment(comment) || canDeleteComment(comment) {
-                            commentActionMenu(for: comment)
+                        if canEditComment(comment) || canDeleteComment(comment) || canReportComment(comment) {
+                            commentActionMenu(for: comment, parentTitle: parentTitle)
                         }
                 }
 
@@ -63,7 +63,7 @@ extension NewsDetailView {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        func commentActionMenu(for comment: Comment) -> some View {
+        func commentActionMenu(for comment: Comment, parentTitle: String) -> some View {
             Menu {
                 if canEditComment(comment) {
                     Button(AppStrings.Action.edit, systemImage: "pencil") {
@@ -77,6 +77,12 @@ extension NewsDetailView {
                         pendingCommentDeleteID = comment.id
                     }
                 }
+                if canReportComment(comment),
+                   let target = ContentReportTarget.comment(comment, parentTitle: parentTitle) {
+                    Button(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble") {
+                        presentContentReport(target)
+                    }
+                }
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(.title3.weight(.semibold))
@@ -87,7 +93,11 @@ extension NewsDetailView {
             }
             .menuStyle(.button)
             .buttonStyle(.plain)
-            .accessibilityLabel(AppStrings.Action.delete)
+            .accessibilityLabel(AppStrings.Safety.moreActions)
+        }
+
+        func canReportComment(_ comment: Comment) -> Bool {
+            !authState.isAuthenticated || comment.authorId != authState.user?.id
         }
 
         func commentComposer(parentID: String) -> some View {

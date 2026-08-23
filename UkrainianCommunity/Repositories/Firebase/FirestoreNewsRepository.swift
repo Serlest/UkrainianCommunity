@@ -641,6 +641,7 @@ struct FirestoreNewsRepository: NewsRepository {
             sourceURL: (data["sourceURL"] as? String)?.nilIfEmpty,
             imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
             body: body,
+            authorId: (data["authorId"] as? String)?.nilIfEmpty,
             authorName: authorName,
             publishedAt: publishedAt,
             createdAt: createdAt,

@@ -5,6 +5,7 @@ struct NewsDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.newsPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.contentReportPresentation) var contentReportPresentation
     @EnvironmentObject var authState: AuthState
     @ObservedObject var viewModel: NewsViewModel
     let postID: String

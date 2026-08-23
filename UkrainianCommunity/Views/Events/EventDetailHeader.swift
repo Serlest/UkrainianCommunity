@@ -25,7 +25,24 @@ extension EventDetailView {
                 ) {
                     sharePayload = EventSharePayload(event: event)
                 }
+
+                if event.authorId != authState.user?.id || !authState.isAuthenticated {
+                    DetailHeaderActionButton(
+                        systemImage: "exclamationmark.bubble",
+                        accessibilityLabel: AppStrings.Safety.reportAction
+                    ) {
+                        presentContentReport(.event(event))
+                    }
+                }
             }
+        }
+
+        func presentContentReport(_ target: ContentReportTarget) {
+            guard authState.isAuthenticated else {
+                guestAccessAction = .feedback
+                return
+            }
+            contentReportPresentation.present(target)
         }
 
         @ViewBuilder

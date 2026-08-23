@@ -544,7 +544,35 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             lastMessageByUserId: data["lastMessageByUserId"] as? String,
             lastMessageByRole: (data["lastMessageByRole"] as? String).flatMap(FeedbackSenderRole.init(rawValue:)),
             unreadForOwner: data["unreadForOwner"] as? Bool ?? false,
-            unreadForUser: data["unreadForUser"] as? Bool ?? false
+            unreadForUser: data["unreadForUser"] as? Bool ?? false,
+            reportContext: makeContentReportContext(from: data["reportContext"]),
+            occurrenceCount: max(1, (data["occurrenceCount"] as? NSNumber)?.intValue ?? 1)
+        )
+    }
+
+    private func makeContentReportContext(from value: Any?) -> ContentReportContext? {
+        guard let data = value as? [String: Any],
+              let targetTypeValue = data["targetType"] as? String,
+              let targetType = ContentReportTargetType(rawValue: targetTypeValue),
+              let targetId = data["targetId"] as? String,
+              let targetTitle = data["targetTitle"] as? String,
+              let reasonValue = data["reason"] as? String,
+              let reason = ContentReportReason(rawValue: reasonValue),
+              let slaDueAt = (data["slaDueAt"] as? Timestamp)?.dateValue() else {
+            return nil
+        }
+
+        return ContentReportContext(
+            targetType: targetType,
+            targetId: targetId,
+            parentType: (data["parentType"] as? String).flatMap(CommentParentType.init(rawValue:)),
+            parentId: data["parentId"] as? String,
+            targetAuthorId: data["targetAuthorId"] as? String,
+            targetTitle: targetTitle,
+            targetExcerpt: data["targetExcerpt"] as? String ?? "",
+            reason: reason,
+            isUrgent: data["isUrgent"] as? Bool ?? false,
+            slaDueAt: slaDueAt
         )
     }
 

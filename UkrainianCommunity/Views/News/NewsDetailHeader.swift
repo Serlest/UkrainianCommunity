@@ -24,7 +24,24 @@ extension NewsDetailView {
                 ) {
                     sharePayload = NewsSharePayload(post: post)
                 }
+
+                if post.authorId != authState.user?.id || !authState.isAuthenticated {
+                    DetailHeaderActionButton(
+                        systemImage: "exclamationmark.bubble",
+                        accessibilityLabel: AppStrings.Safety.reportAction
+                    ) {
+                        presentContentReport(.news(post))
+                    }
+                }
             }
+        }
+
+        func presentContentReport(_ target: ContentReportTarget) {
+            guard authState.isAuthenticated else {
+                guestAccessAction = .feedback
+                return
+            }
+            contentReportPresentation.present(target)
         }
 
         func articleHeader(for post: NewsPost) -> some View {

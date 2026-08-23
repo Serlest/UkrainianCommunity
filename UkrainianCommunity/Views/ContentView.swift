@@ -24,6 +24,7 @@ struct ContentView: View {
     @StateObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
     @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
+    @StateObject private var contentReportCoordinator: ContentReportCoordinator
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
     @State private var isShowingNotificationInbox = false
@@ -81,6 +82,9 @@ struct ContentView: View {
             legalDocumentRepository: container.legalDocumentRepository,
             userRepository: container.userRepository
         ))
+        _contentReportCoordinator = StateObject(wrappedValue: ContentReportCoordinator(
+            repository: container.contentSafetyRepository
+        ))
         RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
     }
 
@@ -98,6 +102,9 @@ struct ContentView: View {
         .preferredColorScheme(selectedAppearance.colorScheme)
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
+        .environment(\.contentReportPresentation, ContentReportPresentationConfiguration(
+            present: contentReportCoordinator.present
+        ))
         .task(id: authSessionKey) {
             await SessionDataCache.shared.resetForAuthChange(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
@@ -141,6 +148,10 @@ struct ContentView: View {
         .sheet(item: $authState.presentedAuthFlow) { destination in
             AuthFlowContainerView(initialDestination: destination)
                 .environmentObject(authState)
+        }
+        .sheet(item: $contentReportCoordinator.target) { target in
+            ContentReportSheet(target: target, coordinator: contentReportCoordinator)
+                .presentationDetents([.large])
         }
         .fullScreenCover(isPresented: $isShowingNotificationInbox) {
             NotificationInboxView(

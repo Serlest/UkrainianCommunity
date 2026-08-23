@@ -179,6 +179,7 @@ struct NewsPost: Identifiable, Codable {
     let sourceURL: String?
     let imageURL: String?
     let body: String
+    let authorId: String?
     let authorName: String
     let publishedAt: Date
     let createdAt: Date
@@ -205,6 +206,7 @@ struct NewsPost: Identifiable, Codable {
         sourceURL: String? = nil,
         imageURL: String? = nil,
         body: String,
+        authorId: String? = nil,
         authorName: String,
         publishedAt: Date,
         createdAt: Date,
@@ -230,6 +232,7 @@ struct NewsPost: Identifiable, Codable {
         self.sourceURL = sourceURL
         self.imageURL = imageURL
         self.body = body
+        self.authorId = authorId
         self.authorName = authorName
         self.publishedAt = publishedAt
         self.createdAt = createdAt

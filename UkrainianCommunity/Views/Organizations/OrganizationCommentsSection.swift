@@ -96,8 +96,8 @@ extension OrganizationDetailView {
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
 
-                    if canEditComment(comment) || canDeleteComment(comment, organization: organization) {
-                        commentActionMenu(for: comment)
+                    if canEditComment(comment) || canDeleteComment(comment, organization: organization) || canReportComment(comment) {
+                        commentActionMenu(for: comment, organization: organization)
                     }
                 }
 
@@ -111,7 +111,7 @@ extension OrganizationDetailView {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    func commentActionMenu(for comment: Comment) -> some View {
+    func commentActionMenu(for comment: Comment, organization: Organization) -> some View {
         Menu {
             if canEditComment(comment) {
                 Button(AppStrings.Action.edit, systemImage: "pencil") {
@@ -120,8 +120,16 @@ extension OrganizationDetailView {
                     isCommentFieldFocused = true
                 }
             }
-            Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
-                pendingCommentDeleteID = comment.id
+            if canDeleteComment(comment, organization: organization) {
+                Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
+                    pendingCommentDeleteID = comment.id
+                }
+            }
+            if canReportComment(comment),
+               let target = ContentReportTarget.comment(comment, parentTitle: organization.name) {
+                Button(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble") {
+                    presentContentReport(target)
+                }
             }
         } label: {
             Image(systemName: "ellipsis.circle.fill")
@@ -133,7 +141,11 @@ extension OrganizationDetailView {
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
-        .accessibilityLabel(AppStrings.Action.delete)
+        .accessibilityLabel(AppStrings.Safety.moreActions)
+    }
+
+    func canReportComment(_ comment: Comment) -> Bool {
+        !authState.isAuthenticated || comment.authorId != authState.user?.id
     }
 
     var trimmedCommentText: String {

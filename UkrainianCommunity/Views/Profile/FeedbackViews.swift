@@ -462,6 +462,13 @@ private struct FeedbackConversationSheet: View {
                                 }
                             }
 
+                            if let reportContext = item.reportContext {
+                                ContentReportContextCard(
+                                    context: reportContext,
+                                    occurrenceCount: item.occurrenceCount
+                                )
+                            }
+
                             if isLoadingMessages && messages.isEmpty {
                                 LoadingStateCard(title: AppStrings.Feedback.messagesTitle)
                             } else if messages.isEmpty {
@@ -612,6 +619,59 @@ private struct FeedbackConversationSheet: View {
             withAnimation(.easeOut(duration: 0.2), action)
         } else {
             action()
+        }
+    }
+}
+
+private struct ContentReportContextCard: View {
+    let context: ContentReportContext
+    let occurrenceCount: Int
+
+    private var slaText: String {
+        if context.slaDueAt < Date() {
+            return AppStrings.Safety.slaOverdue
+        }
+        return AppStrings.Safety.slaDue(
+            LocalizationStore.dateString(
+                from: context.slaDueAt,
+                dateStyle: .medium,
+                timeStyle: .short
+            )
+        )
+    }
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(AppStrings.Safety.moderationContext, systemImage: "shield.lefthalf.filled")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                FeedbackMetadataRow(
+                    systemImage: context.targetType.systemImage,
+                    title: "\(context.targetType.title): \(context.targetTitle)"
+                )
+                FeedbackMetadataRow(systemImage: "exclamationmark.bubble", title: context.reason.title)
+                FeedbackMetadataRow(
+                    systemImage: context.isUrgent ? "clock.badge.exclamationmark" : "clock",
+                    title: slaText
+                )
+
+                if occurrenceCount > 1 {
+                    FeedbackMetadataRow(
+                        systemImage: "arrow.triangle.2.circlepath",
+                        title: AppStrings.Safety.reportOccurrences(occurrenceCount)
+                    )
+                }
+
+                if !context.targetExcerpt.isEmpty {
+                    Text(context.targetExcerpt)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 }

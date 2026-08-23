@@ -519,6 +519,19 @@ enum FeedbackSenderRole: String, Codable {
     }
 }
 
+struct ContentReportContext: Codable, Equatable {
+    let targetType: ContentReportTargetType
+    let targetId: String
+    let parentType: CommentParentType?
+    let parentId: String?
+    let targetAuthorId: String?
+    let targetTitle: String
+    let targetExcerpt: String
+    let reason: ContentReportReason
+    let isUrgent: Bool
+    let slaDueAt: Date
+}
+
 struct FeedbackItem: Identifiable, Codable {
     let id: String
     let type: FeedbackType
@@ -538,6 +551,52 @@ struct FeedbackItem: Identifiable, Codable {
     let lastMessageByRole: FeedbackSenderRole?
     let unreadForOwner: Bool
     let unreadForUser: Bool
+    let reportContext: ContentReportContext?
+    let occurrenceCount: Int
+
+    init(
+        id: String,
+        type: FeedbackType,
+        subject: String?,
+        message: String,
+        status: FeedbackStatus,
+        createdAt: Date,
+        updatedAt: Date,
+        userId: String,
+        userDisplayName: String,
+        ownerReply: String?,
+        repliedAt: Date?,
+        repliedByUserId: String?,
+        lastMessageText: String?,
+        lastMessageAt: Date?,
+        lastMessageByUserId: String?,
+        lastMessageByRole: FeedbackSenderRole?,
+        unreadForOwner: Bool,
+        unreadForUser: Bool,
+        reportContext: ContentReportContext? = nil,
+        occurrenceCount: Int = 1
+    ) {
+        self.id = id
+        self.type = type
+        self.subject = subject
+        self.message = message
+        self.status = status
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.userId = userId
+        self.userDisplayName = userDisplayName
+        self.ownerReply = ownerReply
+        self.repliedAt = repliedAt
+        self.repliedByUserId = repliedByUserId
+        self.lastMessageText = lastMessageText
+        self.lastMessageAt = lastMessageAt
+        self.lastMessageByUserId = lastMessageByUserId
+        self.lastMessageByRole = lastMessageByRole
+        self.unreadForOwner = unreadForOwner
+        self.unreadForUser = unreadForUser
+        self.reportContext = reportContext
+        self.occurrenceCount = max(1, occurrenceCount)
+    }
 }
 
 struct FeedbackMessage: Identifiable, Codable, Equatable {

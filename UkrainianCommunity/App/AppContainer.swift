@@ -3,6 +3,7 @@ import Foundation
 struct AppContainer {
     let userRepository: UserRepository
     let feedbackRepository: FeedbackRepository
+    let contentSafetyRepository: ContentSafetyRepository
     let notificationPreferencesRepository: NotificationPreferencesRepository
     let notificationInboxRepository: NotificationInboxRepository
     let notificationPushTokenRepository: NotificationPushTokenRepository
@@ -21,6 +22,7 @@ struct AppContainer {
         AppContainer(
             userRepository: FirestoreUserRepository(),
             feedbackRepository: FirestoreFeedbackRepository(),
+            contentSafetyRepository: CloudContentSafetyRepository(),
             notificationPreferencesRepository: FirestoreNotificationPreferencesRepository(),
             notificationInboxRepository: FirestoreNotificationInboxRepository(),
             notificationPushTokenRepository: FirestoreNotificationPushTokenRepository(),
@@ -41,6 +43,7 @@ struct AppContainer {
         AppContainer(
             userRepository: MockUserRepository(),
             feedbackRepository: MockFeedbackRepository(),
+            contentSafetyRepository: MockContentSafetyRepository(),
             notificationPreferencesRepository: MockNotificationPreferencesRepository(),
             notificationInboxRepository: MockNotificationInboxRepository(),
             notificationPushTokenRepository: MockNotificationPushTokenRepository(),

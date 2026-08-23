@@ -25,6 +25,7 @@ enum CloudFunctionName: String, CaseIterable {
     case saveFeaturedBanner
     case setFeaturedBannerActive
     case deleteFeaturedBanner
+    case submitContentReport
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -421,6 +422,8 @@ final class CloudFunctionsClient {
              .setFeaturedBannerActive,
              .deleteFeaturedBanner:
             return .systemConfiguration
+        case .submitContentReport:
+            return .report
         }
     }
 
@@ -449,7 +452,8 @@ final class CloudFunctionsClient {
              .rejectOrganization,
              .requestOrganizationRevision,
              .acceptLegalDocument,
-             .deleteOwnAccount:
+             .deleteOwnAccount,
+             .submitContentReport:
             return false
         }
     }
@@ -497,7 +501,8 @@ final class CloudFunctionsClient {
              .deleteOwnAccount,
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
-             .deleteFeaturedBanner:
+             .deleteFeaturedBanner,
+             .submitContentReport:
             return nil
         }
     }
@@ -671,6 +676,9 @@ final class CloudFunctionsClient {
             metadata["newsId"] = request.newsId
         } else if let request = request as? OrganizationDeletionFunctionRequest {
             metadata["organizationId"] = request.organizationId
+        } else if let request = request as? ContentReportFunctionRequest {
+            metadata["reportTargetType"] = request.targetType
+            metadata["reportTargetId"] = request.targetId
         }
 
         return metadata
@@ -703,6 +711,9 @@ final class CloudFunctionsClient {
         }
         if let request = request as? OrganizationDeletionFunctionRequest {
             return request.organizationId
+        }
+        if let request = request as? ContentReportFunctionRequest {
+            return request.targetId
         }
         return nil
     }

@@ -286,6 +286,7 @@ final class NewsEditorViewModel: ObservableObject {
         let existingCity: String?
         let existingSource: ContentSourceMetadata
         let existingComments: [Comment]
+        let existingAuthorID: String?
         let existingLikeCount: Int
         let existingLikeState: LikeState
         let existingViewCount: Int
@@ -306,6 +307,7 @@ final class NewsEditorViewModel: ObservableObject {
             existingCity = nil
             existingSource = context.source
             existingComments = []
+            existingAuthorID = authState?.user?.id
             existingLikeCount = 0
             existingLikeState = .notLiked
             existingViewCount = 0
@@ -319,6 +321,7 @@ final class NewsEditorViewModel: ObservableObject {
             existingCity = existingNews.city
             existingSource = existingNews.source
             existingComments = existingNews.comments
+            existingAuthorID = existingNews.authorId
             existingLikeCount = existingNews.likeCount
             existingLikeState = existingNews.likeState
             existingViewCount = existingNews.viewCount
@@ -340,6 +343,7 @@ final class NewsEditorViewModel: ObservableObject {
             sourceURL: articleSource.sourceURL,
             imageURL: nil,
             body: trimmedBody,
+            authorId: existingAuthorID,
             authorName: resolvedAuthorName,
             publishedAt: publishedAt,
             createdAt: createdAt,
@@ -695,6 +699,7 @@ private extension NewsPost {
             sourceURL: sourceURL,
             imageURL: imageURL,
             body: body,
+            authorId: authorId,
             authorName: authorName,
             publishedAt: publishedAt,
             createdAt: createdAt,

@@ -242,6 +242,29 @@ describe("email verification enforcement", () => {
       unreadForOwner: true,
       unreadForUser: false,
     }));
+
+    await assertFails(setDoc(doc(verifiedDb, "feedback", "forged-context-report"), {
+      id: "forged-context-report",
+      userId: "verified-user",
+      userDisplayName: "Verified User",
+      type: "report",
+      message: "Forged contextual report",
+      status: "open",
+      createdAt: new Date("2026-06-09T11:00:00Z"),
+      updatedAt: new Date("2026-06-09T11:00:00Z"),
+      lastMessageText: "Forged contextual report",
+      lastMessageAt: new Date("2026-06-09T11:00:00Z"),
+      lastMessageByUserId: "verified-user",
+      lastMessageByRole: "user",
+      unreadForOwner: true,
+      unreadForUser: false,
+      reportContext: {
+        targetType: "news",
+        targetId: "news-1",
+        targetAuthorId: "another-user",
+        reason: "spam",
+      },
+    }));
   });
 
   test("owner/admin style management writes are still gated by verified email", async () => {

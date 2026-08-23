@@ -519,7 +519,7 @@ extension EventDetailView {
                             .foregroundStyle(AppTheme.textSecondary)
                     } else {
                         ForEach(event.comments) { comment in
-                            eventCommentRow(comment)
+                            eventCommentRow(comment, parentTitle: event.title)
                                 .padding(.vertical, AppTheme.eventsCardContentSpacing)
                         }
                     }
@@ -573,7 +573,7 @@ extension EventDetailView {
             }
         }
 
-        func eventCommentRow(_ comment: Comment) -> some View {
+        func eventCommentRow(_ comment: Comment, parentTitle: String) -> some View {
             HStack(alignment: .top, spacing: 10) {
                 eventCommentAvatar(comment)
 
@@ -590,8 +590,8 @@ extension EventDetailView {
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
 
-                        if canEditComment(comment) || canDeleteComment(comment) {
-                            eventCommentActionMenu(for: comment)
+                        if canEditComment(comment) || canDeleteComment(comment) || canReportComment(comment) {
+                            eventCommentActionMenu(for: comment, parentTitle: parentTitle)
                         }
                     }
 
@@ -603,7 +603,7 @@ extension EventDetailView {
             }
         }
 
-        func eventCommentActionMenu(for comment: Comment) -> some View {
+        func eventCommentActionMenu(for comment: Comment, parentTitle: String) -> some View {
             Menu {
                 if canEditComment(comment) {
                     Button(AppStrings.Action.edit, systemImage: "pencil") {
@@ -617,6 +617,12 @@ extension EventDetailView {
                         pendingCommentDeleteID = comment.id
                     }
                 }
+                if canReportComment(comment),
+                   let target = ContentReportTarget.comment(comment, parentTitle: parentTitle) {
+                    Button(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble") {
+                        presentContentReport(target)
+                    }
+                }
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(AppTheme.sectionTitleFont)
@@ -627,7 +633,11 @@ extension EventDetailView {
             }
             .menuStyle(.button)
             .buttonStyle(.plain)
-            .accessibilityLabel(AppStrings.Action.delete)
+            .accessibilityLabel(AppStrings.Safety.moreActions)
+        }
+
+        func canReportComment(_ comment: Comment) -> Bool {
+            !authState.isAuthenticated || comment.authorId != authState.user?.id
         }
 
         @ViewBuilder

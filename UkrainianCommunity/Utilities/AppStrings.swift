@@ -1206,7 +1206,7 @@ enum AppStrings {
         static var ownerEvents: String { text("profile.owner.events", "Події") }
         static var ownerEventsSubtitle: String { text("profile.owner.events.subtitle", "Створення, редагування, реєстрації.") }
         static var ownerModeration: String { text("profile.owner.moderation", "Модерація") }
-        static var ownerModerationSubtitle: String { text("profile.owner.moderation.subtitle", "Перевірка матеріалів і майбутня робота зі скаргами.") }
+        static var ownerModerationSubtitle: String { text("profile.owner.moderation.subtitle", "Review pending content and organization requests.") }
         static var ownerPendingReview: String { text("profile.owner.pending_review", "Очікують перевірки") }
         static var ownerPendingReviewSubtitle: String { text("profile.owner.pending_review.subtitle", "Новини, події та організації на перевірці.") }
         static var ownerUserReports: String { text("profile.owner.user_reports", "Скарги користувачів") }
@@ -1475,8 +1475,8 @@ enum AppStrings {
         static var typeSuggestion: String { text("feedback.type.suggestion", "Suggestion") }
         static var typeBug: String { text("feedback.type.bug", "Bug") }
         static var typeReport: String { text("feedback.type.report", "Report") }
-        static var inboxTitle: String { text("feedback.inbox.title", "Відгуки користувачів") }
-        static var inboxSubtitle: String { text("feedback.inbox.subtitle", "Повідомлення, пропозиції та проблеми від користувачів.") }
+        static var inboxTitle: String { text("feedback.inbox.title", "User feedback and reports") }
+        static var inboxSubtitle: String { text("feedback.inbox.subtitle", "Messages, suggestions, and contextual content reports.") }
         static var inboxEmpty: String { text("feedback.inbox.empty", "Нових відгуків поки немає") }
         static var inboxFilter: String { text("feedback.inbox.filter", "Фільтр") }
         static var inboxFilterEmpty: String { text("feedback.inbox.filter_empty", "У цьому фільтрі звернень немає.") }
@@ -1493,6 +1493,52 @@ enum AppStrings {
         static var statusArchived: String { text("feedback.status.archived", "Архів") }
         static var loadFailed: String { text("feedback.error.load_failed", "Не вдалося завантажити відгуки.") }
         static var updateFailed: String { text("feedback.error.update_failed", "Не вдалося оновити статус відгуку.") }
+    }
+
+    enum Safety {
+        static var reportAction: String { text("safety.report.action", "Report") }
+        static var moreActions: String { text("safety.actions.more", "More actions") }
+        static var reportTitle: String { text("safety.report.title", "Report content") }
+        static var targetNews: String { text("safety.target.news", "News") }
+        static var targetEvent: String { text("safety.target.event", "Event") }
+        static var targetOrganization: String { text("safety.target.organization", "Organization") }
+        static var targetComment: String { text("safety.target.comment", "Comment") }
+        static var reasonTitle: String { text("safety.report.reason.title", "Why are you reporting this?") }
+        static var reasonPlaceholder: String { text("safety.report.reason.placeholder", "Select a reason") }
+        static var reasonHarassment: String { text("safety.report.reason.harassment", "Harassment or bullying") }
+        static var reasonHate: String { text("safety.report.reason.hate", "Hate speech") }
+        static var reasonViolence: String { text("safety.report.reason.violence", "Violence or threats") }
+        static var reasonSexual: String { text("safety.report.reason.sexual", "Sexual content") }
+        static var reasonSpam: String { text("safety.report.reason.spam", "Spam or fraud") }
+        static var reasonMisinformation: String { text("safety.report.reason.misinformation", "False or misleading information") }
+        static var reasonPrivacy: String { text("safety.report.reason.privacy", "Privacy violation") }
+        static var reasonOther: String { text("safety.report.reason.other", "Other") }
+        static var detailsTitle: String { text("safety.report.details.title", "Details (optional)") }
+        static var detailsPlaceholder: String { text("safety.report.details.placeholder", "Describe what happened. Do not include passwords or sensitive personal data.") }
+        static var otherDetailsRequired: String { text("safety.report.details.other_required", "Add a short explanation for ‘Other’.") }
+        static var reviewTitle: String { text("safety.report.review.title", "What happens next") }
+        static var reviewUrgent: String { text("safety.report.review.urgent", "The moderation team aims to review this category within 24 hours.") }
+        static var reviewStandard: String { text("safety.report.review.standard", "The moderation team aims to review this report within 72 hours.") }
+        static var emergencyNotice: String { text("safety.report.emergency", "If someone is in immediate danger, contact local emergency services. This report channel is not an emergency service.") }
+        static var submit: String { text("safety.report.submit", "Submit report") }
+        static var submitting: String { text("safety.report.submitting", "Submitting...") }
+        static var submittedTitle: String { text("safety.report.submitted.title", "Report sent") }
+        static var submittedMessage: String { text("safety.report.submitted.message", "Thank you. The moderation team will review the content.") }
+        static var submittedDuplicate: String { text("safety.report.submitted.duplicate", "Your earlier report is still in the moderation queue. We updated it with the latest information.") }
+        static var errorAuthentication: String { text("safety.report.error.authentication", "Sign in to submit a report.") }
+        static var errorPermission: String { text("safety.report.error.permission", "Your account cannot submit reports right now.") }
+        static var errorOwnContent: String { text("safety.report.error.own_content", "You cannot report your own content.") }
+        static var errorUnavailable: String { text("safety.report.error.unavailable", "This content is no longer available.") }
+        static var errorNetwork: String { text("safety.report.error.network", "The report could not be sent. Check your connection and try again.") }
+        static var errorUnknown: String { text("safety.report.error.unknown", "The report could not be sent right now. Try again later.") }
+        static var moderationContext: String { text("safety.moderation.context", "Report context") }
+        static var slaOverdue: String { text("safety.moderation.sla.overdue", "Review deadline exceeded") }
+        static func slaDue(_ date: String) -> String {
+            LocalizationStore.localizedFormat("safety.moderation.sla.due", defaultValue: "Review by %@", arguments: [date])
+        }
+        static func reportOccurrences(_ count: Int) -> String {
+            LocalizationStore.localizedFormat("safety.moderation.occurrences", defaultValue: "Reports received: %lld", arguments: [count])
+        }
     }
 
     enum Moderation {

@@ -26,6 +26,7 @@ struct EventDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.eventPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.contentReportPresentation) var contentReportPresentation
     @EnvironmentObject var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
     let eventID: String
