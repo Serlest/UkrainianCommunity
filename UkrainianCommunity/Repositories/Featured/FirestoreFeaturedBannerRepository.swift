@@ -1,3 +1,4 @@
+import FirebaseFunctions
 import FirebaseFirestore
 import Foundation
 
@@ -27,6 +28,11 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
 
     private let collection = Firestore.firestore().collection(FeaturedBanner.collectionPath)
     private let validationService = FeaturedBannerValidationService()
+    private let mutationClient: any FeaturedBannerMutationClient
+
+    init(mutationClient: any FeaturedBannerMutationClient = CloudFunctionsClient.shared) {
+        self.mutationClient = mutationClient
+    }
 
     func fetchActiveBanners(
         for section: FeaturedBannerVisibleSection,
@@ -100,21 +106,9 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
 
     func createBanner(_ banner: FeaturedBanner) async throws {
         try validationService.validate(banner)
-        let data = makeData(from: banner)
-
         do {
-            try await collection.document(banner.id).setData(data)
+            try await mutationClient.saveFeaturedBanner(banner, mode: .create)
         } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "FeaturedBanners",
-                    operationName: "createBanner",
-                    targetType: .systemConfiguration,
-                    targetId: banner.id,
-                    targetTitle: banner.title
-                )
-            )
             throw appError(from: error)
         }
 
@@ -133,71 +127,9 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
 
     func updateBanner(_ banner: FeaturedBanner) async throws {
         try validationService.validate(banner)
-        let document = collection.document(banner.id)
-        let snapshot = try await document.getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
-        let existingData = snapshot.data() ?? [:]
-        let existingBanner: FeaturedBanner
         do {
-            existingBanner = try makeBanner(
-                id: banner.id,
-                data: existingData,
-                allowsUnsupportedLegacy: true
-            )
+            try await mutationClient.saveFeaturedBanner(banner, mode: .update)
         } catch {
-            existingBanner = makeRecoverableOwnerBanner(
-                id: banner.id,
-                data: existingData
-            )
-        }
-        let updatedBanner = FeaturedBanner(
-            id: banner.id,
-            internalName: banner.internalName,
-            title: banner.title,
-            subtitle: banner.subtitle,
-            imageURL: banner.imageURL,
-            actionType: banner.actionType,
-            actionTargetID: banner.actionTargetID,
-            externalURL: banner.externalURL,
-            regionScope: banner.regionScope,
-            federalState: banner.federalState,
-            visibleSections: banner.visibleSections,
-            displayDurationSeconds: banner.displayDurationSeconds,
-            priority: banner.priority,
-            isActive: banner.isActive,
-            startsAt: banner.startsAt,
-            endsAt: banner.endsAt,
-            createdAt: existingBanner.createdAt == .distantPast
-                ? banner.createdAt
-                : existingBanner.createdAt,
-            updatedAt: Date(),
-            createdBy: nonEmpty(existingBanner.createdBy)
-                ?? banner.createdBy,
-            updatedBy: banner.updatedBy
-        )
-        try validationService.validate(updatedBanner)
-        do {
-            if existingBanner.requiresDataRepair {
-                try await document.setData(makeUpdateData(
-                    from: updatedBanner,
-                    preservingIdentityFrom: existingData
-                ))
-            } else {
-                try await document.updateData(makeMutableUpdateData(from: updatedBanner))
-            }
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "FeaturedBanners",
-                    operationName: "updateBanner",
-                    targetType: .systemConfiguration,
-                    targetId: banner.id,
-                    targetTitle: banner.title
-                )
-            )
             throw appError(from: error)
         }
 
@@ -207,8 +139,8 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                 operationName: "updateBanner",
                 eventType: .contentUpdated,
                 targetType: .systemConfiguration,
-                targetId: updatedBanner.id,
-                targetTitle: updatedBanner.title,
+                targetId: banner.id,
+                targetTitle: banner.title,
                 summary: "Featured banner updated"
             )
         )
@@ -221,47 +153,9 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             throw AppError.validationFailed
         }
 
-        let document = collection.document(trimmedID)
-        let snapshot = try await document.getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
-        let existingBanner: FeaturedBanner
         do {
-            existingBanner = try makeBanner(
-                id: trimmedID,
-                data: snapshot.data() ?? [:],
-                allowsUnsupportedLegacy: true
-            )
+            try await mutationClient.setFeaturedBannerActive(id: trimmedID, isActive: isActive)
         } catch {
-            existingBanner = makeRecoverableOwnerBanner(
-                id: trimmedID,
-                data: snapshot.data() ?? [:]
-            )
-        }
-        if existingBanner.hasUnsupportedLegacyConfiguration {
-            guard existingBanner.isActive, !isActive else {
-                throw AppError.validationFailed
-            }
-        }
-
-        do {
-            try await document.updateData([
-                Field.isActive.rawValue: isActive,
-                Field.updatedAt.rawValue: Timestamp(date: Date()),
-                Field.updatedBy.rawValue: trimmedUserID
-            ])
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "FeaturedBanners",
-                    operationName: "setBannerActive",
-                    targetType: .systemConfiguration,
-                    targetId: trimmedID,
-                    metadata: ["requestedActiveState": "\(isActive)"]
-                )
-            )
             throw appError(from: error)
         }
     }
@@ -272,23 +166,9 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             throw AppError.validationFailed
         }
 
-        let document = collection.document(trimmedID)
-        let snapshot = try await document.getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
         do {
-            try await document.delete()
+            try await mutationClient.deleteFeaturedBanner(id: trimmedID)
         } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "FeaturedBanners",
-                    operationName: "deleteBanner",
-                    targetType: .systemConfiguration,
-                    targetId: trimmedID
-                )
-            )
             throw appError(from: error)
         }
 
@@ -423,88 +303,6 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         )
     }
 
-    private func makeData(from banner: FeaturedBanner) -> [String: Any] {
-        var data = makeMutableData(from: banner)
-        data[Field.id.rawValue] = banner.id
-        data[Field.createdAt.rawValue] = Timestamp(date: banner.createdAt)
-        data[Field.createdBy.rawValue] = banner.createdBy
-        return data
-    }
-
-    private func makeUpdateData(
-        from banner: FeaturedBanner,
-        preservingIdentityFrom existingData: [String: Any]
-    ) -> [String: Any] {
-        var data = makeData(from: banner)
-
-        // Firestore timestamps have nanosecond precision. Preserve immutable
-        // identity fields in their original representation so a Date
-        // round-trip cannot make Security Rules treat them as modified.
-        if let createdAt = existingData[Field.createdAt.rawValue] as? Timestamp {
-            data[Field.createdAt.rawValue] = createdAt
-        }
-        if let createdBy = nonEmpty(existingData[Field.createdBy.rawValue] as? String) {
-            data[Field.createdBy.rawValue] = createdBy
-        }
-
-        return data
-    }
-
-    private func makeMutableData(from banner: FeaturedBanner) -> [String: Any] {
-        var data: [String: Any] = [
-            Field.imageURL.rawValue: nonEmpty(banner.imageURL) ?? "",
-            Field.actionType.rawValue: banner.actionType.rawValue,
-            Field.regionScope.rawValue: banner.regionScope.rawValue,
-            Field.visibleSections.rawValue: banner.visibleSections.map(\.rawValue).sorted(),
-            Field.displayDurationSeconds.rawValue: banner.displayDurationSeconds,
-            Field.priority.rawValue: banner.priority,
-            Field.isActive.rawValue: banner.isActive,
-            Field.updatedAt.rawValue: Timestamp(date: banner.updatedAt)
-        ]
-
-        setOptionalValue(nonEmpty(banner.title), forKey: Field.title.rawValue, in: &data)
-        setOptionalValue(nonEmpty(banner.internalName), forKey: Field.internalName.rawValue, in: &data)
-        setOptionalValue(nonEmpty(banner.subtitle), forKey: Field.subtitle.rawValue, in: &data)
-        setOptionalValue(nonEmpty(banner.actionTargetID), forKey: Field.actionTargetID.rawValue, in: &data)
-        setOptionalValue(nonEmpty(banner.externalURL), forKey: Field.externalURL.rawValue, in: &data)
-        setOptionalValue(banner.federalState?.rawValue, forKey: Field.federalState.rawValue, in: &data)
-        setOptionalValue(banner.startsAt.map(Timestamp.init(date:)), forKey: Field.startsAt.rawValue, in: &data)
-        setOptionalValue(banner.endsAt.map(Timestamp.init(date:)), forKey: Field.endsAt.rawValue, in: &data)
-        setOptionalValue(nonEmpty(banner.updatedBy), forKey: Field.updatedBy.rawValue, in: &data)
-
-        return data
-    }
-
-    private func makeMutableUpdateData(from banner: FeaturedBanner) -> [String: Any] {
-        var data = makeMutableData(from: banner)
-        let optionalFields: [Field] = [
-            .title,
-            .internalName,
-            .subtitle,
-            .actionTargetID,
-            .externalURL,
-            .federalState,
-            .startsAt,
-            .endsAt
-        ]
-
-        for field in optionalFields where data[field.rawValue] == nil {
-            data[field.rawValue] = FieldValue.delete()
-        }
-
-        return data
-    }
-
-    private func setOptionalValue(
-        _ value: Any?,
-        forKey key: String,
-        in data: inout [String: Any]
-    ) {
-        if let value {
-            data[key] = value
-        }
-    }
-
     private func intValue(_ value: Any?) -> Int? {
         if let value = value as? Int {
             return value
@@ -519,22 +317,26 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         (value as? Timestamp)?.dateValue()
     }
 
-    private func nonEmpty(_ value: String?) -> String? {
-        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
     private func appError(from error: Error) -> AppError {
         if let appError = error as? AppError {
             return appError
         }
 
         let nsError = error as NSError
-        guard let code = FirestoreErrorCode.Code(rawValue: nsError.code) else {
-            return .unknown
+        switch FunctionsErrorCode(rawValue: nsError.code) {
+        case .permissionDenied, .unauthenticated:
+            return .permissionDenied
+        case .notFound:
+            return .notFound
+        case .invalidArgument, .alreadyExists, .failedPrecondition:
+            return .validationFailed
+        case .unavailable, .deadlineExceeded:
+            return .network
+        default:
+            break
         }
 
-        switch code {
+        switch FirestoreErrorCode.Code(rawValue: nsError.code) {
         case .permissionDenied:
             return .permissionDenied
         case .notFound:

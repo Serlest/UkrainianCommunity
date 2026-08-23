@@ -62,7 +62,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
     private let repository: FeaturedBannerRepository
     private let actionTargetLoader: FeaturedBannerActionTargetLoader
-    private let imageUploadService: ImageUploadService
+    private let imageUploadService: any FeaturedBannerImageService
     private let validationService = FeaturedBannerValidationService()
     private let mode: Mode
     private let bannerID: String
@@ -81,7 +81,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         newsRepository: NewsRepository? = nil,
         eventRepository: EventRepository? = nil,
         organizationRepository: OrganizationRepository? = nil,
-        imageUploadService: ImageUploadService? = nil
+        imageUploadService: (any FeaturedBannerImageService)? = nil
     ) {
         self.repository = repository
         actionTargetLoader = FeaturedBannerActionTargetLoader(
@@ -90,7 +90,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             organizationRepository: organizationRepository
         )
         self.mode = mode
-        self.imageUploadService = imageUploadService ?? .shared
+        self.imageUploadService = imageUploadService ?? ImageUploadService.shared
 
         switch mode {
         case .create:

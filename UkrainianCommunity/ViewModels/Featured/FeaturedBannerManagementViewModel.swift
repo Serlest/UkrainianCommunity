@@ -10,18 +10,18 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
 
     private let repository: FeaturedBannerRepository
     private let publicCache: FeaturedBannerCache?
-    private let imageUploadService: ImageUploadService
+    private let imageUploadService: any FeaturedBannerImageService
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
 
     init(
         repository: FeaturedBannerRepository,
         publicCache: FeaturedBannerCache? = nil,
-        imageUploadService: ImageUploadService? = nil
+        imageUploadService: (any FeaturedBannerImageService)? = nil
     ) {
         self.repository = repository
         self.publicCache = publicCache
-        self.imageUploadService = imageUploadService ?? .shared
+        self.imageUploadService = imageUploadService ?? ImageUploadService.shared
     }
 
     func loadIfNeeded() async {

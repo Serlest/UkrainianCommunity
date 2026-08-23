@@ -4,6 +4,16 @@ import FirebaseStorage
 import ImageIO
 import UniformTypeIdentifiers
 
+@MainActor
+protocol FeaturedBannerImageService: AnyObject {
+    func uploadFeaturedBannerImage(bannerId: String, imageData: Data) async throws -> URL
+    func uploadFeaturedBannerImage(
+        bannerId: String,
+        processedImage: ProcessedImageSelection
+    ) async throws -> URL
+    func deleteFeaturedBannerImage(at imageURL: URL, bannerId: String) async throws
+}
+
 final class ImageUploadService {
     static let shared = ImageUploadService()
 
@@ -436,6 +446,8 @@ final class ImageUploadService {
         return data as Data
     }
 }
+
+extension ImageUploadService: FeaturedBannerImageService {}
 
 private struct ProcessedImageUploadData: Sendable {
     let data: Data

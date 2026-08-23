@@ -20,6 +20,9 @@ enum CloudFunctionName: String, CaseIterable {
     case restoreUser
     case acceptLegalDocument
     case deleteOwnAccount
+    case saveFeaturedBanner
+    case setFeaturedBannerActive
+    case deleteFeaturedBanner
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -314,7 +317,7 @@ final class CloudFunctionsClient {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
     }
 
-    private func call<Request: Encodable, Response: Decodable>(
+    func call<Request: Encodable, Response: Decodable>(
         _ functionName: CloudFunctionName,
         request: Request
     ) async throws -> Response {
@@ -330,6 +333,7 @@ final class CloudFunctionsClient {
                     moduleName: "CloudFunctions",
                     operationName: functionName.rawValue,
                     targetType: targetType(for: functionName),
+                    targetId: securityTargetId(functionName: functionName, request: request),
                     metadata: [
                         "functionName": functionName.rawValue,
                         "callable": functionName.rawValue
@@ -384,6 +388,10 @@ final class CloudFunctionsClient {
             return .userProfile
         case .acceptLegalDocument:
             return .legalDocument
+        case .saveFeaturedBanner,
+             .setFeaturedBannerActive,
+             .deleteFeaturedBanner:
+            return .systemConfiguration
         }
     }
 
@@ -401,7 +409,10 @@ final class CloudFunctionsClient {
              .suspendUser,
              .banUser,
              .deactivateUser,
-             .restoreUser:
+             .restoreUser,
+             .saveFeaturedBanner,
+             .setFeaturedBannerActive,
+             .deleteFeaturedBanner:
             return true
         case .approveOrganization,
              .rejectOrganization,
@@ -450,7 +461,10 @@ final class CloudFunctionsClient {
              .requestOrganizationRevision,
              .cancelEvent,
              .acceptLegalDocument,
-             .deleteOwnAccount:
+             .deleteOwnAccount,
+             .saveFeaturedBanner,
+             .setFeaturedBannerActive,
+             .deleteFeaturedBanner:
             return nil
         }
     }
@@ -612,6 +626,14 @@ final class CloudFunctionsClient {
         } else if let request = request as? AccountStatusChangeFunctionRequest {
             metadata["targetUserId"] = request.targetUserId
             metadata["hasUntil"] = String(request.until != nil)
+        } else if let request = request as? FeaturedBannerSaveFunctionRequest {
+            metadata["bannerId"] = request.banner.id
+            metadata["mode"] = request.mode.rawValue
+        } else if let request = request as? FeaturedBannerIDFunctionRequest {
+            metadata["bannerId"] = request.id
+        } else if let request = request as? FeaturedBannerActiveFunctionRequest {
+            metadata["bannerId"] = request.id
+            metadata["isActive"] = String(request.isActive)
         }
 
         return metadata
@@ -629,6 +651,15 @@ final class CloudFunctionsClient {
         }
         if let request = request as? AccountStatusChangeFunctionRequest {
             return request.targetUserId
+        }
+        if let request = request as? FeaturedBannerSaveFunctionRequest {
+            return request.banner.id
+        }
+        if let request = request as? FeaturedBannerIDFunctionRequest {
+            return request.id
+        }
+        if let request = request as? FeaturedBannerActiveFunctionRequest {
+            return request.id
         }
         return nil
     }
