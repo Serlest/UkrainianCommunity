@@ -2,6 +2,8 @@ import Foundation
 
 /// App-level memory contract for authenticated interaction state used by feed and detail mapping.
 actor SessionDataCache {
+    static let shared = SessionDataCache()
+
     private struct CachedSet {
         var ids: Set<String>
         var loadedAt: Date
@@ -25,15 +27,13 @@ actor SessionDataCache {
     }
 
     private let ttl: TimeInterval
-    private var activeUserID: String?
     private var userCaches: [String: UserCache] = [:]
 
     init(ttl: TimeInterval = 300) {
         self.ttl = ttl
     }
 
-    func resetForAuthChange(userID: String?) {
-        activeUserID = userID
+    func resetForAuthChange(userID _: String?) {
         userCaches.removeAll()
     }
 

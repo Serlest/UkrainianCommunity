@@ -6,6 +6,11 @@ import FirebaseStorage
 struct FirestoreNewsRepository: NewsRepository {
     private let collection = Firestore.firestore().collection("news")
     private let likesCollection = Firestore.firestore().collection("likes")
+    private let sessionDataCache: SessionDataCache
+
+    init(sessionDataCache: SessionDataCache = .shared) {
+        self.sessionDataCache = sessionDataCache
+    }
 
     func fetchNews() async throws -> [NewsPost] {
         try await fetchNewsPage(limit: 30, after: nil).items
@@ -337,6 +342,7 @@ struct FirestoreNewsRepository: NewsRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateLikedNewsID(id, isLiked: true, for: uid)
     }
 
     func unlikeNews(id: String) async throws {
@@ -370,6 +376,7 @@ struct FirestoreNewsRepository: NewsRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateLikedNewsID(id, isLiked: false, for: uid)
     }
 
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
@@ -565,6 +572,7 @@ struct FirestoreNewsRepository: NewsRepository {
             "userId": uid,
             "createdAt": FieldValue.serverTimestamp()
         ], merge: true)
+        await sessionDataCache.updateBookmarkedNewsID(id, isBookmarked: true, for: uid)
     }
 
     func unbookmarkNews(id: String) async throws {
@@ -573,23 +581,32 @@ struct FirestoreNewsRepository: NewsRepository {
         }
 
         try await bookmarkReference(newsID: id, userID: uid).delete()
+        await sessionDataCache.updateBookmarkedNewsID(id, isBookmarked: false, for: uid)
     }
 
     private func fetchLikedNewsIDs() async throws -> Set<String> {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
         }
+        if let cached = await sessionDataCache.cachedLikedNewsIDs(for: uid) {
+            return cached
+        }
 
         let snapshot = try await likesCollection
             .whereField("userId", isEqualTo: uid)
             .getDocuments()
 
-        return Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
+        let ids = Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
+        await sessionDataCache.storeLikedNewsIDs(ids, for: uid)
+        return ids
     }
 
     private func fetchBookmarkedNewsIDs() async throws -> Set<String> {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
+        }
+        if let cached = await sessionDataCache.cachedBookmarkedNewsIDs(for: uid) {
+            return cached
         }
 
         let snapshot = try await Firestore.firestore()
@@ -598,7 +615,9 @@ struct FirestoreNewsRepository: NewsRepository {
             .collection("newsBookmarks")
             .getDocuments()
 
-        return Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
+        let ids = Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
+        await sessionDataCache.storeBookmarkedNewsIDs(ids, for: uid)
+        return ids
     }
 
     private func makeNewsPostDTO(from document: QueryDocumentSnapshot, likedNewsIDs: Set<String>, bookmarkedNewsIDs: Set<String>) throws -> NewsPostDTO {

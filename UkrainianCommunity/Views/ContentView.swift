@@ -99,6 +99,7 @@ struct ContentView: View {
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .task(id: authSessionKey) {
+            await SessionDataCache.shared.resetForAuthChange(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)

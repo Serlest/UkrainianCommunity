@@ -8,6 +8,11 @@ struct FirestoreEventRepository: EventRepository {
     private let likesCollection = Firestore.firestore().collection("likes")
     private let registrationsCollection = Firestore.firestore().collection("registrations")
     private let publicProfilesCollection = Firestore.firestore().collection("publicProfiles")
+    private let sessionDataCache: SessionDataCache
+
+    init(sessionDataCache: SessionDataCache = .shared) {
+        self.sessionDataCache = sessionDataCache
+    }
 
     func fetchEvents() async throws -> [Event] {
         try await fetchEventsPage(limit: 30, after: nil).items
@@ -611,6 +616,7 @@ struct FirestoreEventRepository: EventRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateLikedEventID(id, isLiked: true, for: uid)
     }
 
     func unlikeEvent(id: String) async throws {
@@ -644,6 +650,7 @@ struct FirestoreEventRepository: EventRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateLikedEventID(id, isLiked: false, for: uid)
     }
 
     func recordEventView(id: String) async throws -> Bool {
@@ -818,6 +825,7 @@ struct FirestoreEventRepository: EventRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateRegisteredEventID(id, isRegistered: true, for: uid)
     }
 
     func cancelEventRegistration(id: String) async throws {
@@ -851,6 +859,7 @@ struct FirestoreEventRepository: EventRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateRegisteredEventID(id, isRegistered: false, for: uid)
     }
 
     func bookmarkEvent(id: String) async throws {
@@ -864,6 +873,7 @@ struct FirestoreEventRepository: EventRepository {
             "userId": uid,
             "createdAt": FieldValue.serverTimestamp()
         ], merge: true)
+        await sessionDataCache.updateBookmarkedEventID(id, isBookmarked: true, for: uid)
     }
 
     func unbookmarkEvent(id: String) async throws {
@@ -872,6 +882,7 @@ struct FirestoreEventRepository: EventRepository {
         }
 
         try await eventBookmarkReference(eventID: id, userID: uid).delete()
+        await sessionDataCache.updateBookmarkedEventID(id, isBookmarked: false, for: uid)
     }
 
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {
@@ -919,29 +930,42 @@ struct FirestoreEventRepository: EventRepository {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
         }
+        if let cached = await sessionDataCache.cachedLikedEventIDs(for: uid) {
+            return cached
+        }
 
         let snapshot = try await likesCollection
             .whereField("userId", isEqualTo: uid)
             .getDocuments()
 
-        return Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+        let ids = Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+        await sessionDataCache.storeLikedEventIDs(ids, for: uid)
+        return ids
     }
 
     private func fetchRegisteredEventIDs() async throws -> Set<String> {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
         }
+        if let cached = await sessionDataCache.cachedRegisteredEventIDs(for: uid) {
+            return cached
+        }
 
         let snapshot = try await registrationsCollection
             .whereField("userId", isEqualTo: uid)
             .getDocuments()
 
-        return Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+        let ids = Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+        await sessionDataCache.storeRegisteredEventIDs(ids, for: uid)
+        return ids
     }
 
     private func fetchBookmarkedEventIDs() async throws -> Set<String> {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
+        }
+        if let cached = await sessionDataCache.cachedBookmarkedEventIDs(for: uid) {
+            return cached
         }
 
         let snapshot = try await Firestore.firestore()
@@ -950,7 +974,9 @@ struct FirestoreEventRepository: EventRepository {
             .collection("eventBookmarks")
             .getDocuments()
 
-        return Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+        let ids = Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+        await sessionDataCache.storeBookmarkedEventIDs(ids, for: uid)
+        return ids
     }
 
     private func makeEventDTO(
@@ -1078,8 +1104,19 @@ struct FirestoreEventRepository: EventRepository {
         let uniqueIDs = Array(Set(userIDs)).filter { !$0.isEmpty }
         guard !uniqueIDs.isEmpty else { return [:] }
 
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return try await fetchPublicProfilesFromFirestore(userIDs: uniqueIDs)
+        }
+
+        let cached = await sessionDataCache.cachedPublicProfiles(for: uniqueIDs, userID: uid)
+        let fetchedProfiles = try await fetchPublicProfilesFromFirestore(userIDs: cached.missingIDs)
+        await sessionDataCache.storePublicProfiles(Array(fetchedProfiles.values), for: uid)
+        return cached.profiles.merging(fetchedProfiles) { _, fetched in fetched }
+    }
+
+    private func fetchPublicProfilesFromFirestore(userIDs: [String]) async throws -> [String: PublicUserProfile] {
         var profilesByID: [String: PublicUserProfile] = [:]
-        for chunk in uniqueIDs.chunked(into: 10) {
+        for chunk in userIDs.chunked(into: 10) {
             let snapshot = try await publicProfilesCollection
                 .whereField(FieldPath.documentID(), in: Array(chunk))
                 .getDocuments()

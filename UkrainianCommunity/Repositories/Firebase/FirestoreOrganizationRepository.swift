@@ -8,6 +8,11 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     private let likesCollection = Firestore.firestore().collection("likes")
     private let publicProfilesCollection = Firestore.firestore().collection("publicProfiles")
     private let imageUploadService = ImageUploadService.shared
+    private let sessionDataCache: SessionDataCache
+
+    init(sessionDataCache: SessionDataCache = .shared) {
+        self.sessionDataCache = sessionDataCache
+    }
 
     func fetchOrganizations() async throws -> [Organization] {
         try await fetchOrganizationsPage(limit: 30, after: nil).items
@@ -360,6 +365,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateLikedOrganizationID(id, isLiked: true, for: uid)
     }
 
     func unlikeOrganization(id: String) async throws {
@@ -394,6 +400,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateLikedOrganizationID(id, isLiked: false, for: uid)
     }
 
     func subscribeOrganization(id: String) async throws {
@@ -433,6 +440,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateSubscribedOrganizationID(id, isSubscribed: true, for: uid)
     }
 
     func unsubscribeOrganization(id: String) async throws {
@@ -467,6 +475,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         } catch {
             throw error
         }
+        await sessionDataCache.updateSubscribedOrganizationID(id, isSubscribed: false, for: uid)
     }
 
     func fetchOrganizationSubscriberPage(
@@ -525,17 +534,32 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func fetchPublicUserProfiles(userIDs: [String]) async throws -> [PublicUserProfile] {
-        let uniqueIDs = Array(Set(userIDs)).filter { !$0.isEmpty }
+        var seenIDs = Set<String>()
+        let uniqueIDs = userIDs.filter { !$0.isEmpty && seenIDs.insert($0).inserted }
         guard !uniqueIDs.isEmpty else { return [] }
 
-        var profiles: [PublicUserProfile] = []
-        for chunk in uniqueIDs.chunked(into: 10) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            let profiles = try await fetchPublicProfilesFromFirestore(userIDs: uniqueIDs)
+            return uniqueIDs.compactMap { profiles[$0] }
+        }
+
+        let cached = await sessionDataCache.cachedPublicProfiles(for: uniqueIDs, userID: uid)
+        let fetchedProfiles = try await fetchPublicProfilesFromFirestore(userIDs: cached.missingIDs)
+        await sessionDataCache.storePublicProfiles(Array(fetchedProfiles.values), for: uid)
+        let profiles = cached.profiles.merging(fetchedProfiles) { _, fetched in fetched }
+        return uniqueIDs.compactMap { profiles[$0] }
+    }
+
+    private func fetchPublicProfilesFromFirestore(userIDs: [String]) async throws -> [String: PublicUserProfile] {
+        var profiles: [String: PublicUserProfile] = [:]
+        for chunk in userIDs.chunked(into: 10) {
             let snapshot = try await publicProfilesCollection
                 .whereField(FieldPath.documentID(), in: Array(chunk))
                 .getDocuments()
 
-            profiles += snapshot.documents.compactMap { document in
-                makePublicUserProfile(from: document)
+            for document in snapshot.documents {
+                guard let profile = makePublicUserProfile(from: document) else { continue }
+                profiles[profile.id] = profile
             }
         }
 
@@ -644,12 +668,14 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             "userId": uid,
             "createdAt": FieldValue.serverTimestamp()
         ], merge: true)
+        await sessionDataCache.updateBookmarkedOrganizationID(id, isBookmarked: true, for: uid)
     }
 
     func unbookmarkOrganization(id: String) async throws {
         let uid = try ensureAuthenticatedUserID()
 
         try await organizationBookmarkReference(organizationID: id, userID: uid).delete()
+        await sessionDataCache.updateBookmarkedOrganizationID(id, isBookmarked: false, for: uid)
     }
 
     func isOrganizationBookmarked(id: String) async throws -> Bool {
@@ -719,29 +745,42 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
         }
-
-        let snapshot = try await likesCollection
-            .whereField("userId", isEqualTo: uid)
-            .getDocuments()
-
-        return Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
-    }
-
-    private func fetchSubscribedOrganizationIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            return []
+        if let cached = await sessionDataCache.cachedLikedOrganizationIDs(for: uid) {
+            return cached
         }
 
         let snapshot = try await likesCollection
             .whereField("userId", isEqualTo: uid)
             .getDocuments()
 
-        return Set(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
+        let ids = Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
+        await sessionDataCache.storeLikedOrganizationIDs(ids, for: uid)
+        return ids
+    }
+
+    private func fetchSubscribedOrganizationIDs() async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return []
+        }
+        if let cached = await sessionDataCache.cachedSubscribedOrganizationIDs(for: uid) {
+            return cached
+        }
+
+        let snapshot = try await likesCollection
+            .whereField("userId", isEqualTo: uid)
+            .getDocuments()
+
+        let ids = Set(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
+        await sessionDataCache.storeSubscribedOrganizationIDs(ids, for: uid)
+        return ids
     }
 
     func fetchBookmarkedOrganizationIDs() async throws -> Set<String> {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
+        }
+        if let cached = await sessionDataCache.cachedBookmarkedOrganizationIDs(for: uid) {
+            return cached
         }
 
         let snapshot = try await Firestore.firestore()
@@ -750,7 +789,9 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .collection("organizationBookmarks")
             .getDocuments()
 
-        return Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
+        let ids = Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
+        await sessionDataCache.storeBookmarkedOrganizationIDs(ids, for: uid)
+        return ids
     }
 
     private func makeOrganizationDTO(
