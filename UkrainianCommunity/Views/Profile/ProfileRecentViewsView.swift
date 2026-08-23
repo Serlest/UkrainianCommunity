@@ -58,19 +58,15 @@ struct RecentViewsView: View {
     @State private var selectedSegment: RecentViewsSegment = .all
 
     init(
-        recentViewsViewModel: RecentViewsViewModel? = nil,
-        recentViewsRepository: RecentViewsRepository = FirestoreRecentViewsRepository(),
-        newsViewModel: NewsViewModel? = nil,
-        eventsViewModel: EventsViewModel? = nil,
-        organizationsViewModel: OrganizationsViewModel? = nil,
-        newsRepository: NewsRepository = FirestoreNewsRepository(),
-        eventRepository: EventRepository = FirestoreEventRepository(),
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
+        recentViewsViewModel: RecentViewsViewModel,
+        newsViewModel: NewsViewModel,
+        eventsViewModel: EventsViewModel,
+        organizationsViewModel: OrganizationsViewModel
     ) {
-        self.recentViewsViewModel = recentViewsViewModel ?? RecentViewsViewModel(repository: recentViewsRepository)
-        self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
-        self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
-        self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
+        self.recentViewsViewModel = recentViewsViewModel
+        self.newsViewModel = newsViewModel
+        self.eventsViewModel = eventsViewModel
+        self.organizationsViewModel = organizationsViewModel
     }
 
     private var filteredItems: [RecentViewItem] {
@@ -105,6 +101,7 @@ struct RecentViewsView: View {
 
             recentViewsContent
         }
+        .accessibilityIdentifier("profile.recent_views.screen")
         .task(id: authState.user?.id) {
             guard let userID = authState.user?.id, authState.isAuthenticated else {
                 recentViewsViewModel.resetForAuthChange()

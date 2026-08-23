@@ -1,4 +1,3 @@
-import FirebaseAuth
 import FirebaseAppCheck
 import FirebaseCore
 import SwiftUI
@@ -89,7 +88,7 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
 @main
 struct UkrainianCommunityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var authState = AuthService.shared.authState
+    @StateObject private var authState: AuthState
     private let container: AppContainer
 
     init() {
@@ -99,25 +98,19 @@ struct UkrainianCommunityApp: App {
 
         FirebaseBootstrap.ensureConfigured()
 
-        if isUITesting {
-            container = .uiTesting
-        } else {
-            container = .development
-        }
+        let resolvedContainer: AppContainer = isUITesting ? .uiTesting : .development
+        container = resolvedContainer
+        _authState = StateObject(wrappedValue: resolvedContainer.authState)
 
         let shouldForceGuestSession = environment["UITestForceGuestSession"] == "1"
         let shouldForceAuthenticatedSession = environment["UITestForceAuthenticatedSession"] == "1"
-        let sharedAuthState = AuthService.shared.authState
-
-        if shouldForceGuestSession {
-            try? Auth.auth().signOut()
-        }
+        let sharedAuthState = resolvedContainer.authState
 
         Task { @MainActor in
-            if shouldForceAuthenticatedSession {
+            if isUITesting, shouldForceAuthenticatedSession {
                 sharedAuthState.user = MockContentBuilder.currentUser()
                 sharedAuthState.setAuthenticatedSession()
-            } else if shouldForceGuestSession {
+            } else if isUITesting, shouldForceGuestSession {
                 sharedAuthState.setGuestSession()
             } else {
                 await AuthService.shared.restoreSession()

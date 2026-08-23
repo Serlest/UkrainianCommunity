@@ -190,6 +190,26 @@ final class UkrainianCommunityUITests: XCTestCase {
         for tab in rootTabs {
             tapRootTab(tab, in: app)
         }
+
+        app.terminate()
+
+        let authenticatedApp = launchAuthenticatedApp()
+        tapRootTab(rootTabs[3], in: authenticatedApp)
+        XCTAssertTrue(authenticatedApp.otherElements["profile.account.hero"].waitForExistence(timeout: 10))
+        XCTAssertFalse(authenticatedApp.otherElements["profile.guest.card"].exists)
+
+        let recentViewsButton = authenticatedApp.buttons["profile.quick_action.recent_views"]
+        scrollToElement(recentViewsButton, in: authenticatedApp)
+        XCTAssertTrue(recentViewsButton.waitForExistence(timeout: 10))
+        recentViewsButton.tap()
+        XCTAssertTrue(authenticatedApp.otherElements["profile.recent_views.screen"].waitForExistence(timeout: 10))
+        navigateBackIfPossible(in: authenticatedApp)
+
+        let activityHistoryButton = authenticatedApp.buttons["profile.quick_action.activity_history"]
+        scrollToElement(activityHistoryButton, in: authenticatedApp)
+        XCTAssertTrue(activityHistoryButton.waitForExistence(timeout: 10))
+        activityHistoryButton.tap()
+        XCTAssertTrue(authenticatedApp.otherElements["profile.activity_history.screen"].waitForExistence(timeout: 10))
     }
 
     @MainActor

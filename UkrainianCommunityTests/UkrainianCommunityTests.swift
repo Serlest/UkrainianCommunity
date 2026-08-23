@@ -309,15 +309,23 @@ struct UkrainianCommunityTests {
     }
 
     @Test func mockRepositoriesProvideFoundationContent() async throws {
-        let user = try await MockUserRepository().fetchCurrentUser()
-        let news = try await MockNewsRepository().fetchNews()
-        let events = try await MockEventRepository().fetchEvents()
-        let organizations = try await MockOrganizationRepository().fetchOrganizations()
+        let container = AppContainer.uiTesting
+        let user = try await container.userRepository.fetchCurrentUser()
+        let news = try await container.newsRepository.fetchNews()
+        let events = try await container.eventRepository.fetchEvents()
+        let organizations = try await container.organizationRepository.fetchOrganizations()
+        let donationConfig = try await container.donationConfigRepository.fetchDonationConfig()
+        let recentViews = try await container.recentViewsRepository.fetchRecentViews(limit: 30)
+        let activityLog = try await container.activityLogRepository.fetchActivityLog(limit: 100)
 
         #expect(user.fullName.isEmpty == false)
         #expect(news.isEmpty == false)
         #expect(events.isEmpty == false)
         #expect(organizations.isEmpty == false)
+        #expect(donationConfig == nil)
+        #expect(recentViews.isEmpty)
+        #expect(activityLog.isEmpty)
+        #expect(container.allowsAccountStatusMonitoring == false)
     }
 
     @Test func settingsPersistenceStoresLanguageAndAppearance() async throws {

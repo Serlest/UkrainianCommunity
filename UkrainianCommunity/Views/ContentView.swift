@@ -101,7 +101,9 @@ struct ContentView: View {
         .task(id: authSessionKey) {
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
-            accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
+            if container.allowsAccountStatusMonitoring {
+                accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
+            }
             await configureRemoteNotifications(for: notificationInboxUserID)
             handlePendingRemoteNotificationRouteIfReady()
         }
@@ -374,6 +376,9 @@ struct ContentView: View {
                 featuredBannerCache: container.featuredBannerCache,
                 legalDocumentRepository: container.legalDocumentRepository,
                 ownerAnalyticsRepository: container.ownerAnalyticsRepository,
+                donationConfigRepository: container.donationConfigRepository,
+                recentViewsRepository: container.recentViewsRepository,
+                activityLogRepository: container.activityLogRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 notificationInboxViewModel: notificationInboxViewModel,
                 localEventReminderService: container.localEventReminderService,

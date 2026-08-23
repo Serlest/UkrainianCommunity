@@ -96,7 +96,9 @@ struct ProfileView: View {
         featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         ownerAnalyticsRepository: OwnerAnalyticsRepository = FirestoreOwnerAnalyticsRepository(),
-        donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
+        donationConfigRepository: DonationConfigRepository,
+        recentViewsRepository: RecentViewsRepository,
+        activityLogRepository: ActivityLogRepository,
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         notificationInboxViewModel: NotificationInboxViewModel? = nil,
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
@@ -134,8 +136,8 @@ struct ProfileView: View {
             localEventReminderService: localEventReminderService
         ))
         _myFeedbackViewModel = StateObject(wrappedValue: MyFeedbackViewModel(repository: feedbackRepository))
-        _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: FirestoreRecentViewsRepository()))
-        _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: FirestoreActivityLogRepository()))
+        _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: recentViewsRepository))
+        _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: activityLogRepository))
         _ownerVisibilityViewModel = StateObject(wrappedValue: OwnerProfileVisibilityViewModel(
             feedbackRepository: feedbackRepository,
             organizationRepository: organizationRepository
@@ -989,6 +991,7 @@ struct ProfileView: View {
                 ))
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("profile.quick_action.recent_views")
 
             NavigationLink(value: ProfileNavigationRoute.activityHistory) {
                 ProfileQuickActionCard(item: ProfileQuickActionItem(
@@ -999,6 +1002,7 @@ struct ProfileView: View {
                 ))
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("profile.quick_action.activity_history")
         }
     }
 
@@ -1682,6 +1686,9 @@ private extension String {
             organizationRepository: MockOrganizationRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
             ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
+            donationConfigRepository: MockDonationConfigRepository(),
+            recentViewsRepository: MockRecentViewsRepository(),
+            activityLogRepository: MockActivityLogRepository(),
             notificationInboxRepository: MockNotificationInboxRepository(),
             notificationInboxViewModel: NotificationInboxViewModel(repository: MockNotificationInboxRepository())
         )

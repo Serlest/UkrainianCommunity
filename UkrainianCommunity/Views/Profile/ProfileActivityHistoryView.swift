@@ -58,19 +58,15 @@ struct ActivityHistoryView: View {
     @State private var selectedSegment: ActivityHistorySegment = .all
 
     init(
-        activityLogViewModel: ActivityLogViewModel? = nil,
-        activityLogRepository: ActivityLogRepository = FirestoreActivityLogRepository(),
-        newsViewModel: NewsViewModel? = nil,
-        eventsViewModel: EventsViewModel? = nil,
-        organizationsViewModel: OrganizationsViewModel? = nil,
-        newsRepository: NewsRepository = FirestoreNewsRepository(),
-        eventRepository: EventRepository = FirestoreEventRepository(),
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
+        activityLogViewModel: ActivityLogViewModel,
+        newsViewModel: NewsViewModel,
+        eventsViewModel: EventsViewModel,
+        organizationsViewModel: OrganizationsViewModel
     ) {
-        self.activityLogViewModel = activityLogViewModel ?? ActivityLogViewModel(repository: activityLogRepository)
-        self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
-        self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
-        self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
+        self.activityLogViewModel = activityLogViewModel
+        self.newsViewModel = newsViewModel
+        self.eventsViewModel = eventsViewModel
+        self.organizationsViewModel = organizationsViewModel
     }
 
     private var filteredItems: [ActivityLogItem] {
@@ -105,6 +101,7 @@ struct ActivityHistoryView: View {
 
             activityHistoryContent
         }
+        .accessibilityIdentifier("profile.activity_history.screen")
         .task(id: authState.user?.id) {
             guard let userID = authState.user?.id, authState.isAuthenticated else {
                 activityLogViewModel.resetForAuthChange()
