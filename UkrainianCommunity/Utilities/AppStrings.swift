@@ -97,6 +97,12 @@ enum AppStrings {
     }
 
     enum Featured {
+        static var loadErrorTitle: String { text("featured.banner.load_error.title", "Highlights unavailable") }
+        static var loadNetworkError: String { text("featured.banner.load_error.network", "Highlights could not be loaded. Check your connection and try again.") }
+        static var loadPermissionError: String { text("featured.banner.load_error.permission", "Highlights are temporarily unavailable because their publishing configuration needs attention.") }
+        static var loadDataError: String { text("featured.banner.load_error.data", "Highlights contain invalid publishing data and could not be shown.") }
+        static var loadUnknownError: String { text("featured.banner.load_error.unknown", "Highlights could not be loaded right now.") }
+
         static func bannerPageIndicator(current: Int, total: Int) -> String {
             LocalizationStore.localizedFormat(
                 "featured.banner.page_indicator",
@@ -153,9 +159,9 @@ enum AppStrings {
         static var title: String { text("featured.management.title", "Featured Content") }
         static var profileEntryTitle: String { text("featured.management.profile_entry.title", "Featured Content") }
         static var profileEntrySubtitle: String { text("featured.management.profile_entry.subtitle", "Manage highlights shown across Home, Events, and Organizations.") }
-        static var subtitle: String { text("featured.management.subtitle", "Review active and scheduled highlights. Full create and edit tools will be added in the next pass.") }
+        static var subtitle: String { text("featured.management.subtitle", "Create, preview, schedule, edit, migrate, and remove highlights across the public app.") }
         static var emptyTitle: String { text("featured.management.empty.title", "No featured banners yet") }
-        static var emptyMessage: String { text("featured.management.empty.message", "Create/edit controls will be added in the next pass.") }
+        static var emptyMessage: String { text("featured.management.empty.message", "Create the first highlight and choose exactly where and when it should appear.") }
         static var inactive: String { text("featured.management.inactive", "Inactive") }
         static var activeToggle: String { text("featured.management.active_toggle", "Active") }
         static var updating: String { text("featured.management.updating", "Updating") }
@@ -164,7 +170,7 @@ enum AppStrings {
         static func deleteConfirmationMessage(_ title: String) -> String {
             LocalizationStore.localizedFormat(
                 "featured.management.delete.confirm.message",
-                defaultValue: "This will permanently delete “%@” from featured content.",
+                defaultValue: "This permanently deletes “%@” and its uploaded banner images.",
                 arguments: [title]
             )
         }
@@ -172,15 +178,54 @@ enum AppStrings {
         static var regionLabel: String { text("featured.management.region", "Region") }
         static var actionLabel: String { text("featured.management.action", "Action") }
         static var priorityLabel: String { text("featured.management.priority", "Priority") }
+        static var scheduleLabel: String { text("featured.management.schedule", "Schedule") }
         static var missingRegion: String { text("featured.management.missing_region", "Missing region") }
         static var actionNone: String { text("featured.management.action.none", "No tap action") }
         static var actionExternalURL: String { text("featured.management.action.external_url", "External URL") }
         static var unsupportedLegacy: String { text("featured.management.unsupported_legacy", "No longer supported") }
+        static var migrationRequiredMessage: String { text("featured.management.migration.message", "This banner contains a retired Guide value. Open it once to migrate it to supported sections and actions, or delete it permanently.") }
+        static var dataRepairMessage: String { text("featured.management.repair.message", "This Firestore document contains incomplete or unknown data. Open it to repair the supported fields, or delete it permanently.") }
+        static var statusMigrationRequired: String { text("featured.management.status.migration_required", "Needs migration") }
+        static var statusRepairRequired: String { text("featured.management.status.repair_required", "Needs repair") }
+        static var statusScheduled: String { text("featured.management.status.scheduled", "Scheduled") }
+        static var statusLive: String { text("featured.management.status.live", "Live") }
+        static var statusExpired: String { text("featured.management.status.expired", "Expired") }
+        static var scheduleAlways: String { text("featured.management.schedule.always", "Always") }
+        static var searchPlaceholder: String { text("featured.management.search.placeholder", "Search banners by name, content, region, or ID") }
+        static var filterLabel: String { text("featured.management.filter.label", "Status filter") }
+        static var filterAll: String { text("featured.management.filter.all", "All banners") }
+        static var filterNeedsAttention: String { text("featured.management.filter.needs_attention", "Needs attention") }
+        static var noMatchesTitle: String { text("featured.management.no_matches.title", "No matching banners") }
+        static var noMatchesMessage: String { text("featured.management.no_matches.message", "Change the search text or status filter.") }
         static var networkError: String { text("featured.management.error.network", "Unable to load featured content. Check your connection and try again.") }
         static var permissionError: String { text("featured.management.error.permission", "You do not have permission to manage featured content.") }
         static var validationError: String { text("featured.management.error.validation", "Featured content data is incomplete or invalid.") }
         static var notFoundError: String { text("featured.management.error.not_found", "Featured content was not found.") }
         static var unknownError: String { text("featured.management.error.unknown", "Unable to update featured content right now.") }
+
+        static func scheduleStarts(_ date: Date) -> String {
+            LocalizationStore.localizedFormat(
+                "featured.management.schedule.starts",
+                defaultValue: "From %@",
+                arguments: [date.formatted(date: .abbreviated, time: .shortened)]
+            )
+        }
+
+        static func scheduleEnds(_ date: Date) -> String {
+            LocalizationStore.localizedFormat(
+                "featured.management.schedule.ends",
+                defaultValue: "Until %@",
+                arguments: [date.formatted(date: .abbreviated, time: .shortened)]
+            )
+        }
+
+        static func resultsCount(_ visible: Int, total: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "featured.management.results_count",
+                defaultValue: "%1$lld of %2$lld",
+                arguments: [visible, total]
+            )
+        }
 
         static func fallbackBannerName(_ id: String, date: Date) -> String {
             LocalizationStore.localizedFormat(
@@ -197,11 +242,20 @@ enum AppStrings {
         static var subtitle: String { text("featured.editor.subtitle", "Configure the highlight shown in public banner carousels.") }
         static var createBanner: String { text("featured.editor.create_banner", "Create banner") }
         static var editBanner: String { text("featured.editor.edit_banner", "Edit banner") }
+        static var migrateBanner: String { text("featured.editor.migrate_banner", "Migrate and edit banner") }
+        static var repairBanner: String { text("featured.editor.repair_banner", "Repair and edit banner") }
         static var createEntrySubtitle: String { text("featured.editor.create_entry.subtitle", "Add a new highlight for one or more sections.") }
         static var saveChanges: String { text("featured.editor.save_changes", "Save changes") }
         static var saving: String { text("featured.editor.saving", "Saving") }
         static var saveSuccess: String { text("featured.editor.save_success", "Featured banner saved.") }
+        static var discardConfirmationTitle: String { text("featured.editor.discard.title", "Discard banner changes?") }
+        static var discardConfirmationMessage: String { text("featured.editor.discard.message", "Your unsaved banner changes will be lost.") }
+        static var discardChanges: String { text("featured.editor.discard.action", "Discard changes") }
         static var basicsSection: String { text("featured.editor.section.basics", "Basics") }
+        static var previewSection: String { text("featured.editor.section.preview", "Live preview") }
+        static var previewHelper: String { text("featured.editor.preview.helper", "This preview uses the same card as Home, Events, and Organizations.") }
+        static var legacyMigrationMessage: String { text("featured.editor.migration.message", "Retired Guide values were removed from this draft. Review the replacement sections and action, then save to complete migration.") }
+        static var dataRepairMessage: String { text("featured.editor.repair.message", "Unsupported or incomplete values were normalized in this draft. Review every section before saving the repaired document.") }
         static var imageSection: String { text("featured.editor.section.image", "Image") }
         static var targetingSection: String { text("featured.editor.section.targeting", "Targeting") }
         static var actionSection: String { text("featured.editor.section.action", "Action") }
@@ -215,11 +269,7 @@ enum AppStrings {
         static var uploadImageHelper: String { text("featured.editor.image.upload_helper", "A banner image is required before saving.") }
         static var imageLoadFailed: String { text("featured.editor.image.load_failed", "Unable to load the selected image.") }
         static var validationImageAspectRatio: String { text("featured.editor.validation.image_aspect_ratio", "Image must be 16:9. Choose a horizontal photo or crop it before uploading.") }
-        static var cropTitle: String { text("featured.editor.crop.title", "Crop banner image") }
         static var cropInstructions: String { text("featured.editor.crop.instructions", "Move and scale the image inside the 16:9 frame.") }
-        static var cropGestureHint: String { text("featured.editor.crop.gesture_hint", "Drag to reposition. Pinch to zoom.") }
-        static var cropReset: String { text("featured.editor.crop.reset", "Reset") }
-        static var cropApply: String { text("featured.editor.crop.apply", "Apply") }
         static var regionScopeField: String { text("featured.editor.field.region_scope", "Region scope") }
         static var regionScopeFederalState: String { text("featured.editor.region_scope.federal_state", "Federal state") }
         static var federalStateField: String { text("featured.editor.field.federal_state", "Federal state") }
@@ -229,8 +279,6 @@ enum AppStrings {
         static var actionHelperNoTap: String { text("featured.editor.action.helper.no_tap", "This banner will display only. Tapping it will not open anything.") }
         static var actionHelperTarget: String { text("featured.editor.action.helper.target", "Tapping this banner opens the selected app content.") }
         static var actionHelperExternalURL: String { text("featured.editor.action.helper.external_url", "Tapping this banner opens the external URL.") }
-        static var actionTargetField: String { text("featured.editor.field.action_target", "Target ID") }
-        static var manualTargetHelper: String { text("featured.editor.action.manual_target_helper", "Enter the existing content ID manually for action types without picker support.") }
         static var selectTarget: String { text("featured.editor.action.select_target", "Select target") }
         static var clearTarget: String { text("featured.editor.action.clear_target", "Clear selected target") }
         static var targetPickerSearch: String { text("featured.editor.action.search_target", "Search by title, summary, source, location, type, or ID") }
@@ -245,8 +293,9 @@ enum AppStrings {
         static var startsAtField: String { text("featured.editor.field.starts_at", "Starts at") }
         static var endsAtEnabled: String { text("featured.editor.ends_at.enabled", "Use end date") }
         static var endsAtField: String { text("featured.editor.field.ends_at", "Ends at") }
-        static var validationTitleRequired: String { text("featured.editor.validation.title_required", "Title is required.") }
         static var validationImageRequired: String { text("featured.editor.validation.image_required", "Select or keep a banner image before saving.") }
+        static var validationImageURL: String { text("featured.editor.validation.image_url", "The existing banner image URL is invalid. Choose a new image.") }
+        static var validationTextLength: String { text("featured.editor.validation.text_length", "Internal name and headline can contain up to 120 characters; subtitle up to 240.") }
         static var validationDuration: String { text("featured.editor.validation.duration", "Display duration must be between 3 and 12 seconds.") }
         static var validationPriority: String { text("featured.editor.validation.priority", "Priority must be between 0 and 1000.") }
         static var validationSections: String { text("featured.editor.validation.sections", "Select at least one visible section.") }
@@ -291,8 +340,6 @@ enum AppStrings {
         static var brandSubtitle: String { text("home.brand_subtitle", "Austria") }
         static var title: String { text("home.title", "Ukrainian Community Tirol") }
         static var subtitle: String { text("home.subtitle", "A calm, trusted place for updates, events, organizations, and neighbor-to-neighbor support.") }
-        static var bannerTitle: String { text("home.banner.title", "Together, stronger") }
-        static var bannerSubtitle: String { text("home.banner.subtitle", "Support, information, and opportunities for Ukrainians in Austria.") }
         static var regionAllAustria: String { text("home.region.all_austria", "Вся Австрія") }
         static var highlights: String { text("home.highlights", "Community Highlights") }
         static var latestNews: String { text("home.latest_news", "Latest updates") }

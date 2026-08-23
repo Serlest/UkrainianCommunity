@@ -4,6 +4,8 @@ struct FeaturedBannerManagementView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: FeaturedBannerManagementViewModel
     @State private var deleteCandidate: FeaturedBanner?
+    @State private var searchText = ""
+    @State private var filter: FeaturedBannerManagementFilter = .all
     private let repository: FeaturedBannerRepository
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
@@ -100,43 +102,44 @@ struct FeaturedBannerManagementView: View {
 
                 createBannerLink
 
-                ForEach(viewModel.banners) { banner in
-                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                        FeaturedBannerManagementRow(
-                            banner: banner,
-                            isUpdating: viewModel.updatingBannerIDs.contains(banner.id),
-                            canDelete: canDeleteBanners && !banner.hasUnsupportedLegacyConfiguration,
-                            onActiveChange: { isActive in
-                                Task {
-                                    await viewModel.setActive(isActive, for: banner, updatedBy: authState.user?.id)
-                                }
-                            },
-                            onDelete: {
-                                deleteCandidate = banner
-                            }
-                        )
+                FeaturedBannerManagementControls(
+                    searchText: $searchText,
+                    filter: $filter,
+                    visibleCount: visibleBanners.count,
+                    totalCount: viewModel.banners.count
+                )
 
-                        if !banner.hasUnsupportedLegacyConfiguration {
-                            NavigationLink {
-                                FeaturedBannerEditorView(
-                                    repository: repository,
-                                    mode: .edit(banner),
-                                    newsRepository: newsRepository,
-                                    eventRepository: eventRepository,
-                                    organizationRepository: organizationRepository
-                                ) {
-                                    viewModel.invalidatePublicCache()
-                                    await viewModel.refresh()
-                                }
-                            } label: {
-                                ProfileModuleRow(
-                                    title: AppStrings.FeaturedEditor.editBanner,
-                                    subtitle: managementTitle(for: banner),
-                                    systemImage: "slider.horizontal.3",
-                                    status: .available
-                                )
+                if visibleBanners.isEmpty {
+                    EmptyStateCard(
+                        systemImage: "magnifyingglass",
+                        title: AppStrings.FeaturedManagement.noMatchesTitle,
+                        message: AppStrings.FeaturedManagement.noMatchesMessage
+                    )
+                }
+
+                ForEach(visibleBanners) { banner in
+                    FeaturedBannerManagementRow(
+                        banner: banner,
+                        isUpdating: viewModel.updatingBannerIDs.contains(banner.id),
+                        canDelete: canDeleteBanners,
+                        onActiveChange: { isActive in
+                            Task {
+                                await viewModel.setActive(isActive, for: banner, updatedBy: authState.user?.id)
                             }
-                            .buttonStyle(.plain)
+                        },
+                        onDelete: {
+                            deleteCandidate = banner
+                        }
+                    ) {
+                        FeaturedBannerEditorView(
+                            repository: repository,
+                            mode: .edit(banner),
+                            newsRepository: newsRepository,
+                            eventRepository: eventRepository,
+                            organizationRepository: organizationRepository
+                        ) {
+                            viewModel.invalidatePublicCache()
+                            await viewModel.refresh()
                         }
                     }
                 }
@@ -164,6 +167,33 @@ struct FeaturedBannerManagementView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private var visibleBanners: [FeaturedBanner] {
+        let tokens = searchText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .split(separator: " ")
+            .map(String.init)
+
+        return viewModel.banners.filter { banner in
+            guard filter.includes(banner) else { return false }
+            guard !tokens.isEmpty else { return true }
+
+            let searchableText = [
+                banner.internalName,
+                banner.title,
+                banner.subtitle,
+                banner.id,
+                banner.federalState?.rawValue,
+                banner.actionTargetID
+            ]
+                .compactMap(\.self)
+                .joined(separator: " ")
+                .lowercased()
+
+            return tokens.allSatisfy { searchableText.contains($0) }
+        }
     }
 
     private func errorText(_ error: AppError) -> String {
@@ -194,192 +224,6 @@ struct FeaturedBannerManagementView: View {
     private func nonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
-    }
-}
-
-private struct FeaturedBannerManagementRow: View {
-    let banner: FeaturedBanner
-    let isUpdating: Bool
-    let canDelete: Bool
-    let onActiveChange: (Bool) -> Void
-    let onDelete: () -> Void
-
-    var body: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(managementTitle)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if let publicHeadline = publicHeadlineText {
-                            Text(publicHeadline)
-                                .font(.subheadline)
-                                .foregroundStyle(AppTheme.textSecondary)
-                                .lineLimit(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-
-                    Spacer(minLength: 12)
-
-                    statusBadge
-                }
-
-                metadataGrid
-
-                Toggle(isOn: Binding(
-                    get: { banner.isActive },
-                    set: { onActiveChange($0) }
-                )) {
-                    Text(AppStrings.FeaturedManagement.activeToggle)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                }
-                .disabled(isUpdating || (banner.hasUnsupportedLegacyConfiguration && !banner.isActive))
-
-                if canDelete {
-                    Button(role: .destructive, action: onDelete) {
-                        Label(AppStrings.FeaturedManagement.deleteBanner, systemImage: "trash")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(isUpdating)
-                }
-
-                if isUpdating {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text(AppStrings.FeaturedManagement.updating)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.textSecondary)
-                    }
-                }
-            }
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private var statusBadge: some View {
-        Text(banner.isActive ? AppStrings.Common.active : AppStrings.FeaturedManagement.inactive)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(banner.isActive ? AppTheme.accentPrimary : AppTheme.textSecondary)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background((banner.isActive ? AppTheme.accentPrimary : AppTheme.textSecondary).opacity(0.10), in: Capsule())
-            .lineLimit(1)
-    }
-
-    private var metadataGrid: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            FeaturedBannerMetadataLine(title: AppStrings.FeaturedManagement.sectionsLabel, value: visibleSectionsText, systemImage: "rectangle.grid.2x2")
-            FeaturedBannerMetadataLine(title: AppStrings.FeaturedManagement.regionLabel, value: regionText, systemImage: "globe.europe.africa")
-            FeaturedBannerMetadataLine(title: AppStrings.FeaturedManagement.actionLabel, value: actionText, systemImage: "arrow.up.forward.app")
-            FeaturedBannerMetadataLine(title: AppStrings.FeaturedManagement.priorityLabel, value: "\(banner.priority)", systemImage: "list.number")
-        }
-    }
-
-    private var visibleSectionsText: String {
-        banner.visibleSections
-            .sorted { $0.rawValue < $1.rawValue }
-            .map(\.managementTitle)
-            .joined(separator: ", ")
-    }
-
-    private var regionText: String {
-        switch banner.regionScope {
-        case .allAustria:
-            return AppStrings.Home.regionAllAustria
-        case .federalState:
-            guard let federalState = banner.federalState else { return AppStrings.FeaturedManagement.missingRegion }
-            return AppStrings.FederalStates.title(for: federalState)
-        }
-    }
-
-    private var actionText: String {
-        banner.actionType.managementTitle
-    }
-
-    private var managementTitle: String {
-        if let internalName = nonEmpty(banner.internalName) {
-            return internalName
-        }
-        if let title = nonEmpty(banner.title) {
-            return title
-        }
-        return AppStrings.FeaturedManagement.fallbackBannerName(banner.id, date: banner.createdAt)
-    }
-
-    private var publicHeadlineText: String? {
-        let title = nonEmpty(banner.title)
-        let subtitle = nonEmpty(banner.subtitle)
-
-        if nonEmpty(banner.internalName) != nil {
-            return title ?? subtitle
-        }
-        return subtitle
-    }
-
-    private func nonEmpty(_ value: String?) -> String? {
-        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? nil : trimmed
-    }
-}
-
-private struct FeaturedBannerMetadataLine: View {
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        Label {
-            Text("\(title): \(value)")
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.accentPrimary)
-        }
-    }
-}
-
-private extension FeaturedBannerVisibleSection {
-    var managementTitle: String {
-        switch self {
-        case .home:
-            return AppStrings.Tabs.home
-        case .events:
-            return AppStrings.Tabs.events
-        case .organizations:
-            return AppStrings.Tabs.organizations
-        case .unsupportedLegacy:
-            return AppStrings.FeaturedManagement.unsupportedLegacy
-        }
-    }
-}
-
-private extension FeaturedBannerActionType {
-    var managementTitle: String {
-        switch self {
-        case .none:
-            return AppStrings.FeaturedManagement.actionNone
-        case .news:
-            return AppStrings.News.title
-        case .event:
-            return AppStrings.Tabs.events
-        case .organization:
-            return AppStrings.Tabs.organizations
-        case .unsupportedLegacy:
-            return AppStrings.FeaturedManagement.unsupportedLegacy
-        case .externalURL:
-            return AppStrings.FeaturedManagement.actionExternalURL
-        }
     }
 }
 

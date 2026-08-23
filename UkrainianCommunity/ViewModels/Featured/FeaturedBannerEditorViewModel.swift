@@ -3,6 +3,26 @@ import Foundation
 
 @MainActor
 final class FeaturedBannerEditorViewModel: ObservableObject {
+    private struct DraftSignature: Equatable {
+        let title: String
+        let internalName: String
+        let subtitle: String
+        let imageURL: String
+        let regionScope: FeaturedBannerRegionScope
+        let federalState: AustrianFederalState?
+        let visibleSections: Set<FeaturedBannerVisibleSection>
+        let actionType: FeaturedBannerActionType
+        let actionTargetID: String
+        let externalURL: String
+        let displayDurationSeconds: Int
+        let priority: Int
+        let isActive: Bool
+        let hasStartDate: Bool
+        let startsAt: Date
+        let hasEndDate: Bool
+        let endsAt: Date
+    }
+
     enum Mode {
         case create
         case edit(FeaturedBanner)
@@ -41,18 +61,19 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     @Published private(set) var selectedActionTargetSnapshot: FeaturedBannerActionTargetItem?
 
     private let repository: FeaturedBannerRepository
-    private let newsRepository: NewsRepository?
-    private let eventRepository: EventRepository?
-    private let organizationRepository: OrganizationRepository?
+    private let actionTargetLoader: FeaturedBannerActionTargetLoader
     private let imageUploadService: ImageUploadService
     private let validationService = FeaturedBannerValidationService()
     private let mode: Mode
     private let bannerID: String
     private let createdAt: Date
     private let createdBy: String
-    let isReadOnlyLegacyBanner: Bool
+    private let originalImageURL: URL?
+    let isMigratingLegacyBanner: Bool
+    let isRepairingMalformedBanner: Bool
     private var selectedProcessedImage: ProcessedImageSelection?
     private var actionTargetLoadTasks: [FeaturedBannerActionTargetKind: Task<[FeaturedBannerActionTargetItem], Error>] = [:]
+    private var initialDraftSignature: DraftSignature?
 
     init(
         repository: FeaturedBannerRepository,
@@ -63,9 +84,11 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         imageUploadService: ImageUploadService? = nil
     ) {
         self.repository = repository
-        self.newsRepository = newsRepository
-        self.eventRepository = eventRepository
-        self.organizationRepository = organizationRepository
+        actionTargetLoader = FeaturedBannerActionTargetLoader(
+            newsRepository: newsRepository,
+            eventRepository: eventRepository,
+            organizationRepository: organizationRepository
+        )
         self.mode = mode
         self.imageUploadService = imageUploadService ?? .shared
 
@@ -92,7 +115,9 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             endsAt = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
             createdAt = now
             createdBy = ""
-            isReadOnlyLegacyBanner = false
+            originalImageURL = nil
+            isMigratingLegacyBanner = false
+            isRepairingMalformedBanner = false
         case let .edit(existing):
             bannerID = existing.id
             internalName = existing.internalName ?? ""
@@ -101,9 +126,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             imageURL = existing.imageURL ?? ""
             regionScope = existing.regionScope
             federalState = existing.federalState
-            visibleSections = existing.visibleSections
-            actionType = existing.actionType
-            actionTargetID = existing.actionTargetID ?? ""
+            let supportedSections = existing.supportedVisibleSections
+            visibleSections = supportedSections.isEmpty ? [.home] : supportedSections
+            actionType = existing.actionType.isSupported ? existing.actionType : .none
+            actionTargetID = existing.actionType.isSupported ? (existing.actionTargetID ?? "") : ""
             externalURL = existing.externalURL ?? ""
             displayDurationSeconds = existing.displayDurationSeconds
             priority = existing.priority
@@ -112,10 +138,17 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             startsAt = existing.startsAt ?? Date()
             hasEndDate = existing.endsAt != nil
             endsAt = existing.endsAt ?? Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
-            createdAt = existing.createdAt
+            createdAt = existing.createdAt == .distantPast ? Date() : existing.createdAt
             createdBy = existing.createdBy
-            isReadOnlyLegacyBanner = existing.hasUnsupportedLegacyConfiguration
+            if let existingImageURL = existing.imageURL {
+                originalImageURL = URL(string: existingImageURL)
+            } else {
+                originalImageURL = nil
+            }
+            isMigratingLegacyBanner = existing.hasUnsupportedLegacyConfiguration
+            isRepairingMalformedBanner = existing.requiresDataRepair
         }
+        initialDraftSignature = draftSignature
     }
 
     deinit {
@@ -135,17 +168,54 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    var previewBanner: FeaturedBanner {
+        FeaturedBanner(
+            id: bannerID,
+            internalName: nonEmpty(internalName),
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            subtitle: nonEmpty(subtitle),
+            imageURL: nonEmpty(imageURL),
+            actionType: actionType,
+            actionTargetID: requiresActionTarget ? nonEmpty(actionTargetID) : nil,
+            externalURL: requiresExternalURL ? normalizedExternalURL?.absoluteString : nil,
+            regionScope: regionScope,
+            federalState: regionScope == .federalState ? federalState : nil,
+            visibleSections: visibleSections,
+            displayDurationSeconds: displayDurationSeconds,
+            priority: priority,
+            isActive: isActive,
+            startsAt: hasStartDate ? startsAt : nil,
+            endsAt: hasEndDate ? endsAt : nil,
+            createdAt: createdAt,
+            updatedAt: Date(),
+            createdBy: nonEmpty(createdBy) ?? "preview"
+        )
+    }
+
     var canSave: Bool {
-        !isReadOnlyLegacyBanner && !isSaving && !isProcessingImage && validationMessage == nil
+        let hasChangesToPersist = !mode.isEditing || hasUnsavedChanges || isMigratingLegacyBanner
+        return hasChangesToPersist && !isSaving && !isProcessingImage && validationMessage == nil
+    }
+
+    var hasUnsavedChanges: Bool {
+        guard let initialDraftSignature else { return true }
+        return selectedImageData != nil || draftSignature != initialDraftSignature
     }
 
     var validationMessage: String? {
-        if isReadOnlyLegacyBanner {
-            return AppStrings.FeaturedManagement.unsupportedLegacy
-        }
-
         if selectedImageData == nil && imageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return AppStrings.FeaturedEditor.validationImageRequired
+        }
+
+        if selectedImageData == nil,
+           FeaturedBannerURLNormalizer.normalizedExternalURL(from: imageURL) == nil {
+            return AppStrings.FeaturedEditor.validationImageURL
+        }
+
+        if internalName.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.internalNameMaxLength
+            || title.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.titleMaxLength
+            || subtitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.subtitleMaxLength {
+            return AppStrings.FeaturedEditor.validationTextLength
         }
 
         if !FeaturedBannerValidationService.displayDurationBounds.contains(displayDurationSeconds) {
@@ -201,10 +271,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
     var actionTargetPickerKind: FeaturedBannerActionTargetKind? {
         FeaturedBannerActionTargetKind(actionType: actionType)
-    }
-
-    var supportsActionTargetPicker: Bool {
-        actionTargetPickerKind != nil
     }
 
     var selectedActionTargetItem: FeaturedBannerActionTargetItem? {
@@ -323,8 +389,12 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         isSaving = true
         defer { isSaving = false }
 
+        var newlyUploadedImageURL: URL?
         do {
             let resolvedImageURL = try await resolvedImageURL()
+            if selectedProcessedImage != nil || selectedImageData != nil {
+                newlyUploadedImageURL = resolvedImageURL
+            }
             let resolvedImageURLString = resolvedImageURL.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !resolvedImageURLString.isEmpty else {
                 errorMessage = AppStrings.FeaturedEditor.validationImageRequired
@@ -359,7 +429,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 endsAt: hasEndDate ? endsAt : nil,
                 createdAt: createdAt,
                 updatedAt: now,
-                createdBy: mode.isEditing ? createdBy : userID,
+                createdBy: mode.isEditing ? (nonEmpty(createdBy) ?? userID) : userID,
                 updatedBy: userID
             )
             try validationService.validate(banner)
@@ -371,14 +441,37 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 try await repository.updateBanner(banner)
             }
 
+            if let newlyUploadedImageURL,
+               let originalImageURL,
+               originalImageURL != newlyUploadedImageURL {
+                try? await imageUploadService.deleteFeaturedBannerImage(
+                    at: originalImageURL,
+                    bannerId: bannerID
+                )
+            }
+
             imageURL = resolvedImageURLString
             selectedImageData = nil
             selectedProcessedImage = nil
+            initialDraftSignature = draftSignature
             successMessage = AppStrings.FeaturedEditor.saveSuccess
+            AppContentChangeBus.postFeaturedBannersChanged()
             return true
         } catch let appError as AppError {
+            if let newlyUploadedImageURL {
+                try? await imageUploadService.deleteFeaturedBannerImage(
+                    at: newlyUploadedImageURL,
+                    bannerId: bannerID
+                )
+            }
             errorMessage = errorText(appError)
         } catch {
+            if let newlyUploadedImageURL {
+                try? await imageUploadService.deleteFeaturedBannerImage(
+                    at: newlyUploadedImageURL,
+                    bannerId: bannerID
+                )
+            }
             errorMessage = AppStrings.FeaturedEditor.saveUnknownError
         }
         return false
@@ -386,6 +479,28 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
     private var normalizedExternalURL: URL? {
         FeaturedBannerURLNormalizer.normalizedExternalURL(from: externalURL)
+    }
+
+    private var draftSignature: DraftSignature {
+        DraftSignature(
+            title: title,
+            internalName: internalName,
+            subtitle: subtitle,
+            imageURL: imageURL,
+            regionScope: regionScope,
+            federalState: federalState,
+            visibleSections: visibleSections,
+            actionType: actionType,
+            actionTargetID: actionTargetID,
+            externalURL: externalURL,
+            displayDurationSeconds: displayDurationSeconds,
+            priority: priority,
+            isActive: isActive,
+            hasStartDate: hasStartDate,
+            startsAt: startsAt,
+            hasEndDate: hasEndDate,
+            endsAt: endsAt
+        )
     }
 
     private func loadActionTargets(kind: FeaturedBannerActionTargetKind) async {
@@ -398,29 +513,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         loadingActionTargetKinds.insert(kind)
 
         let task = Task<[FeaturedBannerActionTargetItem], Error> {
-            switch kind {
-            case .news:
-                guard let newsRepository else { throw AppError.validationFailed }
-                let posts = try await newsRepository.fetchNews()
-                return posts
-                    .filter { $0.moderationStatus == .approved }
-                    .sorted { $0.publishedAt > $1.publishedAt }
-                    .map(FeaturedBannerActionTargetItem.init(news:))
-            case .event:
-                guard let eventRepository else { throw AppError.validationFailed }
-                let events = try await eventRepository.fetchEvents()
-                return events
-                    .filter { $0.moderationStatus == .approved }
-                    .sorted { $0.startDate > $1.startDate }
-                    .map(FeaturedBannerActionTargetItem.init(event:))
-            case .organization:
-                guard let organizationRepository else { throw AppError.validationFailed }
-                let organizations = try await organizationRepository.fetchOrganizations()
-                return organizations
-                    .filter { $0.moderationStatus == .approved }
-                    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-                    .map(FeaturedBannerActionTargetItem.init(organization:))
-            }
+            try await actionTargetLoader.load(kind: kind)
         }
 
         actionTargetLoadTasks[kind] = task
@@ -472,141 +565,5 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         case .unknown:
             return AppStrings.FeaturedEditor.saveUnknownError
         }
-    }
-}
-
-enum FeaturedBannerActionTargetKind: String, CaseIterable, Identifiable, Hashable {
-    case news
-    case event
-    case organization
-
-    var id: String { rawValue }
-
-    init?(actionType: FeaturedBannerActionType) {
-        switch actionType {
-        case .news:
-            self = .news
-        case .event:
-            self = .event
-        case .organization:
-            self = .organization
-        case .none, .unsupportedLegacy, .externalURL:
-            return nil
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .news:
-            return AppStrings.News.title
-        case .event:
-            return AppStrings.Tabs.events
-        case .organization:
-            return AppStrings.Tabs.organizations
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .news:
-            return "newspaper"
-        case .event:
-            return "calendar"
-        case .organization:
-            return "building.2"
-        }
-    }
-}
-
-struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
-    let id: String
-    let kind: FeaturedBannerActionTargetKind
-    let title: String
-    let subtitle: String?
-    let metadata: String?
-    let searchText: String
-
-    init(news: NewsPost) {
-        id = news.id
-        kind = .news
-        title = news.title
-        subtitle = Self.nonEmpty(news.subtitle)
-        metadata = Self.joined([
-            news.source.displayOrganizationName ?? news.authorName,
-            Self.dateText(news.publishedAt)
-        ])
-        searchText = Self.searchText([
-            news.title,
-            news.subtitle,
-            news.source.displayOrganizationName,
-            news.sourceName,
-            news.authorName,
-            news.id
-        ])
-    }
-
-    init(event: Event) {
-        id = event.id
-        kind = .event
-        title = event.title
-        subtitle = Self.nonEmpty(event.summary)
-        metadata = Self.joined([
-            Self.nonEmpty(event.organizerName) ?? event.source.displayOrganizationName,
-            Self.joined([Self.nonEmpty(event.city), Self.nonEmpty(event.venue)]),
-            Self.dateText(event.startDate)
-        ])
-        searchText = Self.searchText([
-            event.title,
-            event.summary,
-            Self.dateText(event.startDate),
-            Self.dateText(event.endDate),
-            event.city,
-            event.venue,
-            event.address,
-            event.locationNote,
-            event.organizerName,
-            event.source.displayOrganizationName,
-            event.authorName,
-            event.id
-        ])
-    }
-
-    init(organization: Organization) {
-        id = organization.id
-        kind = .organization
-        title = organization.name
-        subtitle = Self.nonEmpty(organization.shortDescription)
-        metadata = Self.joined([
-            Self.nonEmpty(organization.organizationType),
-            Self.nonEmpty(organization.city)
-        ])
-        searchText = Self.searchText([
-            organization.name,
-            organization.shortDescription,
-            organization.city,
-            organization.organizationType,
-            organization.id
-        ])
-    }
-
-    private static func joined(_ values: [String?]) -> String? {
-        let joined = values.compactMap { nonEmpty($0) }.joined(separator: " · ")
-        return joined.isEmpty ? nil : joined
-    }
-
-    private static func dateText(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .omitted)
-    }
-
-    private static func searchText(_ values: [String?]) -> String {
-        values
-            .compactMap { nonEmpty($0) }
-            .joined(separator: " ")
-            .lowercased()
-    }
-
-    private static func nonEmpty(_ value: String?) -> String? {
-        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? nil : trimmed
     }
 }

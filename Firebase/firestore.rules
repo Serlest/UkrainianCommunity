@@ -766,6 +766,20 @@ service cloud.firestore {
       return ['allAustria', 'federalState'];
     }
 
+    function featuredBannerFederalStates() {
+      return [
+        'burgenland',
+        'kaernten',
+        'niederoesterreich',
+        'oberoesterreich',
+        'salzburg',
+        'steiermark',
+        'tirol',
+        'vorarlberg',
+        'wien'
+      ];
+    }
+
     function featuredBannerVisibleSections() {
       return ['home', 'events', 'organizations'];
     }
@@ -791,6 +805,7 @@ service cloud.firestore {
             ('externalURL' in data)
             && data.externalURL is string
             && data.externalURL.size() > 0
+            && data.externalURL.matches('^https?://.+')
           )
         );
     }
@@ -802,24 +817,25 @@ service cloud.firestore {
           || (
             ('federalState' in data)
             && data.federalState is string
-            && data.federalState.size() > 0
+            && data.federalState in featuredBannerFederalStates()
           )
         );
     }
 
-    function featuredBannerStructurallyValid(data, bannerId) {
+    function featuredBannerBaseStructurallyValid(data, bannerId) {
       return data.keys().hasAll(featuredBannerRequiredFields())
         && data.keys().hasOnly(featuredBannerAllowedFields())
         && data.id == bannerId
         && data.id is string
-        && (!('internalName' in data) || data.internalName == null || data.internalName is string)
-        && (!('title' in data) || data.title == null || data.title is string)
+        && (!('internalName' in data) || data.internalName == null || (data.internalName is string && data.internalName.size() <= 120))
+        && (!('title' in data) || data.title == null || (data.title is string && data.title.size() <= 120))
         && data.imageURL is string
         && data.imageURL.size() > 0
+        && data.imageURL.size() <= 2048
+        && data.imageURL.matches('^https?://.+')
         && data.actionType in featuredBannerActionTypes()
         && featuredBannerHasValidActionPayload(data)
         && featuredBannerHasValidRegion(data)
-        && featuredBannerHasValidSections(data)
         && data.displayDurationSeconds is int
         && data.displayDurationSeconds >= 3
         && data.displayDurationSeconds <= 12
@@ -832,12 +848,24 @@ service cloud.firestore {
         && data.createdBy is string
         && data.createdBy.size() > 0
         && (!('updatedBy' in data) || data.updatedBy == null || data.updatedBy is string)
-        && (!('subtitle' in data) || data.subtitle == null || data.subtitle is string)
+        && (!('subtitle' in data) || data.subtitle == null || (data.subtitle is string && data.subtitle.size() <= 240))
         && (!('actionTargetID' in data) || data.actionTargetID == null || data.actionTargetID is string)
-        && (!('externalURL' in data) || data.externalURL == null || data.externalURL is string)
+        && (!('externalURL' in data) || data.externalURL == null || (data.externalURL is string && data.externalURL.size() <= 2048))
         && (!('federalState' in data) || data.federalState == null || data.federalState is string)
         && (!('startsAt' in data) || data.startsAt == null || data.startsAt is timestamp)
-        && (!('endsAt' in data) || data.endsAt == null || data.endsAt is timestamp);
+        && (!('endsAt' in data) || data.endsAt == null || data.endsAt is timestamp)
+        && (
+          !('startsAt' in data)
+          || data.startsAt == null
+          || !('endsAt' in data)
+          || data.endsAt == null
+          || data.startsAt < data.endsAt
+        );
+    }
+
+    function featuredBannerStructurallyValid(data, bannerId) {
+      return featuredBannerBaseStructurallyValid(data, bannerId)
+        && featuredBannerHasValidSections(data);
     }
 
     function validFeaturedBannerCreate(bannerId) {
@@ -859,6 +887,35 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy;
     }
 
+    function featuredBannerMigrationIdentityFieldsAreValid(bannerId) {
+      return request.resource.data.id == bannerId
+        && (
+          (
+            (!('createdAt' in resource.data) || !(resource.data.createdAt is timestamp))
+            && request.resource.data.createdAt is timestamp
+          )
+          || (
+            resource.data.createdAt is timestamp
+            && request.resource.data.createdAt == resource.data.createdAt
+          )
+        )
+        && (
+          (
+            (
+              !('createdBy' in resource.data)
+              || !(resource.data.createdBy is string)
+              || resource.data.createdBy.size() == 0
+            )
+            && request.resource.data.createdBy == request.auth.uid
+          )
+          || (
+            resource.data.createdBy is string
+            && resource.data.createdBy.size() > 0
+            && request.resource.data.createdBy == resource.data.createdBy
+          )
+        );
+    }
+
     function validFeaturedBannerUpdate(bannerId) {
       return isVerifiedActiveUser()
         && canManageFeaturedBanners()
@@ -868,10 +925,18 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid;
     }
 
+    function validFeaturedBannerMigrationUpdate(bannerId) {
+      return isVerifiedActiveUser()
+        && canManageFeaturedBanners()
+        && !featuredBannerStructurallyValid(resource.data, bannerId)
+        && featuredBannerStructurallyValid(request.resource.data, bannerId)
+        && featuredBannerMigrationIdentityFieldsAreValid(bannerId)
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
     function validFeaturedBannerLifecycleUpdate(bannerId) {
       return isVerifiedActiveUser()
         && canManageFeaturedBanners()
-        && resource.data.id == bannerId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'isActive',
           'updatedAt',
@@ -883,13 +948,14 @@ service cloud.firestore {
           || featuredBannerStructurallyValid(resource.data, bannerId)
         )
         && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedBy == request.auth.uid
-        && featuredBannerIdentityFieldsArePreserved(bannerId);
+        && request.resource.data.updatedBy == request.auth.uid;
     }
 
-    function canReadFeaturedBanner(bannerId) {
+    function canReadFeaturedBanner() {
       return resource.data.isActive == true
-        && featuredBannerStructurallyValid(resource.data, bannerId);
+        && resource.data.actionType in featuredBannerActionTypes()
+        && resource.data.visibleSections is list
+        && resource.data.visibleSections.hasAny(featuredBannerVisibleSections());
     }
 
     function safeUserCreate(uid) {
@@ -1519,12 +1585,6 @@ service cloud.firestore {
         || canModerateOrganizationContent(organizationId);
     }
 
-    function isAppManagedHeroBannerDocument(bannerId) {
-      return bannerId == 'homeBanner'
-        || bannerId == 'eventsBanner'
-        || bannerId == 'organizationsBanner';
-    }
-
     function donationConfigFields() {
       return [
         'isEnabled',
@@ -2121,28 +2181,20 @@ service cloud.firestore {
     }
 
     match /appConfig/{configId} {
-      allow read: if isAppManagedHeroBannerDocument(configId)
-        || configId == 'donation';
-      allow create, update: if (
-          isAppManagedHeroBannerDocument(configId)
-          && canManageFeaturedBanners()
-        )
-        || (
-          configId == 'donation'
-          && validDonationConfigWrite()
-        );
-      allow delete: if isAppManagedHeroBannerDocument(configId)
-        && canManageFeaturedBanners();
+      allow read: if configId == 'donation';
+      allow create, update: if configId == 'donation'
+        && validDonationConfigWrite();
+      allow delete: if false;
     }
 
     match /featuredBanners/{bannerId} {
-      allow read: if canManageFeaturedBanners() || canReadFeaturedBanner(bannerId);
+      allow read: if canManageFeaturedBanners() || canReadFeaturedBanner();
       allow create: if validFeaturedBannerCreate(bannerId);
       allow update: if validFeaturedBannerUpdate(bannerId)
+        || validFeaturedBannerMigrationUpdate(bannerId)
         || validFeaturedBannerLifecycleUpdate(bannerId);
       allow delete: if isVerifiedActiveUser()
-        && canManageFeaturedBanners()
-        && featuredBannerStructurallyValid(resource.data, bannerId);
+        && canManageFeaturedBanners();
     }
 
     match /{document=**} {

@@ -378,7 +378,7 @@ struct UkrainianCommunityTests {
         #expect(eventErrors.isEmpty == false)
     }
 
-    @Test func unsupportedLegacyFeaturedBannerIsReadOnly() throws {
+    @Test func unsupportedLegacyFeaturedBannerIsPreparedForMigration() throws {
         let now = Date()
         let legacyBanner = FeaturedBanner(
             id: "legacy-guide-banner",
@@ -407,16 +407,31 @@ struct UkrainianCommunityTests {
             mode: .edit(legacyBanner)
         )
 
-        #expect(viewModel.isReadOnlyLegacyBanner)
-        #expect(viewModel.actionType == .unsupportedLegacy)
-        #expect(viewModel.actionTargetID == "firstSteps")
-        #expect(viewModel.visibleSections == [.home, .unsupportedLegacy])
-        #expect(viewModel.canSave == false)
-        #expect(viewModel.validationMessage == AppStrings.FeaturedManagement.unsupportedLegacy)
+        #expect(viewModel.isMigratingLegacyBanner)
+        #expect(viewModel.actionType == .none)
+        #expect(viewModel.actionTargetID.isEmpty)
+        #expect(viewModel.visibleSections == [.home])
+        #expect(viewModel.canSave)
+        #expect(viewModel.validationMessage == nil)
         #expect([legacyBanner].activeFeaturedBanners(for: .home, federalState: nil).isEmpty)
+
+        let mixedSectionsBanner = FeaturedBanner(
+            id: "legacy-mixed-sections",
+            title: "Supported home banner",
+            imageURL: "https://example.com/banner.jpg",
+            actionType: .none,
+            visibleSections: [.home, .unsupportedLegacy],
+            createdAt: now,
+            updatedAt: now,
+            createdBy: "owner"
+        )
+        #expect(
+            [mixedSectionsBanner].activeFeaturedBanners(for: .home, federalState: nil)
+                == [mixedSectionsBanner]
+        )
     }
 
-    @Test func unsupportedLegacyFeaturedBannerRepositoryOnlyAllowsDeactivation() async throws {
+    @Test func unsupportedLegacyFeaturedBannerCanBeMigratedAndDeleted() async throws {
         let now = Date()
         let legacyBanner = FeaturedBanner(
             id: "legacy-guide-banner",
@@ -439,10 +454,6 @@ struct UkrainianCommunityTests {
         await #expect(throws: AppError.self) {
             try await repository.setBannerActive(id: legacyBanner.id, isActive: true, updatedBy: "owner")
         }
-        await #expect(throws: AppError.self) {
-            try await repository.deleteBanner(id: legacyBanner.id)
-        }
-
         let supportedReplacement = FeaturedBanner(
             id: legacyBanner.id,
             title: "Replacement",
@@ -453,9 +464,88 @@ struct UkrainianCommunityTests {
             updatedAt: now,
             createdBy: "owner"
         )
-        await #expect(throws: AppError.self) {
-            try await repository.updateBanner(supportedReplacement)
-        }
+        try await repository.updateBanner(supportedReplacement)
+        try await repository.setBannerActive(id: legacyBanner.id, isActive: true, updatedBy: "owner")
+        try await repository.deleteBanner(id: legacyBanner.id)
+        #expect(try await repository.fetchAllBannersForOwner().isEmpty)
+    }
+
+    @Test func featuredBannerLifecycleStateCoversPublishingWindow() {
+        let now = Date(timeIntervalSince1970: 1_777_000_000)
+        let base = FeaturedBanner(
+            id: "banner",
+            title: "Banner",
+            imageURL: "https://example.com/banner.jpg",
+            visibleSections: [.home],
+            createdAt: now,
+            updatedAt: now,
+            createdBy: "owner"
+        )
+
+        #expect(base.lifecycleState(at: now) == .live)
+
+        let scheduled = FeaturedBanner(
+            id: base.id,
+            title: base.title,
+            imageURL: base.imageURL,
+            visibleSections: base.visibleSections,
+            startsAt: now.addingTimeInterval(60),
+            createdAt: now,
+            updatedAt: now,
+            createdBy: base.createdBy
+        )
+        #expect(scheduled.lifecycleState(at: now) == .scheduled)
+
+        let expired = FeaturedBanner(
+            id: base.id,
+            title: base.title,
+            imageURL: base.imageURL,
+            visibleSections: base.visibleSections,
+            endsAt: now.addingTimeInterval(-60),
+            createdAt: now,
+            updatedAt: now,
+            createdBy: base.createdBy
+        )
+        #expect(expired.lifecycleState(at: now) == .expired)
+    }
+
+    @Test func featuredBannerRegionFilteringMatchesPublicFeedSemantics() {
+        let now = Date()
+        let nationalBanner = FeaturedBanner(
+            id: "national",
+            title: "Austria",
+            imageURL: "https://example.com/national.jpg",
+            visibleSections: [.home],
+            createdAt: now,
+            updatedAt: now,
+            createdBy: "owner"
+        )
+        let viennaBanner = FeaturedBanner(
+            id: "vienna",
+            title: "Vienna",
+            imageURL: "https://example.com/vienna.jpg",
+            regionScope: .federalState,
+            federalState: .wien,
+            visibleSections: [.home],
+            createdAt: now,
+            updatedAt: now,
+            createdBy: "owner"
+        )
+
+        let allAustria = [nationalBanner, viennaBanner]
+            .activeFeaturedBanners(for: .home, federalState: nil, now: now)
+        let allAustriaIDs = Set(allAustria.map(\.id))
+        #expect(allAustriaIDs == ["national", "vienna"])
+
+        let vienna = [nationalBanner, viennaBanner]
+            .activeFeaturedBanners(for: .home, federalState: .wien, now: now)
+        let viennaIDs = Set(vienna.map(\.id))
+        #expect(viennaIDs == ["national", "vienna"])
+
+        let tirol = [nationalBanner, viennaBanner]
+            .activeFeaturedBanners(for: .home, federalState: .tirol, now: now)
+        let tirolIDs = tirol.map(\.id)
+        #expect(tirolIDs == ["national"])
     }
 
     @Test func retiredGuideNotificationValuesDecodeToSafeFallbacks() throws {

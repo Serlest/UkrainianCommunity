@@ -35,6 +35,10 @@ struct HomeView: View {
     @State private var seenPaginationItems: Set<String> = []
     private let paginationTriggerWindow = 6
 
+    private var featuredBannerLoadKey: String {
+        selectedFederalState?.rawValue ?? "allAustria"
+    }
+
     init(
         viewModel: HomeViewModel,
         newsViewModel: NewsViewModel,
@@ -75,7 +79,12 @@ struct HomeView: View {
                         .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                     homeHero
-                        .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
+                        .padding(
+                            .bottom,
+                            featuredBannerViewModel.banners.isEmpty && featuredBannerViewModel.error == nil
+                                ? 0
+                                : AppTheme.homeSectionSpacing
+                        )
 
                     HomeFilterRow(
                         selectedContentType: selectedContentType,
@@ -124,6 +133,10 @@ struct HomeView: View {
         }
         .task(id: authBootstrapKey) {
             await loadContentWhenAuthIsReady()
+        }
+        .task(id: featuredBannerLoadKey) {
+            guard isAuthBootstrapReady else { return }
+            await loadFeaturedBannersIfNeeded()
         }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }
@@ -184,6 +197,10 @@ struct HomeView: View {
                 sizing: .responsiveHero,
                 onBannerTap: onFeaturedBannerTap
             )
+        } else if let error = featuredBannerViewModel.error {
+            FeaturedBannerLoadFailureView(error: error) {
+                await refreshFeaturedBanners()
+            }
         }
     }
 
@@ -427,21 +444,21 @@ struct HomeView: View {
     private func loadFeaturedBannersIfNeeded() async {
         await featuredBannerViewModel.loadIfNeeded(
             for: .home,
-            federalState: authState.user?.selectedFederalState
+            federalState: selectedFederalState
         )
     }
 
     private func refreshFeaturedBannersIfStale() async {
         await featuredBannerViewModel.refreshIfStale(
             for: .home,
-            federalState: authState.user?.selectedFederalState
+            federalState: selectedFederalState
         )
     }
 
     private func refreshFeaturedBanners() async {
         await featuredBannerViewModel.refresh(
             for: .home,
-            federalState: authState.user?.selectedFederalState
+            federalState: selectedFederalState
         )
     }
 

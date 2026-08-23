@@ -149,15 +149,6 @@ service firebase.storage {
         );
     }
 
-    function isAppManagedHeroBannerPath(bannerId, fileName) {
-      return (
-          bannerId == 'homeBanner'
-          || bannerId == 'eventsBanner'
-          || bannerId == 'organizationsBanner'
-        )
-        && fileName == 'banner.jpg';
-    }
-
     match /news/{newsId}/cover.jpg {
       allow read: if true;
       allow create, update: if (canManageContentImages('news') || canManageNewsCover(newsId))
@@ -242,20 +233,13 @@ service firebase.storage {
       allow delete: if (isSelf(uid) && isVerifiedActiveUser()) || isOwner();
     }
 
-    match /featuredBanners/{bannerId}/hero.jpg {
-      allow read: if true;
+    match /featuredBanners/{bannerId}/{fileName} {
+      allow read: if fileName.matches('^hero(-[A-Za-z0-9-]+)?\\.jpg$');
       allow create, update: if isOwner()
+        && fileName.matches('^hero(-[A-Za-z0-9-]+)?\\.jpg$')
         && isSafeFeaturedBannerImageUpload();
-      allow delete: if isOwner();
-    }
-
-    match /appConfig/{bannerId}/{fileName} {
-      allow read: if isAppManagedHeroBannerPath(bannerId, fileName);
-      allow create, update: if isAppManagedHeroBannerPath(bannerId, fileName)
-        && isOwner()
-        && isSafeImageUpload();
-      allow delete: if isAppManagedHeroBannerPath(bannerId, fileName)
-        && isOwner();
+      allow delete: if isOwner()
+        && fileName.matches('^hero(-[A-Za-z0-9-]+)?\\.jpg$');
     }
 
     match /{allPaths=**} {

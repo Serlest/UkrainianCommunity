@@ -2,7 +2,7 @@ import FirebaseFirestore
 import Foundation
 
 struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
-    private enum Field: String {
+    private enum Field: String, CaseIterable {
         case id
         case internalName
         case title
@@ -32,14 +32,32 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         for section: FeaturedBannerVisibleSection,
         federalState: AustrianFederalState?
     ) async throws -> [FeaturedBanner] {
+        guard section.isSupported else {
+            throw AppError.validationFailed
+        }
+
         do {
             let snapshot = try await collection
                 .whereField(Field.isActive.rawValue, isEqualTo: true)
+                .whereField(
+                    Field.actionType.rawValue,
+                    in: FeaturedBannerActionType.supportedCases.map(\.rawValue)
+                )
                 .whereField(Field.visibleSections.rawValue, arrayContains: section.rawValue)
                 .getDocuments()
 
-            let banners = try snapshot.documents.map {
-                try makeBanner(from: $0, allowsUnsupportedLegacy: true)
+            var banners: [FeaturedBanner] = []
+            var malformedDocumentCount = 0
+            for document in snapshot.documents {
+                do {
+                    banners.append(try makeBanner(from: document, allowsUnsupportedLegacy: true))
+                } catch {
+                    malformedDocumentCount += 1
+                }
+            }
+
+            if banners.isEmpty, malformedDocumentCount > 0 {
+                throw AppError.validationFailed
             }
             return banners.activeFeaturedBanners(for: section, federalState: federalState)
         } catch {
@@ -47,16 +65,29 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         }
     }
 
-    func fetchAllBanners() async throws -> [FeaturedBanner] {
-        try await fetchAllBannersForOwner()
-    }
-
     func fetchAllBannersForOwner() async throws -> [FeaturedBanner] {
         do {
             let snapshot = try await collection.getDocuments()
-            return try snapshot.documents
-                .map { try makeBanner(from: $0, allowsUnsupportedLegacy: true) }
-                .sorted { lhs, rhs in
+            var banners: [FeaturedBanner] = []
+            for document in snapshot.documents {
+                do {
+                    banners.append(try makeBanner(from: document, allowsUnsupportedLegacy: true))
+                } catch {
+                    banners.append(makeRecoverableOwnerBanner(from: document))
+                    await SystemTechnicalErrorLoggingService.shared.logFailure(
+                        error,
+                        context: SystemTechnicalErrorContext(
+                            moduleName: "FeaturedBanners",
+                            operationName: "decodeOwnerBanner",
+                            targetType: .systemConfiguration,
+                            targetId: document.documentID,
+                            metadata: ["recoveryMode": "managementPlaceholder"]
+                        )
+                    )
+                }
+            }
+
+            return banners.sorted { lhs, rhs in
                     if lhs.priority != rhs.priority {
                         return lhs.priority > rhs.priority
                     }
@@ -107,13 +138,18 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         guard snapshot.exists else {
             throw AppError.notFound
         }
-        let existingBanner = try makeBanner(
-            id: banner.id,
-            data: snapshot.data() ?? [:],
-            allowsUnsupportedLegacy: true
-        )
-        guard !existingBanner.hasUnsupportedLegacyConfiguration else {
-            throw AppError.validationFailed
+        let existingBanner: FeaturedBanner
+        do {
+            existingBanner = try makeBanner(
+                id: banner.id,
+                data: snapshot.data() ?? [:],
+                allowsUnsupportedLegacy: true
+            )
+        } catch {
+            existingBanner = makeRecoverableOwnerBanner(
+                id: banner.id,
+                data: snapshot.data() ?? [:]
+            )
         }
         let updatedBanner = FeaturedBanner(
             id: banner.id,
@@ -132,16 +168,19 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             isActive: banner.isActive,
             startsAt: banner.startsAt,
             endsAt: banner.endsAt,
-            createdAt: existingBanner.createdAt,
+            createdAt: existingBanner.createdAt == .distantPast
+                ? banner.createdAt
+                : existingBanner.createdAt,
             updatedAt: Date(),
-            createdBy: existingBanner.createdBy,
+            createdBy: nonEmpty(existingBanner.createdBy)
+                ?? banner.createdBy,
             updatedBy: banner.updatedBy
         )
         try validationService.validate(updatedBanner)
-        let data = makeUpdateData(from: updatedBanner)
+        let data = makeData(from: updatedBanner)
 
         do {
-            try await document.updateData(data)
+            try await document.setData(data)
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -181,11 +220,19 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         guard snapshot.exists else {
             throw AppError.notFound
         }
-        let existingBanner = try makeBanner(
-            id: trimmedID,
-            data: snapshot.data() ?? [:],
-            allowsUnsupportedLegacy: true
-        )
+        let existingBanner: FeaturedBanner
+        do {
+            existingBanner = try makeBanner(
+                id: trimmedID,
+                data: snapshot.data() ?? [:],
+                allowsUnsupportedLegacy: true
+            )
+        } catch {
+            existingBanner = makeRecoverableOwnerBanner(
+                id: trimmedID,
+                data: snapshot.data() ?? [:]
+            )
+        }
         if existingBanner.hasUnsupportedLegacyConfiguration {
             guard existingBanner.isActive, !isActive else {
                 throw AppError.validationFailed
@@ -213,22 +260,6 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         }
     }
 
-    func archiveBanner(id: String, updatedBy userID: String) async throws {
-        let trimmedID = id.trimmingCharacters(in: .whitespacesAndNewlines)
-        try await setBannerActive(id: trimmedID, isActive: false, updatedBy: userID)
-
-        await SystemAuditLoggingService.shared.logSuccess(
-            SystemAuditLogContext(
-                moduleName: "FeaturedBanners",
-                operationName: "archiveBanner",
-                eventType: .contentUpdated,
-                targetType: .systemConfiguration,
-                targetId: trimmedID,
-                summary: "Featured banner archived"
-            )
-        )
-    }
-
     func deleteBanner(id: String) async throws {
         let trimmedID = id.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else {
@@ -240,15 +271,6 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         guard snapshot.exists else {
             throw AppError.notFound
         }
-        let existingBanner = try makeBanner(
-            id: trimmedID,
-            data: snapshot.data() ?? [:],
-            allowsUnsupportedLegacy: true
-        )
-        guard !existingBanner.hasUnsupportedLegacyConfiguration else {
-            throw AppError.validationFailed
-        }
-
         do {
             try await document.delete()
         } catch {
@@ -315,8 +337,10 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         }
 
         let federalState = (data[Field.federalState.rawValue] as? String).flatMap(AustrianFederalState.init(rawValue:))
+        let storedID = data[Field.id.rawValue] as? String
+        let hasUnknownFields = !Set(data.keys).isSubset(of: Set(Field.allCases.map(\.rawValue)))
         let banner = FeaturedBanner(
-            id: (data[Field.id.rawValue] as? String) ?? documentID,
+            id: documentID,
             internalName: data[Field.internalName.rawValue] as? String,
             title: data[Field.title.rawValue] as? String ?? "",
             subtitle: data[Field.subtitle.rawValue] as? String,
@@ -335,10 +359,62 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             createdAt: createdAt,
             updatedAt: updatedAt,
             createdBy: createdBy,
-            updatedBy: data[Field.updatedBy.rawValue] as? String
+            updatedBy: data[Field.updatedBy.rawValue] as? String,
+            requiresDataRepair: actionTypeValue != actionType.rawValue
+                || storedID != documentID
+                || hasUnknownFields
         )
         try validationService.validate(banner, allowsUnsupportedLegacy: allowsUnsupportedLegacy)
         return banner
+    }
+
+    private func makeRecoverableOwnerBanner(from document: QueryDocumentSnapshot) -> FeaturedBanner {
+        makeRecoverableOwnerBanner(id: document.documentID, data: document.data())
+    }
+
+    private func makeRecoverableOwnerBanner(id documentID: String, data: [String: Any]) -> FeaturedBanner {
+        let rawSections = data[Field.visibleSections.rawValue] as? [String] ?? []
+        var visibleSections = Set(rawSections.compactMap(FeaturedBannerVisibleSection.init(rawValue:)))
+        if visibleSections.isEmpty || visibleSections.count != rawSections.count {
+            visibleSections.insert(.unsupportedLegacy)
+        }
+
+        let rawAction = data[Field.actionType.rawValue] as? String ?? ""
+        let actionType = FeaturedBannerActionType.normalized(from: rawAction) ?? .unsupportedLegacy
+        let rawRegionScope = data[Field.regionScope.rawValue] as? String ?? ""
+        let regionScope = FeaturedBannerRegionScope(rawValue: rawRegionScope) ?? .allAustria
+        let createdAt = timestampDate(data[Field.createdAt.rawValue]) ?? .distantPast
+        let updatedAt = timestampDate(data[Field.updatedAt.rawValue]) ?? createdAt
+
+        return FeaturedBanner(
+            id: documentID,
+            internalName: data[Field.internalName.rawValue] as? String,
+            title: data[Field.title.rawValue] as? String ?? "",
+            subtitle: data[Field.subtitle.rawValue] as? String,
+            imageURL: data[Field.imageURL.rawValue] as? String,
+            actionType: actionType,
+            actionTargetID: data[Field.actionTargetID.rawValue] as? String,
+            externalURL: data[Field.externalURL.rawValue] as? String,
+            regionScope: regionScope,
+            federalState: (data[Field.federalState.rawValue] as? String).flatMap(AustrianFederalState.init(rawValue:)),
+            visibleSections: visibleSections,
+            displayDurationSeconds: min(
+                max(intValue(data[Field.displayDurationSeconds.rawValue]) ?? 6, FeaturedBannerValidationService.displayDurationBounds.lowerBound),
+                FeaturedBannerValidationService.displayDurationBounds.upperBound
+            ),
+            priority: min(
+                max(intValue(data[Field.priority.rawValue]) ?? 0, FeaturedBannerValidationService.priorityBounds.lowerBound),
+                FeaturedBannerValidationService.priorityBounds.upperBound
+            ),
+            isActive: data[Field.isActive.rawValue] as? Bool ?? false,
+            startsAt: timestampDate(data[Field.startsAt.rawValue]),
+            endsAt: timestampDate(data[Field.endsAt.rawValue]),
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            createdBy: data[Field.createdBy.rawValue] as? String ?? "",
+            updatedBy: data[Field.updatedBy.rawValue] as? String,
+            requiresDataRepair: true
+        )
     }
 
     private func makeData(from banner: FeaturedBanner) -> [String: Any] {
@@ -349,14 +425,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         return data
     }
 
-    private func makeUpdateData(from banner: FeaturedBanner) -> [String: Any] {
-        makeMutableData(from: banner, deletesClearedOptionalFields: true)
-    }
-
-    private func makeMutableData(
-        from banner: FeaturedBanner,
-        deletesClearedOptionalFields: Bool = false
-    ) -> [String: Any] {
+    private func makeMutableData(from banner: FeaturedBanner) -> [String: Any] {
         var data: [String: Any] = [
             Field.imageURL.rawValue: nonEmpty(banner.imageURL) ?? "",
             Field.actionType.rawValue: banner.actionType.rawValue,
@@ -368,20 +437,15 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             Field.updatedAt.rawValue: Timestamp(date: banner.updatedAt)
         ]
 
-        setOptionalValue(nonEmpty(banner.title), forKey: Field.title.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-        setOptionalValue(nonEmpty(banner.internalName), forKey: Field.internalName.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-        setOptionalValue(nonEmpty(banner.subtitle), forKey: Field.subtitle.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-        setOptionalValue(nonEmpty(banner.actionTargetID), forKey: Field.actionTargetID.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-        setOptionalValue(nonEmpty(banner.externalURL), forKey: Field.externalURL.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-        setOptionalValue(banner.federalState?.rawValue, forKey: Field.federalState.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-        setOptionalValue(banner.startsAt.map(Timestamp.init(date:)), forKey: Field.startsAt.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-        setOptionalValue(banner.endsAt.map(Timestamp.init(date:)), forKey: Field.endsAt.rawValue, in: &data, deleteIfNil: deletesClearedOptionalFields)
-
-        if deletesClearedOptionalFields {
-            data[Field.updatedBy.rawValue] = nonEmpty(banner.updatedBy) ?? ""
-        } else {
-            setOptionalValue(nonEmpty(banner.updatedBy), forKey: Field.updatedBy.rawValue, in: &data, deleteIfNil: false)
-        }
+        setOptionalValue(nonEmpty(banner.title), forKey: Field.title.rawValue, in: &data)
+        setOptionalValue(nonEmpty(banner.internalName), forKey: Field.internalName.rawValue, in: &data)
+        setOptionalValue(nonEmpty(banner.subtitle), forKey: Field.subtitle.rawValue, in: &data)
+        setOptionalValue(nonEmpty(banner.actionTargetID), forKey: Field.actionTargetID.rawValue, in: &data)
+        setOptionalValue(nonEmpty(banner.externalURL), forKey: Field.externalURL.rawValue, in: &data)
+        setOptionalValue(banner.federalState?.rawValue, forKey: Field.federalState.rawValue, in: &data)
+        setOptionalValue(banner.startsAt.map(Timestamp.init(date:)), forKey: Field.startsAt.rawValue, in: &data)
+        setOptionalValue(banner.endsAt.map(Timestamp.init(date:)), forKey: Field.endsAt.rawValue, in: &data)
+        setOptionalValue(nonEmpty(banner.updatedBy), forKey: Field.updatedBy.rawValue, in: &data)
 
         return data
     }
@@ -389,13 +453,10 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     private func setOptionalValue(
         _ value: Any?,
         forKey key: String,
-        in data: inout [String: Any],
-        deleteIfNil: Bool
+        in data: inout [String: Any]
     ) {
         if let value {
             data[key] = value
-        } else if deleteIfNil {
-            data[key] = FieldValue.delete()
         }
     }
 

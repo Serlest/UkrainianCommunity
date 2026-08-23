@@ -5,19 +5,33 @@ nonisolated let featuredBannerRefreshStaleInterval: TimeInterval = 1_800
 
 @MainActor
 final class FeaturedBannerListViewModel: ObservableObject {
+    private struct LoadOperation {
+        let id: UUID
+        let task: Task<Void, Never>
+    }
+
     @Published private(set) var banners: [FeaturedBanner] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
 
     private let repository: FeaturedBannerRepository
     private let cache: FeaturedBannerCache
-    private var loadTasks: [FeaturedBannerCache.Key: Task<Void, Never>] = [:]
+    private var loadOperations: [FeaturedBannerCache.Key: LoadOperation] = [:]
     private var loadingQueries = Set<FeaturedBannerCache.Key>()
     private var currentQuery: FeaturedBannerCache.Key?
+    private var contentChangeCancellable: AnyCancellable?
 
     init(repository: FeaturedBannerRepository, cache: FeaturedBannerCache) {
         self.repository = repository
         self.cache = cache
+        contentChangeCancellable = NotificationCenter.default
+            .publisher(for: .featuredBannersChanged)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    await self?.refreshCurrentQuery()
+                }
+            }
     }
 
     func loadIfNeeded(
@@ -25,7 +39,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         federalState: AustrianFederalState?
     ) async {
         let query = FeaturedBannerCache.Key(section: section, federalState: federalState)
-        currentQuery = query
+        selectQuery(query)
 
         if let cached = cache.entry(for: query, maxAge: featuredBannerRefreshStaleInterval) {
             applyCachedBanners(cached, for: query)
@@ -40,7 +54,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         federalState: AustrianFederalState?
     ) async {
         let query = FeaturedBannerCache.Key(section: section, federalState: federalState)
-        currentQuery = query
+        selectQuery(query)
         await startLoad(for: query, force: true)
     }
 
@@ -50,7 +64,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         maxAge: TimeInterval = featuredBannerRefreshStaleInterval
     ) async {
         let query = FeaturedBannerCache.Key(section: section, federalState: federalState)
-        currentQuery = query
+        selectQuery(query)
 
         guard let cached = cache.entry(for: query, maxAge: maxAge) else {
             await startLoad(for: query, force: false, maxAge: maxAge)
@@ -60,11 +74,9 @@ final class FeaturedBannerListViewModel: ObservableObject {
         applyCachedBanners(cached, for: query)
     }
 
-    func loadActiveBanners(
-        for section: FeaturedBannerVisibleSection,
-        federalState: AustrianFederalState?
-    ) async {
-        await refresh(for: section, federalState: federalState)
+    private func refreshCurrentQuery() async {
+        guard let currentQuery else { return }
+        await startLoad(for: currentQuery, force: true)
     }
 
     private func startLoad(
@@ -77,24 +89,33 @@ final class FeaturedBannerListViewModel: ObservableObject {
             return
         }
 
-        if let loadTask = loadTasks[query] {
-            await loadTask.value
-            if let cached = cache.entry(for: query, maxAge: maxAge) {
-                applyCachedBanners(cached, for: query)
+        if let existingOperation = loadOperations[query] {
+            if force {
+                existingOperation.task.cancel()
+            } else {
+                await existingOperation.task.value
+                if let cached = cache.entry(for: query, maxAge: maxAge) {
+                    applyCachedBanners(cached, for: query)
+                }
+                return
             }
-            return
         }
 
         loadingQueries.insert(query)
         updateLoadingState()
 
+        let operationID = UUID()
         let task = Task { [weak self] in
             guard let self else { return }
             await self.performLoad(for: query)
         }
-        loadTasks[query] = task
+        loadOperations[query] = LoadOperation(id: operationID, task: task)
         await task.value
-        loadTasks[query] = nil
+
+        // A forced refresh can replace an in-flight operation. Only the most
+        // recent operation is allowed to clear the loading state for its key.
+        guard loadOperations[query]?.id == operationID else { return }
+        loadOperations[query] = nil
         loadingQueries.remove(query)
         updateLoadingState()
     }
@@ -109,15 +130,26 @@ final class FeaturedBannerListViewModel: ObservableObject {
 
             let cached = cache.store(loadedBanners, for: query)
             applyCachedBanners(cached, for: query)
-            error = nil
+            if currentQuery == query {
+                error = nil
+            }
         } catch is CancellationError {
         } catch let appError as AppError {
             guard !Task.isCancelled else { return }
+            guard currentQuery == query else { return }
             error = appError
         } catch {
             guard !Task.isCancelled else { return }
+            guard currentQuery == query else { return }
             self.error = .unknown
         }
+    }
+
+    private func selectQuery(_ query: FeaturedBannerCache.Key) {
+        guard currentQuery != query else { return }
+        currentQuery = query
+        banners = []
+        error = nil
     }
 
     private func applyCachedBanners(_ cached: FeaturedBannerCache.Entry, for query: FeaturedBannerCache.Key) {

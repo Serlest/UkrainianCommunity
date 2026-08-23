@@ -185,7 +185,7 @@ struct EventsListView: View {
     }
 
     private var featuredBannerLoadKey: String {
-        authState.user?.selectedFederalState?.rawValue ?? "allAustria"
+        selectedFederalState?.rawValue ?? "allAustria"
     }
 
     private var errorText: String {
@@ -295,7 +295,12 @@ struct EventsListView: View {
                         .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                     eventsHero
-                        .padding(.bottom, featuredBannerViewModel.banners.isEmpty ? 0 : AppTheme.homeSectionSpacing)
+                        .padding(
+                            .bottom,
+                            featuredBannerViewModel.banners.isEmpty && featuredBannerViewModel.error == nil
+                                ? 0
+                                : AppTheme.homeSectionSpacing
+                        )
 
                     EventFilterRow(
                         selectedFederalState: selectedFederalState,
@@ -451,20 +456,24 @@ struct EventsListView: View {
                 sizing: .responsiveHero,
                 onBannerTap: onFeaturedBannerTap
             )
+        } else if let error = featuredBannerViewModel.error {
+            FeaturedBannerLoadFailureView(error: error) {
+                await refreshFeaturedBanners()
+            }
         }
     }
 
     private func refreshFeaturedBannersIfStale() async {
         await featuredBannerViewModel.refreshIfStale(
             for: .events,
-            federalState: authState.user?.selectedFederalState
+            federalState: selectedFederalState
         )
     }
 
     private func refreshFeaturedBanners() async {
         await featuredBannerViewModel.refresh(
             for: .events,
-            federalState: authState.user?.selectedFederalState
+            federalState: selectedFederalState
         )
     }
 

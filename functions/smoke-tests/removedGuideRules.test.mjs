@@ -6,11 +6,15 @@ import {
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
+  query,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import {readFileSync} from "node:fs";
 
@@ -93,6 +97,32 @@ async function seedLegacyGuideData() {
           visibleSections: ["guide"],
         },
       )),
+      setDoc(doc(db, "featuredBanners", "legacy-guide-delete"), featuredBanner(
+        "legacy-guide-delete",
+        {
+          actionType: "guide",
+          actionTargetID: "legacy-material",
+          visibleSections: ["guide"],
+        },
+      )),
+      setDoc(doc(db, "featuredBanners", "legacy-mixed-sections"), featuredBanner(
+        "legacy-mixed-sections",
+        {visibleSections: ["home", "guide"]},
+      )),
+      setDoc(doc(db, "featuredBanners", "malformed-deactivate"), {
+        imageURL: "https://example.com/malformed-deactivate.jpg",
+        actionType: "none",
+        regionScope: "allAustria",
+        visibleSections: ["home"],
+        displayDurationSeconds: 6,
+        priority: 1,
+        isActive: true,
+        updatedAt: new Date("2026-08-22T10:00:00Z"),
+      }),
+      setDoc(doc(db, "featuredBanners", "malformed-repair"), {
+        ...featuredBanner("wrong-document-id"),
+        createdBy: "",
+      }),
     ]);
   });
 }
@@ -241,6 +271,28 @@ describe("removed Guide management values", () => {
     await assertSucceeds(getDoc(doc(auth("owner"), ...bannerPath)));
   });
 
+  test("a supported banner remains readable while its retired section is awaiting migration", async () => {
+    const bannerPath = ["featuredBanners", "legacy-mixed-sections"];
+
+    await assertSucceeds(getDoc(doc(unauthenticated(), ...bannerPath)));
+    await assertSucceeds(getDoc(doc(auth("normal-user"), ...bannerPath)));
+  });
+
+  test("the public repository query returns supported Home banners without legacy actions", async () => {
+    const publicQuery = query(
+      collection(unauthenticated(), "featuredBanners"),
+      where("isActive", "==", true),
+      where("actionType", "in", ["none", "news", "event", "organization", "externalURL"]),
+      where("visibleSections", "array-contains", "home"),
+    );
+
+    const snapshot = await assertSucceeds(getDocs(publicQuery));
+    const ids = snapshot.docs.map((document) => document.id);
+    if (!ids.includes("legacy-mixed-sections") || ids.includes("legacy-guide-banner")) {
+      throw new Error(`Unexpected public featured-banner query result: ${ids.join(", ")}`);
+    }
+  });
+
   test("Guide app configuration and featured-banner values are rejected", async () => {
     const db = auth("owner");
 
@@ -261,7 +313,7 @@ describe("removed Guide management values", () => {
     ));
   });
 
-  test("owner can only deactivate a legacy Guide banner", async () => {
+  test("owner can deactivate, migrate, and reactivate a legacy Guide banner", async () => {
     const db = auth("owner");
     const bannerRef = doc(db, "featuredBanners", "legacy-guide-banner");
 
@@ -277,20 +329,57 @@ describe("removed Guide management values", () => {
       updatedBy: "owner",
     }));
 
-    await assertFails(updateDoc(bannerRef, {
-      title: "Repurposed legacy banner",
-      updatedAt: new Date("2026-08-22T11:05:00Z"),
-      updatedBy: "owner",
-    }));
-
-    await assertFails(deleteDoc(bannerRef));
-
-    await assertFails(updateDoc(bannerRef, {
+    await assertSucceeds(updateDoc(bannerRef, {
       actionType: "none",
       visibleSections: ["home"],
       updatedAt: new Date("2026-08-22T11:10:00Z"),
       updatedBy: "owner",
     }));
+
+    await assertSucceeds(updateDoc(bannerRef, {
+      isActive: true,
+      updatedAt: new Date("2026-08-22T11:12:00Z"),
+      updatedBy: "owner",
+    }));
+
+    await assertSucceeds(deleteDoc(
+      doc(db, "featuredBanners", "legacy-guide-delete"),
+    ));
+  });
+
+  test("owner can deactivate and fully repair malformed banner documents", async () => {
+    const db = auth("owner");
+    const deactivateRef = doc(db, "featuredBanners", "malformed-deactivate");
+    const repairRef = doc(db, "featuredBanners", "malformed-repair");
+
+    await assertSucceeds(updateDoc(deactivateRef, {
+      isActive: false,
+      updatedAt: new Date("2026-08-22T11:30:00Z"),
+      updatedBy: "owner",
+    }));
+
+    await assertSucceeds(setDoc(
+      repairRef,
+      featuredBanner("malformed-repair", {
+        updatedAt: new Date("2026-08-22T11:35:00Z"),
+        updatedBy: "owner",
+      }),
+    ));
+
+    await assertSucceeds(getDoc(doc(unauthenticated(), "featuredBanners", "malformed-repair")));
+  });
+
+  test("non-owners cannot migrate or delete legacy featured banners", async () => {
+    const db = auth("normal-user");
+    const bannerRef = doc(db, "featuredBanners", "legacy-guide-delete");
+
+    await assertFails(updateDoc(bannerRef, {
+      actionType: "none",
+      visibleSections: ["home"],
+      updatedAt: new Date("2026-08-22T11:20:00Z"),
+      updatedBy: "normal-user",
+    }));
+    await assertFails(deleteDoc(bannerRef));
   });
 
   test("clients cannot create new system logs with retired Guide target types", async () => {

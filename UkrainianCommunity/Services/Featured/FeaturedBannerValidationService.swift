@@ -3,6 +3,10 @@ import Foundation
 struct FeaturedBannerValidationService {
     static let displayDurationBounds = 3...12
     static let priorityBounds = 0...1000
+    static let internalNameMaxLength = 120
+    static let titleMaxLength = 120
+    static let subtitleMaxLength = 240
+    static let URLMaxLength = 2_048
 
     func validate(_ banner: FeaturedBanner, allowsUnsupportedLegacy: Bool = false) throws {
         guard !trimmed(banner.id).isEmpty,
@@ -12,6 +16,14 @@ struct FeaturedBannerValidationService {
 
         guard allowsUnsupportedLegacy
                 || (banner.actionType.isSupported && banner.visibleSections.allSatisfy(\.isSupported)) else {
+            throw AppError.validationFailed
+        }
+
+        guard trimmed(banner.internalName).count <= Self.internalNameMaxLength,
+              trimmed(banner.title).count <= Self.titleMaxLength,
+              trimmed(banner.subtitle).count <= Self.subtitleMaxLength,
+              trimmed(banner.imageURL).count <= Self.URLMaxLength,
+              trimmed(banner.externalURL).count <= Self.URLMaxLength else {
             throw AppError.validationFailed
         }
 

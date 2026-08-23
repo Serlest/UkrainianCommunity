@@ -5,6 +5,7 @@ extension Notification.Name {
     static let newsChanged = Notification.Name("newsChanged")
     static let eventsChanged = Notification.Name("eventsChanged")
     static let organizationsChanged = Notification.Name("organizationsChanged")
+    static let featuredBannersChanged = Notification.Name("featuredBannersChanged")
     static let registrationsChanged = Notification.Name("registrationsChanged")
 }
 
@@ -21,6 +22,10 @@ enum AppContentChangeBus {
 
     static func postOrganizationsChanged(organizationID: String? = nil) {
         post(name: .organizationsChanged, organizationID: organizationID)
+    }
+
+    static func postFeaturedBannersChanged() {
+        post(name: .featuredBannersChanged, organizationID: nil)
     }
 
     static func postRegistrationsChanged(organizationID: String? = nil) {

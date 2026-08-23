@@ -1,12 +1,20 @@
 import SwiftUI
+import UIKit
 
 struct FeaturedBannerCardView: View {
     let banner: FeaturedBanner
+    let previewImage: UIImage?
     @Environment(\.colorScheme) private var colorScheme
+
+    init(banner: FeaturedBanner, previewImage: UIImage? = nil) {
+        self.banner = banner
+        self.previewImage = previewImage
+    }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             background
+            visualTreatment
             if hasTextContent {
                 textContent
             }
@@ -19,12 +27,19 @@ struct FeaturedBannerCardView: View {
         .contentShape(cardShape)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(isActionable ? AppStrings.Action.open : "")
     }
 
     @ViewBuilder
     private var background: some View {
         GeometryReader { proxy in
-            if let imageURL = banner.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty {
+            if let previewImage {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
+            } else if let imageURL = banner.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty {
                 RemoteImageView(
                     imageURL: imageURL,
                     height: proxy.size.height,
@@ -53,24 +68,62 @@ struct FeaturedBannerCardView: View {
         )
     }
 
+    private var visualTreatment: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    .clear,
+                    .black.opacity(hasTextContent ? 0.08 : 0),
+                    .black.opacity(hasTextContent ? 0.58 : 0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            RadialGradient(
+                colors: [
+                    AppTheme.accentPrimary.opacity(colorScheme == .dark ? 0.28 : 0.18),
+                    .clear
+                ],
+                center: .topTrailing,
+                startRadius: 4,
+                endRadius: 220
+            )
+        }
+        .allowsHitTesting(false)
+    }
+
     private var textContent: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let titleText {
-                Text(titleText)
-                    .font(AppTheme.featuredBannerTitleFont)
-                    .foregroundStyle(AppTheme.textOnHero)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .bottom, spacing: AppTheme.eventsControlGroupSpacing) {
+            VStack(alignment: .leading, spacing: 4) {
+                if let titleText {
+                    Text(titleText)
+                        .font(AppTheme.featuredBannerTitleFont)
+                        .foregroundStyle(AppTheme.textOnHero)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let subtitleText {
+                    Text(subtitleText)
+                        .font(AppTheme.featuredBannerSubtitleFont)
+                        .foregroundStyle(AppTheme.textOnHero.opacity(0.88))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
-            if let subtitleText {
-                Text(subtitleText)
-                    .font(AppTheme.featuredBannerSubtitleFont)
-                    .foregroundStyle(AppTheme.textOnHero.opacity(0.88))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+
+            if isActionable {
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.textOnHero)
+                    .frame(width: 30, height: 30)
+                    .background(AppTheme.accentPrimary.opacity(0.92), in: Circle())
+                    .accessibilityHidden(true)
             }
         }
         .padding(.horizontal, AppTheme.bannerTextScrimHorizontalPadding)
@@ -97,6 +150,17 @@ struct FeaturedBannerCardView: View {
 
     private var hasTextContent: Bool {
         titleText != nil || subtitleText != nil
+    }
+
+    private var isActionable: Bool {
+        switch banner.actionType {
+        case .news, .event, .organization:
+            return nonEmpty(banner.actionTargetID) != nil
+        case .externalURL:
+            return FeaturedBannerURLNormalizer.normalizedExternalURL(from: banner.externalURL) != nil
+        case .none, .unsupportedLegacy:
+            return false
+        }
     }
 
     private var accessibilityLabel: String {

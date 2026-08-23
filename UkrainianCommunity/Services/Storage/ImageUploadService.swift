@@ -175,11 +175,37 @@ final class ImageUploadService {
     }
 
     func uploadFeaturedBannerImage(bannerId: String, processedImage: ProcessedImageSelection) async throws -> URL {
+        let fileName = "hero-\(UUID().uuidString).jpg"
         return try await uploadProcessedImage(
             data: processedImage.data,
             contentType: processedImage.contentType,
-            storagePath: "featuredBanners/\(bannerId)/hero.jpg",
+            storagePath: "featuredBanners/\(bannerId)/\(fileName)",
         )
+    }
+
+    func deleteFeaturedBannerImage(at imageURL: URL, bannerId: String) async throws {
+        let trimmedID = bannerId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedID.isEmpty, !trimmedID.contains("/") else {
+            throw AppError.validationFailed
+        }
+        let host = imageURL.host?.lowercased() ?? ""
+        guard host == "firebasestorage.googleapis.com"
+                || host == "storage.googleapis.com"
+                || host.hasSuffix(".appspot.com") else {
+            return
+        }
+
+        let reference = storage.reference(forURL: imageURL.absoluteString)
+        guard reference.fullPath.hasPrefix("featuredBanners/\(trimmedID)/") else {
+            return
+        }
+
+        do {
+            try await reference.delete()
+        } catch {
+            await logFeaturedBannerDeletionFailure(error, bannerId: trimmedID, operationName: "deleteFeaturedBannerImage")
+            throw error
+        }
     }
 
     private func uploadCoverImage(
@@ -217,6 +243,23 @@ final class ImageUploadService {
             )
             throw error
         }
+    }
+
+    private func logFeaturedBannerDeletionFailure(
+        _ error: Error,
+        bannerId: String,
+        operationName: String
+    ) async {
+        await SystemTechnicalErrorLoggingService.shared.logFailure(
+            error,
+            context: SystemTechnicalErrorContext(
+                moduleName: "Storage",
+                operationName: operationName,
+                targetType: .systemConfiguration,
+                targetId: bannerId,
+                metadata: ["storageArea": "featuredBanners"]
+            )
+        )
     }
 
     private func storageArea(for storagePath: String) -> String {

@@ -64,7 +64,15 @@ enum FeaturedBannerVisibleSection: String, CaseIterable, Codable, Identifiable, 
     }
 }
 
-struct FeaturedBanner: Identifiable, Equatable, Codable {
+enum FeaturedBannerLifecycleState: Equatable {
+    case migrationRequired
+    case inactive
+    case scheduled
+    case live
+    case expired
+}
+
+struct FeaturedBanner: Identifiable, Equatable {
     static let collectionPath = "featuredBanners"
 
     let id: String
@@ -87,9 +95,51 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
     let updatedAt: Date
     let createdBy: String
     let updatedBy: String?
+    let requiresDataRepair: Bool
 
     var hasUnsupportedLegacyConfiguration: Bool {
-        !actionType.isSupported || visibleSections.contains { !$0.isSupported }
+        requiresDataRepair || !actionType.isSupported || visibleSections.contains { !$0.isSupported }
+    }
+
+    var supportedVisibleSections: Set<FeaturedBannerVisibleSection> {
+        Set(visibleSections.filter(\.isSupported))
+    }
+
+    func lifecycleState(at date: Date = Date()) -> FeaturedBannerLifecycleState {
+        if hasUnsupportedLegacyConfiguration {
+            return .migrationRequired
+        }
+        guard isActive else {
+            return .inactive
+        }
+        if let startsAt, startsAt > date {
+            return .scheduled
+        }
+        if let endsAt, endsAt < date {
+            return .expired
+        }
+        return .live
+    }
+
+    func isVisible(on date: Date) -> Bool {
+        let startsBeforeNow = startsAt.map { $0 <= date } ?? true
+        let endsAfterNow = endsAt.map { $0 >= date } ?? true
+        return startsBeforeNow && endsAfterNow
+    }
+
+    func matchesRegion(_ selectedFederalState: AustrianFederalState?) -> Bool {
+        // “All Austria” is an inclusive feed: it shows national and regional
+        // highlights. Choosing a state narrows regional banners to that state
+        // while national banners remain visible.
+        guard let selectedFederalState else { return true }
+
+        switch regionScope {
+        case .allAustria:
+            return true
+        case .federalState:
+            guard let federalState else { return false }
+            return federalState == selectedFederalState
+        }
     }
 
     init(
@@ -112,7 +162,8 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
         createdAt: Date,
         updatedAt: Date,
         createdBy: String,
-        updatedBy: String? = nil
+        updatedBy: String? = nil,
+        requiresDataRepair: Bool = false
     ) {
         self.id = id
         self.internalName = internalName
@@ -134,5 +185,6 @@ struct FeaturedBanner: Identifiable, Equatable, Codable {
         self.updatedAt = updatedAt
         self.createdBy = createdBy
         self.updatedBy = updatedBy
+        self.requiresDataRepair = requiresDataRepair
     }
 }

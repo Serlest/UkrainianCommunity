@@ -5669,6 +5669,91 @@
         }
       }
     },
+    "featured.banner.load_error.data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights enthalten ungültige Veröffentlichungsdaten und konnten nicht angezeigt werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У виділеннях є некоректні дані публікації, тому їх не вдалося показати."
+          }
+        }
+      }
+    },
+    "featured.banner.load_error.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити виділення. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "featured.banner.load_error.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights sind vorübergehend nicht verfügbar, weil ihre Veröffentlichungskonfiguration geprüft werden muss."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виділення тимчасово недоступні: потрібно перевірити налаштування їх публікації."
+          }
+        }
+      }
+    },
+    "featured.banner.load_error.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights nicht verfügbar"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виділення недоступні"
+          }
+        }
+      }
+    },
+    "featured.banner.load_error.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights konnten gerade nicht geladen werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зараз не вдалося завантажити виділення."
+          }
+        }
+      }
+    },
     "featured.banner.page_indicator" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5784,23 +5869,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Завантаження цілей"
-          }
-        }
-      }
-    },
-    "featured.editor.action.manual_target_helper" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geben Sie die bestehende Content-ID für Aktionstypen ohne Auswahl manuell ein."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Введіть наявний ID контенту вручну для типів дій без вибору зі списку."
           }
         }
       }
@@ -5958,40 +6026,6 @@
         }
       }
     },
-    "featured.editor.crop.apply" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anwenden"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Застосувати"
-          }
-        }
-      }
-    },
-    "featured.editor.crop.gesture_hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ziehen zum Verschieben. Zusammendrücken zum Zoomen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перетягуйте, щоб змінити позицію. Зведіть або розведіть пальці для масштабу."
-          }
-        }
-      }
-    },
     "featured.editor.crop.instructions" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6009,36 +6043,53 @@
         }
       }
     },
-    "featured.editor.crop.reset" : {
+    "featured.editor.discard.action" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zurücksetzen"
+            "value" : "Änderungen verwerfen"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Скинути"
+            "value" : "Відхилити зміни"
           }
         }
       }
     },
-    "featured.editor.crop.title" : {
+    "featured.editor.discard.message" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bannerbild zuschneiden"
+            "value" : "Deine nicht gespeicherten Banneränderungen gehen verloren."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Обрізати зображення банера"
+            "value" : "Незбережені зміни банера буде втрачено."
+          }
+        }
+      }
+    },
+    "featured.editor.discard.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banneränderungen verwerfen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилити зміни банера?"
           }
         }
       }
@@ -6192,23 +6243,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Дані рекомендованого банера неповні або недійсні."
-          }
-        }
-      }
-    },
-    "featured.editor.field.action_target" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ziel-ID"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ID цілі"
           }
         }
       }
@@ -6502,6 +6536,91 @@
         }
       }
     },
+    "featured.editor.migrate_banner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner migrieren und bearbeiten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мігрувати й редагувати банер"
+          }
+        }
+      }
+    },
+    "featured.editor.migration.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veraltete Guide-Werte wurden aus diesem Entwurf entfernt. Prüfe die neuen Bereiche und die Aktion und speichere anschließend, um die Migration abzuschließen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Застарілі значення Guide вилучено з цієї чернетки. Перевірте нові розділи й дію, а потім збережіть, щоб завершити міграцію."
+          }
+        }
+      }
+    },
+    "featured.editor.preview.helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Vorschau verwendet dieselbe Karte wie Start, Veranstaltungen und Organisationen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цей попередній перегляд використовує ту саму картку, що й Головна, Події та Організації."
+          }
+        }
+      }
+    },
+    "featured.editor.repair.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht unterstützte oder unvollständige Werte wurden in diesem Entwurf normalisiert. Prüfe vor dem Speichern alle Bereiche."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Непідтримувані або неповні значення нормалізовано в цій чернетці. Перевірте всі розділи перед збереженням відновленого документа."
+          }
+        }
+      }
+    },
+    "featured.editor.repair_banner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner reparieren und bearbeiten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відновити й редагувати банер"
+          }
+        }
+      }
+    },
     "featured.editor.region_scope.federal_state" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6617,6 +6736,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Зображення"
+          }
+        }
+      }
+    },
+    "featured.editor.section.preview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live-Vorschau"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Живий попередній перегляд"
           }
         }
       }
@@ -6808,6 +6944,23 @@
         }
       }
     },
+    "featured.editor.validation.image_url" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die vorhandene URL des Bannerbilds ist ungültig. Wähle ein neues Bild."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поточна URL-адреса зображення банера некоректна. Виберіть нове зображення."
+          }
+        }
+      }
+    },
     "featured.editor.validation.owner_required" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6876,19 +7029,19 @@
         }
       }
     },
-    "featured.editor.validation.title_required" : {
+    "featured.editor.validation.text_length" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Titel ist erforderlich."
+            "value" : "Interner Name und Überschrift dürfen bis zu 120 Zeichen enthalten, der Untertitel bis zu 240."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Назва обов'язкова."
+            "value" : "Внутрішня назва й заголовок можуть містити до 120 символів, підзаголовок — до 240."
           }
         }
       }
@@ -6984,13 +7137,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dadurch wird „%@“ dauerhaft aus den empfohlenen Inhalten gelöscht."
+            "value" : "Dadurch werden „%@“ und die hochgeladenen Bannerbilder dauerhaft gelöscht."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Це назавжди видалить «%@» з рекомендованого контенту."
+            "value" : "Це назавжди видалить «%@» і завантажені зображення банера."
           }
         }
       }
@@ -7148,6 +7301,57 @@
         }
       }
     },
+    "featured.management.filter.all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Banner"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі банери"
+          }
+        }
+      }
+    },
+    "featured.management.filter.label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statusfilter"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фільтр статусу"
+          }
+        }
+      }
+    },
+    "featured.management.filter.needs_attention" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfung nötig"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потребує уваги"
+          }
+        }
+      }
+    },
     "featured.management.inactive" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7178,6 +7382,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Регіон відсутній"
+          }
+        }
+      }
+    },
+    "featured.management.migration.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Banner enthält einen eingestellten Guide-Wert. Öffne es einmal, um es auf unterstützte Bereiche und Aktionen zu migrieren, oder lösche es dauerhaft."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цей банер містить вилучене значення Guide. Відкрийте його один раз, щоб мігрувати на підтримувані розділи й дії, або видаліть назавжди."
+          }
+        }
+      }
+    },
+    "featured.management.no_matches.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ändere den Suchtext oder den Statusfilter."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Змініть пошуковий текст або фільтр статусу."
+          }
+        }
+      }
+    },
+    "featured.management.no_matches.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine passenden Banner"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відповідних банерів немає"
           }
         }
       }
@@ -7250,6 +7505,125 @@
         }
       }
     },
+    "featured.management.repair.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Firestore-Dokument enthält unvollständige oder unbekannte Daten. Öffne es, um die unterstützten Felder zu reparieren, oder lösche es dauerhaft."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цей документ Firestore містить неповні або невідомі дані. Відкрийте його, щоб відновити підтримувані поля, або видаліть назавжди."
+          }
+        }
+      }
+    },
+    "featured.management.results_count" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld von %2$lld"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld з %2$lld"
+          }
+        }
+      }
+    },
+    "featured.management.schedule" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitplan"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розклад"
+          }
+        }
+      }
+    },
+    "featured.management.schedule.always" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завжди"
+          }
+        }
+      }
+    },
+    "featured.management.schedule.ends" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bis %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "До %@"
+          }
+        }
+      }
+    },
+    "featured.management.schedule.starts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ab %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Від %@"
+          }
+        }
+      }
+    },
+    "featured.management.search.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner nach Name, Inhalt, Region oder ID suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук банерів за назвою, вмістом, регіоном або ID"
+          }
+        }
+      }
+    },
     "featured.management.sections" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7263,6 +7637,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Розділи"
+          }
+        }
+      }
+    },
+    "featured.management.status.expired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abgelaufen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершено"
+          }
+        }
+      }
+    },
+    "featured.management.status.live" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опубліковано"
+          }
+        }
+      }
+    },
+    "featured.management.status.migration_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Migration nötig"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібна міграція"
+          }
+        }
+      }
+    },
+    "featured.management.status.repair_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reparatur nötig"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібне відновлення"
+          }
+        }
+      }
+    },
+    "featured.management.status.scheduled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geplant"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заплановано"
           }
         }
       }
@@ -8426,40 +8885,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ваше звернення"
-          }
-        }
-      }
-    },
-    "home.banner.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unterstützung, Information und Möglichkeiten für Ukrainerinnen und Ukrainer in Österreich."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Підтримка, інформація та можливості для українців в Австрії."
-          }
-        }
-      }
-    },
-    "home.banner.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gemeinsam stärker"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разом сильніші"
           }
         }
       }

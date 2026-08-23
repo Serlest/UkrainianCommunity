@@ -10,21 +10,23 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
 
     private let repository: FeaturedBannerRepository
     private let publicCache: FeaturedBannerCache?
+    private let imageUploadService: ImageUploadService
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
 
-    init(repository: FeaturedBannerRepository, publicCache: FeaturedBannerCache? = nil) {
+    init(
+        repository: FeaturedBannerRepository,
+        publicCache: FeaturedBannerCache? = nil,
+        imageUploadService: ImageUploadService = .shared
+    ) {
         self.repository = repository
         self.publicCache = publicCache
+        self.imageUploadService = imageUploadService
     }
 
     func loadIfNeeded() async {
         guard !hasLoaded else { return }
         await startLoad(force: false)
-    }
-
-    func loadBanners() async {
-        await refresh()
     }
 
     func refresh() async {
@@ -52,28 +54,7 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             try await repository.setBannerActive(id: banner.id, isActive: isActive, updatedBy: trimmedUserID)
             replaceBanner(banner.settingActive(isActive, updatedBy: trimmedUserID))
             invalidatePublicCache()
-            error = nil
-        } catch let appError as AppError {
-            error = appError
-        } catch {
-            self.error = .unknown
-        }
-    }
-
-    func archive(_ banner: FeaturedBanner, updatedBy userID: String?) async {
-        let trimmedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !trimmedUserID.isEmpty else {
-            error = .permissionDenied
-            return
-        }
-
-        updatingBannerIDs.insert(banner.id)
-        defer { updatingBannerIDs.remove(banner.id) }
-
-        do {
-            try await repository.archiveBanner(id: banner.id, updatedBy: trimmedUserID)
-            replaceBanner(banner.settingActive(false, updatedBy: trimmedUserID))
-            invalidatePublicCache()
+            AppContentChangeBus.postFeaturedBannersChanged()
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -83,11 +64,6 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
     }
 
     func delete(_ banner: FeaturedBanner, requestedBy userID: String?) async {
-        guard !banner.hasUnsupportedLegacyConfiguration else {
-            error = .validationFailed
-            return
-        }
-
         let trimmedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmedUserID.isEmpty else {
             error = .permissionDenied
@@ -101,7 +77,18 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             try await repository.deleteBanner(id: banner.id)
             banners.removeAll { $0.id == banner.id }
             invalidatePublicCache()
+            AppContentChangeBus.postFeaturedBannersChanged()
             error = nil
+            // Firestore is the publishing source of truth. Remove the current
+            // image immediately when possible; the backend deletion trigger
+            // sweeps the full banner folder, including interrupted uploads.
+            if let imageURLString = banner.imageURL,
+               let imageURL = URL(string: imageURLString) {
+                try? await imageUploadService.deleteFeaturedBannerImage(
+                    at: imageURL,
+                    bannerId: banner.id
+                )
+            }
         } catch let appError as AppError {
             error = appError
         } catch {
@@ -186,7 +173,8 @@ private extension FeaturedBanner {
             createdAt: createdAt,
             updatedAt: Date(),
             createdBy: createdBy,
-            updatedBy: userID
+            updatedBy: userID,
+            requiresDataRepair: requiresDataRepair
         )
     }
 }

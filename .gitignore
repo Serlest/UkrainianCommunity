@@ -25,3 +25,7 @@ functions/firestore-debug.log
 Secrets/
 *.service-account.json
 ukrainiancommunity-dbd5f-*.json
+
+# Python tooling caches
+__pycache__/
+*.py[cod]

@@ -127,6 +127,11 @@ describe("Storage upload validation", () => {
     const ownerStorage = storage("owner");
 
     await assertSucceeds(imageUpload(ownerStorage, "featuredBanners/banner-1/hero.jpg"));
+    await assertSucceeds(imageUpload(
+      ownerStorage,
+      "featuredBanners/banner-1/hero-123e4567-e89b-12d3-a456-426614174000.jpg",
+    ));
+    await assertFails(imageUpload(ownerStorage, "featuredBanners/banner-1/random.jpg"));
     await assertFails(imageUpload(ownerStorage, "featuredBanners/banner-2/hero.jpg", {
       contentType: "image/svg+xml",
     }));
@@ -165,7 +170,10 @@ describe("removed Guide storage paths", () => {
 
 describe("account state enforcement", () => {
   test("requires verified email for privileged and self uploads", async () => {
-    await assertFails(imageUpload(storage("owner", false), "appConfig/homeBanner/banner.jpg"));
+    await assertFails(imageUpload(
+      storage("owner", false),
+      "featuredBanners/banner-unverified/hero.jpg",
+    ));
     await assertFails(imageUpload(
       storage("profile-user", false),
       "profileImages/profile-user/avatar.jpg",
@@ -175,7 +183,7 @@ describe("account state enforcement", () => {
   test("rejects blocked users even when a privileged role remains in Firestore", async () => {
     await assertFails(imageUpload(
       storage("blocked-owner"),
-      "appConfig/homeBanner/banner.jpg",
+      "featuredBanners/banner-blocked/hero.jpg",
     ));
   });
 });
@@ -243,11 +251,15 @@ describe("profile and public read boundaries", () => {
       await imageUpload(context.storage(), "profileImages/profile-user/avatar.jpg");
       await imageUpload(context.storage(), "organizations/approved-org/logo.jpg");
       await imageUpload(context.storage(), "organizations/pending-org/logo.jpg");
+      await imageUpload(context.storage(), "featuredBanners/banner-1/hero-version-1.jpg");
+      await imageUpload(context.storage(), "featuredBanners/banner-1/private.jpg");
     });
 
     const guest = guestStorage();
     await assertSucceeds(getBytes(ref(guest, "profileImages/profile-user/avatar.jpg")));
     await assertSucceeds(getBytes(ref(guest, "organizations/approved-org/logo.jpg")));
+    await assertSucceeds(getBytes(ref(guest, "featuredBanners/banner-1/hero-version-1.jpg")));
+    await assertFails(getBytes(ref(guest, "featuredBanners/banner-1/private.jpg")));
     await assertFails(getBytes(ref(guest, "organizations/pending-org/logo.jpg")));
   });
 

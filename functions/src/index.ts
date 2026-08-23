@@ -11,6 +11,7 @@ import {feedbackManagerGlobalRoles} from "./permissions/userPermissions";
 
 export * from "./counters/aggregation";
 export * from "./analytics/trackAnalyticsEvent";
+export * from "./featured/featuredBannerCleanup";
 export * from "./legal/legalDocuments";
 export * from "./notifications/backendWriters";
 export * from "./notifications/eventRegistrationNotifications";

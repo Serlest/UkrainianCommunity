@@ -15,10 +15,6 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         banners.activeFeaturedBanners(for: section, federalState: federalState)
     }
 
-    func fetchAllBanners() async throws -> [FeaturedBanner] {
-        try await fetchAllBannersForOwner()
-    }
-
     func fetchAllBannersForOwner() async throws -> [FeaturedBanner] {
         banners.sorted { lhs, rhs in
             if lhs.priority != rhs.priority {
@@ -40,9 +36,6 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         try validationService.validate(banner)
         guard let index = banners.firstIndex(where: { $0.id == banner.id }) else {
             throw AppError.notFound
-        }
-        guard !banners[index].hasUnsupportedLegacyConfiguration else {
-            throw AppError.validationFailed
         }
         banners[index] = banner
     }
@@ -78,20 +71,14 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             createdAt: existingBanner.createdAt,
             updatedAt: Date(),
             createdBy: existingBanner.createdBy,
-            updatedBy: userID
+            updatedBy: userID,
+            requiresDataRepair: existingBanner.requiresDataRepair
         )
-    }
-
-    func archiveBanner(id: String, updatedBy userID: String) async throws {
-        try await setBannerActive(id: id, isActive: false, updatedBy: userID)
     }
 
     func deleteBanner(id: String) async throws {
         guard let index = banners.firstIndex(where: { $0.id == id }) else {
             throw AppError.notFound
-        }
-        guard !banners[index].hasUnsupportedLegacyConfiguration else {
-            throw AppError.validationFailed
         }
         banners.remove(at: index)
     }
