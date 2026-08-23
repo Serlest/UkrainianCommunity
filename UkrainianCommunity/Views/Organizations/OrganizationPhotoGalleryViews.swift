@@ -418,6 +418,11 @@ private struct OrganizationPhotoTile: View {
             .buttonStyle(.plain)
             .disabled(isDeleting)
             .padding(6)
+            .frame(
+                width: AppTheme.minimumInteractiveTarget,
+                height: AppTheme.minimumInteractiveTarget
+            )
+            .contentShape(Rectangle())
             .accessibilityLabel(AppStrings.Organizations.photosDelete)
         }
     }

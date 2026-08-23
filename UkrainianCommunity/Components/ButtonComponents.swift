@@ -149,6 +149,8 @@ struct LikeButton: View {
                 )
         }
         .buttonStyle(.plain)
+        .frame(minHeight: AppTheme.minimumInteractiveTarget)
+        .contentShape(Rectangle())
     }
 }
 

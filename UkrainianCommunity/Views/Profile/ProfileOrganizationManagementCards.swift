@@ -185,6 +185,8 @@ struct OrganizationRequestCard: View {
                             .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                    .contentShape(Rectangle())
                 } else {
                     Button(action: previewAction) {
                         Label(AppStrings.Profile.previewOrganizationRequest, systemImage: "doc.text.magnifyingglass")
@@ -195,6 +197,8 @@ struct OrganizationRequestCard: View {
                             .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                    .contentShape(Rectangle())
                 }
             }
         }
@@ -389,6 +393,8 @@ struct ManagedOrganizationCard: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(AppTheme.accentPrimary.opacity(0.18))
             )
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .contentShape(Rectangle())
     }
 
     @MainActor private var regionText: String {

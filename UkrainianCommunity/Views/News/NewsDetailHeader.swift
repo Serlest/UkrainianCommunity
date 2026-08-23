@@ -296,6 +296,8 @@ extension NewsDetailView {
                     )
             }
             .buttonStyle(.plain)
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .contentShape(Rectangle())
             .accessibilityLabel(title)
         }
 
