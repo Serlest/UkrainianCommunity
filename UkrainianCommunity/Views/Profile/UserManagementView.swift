@@ -1078,10 +1078,10 @@ private struct UserDetailView: View {
 
                 Divider()
 
-                UserManagementMetadataRow(systemImage: "number", title: "UID", value: user.id)
+                UserManagementMetadataRow(systemImage: "number", title: AppStrings.UserManagement.uid, value: user.id)
                 UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: user.telegramUsername ?? AppStrings.Common.notAvailable)
                 UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
-                UserManagementMetadataRow(systemImage: "calendar", title: "Joined", value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
+                UserManagementMetadataRow(systemImage: "calendar", title: AppStrings.UserManagement.joined, value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
                 if let banExpiresAt = user.banExpiresAt {
                     UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.blockedUntil, value: LocalizationStore.dateString(from: banExpiresAt, dateStyle: .medium, timeStyle: .short))
                 }

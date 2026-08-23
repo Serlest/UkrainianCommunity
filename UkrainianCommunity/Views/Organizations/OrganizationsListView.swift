@@ -247,7 +247,7 @@ struct OrganizationsListView: View {
             }
 
             ForEach(AustrianFederalState.organizationFilterOrder, id: \.self) { federalState in
-                Button(federalState.organizationFilterDisplayName) {
+                Button(federalState.displayName) {
                     selectRegion(federalState)
                 }
             }
@@ -667,7 +667,7 @@ private struct OrganizationFiltersSection: View {
 
             Button(action: onSelectRegion) {
                 AppFilterChip(
-                    title: selectedFederalState?.organizationFilterDisplayName ?? AppStrings.Home.regionAllAustria,
+                    title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
                     systemImage: "mappin.and.ellipse",
                     isSelected: selectedFederalState != nil,
                     trailingSystemImage: "chevron.down"
@@ -711,28 +711,6 @@ private extension AustrianFederalState {
         ]
     }
 
-    var organizationFilterDisplayName: String {
-        switch self {
-        case .tirol:
-            "Tirol"
-        case .wien:
-            "Wien"
-        case .niederoesterreich:
-            "Niederösterreich"
-        case .oberoesterreich:
-            "Oberösterreich"
-        case .salzburg:
-            "Salzburg"
-        case .steiermark:
-            "Steiermark"
-        case .kaernten:
-            "Kärnten"
-        case .vorarlberg:
-            "Vorarlberg"
-        case .burgenland:
-            "Burgenland"
-        }
-    }
 }
 
 private struct OrganizationDeleteSwipeActions: ViewModifier {

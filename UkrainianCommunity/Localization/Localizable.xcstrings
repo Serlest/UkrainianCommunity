@@ -3529,6 +3529,40 @@
         }
       }
     },
+    "events.detail.cancelled_notice.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Veranstaltung findet nicht mehr statt."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ця подія більше не відбудеться."
+          }
+        }
+      }
+    },
+    "events.detail.cancelled_notice.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltung abgesagt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подію скасовано"
+          }
+        }
+      }
+    },
     "events.detail.details" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11014,6 +11048,23 @@
         }
       }
     },
+    "mock.org.1.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Community-Unterstützung, Sprachaustausch und kulturelle Veranstaltungen. Aufbau eines stabilen Unterstützungsnetzwerks für Ukrainerinnen und Ukrainer in Tirol durch Information, kulturelle Kontinuität und lokale Partnerschaften."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтримка громади, мовний обмін і культурні події. Розбудова стабільної мережі підтримки українців у Тіролі через інформування, збереження культурної тяглості та місцеві партнерства."
+          }
+        }
+      }
+    },
     "mock.org.1.name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11027,6 +11078,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Український дім Тіроль"
+          }
+        }
+      }
+    },
+    "mock.org.2.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koordination freiwilliger Hilfe bei Transport, Übersetzung und im Alltag. Schnelle und unkomplizierte Vernetzung von Freiwilligen und Familien für praktische Unterstützung in ganz Tirol."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Координація волонтерської допомоги з транспортом, перекладом і повсякденними справами. Швидке та зручне поєднання волонтерів із родинами для практичної підтримки по всьому Тіролю."
           }
         }
       }
@@ -14440,7 +14508,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Die Veranstaltung beginnt bald."
           }
         },
@@ -14452,7 +14520,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Подія скоро почнеться"
           }
         }
@@ -17966,6 +18034,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Організації"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.cancelled_event_registrations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stornierte Veranstaltungsanmeldungen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасовані реєстрації на події"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktionsdaten erscheinen, sobald Nutzer Inhalte liken, speichern, sich anmelden oder Organisationen folgen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дані про дії з’являться, коли користувачі вподобають або збережуть контент, зареєструються на події чи підпишуться на організації."
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.event_registrations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltungsanmeldungen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реєстрації на події"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.organization_follows" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Organisationsabonnements"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підписки на організації"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.organization_unfollows" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beendete Organisationsabonnements"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відписки від організацій"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Likes, gespeicherte Inhalte, Anmeldungen, Abonnements, Stornierungen und Abmeldungen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вподобання, збереження, реєстрації, підписки, скасування та відписки"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interaktionen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Взаємодії"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.total_bookmarks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gespeichert"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збереження"
+          }
+        }
+      }
+    },
+    "owner_analytics.actions.total_likes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Likes"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вподобання"
           }
         }
       }
@@ -22604,7 +22825,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Veranstaltungserinnerungen"
           }
         },
@@ -22616,7 +22837,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Нагадування про події"
           }
         }
@@ -22627,8 +22848,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Erinnerungen vor registrierten Veranstaltungen senden."
+            "state" : "translated",
+            "value" : "Erinnerungen vor Veranstaltungen senden, für die Sie angemeldet sind."
           }
         },
         "en" : {
@@ -22639,7 +22860,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Надсилати нагадування перед зареєстрованими подіями."
           }
         }
@@ -22701,7 +22922,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Benachrichtigungseinstellungen konnten nicht geladen werden."
           }
         },
@@ -22713,7 +22934,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Не вдалося завантажити налаштування сповіщень."
           }
         }
@@ -22758,8 +22979,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Die Benachrichtigungsberechtigung wurde nicht erteilt. Aktiviere sie in den iOS-Einstellungen."
+            "state" : "translated",
+            "value" : "Die Benachrichtigungsberechtigung wurde nicht erteilt. Aktivieren Sie sie in den iOS-Einstellungen."
           }
         },
         "en" : {
@@ -22770,7 +22991,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Дозвіл на сповіщення не надано. Увімкніть його в налаштуваннях iOS."
           }
         }
@@ -22781,8 +23002,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Erinnerungszeit"
+            "state" : "translated",
+            "value" : "Zeitpunkt der Erinnerung"
           }
         },
         "en" : {
@@ -22793,7 +23014,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Час нагадування"
           }
         }
@@ -22804,8 +23025,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Wann vor Beginn der Veranstaltung erinnert werden soll."
+            "state" : "translated",
+            "value" : "Legt fest, wie lange vor Beginn der Veranstaltung erinnert wird."
           }
         },
         "en" : {
@@ -22816,7 +23037,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Коли нагадувати перед початком події."
           }
         }
@@ -22827,8 +23048,8 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%lld Tag(e)"
+            "state" : "translated",
+            "value" : "%lld Tage"
           }
         },
         "en" : {
@@ -22839,7 +23060,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%lld дн."
           }
         }
@@ -22850,7 +23071,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%lld Min."
           }
         },
@@ -22862,7 +23083,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%lld хв"
           }
         }
@@ -22873,7 +23094,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Benachrichtigungseinstellungen konnten nicht gespeichert werden."
           }
         },
@@ -22885,7 +23106,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Не вдалося зберегти налаштування сповіщень."
           }
         }
@@ -22896,7 +23117,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Benachrichtigungseinstellungen gespeichert."
           }
         },
@@ -22908,7 +23129,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Налаштування сповіщень збережено."
           }
         }
@@ -23005,7 +23226,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Testbenachrichtigung"
           }
         },
@@ -23017,7 +23238,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Тестове сповіщення"
           }
         }
@@ -23028,7 +23249,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Die Testbenachrichtigung konnte nicht gesendet werden."
           }
         },
@@ -23040,7 +23261,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Не вдалося надіслати тестове сповіщення."
           }
         }
@@ -23051,7 +23272,7 @@
       "localizations" : {
         "de" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Die Testbenachrichtigung wird in wenigen Sekunden angezeigt."
           }
         },
@@ -23063,7 +23284,7 @@
         },
         "uk" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Тестове сповіщення буде показано за кілька секунд."
           }
         }
@@ -33890,6 +34111,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Legacy-користувач не має глобальної ролі"
+          }
+        }
+      }
+    },
+    "user_management.joined" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registriert seit"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата реєстрації"
           }
         }
       }

@@ -454,32 +454,6 @@ extension View {
     }
 }
 
-extension AustrianFederalState {
-    var displayName: String {
-        switch self {
-        case .burgenland:
-            "Burgenland"
-        case .kaernten:
-            "Kärnten"
-        case .niederoesterreich:
-            "Niederösterreich"
-        case .oberoesterreich:
-            "Oberösterreich"
-        case .salzburg:
-            "Salzburg"
-        case .steiermark:
-            "Steiermark"
-        case .tirol:
-            "Tirol"
-        case .vorarlberg:
-            "Vorarlberg"
-        case .wien:
-            "Wien"
-        }
-    }
-}
-
-
 #Preview {
     NavigationStack {
         EventEditorView(

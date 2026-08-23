@@ -86,7 +86,7 @@ extension NewsEditorView {
 
                     Menu {
                         ForEach(AustrianFederalState.allCases) { federalState in
-                        Button(federalState.newsEditorDisplayName) {
+                            Button(federalState.displayName) {
                                 viewModel.selectedFederalState = federalState
                             }
                         }
@@ -95,7 +95,7 @@ extension NewsEditorView {
                             detailRow(
                                 systemImage: "map",
                                 title: AppStrings.NewsEditor.regionSectionTitle,
-                            value: viewModel.selectedFederalState.newsEditorDisplayName,
+                                value: viewModel.selectedFederalState.displayName,
                                 showsChevron: true
                             )
                         }

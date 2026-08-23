@@ -22,6 +22,10 @@ enum AustrianFederalState: String, CaseIterable, Codable, Identifiable {
     case wien
 
     var id: String { rawValue }
+
+    var displayName: String {
+        AppStrings.FederalStates.title(for: self)
+    }
 }
 
 enum RegionScope: String, CaseIterable, Codable, Identifiable {

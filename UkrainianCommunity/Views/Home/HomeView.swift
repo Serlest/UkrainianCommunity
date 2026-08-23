@@ -121,7 +121,7 @@ struct HomeView: View {
             }
 
             ForEach(AustrianFederalState.allCases) { federalState in
-                Button(federalState.homeDisplayName) {
+                Button(federalState.displayName) {
                     selectRegion(federalState)
                 }
             }
@@ -735,7 +735,7 @@ private struct HomeFilterRow: View {
 
             Button(action: onSelectRegion) {
                 AppFilterChip(
-                    title: selectedFederalState?.homeDisplayName ?? AppStrings.Home.regionAllAustria,
+                    title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
                     systemImage: "mappin.and.ellipse",
                     isSelected: selectedFederalState != nil,
                     trailingSystemImage: "chevron.down"
@@ -1154,31 +1154,6 @@ private struct HomeEventDateBadge: View {
         )
     }
     .environmentObject(AuthState())
-}
-
-private extension AustrianFederalState {
-    var homeDisplayName: String {
-        switch self {
-        case .burgenland:
-            "Burgenland"
-        case .kaernten:
-            "Kärnten"
-        case .niederoesterreich:
-            "Niederösterreich"
-        case .oberoesterreich:
-            "Oberösterreich"
-        case .salzburg:
-            "Salzburg"
-        case .steiermark:
-            "Steiermark"
-        case .tirol:
-            "Tirol"
-        case .vorarlberg:
-            "Vorarlberg"
-        case .wien:
-            "Wien"
-        }
-    }
 }
 
 private extension HomeFeedItemType {

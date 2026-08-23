@@ -365,7 +365,7 @@ struct EventsListView: View {
             }
 
             ForEach(AustrianFederalState.allCases) { federalState in
-                Button(federalState.eventFilterDisplayName) {
+                Button(federalState.displayName) {
                     selectRegion(federalState)
                 }
             }
@@ -697,7 +697,7 @@ private struct EventFilterRow: View {
 
             Button(action: onSelectRegion) {
                 AppFilterChip(
-                    title: selectedFederalState?.eventFilterDisplayName ?? AppStrings.Home.regionAllAustria,
+                    title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
                     systemImage: "mappin.and.ellipse",
                     isSelected: selectedFederalState != nil,
                     trailingSystemImage: "chevron.down"
@@ -722,31 +722,6 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-        }
-    }
-}
-
-private extension AustrianFederalState {
-    var eventFilterDisplayName: String {
-        switch self {
-        case .burgenland:
-            "Burgenland"
-        case .kaernten:
-            "Kärnten"
-        case .niederoesterreich:
-            "Niederösterreich"
-        case .oberoesterreich:
-            "Oberösterreich"
-        case .salzburg:
-            "Salzburg"
-        case .steiermark:
-            "Steiermark"
-        case .tirol:
-            "Tirol"
-        case .vorarlberg:
-            "Vorarlberg"
-        case .wien:
-            "Wien"
         }
     }
 }

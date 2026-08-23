@@ -1709,6 +1709,7 @@ enum AppStrings {
             LocalizationStore.localizedFormat("user_management.organization_roles.additional_count", defaultValue: "%lld орг.", arguments: [count])
         }
         static var uid: String { text("user_management.uid", "UID") }
+        static var joined: String { text("user_management.joined", "Дата реєстрації") }
         static var legacyRole: String { text("user_management.legacy_role", "Legacy Role") }
         static var globalRole: String { text("user_management.global_role", "Global Role") }
         static var accountStatus: String { text("user_management.account_status", "Account Status") }
