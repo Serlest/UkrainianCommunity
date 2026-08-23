@@ -29,6 +29,21 @@ enum AppTheme {
     // Red is reserved for destructive actions and like-state emphasis.
     static let accentDestructive = Color(red: 0.72, green: 0.14, blue: 0.18)
 
+    // Foreground red stays distinct from destructive fills so warnings,
+    // symbols, and text remain legible in dark and increased-contrast modes.
+    static let accentDestructiveForeground = Color(uiColor: UIColor { traits in
+        switch (traits.userInterfaceStyle, traits.accessibilityContrast) {
+        case (.dark, .high):
+            UIColor(red: 1.00, green: 0.70, blue: 0.72, alpha: 1.00)
+        case (.dark, _):
+            UIColor(red: 1.00, green: 0.54, blue: 0.57, alpha: 1.00)
+        case (_, .high):
+            UIColor(red: 0.51, green: 0.07, blue: 0.10, alpha: 1.00)
+        default:
+            UIColor(red: 0.72, green: 0.14, blue: 0.18, alpha: 1.00)
+        }
+    })
+
     // Apple-style calm page and surface tokens.
     static let pageBackground = Color(uiColor: .systemGroupedBackground)
     static let surfacePrimary = Color(uiColor: .secondarySystemGroupedBackground)

@@ -45,7 +45,7 @@ struct AppGlassIconButton: View {
         Button(role: role, action: action) {
             Image(systemName: systemImage)
                 .font(AppTheme.glassIconButtonIconFont)
-                .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimaryForeground)
+                .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
                 .background(
                     reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
@@ -140,7 +140,7 @@ struct LikeButton: View {
         Button(action: action) {
             Label("\(count)", systemImage: isLiked ? "heart.fill" : "heart")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isLiked ? AppTheme.accentDestructive : AppTheme.accentPrimaryForeground)
+                .foregroundStyle(isLiked ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(

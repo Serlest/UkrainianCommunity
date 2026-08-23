@@ -166,7 +166,7 @@ enum InlineMessageStyle {
         case .success:
             return .green
         case .error:
-            return AppTheme.accentDestructive
+            return AppTheme.accentDestructiveForeground
         }
     }
 

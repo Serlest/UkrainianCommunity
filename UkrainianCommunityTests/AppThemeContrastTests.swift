@@ -6,6 +6,15 @@ import UIKit
 struct AppThemeContrastTests {
     @Test
     func primaryForegroundMeetsAAInSupportedAppearances() {
+        assertMeetsAA(AppTheme.accentPrimaryForeground)
+    }
+
+    @Test
+    func destructiveForegroundMeetsAAInSupportedAppearances() {
+        assertMeetsAA(AppTheme.accentDestructiveForeground)
+    }
+
+    private func assertMeetsAA(_ color: Color) {
         let appearances: [(UIUserInterfaceStyle, UIAccessibilityContrast)] = [
             (.light, .normal),
             (.light, .high),
@@ -19,7 +28,7 @@ struct AppThemeContrastTests {
 
             styleTraits.performAsCurrent {
                 contrastTraits.performAsCurrent {
-                    let foreground = UIColor(AppTheme.accentPrimaryForeground)
+                    let foreground = UIColor(color)
                         .resolvedColor(with: .current)
                     let backgrounds = [
                         UIColor.systemGroupedBackground,

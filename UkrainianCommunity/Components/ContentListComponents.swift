@@ -83,7 +83,7 @@ struct AppEventDateBlock: View {
 
                 Text(monthText.uppercased())
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(AppTheme.accentDestructive)
+                    .foregroundStyle(AppTheme.accentDestructiveForeground)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
