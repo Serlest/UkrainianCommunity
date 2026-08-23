@@ -21,6 +21,7 @@
     "test:rules:cancelledEvents": "firebase emulators:exec --only firestore \"node --test smoke-tests/cancelledEventRules.test.mjs\"",
     "test:rules:emailVerification": "firebase emulators:exec --only firestore \"node --test smoke-tests/emailVerificationRules.test.mjs\"",
     "test:rules:organizationSubscriptions": "firebase emulators:exec --only firestore \"node --test smoke-tests/organizationSubscriptionRules.test.mjs\"",
+    "test:rules:userBlocking": "firebase emulators:exec --project demo-ukrainian-community-user-blocking --only firestore \"node --test smoke-tests/userBlockingRules.test.mjs\"",
     "test:rules:roleContract": "firebase emulators:exec --only firestore \"node --test smoke-tests/roleContractSmoke.test.mjs\""
   },
   "dependencies": {

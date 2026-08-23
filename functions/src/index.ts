@@ -23,6 +23,7 @@ export * from "./organizations/approvalWorkflow";
 export * from "./organizations/roleManagement";
 export * from "./retention/dataRetention";
 export * from "./safety/contentReports";
+export * from "./safety/userBlocks";
 export * from "./users/accountStatusManagement";
 export * from "./users/accountDeletion";
 export * from "./users/platformRoleManagement";

@@ -1814,6 +1814,11 @@ service cloud.firestore {
         allow delete: if isSelf(uid);
       }
 
+      match /blockedUsers/{targetUserId} {
+        allow read: if isSelf(uid);
+        allow create, update, delete: if false;
+      }
+
       match /newsBookmarks/{newsId} {
         allow read: if isSelf(uid);
 
