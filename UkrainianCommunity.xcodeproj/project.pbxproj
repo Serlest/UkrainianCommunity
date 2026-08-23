@@ -253,6 +253,8 @@
 			knownRegions = (
 				en,
 				Base,
+				uk,
+				de,
 			);
 			mainGroup = F34749032FA0CF7400ED704A;
 			minimizedProjectReferenceProxies = 1;
@@ -674,11 +676,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A1C5A0023000000100A1C501 /* FirebaseAppCheck */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAppCheck;
-		};
 		7A0F10102FB1000100F1A001 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -698,6 +695,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		A1C5A0023000000100A1C501 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A0F10202FB1000100F1A001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
 		};
 		F303363E2FD6FAF60004B065 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
