@@ -25,6 +25,7 @@ struct ContentView: View {
     @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @StateObject private var contentReportCoordinator: ContentReportCoordinator
+    @StateObject private var userBlockingCoordinator: UserBlockingCoordinator
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
     @State private var isShowingNotificationInbox = false
@@ -85,6 +86,9 @@ struct ContentView: View {
         _contentReportCoordinator = StateObject(wrappedValue: ContentReportCoordinator(
             repository: container.contentSafetyRepository
         ))
+        _userBlockingCoordinator = StateObject(wrappedValue: UserBlockingCoordinator(
+            repository: container.userBlockingRepository
+        ))
         RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
     }
 
@@ -105,12 +109,16 @@ struct ContentView: View {
         .environment(\.contentReportPresentation, ContentReportPresentationConfiguration(
             present: contentReportCoordinator.present
         ))
+        .environment(\.userBlockingPresentation, UserBlockingPresentationConfiguration(
+            present: userBlockingCoordinator.present
+        ))
         .task(id: authSessionKey) {
             await SessionDataCache.shared.resetForAuthChange(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
             accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
             await configureRemoteNotifications(for: notificationInboxUserID)
+            await userBlockingCoordinator.configure(userID: notificationInboxUserID)
             handlePendingRemoteNotificationRouteIfReady()
         }
         .task(id: legalComplianceKey) {
@@ -121,6 +129,13 @@ struct ContentView: View {
         }
         .onChange(of: notificationInboxViewModel.snapshotVersion) { _, _ in
             bridgeNotificationInboxSnapshotToPopupCoordinator()
+        }
+        .onChange(of: userBlockingCoordinator.blockedUserIDs) { oldIDs, newIDs in
+            applyContentVisibility(blockedUserIDs: newIDs)
+            guard !newIDs.isSuperset(of: oldIDs) else { return }
+            Task {
+                await refreshPublicContentAfterUnblock()
+            }
         }
         .onChange(of: remoteNotificationRouteCoordinator.pendingRoute) { _, _ in
             handlePendingRemoteNotificationRouteIfReady()
@@ -152,6 +167,38 @@ struct ContentView: View {
         .sheet(item: $contentReportCoordinator.target) { target in
             ContentReportSheet(target: target, coordinator: contentReportCoordinator)
                 .presentationDetents([.large])
+        }
+        .confirmationDialog(
+            AppStrings.Safety.blockConfirmationTitle,
+            isPresented: Binding(
+                get: { userBlockingCoordinator.pendingTarget != nil },
+                set: { if !$0 { userBlockingCoordinator.pendingTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Safety.blockAction, role: .destructive) {
+                Task { await userBlockingCoordinator.confirmPendingBlock() }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {
+                userBlockingCoordinator.pendingTarget = nil
+            }
+        } message: {
+            Text(AppStrings.Safety.blockConfirmationMessage(
+                userBlockingCoordinator.pendingTarget?.contextTitle ?? ""
+            ))
+        }
+        .alert(
+            AppStrings.Safety.blockErrorTitle,
+            isPresented: Binding(
+                get: { userBlockingCoordinator.errorMessage != nil },
+                set: { if !$0 { userBlockingCoordinator.errorMessage = nil } }
+            )
+        ) {
+            Button(AppStrings.Common.ok, role: .cancel) {
+                userBlockingCoordinator.errorMessage = nil
+            }
+        } message: {
+            Text(userBlockingCoordinator.errorMessage ?? AppStrings.Safety.blockErrorUnknown)
         }
         .fullScreenCover(isPresented: $isShowingNotificationInbox) {
             NotificationInboxView(
@@ -390,6 +437,7 @@ struct ContentView: View {
                 ownerAnalyticsRepository: container.ownerAnalyticsRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 notificationInboxViewModel: notificationInboxViewModel,
+                userBlockingCoordinator: userBlockingCoordinator,
                 localEventReminderService: container.localEventReminderService,
                 onNotificationTap: handleNotificationTap,
                 onBrowseDestinationSelected: handleProfileBrowseDestination,
@@ -404,6 +452,20 @@ struct ContentView: View {
                 .accessibilityIdentifier("tab.profile")
         }
         .tag(AppTab.profile)
+    }
+
+    private func applyContentVisibility(blockedUserIDs: Set<String>) {
+        let policy = ContentVisibilityPolicy(blockedUserIDs: blockedUserIDs)
+        newsViewModel.applyContentVisibility(policy)
+        eventsViewModel.applyContentVisibility(policy)
+        organizationsViewModel.applyContentVisibility(policy)
+    }
+
+    private func refreshPublicContentAfterUnblock() async {
+        await newsViewModel.refresh()
+        await eventsViewModel.refresh()
+        await organizationsViewModel.refresh()
+        applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
     }
 
     private func handleAuthIdentityChange(for key: String) {

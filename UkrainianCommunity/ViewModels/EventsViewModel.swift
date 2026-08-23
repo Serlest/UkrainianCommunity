@@ -23,6 +23,7 @@ final class EventsViewModel: ObservableObject {
     private var lastLoadedAt: Date?
     private var nextPageCursor: EventPageCursor?
     private var trackedEventViewIDs = Set<String>()
+    private var visibilityPolicy = ContentVisibilityPolicy()
 
     init(
         repository: EventRepository,
@@ -91,6 +92,12 @@ final class EventsViewModel: ObservableObject {
 
     var bookmarkedEvents: [Event] {
         events.filter(\.isBookmarked)
+    }
+
+    func applyContentVisibility(_ policy: ContentVisibilityPolicy) {
+        visibilityPolicy = policy
+        events = policy.visibleEvents(events)
+        contentVersion &+= 1
     }
 
     func toggleLike(for eventID: String) {
@@ -273,7 +280,7 @@ final class EventsViewModel: ObservableObject {
 
         do {
             let comments = try await repository.fetchEventComments(eventID: eventID)
-            let visibleComments = comments.deduplicatedCommentsByID()
+            let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             events[index].comments = visibleComments
             events[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
             error = nil
@@ -295,7 +302,7 @@ final class EventsViewModel: ObservableObject {
 
         listenerBag.set(realtimeRepository.listenEventComments(eventID: eventID) { [weak self] comments in
             guard let self, let index = self.events.firstIndex(where: { $0.id == eventID }) else { return }
-            let visibleComments = comments.deduplicatedCommentsByID()
+            let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             self.events[index].comments = visibleComments
             self.events[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
             self.error = nil
@@ -386,10 +393,14 @@ final class EventsViewModel: ObservableObject {
     }
 
     func cacheEvent(_ event: Event) {
-        if let index = events.firstIndex(where: { $0.id == event.id }) {
-            events[index] = event
+        guard let visibleEvent = visibilityPolicy.visibleEvents([event]).first else {
+            events.removeAll { $0.id == event.id }
+            return
+        }
+        if let index = events.firstIndex(where: { $0.id == visibleEvent.id }) {
+            events[index] = visibleEvent
         } else {
-            events.append(event)
+            events.append(visibleEvent)
         }
         contentVersion &+= 1
     }
@@ -470,7 +481,7 @@ final class EventsViewModel: ObservableObject {
         do {
             let page = try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nil)
             guard !Task.isCancelled else { return }
-            events = page.items
+            events = visibilityPolicy.visibleEvents(page.items)
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
             contentVersion &+= 1
@@ -513,6 +524,6 @@ final class EventsViewModel: ObservableObject {
 
     private func appendUniqueEvents(_ newEvents: [Event]) {
         let existingIDs = Set(events.map(\.id))
-        events.append(contentsOf: newEvents.filter { !existingIDs.contains($0.id) })
+        events.append(contentsOf: visibilityPolicy.visibleEvents(newEvents).filter { !existingIDs.contains($0.id) })
     }
 }

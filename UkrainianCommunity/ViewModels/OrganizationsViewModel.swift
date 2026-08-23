@@ -29,6 +29,7 @@ final class OrganizationsViewModel: ObservableObject {
     private var lastLoadedAt: Date?
     private var nextPageCursor: OrganizationPageCursor?
     private var trackedOrganizationViewIDs = Set<String>()
+    private var visibilityPolicy = ContentVisibilityPolicy()
 
     init(
         repository: OrganizationRepository,
@@ -219,6 +220,13 @@ final class OrganizationsViewModel: ObservableObject {
         return organizations.first(where: { $0.id == organizationID })
     }
 
+    func applyContentVisibility(_ policy: ContentVisibilityPolicy) {
+        visibilityPolicy = policy
+        organizations = policy.visibleOrganizations(organizations)
+        organizationCommentsByID = organizationCommentsByID.mapValues(policy.visibleComments)
+        contentVersion &+= 1
+    }
+
     func trackViewIfNeeded(for organization: Organization, sourceScreen: String = "organization_detail") {
         guard !trackedOrganizationViewIDs.contains(organization.id) else { return }
         trackedOrganizationViewIDs.insert(organization.id)
@@ -241,6 +249,9 @@ final class OrganizationsViewModel: ObservableObject {
 
         do {
             let organization = try await repository.fetchOrganization(id: trimmedID)
+            guard visibilityPolicy.visibleOrganizations([organization]).isEmpty == false else {
+                return nil
+            }
             organizations.upsertOrganizationByID(organization)
             contentVersion &+= 1
             error = nil
@@ -262,7 +273,10 @@ final class OrganizationsViewModel: ObservableObject {
         startListeningComments(for: organizationID)
         guard forceRefresh || !(repository is OrganizationRealtimeRepository) else { return }
         do {
-            organizationCommentsByID[organizationID] = try await repository.fetchOrganizationComments(organizationID: organizationID).deduplicatedCommentsByID()
+            let comments = try await repository.fetchOrganizationComments(organizationID: organizationID)
+            organizationCommentsByID[organizationID] = visibilityPolicy.visibleComments(
+                comments.deduplicatedCommentsByID()
+            )
             error = nil
         } catch let appError as AppError {
             error = appError
@@ -281,8 +295,11 @@ final class OrganizationsViewModel: ObservableObject {
               let realtimeRepository = repository as? OrganizationRealtimeRepository else { return }
 
         listenerBag.set(realtimeRepository.listenOrganizationComments(organizationID: organizationID) { [weak self] comments in
-            self?.organizationCommentsByID[organizationID] = comments.deduplicatedCommentsByID()
-            self?.error = nil
+            guard let self else { return }
+            self.organizationCommentsByID[organizationID] = self.visibilityPolicy.visibleComments(
+                comments.deduplicatedCommentsByID()
+            )
+            self.error = nil
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
             self?.error = appError
@@ -503,7 +520,7 @@ final class OrganizationsViewModel: ObservableObject {
         do {
             let page = try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nil)
             guard !Task.isCancelled else { return }
-            organizations = page.items
+            organizations = visibilityPolicy.visibleOrganizations(page.items)
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
             contentVersion &+= 1
@@ -546,7 +563,7 @@ final class OrganizationsViewModel: ObservableObject {
 
     private func appendUniqueOrganizations(_ newOrganizations: [Organization]) {
         let existingIDs = Set(organizations.map(\.id))
-        organizations.append(contentsOf: newOrganizations.filter { !existingIDs.contains($0.id) })
+        organizations.append(contentsOf: visibilityPolicy.visibleOrganizations(newOrganizations).filter { !existingIDs.contains($0.id) })
     }
 
     private func saveOrganization(_ organization: Organization, imageData: Data?, isEditing: Bool) async throws {

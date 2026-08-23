@@ -27,6 +27,7 @@ struct EventDetailView: View {
     @Environment(\.eventPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.contentReportPresentation) var contentReportPresentation
+    @Environment(\.userBlockingPresentation) var userBlockingPresentation
     @EnvironmentObject var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
     let eventID: String

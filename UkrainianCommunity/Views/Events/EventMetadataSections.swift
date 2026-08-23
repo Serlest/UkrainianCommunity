@@ -590,7 +590,7 @@ extension EventDetailView {
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
 
-                        if canEditComment(comment) || canDeleteComment(comment) || canReportComment(comment) {
+                        if canEditComment(comment) || canDeleteComment(comment) || canReportComment(comment) || canBlockComment(comment) {
                             eventCommentActionMenu(for: comment, parentTitle: parentTitle)
                         }
                     }
@@ -623,6 +623,11 @@ extension EventDetailView {
                         presentContentReport(target)
                     }
                 }
+                if canBlockComment(comment), let target = UserBlockTarget.comment(comment) {
+                    Button(AppStrings.Safety.blockAction, systemImage: "person.slash", role: .destructive) {
+                        userBlockingPresentation.present(target)
+                    }
+                }
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(AppTheme.sectionTitleFont)
@@ -638,6 +643,10 @@ extension EventDetailView {
 
         func canReportComment(_ comment: Comment) -> Bool {
             !authState.isAuthenticated || comment.authorId != authState.user?.id
+        }
+
+        func canBlockComment(_ comment: Comment) -> Bool {
+            authState.isAuthenticated && comment.authorId != nil && comment.authorId != authState.user?.id
         }
 
         @ViewBuilder

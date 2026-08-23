@@ -1496,6 +1496,29 @@ enum AppStrings {
     }
 
     enum Safety {
+        static var blockAction: String { text("safety.block.action", "Block user") }
+        static var unblockAction: String { text("safety.block.unblock", "Unblock") }
+        static var blockConfirmationTitle: String { text("safety.block.confirm.title", "Block this user?") }
+        static func blockConfirmationMessage(_ contextTitle: String) -> String {
+            LocalizationStore.localizedFormat(
+                "safety.block.confirm.message",
+                defaultValue: "Their content and comments will be hidden. You can unblock them later in Profile. Context: %@",
+                arguments: [contextTitle]
+            )
+        }
+        static var blockErrorTitle: String { text("safety.block.error.title", "Could not update block") }
+        static var blockErrorAuthentication: String { text("safety.block.error.authentication", "Sign in to manage blocked users.") }
+        static var blockErrorPermission: String { text("safety.block.error.permission", "Your account cannot manage blocked users right now.") }
+        static var blockErrorOwnAccount: String { text("safety.block.error.own_account", "You cannot block your own account.") }
+        static var blockErrorUnavailable: String { text("safety.block.error.unavailable", "This user is no longer available.") }
+        static var blockErrorNetwork: String { text("safety.block.error.network", "The change could not be saved. Check your connection and try again.") }
+        static var blockErrorUnknown: String { text("safety.block.error.unknown", "The change could not be saved right now. Try again later.") }
+        static var blockedUsersTitle: String { text("safety.blocked_users.title", "Blocked users") }
+        static var blockedUsersSubtitle: String { text("safety.blocked_users.subtitle", "Manage people whose content you have hidden.") }
+        static var blockedUsersIntro: String { text("safety.blocked_users.intro", "Blocked users cannot appear in your feeds or comments. Unblocking restores their public content.") }
+        static var blockedUsersEmptyTitle: String { text("safety.blocked_users.empty.title", "No blocked users") }
+        static var blockedUsersEmptyMessage: String { text("safety.blocked_users.empty.message", "People you block will appear here.") }
+        static var blockedUsersLoadFailedTitle: String { text("safety.blocked_users.load_failed.title", "Could not load blocked users") }
         static var reportAction: String { text("safety.report.action", "Report") }
         static var moreActions: String { text("safety.actions.more", "More actions") }
         static var reportTitle: String { text("safety.report.title", "Report content") }

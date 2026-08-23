@@ -34,6 +34,17 @@ extension EventDetailView {
                         presentContentReport(.event(event))
                     }
                 }
+
+                if authState.isAuthenticated,
+                   let target = UserBlockTarget.event(event),
+                   target.userId != authState.user?.id {
+                    DetailHeaderActionButton(
+                        systemImage: "person.crop.circle.badge.xmark",
+                        accessibilityLabel: AppStrings.Safety.blockAction
+                    ) {
+                        userBlockingPresentation.present(target)
+                    }
+                }
             }
         }
 

@@ -37,4 +37,31 @@ struct UserBlockingContractTests {
         #expect(receipt.displayName == "Olena")
         #expect(receipt.isBlocked == false)
     }
+
+    @Test @MainActor func visibilityPolicyRejectsBlockedAuthorsAndKeepsLegacyContent() {
+        let policy = ContentVisibilityPolicy(blockedUserIDs: ["user-2"])
+
+        #expect(policy.allows(authorID: "user-1"))
+        #expect(!policy.allows(authorID: "user-2"))
+        #expect(policy.allows(authorID: nil))
+    }
+
+    @Test @MainActor func commentCreatesBlockTargetOnlyWhenAuthorIdentityExists() {
+        let identified = Comment(
+            id: "comment-1",
+            authorId: "user-2",
+            authorName: "Olena",
+            text: "Comment",
+            createdAt: .now
+        )
+        let legacy = Comment(
+            id: "comment-2",
+            authorName: "Legacy",
+            text: "Comment",
+            createdAt: .now
+        )
+
+        #expect(UserBlockTarget.comment(identified)?.userId == "user-2")
+        #expect(UserBlockTarget.comment(legacy) == nil)
+    }
 }

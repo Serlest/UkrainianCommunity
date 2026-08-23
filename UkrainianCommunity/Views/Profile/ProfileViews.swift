@@ -10,6 +10,7 @@ enum ProfileNavigationRoute: Hashable {
     case followedOrganizations
     case recentViews
     case activityHistory
+    case blockedUsers
     case moderationTools
     case userManagement
     case featuredBannerManagement
@@ -41,6 +42,7 @@ struct ProfileView: View {
     private let ownerAnalyticsRepository: OwnerAnalyticsRepository
     private let donationConfigRepository: DonationConfigRepository
     private let notificationInboxRepository: NotificationInboxRepository
+    @ObservedObject private var userBlockingCoordinator: UserBlockingCoordinator
     private let onNotificationTap: (AppNotification) -> Void
     private let onBrowseDestinationSelected: (ProfileBrowseDestination) -> Void
     @EnvironmentObject var authState: AuthState
@@ -99,6 +101,7 @@ struct ProfileView: View {
         donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         notificationInboxViewModel: NotificationInboxViewModel? = nil,
+        userBlockingCoordinator: UserBlockingCoordinator,
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
         onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
         onBrowseDestinationSelected: @escaping (ProfileBrowseDestination) -> Void = { _ in },
@@ -125,6 +128,7 @@ struct ProfileView: View {
         self.notificationInboxViewModel = notificationInboxViewModel ?? NotificationInboxViewModel(
             repository: notificationInboxRepository
         )
+        self.userBlockingCoordinator = userBlockingCoordinator
         self.onNotificationTap = onNotificationTap
         self.onBrowseDestinationSelected = onBrowseDestinationSelected
         self.scrollResetToken = scrollResetToken
@@ -605,6 +609,8 @@ struct ProfileView: View {
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel
             )
+        case .blockedUsers:
+            BlockedUsersView(coordinator: userBlockingCoordinator)
         case .moderationTools:
             ModerationToolsView(
                 organizationRepository: organizationRepository,
@@ -1323,6 +1329,17 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
 
+                NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
+                    ProfileModuleRow(
+                        title: AppStrings.Safety.blockedUsersTitle,
+                        subtitle: AppStrings.Safety.blockedUsersSubtitle,
+                        systemImage: "person.slash",
+                        status: .available,
+                        countBadge: userBlockingCoordinator.blockedUsers.count
+                    )
+                }
+                .buttonStyle(.plain)
+
                 NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
                     ProfileModuleRow(title: AppStrings.Settings.terms, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
                 }
@@ -1685,7 +1702,8 @@ private extension String {
             featuredBannerRepository: MockFeaturedBannerRepository(),
             ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
             notificationInboxRepository: MockNotificationInboxRepository(),
-            notificationInboxViewModel: NotificationInboxViewModel(repository: MockNotificationInboxRepository())
+            notificationInboxViewModel: NotificationInboxViewModel(repository: MockNotificationInboxRepository()),
+            userBlockingCoordinator: UserBlockingCoordinator(repository: MockUserBlockingRepository())
         )
     }
     .environmentObject(AuthState())

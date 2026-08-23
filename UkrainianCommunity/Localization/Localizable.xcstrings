@@ -28455,6 +28455,125 @@
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Інші дії" } }
       }
     },
+    "safety.block.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benutzer blockieren" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заблокувати користувача" } }
+      }
+    },
+    "safety.block.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhalte und Kommentare dieser Person werden ausgeblendet. Du kannst die Blockierung später im Profil aufheben. Kontext: %@" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Контент і коментарі цієї людини буде приховано. Розблокувати її можна пізніше у профілі. Контекст: %@" } }
+      }
+    },
+    "safety.block.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Diesen Benutzer blockieren?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заблокувати цього користувача?" } }
+      }
+    },
+    "safety.block.error.authentication" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Melde dich an, um blockierte Benutzer zu verwalten." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Увійдіть, щоб керувати заблокованими користувачами." } }
+      }
+    },
+    "safety.block.error.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Änderung konnte nicht gespeichert werden. Prüfe deine Verbindung und versuche es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося зберегти зміну. Перевірте з’єднання та спробуйте ще раз." } }
+      }
+    },
+    "safety.block.error.own_account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Du kannst dein eigenes Konto nicht blockieren." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Ви не можете заблокувати власний обліковий запис." } }
+      }
+    },
+    "safety.block.error.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dein Konto kann blockierte Benutzer derzeit nicht verwalten." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Зараз ваш обліковий запис не може керувати заблокованими користувачами." } }
+      }
+    },
+    "safety.block.error.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Blockierung konnte nicht geändert werden" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося змінити блокування" } }
+      }
+    },
+    "safety.block.error.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieser Benutzer ist nicht mehr verfügbar." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Цей користувач більше недоступний." } }
+      }
+    },
+    "safety.block.error.unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Änderung kann derzeit nicht gespeichert werden. Versuche es später erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Зараз не вдалося зберегти зміну. Спробуйте пізніше." } }
+      }
+    },
+    "safety.block.unblock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Entsperren" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Розблокувати" } }
+      }
+    },
+    "safety.blocked_users.empty.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Personen, die du blockierst, erscheinen hier." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Тут з’являться люди, яких ви заблокуєте." } }
+      }
+    },
+    "safety.blocked_users.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine blockierten Benutzer" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Немає заблокованих користувачів" } }
+      }
+    },
+    "safety.blocked_users.intro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Blockierte Benutzer erscheinen nicht in deinen Feeds oder Kommentaren. Nach dem Entsperren werden ihre öffentlichen Inhalte wieder angezeigt." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заблоковані користувачі не відображаються у ваших стрічках і коментарях. Після розблокування їхній публічний контент знову з’явиться." } }
+      }
+    },
+    "safety.blocked_users.load_failed.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Blockierte Benutzer konnten nicht geladen werden" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося завантажити заблокованих користувачів" } }
+      }
+    },
+    "safety.blocked_users.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verwalte Personen, deren Inhalte du ausgeblendet hast." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Керуйте людьми, чий контент ви приховали." } }
+      }
+    },
+    "safety.blocked_users.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Blockierte Benutzer" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заблоковані користувачі" } }
+      }
+    },
     "safety.moderation.context" : {
       "extractionState" : "manual",
       "localizations" : {

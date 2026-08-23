@@ -17,10 +17,21 @@ extension OrganizationDetailView {
             onBookmark: {
                 toggleBookmark(for: organization)
             },
-            onReport: organization.ownerId != authState.user?.id || !authState.isAuthenticated
+            onReport: (organization.ownerId ?? organization.submittedByUserId) != authState.user?.id
+                || !authState.isAuthenticated
                 ? { presentContentReport(.organization(organization)) }
-                : nil
+                : nil,
+            onBlock: organizationBlockAction(for: organization)
         )
+    }
+
+    func organizationBlockAction(for organization: Organization) -> (() -> Void)? {
+        guard authState.isAuthenticated,
+              let target = UserBlockTarget.organization(organization),
+              target.userId != authState.user?.id else {
+            return nil
+        }
+        return { userBlockingPresentation.present(target) }
     }
 
     func presentContentReport(_ target: ContentReportTarget) {
@@ -221,6 +232,7 @@ private struct OrganizationDetailHeaderActions: View {
     let shareText: String
     let onBookmark: () -> Void
     let onReport: (() -> Void)?
+    let onBlock: (() -> Void)?
 
     var body: some View {
         Group {
@@ -248,6 +260,15 @@ private struct OrganizationDetailHeaderActions: View {
                     accessibilityLabel: AppStrings.Safety.reportAction
                 ) {
                     onReport()
+                }
+            }
+
+            if let onBlock {
+                DetailHeaderActionButton(
+                    systemImage: "person.crop.circle.badge.xmark",
+                    accessibilityLabel: AppStrings.Safety.blockAction
+                ) {
+                    onBlock()
                 }
             }
         }

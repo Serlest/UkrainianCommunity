@@ -96,7 +96,7 @@ extension OrganizationDetailView {
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
 
-                    if canEditComment(comment) || canDeleteComment(comment, organization: organization) || canReportComment(comment) {
+                    if canEditComment(comment) || canDeleteComment(comment, organization: organization) || canReportComment(comment) || canBlockComment(comment) {
                         commentActionMenu(for: comment, organization: organization)
                     }
                 }
@@ -131,6 +131,11 @@ extension OrganizationDetailView {
                     presentContentReport(target)
                 }
             }
+            if canBlockComment(comment), let target = UserBlockTarget.comment(comment) {
+                Button(AppStrings.Safety.blockAction, systemImage: "person.slash", role: .destructive) {
+                    userBlockingPresentation.present(target)
+                }
+            }
         } label: {
             Image(systemName: "ellipsis.circle.fill")
                 .font(AppTheme.sectionTitleFont)
@@ -146,6 +151,10 @@ extension OrganizationDetailView {
 
     func canReportComment(_ comment: Comment) -> Bool {
         !authState.isAuthenticated || comment.authorId != authState.user?.id
+    }
+
+    func canBlockComment(_ comment: Comment) -> Bool {
+        authState.isAuthenticated && comment.authorId != nil && comment.authorId != authState.user?.id
     }
 
     var trimmedCommentText: String {

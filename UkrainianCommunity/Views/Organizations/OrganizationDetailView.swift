@@ -283,6 +283,7 @@ struct OrganizationDetailView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.accessibilityReduceTransparency) var reduceTransparency
     @Environment(\.contentReportPresentation) var contentReportPresentation
+    @Environment(\.userBlockingPresentation) var userBlockingPresentation
     @EnvironmentObject var authState: AuthState
     @ObservedObject var viewModel: OrganizationsViewModel
     let organizationID: String

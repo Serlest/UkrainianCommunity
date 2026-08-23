@@ -33,6 +33,17 @@ extension NewsDetailView {
                         presentContentReport(.news(post))
                     }
                 }
+
+                if authState.isAuthenticated,
+                   let target = UserBlockTarget.news(post),
+                   target.userId != authState.user?.id {
+                    DetailHeaderActionButton(
+                        systemImage: "person.crop.circle.badge.xmark",
+                        accessibilityLabel: AppStrings.Safety.blockAction
+                    ) {
+                        userBlockingPresentation.present(target)
+                    }
+                }
             }
         }
 

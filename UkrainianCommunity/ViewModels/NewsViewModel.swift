@@ -22,6 +22,7 @@ final class NewsViewModel: ObservableObject {
     private var lastLoadedAt: Date?
     private var nextPageCursor: NewsPageCursor?
     private var trackedNewsViewIDs = Set<String>()
+    private var visibilityPolicy = ContentVisibilityPolicy()
 
     init(repository: NewsRepository, analyticsService: AnalyticsTracking = NoopAnalyticsService()) {
         self.repository = repository
@@ -84,6 +85,12 @@ final class NewsViewModel: ObservableObject {
 
     var bookmarkedPosts: [NewsPost] {
         posts.filter(\.isBookmarked)
+    }
+
+    func applyContentVisibility(_ policy: ContentVisibilityPolicy) {
+        visibilityPolicy = policy
+        posts = policy.visibleNews(posts)
+        contentVersion &+= 1
     }
 
     func toggleLike(for postID: String) {
@@ -196,7 +203,7 @@ final class NewsViewModel: ObservableObject {
 
         do {
             let comments = try await repository.fetchNewsComments(newsID: postID)
-            let visibleComments = comments.deduplicatedCommentsByID()
+            let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             posts[index].comments = visibleComments
             posts[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
             error = nil
@@ -218,7 +225,7 @@ final class NewsViewModel: ObservableObject {
 
         listenerBag.set(realtimeRepository.listenNewsComments(newsID: postID) { [weak self] comments in
             guard let self, let index = self.posts.firstIndex(where: { $0.id == postID }) else { return }
-            let visibleComments = comments.deduplicatedCommentsByID()
+            let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             self.posts[index].comments = visibleComments
             self.posts[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
             self.error = nil
@@ -370,7 +377,7 @@ final class NewsViewModel: ObservableObject {
         do {
             let page = try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nil)
             guard !Task.isCancelled else { return }
-            posts = page.items
+            posts = visibilityPolicy.visibleNews(page.items)
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
             contentVersion &+= 1
@@ -413,6 +420,6 @@ final class NewsViewModel: ObservableObject {
 
     private func appendUniquePosts(_ newPosts: [NewsPost]) {
         let existingIDs = Set(posts.map(\.id))
-        posts.append(contentsOf: newPosts.filter { !existingIDs.contains($0.id) })
+        posts.append(contentsOf: visibilityPolicy.visibleNews(newPosts).filter { !existingIDs.contains($0.id) })
     }
 }

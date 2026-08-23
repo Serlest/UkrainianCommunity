@@ -18,6 +18,81 @@ nonisolated struct UserBlockMutationReceipt: Equatable {
     let updatedAt: Date
 }
 
+struct UserBlockTarget: Identifiable, Equatable {
+    let userId: String
+    let contextTitle: String
+
+    var id: String { userId }
+
+    static func news(_ post: NewsPost) -> UserBlockTarget? {
+        make(userId: post.authorId, contextTitle: post.title)
+    }
+
+    static func event(_ event: Event) -> UserBlockTarget? {
+        make(userId: event.authorId, contextTitle: event.title)
+    }
+
+    static func organization(_ organization: Organization) -> UserBlockTarget? {
+        make(
+            userId: organization.ownerId ?? organization.submittedByUserId,
+            contextTitle: organization.name
+        )
+    }
+
+    static func comment(_ comment: Comment) -> UserBlockTarget? {
+        make(userId: comment.authorId, contextTitle: comment.authorName)
+    }
+
+    private static func make(userId: String?, contextTitle: String) -> UserBlockTarget? {
+        guard let userId = userId?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !userId.isEmpty else {
+            return nil
+        }
+        return UserBlockTarget(userId: userId, contextTitle: contextTitle)
+    }
+}
+
+struct ContentVisibilityPolicy: Equatable {
+    let blockedUserIDs: Set<String>
+
+    init(blockedUserIDs: Set<String> = []) {
+        self.blockedUserIDs = blockedUserIDs
+    }
+
+    func allows(authorID: String?) -> Bool {
+        guard let authorID else { return true }
+        return !blockedUserIDs.contains(authorID)
+    }
+
+    func visibleComments(_ comments: [Comment]) -> [Comment] {
+        comments.filter { allows(authorID: $0.authorId) }
+    }
+
+    func visibleNews(_ posts: [NewsPost]) -> [NewsPost] {
+        posts.compactMap { post in
+            guard allows(authorID: post.authorId) else { return nil }
+            var visiblePost = post
+            visiblePost.comments = visibleComments(post.comments)
+            return visiblePost
+        }
+    }
+
+    func visibleEvents(_ events: [Event]) -> [Event] {
+        events.compactMap { event in
+            guard allows(authorID: event.authorId) else { return nil }
+            var visibleEvent = event
+            visibleEvent.comments = visibleComments(event.comments)
+            return visibleEvent
+        }
+    }
+
+    func visibleOrganizations(_ organizations: [Organization]) -> [Organization] {
+        organizations.filter {
+            allows(authorID: $0.ownerId ?? $0.submittedByUserId)
+        }
+    }
+}
+
 nonisolated enum UserBlockingError: Error, Equatable {
     case authenticationRequired
     case permissionDenied
