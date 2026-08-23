@@ -115,8 +115,12 @@ extension OrganizationDetailView {
     }
 
     func switchToSection(_ section: OrganizationDetailSection) {
-        withAnimation(.snappy) {
+        if reduceMotion {
             selectedSection = section
+        } else {
+            withAnimation(.snappy) {
+                selectedSection = section
+            }
         }
     }
 

@@ -8,9 +8,7 @@ extension OrganizationDetailView {
         AppHorizontalFilterRow {
             ForEach(OrganizationDetailSection.allCases) { section in
                 Button {
-                    withAnimation(.snappy) {
-                        selectedSection = section
-                    }
+                    switchToSection(section)
                 } label: {
                     AppFilterChip(
                         title: section.title,

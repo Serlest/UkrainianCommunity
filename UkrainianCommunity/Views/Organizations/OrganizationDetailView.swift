@@ -281,6 +281,7 @@ struct OrganizationDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.organizationPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.accessibilityReduceTransparency) var reduceTransparency
     @Environment(\.contentReportPresentation) var contentReportPresentation
     @Environment(\.userBlockingPresentation) var userBlockingPresentation

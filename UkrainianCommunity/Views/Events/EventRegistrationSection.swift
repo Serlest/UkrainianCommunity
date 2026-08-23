@@ -229,12 +229,20 @@ extension EventDetailView {
         }
 
         func focusEventComments(using scrollProxy: ScrollViewProxy) {
-            withAnimation(.easeInOut(duration: 0.32)) {
+            let scrollAction = {
                 scrollProxy.scrollTo(commentsSectionID, anchor: .top)
             }
 
+            if reduceMotion {
+                scrollAction()
+            } else {
+                withAnimation(.easeInOut(duration: 0.32), scrollAction)
+            }
+
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 260_000_000)
+                if !reduceMotion {
+                    try? await Task.sleep(nanoseconds: 260_000_000)
+                }
                 isCommentFieldFocused = true
             }
         }

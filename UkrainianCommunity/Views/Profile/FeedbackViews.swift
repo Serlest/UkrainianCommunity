@@ -438,6 +438,7 @@ private struct FeedbackConversationSheet: View {
     let onStop: () -> Void
     let onClose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var replyText = ""
     @State private var validationMessage: String?
 
@@ -615,7 +616,7 @@ private struct FeedbackConversationSheet: View {
             proxy.scrollTo(lastMessageID, anchor: .bottom)
         }
 
-        if animated {
+        if animated && !reduceMotion {
             withAnimation(.easeOut(duration: 0.2), action)
         } else {
             action()

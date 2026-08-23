@@ -51,12 +51,16 @@ extension OrganizationDetailView {
                     .lineSpacing(AppTheme.detailBodyLineSpacing)
                     .lineLimit(isAboutExpanded || !isLongText ? nil : collapsedLineLimit)
                     .fixedSize(horizontal: false, vertical: true)
-                    .animation(.snappy, value: isAboutExpanded)
+                    .animation(reduceMotion ? nil : .snappy, value: isAboutExpanded)
 
                 if isLongText {
                     Button {
-                        withAnimation(.snappy) {
+                        if reduceMotion {
                             isAboutExpanded.toggle()
+                        } else {
+                            withAnimation(.snappy) {
+                                isAboutExpanded.toggle()
+                            }
                         }
                     } label: {
                         Label(

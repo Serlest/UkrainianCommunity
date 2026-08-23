@@ -26,6 +26,7 @@ struct EventDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.eventPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.contentReportPresentation) var contentReportPresentation
     @Environment(\.userBlockingPresentation) var userBlockingPresentation
     @EnvironmentObject var authState: AuthState

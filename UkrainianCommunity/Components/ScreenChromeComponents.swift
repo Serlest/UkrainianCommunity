@@ -816,6 +816,7 @@ struct AppSearchableBrandHeader: View {
     @Binding var searchText: String
     let placeholder: String
     let collapseToken: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isSearchFocused: Bool
 
     init(
@@ -843,10 +844,10 @@ struct AppSearchableBrandHeader: View {
 
             if isSearchPresented {
                 searchField
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(reduceMotion ? .identity : .move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.22), value: isSearchPresented)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: isSearchPresented)
         .onChange(of: isSearchPresented) { _, isPresented in
             isSearchFocused = isPresented
         }
