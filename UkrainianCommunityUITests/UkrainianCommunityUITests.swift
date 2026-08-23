@@ -66,11 +66,14 @@ final class UkrainianCommunityUITests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let tabBar = app.tabBars.firstMatch
-        let tabButton = tabBar.buttons[tabLabel]
-        XCTAssertTrue(tabButton.waitForExistence(timeout: 10), file: file, line: line)
-        tabButton.tap()
-        XCTAssertTrue(app.otherElements[screenIdentifier].waitForExistence(timeout: 10), file: file, line: line)
+        guard let tab = rootTabs.first(where: {
+            $0.screenIdentifier == screenIdentifier && $0.tabLabel == tabLabel
+        }) else {
+            XCTFail("Unknown root tab: \(screenIdentifier)", file: file, line: line)
+            return
+        }
+
+        tapRootTab(tab, in: app, file: file, line: line)
     }
 
     private func tapRootTab(
@@ -184,10 +187,9 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testEachTabOpensExpectedRootScreen() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.home", tabLabel: "Start", in: app)
-        assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)
-        assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        for tab in rootTabs {
+            tapRootTab(tab, in: app)
+        }
     }
 
     @MainActor
