@@ -17,11 +17,11 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
     init(
         repository: FeaturedBannerRepository,
         publicCache: FeaturedBannerCache? = nil,
-        imageUploadService: ImageUploadService = .shared
+        imageUploadService: ImageUploadService? = nil
     ) {
         self.repository = repository
         self.publicCache = publicCache
-        self.imageUploadService = imageUploadService
+        self.imageUploadService = imageUploadService ?? .shared
     }
 
     func loadIfNeeded() async {
