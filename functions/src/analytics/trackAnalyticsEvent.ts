@@ -10,6 +10,11 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
 import {hasActiveRegionAnalytics} from "./analyticsRollupSanitization";
+import {
+  resolveCanonicalAnalyticsContent,
+  type AnalyticsContentType,
+  type CanonicalAnalyticsContent,
+} from "./canonicalAnalyticsContent";
 
 type AnalyticsEventName =
   | "news_view"
@@ -24,10 +29,6 @@ type AnalyticsEventName =
   | "organization_unfollow"
   | "organization_bookmark";
 
-type AnalyticsContentType =
-  | "news"
-  | "event"
-  | "organization";
 type AnalyticsEventKind = "view" | "action";
 
 interface AnalyticsEventConfig {
@@ -332,7 +333,17 @@ export const trackAnalyticsEvent = onCall(
   async (request): Promise<{ tracked: true }> => {
     requireAuth(request);
 
-    const analyticsEvent = sanitizeAnalyticsEvent(parseRequest(request.data));
+    const analyticsRequest = parseAnalyticsRequest(request.data);
+    const config = eventConfigs[analyticsRequest.name];
+    const contentID = requiredSafeID(
+      analyticsRequest.parameters.content_id,
+      "content_id"
+    );
+    const canonicalContent = await resolveCanonicalAnalyticsContent(
+      config.contentType,
+      contentID
+    );
+    const analyticsEvent = sanitizeAnalyticsEvent(analyticsRequest, canonicalContent);
     const dailyDocumentID = dailyDocumentIDFor(new Date());
 
     const writes: Promise<void>[] = [
@@ -393,12 +404,20 @@ export const trackDeletedUserAnalyticsAggregate = onDocumentDeleted(
   }
 );
 
-function parseRequest(data: unknown): TrackAnalyticsEventRequest {
+export function parseAnalyticsRequest(data: unknown): TrackAnalyticsEventRequest {
   if (!isRecord(data)) {
     throw new HttpsError("invalid-argument", "Request payload must be an object.");
   }
 
-  const name = parseEventName(data.name ?? data.eventName);
+  if (
+    Object.keys(data).length !== 2
+    || !("name" in data)
+    || !("parameters" in data)
+  ) {
+    throw new HttpsError("invalid-argument", "Request payload has unsupported fields.");
+  }
+
+  const name = parseEventName(data.name);
   const parameters = data.parameters;
   if (!isRecord(parameters)) {
     throw new HttpsError("invalid-argument", "parameters must be an object.");
@@ -410,33 +429,31 @@ function parseRequest(data: unknown): TrackAnalyticsEventRequest {
   };
 }
 
-function sanitizeAnalyticsEvent(request: TrackAnalyticsEventRequest): SanitizedAnalyticsEvent {
+export function sanitizeAnalyticsEvent(
+  request: TrackAnalyticsEventRequest,
+  canonicalContent: CanonicalAnalyticsContent
+): SanitizedAnalyticsEvent {
   validateAllowedParameterNames(request.parameters);
   const config = eventConfigs[request.name];
   const contentID = requiredSafeID(request.parameters.content_id, "content_id");
+  if (contentID !== canonicalContent.contentID || config.contentType !== canonicalContent.contentType) {
+    throw new HttpsError("internal", "Canonical analytics content is inconsistent.");
+  }
   validateOptionalContentType(request.parameters.content_type, config.contentType);
-  const category = optionalSlug(request.parameters.category, "category");
-  const organizationID = optionalSafeID(request.parameters.organization_id, "organization_id");
-  const federalState = optionalFederalState(request.parameters.federal_state);
-  const regionScope = optionalRegionScope(request.parameters.region_scope);
+  optionalSlug(request.parameters.category, "category");
+  optionalSafeID(request.parameters.organization_id, "organization_id");
+  optionalFederalState(request.parameters.federal_state);
+  optionalRegionScope(request.parameters.region_scope);
   validateOptionalGuestFlag(request.parameters.is_guest);
   optionalSlug(request.parameters.account_state, "account_state");
-  const contentTitle = optionalSafeTitle(request.parameters.content_title, "content_title");
-  const organizationName = optionalSafeTitle(
+  optionalSafeTitle(request.parameters.content_title, "content_title");
+  optionalSafeTitle(
     request.parameters.organization_name,
     "organization_name"
   );
-  const title = contentTitle ?? organizationName ?? contentID;
 
   return {
-    contentID,
-    contentType: config.contentType,
-    category,
-    organizationID,
-    organizationName,
-    federalState,
-    regionScope,
-    title,
+    ...canonicalContent,
     metricField: config.metricField,
     contentMetricField: config.contentMetricField,
     organizationMetricField: config.organizationMetricField,
