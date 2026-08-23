@@ -26,7 +26,7 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
 
     var body: some View {
         AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 FeaturedBannerCardView(banner: banner)
                     .aspectRatio(16.0 / 9.0, contentMode: .fit)
 
@@ -79,6 +79,8 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
                     } label: {
                         Label(editButtonTitle, systemImage: editButtonSystemImage)
                             .frame(maxWidth: .infinity)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.80)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
@@ -92,6 +94,7 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
+                        .tint(AppTheme.accentDestructive)
                         .disabled(isUpdating)
                         .accessibilityLabel(AppStrings.FeaturedManagement.deleteBanner)
                     }

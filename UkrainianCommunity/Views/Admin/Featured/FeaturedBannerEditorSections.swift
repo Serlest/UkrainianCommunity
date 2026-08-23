@@ -27,9 +27,23 @@ struct FeaturedBannerEditorBasicsSection: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 AppEditorSectionTitle(title: AppStrings.FeaturedEditor.basicsSection)
-                EditorTextField(AppStrings.FeaturedEditor.internalNameField, text: $viewModel.internalName, systemImage: "tag")
-                EditorTextField(AppStrings.FeaturedEditor.titleField, text: $viewModel.title, systemImage: "textformat")
-                EditorTextField(AppStrings.FeaturedEditor.subtitleField, text: $viewModel.subtitle, systemImage: "text.alignleft")
+                EditorTextField(
+                    AppStrings.FeaturedEditor.internalNameField,
+                    text: $viewModel.internalName,
+                    systemImage: "tag",
+                    counterText: "\(viewModel.internalName.count)/\(FeaturedBannerValidationService.internalNameMaxLength)"
+                )
+                EditorTextField(
+                    AppStrings.FeaturedEditor.titleField,
+                    text: $viewModel.title,
+                    systemImage: "textformat",
+                    counterText: "\(viewModel.title.count)/\(FeaturedBannerValidationService.titleMaxLength)"
+                )
+                EditorTextArea(
+                    AppStrings.FeaturedEditor.subtitleField,
+                    text: $viewModel.subtitle,
+                    counterText: "\(viewModel.subtitle.count)/\(FeaturedBannerValidationService.subtitleMaxLength)"
+                )
 
                 Toggle(isOn: $viewModel.isActive) {
                     Text(AppStrings.FeaturedManagement.activeToggle)

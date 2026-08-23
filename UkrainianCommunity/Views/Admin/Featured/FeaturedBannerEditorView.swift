@@ -5,7 +5,6 @@ import UIKit
 struct FeaturedBannerEditorView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: FeaturedBannerEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedPreviewImage: UIImage?
@@ -47,16 +46,18 @@ struct FeaturedBannerEditorView: View {
             statusContent
             FeaturedBannerEditorPreviewSection(viewModel: viewModel, previewImage: selectedPreviewImage)
             FeaturedBannerEditorBasicsSection(viewModel: viewModel)
-            imageCard
+            FeaturedBannerEditorImageSection(
+                viewModel: viewModel,
+                selectedPhoto: $selectedPhoto,
+                previewImage: selectedPreviewImage
+            )
             FeaturedBannerEditorTargetingSection(viewModel: viewModel)
             FeaturedBannerEditorActionSection(viewModel: viewModel) {
                 actionTargetSearchText = ""
                 isShowingActionTargetPicker = true
             }
             FeaturedBannerEditorSchedulingSection(viewModel: viewModel)
-        }
-        .safeAreaInset(edge: .bottom) {
-            saveBar
+            saveButton
         }
         .tint(AppTheme.accentPrimary)
         .onChange(of: selectedPhoto) { _, newItem in
@@ -135,126 +136,24 @@ struct FeaturedBannerEditorView: View {
         }
     }
 
-    private var imageCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                AppEditorSectionTitle(title: AppStrings.FeaturedEditor.imageSection)
-
-                PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
-                    imagePickerContent
-                }
-                .buttonStyle(.plain)
-                .disabled(viewModel.isProcessingImage || viewModel.isSaving)
-                .overlay {
-                    if viewModel.isProcessingImage {
-                        imageProcessingOverlay
-                    }
-                }
-
-                Text(AppStrings.FeaturedEditor.imageHelper)
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+    private var saveButton: some View {
+        PrimaryActionButton(
+            title: viewModel.saveButtonTitle,
+            loadingTitle: AppStrings.FeaturedEditor.saving,
+            isEnabled: viewModel.canSave,
+            isLoading: viewModel.isSaving,
+            systemImage: "checkmark"
+        ) {
+            save()
         }
     }
 
-    @ViewBuilder
-    private var imagePickerContent: some View {
-        if let selectedPreviewImage {
-            Rectangle()
-                .fill(AppTheme.glassControlSurface(for: colorScheme).opacity(0.72))
-                .frame(maxWidth: .infinity)
-                .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                .overlay {
-                    Image(uiImage: selectedPreviewImage)
-                        .resizable()
-                        .scaledToFill()
-                }
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
-                        .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                )
-        } else if let existingImageURL = viewModel.existingImageURL {
-            RemoteImageView(
-                imageURL: existingImageURL,
-                height: AppTheme.heroBannerHeight,
-                cornerRadius: AppTheme.heroRadius,
-                source: "FeaturedBannerEditorView",
-                placeholderStyle: .glassSkeleton
-            )
-            .aspectRatio(16.0 / 9.0, contentMode: .fit)
-            .clipped()
-            .overlay(alignment: .bottomTrailing) {
-                Text(AppStrings.FeaturedEditor.replaceImage)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
-                    .padding(.vertical, AppTheme.eventsMetadataSpacing)
-                    .background(.black.opacity(0.48), in: Capsule())
-                    .padding(AppTheme.dashboardSpacing)
-            }
-        } else {
-            uploadPlaceholder
-        }
-    }
-
-    private var imageProcessingOverlay: some View {
-        ProgressView()
-            .controlSize(.regular)
-            .tint(AppTheme.accentPrimary)
-            .frame(maxWidth: .infinity)
-            .aspectRatio(16.0 / 9.0, contentMode: .fit)
-            .background(.black.opacity(0.08), in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
-            .allowsHitTesting(false)
-    }
-
-    private var uploadPlaceholder: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "photo.badge.plus")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
-
-            Text(AppStrings.FeaturedEditor.uploadImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textPrimary)
-
-            Text(AppStrings.FeaturedEditor.uploadImageHelper)
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-        .background(AppTheme.glassControlSurface(for: colorScheme).opacity(0.72), in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
-                .stroke(AppTheme.glassBorder(for: colorScheme).opacity(0.82), style: StrokeStyle(lineWidth: 1, dash: [5, 5]))
-        )
-    }
-
-    private var saveBar: some View {
-        VStack(spacing: 0) {
-            PrimaryActionButton(
-                title: viewModel.saveButtonTitle,
-                loadingTitle: AppStrings.FeaturedEditor.saving,
-                isEnabled: viewModel.canSave,
-                isLoading: viewModel.isSaving,
-                systemImage: "checkmark"
-            ) {
-                Task {
-                    let didSave = await viewModel.save(updatedBy: authState.user?.id)
-                    guard didSave else { return }
-                    await onSave()
-                    dismiss()
-                }
-            }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.top, AppTheme.eventsMetadataSpacing)
-            .padding(.bottom, AppTheme.eventsMetadataSpacing)
-            .background(.ultraThinMaterial)
+    private func save() {
+        Task {
+            let didSave = await viewModel.save(updatedBy: authState.user?.id)
+            guard didSave else { return }
+            await onSave()
+            dismiss()
         }
     }
 

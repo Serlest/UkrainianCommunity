@@ -99,6 +99,7 @@ struct EditorTextField: View {
     let title: String
     @Binding var text: String
     let systemImage: String
+    let counterText: String?
     let keyboardType: UIKeyboardType
     let textContentType: UITextContentType?
     let autocapitalization: TextInputAutocapitalization
@@ -108,6 +109,7 @@ struct EditorTextField: View {
         _ title: String,
         text: Binding<String>,
         systemImage: String,
+        counterText: String? = nil,
         keyboardType: UIKeyboardType = .default,
         textContentType: UITextContentType? = nil,
         autocapitalization: TextInputAutocapitalization = .sentences,
@@ -116,6 +118,7 @@ struct EditorTextField: View {
         self.title = title
         self._text = text
         self.systemImage = systemImage
+        self.counterText = counterText
         self.keyboardType = keyboardType
         self.textContentType = textContentType
         self.autocapitalization = autocapitalization
@@ -123,6 +126,16 @@ struct EditorTextField: View {
     }
 
     var body: some View {
+        if let counterText {
+            AppEditorField(title: title, counterText: counterText) {
+                fieldContent
+            }
+        } else {
+            fieldContent
+        }
+    }
+
+    private var fieldContent: some View {
         HStack(spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
@@ -144,6 +157,57 @@ struct EditorTextField: View {
             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
                 .strokeBorder(AppTheme.borderSubtle)
         )
+    }
+}
+
+struct EditorTextArea: View {
+    let title: String
+    @Binding var text: String
+    let counterText: String
+    let minHeight: CGFloat
+
+    init(
+        _ title: String,
+        text: Binding<String>,
+        counterText: String,
+        minHeight: CGFloat = 92
+    ) {
+        self.title = title
+        self._text = text
+        self.counterText = counterText
+        self.minHeight = minHeight
+    }
+
+    var body: some View {
+        AppEditorField(title: title, counterText: counterText) {
+            ZStack(alignment: .topLeading) {
+                if text.isEmpty {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                        .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+                        .padding(.vertical, AppTheme.eventsMetadataSpacing)
+                        .allowsHitTesting(false)
+                }
+
+                TextEditor(text: $text)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .scrollContentBackground(.hidden)
+                    .textInputAutocapitalization(.sentences)
+                    .padding(4)
+                    .frame(minHeight: minHeight, alignment: .topLeading)
+            }
+            .background(
+                AppTheme.surfaceSecondary,
+                in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
+                    .strokeBorder(AppTheme.borderSubtle)
+            )
+            .accessibilityLabel(title)
+        }
     }
 }
 
