@@ -2,10 +2,10 @@ import {type DocumentData, type Query} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireAuth} from "../auth/context";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {adminStorage, db} from "../firebase/admin";
 import {getOrganizationRoles} from "../permissions/organizationPermissions";
-import {getUserPermissions, isActiveUser, isOwner} from "../permissions/userPermissions";
+import {isOwner} from "../permissions/userPermissions";
 import {
   type ContentKind,
   contentReferencePoliciesFor,
@@ -34,11 +34,8 @@ const systemOrganizationId = "ukrainian-community";
 export const deleteNews = onCall(
   callableOptions,
   async (request): Promise<DeletionResponse> => {
-    const auth = requireAuth(request);
-    const actor = await getUserPermissions(auth.uid);
-    if (!isActiveUser(actor)) {
-      throw new HttpsError("permission-denied", "An active account is required.");
-    }
+    const auth = await requireVerifiedActiveUser(request);
+    const actor = auth.permissions;
     const newsId = requestResourceId(request.data, "newsId");
     const newsReference = db.collection("news").doc(newsId);
     const newsSnapshot = await newsReference.get();
@@ -64,8 +61,8 @@ export const deleteNews = onCall(
 export const deleteOrganization = onCall(
   callableOptions,
   async (request): Promise<DeletionResponse> => {
-    const auth = requireAuth(request);
-    const actor = await getUserPermissions(auth.uid);
+    const auth = await requireVerifiedActiveUser(request);
+    const actor = auth.permissions;
     if (!isOwner(actor)) {
       throw new HttpsError("permission-denied", "Owner permissions are required.");
     }

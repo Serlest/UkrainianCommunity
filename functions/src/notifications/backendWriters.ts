@@ -8,7 +8,7 @@ import {
 } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { requireAuth } from "../auth/context";
+import { requireVerifiedActiveUser } from "../auth/context";
 import {deleteEventContent} from "../content/contentDeletion";
 import { db } from "../firebase/admin";
 import { getOrganizationRoles } from "../permissions/organizationPermissions";
@@ -449,8 +449,8 @@ export const notifyEventCancelledOnDelete = onDocumentDeleted(
 export const cancelEvent = onCall(
   callableOptions,
   async (request): Promise<EventCancellationResponse> => {
-    const auth = requireAuth(request);
-    const actorPermissions = await getUserPermissions(auth.uid);
+    const auth = await requireVerifiedActiveUser(request);
+    const actorPermissions = auth.permissions;
     const cancellationRequest = parseEventCancellationRequest(request.data);
     const eventReference = db.collection("events").doc(cancellationRequest.eventId);
     const eventSnapshot = await eventReference.get();
@@ -513,8 +513,8 @@ export const cancelEvent = onCall(
 export const createSystemAnnouncement = onCall(
   callableOptions,
   async (request): Promise<{ announcementId: string; recipientCount: number }> => {
-    const auth = requireAuth(request);
-    const actorPermissions = await getUserPermissions(auth.uid);
+    const auth = await requireVerifiedActiveUser(request);
+    const actorPermissions = auth.permissions;
     assertOwner(actorPermissions);
 
     const announcementRequest = parseSystemAnnouncementRequest(request.data);

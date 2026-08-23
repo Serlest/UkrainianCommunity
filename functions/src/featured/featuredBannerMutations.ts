@@ -1,9 +1,9 @@
 import { Timestamp, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
 
-import { requireAuth } from "../auth/context";
+import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
-import { assertOwner, getUserPermissions } from "../permissions/userPermissions";
+import { assertOwner } from "../permissions/userPermissions";
 
 type FeaturedBannerSaveMode = "create" | "update";
 type FeaturedBannerActionType = "none" | "news" | "event" | "organization" | "externalURL";
@@ -325,11 +325,8 @@ function storedDraft(id: string, data: DocumentData): Record<string, unknown> {
 }
 
 async function requireVerifiedOwner(request: CallableRequest): Promise<string> {
-  const auth = requireAuth(request);
-  if (auth.token.email_verified !== true) {
-    throw new HttpsError("permission-denied", "A verified owner account is required.");
-  }
-  assertOwner(await getUserPermissions(auth.uid));
+  const auth = await requireVerifiedActiveUser(request);
+  assertOwner(auth.permissions);
   return auth.uid;
 }
 

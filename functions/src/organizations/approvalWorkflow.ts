@@ -2,14 +2,14 @@ import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
-import { requireAuth } from "../auth/context";
+import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
   type NotificationType,
   resolveNotificationRecipients,
   writeUserNotification,
 } from "../notifications/notificationPayloads";
-import { canManageOrganizationRequests, getUserPermissions } from "../permissions/userPermissions";
+import { canManageOrganizationRequests } from "../permissions/userPermissions";
 import { type OrganizationModerationStatus } from "./types";
 
 type ReviewAction = "approve" | "requestRevision" | "reject";
@@ -224,9 +224,9 @@ function organizationUpdate(
 
 function createReviewCallable(workflow: ReviewWorkflow) {
   return onCall(callableOptions, async (request): Promise<OrganizationReviewResponse> => {
-    const auth = requireAuth(request);
+    const auth = await requireVerifiedActiveUser(request);
     const reviewRequest = parseReviewRequest(request.data);
-    const actorPermissions = await getUserPermissions(auth.uid);
+    const actorPermissions = auth.permissions;
 
     if (!canManageOrganizationRequests(actorPermissions)) {
       throw new HttpsError("permission-denied", "Owner or App Admin permissions are required.");

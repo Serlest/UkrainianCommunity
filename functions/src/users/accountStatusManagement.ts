@@ -3,7 +3,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
-import { requireAuth } from "../auth/context";
+import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
   type NotificationSeverity,
@@ -255,20 +255,14 @@ async function writeAccountStatusNotification(
 
 function createAccountStatusCallable(mutation: AccountStatusMutation) {
   return onCall(callableOptions, async (request): Promise<AccountStatusChangeResponse> => {
-    const auth = requireAuth(request);
+    const auth = await requireVerifiedActiveUser(request);
     const statusRequest = parseAccountStatusChangeRequest(request.data);
 
     if (statusRequest.targetUserId === auth.uid) {
       throw new HttpsError("failed-precondition", "Self account status changes are not allowed.");
     }
 
-    const actorSnapshot = await db.collection("users").doc(auth.uid).get();
-    if (!actorSnapshot.exists) {
-      throw new HttpsError("permission-denied", "User profile does not exist.");
-    }
-
-    const actorPermissions = accountStatusSnapshotFromData(auth.uid, actorSnapshot.data());
-    assertCanManageUsers(actorPermissions);
+    assertCanManageUsers(auth.permissions);
 
     const targetReference = db.collection("users").doc(statusRequest.targetUserId);
     const committedAt = new Date().toISOString();

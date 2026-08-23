@@ -2,7 +2,7 @@ import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
-import { requireAuth } from "../auth/context";
+import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
   resolveNotificationRecipients,
@@ -151,16 +151,9 @@ async function writeNotificationIfRecipientEligible(
 
 function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
   return onCall(callableOptions, async (request): Promise<PlatformRoleChangeResponse> => {
-    const auth = requireAuth(request);
+    const auth = await requireVerifiedActiveUser(request);
     const roleRequest = parsePlatformRoleChangeRequest(request.data);
-    const actorSnapshot = await db.collection("users").doc(auth.uid).get();
-
-    if (!actorSnapshot.exists) {
-      throw new HttpsError("permission-denied", "User profile does not exist.");
-    }
-
-    const actorPermissions = userRoleSnapshotFromData(auth.uid, actorSnapshot.data());
-    if (!canAssignAppAdmin(actorPermissions)) {
+    if (!canAssignAppAdmin(auth.permissions)) {
       throw new HttpsError("permission-denied", "App owner permissions are required.");
     }
 

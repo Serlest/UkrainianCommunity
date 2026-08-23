@@ -2,7 +2,7 @@ import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { auditLogRef, buildAuditLog } from "../audit/auditLog";
-import { requireAuth } from "../auth/context";
+import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
   resolveNotificationRecipients,
@@ -14,7 +14,7 @@ import {
   type OrganizationRole,
   type OrganizationRoleSnapshot,
 } from "../permissions/organizationPermissions";
-import { assertOwner, getUserPermissions } from "../permissions/userPermissions";
+import { assertOwner } from "../permissions/userPermissions";
 
 type AssignableOrganizationRole = "communityAdmin" | "communityModerator";
 type OrganizationRoleResult = "none" | OrganizationRole;
@@ -165,9 +165,9 @@ async function writeNotificationIfRecipientEligible(
 
 function createRoleCallable(mutation: RoleMutation) {
   return onCall(callableOptions, async (request): Promise<OrganizationRoleChangeResponse> => {
-    const auth = requireAuth(request);
+    const auth = await requireVerifiedActiveUser(request);
     const roleRequest = parseRoleChangeRequest(request.data);
-    const actorPermissions = await getUserPermissions(auth.uid);
+    const actorPermissions = auth.permissions;
     const organizationReference = db.collection("organizations").doc(roleRequest.organizationId);
     const committedAt = new Date().toISOString();
     let previousRole: OrganizationRoleResult = "none";
@@ -306,9 +306,9 @@ export const removeOrganizationModerator = createRoleCallable({
 export const transferOrganizationOwnership = onCall(
   callableOptions,
   async (request): Promise<OrganizationOwnershipTransferResponse> => {
-    const auth = requireAuth(request);
+    const auth = await requireVerifiedActiveUser(request);
     const roleRequest = parseRoleChangeRequest(request.data);
-    const actorPermissions = await getUserPermissions(auth.uid);
+    const actorPermissions = auth.permissions;
     assertOwner(actorPermissions);
 
     const organizationReference = db.collection("organizations").doc(roleRequest.organizationId);

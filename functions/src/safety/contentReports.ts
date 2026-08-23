@@ -3,9 +3,8 @@ import { createHash } from "node:crypto";
 import { Timestamp, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { requireAuth } from "../auth/context";
+import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
-import { getUserPermissions, isActiveUser } from "../permissions/userPermissions";
 
 export type ContentReportTargetType = "news" | "event" | "organization" | "comment";
 export type ContentReportParentType = "news" | "event" | "organization";
@@ -267,15 +266,8 @@ function reportMessage(report: ContentReportRequest): string {
 export const submitContentReport = onCall(
   callableOptions,
   async (request): Promise<ContentReportResponse> => {
-    const actor = requireAuth(request);
-    if (actor.token.email_verified !== true) {
-      throw new HttpsError("permission-denied", "A verified email address is required.");
-    }
+    const actor = await requireVerifiedActiveUser(request);
     const report = parseContentReportRequest(request.data);
-    const permissions = await getUserPermissions(actor.uid);
-    if (!isActiveUser(permissions)) {
-      throw new HttpsError("permission-denied", "Only active users can submit reports.");
-    }
     const [target, userSnapshot] = await Promise.all([
       resolveReportTarget(report),
       db.collection("users").doc(actor.uid).get(),

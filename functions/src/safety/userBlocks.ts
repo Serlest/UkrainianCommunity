@@ -1,9 +1,8 @@
 import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireAuth} from "../auth/context";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
-import {getUserPermissions, isActiveUser} from "../permissions/userPermissions";
 
 export interface UserBlockRequest {
   targetUserId: string;
@@ -80,23 +79,16 @@ function optionalAvatarURL(value: unknown): string | undefined {
 export const setUserBlocked = onCall(
   callableOptions,
   async (request): Promise<UserBlockResponse> => {
-    const actor = requireAuth(request);
-    if (actor.token.email_verified !== true) {
-      throw new HttpsError("permission-denied", "A verified email address is required.");
-    }
+    const actor = await requireVerifiedActiveUser(request);
     const input = parseUserBlockRequest(request.data);
     if (input.targetUserId === actor.uid) {
       throw new HttpsError("failed-precondition", "You cannot block your own account.");
     }
 
-    const [permissions, targetSnapshot, publicProfileSnapshot] = await Promise.all([
-      getUserPermissions(actor.uid),
+    const [targetSnapshot, publicProfileSnapshot] = await Promise.all([
       db.collection("users").doc(input.targetUserId).get(),
       db.collection("publicProfiles").doc(input.targetUserId).get(),
     ]);
-    if (!isActiveUser(permissions)) {
-      throw new HttpsError("permission-denied", "Only active users can manage blocked users.");
-    }
     if (!targetSnapshot.exists) {
       throw new HttpsError("not-found", "The target user does not exist.");
     }
