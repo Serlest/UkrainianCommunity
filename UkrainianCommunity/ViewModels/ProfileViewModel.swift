@@ -288,7 +288,7 @@ final class ProfileViewModel: ObservableObject {
 
         do {
             try await repository.deleteAccount(currentUser: currentUser)
-            _ = AuthService.shared.signOut()
+            _ = AuthService.shared.completeAccountDeletionSignOut()
             resetForAuthChange()
             return nil
         } catch let deletionError as AccountDeletionError {

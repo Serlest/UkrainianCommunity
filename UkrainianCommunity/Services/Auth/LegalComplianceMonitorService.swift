@@ -127,8 +127,11 @@ final class LegalComplianceMonitorService: ObservableObject {
         }
     }
 
-    func declineAndSignOut() {
-        _ = AuthService.shared.signOut()
+    func declineAndSignOut() async {
+        guard await AuthService.shared.signOut() else {
+            errorMessage = AppStrings.Profile.signOutFailed
+            return
+        }
         activeRequirement = nil
         evaluatedKey = nil
         acceptingUserID = nil

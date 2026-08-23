@@ -480,9 +480,11 @@ struct ProfileView: View {
             titleVisibility: .visible
         ) {
             Button(AppStrings.Profile.signOut, role: .destructive) {
-                let didSignOut = AuthService.shared.signOut()
-                if !didSignOut {
-                    logoutErrorMessage = AppStrings.Profile.signOutFailed
+                Task {
+                    let didSignOut = await AuthService.shared.signOut()
+                    if !didSignOut {
+                        logoutErrorMessage = AppStrings.Profile.signOutFailed
+                    }
                 }
             }
 

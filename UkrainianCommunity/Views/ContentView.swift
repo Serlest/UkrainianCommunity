@@ -172,7 +172,9 @@ struct ContentView: View {
                     }
                 },
                 decline: {
-                    legalComplianceMonitor.declineAndSignOut()
+                    Task {
+                        await legalComplianceMonitor.declineAndSignOut()
+                    }
                 }
             )
         }

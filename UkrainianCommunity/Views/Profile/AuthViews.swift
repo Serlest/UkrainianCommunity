@@ -352,13 +352,14 @@ struct EmailVerificationView: View {
     @State private var message: String?
     @State private var isResending = false
     @State private var isChecking = false
+    @State private var isSigningOut = false
 
     private var pendingEmail: String {
         authState.pendingVerificationEmail ?? authState.user?.email ?? ""
     }
 
     private var isBusy: Bool {
-        isResending || isChecking
+        isResending || isChecking || isSigningOut
     }
 
     private var messageStyle: InlineMessageStyle {
@@ -434,8 +435,12 @@ struct EmailVerificationView: View {
                     .accessibilityIdentifier("auth.verification.resend")
 
                     Button(AppStrings.Auth.emailVerificationChangeAccount) {
-                        if AuthService.shared.signOut() {
-                            authState.dismissAuthFlow()
+                        Task {
+                            isSigningOut = true
+                            defer { isSigningOut = false }
+                            if await AuthService.shared.signOut() {
+                                authState.dismissAuthFlow()
+                            }
                         }
                     }
                     .appActionButtonStyle(.secondary)

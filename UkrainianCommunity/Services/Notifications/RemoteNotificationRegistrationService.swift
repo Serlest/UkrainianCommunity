@@ -11,11 +11,9 @@ final class RemoteNotificationRegistrationService: NSObject {
     static let shared = RemoteNotificationRegistrationService()
     private static let isDebugLoggingEnabled = false
 
-    private var repository: NotificationPushTokenRepository = FirestoreNotificationPushTokenRepository()
-    private var currentUserID: String?
-    private var currentToken: String?
-    private var lastSavedTokenKey: String?
-    private var inFlightTokenKeys: Set<String> = []
+    private let tokenOwnership = NotificationPushTokenOwnershipCoordinator(
+        repository: FirestoreNotificationPushTokenRepository()
+    )
     private var hasAPNSToken = false
     private var hasRequestedRemoteRegistration = false
     private var isRefreshingMessagingToken = false
@@ -29,7 +27,7 @@ final class RemoteNotificationRegistrationService: NSObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.debugLog(fcmToken == nil ? "FCM registration token callback received without a token." : "FCM registration token callback received.")
-                await self.saveToken(fcmToken)
+                await self.tokenOwnership.receiveToken(fcmToken)
             }
         }
         messagingDelegateAdapter = adapter
@@ -38,38 +36,31 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     func configure(repository: NotificationPushTokenRepository) {
-        self.repository = repository
+        tokenOwnership.configure(repository: repository)
     }
 
     func configureUser(_ userID: String?) {
-        if currentUserID != userID {
+        if tokenOwnership.currentUserID != userID {
             lastAuthorizationRequestUserID = nil
         }
-        currentUserID = userID
-        guard userID != nil else {
-            currentToken = nil
-            lastSavedTokenKey = nil
-            return
-        }
-        Task {
-            await saveToken(currentToken)
-            await registerIfAlreadyAuthorized()
-        }
+        tokenOwnership.configureUser(userID, notificationsEnabled: false)
     }
 
     func configureUser(_ userID: String?, notificationsEnabled: Bool) {
-        if currentUserID != userID {
+        if tokenOwnership.currentUserID != userID {
             lastAuthorizationRequestUserID = nil
         }
-        currentUserID = userID
+        tokenOwnership.configureUser(userID, notificationsEnabled: notificationsEnabled)
         guard userID != nil else {
-            currentToken = nil
-            lastSavedTokenKey = nil
             return
         }
 
         Task {
-            await saveToken(currentToken)
+            if notificationsEnabled {
+                await tokenOwnership.saveCachedTokenIfNeeded()
+            } else {
+                await tokenOwnership.removeCurrentToken()
+            }
             await registerIfAuthorizedOrRequestIfNeeded(notificationsEnabled: notificationsEnabled)
         }
     }
@@ -79,6 +70,7 @@ final class RemoteNotificationRegistrationService: NSObject {
         debugLog("Notification authorization status before request: \(settings.authorizationStatus.debugDescription)")
         let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
         debugLog("requestAuthorization result: granted=\(granted)")
+        tokenOwnership.setNotificationsEnabled(granted)
         guard granted else { return false }
 
         registerForRemoteNotificationsIfNeeded()
@@ -86,13 +78,19 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     func removeCurrentToken() async {
-        guard let userID = currentUserID, let currentToken else { return }
-        let tokenKey = makeTokenKey(userID: userID, token: currentToken)
-        try? await repository.deleteCurrentDeviceToken(userID: userID, token: currentToken)
-        if lastSavedTokenKey == tokenKey {
-            lastSavedTokenKey = nil
-        }
-        inFlightTokenKeys.remove(tokenKey)
+        await tokenOwnership.removeCurrentToken()
+    }
+
+    func prepareForSignOut() async throws {
+        try await tokenOwnership.prepareForSignOut()
+    }
+
+    func completeSignOut() {
+        tokenOwnership.completeSignOut()
+    }
+
+    func resumeAfterFailedSignOut() async {
+        await tokenOwnership.resumeAfterFailedSignOut()
     }
 
     func didRegisterForRemoteNotifications(deviceToken: Data) {
@@ -110,15 +108,9 @@ final class RemoteNotificationRegistrationService: NSObject {
         debugLog("Remote notification registration failed: \(error)")
     }
 
-    private func registerIfAlreadyAuthorized() async {
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
-        debugLog("Notification authorization status: \(settings.authorizationStatus.debugDescription)")
-        guard settings.authorizationStatus.allowsRemoteRegistration else { return }
-
-        registerForRemoteNotificationsIfNeeded()
-    }
-
     private func registerIfAuthorizedOrRequestIfNeeded(notificationsEnabled: Bool) async {
+        guard notificationsEnabled else { return }
+
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         debugLog("Notification authorization status: \(settings.authorizationStatus.debugDescription)")
 
@@ -129,9 +121,9 @@ final class RemoteNotificationRegistrationService: NSObject {
 
         guard notificationsEnabled,
               settings.authorizationStatus == .notDetermined,
-              lastAuthorizationRequestUserID != currentUserID else { return }
+              lastAuthorizationRequestUserID != tokenOwnership.currentUserID else { return }
 
-        lastAuthorizationRequestUserID = currentUserID
+        lastAuthorizationRequestUserID = tokenOwnership.currentUserID
         do {
             _ = try await requestAuthorizationAndRegister()
         } catch {
@@ -152,7 +144,7 @@ final class RemoteNotificationRegistrationService: NSObject {
         do {
             let token = try await Messaging.messaging().token()
             debugLog("FCM token received.")
-            await saveToken(token)
+            await tokenOwnership.receiveToken(token)
         } catch {
             debugLog("FCM token refresh failed: \(error)")
         }
@@ -161,48 +153,10 @@ final class RemoteNotificationRegistrationService: NSObject {
         #endif
     }
 
-    private func saveToken(_ token: String?) async {
-        guard let token = token?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !token.isEmpty else { return }
-
-        currentToken = token
-
-        guard let userID = currentUserID else { return }
-
-        let tokenKey = makeTokenKey(userID: userID, token: token)
-        guard lastSavedTokenKey != tokenKey else {
-            debugLog("FCM token already uploaded; skipping duplicate upload.")
-            return
-        }
-        guard !inFlightTokenKeys.contains(tokenKey) else {
-            debugLog("FCM token upload already in flight; skipping duplicate upload.")
-            return
-        }
-
-        inFlightTokenKeys.insert(tokenKey)
-        defer {
-            inFlightTokenKeys.remove(tokenKey)
-        }
-
-        do {
-            try await repository.saveCurrentDeviceToken(userID: userID, token: token)
-            if inFlightTokenKeys.contains(tokenKey) {
-                lastSavedTokenKey = tokenKey
-            }
-            debugLog("FCM token uploaded.")
-        } catch {
-            debugLog("FCM token save failed: \(error)")
-        }
-    }
-
     private func registerForRemoteNotificationsIfNeeded() {
         guard !hasRequestedRemoteRegistration else { return }
         hasRequestedRemoteRegistration = true
         UIApplication.shared.registerForRemoteNotifications()
-    }
-
-    private func makeTokenKey(userID: String, token: String) -> String {
-        "\(userID):\(token)"
     }
 
     private func debugLog(_ message: String) {

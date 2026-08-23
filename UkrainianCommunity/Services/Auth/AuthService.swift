@@ -113,16 +113,36 @@ final class AuthService {
         }
     }
 
+    @MainActor
     @discardableResult
-    func signOut() -> Bool {
+    func signOut() async -> Bool {
+        let notificationRegistration = RemoteNotificationRegistrationService.shared
+
         do {
+            try await notificationRegistration.prepareForSignOut()
             try Auth.auth().signOut()
-            Task { @MainActor in
-                authState.setGuestSession()
-            }
+            notificationRegistration.completeSignOut()
+            authState.setGuestSession()
             return true
         } catch {
+            await notificationRegistration.resumeAfterFailedSignOut()
             print("Sign out error: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    @MainActor
+    @discardableResult
+    func completeAccountDeletionSignOut() -> Bool {
+        let notificationRegistration = RemoteNotificationRegistrationService.shared
+        notificationRegistration.completeSignOut()
+
+        do {
+            try Auth.auth().signOut()
+            authState.setGuestSession()
+            return true
+        } catch {
+            print("Post-deletion sign out error: \(error.localizedDescription)")
             return false
         }
     }
