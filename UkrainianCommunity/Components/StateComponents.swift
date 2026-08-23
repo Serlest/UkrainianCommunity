@@ -162,7 +162,7 @@ enum InlineMessageStyle {
     var tint: Color {
         switch self {
         case .info:
-            return AppTheme.accentPrimary
+            return AppTheme.accentPrimaryForeground
         case .success:
             return .green
         case .error:

@@ -5,6 +5,21 @@ enum AppTheme {
     // buttons, icons, and branded emphasis throughout the app.
     static let accentPrimary = Color(red: 0.10, green: 0.26, blue: 0.56)
 
+    // Foreground blue adapts independently from filled controls so links,
+    // symbols, and secondary actions retain contrast in every appearance.
+    static let accentPrimaryForeground = Color(uiColor: UIColor { traits in
+        switch (traits.userInterfaceStyle, traits.accessibilityContrast) {
+        case (.dark, .high):
+            UIColor(red: 0.61, green: 0.74, blue: 1.00, alpha: 1.00)
+        case (.dark, _):
+            UIColor(red: 0.45, green: 0.64, blue: 1.00, alpha: 1.00)
+        case (_, .high):
+            UIColor(red: 0.05, green: 0.18, blue: 0.44, alpha: 1.00)
+        default:
+            UIColor(red: 0.10, green: 0.26, blue: 0.56, alpha: 1.00)
+        }
+    })
+
     // Soft blue is intended for subtle badge fills, borders, and tinted surfaces.
     static let accentPrimarySoft = accentPrimary.opacity(0.12)
 

@@ -78,7 +78,7 @@ struct AppEventDateBlock: View {
             VStack(spacing: 1) {
                 Text(dayText)
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .lineLimit(1)
 
                 Text(monthText.uppercased())
@@ -238,7 +238,7 @@ struct MetadataRow: View {
             }
         } icon: {
             Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
         }
         .font(.subheadline)
     }

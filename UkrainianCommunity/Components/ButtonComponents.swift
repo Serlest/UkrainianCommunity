@@ -140,7 +140,7 @@ struct LikeButton: View {
         Button(action: action) {
             Label("\(count)", systemImage: isLiked ? "heart.fill" : "heart")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isLiked ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .foregroundStyle(isLiked ? AppTheme.accentDestructive : AppTheme.accentPrimaryForeground)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
@@ -170,7 +170,7 @@ extension View {
             self
                 .buttonStyle(.bordered)
                 .controlSize(.large)
-                .tint(AppTheme.accentPrimary)
+                .tint(AppTheme.accentPrimaryForeground)
         }
     }
 
