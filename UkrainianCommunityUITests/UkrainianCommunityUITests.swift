@@ -89,7 +89,9 @@ final class UkrainianCommunityUITests: XCTestCase {
         let tabButton = rootTabButton(tab, in: tabBar)
         XCTAssertTrue(tabButton.waitForExistence(timeout: timeout), file: file, line: line)
         if !tabButton.isSelected {
-            tabButton.tap()
+            tabButton
+                .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                .tap()
         }
 
         XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout), file: file, line: line)
