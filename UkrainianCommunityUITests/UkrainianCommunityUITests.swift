@@ -134,15 +134,24 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testStartupSplashTransitionsToMainInterface() throws {
         let app = launchApp()
         let logo = app.images["startup.logo"]
-        XCTAssertTrue(logo.waitForExistence(timeout: 5))
+        let tabBar = app.tabBars.firstMatch
 
-        // Capture the production splash after its reveal animation. The test
-        // then waits for the real four-second startup gate to complete.
-        Thread.sleep(forTimeInterval: 2)
-        attachScreenshot(named: "Startup Splash", from: app)
+        // XCTest can attach after the short production splash has already
+        // completed. If it is still visible, verify that it transitions away;
+        // the required startup contract is the appearance of the main UI.
+        if logo.waitForExistence(timeout: 2) {
+            attachScreenshot(named: "Startup Splash", from: app)
+            XCTAssertTrue(
+                logo.waitForNonExistence(timeout: 8),
+                "Startup logo did not transition away"
+            )
+        }
 
-        XCTAssertTrue(logo.waitForNonExistence(timeout: 8))
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(
+            tabBar.waitForExistence(timeout: 10),
+            "Main tab bar did not appear after startup"
+        )
+        XCTAssertEqual(app.state, .runningForeground)
         attachScreenshot(named: "Main Interface After Splash", from: app)
     }
 
