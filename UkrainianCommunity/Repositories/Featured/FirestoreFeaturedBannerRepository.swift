@@ -138,17 +138,18 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         guard snapshot.exists else {
             throw AppError.notFound
         }
+        let existingData = snapshot.data() ?? [:]
         let existingBanner: FeaturedBanner
         do {
             existingBanner = try makeBanner(
                 id: banner.id,
-                data: snapshot.data() ?? [:],
+                data: existingData,
                 allowsUnsupportedLegacy: true
             )
         } catch {
             existingBanner = makeRecoverableOwnerBanner(
                 id: banner.id,
-                data: snapshot.data() ?? [:]
+                data: existingData
             )
         }
         let updatedBanner = FeaturedBanner(
@@ -177,7 +178,10 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             updatedBy: banner.updatedBy
         )
         try validationService.validate(updatedBanner)
-        let data = makeData(from: updatedBanner)
+        let data = makeUpdateData(
+            from: updatedBanner,
+            preservingIdentityFrom: existingData
+        )
 
         do {
             try await document.setData(data)
@@ -422,6 +426,25 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         data[Field.id.rawValue] = banner.id
         data[Field.createdAt.rawValue] = Timestamp(date: banner.createdAt)
         data[Field.createdBy.rawValue] = banner.createdBy
+        return data
+    }
+
+    private func makeUpdateData(
+        from banner: FeaturedBanner,
+        preservingIdentityFrom existingData: [String: Any]
+    ) -> [String: Any] {
+        var data = makeData(from: banner)
+
+        // Firestore timestamps have nanosecond precision. Preserve immutable
+        // identity fields in their original representation so a Date
+        // round-trip cannot make Security Rules treat them as modified.
+        if let createdAt = existingData[Field.createdAt.rawValue] as? Timestamp {
+            data[Field.createdAt.rawValue] = createdAt
+        }
+        if let createdBy = nonEmpty(existingData[Field.createdBy.rawValue] as? String) {
+            data[Field.createdBy.rawValue] = createdBy
+        }
+
         return data
     }
 
