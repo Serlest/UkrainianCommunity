@@ -11,11 +11,11 @@ import {
 } from "../notifications/notificationPayloads";
 import {
   canAssignAppAdmin,
-  isActiveUser,
   type AccountStatus,
   type BlockState,
   type UserPermissionSnapshot,
 } from "../permissions/userPermissions";
+import {assertUsableTargetUser, getTargetAuthSnapshot} from "./targetUserValidation";
 
 type ActiveGlobalRole = "owner" | "admin" | "user";
 
@@ -120,15 +120,10 @@ function userRoleSnapshotFromData(uid: string, data: DocumentData | undefined): 
 }
 
 function assertMutableTarget(
-  target: UserRoleSnapshot,
-  mutation: AppAdminRoleMutation
+  target: UserRoleSnapshot
 ): void {
   if (target.globalRole === "owner") {
     throw new HttpsError("permission-denied", "Owner role cannot be changed here.");
-  }
-
-  if (mutation.requiresUsableTarget && !isActiveUser(target)) {
-    throw new HttpsError("failed-precondition", "Target user must have a usable account.");
   }
 }
 
@@ -161,6 +156,9 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
       throw new HttpsError("failed-precondition", "Self role changes are not allowed here.");
     }
 
+    const targetAuth = mutation.requiresUsableTarget
+      ? await getTargetAuthSnapshot(roleRequest.targetUserId)
+      : undefined;
     const targetReference = db.collection("users").doc(roleRequest.targetUserId);
     const committedAt = new Date().toISOString();
     let previousGlobalRole: ActiveGlobalRole = "user";
@@ -174,7 +172,10 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
       }
 
       const target = userRoleSnapshotFromData(roleRequest.targetUserId, targetSnapshot.data());
-      assertMutableTarget(target, mutation);
+      assertMutableTarget(target);
+      if (targetAuth) {
+        assertUsableTargetUser(targetAuth, target);
+      }
 
       const nextRole = mutation.nextGlobalRole(target.globalRole);
       assertChanged(target, nextRole);

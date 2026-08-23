@@ -1,3 +1,4 @@
+import {type DocumentData} from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { db } from "../firebase/admin";
@@ -25,6 +26,18 @@ export interface UserPermissionSnapshot {
 
 export const feedbackManagerGlobalRoles = ["owner", "admin"] as const;
 
+export function userPermissionSnapshotFromData(
+  uid: string,
+  data: DocumentData | undefined
+): UserPermissionSnapshot {
+  return {
+    uid,
+    accountStatus: data?.accountStatus,
+    blockState: data?.blockState,
+    globalRole: data?.globalRole,
+  };
+}
+
 export async function getUserPermissions(uid: string): Promise<UserPermissionSnapshot> {
   const snapshot = await db.collection("users").doc(uid).get();
 
@@ -32,14 +45,7 @@ export async function getUserPermissions(uid: string): Promise<UserPermissionSna
     throw new HttpsError("permission-denied", "User profile does not exist.");
   }
 
-  const data = snapshot.data() ?? {};
-
-  return {
-    uid,
-    accountStatus: data.accountStatus,
-    blockState: data.blockState,
-    globalRole: data.globalRole,
-  };
+  return userPermissionSnapshotFromData(uid, snapshot.data());
 }
 
 export function isActiveUser(user: UserPermissionSnapshot): boolean {

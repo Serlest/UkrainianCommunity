@@ -14,7 +14,14 @@ import {
   type OrganizationRole,
   type OrganizationRoleSnapshot,
 } from "../permissions/organizationPermissions";
-import { assertOwner } from "../permissions/userPermissions";
+import {
+  assertOwner,
+  userPermissionSnapshotFromData,
+} from "../permissions/userPermissions";
+import {
+  assertUsableTargetUser,
+  getTargetAuthSnapshot,
+} from "../users/targetUserValidation";
 
 type AssignableOrganizationRole = "communityAdmin" | "communityModerator";
 type OrganizationRoleResult = "none" | OrganizationRole;
@@ -169,6 +176,10 @@ function createRoleCallable(mutation: RoleMutation) {
     const roleRequest = parseRoleChangeRequest(request.data);
     const actorPermissions = auth.permissions;
     const organizationReference = db.collection("organizations").doc(roleRequest.organizationId);
+    const targetReference = db.collection("users").doc(roleRequest.targetUserId);
+    const targetAuth = mutation.isRemoval
+      ? undefined
+      : await getTargetAuthSnapshot(roleRequest.targetUserId);
     const committedAt = new Date().toISOString();
     let previousRole: OrganizationRoleResult = "none";
     const newRole: OrganizationRoleResult = mutation.isRemoval ? "none" : mutation.targetRole;
@@ -178,6 +189,17 @@ function createRoleCallable(mutation: RoleMutation) {
 
       if (!organizationSnapshot.exists) {
         throw new HttpsError("not-found", "Organization does not exist.");
+      }
+
+      if (targetAuth) {
+        const targetSnapshot = await transaction.get(targetReference);
+        if (!targetSnapshot.exists) {
+          throw new HttpsError("not-found", "Target user profile does not exist.");
+        }
+        assertUsableTargetUser(
+          targetAuth,
+          userPermissionSnapshotFromData(roleRequest.targetUserId, targetSnapshot.data())
+        );
       }
 
       const roles = organizationRolesFromData(
@@ -312,6 +334,8 @@ export const transferOrganizationOwnership = onCall(
     assertOwner(actorPermissions);
 
     const organizationReference = db.collection("organizations").doc(roleRequest.organizationId);
+    const targetReference = db.collection("users").doc(roleRequest.targetUserId);
+    const targetAuth = await getTargetAuthSnapshot(roleRequest.targetUserId);
     const committedAt = new Date().toISOString();
     let previousOwnerId: string | null = null;
 
@@ -321,6 +345,15 @@ export const transferOrganizationOwnership = onCall(
       if (!organizationSnapshot.exists) {
         throw new HttpsError("not-found", "Organization does not exist.");
       }
+
+      const targetSnapshot = await transaction.get(targetReference);
+      if (!targetSnapshot.exists) {
+        throw new HttpsError("not-found", "Target user profile does not exist.");
+      }
+      assertUsableTargetUser(
+        targetAuth,
+        userPermissionSnapshotFromData(roleRequest.targetUserId, targetSnapshot.data())
+      );
 
       const roles = organizationRolesFromData(
         roleRequest.organizationId,
