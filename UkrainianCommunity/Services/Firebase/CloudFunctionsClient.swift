@@ -26,6 +26,7 @@ enum CloudFunctionName: String, CaseIterable {
     case setFeaturedBannerActive
     case deleteFeaturedBanner
     case submitContentReport
+    case setUserBlocked
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -424,6 +425,8 @@ final class CloudFunctionsClient {
             return .systemConfiguration
         case .submitContentReport:
             return .report
+        case .setUserBlocked:
+            return .userProfile
         }
     }
 
@@ -453,7 +456,8 @@ final class CloudFunctionsClient {
              .requestOrganizationRevision,
              .acceptLegalDocument,
              .deleteOwnAccount,
-             .submitContentReport:
+             .submitContentReport,
+             .setUserBlocked:
             return false
         }
     }
@@ -502,7 +506,8 @@ final class CloudFunctionsClient {
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
-             .submitContentReport:
+             .submitContentReport,
+             .setUserBlocked:
             return nil
         }
     }
@@ -679,6 +684,9 @@ final class CloudFunctionsClient {
         } else if let request = request as? ContentReportFunctionRequest {
             metadata["reportTargetType"] = request.targetType
             metadata["reportTargetId"] = request.targetId
+        } else if let request = request as? UserBlockFunctionRequest {
+            metadata["targetUserId"] = request.targetUserId
+            metadata["isBlocked"] = String(request.isBlocked)
         }
 
         return metadata
@@ -714,6 +722,9 @@ final class CloudFunctionsClient {
         }
         if let request = request as? ContentReportFunctionRequest {
             return request.targetId
+        }
+        if let request = request as? UserBlockFunctionRequest {
+            return request.targetUserId
         }
         return nil
     }
