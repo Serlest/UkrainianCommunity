@@ -1,7 +1,7 @@
 import FirebaseFunctions
 import Foundation
 
-struct ContentReportFunctionRequest: Codable, Equatable {
+nonisolated struct ContentReportFunctionRequest: Codable, Equatable {
     let targetType: String
     let targetId: String
     let parentType: String?
@@ -10,7 +10,7 @@ struct ContentReportFunctionRequest: Codable, Equatable {
     let details: String?
 }
 
-private struct ContentReportFunctionResponse: Codable, Equatable {
+private nonisolated struct ContentReportFunctionResponse: Codable, Equatable {
     let reportId: String
     let status: String
     let submittedAt: String

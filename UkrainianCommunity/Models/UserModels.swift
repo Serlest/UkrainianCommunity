@@ -554,7 +554,7 @@ struct FeedbackItem: Identifiable, Codable {
     let reportContext: ContentReportContext?
     let occurrenceCount: Int
 
-    init(
+    nonisolated init(
         id: String,
         type: FeedbackType,
         subject: String?,
