@@ -133,12 +133,13 @@ struct PrimaryActionButton: View {
 
                 Text(isLoading ? loadingTitle : title)
                     .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(.white)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
-            .frame(height: AppTheme.iconButtonSize)
+            .frame(minHeight: AppTheme.iconButtonSize)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                     .fill(isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.36))

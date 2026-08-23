@@ -30,6 +30,7 @@ struct AppEditorField<Content: View>: View {
     let title: String
     let counterText: String?
     @ViewBuilder let content: Content
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(title: String, counterText: String? = nil, @ViewBuilder content: () -> Content) {
         self.title = title
@@ -39,23 +40,41 @@ struct AppEditorField<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
+            if let counterText {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 4) {
+                        fieldTitle
+                        fieldCounter(counterText)
+                    }
+                } else {
+                    HStack(alignment: .firstTextBaseline) {
+                        fieldTitle
 
-                if let counterText {
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                    Text(counterText)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .monospacedDigit()
+                        Spacer(minLength: AppTheme.eventsMetadataSpacing)
+                        fieldCounter(counterText)
+                    }
                 }
+            } else {
+                fieldTitle
             }
 
             content
         }
+    }
+
+    private var fieldTitle: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func fieldCounter(_ counterText: String) -> some View {
+        Text(counterText)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary)
+            .monospacedDigit()
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -78,12 +97,13 @@ struct AppEditorSubmitButton: View {
 
                 Text(isLoading ? loadingTitle : title)
                     .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(.white)
             .padding(.horizontal, AppTheme.sectionSpacing)
-            .frame(height: AppTheme.iconButtonSize)
+            .padding(.vertical, 12)
+            .frame(minHeight: AppTheme.iconButtonSize)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                     .fill(isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.38))
@@ -152,7 +172,8 @@ struct EditorTextField: View {
                 .accessibilityLabel(title)
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.newsEditorInputHeight)
+        .padding(.vertical, 10)
+        .frame(minHeight: AppTheme.newsEditorInputHeight)
         .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
@@ -243,7 +264,8 @@ struct EditorSecureField: View {
                 .accessibilityLabel(title)
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.newsEditorInputHeight)
+        .padding(.vertical, 10)
+        .frame(minHeight: AppTheme.newsEditorInputHeight)
         .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)

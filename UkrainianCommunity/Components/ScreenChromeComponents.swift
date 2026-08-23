@@ -887,7 +887,7 @@ struct AppSearchableBrandHeader: View {
             }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.searchControlHeight)
+        .frame(minHeight: AppTheme.searchControlHeight)
         .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
