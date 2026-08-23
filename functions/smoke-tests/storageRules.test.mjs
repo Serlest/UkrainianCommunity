@@ -195,23 +195,23 @@ describe("organization media permissions", () => {
       "organizations/approved-org/logo.jpg",
     ));
     await assertSucceeds(imageUpload(
-      storage("org-admin"),
-      "organizations/approved-org/draftUploads/news/org-news_cover.jpg",
-    ));
-    await assertSucceeds(imageUpload(
       storage("org-moderator"),
       "organizations/approved-org/photos/photo-1.jpg",
     ));
   });
 
-  test("rejects outsiders and malformed draft file names", async () => {
+  test("rejects outsiders and retired draft upload paths", async () => {
     await assertFails(imageUpload(
       storage("outsider"),
       "organizations/approved-org/logo.jpg",
     ));
     await assertFails(imageUpload(
       storage("org-owner"),
-      "organizations/approved-org/draftUploads/news/not-a-cover.jpg",
+      "organizations/approved-org/draftUploads/news/org-news_cover.jpg",
+    ));
+    await assertFails(imageUpload(
+      storage("org-admin"),
+      "organizations/approved-org/draftUploads/events/org-event_cover.jpg",
     ));
   });
 
@@ -231,6 +231,8 @@ describe("organization media permissions", () => {
     await assertSucceeds(imageUpload(storage("org-admin"), "events/org-event/cover.jpg"));
     await assertFails(imageUpload(storage("outsider"), "news/org-news/cover.jpg"));
     await assertFails(imageUpload(storage("outsider"), "events/org-event/cover.jpg"));
+    await assertFails(deleteObject(ref(storage("owner"), "news/org-news/cover.jpg")));
+    await assertFails(deleteObject(ref(storage("org-owner"), "events/org-event/cover.jpg")));
   });
 });
 

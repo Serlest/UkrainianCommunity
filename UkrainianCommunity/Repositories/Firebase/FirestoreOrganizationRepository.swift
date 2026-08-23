@@ -1,7 +1,6 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseStorage
 
 struct FirestoreOrganizationRepository: OrganizationRepository {
     private let collection = Firestore.firestore().collection("organizations")
@@ -244,44 +243,8 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             throw AppError.permissionDenied
         }
         _ = try ensureAuthenticatedUserID()
-        let imageReference = Storage.storage().reference().child("organizations/\(id)/logo.jpg")
-
         do {
-            try await imageReference.delete()
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "Storage",
-                    operationName: "deleteOrganizationLogoImage",
-                    targetType: .organization,
-                    targetId: id,
-                    organizationId: id,
-                    metadata: ["storageArea": "organizations"]
-                )
-            )
-        }
-
-        do {
-            try await deleteStorageItems(prefix: "organizations/\(id)")
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "Storage",
-                    operationName: "deleteOrganizationStorageItems",
-                    targetType: .organization,
-                    targetId: id,
-                    organizationId: id,
-                    metadata: ["storageArea": "organizations"]
-                )
-            )
-        }
-
-        try await deleteRelatedLikes(organizationID: id)
-        try await deleteRelatedSubscriptions(organizationID: id)
-        do {
-            try await collection.document(id).delete()
+            _ = try await CloudFunctionsClient.shared.deleteOrganization(id: id)
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -1067,51 +1030,6 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .document(userID)
             .collection("organizationBookmarks")
             .document(organizationID)
-    }
-
-    private func deleteRelatedLikes(organizationID: String) async throws {
-        let snapshot = try await likesCollection
-            .whereField("organizationId", isEqualTo: organizationID)
-            .getDocuments()
-
-        guard !snapshot.documents.isEmpty else { return }
-
-        let firestore = Firestore.firestore()
-        for chunk in snapshot.documents.chunked(into: 500) {
-            let batch = firestore.batch()
-            for document in chunk {
-                batch.deleteDocument(document.reference)
-            }
-            try await batch.commit()
-        }
-    }
-
-    private func deleteRelatedSubscriptions(organizationID: String) async throws {
-        let snapshot = try await likesCollection
-            .whereField("subscribedOrganizationId", isEqualTo: organizationID)
-            .getDocuments()
-
-        guard !snapshot.documents.isEmpty else { return }
-
-        let firestore = Firestore.firestore()
-        for chunk in snapshot.documents.chunked(into: 500) {
-            let batch = firestore.batch()
-            for document in chunk {
-                batch.deleteDocument(document.reference)
-            }
-            try await batch.commit()
-        }
-    }
-
-    private func deleteStorageItems(prefix: String) async throws {
-        let reference = Storage.storage().reference().child(prefix)
-        let result = try await reference.listAll()
-        for item in result.items {
-            try? await item.delete()
-        }
-        for folder in result.prefixes {
-            try? await deleteStorageItems(prefix: folder.fullPath)
-        }
     }
 
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {

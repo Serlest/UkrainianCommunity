@@ -1,7 +1,6 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseStorage
 
 struct FirestoreEventRepository: EventRepository {
     private let collection = Firestore.firestore().collection("events")
@@ -528,12 +527,9 @@ struct FirestoreEventRepository: EventRepository {
 
     func deleteEvent(id: String) async throws {
         do {
-            let response = try await CloudFunctionsClient.shared.cancelEvent(
+            _ = try await CloudFunctionsClient.shared.cancelEvent(
                 EventCancellationFunctionRequest(eventId: id)
             )
-            if response.status == "deleted" {
-                await deleteEventCoverImageIfPossible(id: id)
-            }
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -557,25 +553,6 @@ struct FirestoreEventRepository: EventRepository {
                 summary: "Event cancelled"
             )
         )
-    }
-
-    private func deleteEventCoverImageIfPossible(id: String) async {
-        let imageReference = Storage.storage().reference().child("events/\(id)/cover.jpg")
-
-        do {
-            try await imageReference.delete()
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "Storage",
-                    operationName: "deleteEventCoverImage",
-                    targetType: .event,
-                    targetId: id,
-                    metadata: ["storageArea": "events"]
-                )
-            )
-        }
     }
 
     func likeEvent(id: String) async throws {

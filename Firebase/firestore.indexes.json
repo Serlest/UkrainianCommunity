@@ -473,6 +473,16 @@
       ]
     },
     {
+      "collectionGroup": "organizationBookmarks",
+      "fieldPath": "organizationId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
       "collectionGroup": "newsBookmarks",
       "fieldPath": "newsId",
       "indexes": [

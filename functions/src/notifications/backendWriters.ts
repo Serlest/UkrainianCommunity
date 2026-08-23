@@ -9,6 +9,7 @@ import {
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { requireAuth } from "../auth/context";
+import {deleteEventContent} from "../content/contentDeletion";
 import { db } from "../firebase/admin";
 import { getOrganizationRoles } from "../permissions/organizationPermissions";
 import { assertOwner, getUserPermissions, isOwner } from "../permissions/userPermissions";
@@ -465,10 +466,8 @@ export const cancelEvent = onCall(
     const cancelledAt = Timestamp.now();
     const title = eventTitle(eventData);
     const requiresPopup = isSoon(eventData);
-    const wasPublic = eventData.moderationStatus === "approved";
-
-    if (!wasPublic && userIds.length === 0) {
-      await eventReference.delete();
+    if (userIds.length === 0) {
+      await deleteEventContent(eventId, eventData);
       return {
         eventId,
         status: "deleted",

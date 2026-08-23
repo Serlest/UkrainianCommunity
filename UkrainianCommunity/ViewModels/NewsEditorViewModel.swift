@@ -363,38 +363,24 @@ final class NewsEditorViewModel: ObservableObject {
 
                 if selectedImageData != nil {
                     isUploadingImage = true
-                    var uploadedDraftImage = false
-                    let organizationID = news.source.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     do {
-                        guard !organizationID.isEmpty else {
-                            throw AppError.validationFailed
-                        }
                         let downloadURL: URL
                         if let selectedProcessedImage {
-                            downloadURL = try await imageUploadService.uploadOrganizationNewsDraftImage(
+                            downloadURL = try await imageUploadService.uploadNewsCoverImage(
                                 processedImage: selectedProcessedImage,
-                                organizationID: organizationID,
                                 newsID: newsID
                             )
                         } else if let selectedImageData {
-                            downloadURL = try await imageUploadService.uploadOrganizationNewsDraftImage(
+                            downloadURL = try await imageUploadService.uploadNewsCoverImage(
                                 data: selectedImageData,
-                                organizationID: organizationID,
                                 newsID: newsID
                             )
                         } else {
                             throw AppError.validationFailed
                         }
-                        uploadedDraftImage = true
                         try await repository.updateNewsImageURL(id: newsID, imageURL: downloadURL.absoluteString)
                     } catch let uploadError {
                         isUploadingImage = false
-                        if uploadedDraftImage, !organizationID.isEmpty {
-                            try? await imageUploadService.deleteOrganizationNewsDraftImage(
-                                organizationID: organizationID,
-                                newsID: newsID
-                            )
-                        }
                         do {
                             try await repository.deleteNews(id: news.id)
                             errorMessage = readableUploadErrorMessage(for: uploadError)

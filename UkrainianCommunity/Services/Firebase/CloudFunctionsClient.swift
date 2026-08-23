@@ -11,6 +11,8 @@ enum CloudFunctionName: String, CaseIterable {
     case rejectOrganization
     case requestOrganizationRevision
     case cancelEvent
+    case deleteNews
+    case deleteOrganization
     case assignAppAdmin
     case removeAppAdmin
     case warnUser
@@ -172,6 +174,19 @@ struct EventCancellationFunctionResponse: Codable, Equatable {
     let cancelledAt: String
 }
 
+struct NewsDeletionFunctionRequest: Codable, Equatable {
+    let newsId: String
+}
+
+struct OrganizationDeletionFunctionRequest: Codable, Equatable {
+    let organizationId: String
+}
+
+struct ContentDeletionFunctionResponse: Codable, Equatable {
+    let status: String
+    let deletedAt: String
+}
+
 struct AccountDeletionFunctionRequest: Codable, Equatable {}
 
 struct AccountDeletionFunctionResponse: Codable, Equatable {
@@ -313,6 +328,17 @@ final class CloudFunctionsClient {
         try await call(.cancelEvent, request: request)
     }
 
+    func deleteNews(id: String) async throws -> ContentDeletionFunctionResponse {
+        try await call(.deleteNews, request: NewsDeletionFunctionRequest(newsId: id))
+    }
+
+    func deleteOrganization(id: String) async throws -> ContentDeletionFunctionResponse {
+        try await call(
+            .deleteOrganization,
+            request: OrganizationDeletionFunctionRequest(organizationId: id)
+        )
+    }
+
     func deleteOwnAccount() async throws -> AccountDeletionFunctionResponse {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
     }
@@ -375,8 +401,11 @@ final class CloudFunctionsClient {
              .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
-             .cancelEvent:
+             .cancelEvent,
+             .deleteOrganization:
             return .organization
+        case .deleteNews:
+            return .newsPost
         case .assignAppAdmin,
              .removeAppAdmin,
              .warnUser,
@@ -403,6 +432,8 @@ final class CloudFunctionsClient {
              .removeOrganizationModerator,
              .transferOrganizationOwnership,
              .cancelEvent,
+             .deleteNews,
+             .deleteOrganization,
              .assignAppAdmin,
              .removeAppAdmin,
              .warnUser,
@@ -460,6 +491,8 @@ final class CloudFunctionsClient {
              .rejectOrganization,
              .requestOrganizationRevision,
              .cancelEvent,
+             .deleteNews,
+             .deleteOrganization,
              .acceptLegalDocument,
              .deleteOwnAccount,
              .saveFeaturedBanner,
@@ -634,6 +667,10 @@ final class CloudFunctionsClient {
         } else if let request = request as? FeaturedBannerActiveFunctionRequest {
             metadata["bannerId"] = request.id
             metadata["isActive"] = String(request.isActive)
+        } else if let request = request as? NewsDeletionFunctionRequest {
+            metadata["newsId"] = request.newsId
+        } else if let request = request as? OrganizationDeletionFunctionRequest {
+            metadata["organizationId"] = request.organizationId
         }
 
         return metadata
@@ -660,6 +697,12 @@ final class CloudFunctionsClient {
         }
         if let request = request as? FeaturedBannerActiveFunctionRequest {
             return request.id
+        }
+        if let request = request as? NewsDeletionFunctionRequest {
+            return request.newsId
+        }
+        if let request = request as? OrganizationDeletionFunctionRequest {
+            return request.organizationId
         }
         return nil
     }

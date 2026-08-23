@@ -1043,10 +1043,6 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(ownerUserEditableFields());
     }
 
-    function canWriteContent(section) {
-      return canModerateSection(section);
-    }
-
     function canModerateAppContent(section) {
       return canModerateSection(section);
     }
@@ -1541,11 +1537,6 @@ service cloud.firestore {
         && (canUseOrganizationOverride() || canEditOrganizationContent(resource.data.organizationId));
     }
 
-    function canDeleteOrganizationContent() {
-      return isOrganizationContent(resource.data)
-        && (canUseOrganizationOverride() || isOrganizationOwner(resource.data.organizationId));
-    }
-
     function canModerateNewsComment(newsId) {
       return canModerateAppContent('news')
         || canModerateSection('comments')
@@ -1930,7 +1921,7 @@ service cloud.firestore {
         || canReadModerationQueue('news')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if canCreateOrganizationContent();
-      allow delete: if canWriteContent('news') || canDeleteOrganizationContent();
+      allow delete: if false;
       allow update: if canUpdateOrganizationContent()
         || (
           isOrganizationContent(resource.data)
@@ -1975,7 +1966,7 @@ service cloud.firestore {
         || canReadModerationQueue('events')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if canCreateOrganizationContent();
-      allow delete: if canDeleteOrganizationContent();
+      allow delete: if false;
       allow update: if canUpdateOrganizationContent()
         || (
           isOrganizationContent(resource.data)
@@ -2018,7 +2009,7 @@ service cloud.firestore {
       allow get: if canReadOrganization(organizationId);
       allow list: if canListOrganization();
       allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
-      allow delete: if isOwner();
+      allow delete: if false;
       allow update: if safeOrganizationInfoUpdate(organizationId)
         || safeOrganizationRequestUpdate();
 

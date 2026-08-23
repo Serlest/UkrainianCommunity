@@ -153,7 +153,7 @@ service firebase.storage {
       allow read: if true;
       allow create, update: if (canManageContentImages('news') || canManageNewsCover(newsId))
         && isSafeImageUpload();
-      allow delete: if canManageContentImages('news') || canManageNewsCover(newsId);
+      allow delete: if false;
     }
 
     match /news/{filePath=**} {
@@ -165,7 +165,7 @@ service firebase.storage {
       allow read: if true;
       allow create, update: if canManageEventCover(eventId)
         && isSafeImageUpload();
-      allow delete: if canManageEventCover(eventId);
+      allow delete: if false;
     }
 
     match /events/{filePath=**} {
@@ -202,20 +202,12 @@ service firebase.storage {
 
     match /organizations/{organizationId}/draftUploads/news/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
-      allow create, update: if canEditOrganizationContent(organizationId)
-        && fileName.matches('^.+_cover\\.jpg$')
-        && isSafeImageUpload();
-      allow delete: if canEditOrganizationContent(organizationId)
-        && fileName.matches('^.+_cover\\.jpg$');
+      allow write: if false;
     }
 
     match /organizations/{organizationId}/draftUploads/events/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
-      allow create, update: if canEditOrganizationContent(organizationId)
-        && fileName.matches('^.+_cover\\.jpg$')
-        && isSafeImageUpload();
-      allow delete: if canEditOrganizationContent(organizationId)
-        && fileName.matches('^.+_cover\\.jpg$');
+      allow write: if false;
     }
 
     match /organizations/{organizationId}/{filePath=**} {

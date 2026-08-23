@@ -982,6 +982,23 @@ struct UkrainianCommunityTests {
         #expect(CloudFunctionName.allCases.contains(.deleteOwnAccount))
     }
 
+    @Test func contentDeletionUsesDedicatedServerCallables() {
+        #expect(CloudFunctionName.deleteNews.rawValue == "deleteNews")
+        #expect(CloudFunctionName.deleteOrganization.rawValue == "deleteOrganization")
+        #expect(CloudFunctionName.allCases.contains(.deleteNews))
+        #expect(CloudFunctionName.allCases.contains(.deleteOrganization))
+    }
+
+    @Test func mediaStoragePathsAreCanonical() {
+        #expect(MediaStoragePath.newsCover(newsID: "news-1") == "news/news-1/cover.jpg")
+        #expect(MediaStoragePath.eventCover(eventID: "event-1") == "events/event-1/cover.jpg")
+        #expect(
+            MediaStoragePath.organizationPhoto(organizationID: "org-1", photoID: "photo-1")
+                == "organizations/org-1/photos/photo-1.jpg"
+        )
+        #expect(MediaStoragePath.profileAvatar(userID: "user-1") == "profileImages/user-1/avatar.jpg")
+    }
+
     private func makeEvent(id: String, startDate: Date, endDate: Date) -> Event {
         Event(
             id: id,

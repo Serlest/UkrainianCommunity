@@ -2,9 +2,9 @@ import { DocumentData, Query, Timestamp } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
-import { adminStorage, db } from "../firebase/admin";
+import {deleteEventContent, deleteNewsContent} from "../content/contentDeletion";
+import { db } from "../firebase/admin";
 
-const relatedBatchSize = 400;
 const maxContentDocumentsPerRun = 200;
 const maxLogDocumentsPerPolicy = 400;
 
@@ -82,7 +82,11 @@ async function cleanupExpiredContent(
 
   for (const document of snapshot.docs) {
     try {
-      await deleteContentDocument(kind, document.id);
+      if (kind === "news") {
+        await deleteNewsContent(document.id, document.data());
+      } else {
+        await deleteEventContent(document.id, document.data());
+      }
       deleted += 1;
     } catch (error) {
       logger.error("Failed to delete an expired content document.", {
@@ -94,49 +98,6 @@ async function cleanupExpiredContent(
   }
 
   return deleted;
-}
-
-async function deleteContentDocument(kind: ContentKind, contentId: string): Promise<void> {
-  if (kind === "news") {
-    await deleteQuery(db.collection("likes").where("newsId", "==", contentId));
-    await deleteCollectionGroupDocuments("newsBookmarks", "newsId", contentId);
-    await deleteCollectionGroupDocuments("newsViews", "newsId", contentId);
-  } else {
-    await deleteQuery(db.collection("likes").where("eventId", "==", contentId));
-    await deleteQuery(db.collection("registrations").where("eventId", "==", contentId));
-    await deleteCollectionGroupDocuments("eventBookmarks", "eventId", contentId);
-    await deleteCollectionGroupDocuments("eventViews", "eventId", contentId);
-  }
-
-  await deleteStoragePrefix(`${kind}/${contentId}/`);
-  await db.recursiveDelete(db.collection(kind).doc(contentId));
-}
-
-async function deleteCollectionGroupDocuments(
-  collectionId: string,
-  field: string,
-  value: string,
-): Promise<void> {
-  await deleteQuery(db.collectionGroup(collectionId).where(field, "==", value));
-}
-
-async function deleteQuery(query: Query<DocumentData>): Promise<void> {
-  while (true) {
-    const snapshot = await query.limit(relatedBatchSize).get();
-    if (snapshot.empty) {
-      return;
-    }
-
-    const writer = db.bulkWriter();
-    for (const document of snapshot.docs) {
-      writer.delete(document.ref);
-    }
-    await writer.close();
-  }
-}
-
-async function deleteStoragePrefix(prefix: string): Promise<void> {
-  await adminStorage.bucket().deleteFiles({ prefix, force: true });
 }
 
 async function cleanupExpiredSystemLogs(now: Date): Promise<number> {

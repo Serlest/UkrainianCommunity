@@ -25,105 +25,33 @@ final class ImageUploadService {
     private init() {}
 
     func uploadNewsCoverImage(data: Data, newsID: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: "news/\(newsID)/cover.jpg")
+        try await uploadCoverImage(data: data, storagePath: MediaStoragePath.newsCover(newsID: newsID))
     }
 
     func uploadNewsCoverImage(processedImage: ProcessedImageSelection, newsID: String) async throws -> URL {
         try await uploadProcessedImage(
             data: processedImage.data,
             contentType: processedImage.contentType,
-            storagePath: "news/\(newsID)/cover.jpg"
+            storagePath: MediaStoragePath.newsCover(newsID: newsID)
         )
-    }
-
-    func uploadOrganizationNewsDraftImage(data: Data, organizationID: String, newsID: String) async throws -> URL {
-        try await uploadCoverImage(
-            data: data,
-            storagePath: organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID)
-        )
-    }
-
-    func uploadOrganizationNewsDraftImage(processedImage: ProcessedImageSelection, organizationID: String, newsID: String) async throws -> URL {
-        try await uploadProcessedImage(
-            data: processedImage.data,
-            contentType: processedImage.contentType,
-            storagePath: organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID)
-        )
-    }
-
-    func deleteOrganizationNewsDraftImage(organizationID: String, newsID: String) async throws {
-        do {
-            try await storage.reference()
-                .child(organizationNewsDraftImagePath(organizationID: organizationID, newsID: newsID))
-                .delete()
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "Storage",
-                    operationName: "deleteOrganizationNewsDraftImage",
-                    targetType: .newsPost,
-                    targetId: newsID,
-                    organizationId: organizationID,
-                    metadata: ["storageArea": "organizationNewsDraftImage"]
-                )
-            )
-            throw error
-        }
     }
 
     func uploadEventCoverImage(data: Data, eventID: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: "events/\(eventID)/cover.jpg")
+        try await uploadCoverImage(data: data, storagePath: MediaStoragePath.eventCover(eventID: eventID))
     }
 
     func uploadEventCoverImage(processedImage: ProcessedImageSelection, eventID: String) async throws -> URL {
         try await uploadProcessedImage(
             data: processedImage.data,
             contentType: processedImage.contentType,
-            storagePath: "events/\(eventID)/cover.jpg"
+            storagePath: MediaStoragePath.eventCover(eventID: eventID)
         )
-    }
-
-    func uploadOrganizationEventDraftImage(data: Data, organizationID: String, eventID: String) async throws -> URL {
-        try await uploadCoverImage(
-            data: data,
-            storagePath: organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID)
-        )
-    }
-
-    func uploadOrganizationEventDraftImage(processedImage: ProcessedImageSelection, organizationID: String, eventID: String) async throws -> URL {
-        try await uploadProcessedImage(
-            data: processedImage.data,
-            contentType: processedImage.contentType,
-            storagePath: organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID)
-        )
-    }
-
-    func deleteOrganizationEventDraftImage(organizationID: String, eventID: String) async throws {
-        do {
-            try await storage.reference()
-                .child(organizationEventDraftImagePath(organizationID: organizationID, eventID: eventID))
-                .delete()
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "Storage",
-                    operationName: "deleteOrganizationEventDraftImage",
-                    targetType: .event,
-                    targetId: eventID,
-                    organizationId: organizationID,
-                    metadata: ["storageArea": "organizationEventDraftImage"]
-                )
-            )
-            throw error
-        }
     }
 
     func uploadOrganizationLogoImage(data: Data, organizationID: String) async throws -> URL {
         try await uploadCoverImage(
             data: data,
-            storagePath: "organizations/\(organizationID)/logo.jpg",
+            storagePath: MediaStoragePath.organizationLogo(organizationID: organizationID),
             rendersOpaqueJPEG: true
         )
     }
@@ -132,25 +60,30 @@ final class ImageUploadService {
         try await uploadProcessedImage(
             data: processedImage.data,
             contentType: processedImage.contentType,
-            storagePath: "organizations/\(organizationID)/logo.jpg"
+            storagePath: MediaStoragePath.organizationLogo(organizationID: organizationID)
         )
     }
 
     func uploadOrganizationPhoto(data: Data, organizationID: String, photoID: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: "organizations/\(organizationID)/photos/\(photoID).jpg")
+        try await uploadCoverImage(
+            data: data,
+            storagePath: MediaStoragePath.organizationPhoto(organizationID: organizationID, photoID: photoID)
+        )
     }
 
     func uploadOrganizationPhoto(processedImage: ProcessedImageSelection, organizationID: String, photoID: String) async throws -> URL {
         try await uploadProcessedImage(
             data: processedImage.data,
             contentType: processedImage.contentType,
-            storagePath: "organizations/\(organizationID)/photos/\(photoID).jpg"
+            storagePath: MediaStoragePath.organizationPhoto(organizationID: organizationID, photoID: photoID)
         )
     }
 
     func deleteOrganizationPhoto(organizationID: String, photoID: String) async throws {
         do {
-            try await storage.reference().child("organizations/\(organizationID)/photos/\(photoID).jpg").delete()
+            try await storage.reference()
+                .child(MediaStoragePath.organizationPhoto(organizationID: organizationID, photoID: photoID))
+                .delete()
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -168,14 +101,14 @@ final class ImageUploadService {
     }
 
     func uploadProfileAvatarImage(data: Data, userID: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: "profileImages/\(userID)/avatar.jpg")
+        try await uploadCoverImage(data: data, storagePath: MediaStoragePath.profileAvatar(userID: userID))
     }
 
     func uploadProfileAvatarImage(processedImage: ProcessedImageSelection, userID: String) async throws -> URL {
         try await uploadProcessedImage(
             data: processedImage.data,
             contentType: processedImage.contentType,
-            storagePath: "profileImages/\(userID)/avatar.jpg"
+            storagePath: MediaStoragePath.profileAvatar(userID: userID)
         )
     }
 
@@ -185,11 +118,10 @@ final class ImageUploadService {
     }
 
     func uploadFeaturedBannerImage(bannerId: String, processedImage: ProcessedImageSelection) async throws -> URL {
-        let fileName = "hero-\(UUID().uuidString).jpg"
         return try await uploadProcessedImage(
             data: processedImage.data,
             contentType: processedImage.contentType,
-            storagePath: "featuredBanners/\(bannerId)/\(fileName)",
+            storagePath: MediaStoragePath.featuredBannerImage(bannerID: bannerId),
         )
     }
 
@@ -307,14 +239,6 @@ final class ImageUploadService {
         let parts = storagePath.split(separator: "/").map(String.init)
         guard parts.first == "organizations", parts.count > 1 else { return nil }
         return parts[1]
-    }
-
-    private func organizationNewsDraftImagePath(organizationID: String, newsID: String) -> String {
-        "organizations/\(organizationID)/draftUploads/news/\(newsID)_cover.jpg"
-    }
-
-    private func organizationEventDraftImagePath(organizationID: String, eventID: String) -> String {
-        "organizations/\(organizationID)/draftUploads/events/\(eventID)_cover.jpg"
     }
 
     private func prepareImageDataForUpload(

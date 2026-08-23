@@ -1,7 +1,6 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseStorage
 
 struct FirestoreNewsRepository: NewsRepository {
     private let collection = Firestore.firestore().collection("news")
@@ -261,9 +260,8 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func deleteNews(id: String) async throws {
-        await deleteNewsCoverImageIfPossible(id: id)
         do {
-            try await collection.document(id).delete()
+            _ = try await CloudFunctionsClient.shared.deleteNews(id: id)
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -276,7 +274,6 @@ struct FirestoreNewsRepository: NewsRepository {
             )
             throw error
         }
-        await deleteRelatedLikesIfPossible(newsID: id)
 
         await SystemAuditLoggingService.shared.logSuccess(
             SystemAuditLogContext(
@@ -288,24 +285,6 @@ struct FirestoreNewsRepository: NewsRepository {
                 summary: "News post deleted"
             )
         )
-    }
-
-    private func deleteNewsCoverImageIfPossible(id: String) async {
-        let imageReference = Storage.storage().reference().child("news/\(id)/cover.jpg")
-        do {
-            try await imageReference.delete()
-        } catch {
-            await SystemTechnicalErrorLoggingService.shared.logFailure(
-                error,
-                context: SystemTechnicalErrorContext(
-                    moduleName: "Storage",
-                    operationName: "deleteNewsCoverImage",
-                    targetType: .newsPost,
-                    targetId: id,
-                    metadata: ["storageArea": "news"]
-                )
-            )
-        }
     }
 
     func likeNews(id: String) async throws {
@@ -726,29 +705,6 @@ struct FirestoreNewsRepository: NewsRepository {
             .getDocuments()
 
         return snapshot.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
-    }
-
-    private func deleteRelatedLikes(newsID: String) async throws {
-        let snapshot = try await likesCollection
-            .whereField("newsId", isEqualTo: newsID)
-            .getDocuments()
-
-        guard !snapshot.documents.isEmpty else { return }
-
-        let firestore = Firestore.firestore()
-        for chunk in snapshot.documents.chunked(into: 500) {
-            let batch = firestore.batch()
-            for document in chunk {
-                batch.deleteDocument(document.reference)
-            }
-            try await batch.commit()
-        }
-    }
-
-    private func deleteRelatedLikesIfPossible(newsID: String) async {
-        do {
-            try await deleteRelatedLikes(newsID: newsID)
-        } catch {}
     }
 
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {
