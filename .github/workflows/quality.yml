@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - main
+      - "release/**"
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -14,11 +17,57 @@ permissions:
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  firebase:
-    name: Firebase and rules
+  changes:
+    name: Change classification and static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      firebase: ${{ steps.classify.outputs.firebase }}
+      functions: ${{ steps.classify.outputs.functions }}
+      rules: ${{ steps.classify.outputs.rules }}
+      ios: ${{ steps.classify.outputs.ios }}
+      ios_unit: ${{ steps.classify.outputs.ios_unit }}
+      ios_ui: ${{ steps.classify.outputs.ios_ui }}
+      ios_release: ${{ steps.classify.outputs.ios_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed paths
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            python3 scripts/classify_changes.py --force-full --github-output "$GITHUB_OUTPUT"
+          else
+            python3 scripts/classify_changes.py \
+              --base "$PR_BASE_SHA" \
+              --head "$GITHUB_SHA" \
+              --github-output "$GITHUB_OUTPUT"
+          fi
+
+      - name: Test change classifier
+        run: python3 scripts/test_classify_changes.py
+
+      - name: Validate repository structure
+        run: python3 scripts/validate_repository_structure.py
+
+      - name: Validate localization catalog
+        run: python3 scripts/validate_localizations.py
+
+      - name: Validate property lists and privacy manifests
+        run: python3 scripts/validate_property_lists.py
+
+  firebase_affected:
+    name: Firebase affected checks
+    needs: changes
+    if: needs.changes.outputs.firebase == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -31,6 +80,7 @@ jobs:
           cache-dependency-path: functions/package-lock.json
 
       - uses: actions/setup-java@v5
+        if: needs.changes.outputs.rules == 'true'
         with:
           distribution: temurin
           java-version: 21
@@ -40,40 +90,54 @@ jobs:
         run: npm ci
 
       - name: Audit production dependencies
+        if: needs.changes.outputs.functions == 'true'
         working-directory: functions
         run: npm run audit:prod
 
       - name: Type-check
+        if: needs.changes.outputs.functions == 'true'
         working-directory: functions
         run: npm run lint
 
-      - name: Build functions
-        working-directory: functions
-        run: npm run build
-
       - name: Run Functions unit tests
+        if: needs.changes.outputs.functions == 'true'
         working-directory: functions
         run: npm run test:unit
 
-      - name: Install Firebase CLI
-        run: npm install --global firebase-tools
+      - name: Install pinned Firebase CLI
+        if: needs.changes.outputs.rules == 'true'
+        run: npm install --global firebase-tools@15.28.1
 
       - name: Test Firestore and Storage rules
+        if: needs.changes.outputs.rules == 'true'
         working-directory: functions
         run: npm run test:rules:all
 
-  ios:
-    name: iOS build, unit and UI tests
+  firebase:
+    name: Firebase and rules
+    needs:
+      - changes
+      - firebase_affected
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Preserve required-check status
+        env:
+          CLASSIFICATION_RESULT: ${{ needs.changes.result }}
+          AFFECTED_RESULT: ${{ needs.firebase_affected.result }}
+        run: |
+          [[ "$CLASSIFICATION_RESULT" == "success" ]]
+          [[ "$AFFECTED_RESULT" == "success" || "$AFFECTED_RESULT" == "skipped" ]]
+
+  ios_affected:
+    name: iOS affected checks
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
     runs-on: macos-15
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate repository structure
-        run: python3 scripts/validate_repository_structure.py
-
-      - name: Validate localization catalog
-        run: python3 scripts/validate_localizations.py
 
       - name: Build app target
         run: >
@@ -87,6 +151,7 @@ jobs:
           build
 
       - name: Build Release configuration
+        if: needs.changes.outputs.ios_release == 'true'
         run: >
           xcodebuild
           -project UkrainianCommunity.xcodeproj
@@ -98,6 +163,7 @@ jobs:
           build
 
       - name: Run Swift unit tests
+        if: needs.changes.outputs.ios_unit == 'true'
         run: >
           xcodebuild
           -project UkrainianCommunity.xcodeproj
@@ -110,6 +176,7 @@ jobs:
           -only-testing:UkrainianCommunityTests
 
       - name: Run UI smoke tests
+        if: needs.changes.outputs.ios_ui == 'true'
         run: >
           xcodebuild
           -project UkrainianCommunity.xcodeproj
@@ -126,10 +193,27 @@ jobs:
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testGuestProfileShowsAuthEntryPoints
 
       - name: Upload UI smoke test results
-        if: always()
+        if: always() && needs.changes.outputs.ios_ui == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: UkrainianCommunityUI-${{ github.run_attempt }}
           path: ${{ runner.temp }}/UkrainianCommunityUI.xcresult
           if-no-files-found: warn
           retention-days: 14
+
+  ios:
+    name: iOS build, unit and UI tests
+    needs:
+      - changes
+      - ios_affected
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Preserve required-check status
+        env:
+          CLASSIFICATION_RESULT: ${{ needs.changes.result }}
+          AFFECTED_RESULT: ${{ needs.ios_affected.result }}
+        run: |
+          [[ "$CLASSIFICATION_RESULT" == "success" ]]
+          [[ "$AFFECTED_RESULT" == "success" || "$AFFECTED_RESULT" == "skipped" ]]
