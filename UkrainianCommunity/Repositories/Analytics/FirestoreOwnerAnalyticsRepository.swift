@@ -295,8 +295,12 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         metrics[.totalViews] = viewCount
 
         let contentKeys = data[AnalyticsFirestoreSchema.RegionStatsField.contentKeys] as? [String: Any]
-        let activeContentCount = contentKeys.map(AnalyticsFirestoreSchema.activeContentCount)
-        let resolvedContentCount = activeContentCount ?? 0
+        let resolvedContentCount: Int
+        if let contentKeys {
+            resolvedContentCount = AnalyticsFirestoreSchema.activeContentCount(in: contentKeys)
+        } else {
+            resolvedContentCount = 0
+        }
         guard AnalyticsFirestoreSchema.hasActiveRegionAnalytics(
             viewCount: viewCount,
             contentCount: resolvedContentCount

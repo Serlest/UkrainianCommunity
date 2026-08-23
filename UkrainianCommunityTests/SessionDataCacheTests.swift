@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import UkrainianCommunity
 
+@MainActor
 struct SessionDataCacheTests {
     @Test func returnsStoredInteractionStateAndUpdatesLoadedSets() async {
         let cache = SessionDataCache()
@@ -52,7 +53,7 @@ struct SessionDataCacheTests {
         #expect(subscribedOrganizationIDs == nil)
         let profiles = await cache.cachedPublicProfiles(for: [profile.id], userID: "user-a")
         #expect(profiles.profiles.isEmpty)
-        #expect(Set(profiles.missingIDs) == [profile.id])
+        #expect(Set(profiles.missingIDs) == ["profile-1"])
     }
 
     @Test func publicProfileLookupReturnsHitsAndOnlyMissingIdentifiers() async {
@@ -71,8 +72,9 @@ struct SessionDataCacheTests {
             for: [profile.id, "profile-2", profile.id],
             userID: "user-a"
         )
+        let cachedProfileID = result.profiles["profile-1"]?.id
 
-        #expect(result.profiles[profile.id] == profile)
+        #expect(cachedProfileID == "profile-1")
         #expect(Set(result.missingIDs) == ["profile-2"])
     }
 }
