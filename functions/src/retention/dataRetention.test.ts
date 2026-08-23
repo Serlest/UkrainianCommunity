@@ -2,6 +2,10 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
 import {
+  analyticsRateLimitRetentionHours,
+  analyticsReceiptRetentionHours,
+} from "../analytics/analyticsEventGuard";
+import {
   contentRetentionMonths,
   subtractUtcDays,
   subtractUtcMonths,
@@ -18,6 +22,11 @@ test("content retention is six calendar months", () => {
     subtractUtcMonths(new Date("2024-08-31T12:30:00.000Z"), 6).toISOString(),
     "2024-02-29T12:30:00.000Z",
   );
+});
+
+test("analytics guard retention remains short-lived", () => {
+  assert.equal(analyticsReceiptRetentionHours, 48);
+  assert.equal(analyticsRateLimitRetentionHours, 2);
 });
 
 test("system log retention matrix remains explicit", () => {

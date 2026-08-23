@@ -1,6 +1,7 @@
 import {
   FieldValue,
   Timestamp,
+  type Transaction,
   type DocumentData,
 } from "firebase-admin/firestore";
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
@@ -10,6 +11,17 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { requireAuth } from "../auth/context";
 import { db } from "../firebase/admin";
 import {hasActiveRegionAnalytics} from "./analyticsRollupSanitization";
+import {
+  analyticsEventReceiptCollection,
+  analyticsRateLimitID,
+  analyticsRateLimitCollection,
+  analyticsRateLimitRetentionHours,
+  analyticsReceiptID,
+  analyticsReceiptRetentionHours,
+  expirationDate,
+  nextAnalyticsRateLimitCount,
+  rateLimitBucketStart,
+} from "./analyticsEventGuard";
 import {
   resolveCanonicalAnalyticsContent,
   type AnalyticsContentType,
@@ -108,6 +120,8 @@ const schema = {
     organizationStats: "analyticsOrganizationStats",
     userStats: "analyticsUserStats",
     rollupState: "analyticsRollupState",
+    eventReceipts: analyticsEventReceiptCollection,
+    rateLimits: analyticsRateLimitCollection,
   },
   periodDocumentIDs: ["today", "seven_days", "thirty_days"],
   dailyStatsFields: {
@@ -330,8 +344,9 @@ const rollupPeriods: RollupPeriod[] = [
 
 export const trackAnalyticsEvent = onCall(
   callableOptions,
-  async (request): Promise<{ tracked: true }> => {
-    requireAuth(request);
+  async (request): Promise<{ tracked: boolean }> => {
+    const actor = requireAuth(request);
+    const now = new Date();
 
     const analyticsRequest = parseAnalyticsRequest(request.data);
     const config = eventConfigs[analyticsRequest.name];
@@ -344,25 +359,14 @@ export const trackAnalyticsEvent = onCall(
       contentID
     );
     const analyticsEvent = sanitizeAnalyticsEvent(analyticsRequest, canonicalContent);
-    const dailyDocumentID = dailyDocumentIDFor(new Date());
+    const tracked = await commitAnalyticsEvent(
+      actor.uid,
+      analyticsRequest.name,
+      analyticsEvent,
+      now
+    );
 
-    const writes: Promise<void>[] = [
-      updateDailyStats(dailyDocumentID, analyticsEvent),
-      updateContentDetailStats(analyticsEvent),
-    ];
-
-    if (analyticsEvent.organizationID !== undefined) {
-      writes.push(updateOrganizationDetailStats(analyticsEvent));
-    }
-
-    if (analyticsEvent.eventKind === "view") {
-      writes.push(updateTopContent(analyticsEvent));
-      writes.push(updateRegionStats(analyticsEvent));
-    }
-
-    await Promise.all(writes);
-
-    return { tracked: true };
+    return {tracked};
   }
 );
 
@@ -516,10 +520,78 @@ function validateOptionalGuestFlag(value: unknown): void {
   throw new HttpsError("invalid-argument", "is_guest must be a boolean value.");
 }
 
-async function updateDailyStats(
+async function commitAnalyticsEvent(
+  uid: string,
+  eventName: AnalyticsEventName,
+  analyticsEvent: SanitizedAnalyticsEvent,
+  now: Date
+): Promise<boolean> {
+  const dailyDocumentID = dailyDocumentIDFor(now);
+  const receiptReference = db.collection(schema.collections.eventReceipts).doc(
+    analyticsReceiptID(
+      uid,
+      dailyDocumentID,
+      eventName,
+      analyticsEvent.contentType,
+      analyticsEvent.contentID
+    )
+  );
+  const rateLimitReference = db.collection(schema.collections.rateLimits).doc(
+    analyticsRateLimitID(uid, now)
+  );
+
+  return db.runTransaction(async (transaction) => {
+    const receiptSnapshot = await transaction.get(receiptReference);
+    const rateLimitSnapshot = await transaction.get(rateLimitReference);
+    const nextRateLimitCount = nextAnalyticsRateLimitCount(
+      rateLimitSnapshot.data()?.count
+    );
+
+    transaction.set(rateLimitReference, {
+      count: nextRateLimitCount,
+      bucketStartedAt: Timestamp.fromDate(rateLimitBucketStart(now)),
+      updatedAt: Timestamp.fromDate(now),
+      expiresAt: Timestamp.fromDate(
+        expirationDate(now, analyticsRateLimitRetentionHours)
+      ),
+    });
+
+    if (receiptSnapshot.exists) {
+      return false;
+    }
+
+    transaction.set(receiptReference, {
+      eventName,
+      contentType: analyticsEvent.contentType,
+      contentID: analyticsEvent.contentID,
+      analyticsDay: dailyDocumentID,
+      createdAt: Timestamp.fromDate(now),
+      expiresAt: Timestamp.fromDate(
+        expirationDate(now, analyticsReceiptRetentionHours)
+      ),
+    });
+
+    updateDailyStats(transaction, dailyDocumentID, analyticsEvent);
+    updateContentDetailStats(transaction, analyticsEvent);
+
+    if (analyticsEvent.organizationID !== undefined) {
+      updateOrganizationDetailStats(transaction, analyticsEvent);
+    }
+
+    if (analyticsEvent.eventKind === "view") {
+      updateTopContent(transaction, dailyDocumentID, analyticsEvent);
+      updateRegionStats(transaction, dailyDocumentID, analyticsEvent);
+    }
+
+    return true;
+  });
+}
+
+function updateDailyStats(
+  transaction: Transaction,
   dailyDocumentID: string,
   analyticsEvent: SanitizedAnalyticsEvent
-): Promise<void> {
+): void {
   const dailyStatsReference = db
     .collection(schema.collections.dailyStats)
     .doc(dailyDocumentID);
@@ -550,12 +622,13 @@ async function updateDailyStats(
     };
   }
 
-  await dailyStatsReference.set(data, { merge: true });
+  transaction.set(dailyStatsReference, data, {merge: true});
 }
 
-async function updateContentDetailStats(
+function updateContentDetailStats(
+  transaction: Transaction,
   analyticsEvent: SanitizedAnalyticsEvent
-): Promise<void> {
+): void {
   const reference = db
     .collection(schema.collections.contentStats)
     .doc(schema.periodDocumentIDs[0])
@@ -575,12 +648,13 @@ async function updateContentDetailStats(
   addOptionalDetailMetadata(data, analyticsEvent);
   addRegionDetailMetrics(data, analyticsEvent.contentMetricField, analyticsEvent);
 
-  await reference.set(data, { merge: true });
+  transaction.set(reference, data, {merge: true});
 }
 
-async function updateOrganizationDetailStats(
+function updateOrganizationDetailStats(
+  transaction: Transaction,
   analyticsEvent: SanitizedAnalyticsEvent
-): Promise<void> {
+): void {
   if (analyticsEvent.organizationID === undefined) {
     return;
   }
@@ -618,7 +692,7 @@ async function updateOrganizationDetailStats(
 
   addOrganizationTopContent(data, analyticsEvent);
 
-  await reference.set(data, { merge: true });
+  transaction.set(reference, data, {merge: true});
 }
 
 function addOptionalDetailMetadata(
@@ -709,8 +783,11 @@ function addOrganizationTopContent(
   };
 }
 
-async function updateTopContent(analyticsEvent: SanitizedAnalyticsEvent): Promise<void> {
-  const dailyDocumentID = dailyDocumentIDFor(new Date());
+function updateTopContent(
+  transaction: Transaction,
+  dailyDocumentID: string,
+  analyticsEvent: SanitizedAnalyticsEvent
+): void {
   const reference = db
     .collection(schema.collections.topContent)
     .doc(schema.periodDocumentIDs[0]);
@@ -741,17 +818,20 @@ async function updateTopContent(analyticsEvent: SanitizedAnalyticsEvent): Promis
     item[schema.topContentFields.federalState] = analyticsEvent.federalState;
   }
 
-  await reference.set({
+  transaction.set(reference, {
     [schema.rollupStateFields.dateDocumentID]: dailyDocumentID,
     [schema.topContentFields.itemsByKey]: {
       [contentMapKey(analyticsEvent)]: item,
     },
     updatedAt: FieldValue.serverTimestamp(),
-  }, { merge: true });
+  }, {merge: true});
 }
 
-async function updateRegionStats(analyticsEvent: SanitizedAnalyticsEvent): Promise<void> {
-  const dailyDocumentID = dailyDocumentIDFor(new Date());
+function updateRegionStats(
+  transaction: Transaction,
+  dailyDocumentID: string,
+  analyticsEvent: SanitizedAnalyticsEvent
+): void {
   const regionScope = analyticsEvent.regionScope;
   const regionKey = analyticsRegionKey(analyticsEvent);
   if (regionScope === undefined || regionKey === undefined) {
@@ -777,13 +857,13 @@ async function updateRegionStats(analyticsEvent: SanitizedAnalyticsEvent): Promi
     region[schema.regionStatsFields.federalState] = analyticsEvent.federalState;
   }
 
-  await reference.set({
+  transaction.set(reference, {
     [schema.rollupStateFields.dateDocumentID]: dailyDocumentID,
     [schema.regionStatsFields.regionsByKey]: {
       [regionKey]: region,
     },
     updatedAt: FieldValue.serverTimestamp(),
-  }, { merge: true });
+  }, {merge: true});
 }
 
 async function materializeTodayAnalyticsSnapshots(): Promise<void> {

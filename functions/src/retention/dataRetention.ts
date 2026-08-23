@@ -2,11 +2,16 @@ import { DocumentData, Query, Timestamp } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
+import {
+  analyticsEventReceiptCollection,
+  analyticsRateLimitCollection,
+} from "../analytics/analyticsEventGuard";
 import {deleteEventContent, deleteNewsContent} from "../content/contentDeletion";
 import { db } from "../firebase/admin";
 
 const maxContentDocumentsPerRun = 200;
 const maxLogDocumentsPerPolicy = 400;
+const maxAnalyticsGuardDocumentsPerCollection = 1_000;
 
 export const contentRetentionMonths = 6;
 
@@ -23,6 +28,8 @@ type CleanupSummary = {
   news: number;
   events: number;
   systemLogs: number;
+  analyticsEventReceipts: number;
+  analyticsRateLimits: number;
 };
 
 export const cleanupExpiredData = onSchedule(
@@ -40,6 +47,14 @@ export const cleanupExpiredData = onSchedule(
       news: await cleanupExpiredContent("news", "publishedAt", contentCutoff),
       events: await cleanupExpiredContent("events", "endDate", contentCutoff),
       systemLogs: await cleanupExpiredSystemLogs(now),
+      analyticsEventReceipts: await cleanupExpiredAnalyticsGuards(
+        analyticsEventReceiptCollection,
+        now,
+      ),
+      analyticsRateLimits: await cleanupExpiredAnalyticsGuards(
+        analyticsRateLimitCollection,
+        now,
+      ),
     };
 
     logger.info("Scheduled data retention cleanup completed.", {
@@ -112,6 +127,15 @@ async function cleanupExpiredSystemLogs(now: Date): Promise<number> {
   }
 
   return deleted;
+}
+
+async function cleanupExpiredAnalyticsGuards(
+  collection: string,
+  now: Date,
+): Promise<number> {
+  const query = db.collection(collection)
+    .where("expiresAt", "<=", Timestamp.fromDate(now));
+  return deleteLimitedQuery(query, maxAnalyticsGuardDocumentsPerCollection);
 }
 
 async function deleteLimitedQuery(
