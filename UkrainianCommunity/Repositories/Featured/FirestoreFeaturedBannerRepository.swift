@@ -178,13 +178,15 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             updatedBy: banner.updatedBy
         )
         try validationService.validate(updatedBanner)
-        let data = makeUpdateData(
-            from: updatedBanner,
-            preservingIdentityFrom: existingData
-        )
-
         do {
-            try await document.setData(data)
+            if existingBanner.requiresDataRepair {
+                try await document.setData(makeUpdateData(
+                    from: updatedBanner,
+                    preservingIdentityFrom: existingData
+                ))
+            } else {
+                try await document.updateData(makeMutableUpdateData(from: updatedBanner))
+            }
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -469,6 +471,26 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         setOptionalValue(banner.startsAt.map(Timestamp.init(date:)), forKey: Field.startsAt.rawValue, in: &data)
         setOptionalValue(banner.endsAt.map(Timestamp.init(date:)), forKey: Field.endsAt.rawValue, in: &data)
         setOptionalValue(nonEmpty(banner.updatedBy), forKey: Field.updatedBy.rawValue, in: &data)
+
+        return data
+    }
+
+    private func makeMutableUpdateData(from banner: FeaturedBanner) -> [String: Any] {
+        var data = makeMutableData(from: banner)
+        let optionalFields: [Field] = [
+            .title,
+            .internalName,
+            .subtitle,
+            .actionTargetID,
+            .externalURL,
+            .federalState,
+            .startsAt,
+            .endsAt
+        ]
+
+        for field in optionalFields where data[field.rawValue] == nil {
+            data[field.rawValue] = FieldValue.delete()
+        }
 
         return data
     }
