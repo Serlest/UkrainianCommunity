@@ -84,7 +84,7 @@ struct EventDetailView: View {
     func canDeleteEvent(_ event: Event) -> Bool {
         if let organizationID = event.source.organizationId,
            let organization = organizationForPermissions(organizationID: organizationID) {
-            return PermissionService.canManageOrganizationRoles(organization, user: authState.user)
+            return PermissionService.canDeleteOrganizationContent(organization, user: authState.user)
         }
         return PermissionService.canDeleteEvent(event, user: authState.user)
     }

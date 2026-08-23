@@ -346,16 +346,7 @@ struct PermissionService {
     }
 
     static func canManageOrganizationRoles(_ organization: Organization, user: AppUser?) -> Bool {
-        guard let user else { return false }
-        guard hasUsableAccount(user) else { return false }
-        guard !organization.isSystemOrganization else { return false }
-
-        switch user.globalRole.authorizationRole {
-        case .owner:
-            return true
-        case .admin, .user, .topAdmin:
-            return isOrganizationOwner(organization, user: user)
-        }
+        hasOrganizationOwnerAuthority(organization, user: user)
     }
 
     @available(*, unavailable, message: "Load the Organization and use canManageOrganizationRoles(_:user:) instead.")
@@ -369,7 +360,7 @@ struct PermissionService {
         _ organization: Organization,
         user: AppUser?
     ) -> Bool {
-        canManageOrganizationRoles(organization, user: user)
+        hasOrganizationOwnerAuthority(organization, user: user)
     }
 
     @available(
@@ -386,6 +377,25 @@ struct PermissionService {
 
     @available(*, unavailable, message: "Load the Organization and use a Cloud Function-backed ownership workflow permission.")
     static func canTransferOrganizationOwnership(organizationId: String, user: AppUser?) -> Bool {
+        false
+    }
+
+    static func canDeleteOrganizationContent(
+        _ organization: Organization,
+        user: AppUser?
+    ) -> Bool {
+        hasOrganizationOwnerAuthority(organization, user: user)
+    }
+
+    @available(
+        *,
+        unavailable,
+        message: "Load the Organization and use canDeleteOrganizationContent(_:user:) instead."
+    )
+    static func canDeleteOrganizationContent(
+        organizationId: String,
+        user: AppUser?
+    ) -> Bool {
         false
     }
 
@@ -615,6 +625,22 @@ struct PermissionService {
 
     static func canAccessModerationTools(user: AppUser?) -> Bool {
         Self.isOwner(user) || isAppAdmin(user: user)
+    }
+
+    private static func hasOrganizationOwnerAuthority(
+        _ organization: Organization,
+        user: AppUser?
+    ) -> Bool {
+        guard let user else { return false }
+        guard hasUsableAccount(user) else { return false }
+        guard !organization.isSystemOrganization else { return false }
+
+        switch user.globalRole.authorizationRole {
+        case .owner:
+            return true
+        case .admin, .user, .topAdmin:
+            return isOrganizationOwner(organization, user: user)
+        }
     }
 
     private var isModeratorTier: Bool {

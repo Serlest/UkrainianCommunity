@@ -34,19 +34,20 @@ Organization roles are independent from platform roles and are stored on the org
 - Manages the organization team.
 - May view that organization's subscriber identities.
 - Creates and edits organization News and Events.
+- Deletes organization News and Events.
 - Moderates organization content.
 
 ### Organization Admin
 
 - Edits organization information.
 - Creates and edits organization News and Events.
-- Does not manage organization roles or view subscriber identities.
+- Does not delete organization content, manage organization roles, or view subscriber identities.
 
 ### Organization Moderator
 
 - Creates and edits organization News and Events.
 - Moderates organization content.
-- Cannot edit organization information, manage roles, or view subscriber identities.
+- Cannot delete organization content, edit organization information, manage roles, or view subscriber identities.
 
 ## Account restrictions
 

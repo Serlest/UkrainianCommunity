@@ -243,18 +243,24 @@ struct UkrainianCommunityTests {
 
         #expect(PermissionService.canEditOrganizationInfo(organization, user: organizationOwner))
         #expect(PermissionService.canManageOrganizationRoles(organization, user: organizationOwner))
+        #expect(PermissionService.canDeleteOrganizationContent(organization, user: organizationOwner))
         #expect(PermissionService.canCreateOrganizationNews(organization, user: organizationOwner))
         #expect(PermissionService.canCreateOrganizationEvent(organization, user: organizationOwner))
 
         #expect(PermissionService.canEditOrganizationInfo(organization, user: organizationAdmin))
         #expect(PermissionService.canManageOrganizationRoles(organization, user: organizationAdmin) == false)
+        #expect(PermissionService.canDeleteOrganizationContent(organization, user: organizationAdmin) == false)
         #expect(PermissionService.canCreateOrganizationNews(organization, user: organizationAdmin))
         #expect(PermissionService.canCreateOrganizationEvent(organization, user: organizationAdmin))
 
         #expect(PermissionService.canEditOrganizationInfo(organization, user: organizationModerator) == false)
         #expect(PermissionService.canManageOrganizationRoles(organization, user: organizationModerator) == false)
+        #expect(PermissionService.canDeleteOrganizationContent(organization, user: organizationModerator) == false)
         #expect(PermissionService.canCreateOrganizationNews(organization, user: organizationModerator))
         #expect(PermissionService.canCreateOrganizationEvent(organization, user: organizationModerator))
+
+        #expect(PermissionService.canDeleteOrganizationContent(organization, user: owner))
+        #expect(PermissionService.canDeleteOrganizationContent(organization, user: platformAdmin) == false)
     }
 
     @Test func subscriberIdentityVisibilityMatchesBackendOwnerContract() {
