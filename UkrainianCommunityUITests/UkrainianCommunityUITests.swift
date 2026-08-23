@@ -60,17 +60,23 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     private func assertRootScreen(
-        screenIdentifier: String,
-        tabLabel: String,
+        _ tab: MainTabSpec,
         in app: XCUIApplication,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
         let tabBar = app.tabBars.firstMatch
-        let tabButton = tabBar.buttons[tabLabel]
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 10), file: file, line: line)
+
+        let tabButton = rootTabButton(tab, in: tabBar)
         XCTAssertTrue(tabButton.waitForExistence(timeout: 10), file: file, line: line)
         tabButton.tap()
-        XCTAssertTrue(app.otherElements[screenIdentifier].waitForExistence(timeout: 10), file: file, line: line)
+
+        XCTAssertTrue(
+            app.otherElements[tab.screenIdentifier].waitForExistence(timeout: 10),
+            file: file,
+            line: line
+        )
     }
 
     private func tapRootTab(
@@ -92,10 +98,16 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     private func rootTabButton(_ tab: MainTabSpec, in tabBar: XCUIElement) -> XCUIElement {
-        let identifiedButton = tabBar.buttons[tab.tabIdentifier]
-        return identifiedButton.waitForExistence(timeout: 1)
-            ? identifiedButton
-            : tabBar.buttons[tab.tabLabel]
+        let identifiedButton = tabBar.buttons
+            .matching(identifier: tab.tabIdentifier)
+            .firstMatch
+        if identifiedButton.waitForExistence(timeout: 1) {
+            return identifiedButton
+        }
+
+        return tabBar.buttons
+            .matching(NSPredicate(format: "label == %@", tab.tabLabel))
+            .firstMatch
     }
 
     private func navigateBackIfPossible(in app: XCUIApplication) {
@@ -184,10 +196,10 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testEachTabOpensExpectedRootScreen() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.home", tabLabel: "Start", in: app)
-        assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)
-        assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        assertRootScreen(rootTabs[0], in: app)
+        assertRootScreen(rootTabs[1], in: app)
+        assertRootScreen(rootTabs[2], in: app)
+        assertRootScreen(rootTabs[3], in: app)
     }
 
     @MainActor
@@ -224,7 +236,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testPublicEventsScreenDoesNotExposeManagementControls() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)
+        assertRootScreen(rootTabs[1], in: app)
 
         XCTAssertFalse(app.navigationBars.buttons["Erstellen"].exists)
         XCTAssertFalse(app.navigationBars.buttons["Bearbeiten"].exists)
@@ -234,7 +246,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testPublicOrganizationsScreenDoesNotExposeManagementControls() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
+        assertRootScreen(rootTabs[2], in: app)
 
         XCTAssertFalse(app.navigationBars.buttons["Erstellen"].exists)
         XCTAssertFalse(app.navigationBars.buttons["Bearbeiten"].exists)
@@ -244,13 +256,13 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testProfileTabOpensProfileScreen() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        assertRootScreen(rootTabs[3], in: app)
     }
 
     @MainActor
     func testGuestProfileShowsAuthEntryPoints() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        assertRootScreen(rootTabs[3], in: app)
 
         let signInButton = app.buttons["Anmelden"].firstMatch
         XCTAssertTrue(signInButton.waitForExistence(timeout: 10))
@@ -261,7 +273,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testGuestProtectedEventActionsShowAuthRequiredAlert() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)
+        assertRootScreen(rootTabs[1], in: app)
 
         let eventCard = app.buttons["event.card.event-1"]
         XCTAssertTrue(eventCard.waitForExistence(timeout: 10))
@@ -278,7 +290,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testGuestCreateAccountOpensRegistrationScreen() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        assertRootScreen(rootTabs[3], in: app)
 
         let createAccountButton = app.buttons["Konto erstellen"].firstMatch
         XCTAssertTrue(createAccountButton.waitForExistence(timeout: 10))
@@ -289,7 +301,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testRegistrationShowsConsentControls() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        assertRootScreen(rootTabs[3], in: app)
 
         app.buttons["Konto erstellen"].firstMatch.tap()
         XCTAssertTrue(app.buttons["auth.register.submit"].waitForExistence(timeout: 10))
@@ -301,7 +313,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testProfileSettingsContainsLegalRows() throws {
         let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        assertRootScreen(rootTabs[3], in: app)
 
         let privacyLabel = app.staticTexts["Datenschutz"].firstMatch
         let termsLabel = app.staticTexts["Nutzungsbedingungen"].firstMatch
