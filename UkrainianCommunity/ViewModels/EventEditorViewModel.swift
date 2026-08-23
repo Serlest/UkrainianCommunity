@@ -140,6 +140,7 @@ final class EventEditorViewModel: ObservableObject {
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: EventRepository
+    private let validationService = EventValidationService()
     private let draftRecoveryService: LocalDraftRecoveryService
     private let imageUploadService = ImageUploadService.shared
     private let mode: Mode
@@ -193,17 +194,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     var canPublish: Bool {
-        !trimmedTitle.isEmpty
-            && !trimmedSummary.isEmpty
-            && !trimmedDetails.isEmpty
-            && !trimmedCity.isEmpty
-            && hasLocationText
-            && resolvedFederalState != nil
-            && hasValidPrice
-            && hasValidCapacity
-            && hasValidDateRange
-            && hasValidStartDate
-            && hasOrganizerForCreate
+        validationIssue == nil
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
@@ -704,10 +695,6 @@ final class EventEditorViewModel: ObservableObject {
         address.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var hasLocationText: Bool {
-        !trimmedVenue.isEmpty || !trimmedAddress.isEmpty
-    }
-
     private var resolvedAddress: String? {
         trimmedAddress.isEmpty ? nil : trimmedAddress
     }
@@ -786,24 +773,10 @@ final class EventEditorViewModel: ObservableObject {
         return Double(normalized)
     }
 
-    private var hasValidPrice: Bool {
-        guard requiresRegistration else { return true }
-        guard !trimmedPriceText.isEmpty else { return true }
-        guard let value = parsedPrice else { return false }
-        return value >= 0
-    }
-
     private var resolvedCapacity: Int? {
         guard requiresRegistration else { return nil }
         guard !trimmedCapacityText.isEmpty else { return nil }
         return Int(trimmedCapacityText)
-    }
-
-    private var hasValidCapacity: Bool {
-        guard requiresRegistration else { return true }
-        guard !trimmedCapacityText.isEmpty else { return true }
-        guard let value = Int(trimmedCapacityText) else { return false }
-        return value > 0
     }
 
     private var normalizedStart: Date {
@@ -815,24 +788,30 @@ final class EventEditorViewModel: ObservableObject {
         return Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate)) ?? endDate
     }
 
-    private var hasValidDateRange: Bool {
-        normalizedEnd > normalizedStart
-    }
-
-    private var hasChronologicalDateRange: Bool {
-        guard !isAllDay else {
-            return Calendar.current.startOfDay(for: endDate) >= Calendar.current.startOfDay(for: startDate)
-        }
-
-        return endDate > startDate
-    }
-
-    private var hasValidStartDate: Bool {
-        isEditing || normalizedStart >= Date().addingTimeInterval(-60)
-    }
-
     private var hasOrganizerForCreate: Bool {
         isEditing || (selectedCreateContext?.isOrganizationEvent ?? false)
+    }
+
+    private var validationIssue: EventValidationIssue? {
+        validationService.firstIssue(
+            in: EventValidationInput(
+                title: title,
+                summary: summary,
+                details: details,
+                city: city,
+                venue: venue,
+                address: address,
+                startDate: startDate,
+                endDate: endDate,
+                isAllDay: isAllDay,
+                isEditing: isEditing,
+                hasOrganizer: hasOrganizerForCreate,
+                requiresRegistration: requiresRegistration,
+                capacityText: capacityText,
+                priceText: priceText,
+                federalState: resolvedFederalState
+            )
+        )
     }
 
     private var isOrganizationEvent: Bool {
@@ -992,67 +971,9 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private func validate() -> Bool {
-        guard !trimmedTitle.isEmpty else {
-            errorMessage = AppStrings.Validation.eventTitleRequired
-            return false
-        }
-
-        guard !trimmedSummary.isEmpty else {
-            errorMessage = AppStrings.Events.summaryRequired
-            return false
-        }
-
-        guard !trimmedDetails.isEmpty else {
-            errorMessage = AppStrings.Events.detailsRequired
-            return false
-        }
-
-        guard !trimmedCity.isEmpty else {
-            errorMessage = AppStrings.Validation.eventCityRequired
-            return false
-        }
-
-        guard hasLocationText else {
-            errorMessage = AppStrings.Validation.eventVenueRequired
-            return false
-        }
-
-        guard hasValidDateRange else {
-            errorMessage = AppStrings.Events.invalidDateOrder
-            return false
-        }
-
-        guard hasChronologicalDateRange else {
-            errorMessage = AppStrings.Events.invalidDateOrder
-            return false
-        }
-
-        guard hasValidStartDate else {
-            errorMessage = AppStrings.Events.startDateInPast
-            return false
-        }
-
-        guard hasOrganizerForCreate else {
-            errorMessage = AppStrings.Events.organizationRequired
-            return false
-        }
-
-        guard hasValidCapacity else {
-            errorMessage = AppStrings.Events.invalidCapacity
-            return false
-        }
-
-        guard hasValidPrice else {
-            errorMessage = AppStrings.Events.invalidPrice
-            return false
-        }
-
-        guard resolvedFederalState != nil else {
-            errorMessage = AppStrings.Events.organizationRegionRequired
-            return false
-        }
-
-        return true
+        guard let validationIssue else { return true }
+        errorMessage = validationIssue.message
+        return false
     }
 
     private func resolveCoordinatesIfNeeded() async {

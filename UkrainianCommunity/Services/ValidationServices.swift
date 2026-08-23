@@ -69,45 +69,233 @@ struct AuthValidationService {
     }
 }
 
+struct NewsValidationInput {
+    let title: String
+    let summary: String
+    let body: String
+    let hasOrganizer: Bool
+    let federalState: AustrianFederalState?
+}
+
+enum NewsValidationIssue: Equatable {
+    case titleRequired
+    case summaryRequired
+    case bodyRequired
+    case organizationRequired
+    case organizationRegionRequired
+
+    var message: String {
+        switch self {
+        case .titleRequired:
+            AppStrings.NewsEditor.titleRequired
+        case .summaryRequired:
+            AppStrings.NewsEditor.summaryRequired
+        case .bodyRequired:
+            AppStrings.NewsEditor.bodyRequired
+        case .organizationRequired:
+            AppStrings.NewsEditor.organizationRequired
+        case .organizationRegionRequired:
+            AppStrings.NewsEditor.organizationRegionRequired
+        }
+    }
+}
+
 struct NewsValidationService {
-    func validate(title: String, subtitle: String, body: String) -> [String] {
-        var errors = [String]()
+    func firstIssue(in input: NewsValidationInput) -> NewsValidationIssue? {
+        if input.title.trimmedForValidation.isEmpty {
+            return .titleRequired
+        }
+        if input.summary.trimmedForValidation.isEmpty {
+            return .summaryRequired
+        }
+        if input.body.trimmedForValidation.isEmpty {
+            return .bodyRequired
+        }
+        if !input.hasOrganizer {
+            return .organizationRequired
+        }
+        if input.federalState == nil {
+            return .organizationRegionRequired
+        }
+        return nil
+    }
+}
 
-        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.newsTitleRequired)
-        }
-        if subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.newsSubtitleRequired)
-        }
-        if body.trimmingCharacters(in: .whitespacesAndNewlines).count < 20 {
-            errors.append(AppStrings.Validation.newsBodyTooShort)
-        }
+struct EventValidationInput {
+    let title: String
+    let summary: String
+    let details: String
+    let city: String
+    let venue: String
+    let address: String
+    let startDate: Date
+    let endDate: Date
+    let isAllDay: Bool
+    let isEditing: Bool
+    let hasOrganizer: Bool
+    let requiresRegistration: Bool
+    let capacityText: String
+    let priceText: String
+    let federalState: AustrianFederalState?
+    let now: Date
 
-        return errors
+    init(
+        title: String,
+        summary: String,
+        details: String,
+        city: String,
+        venue: String,
+        address: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        isEditing: Bool,
+        hasOrganizer: Bool,
+        requiresRegistration: Bool,
+        capacityText: String,
+        priceText: String,
+        federalState: AustrianFederalState?,
+        now: Date = Date()
+    ) {
+        self.title = title
+        self.summary = summary
+        self.details = details
+        self.city = city
+        self.venue = venue
+        self.address = address
+        self.startDate = startDate
+        self.endDate = endDate
+        self.isAllDay = isAllDay
+        self.isEditing = isEditing
+        self.hasOrganizer = hasOrganizer
+        self.requiresRegistration = requiresRegistration
+        self.capacityText = capacityText
+        self.priceText = priceText
+        self.federalState = federalState
+        self.now = now
+    }
+}
+
+enum EventValidationIssue: Equatable {
+    case titleRequired
+    case summaryRequired
+    case detailsRequired
+    case cityRequired
+    case venueRequired
+    case invalidDateOrder
+    case startDateInPast
+    case organizationRequired
+    case invalidCapacity
+    case invalidPrice
+    case organizationRegionRequired
+
+    var message: String {
+        switch self {
+        case .titleRequired:
+            AppStrings.Validation.eventTitleRequired
+        case .summaryRequired:
+            AppStrings.Events.summaryRequired
+        case .detailsRequired:
+            AppStrings.Events.detailsRequired
+        case .cityRequired:
+            AppStrings.Validation.eventCityRequired
+        case .venueRequired:
+            AppStrings.Validation.eventVenueRequired
+        case .invalidDateOrder:
+            AppStrings.Events.invalidDateOrder
+        case .startDateInPast:
+            AppStrings.Events.startDateInPast
+        case .organizationRequired:
+            AppStrings.Events.organizationRequired
+        case .invalidCapacity:
+            AppStrings.Events.invalidCapacity
+        case .invalidPrice:
+            AppStrings.Events.invalidPrice
+        case .organizationRegionRequired:
+            AppStrings.Events.organizationRegionRequired
+        }
     }
 }
 
 struct EventValidationService {
-    func validate(title: String, details: String, startDate: Date, endDate: Date, city: String, venue: String) -> [String] {
-        var errors = [String]()
+    func firstIssue(
+        in input: EventValidationInput,
+        calendar: Calendar = .current
+    ) -> EventValidationIssue? {
+        if input.title.trimmedForValidation.isEmpty {
+            return .titleRequired
+        }
+        if input.summary.trimmedForValidation.isEmpty {
+            return .summaryRequired
+        }
+        if input.details.trimmedForValidation.isEmpty {
+            return .detailsRequired
+        }
+        if input.city.trimmedForValidation.isEmpty {
+            return .cityRequired
+        }
+        if input.venue.trimmedForValidation.isEmpty,
+           input.address.trimmedForValidation.isEmpty {
+            return .venueRequired
+        }
 
-        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.eventTitleRequired)
-        }
-        if details.trimmingCharacters(in: .whitespacesAndNewlines).count < 20 {
-            errors.append(AppStrings.Validation.eventDetailsTooShort)
-        }
-        if city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.eventCityRequired)
-        }
-        if venue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            errors.append(AppStrings.Validation.eventVenueRequired)
-        }
-        if endDate < startDate {
-            errors.append(AppStrings.Validation.eventDateOrderInvalid)
+        let normalizedStart: Date
+        let normalizedEnd: Date
+        let isChronological: Bool
+        if input.isAllDay {
+            normalizedStart = calendar.startOfDay(for: input.startDate)
+            normalizedEnd = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: calendar.startOfDay(for: input.endDate)
+            ) ?? input.endDate
+            isChronological = calendar.startOfDay(for: input.endDate) >= normalizedStart
+        } else {
+            normalizedStart = input.startDate
+            normalizedEnd = input.endDate
+            isChronological = input.endDate > input.startDate
         }
 
-        return errors
+        if normalizedEnd <= normalizedStart || !isChronological {
+            return .invalidDateOrder
+        }
+        if !input.isEditing, normalizedStart < input.now.addingTimeInterval(-60) {
+            return .startDateInPast
+        }
+        if !input.hasOrganizer {
+            return .organizationRequired
+        }
+        if !isValidCapacity(input) {
+            return .invalidCapacity
+        }
+        if !isValidPrice(input) {
+            return .invalidPrice
+        }
+        if input.federalState == nil {
+            return .organizationRegionRequired
+        }
+        return nil
+    }
+
+    private func isValidCapacity(_ input: EventValidationInput) -> Bool {
+        guard input.requiresRegistration else { return true }
+        let capacity = input.capacityText.trimmedForValidation
+        guard !capacity.isEmpty else { return true }
+        return Int(capacity).map { $0 > 0 } == true
+    }
+
+    private func isValidPrice(_ input: EventValidationInput) -> Bool {
+        guard input.requiresRegistration else { return true }
+        let price = input.priceText.trimmedForValidation
+        guard !price.isEmpty else { return true }
+        let normalizedPrice = price.replacingOccurrences(of: ",", with: ".")
+        return Double(normalizedPrice).map { $0 >= 0 } == true
+    }
+}
+
+private extension String {
+    var trimmedForValidation: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

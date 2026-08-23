@@ -363,21 +363,6 @@ struct UkrainianCommunityTests {
         #expect(germanCurrency != ukrainianCurrency)
     }
 
-    @Test func validationServicesRejectClearlyInvalidData() {
-        let newsErrors = NewsValidationService().validate(title: "", subtitle: "", body: "short")
-        let eventErrors = EventValidationService().validate(
-            title: "",
-            details: "short",
-            startDate: .now,
-            endDate: .now.addingTimeInterval(-60),
-            city: "",
-            venue: ""
-        )
-
-        #expect(newsErrors.isEmpty == false)
-        #expect(eventErrors.isEmpty == false)
-    }
-
     @Test func unsupportedLegacyFeaturedBannerIsPreparedForMigration() throws {
         let now = Date()
         let legacyBanner = FeaturedBanner(

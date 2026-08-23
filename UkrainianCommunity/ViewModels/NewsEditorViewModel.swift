@@ -64,6 +64,7 @@ final class NewsEditorViewModel: ObservableObject {
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: NewsRepository
+    private let validationService = NewsValidationService()
     private let draftRecoveryService: LocalDraftRecoveryService
     private let imageUploadService = ImageUploadService.shared
     private var authState: AuthState?
@@ -102,11 +103,7 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     var canPublish: Bool {
-        !trimmedTitle.isEmpty
-            && !trimmedSummary.isEmpty
-            && !trimmedBody.isEmpty
-            && resolvedFederalState != nil
-            && hasOrganizerForCreate
+        validationIssue == nil
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
@@ -633,38 +630,23 @@ final class NewsEditorViewModel: ObservableObject {
         isEditing || (selectedCreateContext?.isOrganizationPost ?? false)
     }
 
+    private var validationIssue: NewsValidationIssue? {
+        validationService.firstIssue(
+            in: NewsValidationInput(
+                title: title,
+                summary: summary,
+                body: body,
+                hasOrganizer: hasOrganizerForCreate,
+                federalState: resolvedFederalState
+            )
+        )
+    }
+
     private func validate() -> Bool {
-        guard !trimmedTitle.isEmpty else {
-            errorMessage = AppStrings.NewsEditor.titleRequired
-            successMessage = nil
-            return false
-        }
-
-        guard !trimmedSummary.isEmpty else {
-            errorMessage = AppStrings.NewsEditor.summaryRequired
-            successMessage = nil
-            return false
-        }
-
-        guard !trimmedBody.isEmpty else {
-            errorMessage = AppStrings.NewsEditor.bodyRequired
-            successMessage = nil
-            return false
-        }
-
-        guard hasOrganizerForCreate else {
-            errorMessage = AppStrings.NewsEditor.organizationRequired
-            successMessage = nil
-            return false
-        }
-
-        guard resolvedFederalState != nil else {
-            errorMessage = AppStrings.NewsEditor.organizationRegionRequired
-            successMessage = nil
-            return false
-        }
-
-        return true
+        guard let validationIssue else { return true }
+        errorMessage = validationIssue.message
+        successMessage = nil
+        return false
     }
 
     private func readableUploadErrorMessage(for error: Error) -> String {
