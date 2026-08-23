@@ -139,7 +139,7 @@ extension OrganizationDetailView {
                     .foregroundStyle(AppTheme.textPrimary)
                     .monospacedDigit()
             }
-            .frame(minWidth: 74, minHeight: 36)
+            .frame(minWidth: 74, minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
