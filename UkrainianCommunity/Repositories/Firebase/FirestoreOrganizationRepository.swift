@@ -203,6 +203,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             "updatedAt": Timestamp(date: organization.updatedAt)
         ]
 
+        setUpdateValue(organization.regionScope?.rawValue, forKey: "regionScope", in: &data)
         setUpdateValue(organization.federalState?.rawValue, forKey: "federalState", in: &data)
         setUpdateValue(organization.imageURL, forKey: "imageURL", in: &data)
         setUpdateValue(organization.logoURL, forKey: "logoURL", in: &data)

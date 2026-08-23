@@ -1125,6 +1125,7 @@ service cloud.firestore {
         'address',
         'latitude',
         'longitude',
+        'regionScope',
         'city',
         'federalState',
         'organizationType',
@@ -1146,9 +1147,15 @@ service cloud.firestore {
       ];
     }
 
+    function organizationHasValidRegionScope(data) {
+      return !('regionScope' in data)
+        || data.regionScope in ['austria', 'federalState', 'city'];
+    }
+
     function safeOrganizationInfoUpdate(organizationId) {
       return canEditOrganizationInfo(organizationId)
         && request.resource.data.moderationStatus == resource.data.moderationStatus
+        && organizationHasValidRegionScope(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationSafeInfoFields());
     }
 
@@ -1220,6 +1227,7 @@ service cloud.firestore {
         'address',
         'latitude',
         'longitude',
+        'regionScope',
         'city',
         'federalState',
         'organizationType',
@@ -1314,6 +1322,7 @@ service cloud.firestore {
         && request.resource.data.moderationStatus == 'pendingReview'
         && request.resource.data.submittedByUserId == request.auth.uid
         && request.resource.data.submittedAt is timestamp
+        && organizationHasValidRegionScope(request.resource.data)
         && requestCountersAreZero(request.resource.data)
         && requestRolesAreEmpty(request.resource.data);
     }
@@ -1330,6 +1339,7 @@ service cloud.firestore {
         && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         && request.resource.data.moderationStatus in ['pendingReview', resource.data.moderationStatus]
         && safeRequestReviewFieldsUpdate()
+        && organizationHasValidRegionScope(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationRequestUpdateFields());
     }
 
