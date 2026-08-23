@@ -25,6 +25,16 @@ struct SessionDataCacheTests {
         #expect(bookmarkedEventIDs == nil)
     }
 
+    @Test func doesNotResurrectAnExpiredSetAfterMutation() async {
+        let cache = SessionDataCache(ttl: 0)
+
+        await cache.storeLikedOrganizationIDs(["organization-1"], for: "user-a")
+        await cache.updateLikedOrganizationID("organization-2", isLiked: true, for: "user-a")
+
+        let likedOrganizationIDs = await cache.cachedLikedOrganizationIDs(for: "user-a")
+        #expect(likedOrganizationIDs == nil)
+    }
+
     @Test func expiresCachedStateAtTheConfiguredTTL() async {
         let cache = SessionDataCache(ttl: 0)
 

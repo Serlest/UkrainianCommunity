@@ -177,6 +177,7 @@ actor SessionDataCache {
 
     private func updateSet(id: String, isIncluded: Bool, for userID: String, keyPath: WritableKeyPath<UserCache, CachedSet?>) {
         guard var cached = userCaches[userID]?[keyPath: keyPath] else { return }
+        guard Date().timeIntervalSince(cached.loadedAt) < ttl else { return }
         if isIncluded {
             cached.ids.insert(id)
         } else {
