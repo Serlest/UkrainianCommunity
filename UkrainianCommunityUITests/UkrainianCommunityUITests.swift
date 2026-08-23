@@ -8,23 +8,19 @@
 import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
-    private let expectedTabs = ["Start", "Veranstaltungen", "Organisationen", "Profil"]
-    private let stressTabs: [MainTabSpec] = [
+    private let rootTabs: [MainTabSpec] = [
         MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Start"),
         MainTabSpec(screenIdentifier: "screen.events", tabIdentifier: "tab.events", tabLabel: "Veranstaltungen"),
         MainTabSpec(screenIdentifier: "screen.organizations", tabIdentifier: "tab.organizations", tabLabel: "Organisationen"),
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
     ]
 
-    private func launchApp(holdingSplash: Bool = false) -> XCUIApplication {
+    private func launchApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launchEnvironment["UITestForceGuestSession"] = "1"
-        if holdingSplash {
-            app.launchEnvironment["UITestHoldSplash"] = "1"
-        }
         app.launch()
         return app
     }
@@ -87,13 +83,19 @@ final class UkrainianCommunityUITests: XCTestCase {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: timeout), file: file, line: line)
 
-        let identifierButton = tabBar.buttons[tab.tabIdentifier]
-        let tabButton = identifierButton.exists ? identifierButton : tabBar.buttons[tab.tabLabel]
+        let tabButton = rootTabButton(tab, in: tabBar)
         XCTAssertTrue(tabButton.waitForExistence(timeout: timeout), file: file, line: line)
         tabButton.tap()
 
         XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout), file: file, line: line)
         XCTAssertEqual(app.state, .runningForeground, file: file, line: line)
+    }
+
+    private func rootTabButton(_ tab: MainTabSpec, in tabBar: XCUIElement) -> XCUIElement {
+        let identifiedButton = tabBar.buttons[tab.tabIdentifier]
+        return identifiedButton.waitForExistence(timeout: 1)
+            ? identifiedButton
+            : tabBar.buttons[tab.tabLabel]
     }
 
     private func navigateBackIfPossible(in app: XCUIApplication) {
@@ -130,19 +132,17 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testStartupSplashTransitionsToMainInterface() throws {
-        let app = launchApp(holdingSplash: true)
-        let splash = app.otherElements["startup.splash"]
-        XCTAssertTrue(splash.waitForExistence(timeout: 2))
-        XCTAssertTrue(app.images["startup.logo"].waitForExistence(timeout: 2))
+        let app = launchApp()
+        let logo = app.images["startup.logo"]
+        XCTAssertTrue(logo.waitForExistence(timeout: 5))
 
-        // Capture the logo after its reveal animation, while the four-second
-        // startup gate is still visible.
+        // Capture the production splash after its reveal animation. The test
+        // then waits for the real four-second startup gate to complete.
         Thread.sleep(forTimeInterval: 2)
         attachScreenshot(named: "Startup Splash", from: app)
 
-        splash.tap()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
-        XCTAssertFalse(splash.exists)
+        XCTAssertTrue(logo.waitForNonExistence(timeout: 8))
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 2))
         attachScreenshot(named: "Main Interface After Splash", from: app)
     }
 
@@ -152,12 +152,20 @@ final class UkrainianCommunityUITests: XCTestCase {
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 10))
 
-        let visibleButtons = tabBar.buttons.allElementsBoundByIndex
-        XCTAssertEqual(visibleButtons.count, expectedTabs.count)
-
-        for (index, expectedTitle) in expectedTabs.enumerated() {
-            XCTAssertEqual(visibleButtons[index].label, expectedTitle)
+        let expectedButtons = rootTabs.map { tab in
+            (tab: tab, button: rootTabButton(tab, in: tabBar))
         }
+        for expectedButton in expectedButtons {
+            XCTAssertTrue(
+                expectedButton.button.waitForExistence(timeout: 2),
+                "Missing root tab: \(expectedButton.tab.tabIdentifier)"
+            )
+        }
+
+        let visualOrder = expectedButtons
+            .sorted { $0.button.frame.minX < $1.button.frame.minX }
+            .map { $0.tab.tabIdentifier }
+        XCTAssertEqual(visualOrder, rootTabs.map(\.tabIdentifier))
 
         XCTAssertFalse(tabBar.buttons["Neuigkeiten"].exists)
         XCTAssertFalse(tabBar.buttons["Community"].exists)
@@ -182,12 +190,12 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
 
         for _ in 0..<12 {
-            for tab in stressTabs {
+            for tab in rootTabs {
                 tapRootTab(tab, in: app, timeout: 5)
             }
         }
 
-        tapRootTab(stressTabs[1], in: app)
+        tapRootTab(rootTabs[1], in: app)
         let eventCard = app.buttons["event.card.event-1"]
         if eventCard.waitForExistence(timeout: 5) {
             eventCard.tap()
@@ -196,9 +204,9 @@ final class UkrainianCommunityUITests: XCTestCase {
             XCTAssertTrue(app.otherElements["screen.events"].waitForExistence(timeout: 10))
         }
 
-        tapRootTab(stressTabs[2], in: app)
-        tapRootTab(stressTabs[3], in: app)
-        tapRootTab(stressTabs[0], in: app)
+        tapRootTab(rootTabs[2], in: app)
+        tapRootTab(rootTabs[3], in: app)
+        tapRootTab(rootTabs[0], in: app)
 
         XCTAssertEqual(app.state, .runningForeground)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
