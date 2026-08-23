@@ -4,7 +4,10 @@ enum MockContentBuilder {
     nonisolated private static let calendar = Calendar.current
 
     nonisolated static func currentUser() -> AppUser {
-        AppUser(
+        let createdAt = calendar.date(byAdding: .month, value: -8, to: .now) ?? .now
+        let updatedAt = calendar.date(byAdding: .day, value: -2, to: .now) ?? .now
+
+        return AppUser(
             id: "user-1",
             fullName: localized("mock.user.name", "Olena Koval"),
             displayName: localized("mock.user.display_name", "Olena"),
@@ -15,8 +18,14 @@ enum MockContentBuilder {
             role: .moderator,
             blockState: .active,
             selectedFederalState: .tirol,
-            createdAt: calendar.date(byAdding: .month, value: -8, to: .now) ?? .now,
-            updatedAt: calendar.date(byAdding: .day, value: -2, to: .now) ?? .now
+            acceptedTermsAt: createdAt,
+            acceptedPrivacyAt: createdAt,
+            acceptedTermsVersion: AuthService.currentTermsVersion,
+            acceptedPrivacyVersion: AuthService.currentPrivacyVersion,
+            termsVersion: AuthService.currentTermsVersion,
+            privacyVersion: AuthService.currentPrivacyVersion,
+            createdAt: createdAt,
+            updatedAt: updatedAt
         )
     }
 

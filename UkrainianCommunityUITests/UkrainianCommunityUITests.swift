@@ -8,6 +8,11 @@
 import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
+    private enum TestSession {
+        case guest
+        case authenticated
+    }
+
     private let rootTabs: [MainTabSpec] = [
         MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Start"),
         MainTabSpec(screenIdentifier: "screen.events", tabIdentifier: "tab.events", tabLabel: "Veranstaltungen"),
@@ -15,24 +20,30 @@ final class UkrainianCommunityUITests: XCTestCase {
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
     ]
 
-    private func launchApp() -> XCUIApplication {
+    private func configuredApp(session: TestSession) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
-        app.launchEnvironment["UITestForceGuestSession"] = "1"
+
+        switch session {
+        case .guest:
+            app.launchEnvironment["UITestForceGuestSession"] = "1"
+        case .authenticated:
+            app.launchEnvironment["UITestForceAuthenticatedSession"] = "1"
+        }
+
+        return app
+    }
+
+    private func launchApp(session: TestSession = .guest) -> XCUIApplication {
+        let app = configuredApp(session: session)
         app.launch()
         return app
     }
 
     private func launchAuthenticatedApp() -> XCUIApplication {
-        let app = XCUIApplication()
-        app.launchArguments.append("-ui-testing")
-        app.launchEnvironment["UITestResetUserSettings"] = "1"
-        app.launchEnvironment["UITestAppLanguage"] = "de"
-        app.launchEnvironment["UITestForceAuthenticatedSession"] = "1"
-        app.launch()
-        return app
+        launchApp(session: .authenticated)
     }
 
     private func attachScreenshot(
@@ -89,12 +100,21 @@ final class UkrainianCommunityUITests: XCTestCase {
         let tabButton = rootTabButton(tab, in: tabBar)
         XCTAssertTrue(tabButton.waitForExistence(timeout: timeout), file: file, line: line)
         if !tabButton.isSelected {
-            tabButton
-                .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-                .tap()
+            XCTAssertTrue(
+                tabButton.isHittable,
+                "Root tab is blocked: \(tab.tabIdentifier)",
+                file: file,
+                line: line
+            )
+            tabButton.tap()
         }
 
-        XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout), file: file, line: line)
+        XCTAssertTrue(
+            app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout),
+            "Root screen did not appear: \(tab.screenIdentifier)",
+            file: file,
+            line: line
+        )
         XCTAssertEqual(app.state, .runningForeground, file: file, line: line)
     }
 
@@ -117,7 +137,7 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     private func scrollToElement(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 6) {
         var remainingSwipes = maxSwipes
-        while !element.exists && remainingSwipes > 0 {
+        while (!element.exists || !element.isHittable) && remainingSwipes > 0 {
             app.swipeUp()
             remainingSwipes -= 1
         }
@@ -127,7 +147,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            configuredApp(session: .guest).launch()
         }
     }
 
@@ -191,6 +211,14 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testEachTabOpensExpectedRootScreen() throws {
         let app = launchAuthenticatedApp()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+
+        let legalComplianceScreen = app.descendants(matching: .any)["legal.compliance.screen"]
+        XCTAssertFalse(
+            legalComplianceScreen.exists,
+            "Authenticated UI fixture unexpectedly requires legal consent"
+        )
+
         for tab in rootTabs {
             tapRootTab(tab, in: app)
         }
@@ -200,14 +228,16 @@ final class UkrainianCommunityUITests: XCTestCase {
 
         let recentViewsButton = app.buttons["profile.quick_action.recent_views"]
         scrollToElement(recentViewsButton, in: app)
-        XCTAssertTrue(recentViewsButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(recentViewsButton.exists)
+        XCTAssertTrue(recentViewsButton.isHittable)
         recentViewsButton.tap()
         XCTAssertTrue(app.otherElements["profile.recent_views.screen"].waitForExistence(timeout: 10))
         navigateBackIfPossible(in: app)
 
         let activityHistoryButton = app.buttons["profile.quick_action.activity_history"]
         scrollToElement(activityHistoryButton, in: app)
-        XCTAssertTrue(activityHistoryButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(activityHistoryButton.exists)
+        XCTAssertTrue(activityHistoryButton.isHittable)
         activityHistoryButton.tap()
         XCTAssertTrue(app.otherElements["profile.activity_history.screen"].waitForExistence(timeout: 10))
     }
@@ -274,10 +304,11 @@ final class UkrainianCommunityUITests: XCTestCase {
         let app = launchApp()
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
 
-        let signInButton = app.buttons["Anmelden"].firstMatch
+        let signInButton = app.buttons["profile.guest.signIn"].firstMatch
         XCTAssertTrue(signInButton.waitForExistence(timeout: 10))
         signInButton.tap()
-        XCTAssertTrue(app.navigationBars["Anmelden"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.otherElements["auth.login.screen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["auth.login.submit"].exists)
     }
 
     @MainActor

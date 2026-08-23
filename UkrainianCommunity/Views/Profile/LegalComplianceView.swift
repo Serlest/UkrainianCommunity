@@ -48,6 +48,7 @@ struct LegalComplianceView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .interactiveDismissDisabled(true)
+        .accessibilityIdentifier("legal.compliance.screen")
         .alert(AppStrings.LegalCompliance.declineConfirmTitle, isPresented: $isConfirmingDecline) {
             Button(AppStrings.Common.cancel, role: .cancel) {}
             Button(AppStrings.LegalCompliance.declineConfirmAction, role: .destructive) {

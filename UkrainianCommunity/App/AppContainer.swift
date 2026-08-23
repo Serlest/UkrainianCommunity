@@ -21,6 +21,7 @@ struct AppContainer {
     let activityLogRepository: ActivityLogRepository
     let analyticsService: AnalyticsTracking
     let allowsAccountStatusMonitoring: Bool
+    let allowsRemoteNotificationRegistration: Bool
 
     static var development: AppContainer {
         AppContainer(
@@ -43,13 +44,14 @@ struct AppContainer {
             recentViewsRepository: FirestoreRecentViewsRepository(),
             activityLogRepository: FirestoreActivityLogRepository(),
             analyticsService: FirebaseAnalyticsService(),
-            allowsAccountStatusMonitoring: true
+            allowsAccountStatusMonitoring: true,
+            allowsRemoteNotificationRegistration: true
         )
     }
 
-    static var uiTesting: AppContainer {
+    static func uiTesting(authState: AuthState = AuthState(sessionState: .guest)) -> AppContainer {
         AppContainer(
-            authState: AuthState(),
+            authState: authState,
             userRepository: MockUserRepository(),
             feedbackRepository: MockFeedbackRepository(),
             notificationPreferencesRepository: MockNotificationPreferencesRepository(),
@@ -68,7 +70,8 @@ struct AppContainer {
             recentViewsRepository: MockRecentViewsRepository(),
             activityLogRepository: MockActivityLogRepository(),
             analyticsService: NoopAnalyticsService(),
-            allowsAccountStatusMonitoring: false
+            allowsAccountStatusMonitoring: false,
+            allowsRemoteNotificationRegistration: false
         )
     }
 }

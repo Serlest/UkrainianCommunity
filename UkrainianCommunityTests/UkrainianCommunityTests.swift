@@ -309,7 +309,7 @@ struct UkrainianCommunityTests {
     }
 
     @Test func mockRepositoriesProvideFoundationContent() async throws {
-        let container = AppContainer.uiTesting
+        let container = AppContainer.uiTesting()
         let user = try await container.userRepository.fetchCurrentUser()
         let news = try await container.newsRepository.fetchNews()
         let events = try await container.eventRepository.fetchEvents()
@@ -325,7 +325,29 @@ struct UkrainianCommunityTests {
         #expect(donationConfig == nil)
         #expect(recentViews.isEmpty)
         #expect(activityLog.isEmpty)
+        #expect(container.authState.isGuest)
         #expect(container.allowsAccountStatusMonitoring == false)
+        #expect(container.allowsRemoteNotificationRegistration == false)
+    }
+
+    @Test func authenticatedUITestFixtureMatchesActiveLegalDocumentVersions() async throws {
+        let user = MockContentBuilder.currentUser()
+        let repository = MockLegalDocumentRepository()
+        let terms = try await repository.fetchActiveDocument(type: .terms)
+        let privacy = try await repository.fetchActiveDocument(type: .privacy)
+
+        #expect(user.acceptedTermsVersion == terms.version)
+        #expect(user.acceptedPrivacyVersion == privacy.version)
+    }
+
+    @Test func uiTestingContainerUsesProvidedSessionWithoutRestoration() {
+        let user = MockContentBuilder.currentUser()
+        let authState = AuthState(user: user, sessionState: .authenticated)
+        let container = AppContainer.uiTesting(authState: authState)
+
+        #expect(container.authState === authState)
+        #expect(container.authState.isAuthenticated)
+        #expect(container.authState.user?.id == user.id)
     }
 
     @Test func settingsPersistenceStoresLanguageAndAppearance() async throws {

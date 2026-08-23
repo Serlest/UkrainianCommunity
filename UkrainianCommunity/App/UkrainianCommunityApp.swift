@@ -94,28 +94,8 @@ struct UkrainianCommunityApp: App {
     init() {
         let processInfo = ProcessInfo.processInfo
         let isUITesting = processInfo.arguments.contains("-ui-testing")
-        let environment = ProcessInfo.processInfo.environment
-
-        FirebaseBootstrap.ensureConfigured()
-
-        let resolvedContainer: AppContainer = isUITesting ? .uiTesting : .development
-        container = resolvedContainer
-        _authState = StateObject(wrappedValue: resolvedContainer.authState)
-
-        let shouldForceGuestSession = environment["UITestForceGuestSession"] == "1"
+        let environment = processInfo.environment
         let shouldForceAuthenticatedSession = environment["UITestForceAuthenticatedSession"] == "1"
-        let sharedAuthState = resolvedContainer.authState
-
-        Task { @MainActor in
-            if isUITesting, shouldForceAuthenticatedSession {
-                sharedAuthState.user = MockContentBuilder.currentUser()
-                sharedAuthState.setAuthenticatedSession()
-            } else if isUITesting, shouldForceGuestSession {
-                sharedAuthState.setGuestSession()
-            } else {
-                await AuthService.shared.restoreSession()
-            }
-        }
 
         if environment["UITestResetUserSettings"] == "1" {
             AppLanguage.stored = .german
@@ -125,6 +105,32 @@ struct UkrainianCommunityApp: App {
         if let languageCode = environment["UITestAppLanguage"],
            let language = AppLanguage(rawValue: languageCode) {
             AppLanguage.stored = language
+        }
+
+        let resolvedContainer: AppContainer
+        if isUITesting {
+            let testAuthState: AuthState
+            if shouldForceAuthenticatedSession {
+                testAuthState = AuthState(
+                    user: MockContentBuilder.currentUser(),
+                    sessionState: .authenticated
+                )
+            } else {
+                testAuthState = AuthState(sessionState: .guest)
+            }
+            resolvedContainer = .uiTesting(authState: testAuthState)
+        } else {
+            FirebaseBootstrap.ensureConfigured()
+            resolvedContainer = .development
+        }
+
+        container = resolvedContainer
+        _authState = StateObject(wrappedValue: resolvedContainer.authState)
+
+        if !isUITesting {
+            Task { @MainActor in
+                await AuthService.shared.restoreSession()
+            }
         }
     }
 

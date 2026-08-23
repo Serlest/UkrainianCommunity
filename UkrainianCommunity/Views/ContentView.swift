@@ -22,7 +22,7 @@ struct ContentView: View {
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
     @StateObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
-    @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
+    @StateObject private var accountStatusMonitor: AccountStatusMonitorService
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
@@ -77,11 +77,16 @@ struct ContentView: View {
         _notificationPopupCoordinator = StateObject(wrappedValue: NotificationPopupCoordinatorService(
             repository: container.notificationInboxRepository
         ))
+        _accountStatusMonitor = StateObject(wrappedValue: AccountStatusMonitorService(
+            isMonitoringEnabled: container.allowsAccountStatusMonitoring
+        ))
         _legalComplianceMonitor = StateObject(wrappedValue: LegalComplianceMonitorService(
             legalDocumentRepository: container.legalDocumentRepository,
             userRepository: container.userRepository
         ))
-        RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
+        if container.allowsRemoteNotificationRegistration {
+            RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
+        }
     }
 
     var body: some View {
@@ -516,6 +521,7 @@ struct ContentView: View {
     }
 
     private func configureRemoteNotifications(for userID: String?) async {
+        guard container.allowsRemoteNotificationRegistration else { return }
         RemoteNotificationRegistrationService.shared.configureUser(userID)
         guard let userID else { return }
 
