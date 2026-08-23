@@ -121,17 +121,17 @@ final class UserBlockingCoordinator: ObservableObject {
         }
         switch error {
         case .authenticationRequired:
-            AppStrings.Safety.blockErrorAuthentication
+            return AppStrings.Safety.blockErrorAuthentication
         case .permissionDenied:
-            AppStrings.Safety.blockErrorPermission
+            return AppStrings.Safety.blockErrorPermission
         case .ownAccount:
-            AppStrings.Safety.blockErrorOwnAccount
+            return AppStrings.Safety.blockErrorOwnAccount
         case .targetUnavailable:
-            AppStrings.Safety.blockErrorUnavailable
+            return AppStrings.Safety.blockErrorUnavailable
         case .network:
-            AppStrings.Safety.blockErrorNetwork
+            return AppStrings.Safety.blockErrorNetwork
         case .malformedResponse, .unknown:
-            AppStrings.Safety.blockErrorUnknown
+            return AppStrings.Safety.blockErrorUnknown
         }
     }
 }
