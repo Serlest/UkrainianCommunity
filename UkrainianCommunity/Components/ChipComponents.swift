@@ -55,7 +55,7 @@ struct AppInfoChip: View {
     init(
         title: String,
         systemImage: String? = nil,
-        tint: Color = AppTheme.accentPrimary,
+        tint: Color = AppTheme.accentPrimaryForeground,
         fill: Color = AppTheme.badgeBlueFill,
         border: Color? = nil,
         trailingSystemImage: String? = nil,
@@ -186,7 +186,7 @@ struct SelectableFilterChip: View {
         Button(action: action) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isSelected ? AppTheme.accentPrimary : AppTheme.textSecondary)
+                .foregroundStyle(isSelected ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)

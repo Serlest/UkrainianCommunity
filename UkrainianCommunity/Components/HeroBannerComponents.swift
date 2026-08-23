@@ -65,7 +65,7 @@ struct AppHeroBanner<FooterContent: View>: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(title)
                                 .font(.title2.weight(.bold))
-                                .foregroundStyle(AppTheme.accentPrimary)
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
                                 .lineLimit(2)
 
                             Text(subtitle)

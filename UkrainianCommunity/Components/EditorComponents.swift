@@ -139,7 +139,7 @@ struct EditorTextField: View {
         HStack(spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.metadataIconSize)
 
             TextField(title, text: $text)
@@ -233,7 +233,7 @@ struct EditorSecureField: View {
         HStack(spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.metadataIconSize)
 
             SecureField(title, text: $text)

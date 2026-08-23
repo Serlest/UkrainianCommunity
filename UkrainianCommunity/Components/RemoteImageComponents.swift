@@ -268,7 +268,7 @@ struct AvatarArtworkView: View {
                     .overlay {
                         ProgressView()
                             .controlSize(.regular)
-                            .tint(AppTheme.accentPrimary)
+                            .tint(AppTheme.accentPrimaryForeground)
                     }
             }
         }
@@ -368,11 +368,11 @@ struct AvatarArtworkView: View {
             if showProgress {
                 ProgressView()
                     .controlSize(.small)
-                    .tint(AppTheme.accentPrimary)
+                    .tint(AppTheme.accentPrimaryForeground)
             } else {
                 Text(initials)
                     .font(initialsFont ?? .system(size: size * 0.28, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
             }
         }
     }

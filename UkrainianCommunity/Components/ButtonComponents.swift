@@ -45,7 +45,7 @@ struct AppGlassIconButton: View {
         Button(role: role, action: action) {
             Image(systemName: systemImage)
                 .font(AppTheme.glassIconButtonIconFont)
-                .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
                 .background(
                     reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),

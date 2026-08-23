@@ -305,7 +305,7 @@ struct AppNavigationRow: View {
         title: String,
         subtitle: String? = nil,
         systemImage: String,
-        tint: Color = AppTheme.accentPrimary,
+        tint: Color = AppTheme.accentPrimaryForeground,
         accessory: AppNavigationRowAccessory = .chevron
     ) {
         self.title = title

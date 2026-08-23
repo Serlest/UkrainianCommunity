@@ -33,7 +33,7 @@ struct UnifiedEmptyStateCard<ActionContent: View>: View {
             VStack(alignment: .center, spacing: UnifiedEmptyStateMetrics.contentSpacing) {
                 Image(systemName: systemImage)
                     .font(.system(size: UnifiedEmptyStateMetrics.iconFontSize, weight: .semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: UnifiedEmptyStateMetrics.iconSize, height: UnifiedEmptyStateMetrics.iconSize)
                     .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
 

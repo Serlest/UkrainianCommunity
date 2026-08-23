@@ -38,7 +38,7 @@ struct AppNotificationBellButton: View {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bell")
                         .font(.title3.weight(.medium))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 40, height: 40)
 
                     if configuration.unreadCount > 0 {
