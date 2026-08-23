@@ -66,7 +66,7 @@ struct NewsDetailView: View {
         }
 
         if let organization = organizationForPermissions(organizationID: organizationID) {
-            return PermissionService.canManageOrganizationRoles(organization, user: authState.user)
+            return PermissionService.canDeleteOrganizationContent(organization, user: authState.user)
         }
 
         return PermissionService.canDeleteNews(post, user: authState.user)
