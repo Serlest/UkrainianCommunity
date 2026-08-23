@@ -90,6 +90,8 @@ extension EventEditorView {
                                     )
                                 }
                                 .buttonStyle(.plain)
+                                .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                                .contentShape(Rectangle())
                                 .accessibilityLabel("\(AppStrings.Events.removeTag): \(tag)")
                             }
                         }
@@ -180,6 +182,8 @@ extension EventEditorView {
                     )
             }
             .buttonStyle(.plain)
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .contentShape(Rectangle())
         }
     }
 }

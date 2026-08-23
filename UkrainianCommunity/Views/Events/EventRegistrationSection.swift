@@ -192,6 +192,8 @@ extension EventDetailView {
                     )
             }
             .buttonStyle(.plain)
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .contentShape(Rectangle())
             .disabled(isDisabled)
             .opacity(isDisabled ? 0.68 : 1)
         }
@@ -295,6 +297,8 @@ extension EventDetailView {
                     .background(AppTheme.accentPrimary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
             }
             .buttonStyle(.plain)
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .contentShape(Rectangle())
             .disabled(viewModel.pendingEventRegistrationIDs.contains(event.id))
             .accessibilityIdentifier("event.register.\(event.id)")
             .accessibilityLabel(event.registrationState == .registered ? AppStrings.Action.cancelRegistration : AppStrings.Action.register)
