@@ -3,6 +3,15 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {requireAuth} from "../auth/context";
 import {adminAuth, adminStorage, db} from "../firebase/admin";
+import {
+  accountDeletionReferencePolicies,
+  deletedUserDisplayName,
+  deletedUserID,
+  personalReferenceValues,
+  redactPersonalReferences,
+  type AccountDeletionPatch,
+  type AccountDeletionReferencePolicy,
+} from "./accountDeletionPolicy";
 
 interface AccountDeletionResponse {
   status: "deleted";
@@ -11,13 +20,14 @@ interface AccountDeletionResponse {
 
 const callableOptions = {
   region: "europe-west3",
-  timeoutSeconds: 120,
+  timeoutSeconds: 300,
+  memory: "512MiB" as const,
   maxInstances: 10,
 };
 
 const recentAuthenticationWindowSeconds = 5 * 60;
 const deletionBatchSize = 400;
-const deletedUserDisplayName = "Видалений користувач";
+const feedbackDeletionBatchSize = 100;
 
 function stringField(data: DocumentData | undefined, field: string): string | undefined {
   const value = data?.[field];
@@ -36,7 +46,7 @@ function assertRecentlyAuthenticated(token: Record<string, unknown>): void {
   }
 }
 
-async function deleteQuery(query: Query): Promise<void> {
+async function deleteQuery(query: Query<DocumentData>): Promise<void> {
   while (true) {
     const snapshot = await query.limit(deletionBatchSize).get();
     if (snapshot.empty) {
@@ -53,49 +63,84 @@ async function deleteQuery(query: Query): Promise<void> {
   }
 }
 
-async function deleteUserSubcollections(uid: string): Promise<void> {
-  const collections = await db.collection("users").doc(uid).listCollections();
-  for (const collection of collections) {
-    await db.recursiveDelete(collection);
-  }
-}
-
 async function deleteFeedback(uid: string): Promise<void> {
   while (true) {
     const snapshot = await db.collection("feedback")
       .where("userId", "==", uid)
-      .limit(100)
+      .limit(feedbackDeletionBatchSize)
       .get();
     if (snapshot.empty) {
       return;
     }
 
-    for (const document of snapshot.docs) {
-      await db.recursiveDelete(document.ref);
-    }
+    await Promise.all(snapshot.docs.map((document) => db.recursiveDelete(document.ref)));
 
-    if (snapshot.size < 100) {
+    if (snapshot.size < feedbackDeletionBatchSize) {
       return;
     }
   }
 }
 
-async function anonymizeComments(uid: string): Promise<void> {
+async function markDeletionInProgress(uid: string): Promise<void> {
+  await db.collection("users").doc(uid).set({
+    accountStatus: "deactivated",
+    blockState: "deactivated",
+    isBlocked: true,
+    globalRole: "user",
+    communityMemberships: [],
+    deletionState: "inProgress",
+    deletionStartedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
+}
+
+async function applyReferencePolicy(
+  policy: AccountDeletionReferencePolicy,
+  uid: string,
+  personalReferences: readonly string[]
+): Promise<void> {
+  const rootQuery = policy.scope === "collection" ?
+    db.collection(policy.collection) :
+    db.collectionGroup(policy.collection);
+  let query: Query<DocumentData> = rootQuery.where(policy.field, policy.operator, uid);
+
+  for (const filter of policy.filters ?? []) {
+    query = query.where(filter.field, filter.operator, filter.value);
+  }
+
   while (true) {
-    const snapshot = await db.collectionGroup("comments")
-      .where("authorId", "==", uid)
-      .limit(deletionBatchSize)
-      .get();
+    const snapshot = await query.limit(deletionBatchSize).get();
     if (snapshot.empty) {
       return;
     }
 
     const batch = db.batch();
-    snapshot.docs.forEach((document) => batch.update(document.ref, {
-      authorId: "deleted",
-      authorName: deletedUserDisplayName,
-      updatedAt: FieldValue.serverTimestamp(),
-    }));
+    for (const document of snapshot.docs) {
+      switch (policy.action) {
+        case "delete":
+          batch.delete(document.ref);
+          break;
+        case "removeArrayValue":
+          batch.update(document.ref, {
+            [policy.field]: FieldValue.arrayRemove(uid),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+          break;
+        case "anonymize":
+          if (policy.patch === undefined) {
+            throw new Error(`Missing anonymization patch for ${policy.name}.`);
+          }
+          batch.update(
+            document.ref,
+            referenceAnonymizationUpdate(
+              policy.patch,
+              document.data(),
+              personalReferences
+            )
+          );
+          break;
+      }
+    }
     await batch.commit();
 
     if (snapshot.size < deletionBatchSize) {
@@ -104,37 +149,119 @@ async function anonymizeComments(uid: string): Promise<void> {
   }
 }
 
-async function deleteAvatar(uid: string): Promise<void> {
-  const avatar = adminStorage.bucket().file(`profileImages/${uid}/avatar.jpg`);
-  await avatar.delete({ignoreNotFound: true});
+function referenceAnonymizationUpdate(
+  patch: AccountDeletionPatch,
+  data: DocumentData,
+  personalReferences: readonly string[]
+): DocumentData {
+  const updatedAt = FieldValue.serverTimestamp();
+
+  switch (patch) {
+    case "contentAuthor":
+      return {
+        authorId: deletedUserID,
+        authorName: deletedUserDisplayName,
+        updatedAt,
+      };
+    case "commentAuthor":
+      return {
+        authorId: deletedUserID,
+        authorName: deletedUserDisplayName,
+        authorPhotoURL: FieldValue.delete(),
+        updatedAt,
+      };
+    case "organizationSubmitter":
+      return {
+        submittedByUserId: deletedUserID,
+        submittedByDisplayName: deletedUserDisplayName,
+        updatedAt,
+      };
+    case "organizationReviewer":
+      return {
+        reviewedByUserId: deletedUserID,
+        updatedAt,
+      };
+    case "organizationPhotoUploader":
+      return {
+        uploadedBy: deletedUserID,
+        updatedAt,
+      };
+    case "feedbackMessageAuthor":
+      return {
+        senderId: deletedUserID,
+        senderDisplayName: deletedUserDisplayName,
+      };
+    case "legalAcceptance":
+      return {
+        userId: deletedUserID,
+      };
+    case "auditTarget":
+      return retainedLogUpdate(data, personalReferences, {
+        targetUserId: deletedUserID,
+      });
+    case "auditActor":
+      return retainedLogUpdate(data, personalReferences, {
+        performedBy: deletedUserID,
+      });
+    case "systemLogActor":
+      return retainedLogUpdate(data, personalReferences, {
+        actorUserId: deletedUserID,
+        actorDisplayName: deletedUserDisplayName,
+      });
+    case "systemLogReviewer":
+      return retainedLogUpdate(data, personalReferences, {
+        reviewedByUserId: deletedUserID,
+      });
+    case "systemLogTarget":
+      return retainedLogUpdate(data, personalReferences, {
+        targetId: deletedUserID,
+        targetTitle: deletedUserDisplayName,
+      });
+  }
 }
 
-async function anonymizeUserDocument(uid: string): Promise<void> {
-  await db.collection("users").doc(uid).set({
-    id: uid,
-    accountStatus: "deactivated",
-    blockState: "deactivated",
-    isBlocked: true,
-    globalRole: "user",
-    canManageGuide: FieldValue.delete(),
-    communityMemberships: [],
-    displayName: deletedUserDisplayName,
-    fullName: "",
-    bio: "",
-    city: "",
-    email: "",
-    telegramUsername: FieldValue.delete(),
-    avatarURL: FieldValue.delete(),
-    selectedFederalState: FieldValue.delete(),
-    acceptedTermsAt: FieldValue.delete(),
-    acceptedPrivacyAt: FieldValue.delete(),
-    acceptedTermsVersion: FieldValue.delete(),
-    acceptedPrivacyVersion: FieldValue.delete(),
-    termsVersion: FieldValue.delete(),
-    privacyVersion: FieldValue.delete(),
-    deletionCompletedAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-  }, {merge: true});
+function retainedLogUpdate(
+  data: DocumentData,
+  personalReferences: readonly string[],
+  directUpdate: DocumentData
+): DocumentData {
+  const update = {...directUpdate};
+  const redactableFields = [
+    "metadata",
+    "newValue",
+    "note",
+    "previousValue",
+    "reason",
+    "summary",
+    "technicalMessage",
+  ];
+
+  for (const field of redactableFields) {
+    if (data[field] !== undefined) {
+      update[field] = redactPersonalReferences(data[field], personalReferences);
+    }
+  }
+
+  return update;
+}
+
+async function deleteProfileImages(uid: string): Promise<void> {
+  await adminStorage.bucket().deleteFiles({
+    prefix: `profileImages/${uid}/`,
+    force: true,
+  });
+}
+
+async function deleteOwnedPrivateData(uid: string): Promise<void> {
+  await Promise.all([
+    deleteQuery(db.collection("likes").where("userId", "==", uid)),
+    deleteQuery(db.collection("registrations").where("userId", "==", uid)),
+    deleteFeedback(uid),
+  ]);
+}
+
+async function deleteUserRoot(uid: string): Promise<void> {
+  await db.recursiveDelete(db.collection("users").doc(uid));
 }
 
 export const deleteOwnAccount = onCall(
@@ -165,14 +292,21 @@ export const deleteOwnAccount = onCall(
       );
     }
 
-    await deleteUserSubcollections(auth.uid);
-    await deleteQuery(db.collection("likes").where("userId", "==", auth.uid));
-    await deleteQuery(db.collection("registrations").where("userId", "==", auth.uid));
-    await deleteFeedback(auth.uid);
-    await anonymizeComments(auth.uid);
-    await deleteAvatar(auth.uid);
-    await db.collection("publicProfiles").doc(auth.uid).delete();
-    await anonymizeUserDocument(auth.uid);
+    const personalReferences = personalReferenceValues(auth.uid, userSnapshot.data());
+    await markDeletionInProgress(auth.uid);
+    // Remove feedback owned by this user before scanning feedback messages.
+    // Otherwise a recursive delete can race an anonymizing update in the same batch.
+    await deleteOwnedPrivateData(auth.uid);
+
+    await Promise.all([
+      deleteProfileImages(auth.uid),
+      db.collection("publicProfiles").doc(auth.uid).delete(),
+      ...accountDeletionReferencePolicies.map((policy) =>
+        applyReferencePolicy(policy, auth.uid, personalReferences)
+      ),
+    ]);
+
+    await deleteUserRoot(auth.uid);
     await adminAuth.deleteUser(auth.uid);
 
     return {

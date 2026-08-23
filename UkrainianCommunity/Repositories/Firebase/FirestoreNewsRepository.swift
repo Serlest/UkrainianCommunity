@@ -110,6 +110,9 @@ struct FirestoreNewsRepository: NewsRepository {
         guard news.isOrganizationNews else {
             throw AppError.validationFailed
         }
+        guard let authorID = Auth.auth().currentUser?.uid else {
+            throw AppError.permissionDenied
+        }
 
         let dto = news.dto
 
@@ -129,6 +132,7 @@ struct FirestoreNewsRepository: NewsRepository {
             "organizationImageURL": dto.organizationImageURL as Any,
             "imageURL": dto.imageURL as Any,
             "body": dto.body,
+            "authorId": authorID,
             "authorName": dto.authorName,
             "publishedAt": Timestamp(date: dto.publishedAt),
             "createdAt": Timestamp(date: dto.createdAt),
