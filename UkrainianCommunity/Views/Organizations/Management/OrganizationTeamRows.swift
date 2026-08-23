@@ -59,7 +59,10 @@ struct OrganizationTeamMemberRow: View {
                     Image(systemName: "ellipsis.circle")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(canChangeRole ? AppTheme.accentPrimary : AppTheme.textSecondary)
-                        .frame(width: 34, height: 34)
+                        .frame(
+                            width: AppTheme.minimumInteractiveTarget,
+                            height: AppTheme.minimumInteractiveTarget
+                        )
                         .background(AppTheme.surfaceControl.opacity(0.55), in: Circle())
                 }
                 .disabled(!canChangeRole)

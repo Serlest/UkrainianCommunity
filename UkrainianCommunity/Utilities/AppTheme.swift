@@ -59,6 +59,7 @@ enum AppTheme {
     static let eventsHeaderContentSpacing: CGFloat = 13
     static let eventsControlGroupSpacing: CGFloat = 10
     static let searchControlHeight: CGFloat = 44
+    static let minimumInteractiveTarget: CGFloat = 44
     static let iconButtonSize: CGFloat = 44
     static let metadataIconSize: CGFloat = 18
     static let inputHorizontalPadding: CGFloat = 14

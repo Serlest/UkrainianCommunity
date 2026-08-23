@@ -590,7 +590,10 @@ struct ManagedOrganizationView: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(AppTheme.accentPrimary)
             .labelStyle(.iconOnly)
-            .frame(width: 34, height: 34)
+            .frame(
+                width: AppTheme.minimumInteractiveTarget,
+                height: AppTheme.minimumInteractiveTarget
+            )
             .background(AppTheme.accentPrimarySoft, in: Circle())
             .overlay(Circle().strokeBorder(AppTheme.accentPrimary.opacity(0.16)))
             .accessibilityLabel(title)

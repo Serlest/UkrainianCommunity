@@ -882,6 +882,11 @@ struct AppSearchableBrandHeader: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textSecondary)
+                        .frame(
+                            minWidth: AppTheme.minimumInteractiveTarget,
+                            minHeight: AppTheme.minimumInteractiveTarget
+                        )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(AppStrings.Search.clear)

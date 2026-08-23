@@ -1,2284 +1,68 @@
-import Foundation
-
-enum AppStrings {
-    enum Tabs {
-        static var home: String { text("tab.home", "Home") }
-        static var events: String { text("tab.events", "Events") }
-        static var organizations: String { text("tab.organizations", "Organizations") }
-        static var profile: String { text("tab.profile", "Profile") }
-    }
-
-    enum LocalNotifications {
-        static var eventReminderFallbackBody: String {
-            String(localized: "notifications.local.event_reminder.fallback_body", defaultValue: "ĞŸĞ¾Ğ´Ñ–Ñ ÑĞºĞ¾Ñ€Ğ¾ Ğ¿Ğ¾Ñ‡Ğ½ĞµÑ‚ÑŒÑÑ", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var testTitle: String {
-            String(localized: "notifications.local.test.title", defaultValue: "Ğ¢ĞµÑÑ‚Ğ¾Ğ²Ğµ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var testBody: String {
-            String(localized: "notifications.local.test.body", defaultValue: "Ğ›Ğ¾ĞºĞ°Ğ»ÑŒĞ½Ñ– ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ Ğ¿Ñ€Ğ°Ñ†ÑÑÑ‚ÑŒ.", bundle: .main, locale: LocalizationStore.locale)
-        }
-    }
-
-    enum NotificationInbox {
-        static var title: String { text("notifications.inbox.title", "Notifications") }
-        static var subtitle: String { text("notifications.inbox.subtitle", "Updates about your requests and support messages.") }
-        static var emptyTitle: String { text("notifications.inbox.empty.title", "No notifications yet") }
-        static var emptyMessage: String { text("notifications.inbox.empty.message", "New replies and request updates will appear here.") }
-        static var unreadEmptyTitle: String { text("notifications.inbox.unread.empty.title", "No unread notifications") }
-        static var unreadEmptyMessage: String { text("notifications.inbox.unread.empty.message", "Unread updates will appear here.") }
-        static var filterAll: String { text("notifications.inbox.filter.all", "All") }
-        static var filterUnread: String { text("notifications.inbox.filter.unread", "Unread") }
-        static var markAllRead: String { text("notifications.inbox.mark_all_read", "Mark all as read") }
-        static var markRead: String { text("notifications.inbox.mark_read", "Mark read") }
-        static var markUnread: String { text("notifications.inbox.mark_unread", "Mark unread") }
-        static var archive: String { text("notifications.inbox.archive", "Archive") }
-        static var delete: String { text("notifications.inbox.delete", "Delete") }
-        static var destinationUnavailableTitle: String { text("notifications.inbox.destination_unavailable.title", "No longer available") }
-        static var destinationUnavailableMessage: String { text("notifications.inbox.destination_unavailable.message", "This notification can no longer be opened.") }
-        static var feedbackSubmittedTitle: String { text("notifications.inbox.feedback_submitted.title", "New user request") }
-        static var feedbackSubmittedBody: String { text("notifications.inbox.feedback_submitted.body", "A user submitted a new request.") }
-        static var feedbackReplyTitle: String { text("notifications.inbox.feedback_reply.title", "Support replied") }
-        static var feedbackReplyBody: String { text("notifications.inbox.feedback_reply.body", "You have a new reply to your message.") }
-        static var organizationApprovedTitle: String { text("notifications.inbox.organization_approved.title", "Organization approved") }
-        static var organizationNeedsRevisionTitle: String { text("notifications.inbox.organization_needs_revision.title", "Organization needs revision") }
-        static var organizationRejectedTitle: String { text("notifications.inbox.organization_rejected.title", "Organization rejected") }
-        static var accountStatusChangedTitle: String { text("notifications.inbox.account_status_changed.title", "Account status updated") }
-        static var legalDocumentsUpdatedTitle: String { text("notifications.inbox.legal_documents_updated.title", "Legal documents updated") }
-        static var roleChangedTitle: String { text("notifications.inbox.role_changed.title", "Role updated") }
-        static var organizationRoleAssignedTitle: String { text("notifications.inbox.organization_role_assigned.title", "Organization role assigned") }
-        static var organizationRoleRemovedTitle: String { text("notifications.inbox.organization_role_removed.title", "Organization role removed") }
-        static var reportReviewedTitle: String { text("notifications.inbox.report_reviewed.title", "Report reviewed") }
-        static var eventUpdatedTitle: String { text("notifications.inbox.event_updated.title", "Event updated") }
-        static var eventCancelledTitle: String { text("notifications.inbox.event_cancelled.title", "Event cancelled") }
-        static var systemAnnouncementTitle: String { text("notifications.inbox.system_announcement.title", "System announcement") }
-        static var genericBody: String { text("notifications.inbox.generic.body", "Open this notification for details.") }
-        static var severityInfo: String { text("notifications.inbox.severity.info", "Info") }
-        static var severitySuccess: String { text("notifications.inbox.severity.success", "Success") }
-        static var severityWarning: String { text("notifications.inbox.severity.warning", "Warning") }
-        static var severityCritical: String { text("notifications.inbox.severity.critical", "Critical") }
-
-        static func organizationApprovedBody(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.organization_approved.body",
-                defaultValue: "%@ was approved.",
-                arguments: [organizationName]
-            )
-        }
-
-        static func organizationNeedsRevisionBody(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.organization_needs_revision.body",
-                defaultValue: "%@ needs changes before approval.",
-                arguments: [organizationName]
-            )
-        }
-
-        static func organizationRejectedBody(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.organization_rejected.body",
-                defaultValue: "%@ was rejected.",
-                arguments: [organizationName]
-            )
-        }
-
-        static func unreadCount(_ count: Int) -> String {
-            LocalizationStore.localizedFormat(
-                "notifications.inbox.unread_count",
-                defaultValue: "%lld unread",
-                arguments: [count]
-            )
-        }
-    }
-
-    enum NotificationPopup {
-        static var actionButton: String { text("notifications.popup.action", "Open") }
-        static var updateFailed: String { text("notifications.popup.error.update_failed", "Unable to update this notification right now.") }
-    }
-
-    enum Featured {
-        static var loadErrorTitle: String { text("featured.banner.load_error.title", "Highlights unavailable") }
-        static var loadNetworkError: String { text("featured.banner.load_error.network", "Highlights could not be loaded. Check your connection and try again.") }
-        static var loadPermissionError: String { text("featured.banner.load_error.permission", "Highlights are temporarily unavailable because their publishing configuration needs attention.") }
-        static var loadDataError: String { text("featured.banner.load_error.data", "Highlights contain invalid publishing data and could not be shown.") }
-        static var loadUnknownError: String { text("featured.banner.load_error.unknown", "Highlights could not be loaded right now.") }
-
-        static func bannerPageIndicator(current: Int, total: Int) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.banner.page_indicator",
-                defaultValue: "Featured banner %lld of %lld",
-                arguments: [current, total]
-            )
-        }
-    }
-
-    enum AccountStatusAlert {
-        static var warnedTitle: String { text("account_status_alert.warned.title", "ĞŸĞ¾Ğ¿ĞµÑ€ĞµĞ´Ğ¶ĞµĞ½Ğ½Ñ Ğ´Ğ»Ñ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ°") }
-        static var suspendedTitle: String { text("account_status_alert.suspended.title", "ĞĞºĞ°ÑƒĞ½Ñ‚ Ñ‚Ğ¸Ğ¼Ñ‡Ğ°ÑĞ¾Ğ²Ğ¾ Ğ·Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ğ¾") }
-        static var bannedTitle: String { text("account_status_alert.banned.title", "ĞĞºĞ°ÑƒĞ½Ñ‚ Ğ·Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ğ¾") }
-        static var deactivatedTitle: String { text("account_status_alert.deactivated.title", "ĞĞºĞ°ÑƒĞ½Ñ‚ Ğ´ĞµĞ°ĞºÑ‚Ğ¸Ğ²Ğ¾Ğ²Ğ°Ğ½Ğ¾") }
-        static var restoredTitle: String { text("account_status_alert.restored.title", "Ğ”Ğ¾ÑÑ‚ÑƒĞ¿ Ğ´Ğ¾ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ° Ğ²Ñ–Ğ´Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ¾") }
-        static var warnedMessage: String { text("account_status_alert.warned.message", "Ğ’Ğ¸ Ğ¼Ğ¾Ğ¶ĞµÑ‚Ğµ Ğ¹ Ğ½Ğ°Ğ´Ğ°Ğ»Ñ– ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‚Ğ¸ÑÑ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºĞ¾Ğ¼, Ğ°Ğ»Ğµ Ğ¿Ğ¾Ğ²Ñ‚Ğ¾Ñ€Ğ½Ñ– Ğ¿Ğ¾Ñ€ÑƒÑˆĞµĞ½Ğ½Ñ Ğ¼Ğ¾Ğ¶ÑƒÑ‚ÑŒ Ğ¾Ğ±Ğ¼ĞµĞ¶Ğ¸Ñ‚Ğ¸ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿ Ğ´Ğ¾ Ğ·Ğ°Ñ…Ğ¸Ñ‰ĞµĞ½Ğ¸Ñ… Ğ´Ñ–Ğ¹.") }
-        static var suspendedMessage: String { text("account_status_alert.suspended.message", "Ğ—Ğ°Ñ…Ğ¸Ñ‰ĞµĞ½Ñ– Ğ´Ñ–Ñ— Ñ‚Ğ° Ñ€Ğ¾Ğ·ÑˆĞ¸Ñ€ĞµĞ½Ñ– Ğ¼Ğ¾Ğ¶Ğ»Ğ¸Ğ²Ğ¾ÑÑ‚Ñ– Ğ¾Ğ±Ğ¼ĞµĞ¶ĞµĞ½Ñ– Ğ´Ğ¾ Ğ·Ğ°Ğ²ĞµÑ€ÑˆĞµĞ½Ğ½Ñ Ñ‚Ğ¸Ğ¼Ñ‡Ğ°ÑĞ¾Ğ²Ğ¾Ğ³Ğ¾ Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-        static var bannedMessage: String { text("account_status_alert.banned.message", "Ğ—Ğ°Ñ…Ğ¸Ñ‰ĞµĞ½Ñ– Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¼Ğ¾Ğ¶Ğ»Ğ¸Ğ²Ğ¾ÑÑ‚Ñ– Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ° Ğ·Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ñ–. ĞŸÑƒĞ±Ğ»Ñ–Ñ‡Ğ½Ğ¸Ğ¹ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚ Ğ¼Ğ¾Ğ¶Ğµ Ğ·Ğ°Ğ»Ğ¸ÑˆĞ°Ñ‚Ğ¸ÑÑ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¸Ğ¼, ÑĞºÑ‰Ğ¾ Ñ†Ğµ Ğ´Ğ¾Ğ·Ğ²Ğ¾Ğ»ĞµĞ½Ğ¾ Ğ¿Ñ€Ğ°Ğ²Ğ¸Ğ»Ğ°Ğ¼Ğ¸ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var deactivatedMessage: String { text("account_status_alert.deactivated.message", "ĞĞºĞ°ÑƒĞ½Ñ‚ Ğ´ĞµĞ°ĞºÑ‚Ğ¸Ğ²Ğ¾Ğ²Ğ°Ğ½Ğ¾. Ğ—Ğ°Ñ…Ğ¸Ñ‰ĞµĞ½Ñ– Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¿ĞµÑ€ÑĞ¾Ğ½Ğ°Ğ»ÑŒĞ½Ñ– Ğ¼Ğ¾Ğ¶Ğ»Ğ¸Ğ²Ğ¾ÑÑ‚Ñ– Ğ½ĞµĞ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ñ–.") }
-        static var restoredMessage: String { text("account_status_alert.restored.message", "Ğ’Ğ°Ñˆ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿ Ğ²Ñ–Ğ´Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ¾. Ğ’Ğ¸ Ğ·Ğ½Ğ¾Ğ²Ñƒ Ğ¼Ğ¾Ğ¶ĞµÑ‚Ğµ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‚Ğ¸ÑÑ Ğ¼Ğ¾Ğ¶Ğ»Ğ¸Ğ²Ğ¾ÑÑ‚ÑĞ¼Ğ¸ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ° Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ½Ğ¾ Ğ´Ğ¾ Ğ²Ğ°ÑˆĞ¸Ñ… Ñ€Ğ¾Ğ»ĞµĞ¹.") }
-        static var reasonTitle: String { text("account_status_alert.reason", "ĞŸÑ€Ğ¸Ñ‡Ğ¸Ğ½Ğ°") }
-        static var suspensionUntilTitle: String { text("account_status_alert.suspension_until", "Ğ‘Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ´Ñ–Ñ” Ğ´Ğ¾") }
-        static var acknowledgementButton: String { text("account_status_alert.acknowledgement_button", "Ğ—Ñ€Ğ¾Ğ·ÑƒĞ¼Ñ–Ğ»Ğ¾") }
-        static var acknowledgementLoading: String { text("account_status_alert.acknowledgement_loading", "Ğ—Ğ±ĞµÑ€Ñ–Ğ³Ğ°Ñ”Ğ¼Ğ¾â€¦") }
-        static var acknowledgementFailed: String { text("account_status_alert.acknowledgement_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¿Ñ–Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¸Ñ‚Ğ¸ Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ·â€™Ñ”Ğ´Ğ½Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° ÑĞ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.") }
-    }
-
-    enum Search {
-        static var open: String { text("search.open", "Search") }
-        static var close: String { text("search.close", "Close search") }
-        static var clear: String { text("search.clear", "Clear search") }
-        static var noResultsTitle: String { text("search.no_results.title", "Nothing found") }
-        static var noResultsMessage: String { text("search.no_results.message", "Try a different search term or adjust the current filters.") }
-        static var homePlaceholder: String { text("search.placeholder.home", "Search updates, events, and organizations") }
-        static var eventsPlaceholder: String { text("search.placeholder.events", "Search events") }
-        static var organizationsPlaceholder: String { text("search.placeholder.organizations", "Search organizations") }
-    }
-
-    enum Images {
-        enum Crop {
-            static var title: String { text("image.crop.title", "Crop image") }
-            static var hint: String { text("image.crop.hint", "Drag to reposition. Pinch to zoom.") }
-            static var reset: String { text("image.crop.reset", "Reset") }
-            static var cancel: String { text("image.crop.cancel", "Cancel") }
-            static var apply: String { text("image.crop.apply", "Apply") }
-        }
-
-        enum Validation {
-            static var squareAspectRatio: String { text("image.validation.aspect_ratio.square", "Image must be square. Crop it to fit the frame before uploading.") }
-        }
-    }
-
-    enum FeaturedManagement {
-        static var title: String { text("featured.management.title", "Featured Content") }
-        static var profileEntryTitle: String { text("featured.management.profile_entry.title", "Featured Content") }
-        static var profileEntrySubtitle: String { text("featured.management.profile_entry.subtitle", "Manage highlights shown across Home, Events, and Organizations.") }
-        static var subtitle: String { text("featured.management.subtitle", "Create, preview, schedule, edit, migrate, and remove highlights across the public app.") }
-        static var emptyTitle: String { text("featured.management.empty.title", "No featured banners yet") }
-        static var emptyMessage: String { text("featured.management.empty.message", "Create the first highlight and choose exactly where and when it should appear.") }
-        static var inactive: String { text("featured.management.inactive", "Inactive") }
-        static var activeToggle: String { text("featured.management.active_toggle", "Active") }
-        static var updating: String { text("featured.management.updating", "Updating") }
-        static var deleteBanner: String { text("featured.management.delete", "Delete banner") }
-        static var deleteConfirmationTitle: String { text("featured.management.delete.confirm.title", "Delete featured banner?") }
-        static func deleteConfirmationMessage(_ title: String) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.management.delete.confirm.message",
-                defaultValue: "This permanently deletes â€œ%@â€ and its uploaded banner images.",
-                arguments: [title]
-            )
-        }
-        static var sectionsLabel: String { text("featured.management.sections", "Sections") }
-        static var regionLabel: String { text("featured.management.region", "Region") }
-        static var actionLabel: String { text("featured.management.action", "Action") }
-        static var priorityLabel: String { text("featured.management.priority", "Priority") }
-        static var scheduleLabel: String { text("featured.management.schedule", "Schedule") }
-        static var missingRegion: String { text("featured.management.missing_region", "Missing region") }
-        static var actionNone: String { text("featured.management.action.none", "No tap action") }
-        static var actionExternalURL: String { text("featured.management.action.external_url", "External URL") }
-        static var unsupportedLegacy: String { text("featured.management.unsupported_legacy", "No longer supported") }
-        static var migrationRequiredMessage: String { text("featured.management.migration.message", "This banner contains a retired Guide value. Open it once to migrate it to supported sections and actions, or delete it permanently.") }
-        static var dataRepairMessage: String { text("featured.management.repair.message", "This Firestore document contains incomplete or unknown data. Open it to repair the supported fields, or delete it permanently.") }
-        static var statusMigrationRequired: String { text("featured.management.status.migration_required", "Needs migration") }
-        static var statusRepairRequired: String { text("featured.management.status.repair_required", "Needs repair") }
-        static var statusScheduled: String { text("featured.management.status.scheduled", "Scheduled") }
-        static var statusLive: String { text("featured.management.status.live", "Live") }
-        static var statusExpired: String { text("featured.management.status.expired", "Expired") }
-        static var scheduleAlways: String { text("featured.management.schedule.always", "Always") }
-        static var searchPlaceholder: String { text("featured.management.search.placeholder", "Search banners by name, content, region, or ID") }
-        static var filterLabel: String { text("featured.management.filter.label", "Status filter") }
-        static var filterAll: String { text("featured.management.filter.all", "All banners") }
-        static var filterNeedsAttention: String { text("featured.management.filter.needs_attention", "Needs attention") }
-        static var noMatchesTitle: String { text("featured.management.no_matches.title", "No matching banners") }
-        static var noMatchesMessage: String { text("featured.management.no_matches.message", "Change the search text or status filter.") }
-        static var networkError: String { text("featured.management.error.network", "Unable to load featured content. Check your connection and try again.") }
-        static var permissionError: String { text("featured.management.error.permission", "You do not have permission to manage featured content.") }
-        static var validationError: String { text("featured.management.error.validation", "Featured content data is incomplete or invalid.") }
-        static var notFoundError: String { text("featured.management.error.not_found", "Featured content was not found.") }
-        static var unknownError: String { text("featured.management.error.unknown", "Unable to update featured content right now.") }
-
-        static func scheduleStarts(_ date: Date) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.management.schedule.starts",
-                defaultValue: "From %@",
-                arguments: [date.formatted(date: .abbreviated, time: .shortened)]
-            )
-        }
-
-        static func scheduleEnds(_ date: Date) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.management.schedule.ends",
-                defaultValue: "Until %@",
-                arguments: [date.formatted(date: .abbreviated, time: .shortened)]
-            )
-        }
-
-        static func resultsCount(_ visible: Int, total: Int) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.management.results_count",
-                defaultValue: "%1$lld of %2$lld",
-                arguments: [visible, total]
-            )
-        }
-
-        static func fallbackBannerName(_ id: String, date: Date) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.management.fallback_name",
-                defaultValue: "Banner %@ Â· %@",
-                arguments: [id, date.formatted(date: .abbreviated, time: .omitted)]
-            )
-        }
-    }
-
-    enum FeaturedEditor {
-        static var createTitle: String { text("featured.editor.create.title", "Create Featured Banner") }
-        static var editTitle: String { text("featured.editor.edit.title", "Edit Featured Banner") }
-        static var subtitle: String { text("featured.editor.subtitle", "Configure the highlight shown in public banner carousels.") }
-        static var createBanner: String { text("featured.editor.create_banner", "Create banner") }
-        static var editBanner: String { text("featured.editor.edit_banner", "Edit banner") }
-        static var migrateBanner: String { text("featured.editor.migrate_banner", "Migrate and edit banner") }
-        static var repairBanner: String { text("featured.editor.repair_banner", "Repair and edit banner") }
-        static var createEntrySubtitle: String { text("featured.editor.create_entry.subtitle", "Add a new highlight for one or more sections.") }
-        static var saveChanges: String { text("featured.editor.save_changes", "Save changes") }
-        static var saving: String { text("featured.editor.saving", "Saving") }
-        static var saveSuccess: String { text("featured.editor.save_success", "Featured banner saved.") }
-        static var discardConfirmationTitle: String { text("featured.editor.discard.title", "Discard banner changes?") }
-        static var discardConfirmationMessage: String { text("featured.editor.discard.message", "Your unsaved banner changes will be lost.") }
-        static var discardChanges: String { text("featured.editor.discard.action", "Discard changes") }
-        static var basicsSection: String { text("featured.editor.section.basics", "Basics") }
-        static var previewSection: String { text("featured.editor.section.preview", "Live preview") }
-        static var previewHelper: String { text("featured.editor.preview.helper", "This preview uses the same card as Home, Events, and Organizations.") }
-        static var legacyMigrationMessage: String { text("featured.editor.migration.message", "Retired Guide values were removed from this draft. Review the replacement sections and action, then save to complete migration.") }
-        static var dataRepairMessage: String { text("featured.editor.repair.message", "Unsupported or incomplete values were normalized in this draft. Review every section before saving the repaired document.") }
-        static var imageSection: String { text("featured.editor.section.image", "Image") }
-        static var targetingSection: String { text("featured.editor.section.targeting", "Targeting") }
-        static var actionSection: String { text("featured.editor.section.action", "Action") }
-        static var schedulingSection: String { text("featured.editor.section.scheduling", "Scheduling") }
-        static var internalNameField: String { text("featured.editor.field.internal_name", "Internal Name") }
-        static var titleField: String { text("featured.editor.field.title", "Headline") }
-        static var subtitleField: String { text("featured.editor.field.subtitle", "Subtitle") }
-        static var imageHelper: String { text("featured.editor.image.helper", "Use a wide 16:9 image. The public carousel crops safely inside the card bounds.") }
-        static var replaceImage: String { text("featured.editor.image.replace", "Replace image") }
-        static var uploadImage: String { text("featured.editor.image.upload", "Upload banner image") }
-        static var uploadImageHelper: String { text("featured.editor.image.upload_helper", "A banner image is required before saving.") }
-        static var imageLoadFailed: String { text("featured.editor.image.load_failed", "Unable to load the selected image.") }
-        static var validationImageAspectRatio: String { text("featured.editor.validation.image_aspect_ratio", "Image must be 16:9. Choose a horizontal photo or crop it before uploading.") }
-        static var cropInstructions: String { text("featured.editor.crop.instructions", "Move and scale the image inside the 16:9 frame.") }
-        static var regionScopeField: String { text("featured.editor.field.region_scope", "Region scope") }
-        static var regionScopeFederalState: String { text("featured.editor.region_scope.federal_state", "Federal state") }
-        static var federalStateField: String { text("featured.editor.field.federal_state", "Federal state") }
-        static var selectFederalState: String { text("featured.editor.select_federal_state", "Select federal state") }
-        static var visibleSectionsField: String { text("featured.editor.field.visible_sections", "Visible sections") }
-        static var actionTypeField: String { text("featured.editor.field.action_type", "Action type") }
-        static var actionHelperNoTap: String { text("featured.editor.action.helper.no_tap", "This banner will display only. Tapping it will not open anything.") }
-        static var actionHelperTarget: String { text("featured.editor.action.helper.target", "Tapping this banner opens the selected app content.") }
-        static var actionHelperExternalURL: String { text("featured.editor.action.helper.external_url", "Tapping this banner opens the external URL.") }
-        static var selectTarget: String { text("featured.editor.action.select_target", "Select target") }
-        static var clearTarget: String { text("featured.editor.action.clear_target", "Clear selected target") }
-        static var targetPickerSearch: String { text("featured.editor.action.search_target", "Search by title, summary, source, location, type, or ID") }
-        static var loadingTargets: String { text("featured.editor.action.loading_targets", "Loading targets") }
-        static var noTargetsFound: String { text("featured.editor.action.no_targets.title", "No matching targets") }
-        static var noTargetsFoundMessage: String { text("featured.editor.action.no_targets.message", "Try a different search or refresh the list.") }
-        static var targetPickerLoadFailed: String { text("featured.editor.action.load_failed", "Unable to load selectable targets right now.") }
-        static var externalURLField: String { text("featured.editor.field.external_url", "External URL") }
-        static var durationField: String { text("featured.editor.field.duration", "Display duration") }
-        static var priorityField: String { text("featured.editor.field.priority", "Priority") }
-        static var startsAtEnabled: String { text("featured.editor.starts_at.enabled", "Use start date") }
-        static var startsAtField: String { text("featured.editor.field.starts_at", "Starts at") }
-        static var endsAtEnabled: String { text("featured.editor.ends_at.enabled", "Use end date") }
-        static var endsAtField: String { text("featured.editor.field.ends_at", "Ends at") }
-        static var validationImageRequired: String { text("featured.editor.validation.image_required", "Select or keep a banner image before saving.") }
-        static var validationImageURL: String { text("featured.editor.validation.image_url", "The existing banner image URL is invalid. Choose a new image.") }
-        static var validationTextLength: String { text("featured.editor.validation.text_length", "Internal name and headline can contain up to 120 characters; subtitle up to 240.") }
-        static var validationDuration: String { text("featured.editor.validation.duration", "Display duration must be between 3 and 12 seconds.") }
-        static var validationPriority: String { text("featured.editor.validation.priority", "Priority must be between 0 and 1000.") }
-        static var validationSections: String { text("featured.editor.validation.sections", "Select at least one visible section.") }
-        static var validationFederalState: String { text("featured.editor.validation.federal_state", "Federal state is required for federal-state banners.") }
-        static var validationExternalURL: String { text("featured.editor.validation.external_url", "Enter a valid external URL.") }
-        static var validationTargetID: String { text("featured.editor.validation.target_id", "Target ID is required for this action type.") }
-        static var validationDateWindow: String { text("featured.editor.validation.date_window", "Start date must be before end date.") }
-        static var validationOwnerRequired: String { text("featured.editor.validation.owner_required", "Owner account is required to save featured content.") }
-        static var saveNetworkError: String { text("featured.editor.error.network", "Unable to save featured content. Check your connection and try again.") }
-        static var savePermissionError: String { text("featured.editor.error.permission", "You do not have permission to save featured content.") }
-        static var saveValidationError: String { text("featured.editor.error.validation", "Featured banner data is incomplete or invalid.") }
-        static var saveNotFoundError: String { text("featured.editor.error.not_found", "Featured banner was not found.") }
-        static var saveUnknownError: String { text("featured.editor.error.unknown", "Unable to save featured content right now.") }
-
-        static func durationValue(_ seconds: Int) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.editor.duration.value",
-                defaultValue: "%lld sec",
-                arguments: [seconds]
-            )
-        }
-
-        static func targetPickerTitle(_ contentType: String) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.editor.action.picker_title",
-                defaultValue: "Select %@",
-                arguments: [contentType]
-            )
-        }
-
-        static func selectedTargetID(_ id: String) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.editor.action.selected_id",
-                defaultValue: "ID: %@",
-                arguments: [id]
-            )
-        }
-    }
-
-    enum Home {
-        static var brandTitle: String { text("home.brand_title", "Ukrainian Community") }
-        static var brandSubtitle: String { text("home.brand_subtitle", "Austria") }
-        static var title: String { text("home.title", "Ukrainian Community Tirol") }
-        static var subtitle: String { text("home.subtitle", "A calm, trusted place for updates, events, organizations, and neighbor-to-neighbor support.") }
-        static var regionAllAustria: String { text("home.region.all_austria", "Ğ’ÑÑ ĞĞ²ÑÑ‚Ñ€Ñ–Ñ") }
-        static var highlights: String { text("home.highlights", "Community Highlights") }
-        static var latestNews: String { text("home.latest_news", "Latest updates") }
-        static var filterAll: String { text("home.filter.all", "Ğ£ÑĞµ") }
-        static var filterNews: String { text("home.filter.news", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var filterEvents: String { text("home.filter.events", "ĞŸĞ¾Ğ´Ñ–Ñ—") }
-        static var filterOrganizations: String { text("home.filter.organizations", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var filterSubscriptions: String { text("home.filter.subscriptions", "Subscriptions") }
-        static var filterFavorites: String { text("home.filter.favorites", "Favorites") }
-        static var filterSaved: String { text("home.filter.saved", "Ğ—Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ñ–") }
-        static var filterSubscribed: String { text("home.filter.subscribed", "ĞŸÑ–Ğ´Ğ¿Ğ¸ÑĞ°Ğ½Ñ–") }
-        static var emptySaved: String { text("home.empty.saved", "Ğ£ Ğ²Ğ°Ñ Ñ‰Ğµ Ğ½ĞµĞ¼Ğ°Ñ” Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¸Ñ… Ğ¼Ğ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ñ–Ğ².") }
-        static var emptySubscribed: String { text("home.empty.subscribed", "Ğ£ Ğ²Ğ°Ñ Ñ‰Ğµ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ¾Ğº") }
-        static var emptyRegion: String { text("home.empty.region", "ĞĞµĞ¼Ğ°Ñ” ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ñƒ Ğ² Ğ¾Ğ±Ñ€Ğ°Ğ½Ğ¾Ğ¼Ñƒ Ñ€ĞµĞ³Ñ–Ğ¾Ğ½Ñ–.") }
-        static var subscriberSuffixOne: String { text("home.subscribers.suffix.one", "Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ½Ğ¸Ğº") }
-        static var subscriberSuffixFew: String { text("home.subscribers.suffix.few", "Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ½Ğ¸ĞºĞ¸") }
-        static var subscriberSuffixMany: String { text("home.subscribers.suffix.many", "Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ½Ğ¸ĞºÑ–Ğ²") }
-        static var notifications: String { text("home.notifications", "Notifications") }
-    }
-
-    enum News {
-        static var title: String { text("news.title", "News") }
-        static var heroTitle: String { text("news.hero.title", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸ Ğ³Ñ€Ğ¾Ğ¼Ğ°Ğ´Ğ¸") }
-        static var heroSubtitle: String { text("news.hero.subtitle", "Ğ’Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñ– Ğ¾Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ, Ğ¾Ğ³Ğ¾Ğ»Ğ¾ÑˆĞµĞ½Ğ½Ñ Ñ‚Ğ° Ñ–ÑÑ‚Ğ¾Ñ€Ñ–Ñ— ÑƒĞºÑ€Ğ°Ñ—Ğ½Ñ†Ñ–Ğ² Ğ² ĞĞ²ÑÑ‚Ñ€Ñ–Ñ—.") }
-        static var detailTitle: String { text("news.detail.title", "Ğ”ĞµÑ‚Ğ°Ğ»Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var detailBadge: String { text("news.detail.badge", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ°") }
-        static var summarySectionTitle: String { text("news.detail.summary_section", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¾") }
-        static var bodySectionTitle: String { text("news.detail.body_section", "ĞŸÑ€Ğ¾ Ñ‰Ğ¾ Ğ¹Ğ´ĞµÑ‚ÑŒÑÑ") }
-        static var sourceSectionTitle: String { text("news.detail.source", "Source") }
-        static var tagsSectionTitle: String { text("news.detail.tags_section", "Ğ¢ĞµĞ³Ğ¸") }
-        static var relatedSectionTitle: String { text("news.detail.related_section", "Ğ’Ğ°Ğ¼ Ñ‚Ğ°ĞºĞ¾Ğ¶ Ğ¼Ğ¾Ğ¶Ğµ Ğ±ÑƒÑ‚Ğ¸ Ñ†Ñ–ĞºĞ°Ğ²Ğ¾") }
-        static var relatedSectionAction: String { text("news.detail.related_action", "Ğ”Ğ¸Ğ²Ğ¸Ñ‚Ğ¸ÑÑ Ğ²ÑÑ–") }
-        static var empty: String { text("news.empty", "No news available yet.") }
-        static var retry: String { text("news.retry", "Retry") }
-        static var loadNetworkError: String { text("news.error.load.network", "Unable to load news. Check your connection and try again.") }
-        static var loadPermissionError: String { text("news.error.load.permission", "You do not have permission to view this news.") }
-        static var loadValidationError: String { text("news.error.load.validation", "The news data could not be loaded.") }
-        static var loadUnknownError: String { text("news.error.load.unknown", "Something went wrong while loading news.") }
-        static var actionPermissionError: String { text("news.error.action.permission", "You do not have permission to perform this action.") }
-        static var actionValidationError: String { text("news.error.action.validation", "The news data could not be processed.") }
-        static var actionNotFoundError: String { text("news.error.action.not_found", "The selected news item could not be found.") }
-        static var actionUnknownError: String { text("news.error.action.unknown", "Something went wrong while processing the news.") }
-        static var deleteConfirmation: String { text("news.delete.confirmation", "Delete this news post?") }
-        static var delete: String { text("news.delete", "Delete") }
-        static var cancel: String { text("news.cancel", "Cancel") }
-        static var deleteFailed: String { text("news.delete_failed", "Delete Failed") }
-        static var dismissError: String { text("news.dismiss_error", "OK") }
-        static var missingOrganization: String { text("news.source.missing_organization", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ½Ğµ Ğ²ĞºĞ°Ğ·Ğ°Ğ½Ğ°") }
-        static func viewCount(_ count: Int) -> String {
-            LocalizationStore.localizedFormat("news.view_count", defaultValue: "%lld Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ñ–Ğ²", arguments: [count])
-        }
-    }
-
-    enum NewsEditor {
-        static var title: String { text("news.editor.title", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var addTitle: String { text("news.editor.add_title", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var editTitle: String { text("news.editor.edit_title", "Ğ ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var editorSubtitle: String { text("news.editor.subtitle", "ĞŸĞ¾Ğ´Ñ–Ğ»Ñ–Ñ‚ÑŒÑÑ Ğ²Ğ°Ğ¶Ğ»Ğ¸Ğ²Ğ¾Ñ Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ”Ñ Ğ· Ğ³Ñ€Ğ¾Ğ¼Ğ°Ğ´Ğ¾Ñ.") }
-        static var titleFieldRequired: String { text("news.editor.field.title_required", "Ğ—Ğ°Ğ³Ğ¾Ğ»Ğ¾Ğ²Ğ¾Ğº Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸ *") }
-        static var titlePlaceholder: String { text("news.editor.placeholder.title", "Ğ’Ğ²ĞµĞ´Ñ–Ñ‚ÑŒ Ğ·Ğ°Ğ³Ğ¾Ğ»Ğ¾Ğ²Ğ¾Ğº") }
-        static var summaryFieldRequired: String { text("news.editor.field.summary_required", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ *") }
-        static var summaryPlaceholder: String { text("news.editor.placeholder.summary", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¾ Ğ¾Ğ¿Ğ¸ÑˆÑ–Ñ‚ÑŒ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ. Ğ¦ĞµĞ¹ Ñ‚ĞµĞºÑÑ‚ Ğ±ÑƒĞ´Ğµ Ğ²Ñ–Ğ´Ğ¾Ğ±Ñ€Ğ°Ğ¶Ğ°Ñ‚Ğ¸ÑÑ Ğ² ÑĞ¿Ğ¸ÑĞºÑƒ Ğ½Ğ¾Ğ²Ğ¸Ğ½.") }
-        static var coverSectionTitle: String { text("news.editor.cover.title", "ĞĞ±ĞºĞ»Ğ°Ğ´Ğ¸Ğ½ĞºĞ° Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var coverUploadTitle: String { text("news.editor.cover.upload_title", "Ğ”Ğ¾Ğ´Ğ°Ğ¹Ñ‚Ğµ Ñ„Ğ¾Ñ‚Ğ¾ Ğ¾Ğ±ĞºĞ»Ğ°Ğ´Ğ¸Ğ½ĞºĞ¸") }
-        static var coverUploadHelper: String { text("news.editor.cover.upload_helper", "JPG, PNG Ğ´Ğ¾ 10 MB. Ğ ĞµĞºĞ¾Ğ¼ĞµĞ½Ğ´Ğ¾Ğ²Ğ°Ğ½Ğ¾ 16:9") }
-        static var replacePhoto: String { text("news.editor.cover.replace", "Ğ—Ğ°Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ñ„Ğ¾Ñ‚Ğ¾") }
-        static var organizerSectionTitle: String { text("news.editor.organizer.title", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ *") }
-        static var selectOrganizer: String { text("news.editor.organizer.select", "ĞĞ±ĞµÑ€Ñ–Ñ‚ÑŒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var noOrganizerAccess: String { text("news.editor.organizer.no_access", "Ğ£ Ğ²Ğ°Ñ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹ Ğ´Ğ»Ñ Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ— Ğ½Ğ¾Ğ²Ğ¸Ğ½.") }
-        static var categoryNews: String { text("news.editor.category.news", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ°") }
-        static var categoryEvent: String { text("news.editor.category.event", "ĞŸĞ¾Ğ´Ñ–Ñ") }
-        static var categoryEducation: String { text("news.editor.category.education", "ĞÑĞ²Ñ–Ñ‚Ğ°") }
-        static var categoryCulture: String { text("news.editor.category.culture", "ĞšÑƒĞ»ÑŒÑ‚ÑƒÑ€Ğ°") }
-        static var categoryOther: String { text("news.editor.category.other", "Ğ†Ğ½ÑˆĞµ") }
-        static var bodySectionTitle: String { text("news.editor.body.title", "Ğ—Ğ¼Ñ–ÑÑ‚ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸ *") }
-        static var bodyPlaceholder: String { text("news.editor.body.placeholder", "ĞĞ°Ğ¿Ğ¸ÑˆÑ–Ñ‚ÑŒ Ğ¾ÑĞ½Ğ¾Ğ²Ğ½Ğ¸Ğ¹ Ñ‚ĞµĞºÑÑ‚ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸...") }
-        static var sourceSectionTitle: String { text("news.editor.source.title", "Source") }
-        static var sourcePlaceholder: String { text("news.editor.source.placeholder", "Website or source name") }
-        static var sourceHelper: String { text("news.editor.source.helper", "Optional. Add a publication name or a link.") }
-        static var tagsSectionTitle: String { text("news.editor.tags.title", "Ğ¢ĞµĞ³Ğ¸ (Ğ½ĞµĞ¾Ğ±Ğ¾Ğ²â€™ÑĞ·ĞºĞ¾Ğ²Ğ¾)") }
-        static var tagsPlaceholder: String { text("news.editor.tags.placeholder", "Ğ”Ğ¾Ğ´Ğ°Ğ¹Ñ‚Ğµ Ñ‚ĞµĞ³Ğ¸ Ñ‡ĞµÑ€ĞµĞ· ĞºĞ¾Ğ¼Ñƒ") }
-        static var tagsHelper: String { text("news.editor.tags.helper", "ĞĞ°Ğ¿Ñ€Ğ¸ĞºĞ»Ğ°Ğ´: Ğ¿Ñ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ°, Ğ¾ÑĞ²Ñ–Ñ‚Ğ°, Ñ–Ğ½Ñ‚ĞµĞ³Ñ€Ğ°Ñ†Ñ–Ñ") }
-        static var additionalSettingsTitle: String { text("news.editor.settings.title", "Ğ”Ğ¾Ğ´Ğ°Ñ‚ĞºĞ¾Ğ²Ñ– Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var regionSectionTitle: String { text("news.editor.region.title", "Ğ ĞµĞ³Ñ–Ğ¾Ğ½") }
-        static var regionTitle: String { text("news.editor.region.field", "Ğ¤ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ğ° Ğ·ĞµĞ¼Ğ»Ñ") }
-        static var publish: String { text("news.editor.publish", "ĞĞ¿ÑƒĞ±Ğ»Ñ–ĞºÑƒĞ²Ğ°Ñ‚Ğ¸") }
-        static var saveChanges: String { text("news.editor.save_changes", "Ğ—Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸") }
-        static var primaryPublish: String { text("news.editor.primary_publish", "ĞĞ¿ÑƒĞ±Ğ»Ñ–ĞºÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var primarySaveChanges: String { text("news.editor.primary_save_changes", "Ğ—Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ·Ğ¼Ñ–Ğ½Ğ¸") }
-        static var publishing: String { text("news.editor.publishing", "ĞŸÑƒĞ±Ğ»Ñ–ĞºÑƒÑ”Ğ¼Ğ¾...") }
-        static var uploadingImage: String { text("news.editor.uploading_image", "Ğ—Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶ÑƒÑ”Ğ¼Ğ¾ Ñ„Ğ¾Ñ‚Ğ¾...") }
-        static var processingImage: String { text("news.editor.processing_image", "Ğ“Ğ¾Ñ‚ÑƒÑ”Ğ¼Ğ¾ Ñ„Ğ¾Ñ‚Ğ¾...") }
-        static var publishedSuccessfully: String { text("news.editor.success", "News published successfully.") }
-        static var updatedSuccessfully: String { text("news.editor.updated_success", "News updated successfully.") }
-        static var titleRequired: String { text("news.editor.validation.title_required", "Title is required.") }
-        static var summaryRequired: String { text("news.editor.validation.summary_required", "Short description is required.") }
-        static var bodyRequired: String { text("news.editor.validation.body_required", "Body is required.") }
-        static var organizationRequired: String { text("news.editor.validation.organization_required", "ĞĞ±ĞµÑ€Ñ–Ñ‚ÑŒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ´Ğ»Ñ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸.") }
-        static var organizationRegionRequired: String { text("news.editor.validation.organization_region_required", "ĞŸĞµÑ€ĞµĞ´ Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ”Ñ Ğ·Ğ°Ğ¿Ğ¾Ğ²Ğ½Ñ–Ñ‚ÑŒ Ñ€ĞµĞ³Ñ–Ğ¾Ğ½ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var imageLoadFailed: String { text("news.editor.image_load_failed", "Failed to load the selected image.") }
-        static var imageProcessingFailed: String { text("news.editor.image_processing_failed", "Failed to process the selected image.") }
-        static var imageTooLarge: String { text("news.editor.image_too_large", "Image is too large. Please choose a smaller photo.") }
-        static var authorFallback: String { text("news.editor.author_fallback", "Anonymous") }
-    }
-
-    enum DraftRecovery {
-        static var recoveryTitle: String { text("draft_recovery.recovery.title", "Continue saved draft?") }
-        static var recoveryMessage: String { text("draft_recovery.recovery.message", "A local draft from your previous News create session is available.") }
-        static var eventRecoveryMessage: String { text("draft_recovery.recovery.event_message", "A local draft from your previous Event create session is available.") }
-        static var organizationRecoveryMessage: String { text("draft_recovery.recovery.organization_message", "A local draft from your previous Organization create session is available.") }
-        static var continueDraft: String { text("draft_recovery.recovery.continue", "Continue draft") }
-        static var createNew: String { text("draft_recovery.recovery.create_new", "Create new") }
-        static var deleteDraft: String { text("draft_recovery.recovery.delete", "Delete draft") }
-        static var closeTitle: String { text("draft_recovery.close.title", "Save this draft?") }
-        static var closeMessage: String { text("draft_recovery.close.message", "You have unsaved News content. Save it locally before closing or discard it.") }
-        static var eventCloseMessage: String { text("draft_recovery.close.event_message", "You have unsaved Event content. Save it locally before closing or discard it.") }
-        static var organizationCloseMessage: String { text("draft_recovery.close.organization_message", "You have unsaved Organization content. Save it locally before closing or discard it.") }
-        static var saveDraftAndClose: String { text("draft_recovery.close.save", "Save draft and close") }
-        static var discardDraft: String { text("draft_recovery.close.discard", "Discard") }
-        static var continueEditing: String { text("draft_recovery.close.continue_editing", "Continue editing") }
-    }
-
-    enum Events {
-        static var title: String { text("events.title", "Events") }
-        static var heroTitle: String { text("events.hero.title", "ĞŸĞ¾Ğ´Ñ–Ñ— Ğ³Ñ€Ğ¾Ğ¼Ğ°Ğ´Ğ¸") }
-        static var heroSubtitle: String { text("events.hero.subtitle", "Ğ—ÑƒÑÑ‚Ñ€Ñ–Ñ‡Ñ–, Ğ½Ğ°Ğ²Ñ‡Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° Ğ¿Ñ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ° Ğ¿Ğ¾Ñ€ÑƒÑ‡ Ñ–Ğ· Ğ²Ğ°Ğ¼Ğ¸.") }
-        static var upcomingTitle: String { text("events.section.upcoming", "Upcoming") }
-        static var pastTitle: String { text("events.section.past", "Past") }
-        static var filterAll: String { text("events.filter.all", "Ğ£ÑÑ–") }
-        static var filterToday: String { text("events.filter.today", "Today") }
-        static var filterThisWeek: String { text("events.filter.this_week", "This week") }
-        static var filterRegistered: String { text("events.filter.registered", "Ğ—Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ñ–") }
-        static var allCategories: String { text("events.filter.all_categories", "Ğ£ÑÑ– ĞºĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ—") }
-        static var categoryEducation: String { text("events.category.education", "ĞÑĞ²Ñ–Ñ‚Ğ°") }
-        static var categoryCulture: String { text("events.category.culture", "ĞšÑƒĞ»ÑŒÑ‚ÑƒÑ€Ğ°") }
-        static var categoryMeetups: String { text("events.category.meetups", "Ğ—ÑƒÑÑ‚Ñ€Ñ–Ñ‡Ñ–") }
-        static var categoryMeetupSingular: String { text("events.category.meetup_singular", "Ğ—ÑƒÑÑ‚Ñ€Ñ–Ñ‡") }
-        static var categoryChildren: String { text("events.category.children", "Ğ”Ğ»Ñ Ğ´Ñ–Ñ‚ĞµĞ¹") }
-        static var categoryOther: String { text("events.category.other", "Ğ†Ğ½ÑˆĞµ") }
-        static var emptySaved: String { text("events.empty.saved", "Ğ£ Ğ²Ğ°Ñ Ñ‰Ğµ Ğ½ĞµĞ¼Ğ°Ñ” Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¸Ñ… Ğ¿Ğ¾Ğ´Ñ–Ğ¹") }
-        static var emptyRegistered: String { text("events.empty.registered", "Ğ£ Ğ²Ğ°Ñ Ñ‰Ğµ Ğ½ĞµĞ¼Ğ°Ñ” Ğ·Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ¸Ñ… Ğ¿Ğ¾Ğ´Ñ–Ğ¹.\nĞ—Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€ÑƒĞ¹Ñ‚ĞµÑÑŒ Ğ½Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ—, Ñ‰Ğ¾Ğ± Ğ±Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ñ—Ñ… Ñ‚ÑƒÑ‚.") }
-        static var filteredUpcomingEmpty: String { text("events.empty.filtered_upcoming", "No upcoming events match this time range right now.") }
-        static var register: String { text("events.register", "Ğ¯ Ğ¿Ñ–Ğ´Ñƒ") }
-        static var registered: String { text("events.registered", "Ğ¯ Ğ¹Ğ´Ñƒ") }
-        static var confirmRegisterTitle: String { text("events.registration.confirm_register.title", "Register for this event?") }
-        static var confirmRegisterButton: String { text("events.registration.confirm_register.button", "Register") }
-        static var confirmCancelRegistrationTitle: String { text("events.registration.confirm_cancel.title", "Cancel your registration?") }
-        static var confirmCancelRegistrationButton: String { text("events.registration.confirm_cancel.button", "Cancel registration") }
-        static func confirmRegisterMessage(_ eventTitle: String) -> String {
-            LocalizationStore.localizedFormat(
-                "events.registration.confirm_register.message",
-                defaultValue: "You will be registered for â€œ%@â€.",
-                arguments: [eventTitle]
-            )
-        }
-        static func confirmCancelRegistrationMessage(_ eventTitle: String) -> String {
-            LocalizationStore.localizedFormat(
-                "events.registration.confirm_cancel.message",
-                defaultValue: "You will no longer be registered for â€œ%@â€.",
-                arguments: [eventTitle]
-            )
-        }
-        static var waitlisted: String { text("events.waitlisted", "Ğ£ ÑĞ¿Ğ¸ÑĞºÑƒ Ğ¾Ñ‡Ñ–ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var allDay: String { text("events.all_day", "ĞŸĞ¾Ğ´Ñ–Ñ Ğ½Ğ° Ğ²ĞµÑÑŒ Ğ´ĞµĞ½ÑŒ") }
-        static var empty: String { text("events.empty", "No events available yet.") }
-        static var retry: String { text("events.retry", "Retry") }
-        static var loadNetworkError: String { text("events.error.load.network", "Unable to load events. Check your connection and try again.") }
-        static var loadPermissionError: String { text("events.error.load.permission", "You do not have permission to view these events.") }
-        static var loadValidationError: String { text("events.error.load.validation", "The event data could not be loaded.") }
-        static var loadUnknownError: String { text("events.error.load.unknown", "Something went wrong while loading events.") }
-        static var actionPermissionError: String { text("events.error.action.permission", "You do not have permission to perform this action.") }
-        static var actionValidationError: String { text("events.error.action.validation", "The event data could not be processed.") }
-        static var actionNotFoundError: String { text("events.error.action.not_found", "The selected event could not be found.") }
-        static var actionUnknownError: String { text("events.error.action.unknown", "Something went wrong while processing the event.") }
-        static var detailBadge: String { text("events.detail.badge", "Ğ—ÑƒÑÑ‚Ñ€Ñ–Ñ‡") }
-        static var aboutSectionTitle: String { text("events.detail.about", "ĞŸÑ€Ğ¾ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var detailOrganizerSectionTitle: String { text("events.detail.organizer", "Organizer") }
-        static var publishedBySectionTitle: String { text("events.detail.published_by", "Published by") }
-        static var organizerContactSectionTitle: String { text("events.detail.organizer_contact", "Organizer and contact") }
-        static var detailsSectionTitle: String { text("events.detail.details", "Ğ”ĞµÑ‚Ğ°Ğ»Ñ–") }
-        static var locationSectionTitle: String { text("events.detail.location", "ĞœÑ–ÑÑ†Ğµ Ğ¿Ñ€Ğ¾Ğ²ĞµĞ´ĞµĞ½Ğ½Ñ") }
-        static var similarEvents: String { text("events.detail.similar_events", "Ğ¡Ñ…Ğ¾Ğ¶Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var addToCalendar: String { text("events.detail.add_to_calendar", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ² ĞºĞ°Ğ»ĞµĞ½Ğ´Ğ°Ñ€") }
-        static var calendarAddedTitle: String { text("events.detail.calendar_added.title", "Ğ”Ğ¾Ğ´Ğ°Ğ½Ğ¾ Ğ² ĞºĞ°Ğ»ĞµĞ½Ğ´Ğ°Ñ€") }
-        static var calendarAddedMessage: String { text("events.detail.calendar_added.message", "ĞŸĞ¾Ğ´Ñ–Ñ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¾ Ñƒ Ğ²Ğ°ÑˆĞ¾Ğ¼Ñƒ ĞºĞ°Ğ»ĞµĞ½Ğ´Ğ°Ñ€Ñ–.") }
-        static var calendarAlreadyAddedTitle: String { text("events.detail.calendar_already_added.title", "Ğ’Ğ¶Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ½Ğ¾") }
-        static var calendarAlreadyAddedMessage: String { text("events.detail.calendar_already_added.message", "Ğ¦Ñ Ğ¿Ğ¾Ğ´Ñ–Ñ Ğ²Ğ¶Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ½Ğ¾ Ğ² ĞºĞ°Ğ»ĞµĞ½Ğ´Ğ°Ñ€ Ñƒ Ñ†Ñ–Ğ¹ ÑĞµÑÑ–Ñ—.") }
-        static var calendarPermissionTitle: String { text("events.detail.calendar_permission.title", "ĞĞµĞ¼Ğ°Ñ” Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ Ğ´Ğ¾ ĞºĞ°Ğ»ĞµĞ½Ğ´Ğ°Ñ€Ñ") }
-        static var calendarPermissionMessage: String { text("events.detail.calendar_permission.message", "Ğ”Ğ¾Ğ·Ğ²Ğ¾Ğ»ÑŒÑ‚Ğµ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿ Ğ´Ğ¾ ĞºĞ°Ğ»ĞµĞ½Ğ´Ğ°Ñ€Ñ Ğ² Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½ÑÑ… iOS, Ñ‰Ğ¾Ğ± Ğ´Ğ¾Ğ´Ğ°Ğ²Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ—.") }
-        static var calendarErrorTitle: String { text("events.detail.calendar_error.title", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ´Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var calendarErrorMessage: String { text("events.detail.calendar_error.message", "Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ· Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var share: String { text("events.detail.share", "ĞŸĞ¾Ğ´Ñ–Ğ»Ğ¸Ñ‚Ğ¸ÑÑ") }
-        static var viewOrganization: String { text("events.detail.view_organization", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var genericEventBadge: String { text("events.detail.generic_badge", "ĞŸĞ¾Ğ´Ñ–Ñ") }
-        static var cancelledNoticeTitle: String { text("events.detail.cancelled_notice.title", "Event cancelled") }
-        static var cancelledNoticeBody: String { text("events.detail.cancelled_notice.body", "This event is no longer taking place.") }
-        static var expectedParticipants: String { text("events.detail.expected_participants", "ĞÑ‡Ñ–ĞºÑƒĞ²Ğ°Ğ½Ğ¾ ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºÑ–Ğ²") }
-        static var registrationNotRequired: String { text("events.detail.registration_not_required", "Registration is not required") }
-        static var registrationManagementTitle: String { text("events.detail.registration_management.title", "Registered participants") }
-        static var registrationManagementEmpty: String { text("events.detail.registration_management.empty", "ĞŸĞ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” Ğ·Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ¸Ñ… ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºÑ–Ğ².") }
-        static var registrationManagementLoading: String { text("events.detail.registration_management.loading", "Loading registered participants...") }
-        static var registrationParticipantFallback: String { text("events.detail.registration_management.participant_fallback", "Registered user") }
-        static var addedDate: String { text("events.detail.added_date", "Ğ”Ğ¾Ğ´Ğ°Ğ½Ğ¾") }
-        static var showOnMap: String { text("events.detail.show_on_map", "ĞŸĞ¾ĞºĞ°Ğ·Ğ°Ñ‚Ğ¸ Ğ½Ğ° ĞºĞ°Ñ€Ñ‚Ñ–") }
-        static var editorTitle: String { text("events.editor.title", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var editTitle: String { text("events.editor.edit_title", "Ğ ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var editorSubtitle: String { text("events.editor.subtitle", "Ğ—Ğ°Ğ¿Ñ€Ğ¾ÑÑ–Ñ‚ÑŒ Ğ³Ñ€Ğ¾Ğ¼Ğ°Ğ´Ñƒ Ğ½Ğ° Ğ²Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñƒ Ğ¿Ğ¾Ğ´Ñ–Ñ.") }
-        static var dateSectionTitle: String { text("events.editor.date_section", "Ğ”Ğ°Ñ‚Ğ° Ñ– Ñ‡Ğ°Ñ *") }
-        static var imageSectionTitle: String { text("events.editor.image_section", "ĞĞ±ĞºĞ»Ğ°Ğ´Ğ¸Ğ½ĞºĞ° Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var coverUploadTitle: String { text("events.editor.cover_upload_title", "Ğ”Ğ¾Ğ´Ğ°Ğ¹Ñ‚Ğµ Ñ„Ğ¾Ñ‚Ğ¾ Ğ¾Ğ±ĞºĞ»Ğ°Ğ´Ğ¸Ğ½ĞºĞ¸") }
-        static var coverUploadHelper: String { text("events.editor.cover_upload_helper", "JPG, PNG Ğ´Ğ¾ 10 MB. Ğ ĞµĞºĞ¾Ğ¼ĞµĞ½Ğ´Ğ¾Ğ²Ğ°Ğ½Ğ¾ 16:9") }
-        static var fieldTitle: String { text("events.editor.field.title", "ĞĞ°Ğ·Ğ²Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ— *") }
-        static var titlePlaceholder: String { text("events.editor.placeholder.title", "Ğ’Ğ²ĞµĞ´Ñ–Ñ‚ÑŒ Ğ½Ğ°Ğ·Ğ²Ñƒ Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var fieldSummary: String { text("events.editor.field.summary", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ *") }
-        static var summaryPlaceholder: String { text("events.editor.placeholder.summary", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¾ Ğ¾Ğ¿Ğ¸ÑˆÑ–Ñ‚ÑŒ Ğ¿Ğ¾Ğ´Ñ–Ñ. Ğ¦ĞµĞ¹ Ñ‚ĞµĞºÑÑ‚ Ğ±ÑƒĞ´Ğµ Ğ²Ñ–Ğ´Ğ¾Ğ±Ñ€Ğ°Ğ¶Ğ°Ñ‚Ğ¸ÑÑ Ğ² ÑĞ¿Ğ¸ÑĞºÑƒ Ğ¿Ğ¾Ğ´Ñ–Ğ¹.") }
-        static var fieldDetails: String { text("events.editor.field.details", "ĞĞ¿Ğ¸Ñ Ğ¿Ğ¾Ğ´Ñ–Ñ— *") }
-        static var detailsPlaceholder: String { text("events.editor.placeholder.details", "ĞĞ¿Ğ¸ÑˆÑ–Ñ‚ÑŒ Ğ²Ğ°ÑˆÑƒ Ğ¿Ğ¾Ğ´Ñ–Ñ. Ğ©Ğ¾ Ğ½Ğ° ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºÑ–Ğ² Ñ‡ĞµĞºĞ°Ñ”?") }
-        static var fieldLocation: String { text("events.editor.field.location", "ĞœÑ–ÑÑ†Ğµ Ğ¿Ñ€Ğ¾Ğ²ĞµĞ´ĞµĞ½Ğ½Ñ *") }
-        static var locationPlaceholder: String { text("events.editor.placeholder.location", "Ğ’Ğ²ĞµĞ´Ñ–Ñ‚ÑŒ Ğ°Ğ´Ñ€ĞµÑÑƒ Ğ°Ğ±Ğ¾ Ğ½Ğ°Ğ·Ğ²Ñƒ Ğ¼Ñ–ÑÑ†Ñ") }
-        static var addressPlaceholder: String { text("events.editor.placeholder.address", "ĞĞ´Ñ€ĞµÑĞ°") }
-        static var locationNoteTitle: String { text("events.editor.location_note.title", "Ğ£Ñ‚Ğ¾Ñ‡Ğ½ĞµĞ½Ğ½Ñ Ğ¼Ñ–ÑÑ†Ñ") }
-        static var locationNotePlaceholder: String { text("events.editor.location_note.placeholder", "ĞĞ°Ğ¿Ñ€Ğ¸ĞºĞ»Ğ°Ğ´: Ğ²Ñ…Ñ–Ğ´ Ğ· Ğ´Ğ²Ğ¾Ñ€Ñƒ, 2 Ğ¿Ğ¾Ğ²ĞµÑ€Ñ…, Ğ·Ğ°Ğ» Ğ¿Ñ€Ğ°Ğ²Ğ¾Ñ€ÑƒÑ‡") }
-        static var selectedLocation: String { text("events.editor.selected_location", "ĞĞ±Ñ€Ğ°Ğ½Ğ° Ğ»Ğ¾ĞºĞ°Ñ†Ñ–Ñ") }
-        static var searchLocation: String { text("events.editor.search_location", "ĞŸĞ¾ÑˆÑƒĞº Ğ¼Ñ–ÑÑ†Ñ Ğ°Ğ±Ğ¾ Ğ°Ğ´Ñ€ĞµÑĞ¸") }
-        static var selectLocation: String { text("events.editor.select_location", "Ğ’Ğ¸Ğ±Ñ€Ğ°Ñ‚Ğ¸") }
-        static var noLocationResults: String { text("events.editor.no_location_results", "ĞÑ–Ñ‡Ğ¾Ğ³Ğ¾ Ğ½Ğµ Ğ·Ğ½Ğ°Ğ¹Ğ´ĞµĞ½Ğ¾") }
-        static var chooseOnMap: String { text("events.editor.choose_on_map", "Ğ’Ğ¸Ğ±Ñ€Ğ°Ñ‚Ğ¸ Ğ½Ğ° ĞºĞ°Ñ€Ñ‚Ñ–") }
-        static var fieldStartDate: String { text("events.editor.field.start_date", "Ğ”Ğ°Ñ‚Ğ°") }
-        static var startTime: String { text("events.editor.start_time", "ĞŸĞ¾Ñ‡Ğ°Ñ‚Ğ¾Ğº") }
-        static var fieldEndDate: String { text("events.editor.field.end_date", "Ğ—Ğ°ĞºÑ–Ğ½Ñ‡ĞµĞ½Ğ½Ñ") }
-        static var endTime: String { text("events.editor.end_time", "Ğ—Ğ°Ğ²ĞµÑ€ÑˆĞµĞ½Ğ½Ñ") }
-        static var editorPublisherSectionTitle: String { text("events.editor.publisher_section", "Publishing organization") }
-        static var editorOrganizerSectionTitle: String { text("events.editor.organizer_section", "Organizer") }
-        static var organizerNameField: String { text("events.editor.organizer_contact.name", "Organizer name") }
-        static var organizerNamePlaceholder: String { text("events.editor.organizer_contact.name_placeholder", "External organizer, if different") }
-        static var organizerURLField: String { text("events.editor.organizer_contact.url", "Organizer website") }
-        static var organizerURLPlaceholder: String { text("events.editor.organizer_contact.url_placeholder", "https://example.org") }
-        static var contactPhoneField: String { text("events.editor.organizer_contact.phone", "Contact phone") }
-        static var contactPhonePlaceholder: String { text("events.editor.organizer_contact.phone_placeholder", "+43 ...") }
-        static var contactEmailField: String { text("events.editor.organizer_contact.email", "Contact email") }
-        static var contactEmailPlaceholder: String { text("events.editor.organizer_contact.email_placeholder", "name@example.org") }
-        static var contactURLField: String { text("events.editor.organizer_contact.contact_url", "Contact link") }
-        static var contactURLPlaceholder: String { text("events.editor.organizer_contact.contact_url_placeholder", "Registration or contact page") }
-        static var organizerContactHelper: String { text("events.editor.organizer_contact.helper", "Optional. Add external organizer or contact details if different from the publishing organization.") }
-        static var categorySectionTitle: String { text("events.editor.category_section", "ĞšĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ *") }
-        static var tagsSectionTitle: String { text("events.editor.tags_section", "Tags") }
-        static var tagPlaceholder: String { text("events.editor.tag_placeholder", "Add a tag") }
-        static var tagsHelper: String { text("events.editor.tags_helper", "Optional. Add short tags to help people understand the event topic.") }
-        static var addTag: String { text("events.editor.add_tag", "Add tag") }
-        static var removeTag: String { text("events.editor.remove_tag", "Remove tag") }
-        static var categoryTraining: String { text("events.editor.category.training", "ĞĞ°Ğ²Ñ‡Ğ°Ğ½Ğ½Ñ") }
-        static var additionalSettingsTitle: String { text("events.editor.settings", "Ğ”Ğ¾Ğ´Ğ°Ñ‚ĞºĞ¾Ğ²Ñ– Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var requiresRegistrationToggle: String { text("events.editor.requires_registration", "ĞŸĞ¾Ñ‚Ñ€Ñ–Ğ±Ğ½Ğ° Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ") }
-        static var requiresRegistrationHelper: String { text("events.editor.requires_registration_helper", "Turn on registration to manage price and participant capacity.") }
-        static var priceTitle: String { text("events.editor.price", "Ğ’Ğ°Ñ€Ñ‚Ñ–ÑÑ‚ÑŒ") }
-        static var pricePlaceholder: String { text("events.editor.price_placeholder", "0") }
-        static var priceHelper: String { text("events.editor.price_helper", "0 = Ğ±ĞµĞ·ĞºĞ¾ÑˆÑ‚Ğ¾Ğ²Ğ½Ğ¾") }
-        static var maxParticipantsTitle: String { text("events.editor.max_participants", "ĞœĞ°ĞºÑĞ¸Ğ¼Ğ°Ğ»ÑŒĞ½Ğ° ĞºÑ–Ğ»ÑŒĞºÑ–ÑÑ‚ÑŒ ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºÑ–Ğ²") }
-        static var unlimitedParticipants: String { text("events.editor.unlimited_participants", "ĞĞµĞ¾Ğ±Ğ¼ĞµĞ¶ĞµĞ½Ğ°") }
-        static var publishNotice: String { text("events.editor.publish_notice", "ĞŸÑ–ÑĞ»Ñ Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ— Ğ¿Ğ¾Ğ´Ñ–Ñ Ğ±ÑƒĞ´Ğµ Ğ²Ğ¸Ğ´Ğ½Ğ¾ Ñƒ ÑÑ‚Ñ€Ñ–Ñ‡Ñ†Ñ– Ñ‚Ğ° Ğ² ĞºĞ°Ğ»ĞµĞ½Ğ´Ğ°Ñ€Ñ– Ğ¿Ğ¾Ğ´Ñ–Ğ¹.") }
-        static var publish: String { text("events.editor.publish", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var saveChanges: String { text("events.editor.save_changes", "Ğ—Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸") }
-        static var primaryPublish: String { text("events.editor.primary_publish", "ĞĞ¿ÑƒĞ±Ğ»Ñ–ĞºÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var primarySaveChanges: String { text("events.editor.primary_save_changes", "Ğ—Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ·Ğ¼Ñ–Ğ½Ğ¸") }
-        static var publishing: String { text("events.editor.publishing", "ĞŸÑƒĞ±Ğ»Ñ–ĞºÑƒÑ”Ğ¼Ğ¾...") }
-        static var publishedSuccessfully: String { text("events.editor.success", "Event published successfully.") }
-        static var updatedSuccessfully: String { text("events.editor.updated_success", "Event updated successfully.") }
-        static var summaryRequired: String { text("events.editor.validation.summary_required", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ Ğ¾Ğ±Ğ¾Ğ²'ÑĞ·ĞºĞ¾Ğ²Ğ¸Ğ¹.") }
-        static var detailsRequired: String { text("events.editor.validation.details_required", "Details are required.") }
-        static var descriptionRequired: String { text("events.editor.validation.description_required", "Description is required.") }
-        static var invalidDateOrder: String { text("events.editor.validation.invalid_date_order", "End date must be after the start date.") }
-        static var startDateInPast: String { text("events.editor.validation.start_date_in_past", "Ğ”Ğ°Ñ‚Ğ° Ğ¿Ğ¾Ñ‡Ğ°Ñ‚ĞºÑƒ Ğ½Ğµ Ğ¼Ğ¾Ğ¶Ğµ Ğ±ÑƒÑ‚Ğ¸ Ğ² Ğ¼Ğ¸Ğ½ÑƒĞ»Ğ¾Ğ¼Ñƒ.") }
-        static var invalidCapacity: String { text("events.editor.validation.invalid_capacity", "ĞœĞ°ĞºÑĞ¸Ğ¼Ğ°Ğ»ÑŒĞ½Ğ° ĞºÑ–Ğ»ÑŒĞºÑ–ÑÑ‚ÑŒ ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºÑ–Ğ² Ğ¼Ğ°Ñ” Ğ±ÑƒÑ‚Ğ¸ Ğ±Ñ–Ğ»ÑŒÑˆĞµ 0.") }
-        static var invalidPrice: String { text("events.editor.validation.invalid_price", "Ğ’Ğ°Ñ€Ñ‚Ñ–ÑÑ‚ÑŒ Ğ½Ğµ Ğ¼Ğ¾Ğ¶Ğµ Ğ±ÑƒÑ‚Ğ¸ Ğ²Ñ–Ğ´â€™Ñ”Ğ¼Ğ½Ğ¾Ñ.") }
-        static var organizationRequired: String { text("events.editor.validation.organization_required", "ĞĞ±ĞµÑ€Ñ–Ñ‚ÑŒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ´Ğ»Ñ Ğ¿Ğ¾Ğ´Ñ–Ñ—.") }
-        static var organizationRegionRequired: String { text("events.editor.validation.organization_region_required", "ĞŸĞµÑ€ĞµĞ´ Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ”Ñ Ğ·Ğ°Ğ¿Ğ¾Ğ²Ğ½Ñ–Ñ‚ÑŒ Ñ€ĞµĞ³Ñ–Ğ¾Ğ½ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var deleteConfirmation: String { text("events.delete.confirmation", "Delete this event?") }
-        static var delete: String { text("events.delete", "Delete") }
-        static var cancelEvent: String { text("events.cancel_event", "Cancel event") }
-        static var cancelEventConfirmation: String { text("events.cancel_event.confirmation", "Cancel this event?") }
-        static var cancelEventConfirmationMessage: String { text("events.cancel_event.confirmation.message", "Registered participants will be notified. The event will no longer appear in public lists.") }
-        static var cancelEventFailed: String { text("events.cancel_event.failed", "Cancel event failed") }
-        static var cancel: String { text("events.cancel", "Cancel") }
-        static var deleteFailed: String { text("events.delete_failed", "Delete Failed") }
-        static var dismissError: String { text("events.dismiss_error", "OK") }
-        static var freePrice: String { text("events.price.free", "Ğ‘ĞµĞ·ĞºĞ¾ÑˆÑ‚Ğ¾Ğ²Ğ½Ğ¾") }
-        static var regionPlaceholder: String { text("events.editor.region.placeholder", "ĞĞ±ĞµÑ€Ñ–Ñ‚ÑŒ Ñ€ĞµĞ³Ñ–Ğ¾Ğ½") }
-        static func viewCount(_ count: Int) -> String {
-            LocalizationStore.localizedFormat("events.view_count", defaultValue: "%lld Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ñ–Ğ²", arguments: [count])
-        }
-    }
-
-    enum Organizations {
-        static var title: String { text("organizations.title", "Organizations") }
-        static var detailTitle: String { text("organizations.detail.title", "Ğ”ĞµÑ‚Ğ°Ğ»Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var detailBadge: String { text("organizations.detail.badge", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var activityTitle: String { text("organizations.activity.title", "ĞĞºÑ‚Ğ¸Ğ²Ğ½Ñ–ÑÑ‚ÑŒ Ğ³Ñ€Ğ¾Ğ¼Ğ°Ğ´Ğ¸") }
-        static var heroTitle: String { text("organizations.hero.title", "Ğ Ğ°Ğ·Ğ¾Ğ¼ â€” Ğ¼Ğ¸ ÑĞ¸Ğ»ÑŒĞ½Ñ–ÑˆÑ–") }
-        static var heroSubtitle: String { text("organizations.hero.subtitle", "Ğ—Ğ½Ğ°Ğ¹Ğ´Ñ–Ñ‚ÑŒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, ÑĞºÑ– Ğ¿Ñ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ÑƒÑÑ‚ÑŒ ÑƒĞºÑ€Ğ°Ñ—Ğ½Ñ†Ñ–Ğ² Ğ² ĞĞ²ÑÑ‚Ñ€Ñ–Ñ—.") }
-        static var popularTitle: String { text("organizations.popular.title", "ĞŸĞ¾Ğ¿ÑƒĞ»ÑÑ€Ğ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var categoriesTitle: String { text("organizations.categories.title", "ĞšĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ—") }
-        static var searchPlaceholder: String { text("organizations.search.placeholder", "ĞŸĞ¾ÑˆÑƒĞº Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var categorySupport: String { text("organizations.category.support", "ĞŸÑ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ°") }
-        static var categoryEducation: String { text("organizations.category.education", "ĞÑĞ²Ñ–Ñ‚Ğ°") }
-        static var categoryCulture: String { text("organizations.category.culture", "ĞšÑƒĞ»ÑŒÑ‚ÑƒÑ€Ğ°") }
-        static var categoryWork: String { text("organizations.category.work", "Ğ Ğ¾Ğ±Ğ¾Ñ‚Ğ°") }
-        static var categoryChildren: String { text("organizations.category.children", "Ğ”Ğ»Ñ Ğ´Ñ–Ñ‚ĞµĞ¹") }
-        static var categoryLegal: String { text("organizations.category.legal", "ĞŸÑ€Ğ°Ğ²Ğ¾Ğ²Ğ° Ğ´Ğ¾Ğ¿Ğ¾Ğ¼Ğ¾Ğ³Ğ°") }
-        static var categoryOther: String { text("organizations.category.other", "Ğ†Ğ½ÑˆĞµ") }
-        static var filterBookmarks: String { text("organizations.filter.bookmarks", "Ğ—Ğ°ĞºĞ»Ğ°Ğ´ĞºĞ¸") }
-        static var empty: String { text("organizations.empty", "No organizations available yet.") }
-        static var retry: String { text("organizations.retry", "Retry") }
-        static var loadNetworkError: String { text("organizations.error.load.network", "Unable to load organizations. Check your connection and try again.") }
-        static var loadPermissionError: String { text("organizations.error.load.permission", "You do not have permission to view these organizations.") }
-        static var loadValidationError: String { text("organizations.error.load.validation", "The organization data could not be loaded.") }
-        static var loadUnknownError: String { text("organizations.error.load.unknown", "Something went wrong while loading organizations.") }
-        static var actionPermissionError: String { text("organizations.error.action.permission", "You do not have permission to perform this action.") }
-        static var actionValidationError: String { text("organizations.error.action.validation", "The organization data could not be processed.") }
-        static var actionNotFoundError: String { text("organizations.error.action.not_found", "The selected organization could not be found.") }
-        static var actionUnknownError: String { text("organizations.error.action.unknown", "Something went wrong while processing the organization.") }
-        static var editorTitle: String { text("organizations.editor.title", "ĞĞ¾Ğ²Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var editTitle: String { text("organizations.editor.edit_title", "Ğ ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var editorSubtitle: String { text("organizations.editor.subtitle", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ñ–Ñ‚ÑŒ Ğ¿Ñ€Ğ¾ÑÑ‚Ñ–Ñ€ Ğ´Ğ»Ñ Ğ²Ğ°ÑˆĞ¾Ñ— ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ğ¹ Ñ‚Ğ° Ğ½Ğ¾Ğ²Ğ¸Ğ½.") }
-        static var fieldName: String { text("organizations.editor.field.name", "ĞĞ°Ğ·Ğ²Ğ° ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸ *") }
-        static var fieldNamePlaceholder: String { text("organizations.editor.field.name_placeholder", "ĞĞ°Ğ¿Ñ€Ğ¸ĞºĞ»Ğ°Ğ´, Ğ£ĞºÑ€Ğ°Ñ—Ğ½ÑÑŒĞºĞ¸Ğ¹ Ñ†ĞµĞ½Ñ‚Ñ€ Ñƒ Ğ’Ñ–Ğ´Ğ½Ñ–") }
-        static var fieldDescription: String { text("organizations.editor.field.description", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¾ Ğ¿Ñ€Ğ¾ Ğ²Ğ°Ñ") }
-        static var fieldDescriptionPlaceholder: String { text("organizations.editor.field.description_placeholder", "ĞšĞ¾Ğ¼Ñƒ Ğ´Ğ¾Ğ¿Ğ¾Ğ¼Ğ°Ğ³Ğ°Ñ”Ñ‚Ğµ Ñ– Ñ‰Ğ¾ Ñ€Ğ¾Ğ±Ğ¸Ñ‚Ğµ") }
-        static var fieldFullDescription: String { text("organizations.editor.field.full_description", "Ğ”ĞµÑ‚Ğ°Ğ»ÑŒĞ½Ñ–ÑˆĞµ Ğ¿Ñ€Ğ¾ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ñƒ") }
-        static var fieldFullDescriptionPlaceholder: String { text("organizations.editor.field.full_description_placeholder", "Ğ Ğ¾Ğ·ĞºĞ°Ğ¶Ñ–Ñ‚ÑŒ Ğ¿Ñ€Ğ¾ Ğ¿Ğ¾ÑĞ»ÑƒĞ³Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ—, ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ñƒ Ñ‚Ğ° ÑĞº Ğ´Ğ¾ Ğ²Ğ°Ñ Ğ·Ğ²ĞµÑ€Ğ½ÑƒÑ‚Ğ¸ÑÑ") }
-        static var fieldContactEmail: String { text("organizations.editor.field.contact_email", "Email Ğ´Ğ»Ñ Ğ·Ğ²â€™ÑĞ·ĞºÑƒ") }
-        static var fieldWebsite: String { text("organizations.editor.field.website", "Ğ¡Ğ°Ğ¹Ñ‚ Ğ°Ğ±Ğ¾ ÑÑ‚Ğ¾Ñ€Ñ–Ğ½ĞºĞ°") }
-        static var fieldTelegramURL: String { text("organizations.editor.field.telegram_url", "Telegram ĞºĞ°Ğ½Ğ°Ğ» Ğ°Ğ±Ğ¾ Ñ‡Ğ°Ñ‚") }
-        static var fieldDonationURL: String { text("organizations.editor.field.donation_url", "ĞŸĞ¾ÑĞ¸Ğ»Ğ°Ğ½Ğ½Ñ Ğ´Ğ»Ñ Ğ¿Ñ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ¸") }
-        static var fieldFacebookURL: String { text("organizations.editor.field.facebook_url", "Facebook") }
-        static var fieldInstagramURL: String { text("organizations.editor.field.instagram_url", "Instagram") }
-        static var fieldWhatsAppURL: String { text("organizations.editor.field.whatsapp_url", "WhatsApp") }
-        static var fieldYouTubeURL: String { text("organizations.editor.field.youtube_url", "YouTube") }
-        static var fieldLinkedInURL: String { text("organizations.editor.field.linkedin_url", "LinkedIn") }
-        static var fieldMissionStatement: String { text("organizations.editor.field.mission_statement", "Ğ§Ğ¸Ğ¼ Ğ²Ğ¸ Ğ·Ğ°Ğ¹Ğ¼Ğ°Ñ”Ñ‚ĞµÑÑŒ") }
-        static var detailMissionStatementTitle: String { text("organizations.detail.mission_statement", "Ğ§Ğ¸Ğ¼ Ğ¼Ğ¸ Ğ·Ğ°Ğ¹Ğ¼Ğ°Ñ”Ğ¼Ğ¾ÑÑŒ") }
-        static var fieldMissionStatementPlaceholder: String { text("organizations.editor.field.mission_statement_placeholder", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¾ Ğ¾Ğ¿Ğ¸ÑˆÑ–Ñ‚ÑŒ Ğ³Ğ¾Ğ»Ğ¾Ğ²Ğ½Ğ¸Ğ¹ Ğ½Ğ°Ğ¿Ñ€ÑĞ¼ Ñ€Ğ¾Ğ±Ğ¾Ñ‚Ğ¸") }
-        static var fieldContactPerson: String { text("organizations.editor.field.contact_person", "ĞšĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ½Ğ° Ğ»ÑĞ´Ğ¸Ğ½Ğ°") }
-        static var fieldContactPersonDisplay: String { text("organizations.detail.contact_person", "ĞšĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ½Ğ° Ğ¾ÑĞ¾Ğ±Ğ°") }
-        static var fieldRegion: String { text("organizations.editor.field.region", "Ğ¤ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ğ° Ğ·ĞµĞ¼Ğ»Ñ *") }
-        static var fieldRegionPlaceholder: String { text("organizations.editor.field.region_placeholder", "ĞĞ±ĞµÑ€Ñ–Ñ‚ÑŒ Ñ„ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ñƒ Ğ·ĞµĞ¼Ğ»Ñ") }
-        static var fieldCity: String { text("organizations.editor.field.city", "ĞœÑ–ÑÑ‚Ğ¾") }
-        static var fieldAddress: String { text("organizations.editor.field.address", "ĞĞ´Ñ€ĞµÑĞ° Ğ°Ğ±Ğ¾ Ñ€Ğ°Ğ¹Ğ¾Ğ½") }
-        static var fieldFoundedYear: String { text("organizations.editor.field.founded_year", "Ğ Ñ–Ğº Ğ·Ğ°ÑĞ½ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var fieldFoundedMonth: String { text("organizations.editor.field.founded_month", "ĞœÑ–ÑÑÑ†ÑŒ Ğ·Ğ°ÑĞ½ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var fieldFoundedMonthNone: String { text("organizations.editor.field.founded_month_none", "ĞĞµ Ğ²ĞºĞ°Ğ·Ğ°Ğ½Ğ¾") }
-        static var fieldLanguages: String { text("organizations.editor.field.languages", "ĞœĞ¾Ğ²Ğ¸ ÑĞ¿Ñ–Ğ»ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var publish: String { text("organizations.editor.publish", "ĞĞ¿ÑƒĞ±Ğ»Ñ–ĞºÑƒĞ²Ğ°Ñ‚Ğ¸") }
-        static var submitRequest: String { text("organizations.editor.submit_request", "ĞŸĞ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ·Ğ°ÑĞ²ĞºÑƒ") }
-        static var resubmitRequest: String { text("organizations.editor.resubmit_request", "ĞĞ°Ğ´Ñ–ÑĞ»Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ²Ñ‚Ğ¾Ñ€Ğ½Ğ¾") }
-        static var saveChanges: String { text("organizations.editor.save_changes", "Ğ—Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ·Ğ¼Ñ–Ğ½Ğ¸") }
-        static var publishing: String { text("organizations.editor.publishing", "Ğ—Ğ±ĞµÑ€Ñ–Ğ³Ğ°Ñ”Ğ¼Ğ¾...") }
-        static var publishedSuccessfully: String { text("organizations.editor.success", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ¾Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ¾Ğ²Ğ°Ğ½Ğ¾.") }
-        static var requestSubmittedSuccessfully: String { text("organizations.editor.request_success", "Ğ—Ğ°ÑĞ²ĞºÑƒ Ğ½Ğ°Ğ´Ñ–ÑĞ»Ğ°Ğ½Ğ¾ Ğ½Ğ° Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€ĞºÑƒ.") }
-        static var updatedSuccessfully: String { text("organizations.editor.updated_success", "Ğ—Ğ¼Ñ–Ğ½Ğ¸ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¾.") }
-        static var requestAlreadyReviewed: String { text("organizations.editor.error.request_already_reviewed", "Ğ—Ğ°ÑĞ²ĞºÑƒ Ğ²Ğ¶Ğµ Ğ±ÑƒĞ»Ğ¾ Ñ€Ğ¾Ğ·Ğ³Ğ»ÑĞ½ÑƒÑ‚Ğ¾. ĞĞ½Ğ¾Ğ²Ñ–Ñ‚ÑŒ ÑÑ‚Ğ¾Ñ€Ñ–Ğ½ĞºÑƒ.") }
-        static var imageSectionTitle: String { text("organizations.editor.image_section", "Ğ›Ğ¾Ğ³Ğ¾Ñ‚Ğ¸Ğ¿") }
-        static var logoUploadTitle: String { text("organizations.editor.logo_upload_title", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ»Ğ¾Ğ³Ğ¾Ñ‚Ğ¸Ğ¿") }
-        static var logoUploadHelper: String { text("organizations.editor.logo_upload_helper", "ĞšĞ²Ğ°Ğ´Ñ€Ğ°Ñ‚Ğ½Ğ¸Ğ¹ Ğ»Ğ¾Ğ³Ğ¾Ñ‚Ğ¸Ğ¿ Ğ²Ğ¸Ğ³Ğ»ÑĞ´Ğ°Ñ‚Ğ¸Ğ¼Ğµ Ğ½Ğ°Ğ¹ĞºÑ€Ğ°Ñ‰Ğµ") }
-        static var detailsSectionTitle: String { text("organizations.editor.details_section", "ĞÑĞ½Ğ¾Ğ²Ğ½Ğµ") }
-        static var categorySectionTitle: String { text("organizations.editor.category_section", "ĞĞ°Ğ¿Ñ€ÑĞ¼ Ğ´Ñ–ÑĞ»ÑŒĞ½Ğ¾ÑÑ‚Ñ– *") }
-        static var categoryIntegration: String { text("organizations.editor.category.integration", "Ğ†Ğ½Ñ‚ĞµĞ³Ñ€Ğ°Ñ†Ñ–Ñ") }
-        static var contactSectionTitle: String { text("organizations.editor.contact_section", "ĞšĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ¸ Ñ‚Ğ° Ğ¿Ğ¾ÑĞ¸Ğ»Ğ°Ğ½Ğ½Ñ") }
-        static var phonePlaceholder: String { text("organizations.editor.phone_placeholder", "Ğ¢ĞµĞ»ĞµÑ„Ğ¾Ğ½") }
-        static var socialLinksTitle: String { text("organizations.editor.social_title", "Ğ¡Ğ¾Ñ†Ğ¼ĞµÑ€ĞµĞ¶Ñ–") }
-        static var socialPlaceholder: String { text("organizations.editor.social_placeholder", "Instagram, Facebook Ğ°Ğ±Ğ¾ Ñ–Ğ½ÑˆÑ– Ğ¿Ğ¾ÑĞ¸Ğ»Ğ°Ğ½Ğ½Ñ") }
-        static var locationSectionTitle: String { text("organizations.editor.location_section", "Ğ›Ğ¾ĞºĞ°Ñ†Ñ–Ñ") }
-        static var locationPlaceholder: String { text("organizations.editor.location_placeholder", "ĞĞ´Ñ€ĞµÑĞ° Ğ°Ğ±Ğ¾ Ğ½Ğ°Ğ·Ğ²Ğ° Ğ¼Ñ–ÑÑ‚Ğ°") }
-        static var chooseOnMap: String { text("organizations.editor.choose_on_map", "Ğ’Ğ¸Ğ±Ñ€Ğ°Ñ‚Ğ¸ Ğ½Ğ° ĞºĞ°Ñ€Ñ‚Ñ–") }
-        static var aboutSectionTitle: String { text("organizations.about_section", "ĞŸÑ€Ğ¾ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var aboutEmptyMessage: String { text("organizations.detail.about_empty", "ĞŸĞ¾Ğ²Ğ½Ğ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ¿Ğ¾ĞºĞ¸ Ğ½Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ½Ğ¾.") }
-        static var mainInformationTitle: String { text("organizations.detail.main_information", "ĞÑĞ½Ğ¾Ğ²Ğ½Ğ° Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ") }
-        static var categoryTitle: String { text("organizations.detail.category", "ĞšĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ") }
-        static var languagesTitle: String { text("organizations.detail.languages", "ĞœĞ¾Ğ²Ğ¸") }
-        static var foundedTitle: String { text("organizations.detail.founded", "Ğ—Ğ°ÑĞ½Ğ¾Ğ²Ğ°Ğ½Ğ¾") }
-        static var aboutPlaceholder: String { text("organizations.editor.about_placeholder", "Ğ Ğ¾Ğ·ĞºĞ°Ğ¶Ñ–Ñ‚ÑŒ Ğ±Ñ–Ğ»ÑŒÑˆĞµ Ğ¿Ñ€Ğ¾ Ğ²Ğ°ÑˆÑƒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ, Ğ¼Ñ–ÑÑ–Ñ Ñ‚Ğ° Ñ†Ñ–Ğ»Ñ–") }
-        static var settingsSectionTitle: String { text("organizations.editor.settings_section", "Ğ”Ğ¾Ğ´Ğ°Ñ‚ĞºĞ¾Ğ²Ñ– Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var futureSectionTitle: String { text("organizations.editor.future_section", "Ğ”Ğ¾Ğ´Ğ°Ñ‚ĞºĞ¾Ğ²Ğ¾") }
-        static var organizationSizeTitle: String { text("organizations.editor.organization_size", "Ğ Ğ¾Ğ·Ğ¼Ñ–Ñ€ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationSizeOptions: String { text("organizations.editor.organization_size_options", "Ğ›Ğ¾ĞºĞ°Ğ»ÑŒĞ½Ğ°, Ğ ĞµĞ³Ñ–Ğ¾Ğ½Ğ°Ğ»ÑŒĞ½Ğ°, Ğ’ÑĞµĞ°Ğ²ÑÑ‚Ñ€Ñ–Ğ¹ÑÑŒĞºĞ°, ĞœÑ–Ğ¶Ğ½Ğ°Ñ€Ğ¾Ğ´Ğ½Ğ°") }
-        static var volunteersNeededTitle: String { text("organizations.editor.volunteers_needed", "ĞŸĞ¾Ñ‚Ñ€Ñ–Ğ±Ğ½Ñ– Ğ²Ğ¾Ğ»Ğ¾Ğ½Ñ‚ĞµÑ€Ğ¸") }
-        static var volunteersNeededSubtitle: String { text("organizations.editor.volunteers_needed_subtitle", "ĞŸÑ–Ğ·Ğ½Ñ–ÑˆĞµ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ– Ğ·Ğ¼Ğ¾Ğ¶ÑƒÑ‚ÑŒ Ğ²Ñ–Ğ´Ğ³ÑƒĞºÑƒĞ²Ğ°Ñ‚Ğ¸ÑÑ Ğ½Ğ° Ğ²Ğ¾Ğ»Ğ¾Ğ½Ñ‚ĞµÑ€ÑÑŒĞºÑ– Ğ¿Ğ¾Ñ‚Ñ€ĞµĞ±Ğ¸.") }
-        static var verificationRequestTitle: String { text("organizations.editor.verification_request", "ĞŸĞ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ·Ğ°ÑĞ²ĞºÑƒ Ğ½Ğ° Ğ²ĞµÑ€Ğ¸Ñ„Ñ–ĞºĞ°Ñ†Ñ–Ñ") }
-        static var verificationRequestSubtitle: String { text("organizations.editor.verification_request_subtitle", "ĞŸÑ–Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¶ĞµĞ½Ğ½Ñ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğµ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var teamManagementTitle: String { text("organizations.editor.team_management", "ĞšĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var teamManagementSubtitle: String { text("organizations.editor.team_management_subtitle", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ·Ğ¼Ğ¾Ğ¶Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ²Ğ°Ñ‚Ğ¸ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ñ–Ğ² Ñ– Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ñ–Ğ².") }
-        static var comingSoon: String { text("organizations.editor.coming_soon", "ĞĞµĞ·Ğ°Ğ±Ğ°Ñ€Ğ¾Ğ¼") }
-        static var visibilityTitle: String { text("organizations.editor.visibility_title", "Ğ’Ğ¸Ğ´Ğ¸Ğ¼Ñ–ÑÑ‚ÑŒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var visibilityPublic: String { text("organizations.editor.visibility_public", "ĞŸÑƒĞ±Ğ»Ñ–Ñ‡Ğ½Ğ°") }
-        static var visibilityHelper: String { text("organizations.editor.visibility_helper", "Ğ¥Ñ‚Ğ¾ Ğ¼Ğ¾Ğ¶Ğµ Ğ±Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ğ²Ğ°ÑˆÑƒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var moderationNotice: String { text("organizations.editor.moderation_notice", "ĞŸÑ–ÑĞ»Ñ ÑÑ‚Ğ²Ğ¾Ñ€ĞµĞ½Ğ½Ñ Ğ¼Ğ¸ Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€Ğ¸Ğ¼Ğ¾ ÑÑ‚Ğ¾Ñ€Ñ–Ğ½ĞºÑƒ Ğ¿ĞµÑ€ĞµĞ´ Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ”Ñ. Ğ’Ğ¸ Ğ·Ğ¼Ğ¾Ğ¶ĞµÑ‚Ğµ Ğ¾Ğ½Ğ¾Ğ²Ğ»ÑĞ²Ğ°Ñ‚Ğ¸ Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var follow: String { text("organizations.detail.follow", "ĞŸÑ–Ğ´Ğ¿Ğ¸ÑĞ°Ñ‚Ğ¸ÑÑ") }
-        static var unfollow: String { text("organizations.detail.unfollow", "Ğ’Ñ–Ğ´Ğ¿Ğ¸ÑĞ°Ñ‚Ğ¸ÑÑ") }
-        static var confirmSubscribeTitle: String { text("organizations.subscription.confirm_subscribe.title", "Subscribe to this organization?") }
-        static var confirmSubscribeButton: String { text("organizations.subscription.confirm_subscribe.button", "Subscribe") }
-        static var confirmUnsubscribeTitle: String { text("organizations.subscription.confirm_unsubscribe.title", "Unsubscribe from this organization?") }
-        static var confirmUnsubscribeButton: String { text("organizations.subscription.confirm_unsubscribe.button", "Unsubscribe") }
-        static func confirmSubscribeMessage(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "organizations.subscription.confirm_subscribe.message",
-                defaultValue: "You will receive updates from â€œ%@â€.",
-                arguments: [organizationName]
-            )
-        }
-        static func confirmUnsubscribeMessage(_ organizationName: String) -> String {
-            LocalizationStore.localizedFormat(
-                "organizations.subscription.confirm_unsubscribe.message",
-                defaultValue: "You will stop receiving updates from â€œ%@â€.",
-                arguments: [organizationName]
-            )
-        }
-        static var message: String { text("organizations.detail.message", "ĞŸĞ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ") }
-        static var share: String { text("organizations.detail.share", "ĞŸĞ¾Ğ´Ñ–Ğ»Ğ¸Ñ‚Ğ¸ÑÑ") }
-        static var support: String { text("organizations.detail.support", "ĞŸÑ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼Ğ°Ñ‚Ğ¸") }
-        static var supportOrganizationTitle: String { text("organizations.detail.support_organization_title", "ĞŸÑ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼Ğ°Ñ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var supportOrganizationSubtitle: String { text("organizations.detail.support_organization_subtitle", "Ğ”Ğ¾Ğ¿Ğ¾Ğ¼Ğ¾Ğ¶Ñ–Ñ‚ÑŒ Ñ€Ğ¾Ğ·Ğ²Ğ¸Ñ‚ĞºÑƒ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸") }
-        static var telegramDiscussion: String { text("organizations.detail.telegram_discussion", "ĞĞ±Ğ³Ğ¾Ğ²Ğ¾Ñ€ĞµĞ½Ğ½Ñ") }
-        static var followers: String { text("organizations.detail.followers", "ĞŸÑ–Ğ´Ğ¿Ğ¸ÑĞ½Ğ¸ĞºĞ¸") }
-        static var verified: String { text("organizations.detail.verified", "ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€ĞµĞ½Ğ¾") }
-        static var showOnMap: String { text("organizations.detail.show_on_map", "ĞŸĞ¾ĞºĞ°Ğ·Ğ°Ñ‚Ğ¸ Ğ½Ğ° ĞºĞ°Ñ€Ñ‚Ñ–") }
-        static var emptyOrganizationEvents: String { text("organizations.detail.empty_events", "Ğ£ Ñ†Ñ–Ñ”Ñ— Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¿Ğ¾Ğ´Ñ–Ğ¹.") }
-        static var emptyOrganizationNews: String { text("organizations.detail.empty_news", "Ğ£ Ñ†Ñ–Ñ”Ñ— Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” Ğ½Ğ¾Ğ²Ğ¸Ğ½.") }
-        static var noOrganizationContacts: String { text("organizations.detail.no_contacts", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ñ‰Ğµ Ğ½Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ»Ğ° ĞºĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ñ–Ğ².") }
-        static var contactsSubtitle: String { text("organizations.contacts.subtitle", "Ğ—Ğ²â€™ÑĞ¶Ñ–Ñ‚ÑŒÑÑ Ğ· Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ”Ñ Ğ½Ğ°Ğ¿Ñ€ÑĞ¼Ñƒ.") }
-        static var contactsEmptyTitle: String { text("organizations.contacts.empty_title", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ñ‰Ğµ Ğ½Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ»Ğ° ĞºĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ñ–Ğ².") }
-        static var contactsEmptyMessage: String { text("organizations.contacts.empty_message", "ĞšĞ¾Ğ»Ğ¸ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ° Ğ´Ğ¾Ğ´Ğ°ÑÑ‚ÑŒ ÑĞ°Ğ¹Ñ‚, ÑĞ¾Ñ†Ğ¼ĞµÑ€ĞµĞ¶Ñ– Ğ°Ğ±Ğ¾ Ğ°Ğ´Ñ€ĞµÑÑƒ, Ğ²Ğ¾Ğ½Ğ¸ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ñ‚ÑƒÑ‚.") }
-        static var contactsAdd: String { text("organizations.contacts.add", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ ĞºĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ¸") }
-        static var contactsEdit: String { text("organizations.contacts.edit", "Ğ ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ñ‚Ğ¸ ĞºĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ¸") }
-        static var contactsOpenWebsite: String { text("organizations.contacts.open_website", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ğ¸ ÑĞ°Ğ¹Ñ‚") }
-        static var contactsOpenTelegram: String { text("organizations.contacts.open_telegram", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ğ¸ Telegram") }
-        static var fieldEmail: String { text("organizations.contacts.email", "Email") }
-        static var fieldPhone: String { text("organizations.contacts.phone", "Ğ¢ĞµĞ»ĞµÑ„Ğ¾Ğ½") }
-        static var fieldTelegram: String { text("organizations.contacts.telegram", "Telegram") }
-        static var fieldInstagram: String { text("organizations.contacts.instagram", "Instagram") }
-        static var fieldFacebook: String { text("organizations.contacts.facebook", "Facebook") }
-        static var fieldWhatsApp: String { text("organizations.contacts.whatsapp", "WhatsApp") }
-        static var fieldYouTube: String { text("organizations.contacts.youtube", "YouTube") }
-        static var fieldLinkedIn: String { text("organizations.contacts.linkedin", "LinkedIn") }
-        static var fieldLocation: String { text("organizations.contacts.location", "Ğ›Ğ¾ĞºĞ°Ñ†Ñ–Ñ") }
-        static var teamComingSoon: String { text("organizations.detail.team_coming_soon", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ·Ğ¼Ğ¾Ğ¶Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ²Ğ°Ñ‚Ğ¸ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ñ–Ğ² Ñ– Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ñ–Ğ².") }
-        static var photosComingSoon: String { text("organizations.detail.photos_coming_soon", "Ğ“Ğ°Ğ»ĞµÑ€ĞµÑ Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ° Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var photosEmptyTitle: String { text("organizations.photos.empty_title", "Ğ¤Ğ¾Ñ‚Ğ¾ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ”.") }
-        static var photosEmptyMessage: String { text("organizations.photos.empty_message", "ĞšĞ¾Ğ»Ğ¸ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ° Ğ´Ğ¾Ğ´Ğ°ÑÑ‚ÑŒ Ñ„Ğ¾Ñ‚Ğ¾, Ğ²Ğ¾Ğ½Ğ¸ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ñ‚ÑƒÑ‚.") }
-        static var photosAdd: String { text("organizations.photos.add", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ñ„Ğ¾Ñ‚Ğ¾") }
-        static var photosCaption: String { text("organizations.photos.caption", "ĞŸÑ–Ğ´Ğ¿Ğ¸Ñ") }
-        static var photosCaptionPlaceholder: String { text("organizations.photos.caption_placeholder", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ Ñ„Ğ¾Ñ‚Ğ¾") }
-        static var photosUpload: String { text("organizations.photos.upload", "Ğ—Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸") }
-        static var photosUploading: String { text("organizations.photos.uploading", "Ğ—Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶ÑƒÑ”Ğ¼Ğ¾ Ñ„Ğ¾Ñ‚Ğ¾...") }
-        static var photosUploadFailed: String { text("organizations.photos.upload_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ Ñ„Ğ¾Ñ‚Ğ¾.") }
-        static var photosLoadFailed: String { text("organizations.photos.load_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ Ñ„Ğ¾Ñ‚Ğ¾ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var photosDelete: String { text("organizations.photos.delete", "Ğ’Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ñ„Ğ¾Ñ‚Ğ¾") }
-        static var photosDeleteConfirmation: String { text("organizations.photos.delete_confirmation", "Ğ’Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ñ†Ğµ Ñ„Ğ¾Ñ‚Ğ¾?") }
-        static var photosDeleteFailed: String { text("organizations.photos.delete_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ²Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ñ„Ğ¾Ñ‚Ğ¾.") }
-        static var photosLimitReached: String { text("organizations.photos.limit_reached", "ĞœĞ¾Ğ¶Ğ½Ğ° Ğ´Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ´Ğ¾ 30 Ñ„Ğ¾Ñ‚Ğ¾.") }
-        static var photosPreparing: String { text("organizations.photos.preparing", "Ğ“Ğ¾Ñ‚ÑƒÑ”Ğ¼Ğ¾ Ñ„Ğ¾Ñ‚Ğ¾...") }
-        static var photosSelectionFailed: String { text("organizations.photos.selection_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¾Ğ±Ñ€Ğ°Ñ‚Ğ¸ Ñ„Ğ¾Ñ‚Ğ¾.") }
-        static var showMore: String { text("organizations.detail.show_more", "ĞŸĞ¾ĞºĞ°Ğ·Ğ°Ñ‚Ğ¸ Ğ±Ñ–Ğ»ÑŒÑˆĞµ") }
-        static var showLess: String { text("organizations.detail.show_less", "ĞŸĞ¾ĞºĞ°Ğ·Ğ°Ñ‚Ğ¸ Ğ¼ĞµĞ½ÑˆĞµ") }
-        static var upcomingEventsTitle: String { text("organizations.detail.upcoming_events", "ĞĞ°Ğ¹Ğ±Ğ»Ğ¸Ğ¶Ñ‡Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var communityHighlightsTitle: String { text("organizations.detail.community_highlights", "Ğ–Ğ¸Ñ‚Ñ‚Ñ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸") }
-        static var nearestEventTitle: String { text("organizations.detail.nearest_event", "ĞĞ°Ğ¹Ğ±Ğ»Ğ¸Ğ¶Ñ‡Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var latestNewsTitle: String { text("organizations.detail.latest_news", "ĞÑÑ‚Ğ°Ğ½Ğ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var latestPhotosTitle: String { text("organizations.detail.latest_photos", "ĞÑÑ‚Ğ°Ğ½Ğ½Ñ– Ñ„Ğ¾Ñ‚Ğ¾") }
-        static var viewAction: String { text("organizations.detail.view", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸") }
-        static var allNewsAction: String { text("organizations.detail.all_news", "Ğ£ÑÑ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var pinnedLabel: String { text("organizations.detail.pinned", "Ğ—Ğ°ĞºÑ€Ñ–Ğ¿Ğ»ĞµĞ½Ğ¾") }
-        static var latestActivityPrefix: String { text("organizations.detail.latest_activity", "ĞĞºÑ‚Ğ¸Ğ²Ğ½Ñ–ÑÑ‚ÑŒ") }
-        static var activityEventsShort: String { text("organizations.detail.activity_events_short", "Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var activityNewsShort: String { text("organizations.detail.activity_news_short", "Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var activityPhotosShort: String { text("organizations.detail.activity_photos_short", "Ñ„Ğ¾Ñ‚Ğ¾") }
-        static var tabEvents: String { text("organizations.detail.tab_events", "ĞŸĞ¾Ğ´Ñ–Ñ—") }
-        static var tabAbout: String { text("organizations.detail.tab_about", "ĞŸÑ€Ğ¾ Ğ½Ğ°Ñ") }
-        static var tabNews: String { text("organizations.detail.tab_news", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var tabContacts: String { text("organizations.detail.tab_contacts", "ĞšĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ¸") }
-        static var tabPhoto: String { text("organizations.detail.tab_photo", "Ğ¤Ğ¾Ñ‚Ğ¾") }
-        static var tabTeam: String { text("organizations.detail.tab_team", "Ğ¡Ğ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ°") }
-        static var communityEmpty: String { text("organizations.community.empty", "ĞŸĞ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºÑ–Ğ² ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸.") }
-        static var communityLoadMore: String { text("organizations.community.load_more", "ĞŸĞ¾ĞºĞ°Ğ·Ğ°Ñ‚Ğ¸ Ñ‰Ğµ") }
-        static var communityPlaceholderProfileMessage: String { text("organizations.community.placeholder_profile_message", "ĞŸÑƒĞ±Ğ»Ñ–Ñ‡Ğ½Ğ¸Ğ¹ Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»ÑŒ ÑÑ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚ÑŒÑÑ Ğ¿Ñ–ÑĞ»Ñ Ğ½Ğ°ÑÑ‚ÑƒĞ¿Ğ½Ğ¾Ğ³Ğ¾ Ğ²Ñ…Ğ¾Ğ´Ñƒ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ°.") }
-        static var communityProfileUnavailable: String { text("organizations.community.profile_unavailable", "ĞŸÑ€Ğ¾Ñ„Ñ–Ğ»ÑŒ Ñ‰Ğµ Ğ½Ğµ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¸Ğ¹") }
-        static var communityOwner: String { text("organizations.community.role.owner", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº") }
-        static var communityAdmin: String { text("organizations.community.role.admin", "ĞĞ´Ğ¼Ñ–Ğ½") }
-        static var communityModerator: String { text("organizations.community.role.moderator", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€") }
-        static var communityMember: String { text("organizations.community.role.member", "Ğ£Ñ‡Ğ°ÑĞ½Ğ¸Ğº") }
-        static var emptyBookmarked: String { text("organizations.empty.bookmarked", "Ğ£ Ğ²Ğ°Ñ Ñ‰Ğµ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹ Ñƒ Ğ·Ğ°ĞºĞ»Ğ°Ğ´ĞºĞ°Ñ….") }
-        static var officialBadge: String { text("organizations.detail.official", "ĞÑ„Ñ–Ñ†Ñ–Ğ¹Ğ½Ğ¾") }
-        static var addBookmark: String { text("organizations.bookmark.add", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ² Ğ·Ğ°ĞºĞ»Ğ°Ğ´ĞºĞ¸") }
-        static var removeBookmark: String { text("organizations.bookmark.remove", "ĞŸÑ€Ğ¸Ğ±Ñ€Ğ°Ñ‚Ğ¸ Ñ–Ğ· Ğ·Ğ°ĞºĞ»Ğ°Ğ´Ğ¾Ğº") }
-        static var userFallback: String { text("organizations.comments.user_fallback", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡") }
-        static var deleteConfirmation: String { text("organizations.delete.confirmation", "Delete this organization?") }
-        static var delete: String { text("organizations.delete", "Delete") }
-        static var cancel: String { text("organizations.cancel", "Cancel") }
-        static var deleteFailed: String { text("organizations.delete_failed", "Delete Failed") }
-        static var dismissError: String { text("organizations.dismiss_error", "OK") }
-    }
-
-    enum OwnerAnalytics {
-        static var title: String { text("owner_analytics.title", "Analytics") }
-        static var subtitle: String { text("owner_analytics.subtitle", "Views, popular content and regions") }
-        static var periodPicker: String { text("owner_analytics.period_picker", "Period") }
-        static var periodToday: String { text("owner_analytics.period.today", "Today") }
-        static var periodSevenDays: String { text("owner_analytics.period.seven_days", "7 days") }
-        static var periodThirtyDays: String { text("owner_analytics.period.thirty_days", "30 days") }
-        static var searchPlaceholder: String { text("owner_analytics.search.placeholder", "Search analytics") }
-        static var searchEmptyTitle: String { text("owner_analytics.search.empty.title", "No matching analytics") }
-        static var searchEmptyMessage: String { text("owner_analytics.search.empty.message", "Try another title, organization, content type, or region.") }
-        static var showMore: String { text("owner_analytics.show_more", "Show more") }
-        static var showLess: String { text("owner_analytics.show_less", "Show less") }
-        static var overviewTitle: String { text("owner_analytics.overview.title", "Overview") }
-        static var activityOverviewTitle: String { text("owner_analytics.activity_overview.title", "Views by content type") }
-        static var todaySummarySubtitle: String { text("owner_analytics.overview.today_subtitle", "Metrics for today") }
-        static var sevenDaysSummarySubtitle: String { text("owner_analytics.overview.seven_days_subtitle", "Metrics for the last 7 days") }
-        static var thirtyDaysSummarySubtitle: String { text("owner_analytics.overview.thirty_days_subtitle", "Metrics for the last 30 days") }
-        static var totalViews: String { text("owner_analytics.metric.total_views", "Total views") }
-        static var deltaNoChange: String { text("owner_analytics.delta.no_change", "No change") }
-        static func deltaVsPreviousPeriod(_ value: String) -> String {
-            String(format: text("owner_analytics.delta.vs_previous_period", "%@ vs previous period"), value)
-        }
-        static var newsViews: String { text("owner_analytics.metric.news_views", "News views") }
-        static var eventViews: String { text("owner_analytics.metric.event_views", "Event views") }
-        static var organizationViews: String { text("owner_analytics.metric.organization_views", "Organization profile views") }
-        static var activeRegions: String { text("owner_analytics.metric.active_regions", "Active regions") }
-        static var actionsOverviewTitle: String { text("owner_analytics.actions.title", "Engagement and churn") }
-        static var actionsOverviewSubtitle: String { text("owner_analytics.actions.subtitle", "Likes, saves, registrations, follows, cancellations, and unfollows") }
-        static var actionsOverviewEmpty: String { text("owner_analytics.actions.empty", "Action analytics will appear after users like, save, register, or follow content.") }
-        static var totalLikes: String { text("owner_analytics.actions.total_likes", "Likes") }
-        static var totalBookmarks: String { text("owner_analytics.actions.total_bookmarks", "Saves") }
-        static var eventRegistrations: String { text("owner_analytics.actions.event_registrations", "Event registrations") }
-        static var cancelledEventRegistrations: String { text("owner_analytics.actions.cancelled_event_registrations", "Cancelled registrations") }
-        static var organizationFollows: String { text("owner_analytics.actions.organization_follows", "Organization follows") }
-        static var organizationUnfollows: String { text("owner_analytics.actions.organization_unfollows", "Organization unfollows") }
-        static var userAnalyticsTitle: String { text("owner_analytics.user_analytics.title", "User analytics") }
-        static var userAnalyticsSubtitle: String { text("owner_analytics.user_analytics.subtitle", "Account growth, status, and activity") }
-        static var totalUsers: String { text("owner_analytics.user.total_users", "Total users") }
-        static var newRegistrations: String { text("owner_analytics.user.new_registrations", "New registrations") }
-        static var deletedAccounts: String { text("owner_analytics.user.deleted_accounts", "Deleted accounts") }
-        static var blockedUsers: String { text("owner_analytics.user.blocked_users", "Blocked users") }
-        static var deactivatedUsers: String { text("owner_analytics.user.deactivated_users", "Deactivated users") }
-        static var activeUsersToday: String { text("owner_analytics.user.active_today", "Active today") }
-        static var activeUsersSevenDays: String { text("owner_analytics.user.active_seven_days", "Active 7 days") }
-        static var activeUsersThirtyDays: String { text("owner_analytics.user.active_thirty_days", "Active 30 days") }
-        static var usersByFederalState: String { text("owner_analytics.user.by_federal_state", "Users by federal state") }
-        static var userFederalStatesEmpty: String { text("owner_analytics.user.federal_states_empty", "Federal-state user counts will appear after user profiles include a selected state.") }
-        static var users: String { text("owner_analytics.user.users", "Users") }
-        static var topContentTitle: String { text("owner_analytics.top_content.title", "Top content") }
-        static var topContentSubtitle: String { text("owner_analytics.top_content.subtitle", "Top items for the selected period") }
-        static var topContentEmptyTitle: String { text("owner_analytics.top_content.empty.title", "Top content is not ready yet") }
-        static var topContentEmptyMessage: String { text("owner_analytics.top_content.empty.message", "There are no aggregated views for this period yet.") }
-        static var popularNewsTitle: String { text("owner_analytics.popular.news", "Popular News") }
-        static var popularEventsTitle: String { text("owner_analytics.popular.events", "Popular Events") }
-        static var popularOrganizationsTitle: String { text("owner_analytics.popular.organizations", "Popular Organizations") }
-        static var detailAnalyticsTitle: String { text("owner_analytics.detail.title", "Detail analytics") }
-        static var newsDetailSubtitle: String { text("owner_analytics.detail.news.subtitle", "News performance for the selected period") }
-        static var eventDetailSubtitle: String { text("owner_analytics.detail.event.subtitle", "Event performance for the selected period") }
-        static var organizationDetailSubtitle: String { text("owner_analytics.detail.organization.subtitle", "Organization performance for the selected period") }
-        static var conversionRate: String { text("owner_analytics.detail.conversion_rate", "Conversion rate") }
-        static var profileViews: String { text("owner_analytics.detail.profile_views", "Profile views") }
-        static var topNews: String { text("owner_analytics.detail.top_news", "Top news") }
-        static var topEvents: String { text("owner_analytics.detail.top_events", "Top events") }
-        static var noDetailAnalyticsTitle: String { text("owner_analytics.detail.empty.title", "No detail analytics yet") }
-        static var noDetailAnalyticsMessage: String { text("owner_analytics.detail.empty.message", "Detail analytics will appear after this item receives views or actions for the selected period.") }
-        static var likes: String { text("owner_analytics.detail.likes", "Likes") }
-        static var saves: String { text("owner_analytics.detail.saves", "Saves") }
-        static var registrations: String { text("owner_analytics.detail.registrations", "Registrations") }
-        static var cancelledRegistrations: String { text("owner_analytics.detail.cancelled_registrations", "Cancelled registrations") }
-        static var relatedOrganization: String { text("owner_analytics.detail.related_organization", "Related organization") }
-        static var titleUnavailable: String { text("owner_analytics.title_unavailable", "Title unavailable") }
-        static var views: String { text("owner_analytics.views", "Views") }
-        static var region: String { text("owner_analytics.region.label", "Region") }
-        static var organization: String { text("owner_analytics.organization.label", "Organization") }
-        static var regionActivityTitle: String { text("owner_analytics.region_activity.title", "Region activity") }
-        static var regionActivitySubtitle: String { text("owner_analytics.region_activity.subtitle", "Views grouped by Austrian region") }
-        static var regionActivityEmptyTitle: String { text("owner_analytics.region_activity.empty.title", "Region activity is empty") }
-        static var regionActivityEmptyMessage: String { text("owner_analytics.region_activity.empty.message", "Regions will appear after views include safe regional parameters.") }
-        static var emptyTitle: String { text("owner_analytics.empty.title", "No analytics data yet") }
-        static var emptyTodayMessage: String { text("owner_analytics.empty.today_message", "Analytics will appear after users start viewing content.") }
-        static var emptyRollupMessage: String { text("owner_analytics.empty.rollup_message", "This period will appear after scheduled analytics rollups are available. Today's data may already be available separately.") }
-        static var loading: String { text("owner_analytics.loading", "Loading analytics...") }
-        static var loadFailedTitle: String { text("owner_analytics.error.load_failed.title", "Failed to load analytics") }
-        static var loadFailedGeneric: String { text("owner_analytics.error.load_failed.generic", "Failed to load analytics. Please try again.") }
-        static var loadFailedPermission: String { text("owner_analytics.error.load_failed.permission", "Only the platform owner can view analytics.") }
-        static var loadFailedNetwork: String { text("owner_analytics.error.load_failed.network", "Analytics is temporarily unavailable. Check your connection and try again.") }
-        static var loadFailedNotFound: String { text("owner_analytics.error.load_failed.not_found", "Analytics data has not been created yet.") }
-        static var loadFailedValidation: String { text("owner_analytics.error.load_failed.validation", "Analytics data has an unexpected format.") }
-        static var retry: String { text("owner_analytics.retry", "Retry") }
-        static var contentItemsSuffix: String { text("owner_analytics.region_activity.content_items_suffix", "content items") }
-        static var contentTypeNews: String { text("owner_analytics.content_type.news", "News") }
-        static var contentTypeEvent: String { text("owner_analytics.content_type.event", "Event") }
-        static var contentTypeOrganization: String { text("owner_analytics.content_type.organization", "Organization") }
-        static var regionAustria: String { text("owner_analytics.region.austria", "Austria") }
-        static var regionFederalState: String { text("owner_analytics.region.federal_state", "Federal state") }
-        static var regionCity: String { text("owner_analytics.region.city", "City") }
-    }
-
-    enum Profile {
-        static var title: String { text("profile.title", "Profile") }
-        static var guestOverline: String { text("profile.guest.overline", "Guest Access") }
-        static var guestTitle: String { text("profile.guest.title", "Use more with an account") }
-        static var guestMessage: String { text("profile.guest.message", "Sign in to save likes and register for events.") }
-        static var accountSection: String { text("profile.account_section", "Account") }
-        static var accountSummary: String { text("profile.account_summary", "Personal account") }
-        static var appManagement: String { text("profile.app_management", "App Management") }
-        static var appManagementSubtitle: String { text("profile.app_management.subtitle", "Moderation, publishing, and administration tools are grouped here according to your role.") }
-        static var myProfile: String { text("profile.my_profile", "My Profile") }
-        static var myActivity: String { text("profile.my_activity", "My Activity") }
-        static var activitySubtitle: String { text("profile.activity.subtitle", "Event registrations and saved activity appear here.") }
-        static var activitySectionSummary: String { text("profile.activity.section_summary", "Your account activity in one place.") }
-        static var myRegistrations: String { text("profile.my_registrations", "My Registrations") }
-        static var registrationsLoading: String { text("profile.registrations.loading", "Loading your registrationsâ€¦") }
-        static var registrationsEmptySummary: String { text("profile.registrations.empty_summary", "You are not registered for any events yet.") }
-        static var registrationsEmptyMessage: String { text("profile.registrations.empty_message", "When you register for an event, it will appear here so you can revisit details or cancel later.") }
-        static var myOrganizations: String { text("profile.my_organizations", "My Organizations") }
-        static var organizationsSectionSubtitle: String { text("profile.organizations.subtitle", "Organization roles will appear here when they are assigned.") }
-        static var organizationsSectionSummary: String { text("profile.organizations.section_summary", "Organization access linked to your account.") }
-        static var organizationManagement: String { text("profile.organization_management", "Organization Management") }
-        static var organizationManagementSubtitle: String { text("profile.organization_management.subtitle", "Manage the organizations you help lead and publish organization-owned updates.") }
-        static var organizationManagementIntro: String { text("profile.organization_management.intro", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, ÑĞºĞ¸Ğ¼Ğ¸ Ğ²Ğ¸ ĞºĞµÑ€ÑƒÑ”Ñ‚Ğµ Ğ°Ğ±Ğ¾ Ğ´Ğ¾Ğ¿Ğ¾Ğ¼Ğ°Ğ³Ğ°Ñ”Ñ‚Ğµ ĞºĞµÑ€ÑƒĞ²Ğ°Ñ‚Ğ¸.") }
-        static var organizationRoleOwner: String { text("profile.organization.role.owner", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº") }
-        static var organizationRoleAdmin: String { text("profile.organization.role.admin", "ĞĞ´Ğ¼Ñ–Ğ½") }
-        static var organizationRoleModerator: String { text("profile.organization.role.moderator", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€") }
-        static var organizationRoleMember: String { text("profile.organization.role.member", "Ğ£Ñ‡Ğ°ÑĞ½Ğ¸Ğº") }
-        static var organizationRolePlatformOwner: String { text("profile.organization.role.platform_owner", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸") }
-        static var organizationRequests: String { text("profile.organization.requests", "ĞœĞ¾Ñ— Ğ·Ğ°ÑĞ²ĞºĞ¸") }
-        static var subscribedOrganizations: String { text("profile.organization.subscribed", "ĞŸÑ–Ğ´Ğ¿Ğ¸ÑĞ°Ğ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var previewOrganizationRequest: String { text("profile.organization.request.preview", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸ Ğ·Ğ°ÑĞ²ĞºÑƒ") }
-        static var organizationOpen: String { text("profile.organization.open", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ğ¸") }
-        static var organizationManage: String { text("profile.organization.manage", "ĞšĞµÑ€ÑƒĞ²Ğ°Ñ‚Ğ¸") }
-        static var organizationStatEvents: String { text("profile.organization.stat.events", "Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var organizationStatNews: String { text("profile.organization.stat.news", "Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var organizationStatSubscribers: String { text("profile.organization.stat.subscribers", "Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ½Ğ¸ĞºĞ¸") }
-        static var organizationInfoSection: String { text("profile.organization.info_section", "Ğ†Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationInfoLockedSubtitle: String { text("profile.organization.info_locked.subtitle", "Ğ”Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¾ Ğ´Ğ»Ñ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ñ‚Ğ° Ğ°Ğ´Ğ¼Ñ–Ğ½Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationPhotosSection: String { text("profile.organization.photos_section", "Ğ¤Ğ¾Ñ‚Ğ¾") }
-        static var organizationPhotosPlaceholder: String { text("profile.organization.photos.placeholder", "Ğ“Ğ°Ğ»ĞµÑ€ĞµÑ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ½Ğ° Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var organizationContactsSection: String { text("profile.organization.contacts_section", "ĞšĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ¸") }
-        static var organizationContactsEditSubtitle: String { text("profile.organization.contacts.edit_subtitle", "Ğ ĞµĞ´Ğ°Ğ³ÑƒÑÑ‚ÑŒÑÑ Ğ² Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ— Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationTeamSection: String { text("profile.organization.team.section", "ĞšĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ°") }
-        static var organizationTeamAddMember: String { text("profile.organization.team.add_member", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºĞ°") }
-        static var organizationTeamEmptyTitle: String { text("profile.organization.team.empty_title", "ĞšĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ° Ğ½Ğµ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶ĞµĞ½Ğ°.") }
-        static var organizationTeamEmptyMessage: String { text("profile.organization.team.empty_message", "Ğ¢ÑƒÑ‚ Ğ²Ñ–Ğ´Ğ¾Ğ±Ñ€Ğ°Ğ¶Ğ°Ñ‚Ğ¸Ğ¼ÑƒÑ‚ÑŒÑÑ Ğ²Ğ»Ğ°ÑĞ½Ğ¸Ğº, Ğ°Ğ´Ğ¼Ñ–Ğ½Ğ¸ Ñ‚Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationTeamSearchPlaceholder: String { text("profile.organization.team.search_placeholder", "ĞŸĞ¾ÑˆÑƒĞº Ğ·Ğ° Ñ–Ğ¼ĞµĞ½ĞµĞ¼ Ğ°Ğ±Ğ¾ Ğ¼Ñ–ÑÑ‚Ğ¾Ğ¼") }
-        static var organizationTeamRolePicker: String { text("profile.organization.team.role_picker", "Ğ Ğ¾Ğ»ÑŒ") }
-        static var organizationTeamNoUsers: String { text("profile.organization.team.no_users", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ² Ğ½Ğµ Ğ·Ğ½Ğ°Ğ¹Ğ´ĞµĞ½Ğ¾.") }
-        static var organizationTeamMissingProfile: String { text("profile.organization.team.missing_profile", "ĞŸÑ€Ğ¾Ñ„Ñ–Ğ»ÑŒ Ñ‰Ğµ Ğ½Ğµ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¸Ğ¹") }
-        static var organizationTeamSubscribeToAssign: String { text("profile.organization.team.subscribe_to_assign", "Ğ©Ğ¾Ğ± Ğ¿Ñ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ°, Ğ²Ñ–Ğ½ Ğ¼Ğ°Ñ” Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ°Ñ‚Ğ¸ÑÑ Ğ½Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ.") }
-        static var organizationTeamLoadFailed: String { text("profile.organization.team.error.load_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ñƒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationTeamUserSearchFailed: String { text("profile.organization.team.error.user_search_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ² Ğ´Ğ»Ñ Ğ¿Ğ¾ÑˆÑƒĞºÑƒ.") }
-        static var organizationTeamPermissionDenied: String { text("profile.organization.team.error.permission_denied", "ĞĞµĞ´Ğ¾ÑÑ‚Ğ°Ñ‚Ğ½ÑŒĞ¾ Ğ¿Ñ€Ğ°Ğ² Ğ´Ğ»Ñ ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ¾Ñ.") }
-        static var organizationTeamOwnerCanAssignOnlyAdminModerator: String { text("profile.organization.team.error.owner_assign_limited", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ¼Ğ¾Ğ¶Ğµ Ğ¿Ñ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ°Ñ‚Ğ¸ Ğ»Ğ¸ÑˆĞµ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–Ğ² Ñ– Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ñ–Ğ².") }
-        static var organizationTeamOwnerCannotRemoveOwner: String { text("profile.organization.team.error.owner_remove_owner", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ½Ğµ Ğ¼Ğ¾Ğ¶Ğµ Ğ·Ğ½ÑÑ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°.") }
-        static var organizationTeamCannotRemoveLastOwner: String { text("profile.organization.team.error.last_owner", "ĞĞµ Ğ¼Ğ¾Ğ¶Ğ½Ğ° Ğ²Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ğ¾ÑÑ‚Ğ°Ğ½Ğ½ÑŒĞ¾Ğ³Ğ¾ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationTeamUserProfileMissing: String { text("profile.organization.team.error.user_profile_missing", "ĞŸÑ€Ğ¾Ñ„Ñ–Ğ»ÑŒ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ° Ğ½Ğµ Ğ·Ğ½Ğ°Ğ¹Ğ´ĞµĞ½Ğ¾.") }
-        static var organizationTeamUpdated: String { text("profile.organization.team.status.updated", "ĞšĞ¾Ğ¼Ğ°Ğ½Ğ´Ñƒ Ğ¾Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ¾.") }
-        static var organizationTeamSaveFailed: String { text("profile.organization.team.error.save_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ·Ğ¼Ñ–Ğ½Ğ¸ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ¸.") }
-        static var organizationTeamRemoveRole: String { text("profile.organization.team.remove_role", "Ğ—Ğ½ÑÑ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ") }
-        static var organizationTeamSaveRole: String { text("profile.organization.team.save_role", "Ğ—Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ") }
-        static var organizationTeamChangeOwner: String { text("profile.organization.team.change_owner", "Ğ—Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°") }
-        static var organizationTeamOwnerRequiredExplanation: String { text("profile.organization.team.owner_required_explanation", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ·Ğ°Ğ²Ğ¶Ğ´Ğ¸ Ğ¿Ğ¾Ğ²Ğ¸Ğ½Ğ½Ğ° Ğ¼Ğ°Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°. Ğ©Ğ¾Ğ± Ğ·Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°, Ğ¾Ğ±ĞµÑ€Ñ–Ñ‚ÑŒ Ğ½Ğ¾Ğ²Ğ¾Ğ³Ğ¾.") }
-        static var organizationTeamTransferOwnerConfirmation: String { text("profile.organization.team.transfer_owner_confirmation", "ĞŸĞµÑ€ĞµĞ´Ğ°Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—?") }
-        static var organizationTeamNoCurrentRole: String { text("profile.organization.team.no_current_role", "Ğ‘ĞµĞ· Ñ€Ğ¾Ğ»Ñ– Ğ² Ñ†Ñ–Ğ¹ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationTeamOwnerChangePlatformOnly: String { text("profile.organization.team.error.owner_change_platform_only", "Ğ—Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ¼Ğ¾Ğ¶Ğµ Ğ»Ğ¸ÑˆĞµ owner Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var organizationTeamUnavailable: String { text("profile.organization.team.unavailable", "ĞĞµĞ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¾") }
-        static var organizationTeamRoleActions: String { text("profile.organization.team.role_actions", "Ğ”Ñ–Ñ— Ğ· Ñ€Ğ¾Ğ»Ğ»Ñ") }
-        static var contentManagement: String { text("profile.content_management", "Content Management") }
-        static var contentManagementSubtitle: String { text("profile.content_management.subtitle", "Manage app-owned community news and events.") }
-        static var appAdministration: String { text("profile.app_administration", "App Administration") }
-        static var feedbackSupport: String { text("profile.feedback_support", "Feedback & Support") }
-        static var manageAppNews: String { text("profile.manage_app_news", "Manage app News") }
-        static var manageAppEvents: String { text("profile.manage_app_events", "Manage app Events") }
-        static var createOrganizationNews: String { text("profile.create_organization_news", "Create organization News") }
-        static var createOrganizationEvent: String { text("profile.create_organization_event", "Create organization Event") }
-        static var editOrganizationDetails: String { text("profile.edit_organization_details", "Edit organization details") }
-        static var noManagedOrganizations: String { text("profile.no_managed_organizations", "Ğ£ Ğ²Ğ°Ñ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹ Ğ´Ğ»Ñ ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-        static var noOrganizations: String { text("profile.no_organizations", "Ğ£ Ğ²Ğ°Ñ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹.") }
-        static var editProfile: String { text("profile.edit", "Edit Profile") }
-        static var editProfileSubtitle: String { text("profile.edit.subtitle", "Keep your personal details up to date so your account card stays clear and trustworthy.") }
-        static var fullName: String { text("profile.full_name", "Full name") }
-        static var displayName: String { text("profile.display_name", "Display name") }
-        static var bio: String { text("profile.bio", "Bio") }
-        static var changeAvatar: String { text("profile.change_avatar", "Change photo") }
-        static var avatarSubtitle: String { text("profile.avatar_subtitle", "Choose a square-friendly photo for your account card. You can always change it later.") }
-        static var avatarSelectionFailed: String { text("profile.avatar_selection_failed", "The selected photo could not be loaded.") }
-        static var avatarLoading: String { text("profile.avatar_loading", "Preparing the selected photoâ€¦") }
-        static var avatarUploading: String { text("profile.avatar_uploading", "Uploading your profile photoâ€¦") }
-        static var avatarReadyToSave: String { text("profile.avatar_ready_to_save", "Your new photo is ready. Save the profile to apply it everywhere in the app.") }
-        static var avatarUploadFailed: String { text("profile.avatar_upload_failed", "The profile photo could not be uploaded right now. Check your connection and try again.") }
-        static var profilePhoto: String { text("profile.photo", "Ğ¤Ğ¾Ñ‚Ğ¾ Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»Ñ") }
-        static var emailReadOnlyHint: String { text("profile.email_read_only_hint", "Your email address is managed through account sign-in and cannot be changed here yet.") }
-        static var telegramUsername: String { text("profile.telegram", "Telegram username") }
-        static var region: String { text("profile.region", "Region") }
-        static var saveProfile: String { text("profile.save", "Save") }
-        static var saveChanges: String { text("profile.save_changes", "Ğ—Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ·Ğ¼Ñ–Ğ½Ğ¸") }
-        static var savingProfile: String { text("profile.saving", "Savingâ€¦") }
-        static var savingProfileMessage: String { text("profile.saving_message", "Saving your profile and applying updatesâ€¦") }
-        static var noProfileChanges: String { text("profile.no_changes", "Make a change before saving.") }
-        static var profileSaved: String { text("profile.saved", "Profile updated.") }
-        static var profileSaveFailed: String { text("profile.save_failed", "Unable to save profile right now.") }
-        static var displayNameRequired: String { text("profile.validation.display_name_required", "Display name is required.") }
-        static var memberSince: String { text("profile.member_since", "Member since") }
-        static var role: String { text("profile.role", "Role") }
-        static var accountStatus: String { text("profile.account_status", "Account status") }
-        static var capabilities: String { text("profile.capabilities", "Capabilities") }
-        static var eventRegistration: String { text("profile.capability.event_registration", "Event registration") }
-        static var loadingUserProfile: String { text("profile.loading_user_profile", "Loading user profile...") }
-        static var adminTools: String { text("profile.admin_tools", "Admin tools") }
-        static var moderationTools: String { text("profile.moderation_tools", "Moderation tools") }
-        static var userManagement: String { text("profile.user_management", "User management") }
-        static var reviewPendingContent: String { text("profile.review_pending_content", "Review pending content") }
-        static var manageNews: String { text("profile.manage_news", "Manage news") }
-        static var manageEvents: String { text("profile.manage_events", "Manage events") }
-        static var manageOrganizations: String { text("profile.manage_organizations", "Manage organizations") }
-        static var signOut: String { text("profile.sign_out", "Sign Out") }
-        static var signOutConfirmTitle: String { text("profile.sign_out.confirm_title", "Sign out?") }
-        static var signOutConfirmMessage: String { text("profile.sign_out.confirm_message", "You will return to guest browsing and protected actions will require sign-in again.") }
-        static var signOutFailed: String { text("profile.sign_out.failed", "We couldnâ€™t sign you out right now.") }
-        static var accountSectionSummary: String { text("profile.account.section_summary", "Your personal details, account state, and photo live here.") }
-        static var guestSectionSummary: String { text("profile.guest.section_summary", "Browse publicly now, then sign in only when you need an account feature.") }
-        static var guestPlatformDescription: String { text("profile.guest.platform_description", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ñ– Ğ´Ğ»Ñ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ñƒ. ĞĞºĞ°ÑƒĞ½Ñ‚ Ğ²Ñ–Ğ´ĞºÑ€Ğ¸Ğ²Ğ°Ñ” Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ½Ñ, Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° ÑƒÑ‡Ğ°ÑÑ‚ÑŒ Ñƒ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ°Ñ….") }
-        static var guestWelcomeTitle: String { text("profile.guest.welcome_title", "Ğ›Ğ°ÑĞºĞ°Ğ²Ğ¾ Ğ¿Ñ€Ğ¾ÑĞ¸Ğ¼Ğ¾") }
-        static var guestWelcomeSubtitle: String { text("profile.guest.welcome_subtitle", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ñ–Ñ‚ÑŒ Ğ°ĞºĞ°ÑƒĞ½Ñ‚, Ñ‰Ğ¾Ğ± Ğ·Ğ±ĞµÑ€Ñ–Ğ³Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ—, Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑÑƒĞ²Ğ°Ñ‚Ğ¸ÑÑŒ Ğ½Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ‚Ñ€Ğ¸Ğ¼ÑƒĞ²Ğ°Ñ‚Ğ¸ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ.") }
-        static var continueAsGuest: String { text("profile.guest.continue", "ĞŸÑ€Ğ¾Ğ´Ğ¾Ğ²Ğ¶Ğ¸Ñ‚Ğ¸ ÑĞº Ğ³Ñ–ÑÑ‚ÑŒ") }
-        static var afterRegistrationTitle: String { text("profile.guest.after_registration.title", "ĞŸÑ–ÑĞ»Ñ Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ—") }
-        static var afterRegistrationSubtitle: String { text("profile.guest.after_registration.subtitle", "ĞÑĞ¾Ğ±Ğ¸ÑÑ‚Ğ¸Ğ¹ Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»ÑŒ Ğ²Ñ–Ğ´ĞºÑ€Ğ¸Ğ²Ğ°Ñ” Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ½Ñ, Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞºĞ¸ Ñ‚Ğ° Ğ¿ĞµÑ€ÑĞ¾Ğ½Ğ°Ğ»ÑŒĞ½Ñ– Ğ¾Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ.") }
-        static var afterRegistrationEventsSubtitle: String { text("profile.guest.after_registration.events", "Ğ ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ñ–ÑÑ‚Ğ¾Ñ€Ñ–Ñ ÑƒÑ‡Ğ°ÑÑ‚Ñ– Ğ² Ğ¾Ğ´Ğ½Ğ¾Ğ¼Ñƒ Ğ¼Ñ–ÑÑ†Ñ–.") }
-        static var afterRegistrationSavedSubtitle: String { text("profile.guest.after_registration.saved", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ´Ğ»Ñ ÑˆĞ²Ğ¸Ğ´ĞºĞ¾Ğ³Ğ¾ Ğ¿Ğ¾Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ.") }
-        static var personalRegion: String { text("profile.guest.personal_region", "ĞŸĞµÑ€ÑĞ¾Ğ½Ğ°Ğ»ÑŒĞ½Ğ¸Ğ¹ Ñ€ĞµĞ³Ñ–Ğ¾Ğ½") }
-        static var personalRegionSubtitle: String { text("profile.guest.personal_region.subtitle", "Ğ›Ğ¾ĞºĞ°Ğ»ÑŒĞ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ñƒ Ğ²Ğ°ÑˆÑ–Ğ¹ Ñ„ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ñ–Ğ¹ Ğ·ĞµĞ¼Ğ»Ñ–.") }
-        static var guestAvailableTitle: String { text("profile.guest.available.title", "Ğ”Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¾ Ğ±ĞµĞ· Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ°") }
-        static var guestAvailableSubtitle: String { text("profile.guest.available.subtitle", "ĞÑĞ½Ğ¾Ğ²Ğ½Ğ¸Ğ¹ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚ Ğ¼Ğ¾Ğ¶Ğ½Ğ° Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ğ°Ñ‚Ğ¸ Ğ¾Ğ´Ñ€Ğ°Ğ·Ñƒ.") }
-        static var guestBrowseNews: String { text("profile.guest.available.news", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ´ Ğ½Ğ¾Ğ²Ğ¸Ğ½") }
-        static var guestBrowseEvents: String { text("profile.guest.available.events", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ´ Ğ¿Ğ¾Ğ´Ñ–Ğ¹") }
-        static var guestBrowseOrganizations: String { text("profile.guest.available.organizations", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ´ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var guestSettingsSupportTitle: String { text("profile.guest.settings_support.title", "ĞĞ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ñ– Ğ¿Ñ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ°") }
-        static var guestSettingsSupportSubtitle: String { text("profile.guest.settings_support.subtitle", "Ğ‘Ğ°Ğ·Ğ¾Ğ²Ñ– Ğ¿Ğ°Ñ€Ğ°Ğ¼ĞµÑ‚Ñ€Ğ¸ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ Ñ‚Ğ° ÑÑ€Ğ¸Ğ´Ğ¸Ñ‡Ğ½Ğ° Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ.") }
-        static var platformPreviewTitle: String { text("profile.platform_preview.title", "ĞŸĞ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ°") }
-        static var platformPreviewSubtitle: String { text("profile.platform_preview.subtitle", "ĞÑĞ½Ğ¾Ğ²Ğ½Ñ– Ñ€Ğ¾Ğ·Ğ´Ñ–Ğ»Ğ¸ Ğ·Ğ°Ğ»Ğ¸ÑˆĞ°ÑÑ‚ÑŒÑÑ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¸Ğ¼Ğ¸ Ğ´Ğ»Ñ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ñƒ.") }
-        static var previewNewsSubtitle: String { text("profile.preview.news", "ĞĞ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ Ğ³Ñ€Ğ¾Ğ¼Ğ°Ğ´Ğ¸ Ñ‚Ğ° Ğ²Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñ– Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ.") }
-        static var previewEventsSubtitle: String { text("profile.preview.events", "Ğ—ÑƒÑÑ‚Ñ€Ñ–Ñ‡Ñ–, ĞºĞ¾Ğ½ÑÑƒĞ»ÑŒÑ‚Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ— Ğ¿Ğ¾Ñ€ÑƒÑ‡.") }
-        static var previewOrganizationsSubtitle: String { text("profile.preview.organizations", "ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€ĞµĞ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ñ–Ğ½Ñ–Ñ†Ñ–Ğ°Ñ‚Ğ¸Ğ²Ğ¸.") }
-        static var statRegistrations: String { text("profile.stat.registrations", "Ğ ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ—") }
-        static var statLiked: String { text("profile.stat.liked", "Ğ’Ğ¿Ğ¾Ğ´Ğ¾Ğ±Ğ°Ğ½Ğ¾") }
-        static var statOrganizations: String { text("profile.stat.organizations", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var statSaved: String { text("profile.stat.saved", "Ğ—Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğµ") }
-        static var notAvailableValue: String { text("profile.stat.not_available", "â€”") }
-        static var loadingStatValue: String { text("profile.stat.loading", "â€¦") }
-        static var myEvents: String { text("profile.my_events", "ĞœĞ¾Ñ— Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var myEventsSubtitle: String { text("profile.my_events.subtitle", "Ğ ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ—, Ğ½Ğ°Ğ¹Ğ±Ğ»Ğ¸Ğ¶Ñ‡Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ñ–ÑÑ‚Ğ¾Ñ€Ñ–Ñ ÑƒÑ‡Ğ°ÑÑ‚Ñ–.") }
-        static var quickActionSavedSubtitle: String { text("profile.quick_action.saved.subtitle", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var quickActionRegisteredEventsSubtitle: String { text("profile.quick_action.registered_events.subtitle", "Ğ—Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var quickActionSavedContentSubtitle: String { text("profile.quick_action.saved_content.subtitle", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var quickActionSubscriptionsSubtitle: String { text("profile.quick_action.subscriptions.subtitle", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, Ğ·Ğ° ÑĞºĞ¸Ğ¼Ğ¸ Ğ²Ğ¸ ÑÑ‚ĞµĞ¶Ğ¸Ñ‚Ğµ.") }
-        static var quickActionActivitySubtitle: String { text("profile.quick_action.activity.subtitle", "Ğ’Ğ°ÑˆÑ– Ğ´Ñ–Ñ— Ñƒ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var quickActionNotificationsSubtitle: String { text("profile.quick_action.notifications.subtitle", "Ğ’Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñ– Ğ¾Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸.") }
-        static var organizationRoleDashboardSubtitle: String { text("profile.organization_roles.dashboard.subtitle", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, Ğ´Ğµ Ğ²Ğ¸ Ğ¼Ğ°Ñ”Ñ‚Ğµ Ñ€Ğ¾Ğ»ÑŒ Ñƒ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ñ– ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-        static var organizationEditOrganization: String { text("profile.organization_roles.edit_organization", "Ğ ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var organizationEditInfo: String { text("profile.organization_roles.edit_info", "Ğ ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ñ‚Ğ¸ Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ") }
-        static var organizationCreateEvent: String { text("profile.organization_roles.create_event", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var organizationCreateNews: String { text("profile.organization_roles.create_news", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var organizationTeamRoles: String { text("profile.organization_roles.team_roles", "ĞšĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ° Ñ‚Ğ° Ñ€Ğ¾Ğ»Ñ–") }
-        static var organizationTeamRolesSubtitle: String { text("profile.organization_roles.team_roles.subtitle", "ĞĞ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ğ¸, Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ğ¸ Ñ‚Ğ° Ğ´Ğ¾ÑÑ‚ÑƒĞ¿ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ¸.") }
-        static var organizationModeration: String { text("profile.organization_roles.moderation", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ") }
-        static var organizationModerationScopedSubtitle: String { text("profile.organization_roles.moderation.subtitle", "Ğ§ĞµÑ€Ğ³Ğ° Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ¸ ÑĞ°Ğ¼Ğµ Ğ´Ğ»Ñ Ñ†Ñ–Ñ”Ñ— Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationRequestsMessages: String { text("profile.organization_roles.requests_messages", "Ğ—Ğ°ÑĞ²ĞºĞ¸ / Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ") }
-        static var organizationRequestsMessagesSubtitle: String { text("profile.organization_roles.requests_messages.subtitle", "Ğ—Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ, Ğ·Ğ°ÑĞ²ĞºĞ¸ Ñ‚Ğ° Ğ¼Ğ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ– inbox flows.") }
-        static var organizationAnalytics: String { text("profile.organization_roles.analytics", "ĞĞ½Ğ°Ğ»Ñ–Ñ‚Ğ¸ĞºĞ°") }
-        static var organizationSettings: String { text("profile.organization_roles.settings", "ĞĞ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationSettingsSubtitle: String { text("profile.organization_roles.settings.subtitle", "ĞšÑ€Ğ¸Ñ‚Ğ¸Ñ‡Ğ½Ñ– Ğ¿Ğ°Ñ€Ğ°Ğ¼ĞµÑ‚Ñ€Ğ¸ Ğ±ÑƒĞ´ÑƒÑ‚ÑŒ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ñ– Ğ¾ĞºÑ€ĞµĞ¼Ğ¸Ğ¼ flow.") }
-        static var organizationScopedFutureSubtitle: String { text("profile.organization_roles.scoped_future.subtitle", "Scoped organization flow Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ½Ğ¾ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var organizationEventReview: String { text("profile.organization_roles.event_review", "ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ° Ğ¿Ğ¾Ğ´Ñ–Ğ¹") }
-        static var organizationNewsReview: String { text("profile.organization_roles.news_review", "ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ° Ğ½Ğ¾Ğ²Ğ¸Ğ½") }
-        static var activityTitle: String { text("profile.activity.title", "ĞœĞ¾Ñ Ğ°ĞºÑ‚Ğ¸Ğ²Ğ½Ñ–ÑÑ‚ÑŒ") }
-        static var registeredEvents: String { text("profile.activity.registered_events", "Ğ—Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var likedNews: String { text("profile.activity.liked_news", "Ğ’Ğ¿Ğ¾Ğ´Ğ¾Ğ±Ğ°Ğ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var likedNewsSubtitle: String { text("profile.activity.liked_news.subtitle", "ĞœĞ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ğ¸, ÑĞºÑ– Ğ²Ğ¸ Ğ¿Ğ¾Ğ·Ğ½Ğ°Ñ‡Ğ¸Ğ»Ğ¸ ÑĞº Ğ²Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñ–.") }
-        static var likedEvents: String { text("profile.activity.liked_events", "Ğ’Ğ¿Ğ¾Ğ´Ğ¾Ğ±Ğ°Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var likedEventsSubtitle: String { text("profile.activity.liked_events.subtitle", "ĞŸĞ¾Ğ´Ñ–Ñ—, Ğ´Ğ¾ ÑĞºĞ¸Ñ… Ñ…Ğ¾Ñ‡ĞµÑ‚ÑŒÑÑ Ğ¿Ğ¾Ğ²ĞµÑ€Ğ½ÑƒÑ‚Ğ¸ÑÑ.") }
-        static var recentlyViewed: String { text("profile.activity.recently_viewed", "ĞĞµÑ‰Ğ¾Ğ´Ğ°Ğ²Ğ½Ğ¾ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğµ") }
-        static var recentlyViewedSubtitle: String { text("profile.activity.recently_viewed.subtitle", "ĞÑÑ‚Ğ°Ğ½Ğ½Ñ– Ğ²Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var recentlyViewedIntro: String { text("profile.activity.recently_viewed.intro", "ĞÑÑ‚Ğ°Ğ½Ğ½Ñ– Ğ¼Ğ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ğ¸, ÑĞºÑ– Ğ²Ğ¸ Ğ²Ñ–Ğ´ĞºÑ€Ğ¸Ğ²Ğ°Ğ»Ğ¸.") }
-        static var recentlyViewedEmptyTitle: String { text("profile.activity.recently_viewed.empty_title", "Ğ¢ÑƒÑ‚ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸Ñ… Ğ¼Ğ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ñ–Ğ².") }
-        static var recentlyViewedEmptyMessage: String { text("profile.activity.recently_viewed.empty_message", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ğ²Ğ°Ğ¹Ñ‚Ğµ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, Ñ‰Ğ¾Ğ± ÑˆĞ²Ğ¸Ğ´ĞºĞ¾ Ğ¿Ğ¾Ğ²ĞµÑ€Ñ‚Ğ°Ñ‚Ğ¸ÑÑ Ğ´Ğ¾ Ğ½Ğ¸Ñ….") }
-        static var activityHistoryIntro: String { text("profile.activity_history.intro", "Ğ’Ğ°ÑˆÑ– Ğ¾ÑÑ‚Ğ°Ğ½Ğ½Ñ– Ğ´Ñ–Ñ— Ñƒ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var activityHistoryEmptyTitle: String { text("profile.activity_history.empty_title", "Ğ†ÑÑ‚Ğ¾Ñ€Ñ–Ñ Ğ°ĞºÑ‚Ğ¸Ğ²Ğ½Ğ¾ÑÑ‚Ñ– Ğ¿Ğ¾ĞºĞ¸ Ğ¿Ğ¾Ñ€Ğ¾Ğ¶Ğ½Ñ.") }
-        static var activityHistoryEmptyMessage: String { text("profile.activity_history.empty_message", "Ğ¢ÑƒÑ‚ Ğ·â€™ÑĞ²Ğ»ÑÑ‚Ğ¸Ğ¼ÑƒÑ‚ÑŒÑÑ Ğ²Ğ°ÑˆÑ– Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ—, Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞºĞ¸ Ñ‚Ğ° Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ½Ñ.") }
-        static var activityHistorySavedFilter: String { text("profile.activity_history.filter.saved", "Ğ—Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğµ") }
-        static var upcomingRegistrations: String { text("profile.upcoming_registrations", "ĞĞ°Ğ¹Ğ±Ğ»Ğ¸Ğ¶Ñ‡Ñ– Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ—") }
-        static var recentEvents: String { text("profile.recent_events", "ĞÑÑ‚Ğ°Ğ½Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var viewAll: String { text("profile.view_all", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸ Ğ²ÑĞµ") }
-        static var emptyBioStatus: String { text("profile.bio.empty_status", "Ğ”Ğ¾Ğ´Ğ°Ğ¹Ñ‚Ğµ Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ Ğ¿Ñ€Ğ¾ ÑĞµĞ±Ğµ.") }
-        static var visitHistory: String { text("profile.visit_history", "Ğ†ÑÑ‚Ğ¾Ñ€Ñ–Ñ Ğ²Ñ–Ğ´Ğ²Ñ–Ğ´ÑƒĞ²Ğ°Ğ½ÑŒ") }
-        static var visitHistorySubtitle: String { text("profile.visit_history.subtitle", "ĞœĞ¸Ğ½ÑƒĞ»Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° ÑƒÑ‡Ğ°ÑÑ‚ÑŒ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ñ‚ÑƒÑ‚.") }
-        static var organizationSubscriptions: String { text("profile.organization_subscriptions", "ĞŸÑ–Ğ´Ğ¿Ğ¸ÑĞºĞ¸") }
-        static var organizationSubscriptionsSubtitle: String { text("profile.organization_subscriptions.subtitle", "ĞĞ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ Ğ²Ñ–Ğ´ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹, Ğ·Ğ° ÑĞºĞ¸Ğ¼Ğ¸ Ğ²Ğ¸ ÑÑ‚ĞµĞ¶Ğ¸Ñ‚Ğµ.") }
-        static var organizationMemberships: String { text("profile.organization_memberships", "Ğ£Ñ‡Ğ°ÑÑ‚ÑŒ") }
-        static var communitySection: String { text("profile.community.section", "Ğ¡Ğ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ°") }
-        static var communitySectionSubtitle: String { text("profile.community.section_subtitle", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, ÑƒÑ‡Ğ°ÑÑ‚ÑŒ Ñ‚Ğ° Ğ¼Ğ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ– Ğ¼Ğ¾Ğ¶Ğ»Ğ¸Ğ²Ğ¾ÑÑ‚Ñ– ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸.") }
-        static var participationRequests: String { text("profile.community.participation_requests", "Ğ—Ğ°ÑĞ²ĞºĞ¸ / ÑƒÑ‡Ğ°ÑÑ‚ÑŒ") }
-        static var communityBadges: String { text("profile.community.badges", "Ğ—Ğ½Ğ°Ñ‡ĞºĞ¸ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸") }
-        static var savedContent: String { text("profile.saved_content", "Ğ—Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğµ") }
-        static var savedContentSubtitle: String { text("profile.saved_content.subtitle", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, Ğ´Ğ¾ ÑĞºĞ¸Ñ… Ğ²Ğ¸ Ğ¿Ğ¾Ğ²ĞµÑ€Ğ½ĞµÑ‚ĞµÑÑ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var savedNews: String { text("profile.saved.news", "Ğ—Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var savedNewsSubtitle: String { text("profile.saved.news.subtitle", "ĞŸÑ–Ğ´Ğ±Ñ–Ñ€ĞºĞ° Ğ½Ğ¾Ğ²Ğ¸Ğ½ Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ° Ğ¿Ñ–ÑĞ»Ñ Ğ·Ğ°Ğ¿ÑƒÑĞºÑƒ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½ÑŒ.") }
-        static var savedEvents: String { text("profile.saved.events", "Ğ—Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var savedEventsSubtitle: String { text("profile.saved.events.subtitle", "ĞŸĞ¾Ğ´Ñ–Ñ— Ğ´Ğ»Ñ ÑˆĞ²Ğ¸Ğ´ĞºĞ¾Ğ³Ğ¾ Ğ¿Ğ¾Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ñ‚ÑƒÑ‚.") }
-        static var organizationEventActionSubtitle: String { text("profile.organization.event_action.subtitle", "ĞĞ¿ÑƒĞ±Ğ»Ñ–ĞºÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ Ğ²Ñ–Ğ´ Ñ–Ğ¼ĞµĞ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationNewsActionSubtitle: String { text("profile.organization.news_action.subtitle", "ĞĞ¿ÑƒĞ±Ğ»Ñ–ĞºÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ Ğ²Ñ–Ğ´ Ñ–Ğ¼ĞµĞ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var organizationMembers: String { text("profile.organization.members", "ĞšĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ ÑƒÑ‡Ğ°ÑĞ½Ğ¸ĞºĞ°Ğ¼Ğ¸") }
-        static var organizationMembersSubtitle: String { text("profile.organization.members.subtitle", "Ğ Ğ¾Ğ»Ñ–, Ğ·Ğ°Ğ¿Ğ¸Ñ‚Ğ¸ Ñ‚Ğ° Ğ´Ğ¾ÑÑ‚ÑƒĞ¿ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ¸.") }
-        static var organizationModerationQueue: String { text("profile.organization.moderation_queue", "Ğ§ĞµÑ€Ğ³Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationModerationSubtitle: String { text("profile.organization.moderation.subtitle", "ĞœĞ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, ÑĞºÑ– Ğ¾Ñ‡Ñ–ĞºÑƒÑÑ‚ÑŒ Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ¸.") }
-        static var platformDashboard: String { text("profile.platform_dashboard", "ĞĞ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸") }
-        static var platformDashboardSubtitle: String { text("profile.platform_dashboard.subtitle", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–, ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚, Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ Ñ‚Ğ° ÑĞ¸ÑÑ‚ĞµĞ¼Ğ½Ñ– Ğ¼Ğ¾Ğ´ÑƒĞ»Ñ– Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ½Ğ¾ Ğ´Ğ¾ Ğ²Ğ°ÑˆĞ¾Ğ³Ğ¾ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ.") }
-        static var platformUsers: String { text("profile.platform.users", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–") }
-        static var platformUsersSubtitle: String { text("profile.platform.users.subtitle", "Ğ Ğ¾Ğ»Ñ–, Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° ÑÑ‚Ğ°Ğ½ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ñ–Ğ².") }
-        static var platformOrganizations: String { text("profile.platform.organizations", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var platformOrganizationsSubtitle: String { text("profile.platform.organizations.subtitle", "ĞŸĞ¾Ğ³Ğ¾Ğ´Ğ¶ĞµĞ½Ğ½Ñ, ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° Ğ¿ĞµÑ€ĞµĞ´Ğ°Ñ‡Ğ° Ğ²Ğ»Ğ°ÑĞ½Ğ¾ÑÑ‚Ñ–.") }
-        static var platformEvents: String { text("profile.platform.events", "ĞŸĞ¾Ğ´Ñ–Ñ—") }
-        static var platformEventsSubtitle: String { text("profile.platform.events.subtitle", "ĞšĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ²ÑÑ–Ğ¼Ğ° Ğ¿Ğ¾Ğ´Ñ–ÑĞ¼Ğ¸ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var platformNews: String { text("profile.platform.news", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var platformNewsSubtitle: String { text("profile.platform.news.subtitle", "ĞšĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ°Ğ¼Ğ¸ Ñ‚Ğ° Ñ€ĞµĞ´Ğ°ĞºÑ†Ñ–Ğ¹Ğ½Ğ¸Ğ¼Ğ¸ Ğ¼Ğ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ğ°Ğ¼Ğ¸.") }
-        static var platformModeration: String { text("profile.platform.moderation", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ") }
-        static var platformModerationSubtitle: String { text("profile.platform.moderation.subtitle", "Pending review, reports and rejected content.") }
-        static var platformFeedbackQueue: String { text("profile.platform.feedback_queue", "ĞŸÑ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ° / feedback") }
-        static var platformFeedbackSubtitle: String { text("profile.platform.feedback.subtitle", "Ğ§ĞµÑ€Ğ³Ğ° Ğ·Ğ²ĞµÑ€Ğ½ĞµĞ½ÑŒ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ².") }
-        static var platformConfiguration: String { text("profile.platform.configuration", "ĞŸĞ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ°") }
-        static var platformConfigurationSubtitle: String { text("profile.platform.configuration.subtitle", "Ğ‘Ğ°Ğ½ĞµÑ€Ğ¸, ĞºĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ—, Ñ€ĞµĞ³Ñ–Ğ¾Ğ½Ğ¸ Ñ‚Ğ° app configuration.") }
-        static var platformAuditLog: String { text("profile.platform.audit_log", "Ğ–ÑƒÑ€Ğ½Ğ°Ğ» Ğ´Ñ–Ğ¹") }
-        static var platformAuditLogSubtitle: String { text("profile.platform.audit_log.subtitle", "Ğ†ÑÑ‚Ğ¾Ñ€Ñ–Ñ Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° admin actions.") }
-        static var platformStatUsers: String { text("profile.platform.stat.users", "Users") }
-        static var platformStatOrganizations: String { text("profile.platform.stat.organizations", "Organizations") }
-        static var platformStatEvents: String { text("profile.platform.stat.events", "Events") }
-        static var platformStatQueue: String { text("profile.platform.stat.queue", "Queue") }
-        static var platformOwnerBadge: String { text("profile.owner.badge", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸") }
-        static var platformAdminBadge: String { text("profile.admin.badge", "ĞĞ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€") }
-        static var ownerHeroStatus: String { text("profile.owner.hero_status", "ĞŸĞ¾Ğ²Ğ½Ğ¸Ğ¹ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿ Ğ´Ğ¾ ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºĞ¾Ğ¼.") }
-        static var adminHeroStatus: String { text("profile.admin.hero_status", "ĞĞ¿ĞµÑ€Ğ°Ñ†Ñ–Ğ¹Ğ½Ğµ ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ğ¾Ğ¼, Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–ÑĞ¼Ğ¸ Ñ‚Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ”Ñ.") }
-        static var ownerFullAccess: String { text("profile.owner.full_access", "ĞŸĞ¾Ğ²Ğ½Ğ¸Ğ¹ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿") }
-        static var adminOperationalAccess: String { text("profile.admin.operational_access", "ĞĞ¿ĞµÑ€Ğ°Ñ†Ñ–Ğ¹Ğ½Ğ¸Ğ¹ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿") }
-        static var ownerCreateNews: String { text("profile.owner.quick.create_news", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var ownerCreateNewsSubtitle: String { text("profile.owner.quick.create_news.subtitle", "Ğ ĞµĞ´Ğ°ĞºÑ†Ñ–Ğ¹Ğ½Ğ¸Ğ¹ Ñ†ĞµĞ½Ñ‚Ñ€ Ğ½Ğ¾Ğ²Ğ¸Ğ½.") }
-        static var ownerCreateEvent: String { text("profile.owner.quick.create_event", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var ownerCreateEventSubtitle: String { text("profile.owner.quick.create_event.subtitle", "ĞšĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¿Ğ¾Ğ´Ñ–ÑĞ¼Ğ¸ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var ownerCreateOrganization: String { text("profile.owner.quick.create_organization", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var ownerCreateOrganizationSubtitle: String { text("profile.owner.quick.create_organization.subtitle", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ¸.") }
-        static var ownerOpenModeration: String { text("profile.owner.quick.open_moderation", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ğ¸ Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ") }
-        static var ownerOpenModerationSubtitle: String { text("profile.owner.quick.open_moderation.subtitle", "ĞœĞ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ğ¸, Ñ‰Ğ¾ Ğ¾Ñ‡Ñ–ĞºÑƒÑÑ‚ÑŒ Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ¸.") }
-        static var ownerSendPush: String { text("profile.owner.quick.send_push", "ĞĞ°Ğ´Ñ–ÑĞ»Ğ°Ñ‚Ğ¸ push") }
-        static var ownerPlatformManagement: String { text("profile.owner.platform_management", "ĞšĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¾Ñ") }
-        static var ownerPlatformManagementSubtitle: String { text("profile.owner.platform_management.subtitle", "ĞÑĞ½Ğ¾Ğ²Ğ½Ñ– Ğ¼Ğ¾Ğ´ÑƒĞ»Ñ– ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ğ¾Ğ¼ Ñ– Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ¾Ğ¼.") }
-        static var adminPlatformManagement: String { text("profile.admin.platform_management", "ĞĞ¿ĞµÑ€Ğ°Ñ†Ñ–Ğ¹Ğ½Ğµ ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var adminPlatformManagementSubtitle: String { text("profile.admin.platform_management.subtitle", "ĞšĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚, Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ñ‡Ğ°ÑÑ‚Ğ¸Ğ½Ğ° user management.") }
-        static var adminAssistanceSubtitle: String { text("profile.admin.assistance.subtitle", "Ğ—Ğ°ÑĞ²ĞºĞ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹, Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ Ñ‚Ğ° feedback/reports.") }
-        static var ownerUsers: String { text("profile.owner.users", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–") }
-        static var ownerUsersSubtitle: String { text("profile.owner.users.subtitle", "Ğ Ğ¾Ğ»Ñ–, Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ, ÑÑ‚Ğ°Ñ‚ÑƒÑ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ñ–Ğ².") }
-        static var adminUsersSubtitle: String { text("profile.admin.users.subtitle", "Ğ¡Ñ‚Ğ°Ñ‚ÑƒÑĞ¸ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ñ–Ğ² Ñ– Ğ±Ğ°Ğ·Ğ¾Ğ²Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ².") }
-        static var ownerOrganizations: String { text("profile.owner.organizations", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var ownerOrganizationsSubtitle: String { text("profile.owner.organizations.subtitle", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€ĞµĞ½Ğ½Ñ, Ñ€ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ğ½Ğ½Ñ, Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ¸, Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ.") }
-        static var ownerNews: String { text("profile.owner.news", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var ownerNewsSubtitle: String { text("profile.owner.news.subtitle", "ĞŸÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ, Ñ€ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ğ½Ğ½Ñ, Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ½Ñ.") }
-        static var ownerEvents: String { text("profile.owner.events", "ĞŸĞ¾Ğ´Ñ–Ñ—") }
-        static var ownerEventsSubtitle: String { text("profile.owner.events.subtitle", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€ĞµĞ½Ğ½Ñ, Ñ€ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ğ½Ğ½Ñ, Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ—.") }
-        static var ownerModeration: String { text("profile.owner.moderation", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ") }
-        static var ownerModerationSubtitle: String { text("profile.owner.moderation.subtitle", "Review pending content and organization requests.") }
-        static var ownerPendingReview: String { text("profile.owner.pending_review", "ĞÑ‡Ñ–ĞºÑƒÑÑ‚ÑŒ Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ¸") }
-        static var ownerPendingReviewSubtitle: String { text("profile.owner.pending_review.subtitle", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ½Ğ° Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€Ñ†Ñ–.") }
-        static var ownerUserReports: String { text("profile.owner.user_reports", "Ğ¡ĞºĞ°Ñ€Ğ³Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ²") }
-        static var ownerUserReportsSubtitle: String { text("profile.owner.user_reports.subtitle", "ĞœĞ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ–Ğ¹ Ñ†ĞµĞ½Ñ‚Ñ€ user reports.") }
-        static var ownerComments: String { text("profile.owner.comments", "ĞšĞ¾Ğ¼ĞµĞ½Ñ‚Ğ°Ñ€Ñ–") }
-        static var ownerCommentsSubtitle: String { text("profile.owner.comments.subtitle", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ ĞºĞ¾Ğ¼ĞµĞ½Ñ‚Ğ°Ñ€Ñ–Ğ² Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ½Ğ° Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var ownerRejectedContent: String { text("profile.owner.rejected_content", "Ğ—Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ğ¸Ğ¹ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚") }
-        static var ownerRejectedContentSubtitle: String { text("profile.owner.rejected_content.subtitle", "Ğ’Ñ–Ğ´Ñ…Ğ¸Ğ»ĞµĞ½Ñ– Ñ‚Ğ° Ğ°Ñ€Ñ…Ñ–Ğ²Ğ½Ñ– Ğ¼Ğ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ğ¸.") }
-        static var ownerAccessRoles: String { text("profile.owner.access_roles", "Ğ”Ğ¾ÑÑ‚ÑƒĞ¿ Ñ– Ñ€Ğ¾Ğ»Ñ–") }
-        static var ownerAccessRolesSubtitle: String { text("profile.owner.access_roles.subtitle", "ĞĞ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ğ¸, Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ğ¸ Ñ‚Ğ° Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ° Ğ¿Ñ€Ğ°Ğ².") }
-        static var ownerManageUsers: String { text("profile.owner.manage_users", "ĞšĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ°Ğ¼Ğ¸") }
-        static var ownerManageUsersSubtitle: String { text("profile.owner.manage_users.subtitle", "ĞĞºĞ°ÑƒĞ½Ñ‚Ğ¸, ÑÑ‚Ğ°Ñ‚ÑƒÑĞ¸ Ñ‚Ğ° Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-        static var ownerAssignAdmin: String { text("profile.owner.assign_admin", "ĞŸÑ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ğ°") }
-        static var ownerAssignAdminSubtitle: String { text("profile.owner.assign_admin.subtitle", "ĞĞºÑ€ĞµĞ¼Ğ¸Ğ¹ flow Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾Ğ´Ğ°Ğ½Ğ¾ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var ownerAssignModerator: String { text("profile.owner.assign_moderator", "ĞŸÑ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ğ°") }
-        static var ownerAssignModeratorSubtitle: String { text("profile.owner.assign_moderator.subtitle", "Ğ Ğ¾Ğ·Ğ¿Ğ¾Ğ´Ñ–Ğ» Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ— Ğ¿Ğ¾ ÑĞµĞºÑ†Ñ–ÑÑ….") }
-        static var ownerCheckPermissions: String { text("profile.owner.check_permissions", "ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ğ¸Ñ‚Ğ¸ Ğ¿Ñ€Ğ°Ğ²Ğ° Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ") }
-        static var ownerCheckPermissionsSubtitle: String { text("profile.owner.check_permissions.subtitle", "Ğ’Ğ°Ğ»Ñ–Ğ´Ğ°Ñ†Ñ–Ñ Ñ€Ğ¾Ğ»ĞµĞ¹ Ñ– Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ.") }
-        static var ownerBlockedUsers: String { text("profile.owner.blocked_users", "Ğ—Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ñ– ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–") }
-        static var ownerBlockedUsersSubtitle: String { text("profile.owner.blocked_users.subtitle", "ĞĞºÑ€ĞµĞ¼Ğ¸Ğ¹ ÑĞ¿Ğ¸ÑĞ¾Ğº Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½ÑŒ Ğ±ÑƒĞ´Ğµ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¸Ğ¹ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var ownerOrganizationTools: String { text("profile.owner.organization_tools", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var ownerOrganizationToolsSubtitle: String { text("profile.owner.organization_tools.subtitle", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ¸, Ğ·Ğ°ÑĞ²ĞºĞ¸, Ğ²ĞµÑ€Ğ¸Ñ„Ñ–ĞºĞ°Ñ†Ñ–Ñ Ñ‚Ğ° Ğ°Ñ€Ñ…Ñ–Ğ².") }
-        static var ownerOrganizationRequests: String { text("profile.owner.organization_requests", "Ğ—Ğ°ÑĞ²ĞºĞ¸ Ğ½Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var ownerOrganizationOwnerAssignment: String { text("profile.owner.organization_owner_assignment", "ĞŸÑ€Ğ¸Ğ·Ğ½Ğ°Ñ‡ĞµĞ½Ğ½Ñ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var ownerOrganizationsWithoutOwner: String { text("profile.owner.organizations_without_owner", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ±ĞµĞ· Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°") }
-        static var ownerVerifiedOrganizations: String { text("profile.owner.verified_organizations", "Ğ’ĞµÑ€Ğ¸Ñ„Ñ–ĞºĞ¾Ğ²Ğ°Ğ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var ownerOrganizationArchive: String { text("profile.owner.organization_archive", "ĞÑ€Ñ…Ñ–Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var ownerContentControl: String { text("profile.owner.content_control", "ĞšĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚") }
-        static var ownerContentControlSubtitle: String { text("profile.owner.content_control.subtitle", "Ğ‘Ğ°Ğ½ĞµÑ€Ğ¸, Ñ€ĞµĞºĞ¾Ğ¼ĞµĞ½Ğ´Ğ°Ñ†Ñ–Ñ—, ĞºĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ— Ñ‚Ğ° Ñ€ĞµĞ³Ñ–Ğ¾Ğ½Ğ¸.") }
-        static var ownerFeaturedNews: String { text("profile.owner.featured_news", "Ğ ĞµĞºĞ¾Ğ¼ĞµĞ½Ğ´Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var ownerFeaturedEvents: String { text("profile.owner.featured_events", "Ğ ĞµĞºĞ¾Ğ¼ĞµĞ½Ğ´Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var ownerFeaturedOrganizations: String { text("profile.owner.featured_organizations", "Ğ ĞµĞºĞ¾Ğ¼ĞµĞ½Ğ´Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var adminContentControlSubtitle: String { text("profile.admin.content_control.subtitle", "ĞĞ¿ĞµÑ€Ğ°Ñ†Ñ–Ğ¹Ğ½Ñ– Ñ€ĞµĞºĞ¾Ğ¼ĞµĞ½Ğ´Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ğ±Ğ°Ğ½ĞµÑ€Ğ¸ Ğ±ĞµĞ· critical platform configuration.") }
-        static var ownerCategories: String { text("profile.owner.categories", "ĞšĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ—") }
-        static var ownerRegions: String { text("profile.owner.regions", "Ğ ĞµĞ³Ñ–Ğ¾Ğ½Ğ¸ / Ñ„ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ñ– Ğ·ĞµĞ¼Ğ»Ñ–") }
-        static var ownerContentLanguages: String { text("profile.owner.content_languages", "ĞœĞ¾Ğ²Ğ¸ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ñƒ") }
-        static var ownerUserSupport: String { text("profile.owner.user_support", "ĞŸÑ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ° ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ²") }
-        static var ownerUserSupportSubtitle: String { text("profile.owner.user_support.subtitle", "Ğ’Ñ–Ğ´Ğ³ÑƒĞºĞ¸, Ğ¿Ñ€Ğ¾Ğ±Ğ»ĞµĞ¼Ğ¸ Ñ‚Ğ° FAQ.") }
-        static var ownerUserFeedback: String { text("profile.owner.user_feedback", "Ğ’Ñ–Ğ´Ğ³ÑƒĞºĞ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ²") }
-        static var ownerProblemReports: String { text("profile.owner.problem_reports", "ĞŸĞ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ Ğ¿Ñ€Ğ¾ Ğ¿Ñ€Ğ¾Ğ±Ğ»ĞµĞ¼Ğ¸") }
-        static var ownerHelpRequests: String { text("profile.owner.help_requests", "Ğ—Ğ°Ğ¿Ğ¸Ñ‚Ğ¸ Ğ½Ğ° Ğ´Ğ¾Ğ¿Ğ¾Ğ¼Ğ¾Ğ³Ñƒ") }
-        static var ownerFAQ: String { text("profile.owner.faq", "FAQ / Ñ‡Ğ°ÑÑ‚Ñ– Ğ¿Ğ¸Ñ‚Ğ°Ğ½Ğ½Ñ") }
-        static var ownerAppSettings: String { text("profile.owner.app_settings", "ĞĞ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ") }
-        static var ownerAppSettingsSubtitle: String { text("profile.owner.app_settings.subtitle", "ĞŸÑ€Ğ°Ğ²Ğ¾Ğ²Ñ– Ğ´Ğ¾ĞºÑƒĞ¼ĞµĞ½Ñ‚Ğ¸, Ğ¿Ñ€Ğ°Ğ²Ğ¸Ğ»Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ğ±Ğ°Ğ·Ğ¾Ğ²Ñ– platform policies.") }
-        static var ownerDefaultLanguage: String { text("profile.owner.default_language", "ĞœĞ¾Ğ²Ğ° Ğ·Ğ° Ğ·Ğ°Ğ¼Ğ¾Ğ²Ñ‡ÑƒĞ²Ğ°Ğ½Ğ½ÑĞ¼") }
-        static var ownerAvailableRegions: String { text("profile.owner.available_regions", "Ğ”Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ñ– Ñ€ĞµĞ³Ñ–Ğ¾Ğ½Ğ¸") }
-        static var ownerEventCategories: String { text("profile.owner.event_categories", "ĞšĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ— Ğ¿Ğ¾Ğ´Ñ–Ğ¹") }
-        static var ownerOrganizationCategories: String { text("profile.owner.organization_categories", "ĞšĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ— Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var ownerModerationRules: String { text("profile.owner.moderation_rules", "ĞŸÑ€Ğ°Ğ²Ğ¸Ğ»Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ—") }
-        static var ownerPrivacyPlatformRules: String { text("profile.owner.privacy_platform_rules", "ĞŸÑ€Ğ¸Ğ²Ğ°Ñ‚Ğ½Ñ–ÑÑ‚ÑŒ Ñ– Ğ¿Ñ€Ğ°Ğ²Ğ¸Ğ»Ğ° Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸") }
-        static var ownerPrivacyPlatformRulesSubtitle: String { text("profile.owner.privacy_platform_rules.subtitle", "ĞŸĞ¾Ğ»Ñ–Ñ‚Ğ¸ĞºĞ¸ Ğ¿Ñ€Ğ¸Ğ²Ğ°Ñ‚Ğ½Ğ¾ÑÑ‚Ñ– Ñ‚Ğ° Ğ¿Ñ€Ğ°Ğ²Ğ¸Ğ»Ğ° Ğ²Ğ¸ĞºĞ¾Ñ€Ğ¸ÑÑ‚Ğ°Ğ½Ğ½Ñ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var ownerLegalDocuments: String { text("profile.owner.legal_documents", "ĞŸÑ€Ğ°Ğ²Ğ¾Ğ²Ñ– Ğ´Ğ¾ĞºÑƒĞ¼ĞµĞ½Ñ‚Ğ¸") }
-        static var ownerLegalDocumentsSubtitle: String { text("profile.owner.legal_documents.subtitle", "Ğ£Ğ¼Ğ¾Ğ²Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° Ğ¿Ğ¾Ğ»Ñ–Ñ‚Ğ¸ĞºĞ° ĞºĞ¾Ğ½Ñ„Ñ–Ğ´ĞµĞ½Ñ†Ñ–Ğ¹Ğ½Ğ¾ÑÑ‚Ñ–.") }
-        static var ownerAnalytics: String { text("profile.owner.analytics", "ĞĞ½Ğ°Ğ»Ñ–Ñ‚Ğ¸ĞºĞ°") }
-        static var ownerAnalyticsSubtitle: String { text("profile.owner.analytics.subtitle", "ĞĞ½Ğ°Ğ»Ñ–Ñ‚Ğ¸Ñ‡Ğ½Ñ– Ğ¼Ğ¾Ğ´ÑƒĞ»Ñ– Ğ±ĞµĞ· fake numbers, Ğ¿Ğ¾ĞºĞ¸ backend Ğ½Ğµ Ğ³Ğ¾Ñ‚Ğ¾Ğ²Ğ¸Ğ¹.") }
-        static var ownerAnalyticsAdvancedSubtitle: String { text("profile.owner.analytics.advanced_subtitle", "ĞĞºÑ‚Ğ¸Ğ²Ğ½Ñ– ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–, Ğ¿Ğ¾Ğ´Ñ–Ñ—, Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, Ñ€ĞµĞ³Ñ–Ğ¾Ğ½Ğ¸ Ñ‚Ğ° retention.") }
-        static var ownerActiveUsers: String { text("profile.owner.analytics.active_users", "ĞĞºÑ‚Ğ¸Ğ²Ğ½Ñ– ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–") }
-        static var ownerPopularEvents: String { text("profile.owner.analytics.popular_events", "ĞŸĞ¾Ğ¿ÑƒĞ»ÑÑ€Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var ownerOrganizationActivity: String { text("profile.owner.analytics.organization_activity", "ĞĞºÑ‚Ğ¸Ğ²Ğ½Ñ–ÑÑ‚ÑŒ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var ownerRegionalStats: String { text("profile.owner.analytics.regional_stats", "Ğ ĞµĞ³Ñ–Ğ¾Ğ½Ğ°Ğ»ÑŒĞ½Ğ° ÑÑ‚Ğ°Ñ‚Ğ¸ÑÑ‚Ğ¸ĞºĞ°") }
-        static var ownerRetention: String { text("profile.owner.analytics.retention", "Ğ£Ñ‚Ñ€Ğ¸Ğ¼Ğ°Ğ½Ğ½Ñ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ²") }
-        static var ownerAdvancedSystems: String { text("profile.owner.advanced_systems", "Ğ Ğ¾Ğ·ÑˆĞ¸Ñ€ĞµĞ½Ñ– ÑĞ¸ÑÑ‚ĞµĞ¼Ğ¸ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸") }
-        static var ownerAdvancedSystemsSubtitle: String { text("profile.owner.advanced_systems.subtitle", "ĞĞ½Ğ°Ğ»Ñ–Ñ‚Ğ¸ĞºĞ°, Ğ¶ÑƒÑ€Ğ½Ğ°Ğ» Ğ´Ñ–Ğ¹, Ğ±ĞµĞ·Ğ¿ĞµĞºĞ°, Ñ–Ğ½Ñ‚ĞµĞ³Ñ€Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° backup systems.") }
-        static var ownerAuditSecurity: String { text("profile.owner.audit_security", "Ğ‘ĞµĞ·Ğ¿ĞµĞºĞ° Ñ– Ğ¶ÑƒÑ€Ğ½Ğ°Ğ» Ğ´Ñ–Ğ¹") }
-        static var ownerAuditSecuritySubtitle: String { text("profile.owner.audit_security.subtitle", "Audit, moderation history Ñ‚Ğ° security modules.") }
-        static var ownerAuditLogs: String { text("profile.owner.audit_logs", "Ğ–ÑƒÑ€Ğ½Ğ°Ğ» Ğ´Ñ–Ğ¹") }
-        static var ownerAuditLogsSubtitle: String { text("profile.owner.audit_logs.subtitle", "Admin actions, moderation history, role changes Ñ‚Ğ° deleted materials.") }
-        static var ownerSecurityCenter: String { text("profile.owner.security_center", "Ğ¦ĞµĞ½Ñ‚Ñ€ Ğ±ĞµĞ·Ğ¿ĞµĞºĞ¸") }
-        static var ownerSecurityCenterSubtitle: String { text("profile.owner.security_center.subtitle", "Ğ‘ĞµĞ·Ğ¿ĞµĞºĞ° Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ñ–Ğ², Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ Ñ‚Ğ° platform safeguards.") }
-        static var ownerIntegrationsAPI: String { text("profile.owner.integrations_api", "Integrations/API") }
-        static var ownerIntegrationsAPISubtitle: String { text("profile.owner.integrations_api.subtitle", "ĞœĞ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ– Ñ–Ğ½Ñ‚ĞµĞ³Ñ€Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° API-Ğ´Ğ¾ÑÑ‚ÑƒĞ¿ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var ownerBackupSystems: String { text("profile.owner.backup_systems", "Backup systems") }
-        static var ownerBackupSystemsSubtitle: String { text("profile.owner.backup_systems.subtitle", "Backup, restore Ñ‚Ğ° operational safety modules.") }
-        static var moderationQueue: String { text("profile.moderation.queue", "Ğ§ĞµÑ€Ğ³Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationRequestsReviewSubtitle: String { text("profile.organization_requests.review.subtitle", "ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹ Ñ– Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»Ñ–Ğ² ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚.") }
-        static var ownerAdminActionLog: String { text("profile.owner.admin_action_log", "Ğ–ÑƒÑ€Ğ½Ğ°Ğ» Ğ´Ñ–Ğ¹ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ñ–Ğ²") }
-        static var ownerModerationHistory: String { text("profile.owner.moderation_history", "Ğ†ÑÑ‚Ğ¾Ñ€Ñ–Ñ Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ—") }
-        static var ownerRoleChanges: String { text("profile.owner.role_changes", "Ğ—Ğ¼Ñ–Ğ½Ğ¸ Ñ€Ğ¾Ğ»ĞµĞ¹") }
-        static var ownerDeletedMaterials: String { text("profile.owner.deleted_materials", "Ğ’Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ñ– Ğ¼Ğ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ğ¸") }
-        static var ownerPersonalSettings: String { text("profile.owner.personal_settings", "ĞÑĞ¾Ğ±Ğ¸ÑÑ‚Ñ– Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var ownerPersonalSettingsSubtitle: String { text("profile.owner.personal_settings.subtitle", "ĞŸÑ€Ğ¾Ñ„Ñ–Ğ»ÑŒ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°, Ğ¼Ğ¾Ğ²Ğ°, Ñ‚ĞµĞ¼Ğ° Ñ‚Ğ° Ğ¾ÑĞ¾Ğ±Ğ¸ÑÑ‚Ñ– ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ.") }
-        static var notificationSettings: String { text("profile.notifications.settings", "Ğ¡Ğ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ") }
-        static var notificationSettingsSubtitle: String { text("profile.notifications.settings.subtitle", "ĞÑ‚Ñ€Ğ¸Ğ¼ÑƒĞ¹Ñ‚Ğµ Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ñ– Ñ‚Ğ° Ğ²Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñ– Ğ¾Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ Ñƒ Ğ²Ñ…Ñ–Ğ´Ğ½Ğ¸Ñ… ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½ÑÑ… Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var notificationsSectionSubtitle: String { text("profile.notifications.section_subtitle", "ĞÑ‚Ñ€Ğ¸Ğ¼ÑƒĞ¹Ñ‚Ğµ Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ñ– Ñ‚Ğ° Ğ²Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñ– Ğ¾Ğ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ Ñƒ Ğ²Ñ…Ñ–Ğ´Ğ½Ğ¸Ñ… ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½ÑÑ… Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var notificationsEnabled: String {
-            String(localized: "profile.notifications.enabled", defaultValue: "Push-ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationsEnabledSubtitle: String {
-            String(localized: "profile.notifications.enabled.subtitle", defaultValue: "Ğ’Ğ¸ Ğ²ÑĞµ Ğ¾Ğ´Ğ½Ğ¾ Ğ¾Ñ‚Ñ€Ğ¸Ğ¼ÑƒĞ²Ğ°Ñ‚Ğ¸Ğ¼ĞµÑ‚Ğµ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ Ñƒ Ğ²Ğ½ÑƒÑ‚Ñ€Ñ–ÑˆĞ½Ñ–Ğ¹ ÑĞºÑ€Ğ¸Ğ½ÑŒÑ†Ñ– Ğ´Ğ¾Ğ´Ğ°Ñ‚ĞºÑƒ.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var eventRemindersEnabled: String {
-            String(localized: "profile.notifications.event_reminders.enabled", defaultValue: "ĞĞ°Ğ³Ğ°Ğ´ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¿Ñ€Ğ¾ Ğ¿Ğ¾Ğ´Ñ–Ñ—", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var eventRemindersEnabledSubtitle: String {
-            String(localized: "profile.notifications.event_reminders.enabled.subtitle", defaultValue: "ĞĞ°Ğ´ÑĞ¸Ğ»Ğ°Ñ‚Ğ¸ Ğ½Ğ°Ğ³Ğ°Ğ´ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¿ĞµÑ€ĞµĞ´ Ğ·Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ¸Ğ¼Ğ¸ Ğ¿Ğ¾Ğ´Ñ–ÑĞ¼Ğ¸.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var reminderLeadTime: String {
-            String(localized: "profile.notifications.reminder_lead_time", defaultValue: "Ğ§Ğ°Ñ Ğ½Ğ°Ğ³Ğ°Ğ´ÑƒĞ²Ğ°Ğ½Ğ½Ñ", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var reminderLeadTimeSubtitle: String {
-            String(localized: "profile.notifications.reminder_lead_time.subtitle", defaultValue: "ĞšĞ¾Ğ»Ğ¸ Ğ½Ğ°Ğ³Ğ°Ğ´ÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ¿ĞµÑ€ĞµĞ´ Ğ¿Ğ¾Ñ‡Ğ°Ñ‚ĞºĞ¾Ğ¼ Ğ¿Ğ¾Ğ´Ñ–Ñ—.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationPermissionDenied: String {
-            String(localized: "profile.notifications.permission_denied", defaultValue: "Ğ”Ğ¾Ğ·Ğ²Ñ–Ğ» Ğ½Ğ° ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ Ğ½Ğµ Ğ½Ğ°Ğ´Ğ°Ğ½Ğ¾. Ğ£Ğ²Ñ–Ğ¼ĞºĞ½Ñ–Ñ‚ÑŒ Ğ¹Ğ¾Ğ³Ğ¾ Ğ² Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½ÑÑ… iOS.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationPreferencesLoadFailed: String {
-            String(localized: "profile.notifications.load_failed", defaultValue: "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½ÑŒ.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationPreferencesSaveFailed: String {
-            String(localized: "profile.notifications.save_failed", defaultValue: "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½ÑŒ.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationPreferencesSaved: String {
-            String(localized: "profile.notifications.saved", defaultValue: "ĞĞ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½ÑŒ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¾.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationTestButton: String {
-            String(localized: "profile.notifications.test_button", defaultValue: "Ğ¢ĞµÑÑ‚Ğ¾Ğ²Ğµ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationTestSent: String {
-            String(localized: "profile.notifications.test_sent", defaultValue: "Ğ¢ĞµÑÑ‚Ğ¾Ğ²Ğµ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ Ğ±ÑƒĞ´Ğµ Ğ¿Ğ¾ĞºĞ°Ğ·Ğ°Ğ½Ğ¾ Ğ·Ğ° ĞºÑ–Ğ»ÑŒĞºĞ° ÑĞµĞºÑƒĞ½Ğ´.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var notificationTestFailed: String {
-            String(localized: "profile.notifications.test_failed", defaultValue: "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ½Ğ°Ğ´Ñ–ÑĞ»Ğ°Ñ‚Ğ¸ Ñ‚ĞµÑÑ‚Ğ¾Ğ²Ğµ ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ.", bundle: .main, locale: LocalizationStore.locale)
-        }
-        static var organizationNewsNotifications: String { text("profile.notifications.organization_news", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸ Ğ²Ñ–Ğ´ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var organizationNewsNotificationsSubtitle: String { text("profile.notifications.organization_news.subtitle", "ĞĞ½Ğ¾Ğ²Ğ»ĞµĞ½Ğ½Ñ Ğ²Ñ–Ğ´ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹, Ğ½Ğ° ÑĞºÑ– Ğ²Ğ¸ Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ°Ğ½Ñ–.") }
-        static var eventReminders: String { text("profile.notifications.event_reminders", "ĞĞ°Ğ³Ğ°Ğ´ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¿Ñ€Ğ¾ Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var eventRemindersSubtitle: String { text("profile.notifications.event_reminders.subtitle", "ĞĞ°Ğ³Ğ°Ğ´ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ¿ĞµÑ€ĞµĞ´ Ğ·Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ¸Ğ¼Ğ¸ Ğ¿Ğ¾Ğ´Ñ–ÑĞ¼Ğ¸.") }
-        static var importantMessages: String { text("profile.notifications.important_messages", "Ğ’Ğ°Ğ¶Ğ»Ğ¸Ğ²Ñ– Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ") }
-        static var importantMessagesSubtitle: String { text("profile.notifications.important_messages.subtitle", "Ğ¡Ğ¸ÑÑ‚ĞµĞ¼Ğ½Ñ– Ñ‚Ğ° Ğ±ĞµĞ·Ğ¿ĞµĞºĞ¾Ğ²Ñ– Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var settingsSection: String { text("profile.settings.section", "ĞĞ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var mainInformation: String { text("profile.edit.main_information", "ĞÑĞ½Ğ¾Ğ²Ğ½Ğ° Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ") }
-        static var contactsSection: String { text("profile.edit.contacts", "ĞšĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ¸") }
-        static var preferencesSection: String { text("profile.edit.preferences", "Preferences") }
-        static var appSettings: String { text("profile.edit.app_settings", "ĞĞ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ") }
-        static var appSettingsSubtitle: String { text("profile.edit.app_settings.subtitle", "ĞœĞ¾Ğ²Ğ° Ñ‚Ğ° Ğ²Ğ¸Ğ³Ğ»ÑĞ´ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var appLanguage: String { text("profile.settings.app_language", "ĞœĞ¾Ğ²Ğ° Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ") }
-        static var languageSettingsSubtitle: String { text("profile.settings.language.subtitle", "ĞœĞ¾Ğ²Ğ° Ñ–Ğ½Ñ‚ĞµÑ€Ñ„ĞµĞ¹ÑÑƒ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var appAppearance: String { text("profile.settings.app_appearance", "Ğ¢ĞµĞ¼Ğ° Ğ¾Ñ„Ğ¾Ñ€Ğ¼Ğ»ĞµĞ½Ğ½Ñ") }
-        static var appearanceSettingsSubtitle: String { text("profile.settings.appearance.subtitle", "Ğ¡Ğ¸ÑÑ‚ĞµĞ¼Ğ½Ğ°, ÑĞ²Ñ–Ñ‚Ğ»Ğ° Ğ°Ğ±Ğ¾ Ñ‚ĞµĞ¼Ğ½Ğ° Ñ‚ĞµĞ¼Ğ°.") }
-        static var regionSettings: String { text("profile.settings.region", "Ğ ĞµĞ³Ñ–Ğ¾Ğ½ / Ñ„ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ğ° Ğ·ĞµĞ¼Ğ»Ñ") }
-        static var regionSettingsSubtitle: String { text("profile.settings.region.subtitle", "Ğ ĞµĞ³Ñ–Ğ¾Ğ½ Ğ²Ğ¸ĞºĞ¾Ñ€Ğ¸ÑÑ‚Ğ¾Ğ²ÑƒÑ”Ñ‚ÑŒÑÑ Ğ´Ğ»Ñ Ğ»Ğ¾ĞºĞ°Ğ»ÑŒĞ½Ğ¾Ğ³Ğ¾ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ñƒ.") }
-        static var privacySettingsSubtitle: String { text("profile.settings.privacy.subtitle", "ĞŸĞ¾Ğ»Ñ–Ñ‚Ğ¸ĞºĞ° Ğ¿Ñ€Ğ¸Ğ²Ğ°Ñ‚Ğ½Ğ¾ÑÑ‚Ñ– Ñ‚Ğ° Ğ¾Ğ±Ñ€Ğ¾Ğ±ĞºĞ° Ğ´Ğ°Ğ½Ğ¸Ñ….") }
-        static var accountSecurity: String { text("profile.settings.account_security", "Ğ‘ĞµĞ·Ğ¿ĞµĞºĞ° Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ°") }
-        static var accountSecuritySubtitle: String { text("profile.settings.account_security.subtitle", "Ğ”Ğ¾Ğ´Ğ°Ñ‚ĞºĞ¾Ğ²Ñ– Ğ¿Ğ°Ñ€Ğ°Ğ¼ĞµÑ‚Ñ€Ğ¸ Ğ±ĞµĞ·Ğ¿ĞµĞºĞ¸ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var deleteAccount: String { text("profile.settings.delete_account", "Ğ’Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ğ°ĞºĞ°ÑƒĞ½Ñ‚") }
-        static var deleteAccountSubtitle: String { text("profile.settings.delete_account.subtitle", "Ğ’Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ½Ñ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ° Ñ‚Ğ° Ğ¾Ñ‡Ğ¸Ñ‰ĞµĞ½Ğ½Ñ Ğ¾ÑĞ¾Ğ±Ğ¸ÑÑ‚Ğ¸Ñ… Ğ´Ğ°Ğ½Ğ¸Ñ….") }
-        static var deleteAccountConfirmTitle: String { text("profile.settings.delete_account.confirm_title", "ĞŸÑ–Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¸Ñ‚Ğ¸ Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ½Ñ") }
-        static var deleteAccountConfirmMessage: String { text("profile.settings.delete_account.confirm_message", "ĞĞºĞ°ÑƒĞ½Ñ‚ Ğ±ÑƒĞ´Ğµ Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ¾. ĞÑĞ¾Ğ±Ğ¸ÑÑ‚Ñ– Ğ´Ğ°Ğ½Ñ– Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»Ñ Ğ±ÑƒĞ´ÑƒÑ‚ÑŒ Ğ¾Ñ‡Ğ¸Ñ‰ĞµĞ½Ñ–. Ğ¡Ñ‚Ğ²Ğ¾Ñ€ĞµĞ½Ğ¸Ğ¹ Ğ¿ÑƒĞ±Ğ»Ñ–Ñ‡Ğ½Ğ¸Ğ¹ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚ Ğ¼Ğ¾Ğ¶Ğµ Ğ·Ğ°Ğ»Ğ¸ÑˆĞ¸Ñ‚Ğ¸ÑÑŒ, Ñ‰Ğ¾Ğ± Ğ½Ğµ Ğ»Ğ°Ğ¼Ğ°Ñ‚Ğ¸ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ñƒ. Ğ”Ñ–Ñ Ğ½ĞµĞ¼Ğ¾Ğ¶Ğ»Ğ¸Ğ²Ğ¾ ÑˆĞ²Ğ¸Ğ´ĞºĞ¾ ÑĞºĞ°ÑÑƒĞ²Ğ°Ñ‚Ğ¸.") }
-        static var deleteAccountTypePrompt: String { text("profile.settings.delete_account.type_prompt", "Ğ’Ğ²ĞµĞ´Ñ–Ñ‚ÑŒ Ğ’Ğ˜Ğ”ĞĞ›Ğ˜Ğ¢Ğ˜, Ñ‰Ğ¾Ğ± Ğ¿Ñ–Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¸Ñ‚Ğ¸.") }
-        static var deleteAccountConfirmationKeyword: String { text("profile.settings.delete_account.keyword", "Ğ’Ğ˜Ğ”ĞĞ›Ğ˜Ğ¢Ğ˜") }
-        static var deleteAccountFinalAction: String { text("profile.settings.delete_account.final_action", "Ğ’Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ğ°ĞºĞ°ÑƒĞ½Ñ‚") }
-        static var deleteAccountInProgress: String { text("profile.settings.delete_account.in_progress", "Ğ’Ğ¸Ğ´Ğ°Ğ»ÑÑ”Ğ¼Ğ¾ Ğ°ĞºĞ°ÑƒĞ½Ñ‚â€¦") }
-        static var deleteAccountFailed: String { text("profile.settings.delete_account.failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ²Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ğ°ĞºĞ°ÑƒĞ½Ñ‚. Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.") }
-        static var deleteAccountCleanupFailed: String { text("profile.settings.delete_account.cleanup_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¾Ñ‡Ğ¸ÑÑ‚Ğ¸Ñ‚Ğ¸ Ğ´Ğ°Ğ½Ñ– Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ°. ĞĞºĞ°ÑƒĞ½Ñ‚ Ğ½Ğµ Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ¾. Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.") }
-        static var deleteAccountPermissionFailed: String { text("profile.settings.delete_account.permission_failed", "ĞĞµĞ¼Ğ°Ñ” Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ Ğ´Ğ»Ñ Ğ·Ğ°Ğ²ĞµÑ€ÑˆĞµĞ½Ğ½Ñ Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ½Ñ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ°. ĞĞºĞ°ÑƒĞ½Ñ‚ Ğ½Ğµ Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ¾. Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ğ²Ğ¸Ğ¹Ñ‚Ğ¸ Ğ¹ ÑƒĞ²Ñ–Ğ¹Ñ‚Ğ¸ Ğ·Ğ½Ğ¾Ğ²Ñƒ.") }
-        static var deleteAccountRequiresRecentLogin: String { text("profile.settings.delete_account.requires_recent_login", "Ğ”Ğ»Ñ Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ½Ñ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ° Ğ¿Ğ¾Ñ‚Ñ€Ñ–Ğ±Ğ½Ğ¾ Ğ¿Ğ¾Ğ²Ñ‚Ğ¾Ñ€Ğ½Ğ¾ ÑƒĞ²Ñ–Ğ¹Ñ‚Ğ¸.") }
-        static var deleteAccountOrganizationOwnerBlocked: String { text("profile.settings.delete_account.owner_blocked", "ĞĞµĞ¼Ğ¾Ğ¶Ğ»Ğ¸Ğ²Ğ¾ Ğ²Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ğ°ĞºĞ°ÑƒĞ½Ñ‚, Ğ¿Ğ¾ĞºĞ¸ Ğ²Ğ¸ Ñ” Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ¾Ğ¼ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—. ĞŸĞµÑ€ĞµĞ´Ğ°Ğ¹Ñ‚Ğµ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ñ–Ğ½ÑˆĞ¾Ğ¼Ñƒ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºÑƒ.") }
-        static var deleteAccountPlatformOwnerBlocked: String { text("profile.settings.delete_account.platform_owner_blocked", "Platform owner Ğ°ĞºĞ°ÑƒĞ½Ñ‚ Ğ½Ğµ Ğ¼Ğ¾Ğ¶Ğ½Ğ° Ğ²Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ğ· Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»Ñ.") }
-        static var deletedUserDisplayName: String { text("profile.deleted_user.display_name", "Ğ’Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ¸Ğ¹ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡") }
-        static var supportSectionSubtitle: String { text("profile.support.subtitle", "Ğ—Ğ²â€™ÑĞ·Ğ¾Ğº Ğ· ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ¾Ñ, Ğ´Ğ¾Ğ²Ñ–Ğ´ĞºĞ° Ñ‚Ğ° ÑÑ€Ğ¸Ğ´Ğ¸Ñ‡Ğ½Ğ° Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ.") }
-        static var sendFeedback: String { text("profile.support.send_feedback", "ĞĞ°Ğ´Ñ–ÑĞ»Ğ°Ñ‚Ğ¸ Ğ²Ñ–Ğ´Ğ³ÑƒĞº") }
-        static var sendFeedbackSubtitle: String { text("profile.support.send_feedback.subtitle", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞµ Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ñ– Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var reportProblem: String { text("profile.support.report_problem", "ĞŸĞ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ¸Ñ‚Ğ¸ Ğ¿Ñ€Ğ¾ Ğ¿Ñ€Ğ¾Ğ±Ğ»ĞµĞ¼Ñƒ") }
-        static var reportProblemSubtitle: String { text("profile.support.report_problem.subtitle", "Ğ¢ĞµÑ…Ğ½Ñ–Ñ‡Ğ½Ñ– Ğ¿Ğ¾Ğ¼Ğ¸Ğ»ĞºĞ¸ Ñ‚Ğ° Ğ¿Ñ€Ğ¾Ğ±Ğ»ĞµĞ¼Ğ¸ Ğ· ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ğ¾Ğ¼.") }
-        static var helpFAQ: String { text("profile.support.help_faq", "Ğ”Ğ¾Ğ¿Ğ¾Ğ¼Ğ¾Ğ³Ğ° / FAQ") }
-        static var helpCenter: String { text("profile.help_center", "Ğ”Ğ¾Ğ¿Ğ¾Ğ¼Ğ¾Ğ³Ğ°") }
-        static var helpCenterSubtitle: String { text("profile.help_center.subtitle", "ĞŸĞ¸Ñ‚Ğ°Ğ½Ğ½Ñ, Ñ–Ğ½ÑÑ‚Ñ€ÑƒĞºÑ†Ñ–Ñ— Ñ‚Ğ° Ğ¿Ñ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ° ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ².") }
-        static var aboutApp: String { text("profile.about_app", "ĞŸÑ€Ğ¾ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½Ğ¾Ğº") }
-        static var aboutAppSubtitle: String { text("profile.about_app.subtitle", "Ğ’ĞµÑ€ÑÑ–Ñ, ĞºĞ¾Ğ¼Ğ°Ğ½Ğ´Ğ° Ñ‚Ğ° Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ Ğ¿Ñ€Ğ¾ Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ñƒ.") }
-        static var futureModules: String { text("profile.future_modules", "ĞœĞ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ– Ğ¼Ğ¾Ğ´ÑƒĞ»Ñ–") }
-        static var futureModulesSubtitle: String { text("profile.future_modules.subtitle", "Ğ’Ğ¸Ğ´Ğ¸Ğ¼Ñ– Ğ² ÑÑ‚Ñ€ÑƒĞºÑ‚ÑƒÑ€Ñ– Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»Ñ, Ğ°Ğ»Ğµ Ñ‰Ğµ Ğ½Ğµ Ğ°ĞºÑ‚Ğ¸Ğ²Ğ½Ñ–.") }
-        static var userFutureModulesSubtitle: String { text("profile.future_modules.user_subtitle", "ĞÑĞ¾Ğ±Ğ¸ÑÑ‚Ñ– Ğ¼Ğ¾Ğ´ÑƒĞ»Ñ– Ğ²Ğ¶Ğµ Ğ·Ğ°ĞºĞ»Ğ°Ğ´ĞµĞ½Ñ– Ğ² Ğ¿Ñ€Ğ¾Ñ„Ñ–Ğ»ÑŒ Ñ– Ğ²Ñ–Ğ´ĞºÑ€Ğ¸ÑÑ‚ÑŒÑÑ Ğ¿Ñ–Ğ·Ğ½Ñ–ÑˆĞµ.") }
-        static var futureModuleSubtitle: String { text("profile.future_module.subtitle", "ĞĞµĞ·Ğ°Ğ±Ğ°Ñ€Ğ¾Ğ¼.") }
-        static var managedNewsTitle: String { text("profile.managed_news.title", "ĞšĞµÑ€Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸") }
-        static var managedNewsSubtitle: String { text("profile.managed_news.subtitle", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹, Ğ´Ğµ Ñƒ Ğ²Ğ°Ñ Ñ” Ğ¿Ñ€Ğ°Ğ²Ğ° Ñ€ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-        static var managedNewsEmptyTitle: String { text("profile.managed_news.empty_title", "ĞĞ¾Ğ²Ğ¸Ğ½ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ”") }
-        static var managedNewsEmptyMessage: String { text("profile.managed_news.empty_message", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ñ–Ñ‚ÑŒ Ğ¿ĞµÑ€ÑˆÑƒ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ Ğ² Ñ€Ğ¾Ğ·Ğ´Ñ–Ğ»Ñ– ĞšĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚.") }
-        static var managedEventsTitle: String { text("profile.managed_events.title", "ĞšĞµÑ€Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—") }
-        static var managedEventsSubtitle: String { text("profile.managed_events.subtitle", "ĞŸĞ¾Ğ´Ñ–Ñ— Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹, Ğ´Ğµ Ñƒ Ğ²Ğ°Ñ Ñ” Ğ¿Ñ€Ğ°Ğ²Ğ° Ñ€ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-        static var managedEventsEmptyTitle: String { text("profile.managed_events.empty_title", "ĞŸĞ¾Ğ´Ñ–Ğ¹ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ”") }
-        static var managedEventsEmptyMessage: String { text("profile.managed_events.empty_message", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ñ–Ñ‚ÑŒ Ğ¿ĞµÑ€ÑˆÑƒ Ğ¿Ğ¾Ğ´Ñ–Ñ Ğ² Ñ€Ğ¾Ğ·Ğ´Ñ–Ğ»Ñ– ĞšĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚.") }
-        static var accountRequiredBadge: String { text("profile.account_required_badge", "ĞŸÑ–ÑĞ»Ñ Ğ²Ñ…Ğ¾Ğ´Ñƒ") }
-        static var volunteeringModule: String { text("profile.future.volunteering", "Ğ’Ğ¾Ğ»Ğ¾Ğ½Ñ‚ĞµÑ€ÑÑ‚Ğ²Ğ¾") }
-        static var communityAchievementsModule: String { text("profile.future.community_achievements", "Ğ”Ğ¾ÑÑĞ³Ğ½ĞµĞ½Ğ½Ñ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸") }
-        static var activityHistoryModule: String { text("profile.future.activity_history", "Ğ†ÑÑ‚Ğ¾Ñ€Ñ–Ñ Ğ°ĞºÑ‚Ğ¸Ğ²Ğ½Ğ¾ÑÑ‚Ñ–") }
-        static var analyticsModule: String { text("profile.future.analytics", "Analytics") }
-        static var notificationsCenterModule: String { text("profile.future.notifications_center", "Notifications center") }
-        static var reportsModule: String { text("profile.future.reports", "Reports") }
-        static var integrationsModule: String { text("profile.future.integrations", "Integrations/API") }
-        static var systemHealthModule: String { text("profile.future.system_health", "System health") }
-        static var securityModule: String { text("profile.future.security", "Backup/security center") }
-        static var accessLocked: String { text("profile.access_locked", "ĞĞµĞ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¾") }
-        static var verifiedAccess: String { text("profile.verified_access", "Verified") }
-        static var systemAccessLevel: String { text("profile.system_access_level", "System access") }
-        static var communityOwner: String { text("profile.community_role.owner", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº") }
-        static var communityAdmin: String { text("profile.community_role.admin", "ĞĞ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€") }
-        static var communityModerator: String { text("profile.community_role.moderator", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€") }
-        static var communityMember: String { text("profile.community_role.member", "Ğ£Ñ‡Ğ°ÑĞ½Ğ¸Ğº") }
-        static var contentSectionTitle: String { text("profile.content.section_title", "ĞšĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚") }
-        static var contentSectionSubtitle: String { text("profile.content.section_subtitle", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€ĞµĞ½Ğ½Ñ Ğ¹ Ñ€ĞµĞ´Ğ°Ğ³ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ½Ğ¾Ğ²Ğ¸Ğ½ Ñ‚Ğ° Ğ¿Ğ¾Ğ´Ñ–Ğ¹ Ğ²Ñ–Ğ´ Ñ–Ğ¼ĞµĞ½Ñ– Ğ²Ğ°ÑˆĞ¸Ñ… Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹.") }
-        static var createNews: String { text("profile.content.create_news", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var createEvent: String { text("profile.content.create_event", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€Ğ¸Ñ‚Ğ¸ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var volunteeringSubtitle: String { text("profile.future.volunteering.subtitle", "ĞœĞ¾Ğ¶Ğ»Ğ¸Ğ²Ñ–ÑÑ‚ÑŒ Ğ²Ñ–Ğ´Ğ³ÑƒĞºÑƒĞ²Ğ°Ñ‚Ğ¸ÑÑ Ğ½Ğ° Ğ¿Ğ¾Ñ‚Ñ€ĞµĞ±Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹.") }
-        static var participationRequestsSubtitle: String { text("profile.community.participation_requests.subtitle", "ĞœĞ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ– Ğ·Ğ°ÑĞ²ĞºĞ¸ Ğ½Ğ° ÑƒÑ‡Ğ°ÑÑ‚ÑŒ Ñƒ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ñ–.") }
-        static var communityBadgesSubtitle: String { text("profile.community.badges.subtitle", "Ğ”Ğ¾ÑÑĞ³Ğ½ĞµĞ½Ğ½Ñ Ñ‚Ğ° Ğ²Ğ½ĞµÑĞ¾Ğº Ñƒ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ñƒ.") }
-        static var notificationSettingsRowSubtitle: String { text("profile.notifications.settings.row_subtitle", "Ğ’Ğ½ÑƒÑ‚Ñ€Ñ–ÑˆĞ½Ñ– ÑĞ¿Ğ¾Ğ²Ñ–Ñ‰ĞµĞ½Ğ½Ñ Ğ² Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ.") }
-        static var termsOfUse: String { text("profile.terms_of_use", "Ğ£Ğ¼Ğ¾Ğ²Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var privacyPolicy: String { text("profile.privacy_policy", "ĞŸĞ¾Ğ»Ñ–Ñ‚Ğ¸ĞºĞ° ĞºĞ¾Ğ½Ñ„Ñ–Ğ´ĞµĞ½Ñ†Ñ–Ğ¹Ğ½Ğ¾ÑÑ‚Ñ–") }
-        static var savedContentIntro: String { text("profile.saved_content.intro", "ĞĞ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, ÑĞºÑ– Ğ²Ğ¸ Ğ·Ğ±ĞµÑ€ĞµĞ³Ğ»Ğ¸.") }
-        static var savedEmptyAll: String { text("profile.saved.empty.all", "Ğ¢ÑƒÑ‚ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸, Ğ¿Ğ¾Ğ´Ñ–Ñ— Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var savedEmptyNews: String { text("profile.saved.empty.news", "Ğ¢ÑƒÑ‚ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸.") }
-        static var savedEmptyEvents: String { text("profile.saved.empty.events", "Ğ¢ÑƒÑ‚ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ—.") }
-        static var savedEmptyOrganizations: String { text("profile.saved.empty.organizations", "Ğ¢ÑƒÑ‚ Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ñ– Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var subscriptionsIntro: String { text("profile.organization_subscriptions.intro", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—, Ğ½Ğ° ÑĞºÑ– Ğ²Ğ¸ Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ°Ğ½Ñ–.") }
-        static var subscriptionsEmpty: String { text("profile.organization_subscriptions.empty", "Ğ’Ğ¸ Ñ‰Ğµ Ğ½Ğµ Ğ¿Ñ–Ğ´Ğ¿Ğ¸ÑĞ°Ğ½Ñ– Ğ½Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—. ĞŸÑ–Ğ´Ğ¿Ğ¸ÑÑƒĞ¹Ñ‚ĞµÑÑŒ, Ñ‰Ğ¾Ğ± ÑˆĞ²Ğ¸Ğ´ĞºĞ¾ Ğ·Ğ½Ğ°Ñ…Ğ¾Ğ´Ğ¸Ñ‚Ğ¸ Ñ—Ñ…Ğ½Ñ– Ğ½Ğ¾Ğ²Ğ¸Ğ½Ğ¸ Ñ‚Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ—.") }
-        static var unknownUser: String { text("profile.unknown_user", "ĞĞµĞ²Ñ–Ğ´Ğ¾Ğ¼Ğ¸Ğ¹ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡") }
-        static var comingSoon: String { text("profile.status.soon", "Ğ¡ĞºĞ¾Ñ€Ğ¾") }
-        static var myEventsUpcoming: String { text("profile.my_events.filter.upcoming", "ĞœĞ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ–") }
-        static var myEventsPast: String { text("profile.my_events.filter.past", "ĞœĞ¸Ğ½ÑƒĞ»Ñ–") }
-        static var myEventsEmptyAllTitle: String { text("profile.my_events.empty.all.title", "Ğ£ Ğ²Ğ°Ñ Ñ‰Ğµ Ğ½ĞµĞ¼Ğ°Ñ” Ğ·Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ¸Ñ… Ğ¿Ğ¾Ğ´Ñ–Ğ¹.") }
-        static var myEventsEmptyUpcomingTitle: String { text("profile.my_events.empty.upcoming.title", "Ğ£ Ğ²Ğ°Ñ Ñ‰Ğµ Ğ½ĞµĞ¼Ğ°Ñ” Ğ¼Ğ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ–Ñ… Ğ¿Ğ¾Ğ´Ñ–Ğ¹.") }
-        static var myEventsEmptyPastTitle: String { text("profile.my_events.empty.past.title", "ĞĞµĞ¼Ğ°Ñ” Ğ¼Ğ¸Ğ½ÑƒĞ»Ğ¸Ñ… Ğ¿Ğ¾Ğ´Ñ–Ğ¹.") }
-        static var myEventsEmptyRegisterMessage: String { text("profile.my_events.empty.register_message", "Ğ—Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€ÑƒĞ¹Ñ‚ĞµÑÑŒ Ğ½Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ—, Ñ‰Ğ¾Ğ± Ğ±Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ñ—Ñ… Ñ‚ÑƒÑ‚.") }
-        static var myEventsEmptyUpcomingMessage: String { text("profile.my_events.empty.upcoming.message", "Ğ’Ğ°ÑˆÑ– Ğ¼Ğ°Ğ¹Ğ±ÑƒÑ‚Ğ½Ñ– Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ— Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ñ‚ÑƒÑ‚.") }
-        static var myEventsEmptyPastMessage: String { text("profile.my_events.empty.past.message", "ĞŸÑ–ÑĞ»Ñ Ğ·Ğ°Ğ²ĞµÑ€ÑˆĞµĞ½Ğ½Ñ Ğ¿Ğ¾Ğ´Ñ–Ñ— Ğ²Ğ¾Ğ½Ğ° Ğ·â€™ÑĞ²Ğ¸Ñ‚ÑŒÑÑ Ğ² Ñ†ÑŒĞ¾Ğ¼Ñƒ Ñ€Ğ¾Ğ·Ğ´Ñ–Ğ»Ñ–.") }
-        static var myEventsIntro: String { text("profile.my_events.intro", "Ğ’Ğ°ÑˆÑ– Ğ·Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ñ– Ğ¿Ğ¾Ğ´Ñ–Ñ— Ğ² Ğ¾Ğ´Ğ½Ğ¾Ğ¼Ñƒ Ğ¼Ñ–ÑÑ†Ñ–.") }
-        static func manageableOrganizationsAvailable(_ count: Int) -> String {
-            LocalizationStore.localizedFormat("profile.content.organizations_available", defaultValue: "%lld Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¾", arguments: [count])
-        }
-    }
-
-    enum Feedback {
-        static var title: String { text("feedback.title", "Feedback") }
-        static var subtitle: String { text("feedback.subtitle", "Send a short note to the team.") }
-        static var fieldType: String { text("feedback.field.type", "Type") }
-        static var fieldMessage: String { text("feedback.field.message", "Message") }
-        static var submit: String { text("feedback.submit", "Send Feedback") }
-        static var submitted: String { text("feedback.submitted", "Feedback sent. Thank you.") }
-        static var submitFailed: String { text("feedback.submit_failed", "Unable to send feedback right now.") }
-        static var messageRequired: String { text("feedback.validation.message_required", "Please enter a message.") }
-        static var myFeedbackTitle: String { text("feedback.my.title", "ĞœĞ¾Ñ— Ğ·Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ") }
-        static var myFeedbackSubtitle: String { text("feedback.my.subtitle", "Ğ’Ğ°ÑˆÑ– Ğ·Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ Ñ‚Ğ° Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ñ– Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ´Ğ¾Ğ´Ğ°Ñ‚ĞºÑƒ.") }
-        static var myFeedbackEmpty: String { text("feedback.my.empty", "Ğ£ Ğ²Ğ°Ñ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ” Ğ·Ğ²ĞµÑ€Ğ½ĞµĞ½ÑŒ.") }
-        static var yourFeedback: String { text("feedback.your_feedback", "Ğ’Ğ°ÑˆĞµ Ğ·Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ") }
-        static var ownerReply: String { text("feedback.owner_reply", "Ğ’Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°") }
-        static var sendReply: String { text("feedback.action.send_reply", "ĞĞ°Ğ´Ñ–ÑĞ»Ğ°Ñ‚Ğ¸ Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ") }
-        static var closeFeedback: String { text("feedback.action.close", "Ğ—Ğ°ĞºÑ€Ğ¸Ñ‚Ğ¸ Ğ·Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ") }
-        static var replySent: String { text("feedback.reply_sent", "Ğ’Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ Ğ½Ğ°Ğ´Ñ–ÑĞ»Ğ°Ğ½Ğ¾") }
-        static var replyPlaceholder: String { text("feedback.reply.placeholder", "ĞĞ°Ğ¿Ğ¸ÑˆÑ–Ñ‚ÑŒ Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñƒ") }
-        static var replyRequired: String { text("feedback.validation.reply_required", "Ğ’Ğ²ĞµĞ´Ñ–Ñ‚ÑŒ Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ.") }
-        static var replyTooLong: String { text("feedback.validation.reply_too_long", "Ğ’Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ Ğ¼Ğ°Ñ” Ğ±ÑƒÑ‚Ğ¸ Ğ´Ğ¾ 2000 ÑĞ¸Ğ¼Ğ²Ğ¾Ğ»Ñ–Ğ².") }
-        static var messagesTitle: String { text("feedback.messages.title", "ĞŸĞ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ") }
-        static var noMessages: String { text("feedback.messages.empty", "ĞĞµĞ¼Ğ°Ñ” Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½ÑŒ.") }
-        static var addReply: String { text("feedback.reply.add", "Ğ”Ğ¾Ğ´Ğ°Ñ‚Ğ¸ Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ") }
-        static var reply: String { text("feedback.reply", "Ğ’Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–ÑÑ‚Ğ¸") }
-        static var send: String { text("feedback.send", "ĞĞ°Ğ´Ñ–ÑĞ»Ğ°Ñ‚Ğ¸") }
-        static var sending: String { text("feedback.sending", "ĞĞ°Ğ´ÑĞ¸Ğ»Ğ°Ğ½Ğ½Ñ...") }
-        static var sendMessageFailed: String { text("feedback.error.send_message_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ½Ğ°Ğ´Ñ–ÑĞ»Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ.") }
-        static var tryAgain: String { text("feedback.try_again", "Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·") }
-        static var closedMessage: String { text("feedback.closed.message", "Ğ—Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ Ğ·Ğ°ĞºÑ€Ğ¸Ñ‚Ğ¾.") }
-        static var closedSystemMessage: String { text("feedback.closed.system_message", "Ğ—Ğ²ĞµÑ€Ğ½ĞµĞ½Ğ½Ñ Ğ·Ğ°ĞºÑ€Ğ¸Ñ‚Ğ¾") }
-        static var userSender: String { text("feedback.sender.user", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡") }
-        static var ownerSender: String { text("feedback.sender.owner", "ĞŸÑ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼ĞºĞ°") }
-        static var supportLabel: String { text("feedback.sender.support", "Support") }
-        static var typeQuestion: String { text("feedback.type.question", "Question") }
-        static var typeSuggestion: String { text("feedback.type.suggestion", "Suggestion") }
-        static var typeBug: String { text("feedback.type.bug", "Bug") }
-        static var typeReport: String { text("feedback.type.report", "Report") }
-        static var inboxTitle: String { text("feedback.inbox.title", "User feedback and reports") }
-        static var inboxSubtitle: String { text("feedback.inbox.subtitle", "Messages, suggestions, and contextual content reports.") }
-        static var inboxEmpty: String { text("feedback.inbox.empty", "ĞĞ¾Ğ²Ğ¸Ñ… Ğ²Ñ–Ğ´Ğ³ÑƒĞºÑ–Ğ² Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ”") }
-        static var inboxFilter: String { text("feedback.inbox.filter", "Ğ¤Ñ–Ğ»ÑŒÑ‚Ñ€") }
-        static var inboxFilterEmpty: String { text("feedback.inbox.filter_empty", "Ğ£ Ñ†ÑŒĞ¾Ğ¼Ñƒ Ñ„Ñ–Ğ»ÑŒÑ‚Ñ€Ñ– Ğ·Ğ²ĞµÑ€Ğ½ĞµĞ½ÑŒ Ğ½ĞµĞ¼Ğ°Ñ”.") }
-        static var filterOpen: String { text("feedback.filter.open", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ñ–") }
-        static var filterAnswered: String { text("feedback.filter.answered", "Ğ’Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ñ– Ğ½Ğ°Ğ´Ğ°Ğ½Ğ¾") }
-        static var filterClosed: String { text("feedback.filter.closed", "Ğ—Ğ°ĞºÑ€Ğ¸Ñ‚Ñ–") }
-        static var markReviewed: String { text("feedback.action.mark_reviewed", "ĞŸĞ¾Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸Ğ¼") }
-        static var archive: String { text("feedback.action.archive", "ĞÑ€Ñ…Ñ–Ğ²ÑƒĞ²Ğ°Ñ‚Ğ¸") }
-        static var statusOpen: String { text("feedback.status.open", "ĞÑ‡Ñ–ĞºÑƒÑ” Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ñ–") }
-        static var statusWaitingReply: String { text("feedback.status.waiting_reply", "ĞÑ‡Ñ–ĞºÑƒÑ” Ğ²Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´Ñ–") }
-        static var statusAnswered: String { text("feedback.status.answered", "Ğ’Ñ–Ğ´Ğ¿Ğ¾Ğ²Ñ–Ğ´ÑŒ Ğ¾Ñ‚Ñ€Ğ¸Ğ¼Ğ°Ğ½Ğ¾") }
-        static var statusClosed: String { text("feedback.status.closed", "Ğ—Ğ°ĞºÑ€Ğ¸Ñ‚Ğ¾") }
-        static var statusReviewed: String { text("feedback.status.reviewed", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¾") }
-        static var statusArchived: String { text("feedback.status.archived", "ĞÑ€Ñ…Ñ–Ğ²") }
-        static var loadFailed: String { text("feedback.error.load_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ Ğ²Ñ–Ğ´Ğ³ÑƒĞºĞ¸.") }
-        static var updateFailed: String { text("feedback.error.update_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¾Ğ½Ğ¾Ğ²Ğ¸Ñ‚Ğ¸ ÑÑ‚Ğ°Ñ‚ÑƒÑ Ğ²Ñ–Ğ´Ğ³ÑƒĞºÑƒ.") }
-    }
-
-    enum Safety {
-        static var blockAction: String { text("safety.block.action", "Block user") }
-        static var unblockAction: String { text("safety.block.unblock", "Unblock") }
-        static var blockConfirmationTitle: String { text("safety.block.confirm.title", "Block this user?") }
-        static func blockConfirmationMessage(_ contextTitle: String) -> String {
-            LocalizationStore.localizedFormat(
-                "safety.block.confirm.message",
-                defaultValue: "Their content and comments will be hidden. You can unblock them later in Profile. Context: %@",
-                arguments: [contextTitle]
-            )
-        }
-        static var blockErrorTitle: String { text("safety.block.error.title", "Could not update block") }
-        static var blockErrorAuthentication: String { text("safety.block.error.authentication", "Sign in to manage blocked users.") }
-        static var blockErrorPermission: String { text("safety.block.error.permission", "Your account cannot manage blocked users right now.") }
-        static var blockErrorOwnAccount: String { text("safety.block.error.own_account", "You cannot block your own account.") }
-        static var blockErrorUnavailable: String { text("safety.block.error.unavailable", "This user is no longer available.") }
-        static var blockErrorNetwork: String { text("safety.block.error.network", "The change could not be saved. Check your connection and try again.") }
-        static var blockErrorUnknown: String { text("safety.block.error.unknown", "The change could not be saved right now. Try again later.") }
-        static var blockedUsersTitle: String { text("safety.blocked_users.title", "Blocked users") }
-        static var blockedUsersSubtitle: String { text("safety.blocked_users.subtitle", "Manage people whose content you have hidden.") }
-        static var blockedUsersIntro: String { text("safety.blocked_users.intro", "Blocked users cannot appear in your feeds or comments. Unblocking restores their public content.") }
-        static var blockedUsersEmptyTitle: String { text("safety.blocked_users.empty.title", "No blocked users") }
-        static var blockedUsersEmptyMessage: String { text("safety.blocked_users.empty.message", "People you block will appear here.") }
-        static var blockedUsersLoadFailedTitle: String { text("safety.blocked_users.load_failed.title", "Could not load blocked users") }
-        static var reportAction: String { text("safety.report.action", "Report") }
-        static var moreActions: String { text("safety.actions.more", "More actions") }
-        static var reportTitle: String { text("safety.report.title", "Report content") }
-        static var targetNews: String { text("safety.target.news", "News") }
-        static var targetEvent: String { text("safety.target.event", "Event") }
-        static var targetOrganization: String { text("safety.target.organization", "Organization") }
-        static var targetComment: String { text("safety.target.comment", "Comment") }
-        static var reasonTitle: String { text("safety.report.reason.title", "Why are you reporting this?") }
-        static var reasonPlaceholder: String { text("safety.report.reason.placeholder", "Select a reason") }
-        static var reasonHarassment: String { text("safety.report.reason.harassment", "Harassment or bullying") }
-        static var reasonHate: String { text("safety.report.reason.hate", "Hate speech") }
-        static var reasonViolence: String { text("safety.report.reason.violence", "Violence or threats") }
-        static var reasonSexual: String { text("safety.report.reason.sexual", "Sexual content") }
-        static var reasonSpam: String { text("safety.report.reason.spam", "Spam or fraud") }
-        static var reasonMisinformation: String { text("safety.report.reason.misinformation", "False or misleading information") }
-        static var reasonPrivacy: String { text("safety.report.reason.privacy", "Privacy violation") }
-        static var reasonOther: String { text("safety.report.reason.other", "Other") }
-        static var detailsTitle: String { text("safety.report.details.title", "Details (optional)") }
-        static var detailsPlaceholder: String { text("safety.report.details.placeholder", "Describe what happened. Do not include passwords or sensitive personal data.") }
-        static var otherDetailsRequired: String { text("safety.report.details.other_required", "Add a short explanation for â€˜Otherâ€™.") }
-        static var reviewTitle: String { text("safety.report.review.title", "What happens next") }
-        static var reviewUrgent: String { text("safety.report.review.urgent", "The moderation team aims to review this category within 24 hours.") }
-        static var reviewStandard: String { text("safety.report.review.standard", "The moderation team aims to review this report within 72 hours.") }
-        static var emergencyNotice: String { text("safety.report.emergency", "If someone is in immediate danger, contact local emergency services. This report channel is not an emergency service.") }
-        static var submit: String { text("safety.report.submit", "Submit report") }
-        static var submitting: String { text("safety.report.submitting", "Submitting...") }
-        static var submittedTitle: String { text("safety.report.submitted.title", "Report sent") }
-        static var submittedMessage: String { text("safety.report.submitted.message", "Thank you. The moderation team will review the content.") }
-        static var submittedDuplicate: String { text("safety.report.submitted.duplicate", "Your earlier report is still in the moderation queue. We updated it with the latest information.") }
-        static var errorAuthentication: String { text("safety.report.error.authentication", "Sign in to submit a report.") }
-        static var errorPermission: String { text("safety.report.error.permission", "Your account cannot submit reports right now.") }
-        static var errorOwnContent: String { text("safety.report.error.own_content", "You cannot report your own content.") }
-        static var errorUnavailable: String { text("safety.report.error.unavailable", "This content is no longer available.") }
-        static var errorNetwork: String { text("safety.report.error.network", "The report could not be sent. Check your connection and try again.") }
-        static var errorUnknown: String { text("safety.report.error.unknown", "The report could not be sent right now. Try again later.") }
-        static var moderationContext: String { text("safety.moderation.context", "Report context") }
-        static var slaOverdue: String { text("safety.moderation.sla.overdue", "Review deadline exceeded") }
-        static func slaDue(_ date: String) -> String {
-            LocalizationStore.localizedFormat("safety.moderation.sla.due", defaultValue: "Review by %@", arguments: [date])
-        }
-        static func reportOccurrences(_ count: Int) -> String {
-            LocalizationStore.localizedFormat("safety.moderation.occurrences", defaultValue: "Reports received: %lld", arguments: [count])
-        }
-    }
-
-    enum Moderation {
-        static var title: String { text("moderation.title", "Moderation Tools") }
-        static var subtitle: String { text("moderation.subtitle", "Review pending community content before it becomes visible to everyone.") }
-        static var empty: String { text("moderation.empty", "No pending items right now.") }
-        static var retry: String { text("moderation.retry", "Retry") }
-        static var approve: String { text("moderation.approve", "Approve") }
-        static var reject: String { text("moderation.reject", "Reject") }
-        static var confirmReject: String { text("moderation.confirm.reject", "Reject") }
-        static var rejectConfirmationTitle: String { text("moderation.reject.confirm.title", "Reject content?") }
-        static func rejectConfirmationMessage(_ title: String) -> String {
-            LocalizationStore.localizedFormat("moderation.reject.confirm.message", defaultValue: "This will reject â€œ%@â€ and remove it from the moderation queue.", arguments: [title])
-        }
-        static var approveOrganizationConfirmationTitle: String { text("moderation.organization.approve.confirm.title", "Approve organization?") }
-        static var approveOrganizationConfirmationMessage: String { text("moderation.organization.approve.confirm.message", "This will publish the organization and notify the applicant.") }
-        static var confirmApproveOrganization: String { text("moderation.organization.approve.confirm.action", "Approve organization") }
-        static var rejectOrganizationConfirmationTitle: String { text("moderation.organization.reject.confirm.title", "Reject organization request?") }
-        static var rejectOrganizationConfirmationMessage: String { text("moderation.organization.reject.confirm.message", "The applicant will receive the rejection reason you entered.") }
-        static var typeNews: String { text("moderation.type.news", "News") }
-        static var typeEvent: String { text("moderation.type.event", "Event") }
-        static var typeOrganization: String { text("moderation.type.organization", "Organization") }
-        static var loadNetworkError: String { text("moderation.error.load.network", "Unable to load pending content. Check your connection and try again.") }
-        static var loadPermissionError: String { text("moderation.error.load.permission", "You do not have permission to access moderation tools.") }
-        static var loadValidationError: String { text("moderation.error.load.validation", "The pending content could not be loaded.") }
-        static var loadUnknownError: String { text("moderation.error.load.unknown", "Something went wrong while loading moderation items.") }
-        static var actionNetworkError: String { text("moderation.error.action.network", "Unable to update moderation status. Check your connection and try again.") }
-        static var actionPermissionError: String { text("moderation.error.action.permission", "You do not have permission to update moderation status.") }
-        static var actionValidationError: String { text("moderation.error.action.validation", "The moderation update could not be processed.") }
-        static var actionUnknownError: String { text("moderation.error.action.unknown", "Something went wrong while updating moderation status.") }
-        static var organizationTitle: String { text("moderation.organization.title", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationEmpty: String { text("moderation.organization.empty", "ĞĞµĞ¼Ğ°Ñ” Ğ¼Ğ°Ñ‚ĞµÑ€Ñ–Ğ°Ğ»Ñ–Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ğ½Ğ° Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€Ñ†Ñ–") }
-        static var organizationRequest: String { text("moderation.organization.request", "Ğ—Ğ°ÑĞ²ĞºĞ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationPreviewTitle: String { text("moderation.organization.preview.title", "ĞŸĞ¾Ğ¿ĞµÑ€ĞµĞ´Ğ½Ñ–Ğ¹ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationPreviewSubtitle: String { text("moderation.organization.preview.subtitle", "Ğ¢Ğ°Ğº Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ²Ğ¸Ğ³Ğ»ÑĞ´Ğ°Ñ‚Ğ¸Ğ¼Ğµ Ğ¿Ñ–ÑĞ»Ñ Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ—") }
-        static var requestData: String { text("moderation.organization.request_data", "Ğ”Ğ°Ğ½Ñ– Ğ·Ğ°ÑĞ²ĞºĞ¸") }
-        static var openRequest: String { text("moderation.organization.open_request", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ğ¸ Ğ·Ğ°ÑĞ²ĞºÑƒ") }
-        static var submittedBy: String { text("moderation.organization.submitted_by", "ĞĞ²Ñ‚Ğ¾Ñ€ Ğ·Ğ°ÑĞ²ĞºĞ¸") }
-        static var approveOrganization: String { text("moderation.organization.approve_organization", "Ğ¡Ñ…Ğ²Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var requestRevision: String { text("moderation.organization.request_revision", "ĞŸĞ¾Ğ²ĞµÑ€Ğ½ÑƒÑ‚Ğ¸ Ğ½Ğ° Ğ´Ğ¾Ğ¾Ğ¿Ñ€Ğ°Ñ†ÑĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var rejectRequest: String { text("moderation.organization.reject_request", "Ğ’Ñ–Ğ´Ñ…Ğ¸Ğ»Ğ¸Ñ‚Ğ¸ Ğ·Ğ°ÑĞ²ĞºÑƒ") }
-        static var revisionMessage: String { text("moderation.organization.revision_message", "ĞŸĞ¾Ğ²Ñ–Ğ´Ğ¾Ğ¼Ğ»ĞµĞ½Ğ½Ñ Ğ´Ğ»Ñ Ğ°Ğ²Ñ‚Ğ¾Ñ€Ğ°") }
-        static var rejectionReason: String { text("moderation.organization.rejection_reason", "ĞŸÑ€Ğ¸Ñ‡Ğ¸Ğ½Ğ° Ğ²Ñ–Ğ´Ñ…Ğ¸Ğ»ĞµĞ½Ğ½Ñ") }
-        static var requestMainInformation: String { text("moderation.organization.section.main_information", "ĞÑĞ½Ğ¾Ğ²Ğ½Ğ° Ñ–Ğ½Ñ„Ğ¾Ñ€Ğ¼Ğ°Ñ†Ñ–Ñ") }
-        static var requestDescription: String { text("moderation.organization.section.description", "ĞĞ¿Ğ¸Ñ") }
-        static var requestContacts: String { text("moderation.organization.section.contacts", "ĞšĞ¾Ğ½Ñ‚Ğ°ĞºÑ‚Ğ¸") }
-        static var requestApplicant: String { text("moderation.organization.section.applicant", "Ğ—Ğ°ÑĞ²Ğ½Ğ¸Ğº") }
-        static var requestAbout: String { text("moderation.organization.section.about", "ĞŸÑ€Ğ¾ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var requestActivities: String { text("moderation.organization.section.activities", "Ğ§Ğ¸Ğ¼ Ğ¼Ğ¸ Ğ·Ğ°Ğ¹Ğ¼Ğ°Ñ”Ğ¼Ğ¾ÑÑŒ") }
-        static var supportCard: String { text("moderation.organization.support_card", "ĞŸÑ–Ğ´Ñ‚Ñ€Ğ¸Ğ¼Ğ°Ñ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var supportCardSubtitle: String { text("moderation.organization.support_card.subtitle", "Donation/support link Ğ±ÑƒĞ´Ğµ Ğ¿Ğ¾ĞºĞ°Ğ·Ğ°Ğ½Ğ¾ Ğ¿Ñ–ÑĞ»Ñ Ğ¿ÑƒĞ±Ğ»Ñ–ĞºĞ°Ñ†Ñ–Ñ—.") }
-        static var eventsHeld: String { text("moderation.organization.metrics.events_held", "ĞŸÑ€Ğ¾Ğ²ĞµĞ´ĞµĞ½Ğ¾ Ğ¿Ğ¾Ğ´Ñ–Ğ¹") }
-        static var volunteers: String { text("moderation.organization.metrics.volunteers", "Ğ’Ğ¾Ğ»Ğ¾Ğ½Ñ‚ĞµÑ€Ğ¸") }
-        static var helpedPeople: String { text("moderation.organization.metrics.helped_people", "Ğ›ÑĞ´ĞµĞ¹ Ğ¾Ñ‚Ñ€Ğ¸Ğ¼Ğ°Ğ»Ğ¸ Ğ´Ğ¾Ğ¿Ğ¾Ğ¼Ğ¾Ğ³Ñƒ") }
-        static var shortDescription: String { text("moderation.organization.short_description", "ĞšĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ") }
-        static var fullDescription: String { text("moderation.organization.full_description", "ĞŸĞ¾Ğ²Ğ½Ğ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ") }
-        static var federalState: String { text("moderation.organization.federal_state", "Ğ¤ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ğ° Ğ·ĞµĞ¼Ğ»Ñ") }
-        static var austriaScope: String { text("moderation.organization.region_scope.austria", "ĞĞ²ÑÑ‚Ñ€Ñ–Ñ") }
-        static var regionScope: String { text("moderation.organization.region_scope", "ĞÑ…Ğ¾Ğ¿Ğ»ĞµĞ½Ğ½Ñ") }
-        static var socialLinks: String { text("moderation.organization.social_links", "Ğ¡Ğ¾Ñ†Ğ¼ĞµÑ€ĞµĞ¶Ñ–") }
-        static var submittedAt: String { text("moderation.organization.submitted_at", "ĞĞ°Ğ´Ñ–ÑĞ»Ğ°Ğ½Ğ¾") }
-        static var submittedByUserId: String { text("moderation.organization.submitted_by_user_id", "UID Ğ·Ğ°ÑĞ²Ğ½Ğ¸ĞºĞ°") }
-    }
-
-    enum UserManagement {
-        static var title: String { text("user_management.title", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–") }
-        static var subtitle: String { text("user_management.subtitle", "ĞŸĞ¾ÑˆÑƒĞº, ÑÑ‚Ğ°Ñ‚ÑƒÑĞ¸ Ñ‚Ğ° Ñ€Ğ¾Ğ»Ñ– ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ².") }
-        static var viewUsers: String { text("user_management.view_users", "View users") }
-        static var blockUser: String { text("user_management.block_user", "Block user") }
-        static var assignAdmin: String { text("user_management.assign_admin", "Assign admin") }
-        static var retry: String { text("user_management.retry", "Retry") }
-        static var empty: String { text("user_management.empty", "No roles backfill issues found.") }
-        static var permission: String { text("user_management.permission", "Ğ£ Ğ²Ğ°Ñ Ğ½ĞµĞ¼Ğ°Ñ” Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ Ğ´Ğ¾ ĞºĞµÑ€ÑƒĞ²Ğ°Ğ½Ğ½Ñ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ°Ğ¼Ğ¸.") }
-        static var loadError: String { text("user_management.load_error", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ².") }
-        static var searchPlaceholder: String { text("user_management.search.placeholder", "ĞŸĞ¾ÑˆÑƒĞº Ğ·Ğ° Ñ–Ğ¼Ê¼ÑĞ¼, email, Telegram Ğ°Ğ±Ğ¾ UID") }
-        static var organizationSearchPlaceholder: String { text("user_management.organization_search.placeholder", "ĞŸĞ¾ÑˆÑƒĞº Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var contentSubtitle: String { text("user_management.content.subtitle", "ĞŸĞ¾ÑˆÑƒĞº, ÑÑ‚Ğ°Ñ‚ÑƒÑĞ¸, Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° Ñ€Ğ¾Ğ»Ñ– ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ² Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–ÑÑ….") }
-        static var registeredUsers: String { text("user_management.registered_users", "Ğ·Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ¾Ğ²Ğ°Ğ½Ğ¸Ñ… ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ²") }
-        static var noResultsTitle: String { text("user_management.no_results.title", "ĞÑ–Ñ‡Ğ¾Ğ³Ğ¾ Ğ½Ğµ Ğ·Ğ½Ğ°Ğ¹Ğ´ĞµĞ½Ğ¾") }
-        static var noResultsMessage: String { text("user_management.no_results.message", "Ğ—Ğ¼Ñ–Ğ½Ñ–Ñ‚ÑŒ Ğ¿Ğ¾ÑˆÑƒĞº Ğ°Ğ±Ğ¾ Ñ„Ñ–Ğ»ÑŒÑ‚Ñ€, Ñ‰Ğ¾Ğ± Ğ¿Ğ¾Ğ±Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–Ğ².") }
-        static var organizationsNotLoaded: String { text("user_management.organizations.not_loaded", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ— Ñ‰Ğµ Ğ½Ğµ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶ĞµĞ½Ñ–.") }
-        static var organizationsNotFound: String { text("user_management.organizations.not_found", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹ Ğ·Ğ° Ñ†Ğ¸Ğ¼ Ğ¿Ğ¾ÑˆÑƒĞºĞ¾Ğ¼ Ğ½Ğµ Ğ·Ğ½Ğ°Ğ¹Ğ´ĞµĞ½Ğ¾.") }
-        static var organizationPicker: String { text("user_management.organization_picker", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var rolePicker: String { text("user_management.role_picker", "Ğ Ğ¾Ğ»ÑŒ") }
-        static var reasonPlaceholder: String { text("user_management.reason.placeholder", "ĞŸÑ€Ğ¸Ñ‡Ğ¸Ğ½Ğ° / note") }
-        static var assignRoleButton: String { text("user_management.assign_role.button", "ĞŸÑ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ") }
-        static var changeOwnerButton: String { text("user_management.change_owner.button", "Ğ—Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°") }
-        static var assignRoleSectionTitle: String { text("user_management.assign_role.section_title", "ĞŸÑ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ") }
-        static var assignRoleSectionSubtitle: String { text("user_management.assign_role.section_subtitle", "Owner Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸ Ğ¼Ğ¾Ğ¶Ğµ Ğ¿Ñ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ Ñ‚Ñ–Ğ»ÑŒĞºĞ¸ Ğ² ĞºĞ¾Ğ½ĞºÑ€ĞµÑ‚Ğ½Ñ–Ğ¹ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var platformRolesTitle: String { text("user_management.platform_roles.title", "Ğ Ğ¾Ğ»Ñ– Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸") }
-        static var platformRolesSubtitle: String { text("user_management.platform_roles.subtitle", "App Admin Ğ½Ğµ Ğ¿Ğ¾Ğ²Ê¼ÑĞ·Ğ°Ğ½Ğ¸Ğ¹ Ñ–Ğ· Ñ€Ğ¾Ğ»ÑĞ¼Ğ¸ Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–ÑÑ….") }
-        static var currentPlatformRole: String { text("user_management.platform_roles.current_role", "ĞŸĞ¾Ñ‚Ğ¾Ñ‡Ğ½Ğ° Ñ€Ğ¾Ğ»ÑŒ") }
-        static var assignAppAdmin: String { text("user_management.platform_roles.assign_app_admin", "ĞŸÑ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ App Admin") }
-        static var removeAppAdmin: String { text("user_management.platform_roles.remove_app_admin", "Ğ—Ğ½ÑÑ‚Ğ¸ App Admin") }
-        static var platformRoleActionFallbackTitle: String { text("user_management.platform_roles.action_title", "Ğ—Ğ¼Ñ–Ğ½Ğ° Ñ€Ğ¾Ğ»Ñ– Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸") }
-        static var platformRoleAuditNotice: String { text("user_management.platform_roles.audit_notice", "Ğ—Ğ¼Ñ–Ğ½Ğ° Ñ€Ğ¾Ğ»Ñ– Ğ±ÑƒĞ´Ğµ Ğ²Ğ¸ĞºĞ¾Ğ½Ğ°Ğ½Ğ° Ñ‡ĞµÑ€ĞµĞ· Cloud Function Ñ– Ğ·Ğ°Ğ¿Ğ¸ÑĞ°Ğ½Ğ° Ğ² audit log. Ğ—Ğ° Ğ¿Ğ¾Ñ‚Ñ€ĞµĞ±Ğ¸ Ğ²ĞºĞ°Ğ¶Ñ–Ñ‚ÑŒ Ğ¿Ñ€Ğ¸Ñ‡Ğ¸Ğ½Ñƒ Ğ² Ğ¿Ğ¾Ğ»Ñ– Ğ½Ğ¸Ğ¶Ñ‡Ğµ Ğ¿ĞµÑ€ĞµĞ´ Ğ¿Ñ–Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¶ĞµĞ½Ğ½ÑĞ¼.") }
-        static var platformRolePermissionDenied: String { text("user_management.platform_roles.permission_denied", "ĞĞµĞ´Ğ¾ÑÑ‚Ğ°Ñ‚Ğ½ÑŒĞ¾ Ğ¿Ñ€Ğ°Ğ² Ğ´Ğ»Ñ Ğ·Ğ¼Ñ–Ğ½Ğ¸ Ñ€Ğ¾Ğ»Ñ– Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var platformRoleTargetOwnerProtected: String { text("user_management.platform_roles.error.target_owner_protected", "App Owner Ğ·Ğ°Ñ…Ğ¸Ñ‰ĞµĞ½Ğ¸Ğ¹: Ğ·Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ñ†Ñ Ñ€Ğ¾Ğ»ÑŒ Ñ‚ÑƒÑ‚ Ğ½Ğµ Ğ¼Ğ¾Ğ¶Ğ½Ğ°.") }
-        static var platformRoleSelfChangeRejected: String { text("user_management.platform_roles.error.self_change_rejected", "Ğ’Ğ»Ğ°ÑĞ½Ñƒ Ñ€Ğ¾Ğ»ÑŒ Ğ½Ğµ Ğ¼Ğ¾Ğ¶Ğ½Ğ° Ğ·Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ğ² Ñ†ÑŒĞ¾Ğ¼Ñƒ ĞµĞºÑ€Ğ°Ğ½Ñ–.") }
-        static var platformRoleTargetAccountNotUsable: String { text("user_management.platform_roles.error.target_account_not_usable", "Ğ Ğ¾Ğ»ÑŒ Ğ¼Ğ¾Ğ¶Ğ½Ğ° Ğ½Ğ°Ğ´Ğ°Ñ‚Ğ¸ Ğ»Ğ¸ÑˆĞµ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñƒ Ğ· Ğ°ĞºÑ‚Ğ¸Ğ²Ğ½Ğ¸Ğ¼ Ğ°Ğ±Ğ¾ Ğ¿Ğ¾Ğ¿ĞµÑ€ĞµĞ´Ğ¶ĞµĞ½Ğ¸Ğ¼ Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ¾Ğ¼.") }
-        static var platformRoleNoOp: String { text("user_management.platform_roles.error.no_op", "Ğ¦Ñ Ğ·Ğ¼Ñ–Ğ½Ğ° Ñ€Ğ¾Ğ»Ñ– Ğ²Ğ¶Ğµ Ğ·Ğ°ÑÑ‚Ğ¾ÑĞ¾Ğ²Ğ°Ğ½Ğ°.") }
-        static var platformRoleTargetMissing: String { text("user_management.platform_roles.error.target_missing", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ° Ğ´Ğ»Ñ Ğ·Ğ¼Ñ–Ğ½Ğ¸ Ñ€Ğ¾Ğ»Ñ– Ğ½Ğµ Ğ·Ğ½Ğ°Ğ¹Ğ´ĞµĞ½Ğ¾.") }
-        static var ownerRoleImmutableNotice: String { text("user_management.platform_roles.owner_immutable", "App Owner Ğ½Ğµ Ğ·Ğ¼Ñ–Ğ½ÑÑ”Ñ‚ÑŒÑÑ Ğ² Ñ†ÑŒĞ¾Ğ¼Ñƒ ĞµĞºÑ€Ğ°Ğ½Ñ–.") }
-        static var selfRoleChangeNotice: String { text("user_management.platform_roles.self_change_blocked", "Ğ’Ğ»Ğ°ÑĞ½Ñƒ Ñ€Ğ¾Ğ»ÑŒ Ğ½Ğµ Ğ¼Ğ¾Ğ¶Ğ½Ğ° Ğ·Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ñ‚ÑƒÑ‚.") }
-        static var statusPermissionDenied: String { text("user_management.status.permission_denied", "ĞĞµĞ´Ğ¾ÑÑ‚Ğ°Ñ‚Ğ½ÑŒĞ¾ Ğ¿Ñ€Ğ°Ğ² Ğ´Ğ»Ñ Ğ·Ğ¼Ñ–Ğ½Ğ¸ ÑÑ‚Ğ°Ñ‚ÑƒÑÑƒ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ°.") }
-        static var rolePermissionDenied: String { text("user_management.role.permission_denied", "ĞĞµĞ´Ğ¾ÑÑ‚Ğ°Ñ‚Ğ½ÑŒĞ¾ Ğ¿Ñ€Ğ°Ğ² Ğ´Ğ»Ñ Ğ¿Ñ€Ğ¸Ğ·Ğ½Ğ°Ñ‡ĞµĞ½Ğ½Ñ Ñ€Ğ¾Ğ»Ñ–.") }
-        static var removeRolePermissionDenied: String { text("user_management.role.remove_permission_denied", "ĞĞµĞ´Ğ¾ÑÑ‚Ğ°Ñ‚Ğ½ÑŒĞ¾ Ğ¿Ñ€Ğ°Ğ² Ğ´Ğ»Ñ Ğ·Ğ½ÑÑ‚Ñ‚Ñ Ñ€Ğ¾Ğ»Ñ–.") }
-        static var ownerChangePermissionDenied: String { text("user_management.owner_change.permission_denied", "Ğ—Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ¼Ğ¾Ğ¶Ğµ Ğ»Ğ¸ÑˆĞµ owner Ğ¿Ğ»Ğ°Ñ‚Ñ„Ğ¾Ñ€Ğ¼Ğ¸.") }
-        static var ownerChangeSelectNewOwner: String { text("user_management.owner_change.select_new_owner", "ĞĞ±ĞµÑ€Ñ–Ñ‚ÑŒ Ğ½Ğ¾Ğ²Ğ¾Ğ³Ğ¾ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var changesSaved: String { text("user_management.changes_saved", "Ğ—Ğ¼Ñ–Ğ½Ğ¸ Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¾.") }
-        static var changesFailed: String { text("user_management.changes_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ Ğ·Ğ¼Ñ–Ğ½Ğ¸.") }
-        static var ownerTransferOnly: String { text("user_management.owner_transfer_only", "ĞŸĞ¾Ñ‚Ğ¾Ñ‡Ğ½Ğ¸Ğ¹ Ğ²Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ¼Ğ¾Ğ¶Ğµ Ğ±ÑƒÑ‚Ğ¸ Ğ·Ğ°Ğ¼Ñ–Ğ½ĞµĞ½Ğ¸Ğ¹ Ğ»Ğ¸ÑˆĞµ Ñ‡ĞµÑ€ĞµĞ· transfer owner: Ğ¿Ñ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ñ‚Ğµ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ¾Ğ¼ Ñ–Ğ½ÑˆĞ¾Ğ³Ğ¾ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ° Ğ² Ñ†Ñ–Ğ¹ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—.") }
-        static var actionFallbackTitle: String { text("user_management.action.fallback_title", "Ğ”Ñ–Ñ") }
-        static var actionAuditNotice: String { text("user_management.action.audit_notice", "Ğ”Ñ–Ñ Ğ±ÑƒĞ´Ğµ Ğ·Ğ°Ğ¿Ğ¸ÑĞ°Ğ½Ğ° Ğ² audit log. Ğ—Ğ° Ğ¿Ğ¾Ñ‚Ñ€ĞµĞ±Ğ¸ Ğ²ĞºĞ°Ğ¶Ñ–Ñ‚ÑŒ Ğ¿Ñ€Ğ¸Ñ‡Ğ¸Ğ½Ñƒ Ğ² Ğ¿Ğ¾Ğ»Ñ– Ğ½Ğ¸Ğ¶Ñ‡Ğµ Ğ¿ĞµÑ€ĞµĞ´ Ğ¿Ñ–Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¶ĞµĞ½Ğ½ÑĞ¼.") }
-        static var removeOrganizationRoleTitle: String { text("user_management.role.remove_title", "Ğ—Ğ½ÑÑ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—?") }
-        static var removeOrganizationRoleButton: String { text("user_management.role.remove_button", "Ğ—Ğ½ÑÑ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ") }
-        static var removeOwnerRoleWarning: String { text("user_management.role.remove_owner_warning", "Ğ Ğ¾Ğ»ÑŒ owner Ğ½Ğµ Ğ·Ğ½Ñ–Ğ¼Ğ°Ñ”Ñ‚ÑŒÑÑ Ğ½Ğ°Ğ¿Ñ€ÑĞ¼Ñƒ, Ñ‰Ğ¾Ğ± Ğ½Ğµ Ğ·Ğ°Ğ»Ğ¸ÑˆĞ¸Ñ‚Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ±ĞµĞ· Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°.") }
-        static var cityRegion: String { text("user_management.city_region", "ĞœÑ–ÑÑ‚Ğ¾ / Ñ€ĞµĞ³Ñ–Ğ¾Ğ½") }
-        static var organizationRolesTitle: String { text("user_management.organization_roles.title", "Ğ Ğ¾Ğ»Ñ– Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–ÑÑ…") }
-        static var organizationRolesSubtitle: String { text("user_management.organization_roles.subtitle", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹Ğ½Ñ– Ñ€Ğ¾Ğ»Ñ– ĞºĞµÑ€ÑƒÑÑ‚ÑŒ Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ¾Ğ¼ Ğ´Ğ¾ ÑÑ‚Ğ²Ğ¾Ñ€ĞµĞ½Ğ½Ñ Ñ‚Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ— ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ñƒ.") }
-        static var organizationRolesEmpty: String { text("user_management.organization_roles.empty", "Ğ Ğ¾Ğ»ĞµĞ¹ Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–ÑÑ… Ğ½ĞµĞ¼Ğ°Ñ”.") }
-        static var blockedUntil: String { text("user_management.blocked_until", "Ğ‘Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ Ğ´Ğ¾") }
-        static var auditHistoryTitle: String { text("user_management.audit_history.title", "Ğ†ÑÑ‚Ğ¾Ñ€Ñ–Ñ Ğ´Ñ–Ğ¹") }
-        static var auditHistorySubtitle: String { text("user_management.audit_history.subtitle", "ĞŸĞ¾Ğ¿ĞµÑ€ĞµĞ´Ğ¶ĞµĞ½Ğ½Ñ, Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ, Ğ´ĞµĞ°ĞºÑ‚Ğ¸Ğ²Ğ°Ñ†Ñ–Ñ— Ñ‚Ğ° Ğ·Ğ¼Ñ–Ğ½Ğ¸ Ñ€Ğ¾Ğ»ĞµĞ¹.") }
-        static var auditHistoryEmpty: String { text("user_management.audit_history.empty", "Ğ†ÑÑ‚Ğ¾Ñ€Ñ–Ñ— Ğ´Ñ–Ğ¹ Ğ¿Ğ¾ĞºĞ¸ Ğ½ĞµĞ¼Ğ°Ñ”.") }
-        static var accountActionsTitle: String { text("user_management.account_actions.title", "Ğ”Ñ–Ñ— Ğ· Ğ°ĞºĞ°ÑƒĞ½Ñ‚Ğ¾Ğ¼") }
-        static var accountActionsSubtitle: String { text("user_management.account_actions.subtitle", "Ğ¤Ñ–Ğ·Ğ¸Ñ‡Ğ½Ğµ Ğ²Ğ¸Ğ´Ğ°Ğ»ĞµĞ½Ğ½Ñ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ° Ğ½Ğµ Ğ²Ğ¸ĞºĞ¾Ğ½ÑƒÑ”Ñ‚ÑŒÑÑ. Ğ”ĞµĞ°ĞºÑ‚Ğ¸Ğ²Ğ°Ñ†Ñ–Ñ Ğ·Ğ±ĞµÑ€Ñ–Ğ³Ğ°Ñ” Ğ°Ğ²Ñ‚Ğ¾Ñ€ÑÑ‚Ğ²Ğ¾ ÑÑ‚Ğ°Ñ€Ğ¾Ğ³Ğ¾ ĞºĞ¾Ğ½Ñ‚ĞµĞ½Ñ‚Ñƒ.") }
-        static var filterAll: String { text("user_management.filter.all", "Ğ£ÑÑ–") }
-        static var filterActive: String { text("user_management.filter.active", "ĞĞºÑ‚Ğ¸Ğ²Ğ½Ñ–") }
-        static var filterWarned: String { text("user_management.filter.warned", "ĞŸĞ¾Ğ¿ĞµÑ€ĞµĞ´Ğ¶ĞµĞ½Ğ½Ñ") }
-        static var filterSuspended: String { text("user_management.filter.suspended", "Ğ¢Ğ¸Ğ¼Ñ‡Ğ°ÑĞ¾Ğ²Ğ¾ Ğ·Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ñ–") }
-        static var filterBanned: String { text("user_management.filter.banned", "Ğ—Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ñ–") }
-        static var filterOrganizationOwners: String { text("user_management.filter.organization_owners", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var filterOrganizationAdmins: String { text("user_management.filter.organization_admins", "ĞĞ´Ğ¼Ñ–Ğ½Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var filterOrganizationModerators: String { text("user_management.filter.organization_moderators", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€Ğ¸ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ğ¹") }
-        static var actionWarn: String { text("user_management.action.warn", "Ğ’Ğ¸Ğ´Ğ°Ñ‚Ğ¸ Ğ¿Ğ¾Ğ¿ĞµÑ€ĞµĞ´Ğ¶ĞµĞ½Ğ½Ñ") }
-        static var actionSuspend: String { text("user_management.action.suspend", "Ğ¢Ğ¸Ğ¼Ñ‡Ğ°ÑĞ¾Ğ²Ğ¾ Ğ·Ğ°Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ñ‚Ğ¸") }
-        static var actionBan: String { text("user_management.action.ban", "Ğ—Ğ°Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ñ‚Ğ¸ Ğ½Ğ°Ğ·Ğ°Ğ²Ğ¶Ğ´Ğ¸") }
-        static var actionUnblock: String { text("user_management.action.unblock", "Ğ—Ğ½ÑÑ‚Ğ¸ Ğ±Ğ»Ğ¾ĞºÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var actionDeactivate: String { text("user_management.action.deactivate", "Ğ”ĞµĞ°ĞºÑ‚Ğ¸Ğ²ÑƒĞ²Ğ°Ñ‚Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ°") }
-        static var organizationOwnerRole: String { text("user_management.organization_role.owner", "Ğ’Ğ»Ğ°ÑĞ½Ğ¸Ğº Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationAdminRole: String { text("user_management.organization_role.admin", "ĞĞ´Ğ¼Ñ–Ğ½ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var organizationModeratorRole: String { text("user_management.organization_role.moderator", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ‚Ğ¾Ñ€ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static func organizationRolesAdditionalCount(_ count: Int) -> String {
-            LocalizationStore.localizedFormat("user_management.organization_roles.additional_count", defaultValue: "%lld Ğ¾Ñ€Ğ³.", arguments: [count])
-        }
-        static var uid: String { text("user_management.uid", "UID") }
-        static var joined: String { text("user_management.joined", "Ğ”Ğ°Ñ‚Ğ° Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ—") }
-        static var legacyRole: String { text("user_management.legacy_role", "Legacy Role") }
-        static var globalRole: String { text("user_management.global_role", "Global Role") }
-        static var accountStatus: String { text("user_management.account_status", "Account Status") }
-        static var issue: String { text("user_management.issue", "Issue") }
-        static var issueAdminGlobalRoleMismatch: String { text("user_management.issue.admin_global_role_mismatch", "Legacy admin is not mapped to Top Admin") }
-        static var issueOwnerGlobalRoleMismatch: String { text("user_management.issue.owner_global_role_mismatch", "Legacy owner is not mapped to Owner") }
-        static var issueUserGlobalRoleMissing: String { text("user_management.issue.user_global_role_missing", "Legacy user is missing global role") }
-        static var issueBlockedStatusMismatch: String { text("user_management.issue.blocked_status_mismatch", "Blocked user still has active account status") }
-    }
-
-    enum FederalStates {
-        static func title(for state: AustrianFederalState) -> String {
-            switch state {
-            case .burgenland:
-                text("federal_state.burgenland", "Burgenland")
-            case .kaernten:
-                text("federal_state.kaernten", "Kaernten")
-            case .niederoesterreich:
-                text("federal_state.niederoesterreich", "Niederoesterreich")
-            case .oberoesterreich:
-                text("federal_state.oberoesterreich", "Oberoesterreich")
-            case .salzburg:
-                text("federal_state.salzburg", "Salzburg")
-            case .steiermark:
-                text("federal_state.steiermark", "Steiermark")
-            case .tirol:
-                text("federal_state.tirol", "Tirol")
-            case .vorarlberg:
-                text("federal_state.vorarlberg", "Vorarlberg")
-            case .wien:
-                text("federal_state.wien", "Wien")
-            }
-        }
-    }
-
-    enum ActivityLog {
-        static var registeredForEvent: String { text("activity_log.registered_for_event", "Ğ—Ğ°Ñ€ĞµÑ”ÑÑ‚Ñ€ÑƒĞ²Ğ°Ğ²ÑÑ Ğ½Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var canceledEventRegistration: String { text("activity_log.canceled_event_registration", "Ğ¡ĞºĞ°ÑÑƒĞ²Ğ°Ğ² Ñ€ĞµÑ”ÑÑ‚Ñ€Ğ°Ñ†Ñ–Ñ Ğ½Ğ° Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var followedOrganization: String { text("activity_log.followed_organization", "ĞŸÑ–Ğ´Ğ¿Ğ¸ÑĞ°Ğ²ÑÑ Ğ½Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var unfollowedOrganization: String { text("activity_log.unfollowed_organization", "Ğ’Ñ–Ğ´Ğ¿Ğ¸ÑĞ°Ğ²ÑÑ Ğ²Ñ–Ğ´ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var savedNews: String { text("activity_log.saved_news", "Ğ—Ğ±ĞµÑ€Ñ–Ğ³ Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ") }
-        static var unsavedNews: String { text("activity_log.unsaved_news", "ĞŸÑ€Ğ¸Ğ±Ñ€Ğ°Ğ² Ğ½Ğ¾Ğ²Ğ¸Ğ½Ñƒ Ğ·Ñ– Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¾Ğ³Ğ¾") }
-        static var savedEvent: String { text("activity_log.saved_event", "Ğ—Ğ±ĞµÑ€Ñ–Ğ³ Ğ¿Ğ¾Ğ´Ñ–Ñ") }
-        static var unsavedEvent: String { text("activity_log.unsaved_event", "ĞŸÑ€Ğ¸Ğ±Ñ€Ğ°Ğ² Ğ¿Ğ¾Ğ´Ñ–Ñ Ğ·Ñ– Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¾Ğ³Ğ¾") }
-        static var savedOrganization: String { text("activity_log.saved_organization", "Ğ—Ğ±ĞµÑ€Ñ–Ğ³ Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var unsavedOrganization: String { text("activity_log.unsaved_organization", "ĞŸÑ€Ğ¸Ğ±Ñ€Ğ°Ğ² Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ Ğ·Ñ– Ğ·Ğ±ĞµÑ€ĞµĞ¶ĞµĞ½Ğ¾Ğ³Ğ¾") }
-    }
-
-    enum Settings {
-        static var title: String { text("settings.title", "Settings") }
-        static var language: String { text("settings.language", "Language") }
-        static var appearance: String { text("settings.appearance", "Appearance") }
-        static var privacyPolicy: String { text("settings.privacy_policy", "Privacy Policy") }
-        static var terms: String { text("settings.terms", "Terms") }
-        static var placeholder: String { text("settings.placeholder", "Placeholder") }
-        static var preferencesSubtitle: String { text("settings.preferences.subtitle", "Adjust the app language and appearance for this device.") }
-        static var legalSection: String { text("settings.legal_section", "Legal") }
-        static var legalSectionSubtitle: String { text("settings.legal_section.subtitle", "Review the current product terms and privacy information.") }
-        static var sessionSection: String { text("settings.session_section", "Session") }
-        static var sessionSubtitle: String { text("settings.session.subtitle", "You can sign out at any time and return to guest browsing.") }
-        static var german: String { text("settings.language.german", "German") }
-        static var ukrainian: String { text("settings.language.ukrainian", "Ukrainian") }
-        static var system: String { text("settings.appearance.system", "System") }
-        static var light: String { text("settings.appearance.light", "Light") }
-        static var dark: String { text("settings.appearance.dark", "Dark") }
-    }
-
-    enum Legal {
-        static var versionLabel: String { text("legal.version_label", "Version %@") }
-        static var lastUpdatedLabel: String { text("legal.last_updated_label", "Last updated %@") }
-
-        static var termsIntroTitle: String { text("legal.terms.intro.title", "Using the app") }
-        static var termsIntroBody: String { text("legal.terms.intro.body", "Ukrainian Community Tirol helps people discover public updates, events, organizations, and practical community information. By using the app with an account, you agree to use it lawfully, respectfully, and only for its intended community purpose.") }
-        static var termsAccountTitle: String { text("legal.terms.account.title", "Account responsibilities") }
-        static var termsAccountBody: String { text("legal.terms.account.body", "You are responsible for the accuracy of the profile details you provide, for keeping your sign-in credentials private, and for the actions taken through your account. You may not impersonate other people or create accounts to evade moderation.") }
-        static var termsContentTitle: String { text("legal.terms.content.title", "Community content and moderation") }
-        static var termsContentBody: String { text("legal.terms.content.body", "User-submitted content can be reviewed, limited, or removed when it is misleading, unsafe, unlawful, abusive, discriminatory, spam-like, or unrelated to the appâ€™s purpose. Roles with moderation responsibilities may manage content according to the projectâ€™s moderation model.") }
-        static var termsAvailabilityTitle: String { text("legal.terms.availability.title", "Availability and changes") }
-        static var termsAvailabilityBody: String { text("legal.terms.availability.body", "We may improve, change, or temporarily limit parts of the service, including community features and account access, to maintain reliability, security, and compliance. We do not promise uninterrupted availability.") }
-        static var termsLiabilityTitle: String { text("legal.terms.liability.title", "Information and responsibility") }
-        static var termsLiabilityBody: String { text("legal.terms.liability.body", "The app is intended to support orientation and community coordination. It does not replace legal, medical, financial, or official government advice. Users remain responsible for decisions they make based on shared information.") }
-
-        static var privacyIntroTitle: String { text("legal.privacy.intro.title", "What we store") }
-        static var privacyIntroBody: String { text("legal.privacy.intro.body", "When you create an account, we store the profile fields needed for the app to function: email address, display name, optional Telegram username, selected federal state, role/status fields, and timestamps related to account creation and consent.") }
-        static var privacyUsageTitle: String { text("legal.privacy.usage.title", "Why we use your data") }
-        static var privacyUsageBody: String { text("legal.privacy.usage.body", "We use account data to authenticate you, show your profile, apply permissions, support feedback and event registration, and keep the community space safe through moderation and abuse prevention.") }
-        static var privacyStorageTitle: String { text("legal.privacy.storage.title", "Storage and service providers") }
-        static var privacyStorageBody: String { text("legal.privacy.storage.body", "This app uses Firebase services for authentication, database storage, and media storage. Data is processed only to deliver the appâ€™s features, maintain security, and support internal operations.") }
-        static var privacySharingTitle: String { text("legal.privacy.sharing.title", "Sharing and visibility") }
-        static var privacySharingBody: String { text("legal.privacy.sharing.body", "We do not sell your personal data. Some profile information and user-generated content may be visible inside the app where needed for community features. Administrative and moderation roles may access relevant records to enforce rules and manage the service.") }
-        static var privacyRightsTitle: String { text("legal.privacy.rights.title", "Your choices") }
-        static var privacyRightsBody: String { text("legal.privacy.rights.body", "You can update supported profile fields in the app. If you need help with account data, moderation questions, or deletion requests, contact the project team through the provided support channel.") }
-        static var screenIntro: String { text("legal.screen_intro", "These in-app documents describe the current product terms and privacy handling for internal and TestFlight-style use.") }
-    }
-
-    enum LegalCompliance {
-        static var title: String { text("legal_compliance.title", "Updated legal documents") }
-        static var message: String { text("legal_compliance.message", "Please review and accept the updated Terms or Privacy Policy to continue using your registered account.") }
-        static var readDocument: String { text("legal_compliance.read_document", "Read document") }
-        static var readDocumentSubtitle: String { text("legal_compliance.read_document.subtitle", "Review the current active version before accepting.") }
-        static var acceptAll: String { text("legal_compliance.accept_all", "Accept required documents") }
-        static var accepting: String { text("legal_compliance.accepting", "Acceptingâ€¦") }
-        static var decline: String { text("legal_compliance.decline", "Decline and sign out") }
-        static var declineConfirmTitle: String { text("legal_compliance.decline.confirm.title", "Decline updated terms?") }
-        static var declineConfirmMessage: String { text("legal_compliance.decline.confirm.message", "Without accepting the updated terms, you cannot use your registered account. You will be signed out and returned to guest mode.") }
-        static var declineConfirmAction: String { text("legal_compliance.decline.confirm.action", "Sign out") }
-        static var loadFailed: String { text("legal_compliance.error.load_failed", "Unable to check the current legal documents right now.") }
-        static var acceptFailed: String { text("legal_compliance.error.accept_failed", "Unable to save your acceptance. Check your connection and try again.") }
-    }
-
-    enum LegalManagement {
-        static var title: String { text("legal_management.title", "Legal Documents") }
-        static var subtitle: String { text("legal_management.subtitle", "Manage active Terms and Privacy documents, drafts, and required reacceptance.") }
-        static var permissionTitle: String { text("legal_management.permission.title", "Owner access required") }
-        static var permissionMessage: String { text("legal_management.permission.message", "Only the App Owner can manage legal documents.") }
-        static var loadFailed: String { text("legal_management.error.load_failed", "Unable to load legal documents.") }
-        static var termsSubtitle: String { text("legal_management.terms.subtitle", "Terms of Service shown to registered users.") }
-        static var privacySubtitle: String { text("legal_management.privacy.subtitle", "Privacy Policy shown to registered users.") }
-        static var requiresAcceptance: String { text("legal_management.requires_acceptance", "Requires acceptance") }
-        static var acceptanceNotRequired: String { text("legal_management.acceptance_not_required", "Acceptance not required") }
-        static var draftExists: String { text("legal_management.draft_exists", "Draft exists") }
-        static var createDraft: String { text("legal_management.create_draft", "Create draft") }
-        static var editDraft: String { text("legal_management.edit_draft", "Edit draft") }
-        static var editorSubtitle: String { text("legal_management.editor.subtitle", "Edit localized Markdown and publish a new immutable version.") }
-        static func editorTitle(_ documentTitle: String) -> String {
-            LocalizationStore.localizedFormat(
-                "legal_management.editor.title",
-                defaultValue: "Edit %@",
-                arguments: [documentTitle]
-            )
-        }
-        static var editorIntro: String { text("legal_management.editor.intro", "Draft changes are private until published. Publishing updates the active version for all users.") }
-        static var versionSection: String { text("legal_management.version.section", "Version and acceptance") }
-        static var versionSectionSubtitle: String { text("legal_management.version.section.subtitle", "Publishing this draft creates the next active legal version.") }
-        static var changeSummary: String { text("legal_management.change_summary", "Change summary") }
-        static var localizedContent: String { text("legal_management.localized_content", "Localized content") }
-        static var localizedContentSubtitle: String { text("legal_management.localized_content.subtitle", "Edit the title and Markdown body for each supported language.") }
-        static var localePicker: String { text("legal_management.locale_picker", "Language") }
-        static var localizedTitle: String { text("legal_management.localized_title", "Localized title") }
-        static var saveDraft: String { text("legal_management.save_draft", "Save draft") }
-        static var saving: String { text("legal_management.saving", "Savingâ€¦") }
-        static var draftSaved: String { text("legal_management.draft_saved", "Draft saved.") }
-        static var saveFailed: String { text("legal_management.error.save_failed", "Unable to save draft.") }
-        static var preview: String { text("legal_management.preview", "Preview") }
-        static var publish: String { text("legal_management.publish", "Publish new version") }
-        static var publishing: String { text("legal_management.publishing", "Publishingâ€¦") }
-        static var publishFailed: String { text("legal_management.error.publish_failed", "Unable to publish legal document.") }
-        static var missingGermanTitle: String { text("legal_management.validation.missing_german_title", "Missing German title") }
-        static var missingGermanContent: String { text("legal_management.validation.missing_german_content", "Missing German content") }
-        static var missingUkrainianTitle: String { text("legal_management.validation.missing_ukrainian_title", "Missing Ukrainian title") }
-        static var missingUkrainianContent: String { text("legal_management.validation.missing_ukrainian_content", "Missing Ukrainian content") }
-        static var publishConfirmTitle: String { text("legal_management.publish.confirm.title", "Publish new legal version?") }
-        static var publishConfirmMessage: String { text("legal_management.publish.confirm.message", "This version becomes immutable and replaces the active document. If acceptance is required, users with older accepted versions will need to accept again.") }
-    }
-
-    enum Roles {
-        static var user: String { text("role.user", "User") }
-        static var moderator: String { text("role.moderator", "Moderator") }
-        static var admin: String { text("role.admin", "Admin") }
-        static var owner: String { text("role.owner", "Owner") }
-        static var topAdmin: String { text("role.top_admin", "Top Admin") }
-    }
-
-    enum Dialogs {
-        static var errorTitle: String {
-            String(
-                localized: "dialogs.error.title",
-                defaultValue: "Something went wrong",
-                bundle: .main,
-                locale: LocalizationStore.locale
-            )
-        }
-
-        static var successTitle: String {
-            String(
-                localized: "dialogs.success.title",
-                defaultValue: "Done",
-                bundle: .main,
-                locale: LocalizationStore.locale
-            )
-        }
-    }
-
-    enum Common {
-        static var app: String { text("common.app", "App") }
-        static var ok: String { text("common.ok", "OK") }
-        static var done: String { text("common.done", "Ğ“Ğ¾Ñ‚Ğ¾Ğ²Ğ¾") }
-        static var cancel: String { text("common.cancel", "Cancel") }
-        static var back: String { text("common.back", "Back") }
-        static var likes: String { text("common.likes", "Likes") }
-        static var comments: String { text("common.comments", "Comments") }
-        static var city: String { text("common.city", "City") }
-        static var venue: String { text("common.venue", "Venue") }
-        static var website: String { text("common.website", "Website") }
-        static var contact: String { text("common.contact", "Contact") }
-        static var price: String { text("common.price", "Price") }
-        static var expires: String { text("common.expires", "Expires") }
-        static var status: String { text("common.status", "Status") }
-        static var active: String { text("common.active", "Active") }
-        static var blocked: String { text("common.blocked", "Blocked") }
-        static var warned: String { text("common.warned", "ĞŸĞ¾Ğ¿ĞµÑ€ĞµĞ´Ğ¶ĞµĞ½Ğ½Ñ") }
-        static var temporarilyBlocked: String { text("common.temporarily_blocked", "Ğ¢Ğ¸Ğ¼Ñ‡Ğ°ÑĞ¾Ğ²Ğ¾ Ğ·Ğ°Ğ±Ğ»Ğ¾ĞºĞ¾Ğ²Ğ°Ğ½Ğ¾") }
-        static var deactivated: String { text("common.deactivated", "Ğ”ĞµĞ°ĞºÑ‚Ğ¸Ğ²Ğ¾Ğ²Ğ°Ğ½Ğ¾") }
-        static var draft: String { text("common.draft", "Draft") }
-        static var pendingReview: String { text("common.pending_review", "ĞÑ‡Ñ–ĞºÑƒÑ” Ğ¿Ñ–Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¶ĞµĞ½Ğ½Ñ") }
-        static var needsRevision: String { text("common.needs_revision", "ĞŸĞ¾Ñ‚Ñ€ĞµĞ±ÑƒÑ” Ğ´Ğ¾Ğ¾Ğ¿Ñ€Ğ°Ñ†ÑĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var approved: String { text("common.approved", "Approved") }
-        static var rejected: String { text("common.rejected", "Ğ’Ñ–Ğ´Ñ…Ğ¸Ğ»ĞµĞ½Ğ¾") }
-        static var archived: String { text("common.archived", "Archived") }
-        static var noItems: String { text("common.no_items", "No items available.") }
-        static var notAvailable: String { text("common.not_available", "Not available") }
-        static var viewAll: String { text("common.view_all", "Ğ”Ğ¸Ğ²Ğ¸Ñ‚Ğ¸ÑÑ Ğ²ÑÑ–") }
-        static var commentsPlaceholder: String { text("common.comments_placeholder", "Comments are temporarily unavailable.") }
-        static var noCommentsYet: String { text("common.comments.empty", "Ğ©Ğµ Ğ½ĞµĞ¼Ğ°Ñ” ĞºĞ¾Ğ¼ĞµĞ½Ñ‚Ğ°Ñ€Ñ–Ğ².") }
-        static var commentInputPlaceholder: String { text("common.comments.input_placeholder", "ĞĞ°Ğ¿Ğ¸ÑˆÑ–Ñ‚ÑŒ ĞºĞ¾Ğ¼ĞµĞ½Ñ‚Ğ°Ñ€â€¦") }
-        static var signInToComment: String { text("common.comments.sign_in", "Ğ£Ğ²Ñ–Ğ¹Ğ´Ñ–Ñ‚ÑŒ, Ñ‰Ğ¾Ğ± ĞºĞ¾Ğ¼ĞµĞ½Ñ‚ÑƒĞ²Ğ°Ñ‚Ğ¸") }
-        static var deleteCommentConfirmation: String { text("common.comments.delete_confirmation", "Ğ’Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ Ñ†ĞµĞ¹ ĞºĞ¾Ğ¼ĞµĞ½Ñ‚Ğ°Ñ€?") }
-        static var deleteCommentFailed: String { text("common.comments.delete_failed", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ²Ğ¸Ğ´Ğ°Ğ»Ğ¸Ñ‚Ğ¸ ĞºĞ¾Ğ¼ĞµĞ½Ñ‚Ğ°Ñ€") }
-        static var legalPlaceholder: String { text("common.placeholder.legal", "Placeholder") }
-        static var uploadImageTitle: String { text("common.upload_image.title", "Add image") }
-        static var uploadImageHelper: String { text("common.upload_image.helper", "JPG, PNG up to 10 MB. Recommended 16:9") }
-        static var communityMemberFallback: String { text("common.community_member_fallback", "Ğ£Ñ‡Ğ°ÑĞ½Ğ¸Ğº ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸") }
-    }
-
-    enum Action {
-        static var create: String { text("action.create", "Create") }
-        static var edit: String { text("action.edit", "Edit") }
-        static var open: String { text("action.open", "Ğ’Ñ–Ğ´ĞºÑ€Ğ¸Ñ‚Ğ¸") }
-        static var retry: String { text("action.retry", "Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ²Ğ°Ñ‚Ğ¸ Ñ‰Ğµ Ñ€Ğ°Ğ·") }
-        static var delete: String { text("action.delete", "Delete") }
-        static var cancel: String { text("action.cancel", "Cancel") }
-        static var share: String { text("action.share", "Share") }
-        static var save: String { text("action.save", "Save") }
-        static var like: String { text("action.like", "Like") }
-        static var unlike: String { text("action.unlike", "Unlike") }
-        static var comingSoon: String { text("action.coming_soon", "Coming soon") }
-        static var register: String { text("action.register", "Register") }
-        static var cancelRegistration: String { text("action.cancel_registration", "Cancel Registration") }
-        static var saveChanges: String { text("action.save_changes", "Save Changes") }
-    }
-
-    enum Validation {
-        static var authEmailRequired: String { text("validation.auth.email_required", "Email is required.") }
-        static var authEmailInvalid: String { text("validation.auth.email_invalid", "Enter a valid email address.") }
-        static var authPasswordTooShort: String { text("validation.auth.password_too_short", "Password must be at least 8 characters.") }
-        static var authPasswordMismatch: String { text("validation.auth.password_mismatch", "Passwords do not match.") }
-        static var authDisplayNameRequired: String { text("validation.auth.display_name_required", "Display name is required.") }
-        static var authTermsRequired: String { text("validation.auth.terms_required", "You need to accept the Terms of Use.") }
-        static var authPrivacyRequired: String { text("validation.auth.privacy_required", "You need to accept the Privacy Policy.") }
-        static var newsTitleRequired: String { text("validation.news.title_required", "News title is required.") }
-        static var newsSubtitleRequired: String { text("validation.news.subtitle_required", "News subtitle is required.") }
-        static var newsBodyTooShort: String { text("validation.news.body_too_short", "News body is too short.") }
-        static var eventTitleRequired: String { text("validation.event.title_required", "Event title is required.") }
-        static var eventDetailsTooShort: String { text("validation.event.details_too_short", "Event details are too short.") }
-        static var eventCityRequired: String { text("validation.event.city_required", "Event city is required.") }
-        static var eventVenueRequired: String { text("validation.event.venue_required", "Event venue is required.") }
-        static var eventDateOrderInvalid: String { text("validation.event.date_order_invalid", "Event end date must be after the start date.") }
-        static var organizationNameRequired: String { text("validation.organization.name_required", "Ğ”Ğ¾Ğ´Ğ°Ğ¹Ñ‚Ğµ Ğ½Ğ°Ğ·Ğ²Ñƒ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸.") }
-        static var organizationDescriptionTooShort: String { text("validation.organization.description_too_short", "Ğ”Ğ¾Ğ´Ğ°Ğ¹Ñ‚Ğµ ĞºĞ¾Ñ€Ğ¾Ñ‚ĞºĞ¸Ğ¹ Ğ¾Ğ¿Ğ¸Ñ Ñ‰Ğ¾Ğ½Ğ°Ğ¹Ğ¼ĞµĞ½ÑˆĞµ Ğ½Ğ° 20 ÑĞ¸Ğ¼Ğ²Ğ¾Ğ»Ñ–Ğ².") }
-        static var organizationCityRequired: String { text("validation.organization.city_required", "Ğ’ĞºĞ°Ğ¶Ñ–Ñ‚ÑŒ Ğ¼Ñ–ÑÑ‚Ğ¾ ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ¸.") }
-        static var organizationRegionRequired: String { text("validation.organization.region_required", "ĞĞ±ĞµÑ€Ñ–Ñ‚ÑŒ Ñ„ĞµĞ´ĞµÑ€Ğ°Ğ»ÑŒĞ½Ñƒ Ğ·ĞµĞ¼Ğ»Ñ, Ğ´Ğµ Ğ¿Ñ€Ğ°Ñ†ÑÑ” ÑĞ¿Ñ–Ğ»ÑŒĞ½Ğ¾Ñ‚Ğ°.") }
-        static var organizationEmailInvalid: String { text("validation.organization.email_invalid", "ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ email Ğ´Ğ»Ñ Ğ·Ğ²â€™ÑĞ·ĞºÑƒ.") }
-        static var organizationWebsiteInvalid: String { text("validation.organization.website_invalid", "Ğ”Ğ¾Ğ´Ğ°Ğ¹Ñ‚Ğµ Ğ¿Ğ¾Ğ²Ğ½Ğµ Ğ¿Ğ¾ÑĞ¸Ğ»Ğ°Ğ½Ğ½Ñ, Ğ½Ğ°Ğ¿Ñ€Ğ¸ĞºĞ»Ğ°Ğ´ https://example.org.") }
-        static var organizationFoundedYearInvalid: String { text("validation.organization.founded_year_invalid", "Ğ’ĞºĞ°Ğ¶Ñ–Ñ‚ÑŒ ĞºĞ¾Ñ€ĞµĞºÑ‚Ğ½Ğ¸Ğ¹ Ñ€Ñ–Ğº Ğ·Ğ°ÑĞ½ÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-    }
-
-    enum Auth {
-        static var title: String { text("auth.title", "Account") }
-        static var landingTitle: String { text("auth.landing.title", "Welcome") }
-        static var landingSubtitle: String { text("auth.landing.subtitle", "Create an account or sign in to save likes, register for events, send feedback, and manage content if your role allows it.") }
-        static var signIn: String { text("auth.sign_in", "Sign In") }
-        static var createAccount: String { text("auth.create_account", "Create Account") }
-        static var email: String { text("auth.email", "Email") }
-        static var password: String { text("auth.password", "Password") }
-        static var passwordRepeat: String { text("auth.password_repeat", "Repeat Password") }
-        static var displayName: String { text("auth.display_name", "Display Name") }
-        static var telegramUsername: String { text("auth.telegram", "Telegram Username") }
-        static var forgotPassword: String { text("auth.forgot_password", "Forgot Password?") }
-        static var sendResetLink: String { text("auth.send_reset_link", "Send Reset Link") }
-        static var resetPasswordTitle: String { text("auth.reset_password.title", "Reset Password") }
-        static var resetPasswordSubtitle: String { text("auth.reset_password.subtitle", "Enter the email linked to your account and we will send a reset link.") }
-        static var resetPasswordSuccess: String { text("auth.reset_password.success", "The reset link has been sent.") }
-        static var registerTitle: String { text("auth.register.title", "Create Account") }
-        static var emailVerificationTitle: String { text("auth.email_verification.title", "Verify your email") }
-        static var emailVerificationDescription: String { text("auth.email_verification.description", "We sent a verification link. Check your inbox and open it to activate your account.") }
-        static var emailVerificationSent: String { text("auth.email_verification.sent", "Account created. Verification email sent.") }
-        static var emailVerificationResent: String { text("auth.email_verification.resent", "Verification email has been resent.") }
-        static var emailVerificationSentTo: String { text("auth.email_verification.sent_to", "Sent to") }
-        static var emailVerificationSpamHint: String { text("auth.email_verification.spam_hint", "Check your spam/junk folder if you do not see the message.") }
-        static var emailVerificationResend: String { text("auth.email_verification.resend", "Resend verification email") }
-        static var emailVerificationResending: String { text("auth.email_verification.resending", "Resending...") }
-        static var emailVerificationCheck: String { text("auth.email_verification.check", "I verified, check again") }
-        static var emailVerificationChecking: String { text("auth.email_verification.checking", "Checking...") }
-        static var emailVerificationSuccess: String { text("auth.email_verification.success", "Email verified. You now have full account access.") }
-        static var emailVerificationStillPending: String { text("auth.email_verification.still_pending", "Verification is still pending.") }
-        static var emailVerificationAlreadyVerified: String { text("auth.email_verification.already_verified", "This email is already verified.") }
-        static var emailVerificationCheckFailed: String { text("auth.email_verification.check_failed", "Unable to confirm verification status yet. Try again.") }
-        static var emailVerificationTooManyRequests: String { text("auth.email_verification.too_many_requests", "Too many requests. Please wait a bit and try again.") }
-        static var emailVerificationResendFailed: String { text("auth.email_verification.resend_failed", "Could not send verification email now. Try again later.") }
-        static var emailVerificationChangeAccount: String { text("auth.email_verification.change_account", "Sign out and change account") }
-        static var loginTitle: String { text("auth.login.title", "Sign In") }
-        static var loginSubtitle: String { text("auth.login.subtitle", "Use your account email and password.") }
-        static var signInAction: String { text("auth.sign_in.action", "Sign In") }
-        static var createAccountAction: String { text("auth.create_account.action", "Create Account") }
-        static var signingIn: String { text("auth.signing_in", "Signing In...") }
-        static var creatingAccount: String { text("auth.creating_account", "Creating Account...") }
-        static var resetPasswordSending: String { text("auth.reset_password.sending", "Sending...") }
-        static var federalState: String { text("auth.federal_state", "Federal State") }
-        static var signInInstead: String { text("auth.sign_in_instead", "Already have an account? Sign In") }
-        static var createAccountInstead: String { text("auth.create_account_instead", "Need an account? Create one") }
-        static var registerSubtitle: String { text("auth.register.subtitle", "Create an account with the essentials. You can complete your profile later.") }
-        static var continueAsGuest: String { text("auth.continue_as_guest", "Continue as Guest") }
-        static var consentTitle: String { text("auth.consent.title", "Terms & Privacy") }
-        static var consentSubtitle: String { text("auth.consent.subtitle", "To create an account, please confirm that you accept the Terms of Use and the Privacy Policy.") }
-        static var acceptTerms: String { text("auth.consent.accept_terms", "I accept the Terms of Use") }
-        static var acceptPrivacy: String { text("auth.consent.accept_privacy", "I accept the Privacy Policy") }
-        static var reviewTerms: String { text("auth.consent.review_terms", "Read Terms of Use") }
-        static var reviewPrivacy: String { text("auth.consent.review_privacy", "Read Privacy Policy") }
-        static var currentTermsVersion: String { text("auth.consent.current_terms_version", "Terms version %@") }
-        static var currentPrivacyVersion: String { text("auth.consent.current_privacy_version", "Privacy version %@") }
-        static var requiredTitle: String { text("auth.required.title", "Sign in required") }
-        static var placeholderTitle: String { text("auth.placeholder.title", "Sign in to continue") }
-        static var placeholderMessage: String { text("auth.placeholder.message", "Create an account or sign in to access personal features.") }
-        static var signInFailed: String { text("auth.sign_in_failed", "We couldnâ€™t sign you in right now.") }
-        static var registrationFailed: String { text("auth.registration_failed", "We couldnâ€™t create your account right now.") }
-        static var registrationInvalidEmail: String { text("auth.registration.invalid_email", "Please enter a valid email address.") }
-        static var registrationEmailAlreadyInUse: String { text("auth.registration.email_in_use", "This email address is already in use.") }
-        static var registrationWeakPassword: String { text("auth.registration.weak_password", "Choose a stronger password with at least 8 characters.") }
-        static var registrationNetworkError: String { text("auth.registration.network_error", "We couldnâ€™t reach the server. Check your connection and try again.") }
-        static var registrationOperationNotAllowed: String { text("auth.registration.operation_not_allowed", "Email registration is not enabled right now.") }
-        static var registrationUnknownError: String { text("auth.registration.unknown_error", "We couldnâ€™t finish registration right now. Please try again.") }
-        static var registrationProfilePermissionError: String { text("auth.registration.profile_permission", "Your account was created, but the profile setup was blocked by backend rules. Please contact support or deploy the latest Firebase rules.") }
-        static var registrationProfileNetworkError: String { text("auth.registration.profile_network", "Your account was created, but the profile setup could not finish because of a network problem. Please try again.") }
-        static var registrationProfileUnknownError: String { text("auth.registration.profile_unknown", "Your account was created, but the profile setup could not be completed. Please try again later.") }
-        static var resetPasswordFailed: String { text("auth.reset_password.failed", "We couldnâ€™t send a reset link right now.") }
-        static var loadUserProfileFailed: String { text("auth.load_user_profile.failed", "Failed to load user profile.") }
-    }
-
-    static func homeHighlightNews(_ count: Int) -> String {
-        LocalizationStore.localizedFormat("home.highlight.news", defaultValue: "%lld current community updates", arguments: [count])
-    }
-
-    static func homeHighlightEvents(_ count: Int) -> String {
-        LocalizationStore.localizedFormat("home.highlight.events", defaultValue: "%lld upcoming gatherings and workshops", arguments: [count])
-    }
-
-    static func homeHighlightOrganizations(_ count: Int) -> String {
-        LocalizationStore.localizedFormat("home.highlight.organizations", defaultValue: "%lld trusted support groups", arguments: [count])
-    }
-
-    static func commentLine(author: String, body: String) -> String {
-        LocalizationStore.localizedFormat("common.comment_line", defaultValue: "%1$@: %2$@", arguments: [author, body])
-    }
-
-    static func contactLine(method: String, value: String) -> String {
-        LocalizationStore.localizedFormat("common.contact_line", defaultValue: "%1$@: %2$@", arguments: [method, value])
-    }
-
-    static func authRequiredMessage(for capability: String) -> String {
-        LocalizationStore.localizedFormat(
-            "auth.required.message",
-            defaultValue: "%1$@ requires an account. You can keep browsing as a guest for now.",
-            arguments: [capability]
-        )
-    }
-
-    static func profileRegistrationsCount(_ count: Int) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.registrations.count",
-            defaultValue: "%lld registered events",
-            arguments: [count]
-        )
-    }
-
-    static func profileNotificationReminderMinutes(_ count: Int) -> String {
-        let format = String(
-            localized: "profile.notifications.reminder.minutes",
-            defaultValue: "%lld min",
-            bundle: .main,
-            locale: LocalizationStore.locale
-        )
-        return String(format: format, locale: LocalizationStore.locale, arguments: [count])
-    }
-
-    static func profileNotificationReminderDays(_ count: Int) -> String {
-        let format = String(
-            localized: "profile.notifications.reminder.days",
-            defaultValue: "%lld day(s)",
-            bundle: .main,
-            locale: LocalizationStore.locale
-        )
-        return String(format: format, locale: LocalizationStore.locale, arguments: [count])
-    }
-
-    static func profileOrganizationsCount(_ count: Int) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organizations.count",
-            defaultValue: "%lld memberships",
-            arguments: [count]
-        )
-    }
-
-    static func profileBioCounter(_ count: Int, _ limit: Int) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.bio.counter",
-            defaultValue: "%lld/%lld",
-            arguments: [count, limit]
-        )
-    }
-
-    static func profileOrganizationID(_ organizationID: String) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organization.id",
-            defaultValue: "Organization %@",
-            arguments: [organizationID]
-        )
-    }
-
-    static func profileOrganizationRole(_ role: String) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organization.role",
-            defaultValue: "Role: %@",
-            arguments: [role]
-        )
-    }
-
-    static func profileOrganizationScopedSubtitle(_ organizationID: String) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organization.scoped_subtitle",
-            defaultValue: "Scoped to organization %@.",
-            arguments: [organizationID]
-        )
-    }
-
-    static func profileOrganizationTeamAssignConfirmation(userName: String, role: String) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organization.team.confirm.assign",
-            defaultValue: "ĞŸÑ€Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ %@ ÑĞº %@?",
-            arguments: [userName, role]
-        )
-    }
-
-    static func profileOrganizationTeamChangeOwnerConfirmation(_ userName: String) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organization.team.confirm.change_owner",
-            defaultValue: "Ğ—Ğ¼Ñ–Ğ½Ğ¸Ñ‚Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ° Ğ½Ğ° %@?",
-            arguments: [userName]
-        )
-    }
-
-    static func profileOrganizationTeamRemoveConfirmation(role: String, userName: String) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organization.team.confirm.remove",
-            defaultValue: "Ğ—Ğ½ÑÑ‚Ğ¸ Ñ€Ğ¾Ğ»ÑŒ %@ Ğ´Ğ»Ñ %@?",
-            arguments: [role, userName]
-        )
-    }
-
-    static func profileOrganizationTeamMakeRole(_ role: String) -> String {
-        LocalizationStore.localizedFormat(
-            "profile.organization.team.make_role",
-            defaultValue: "Ğ—Ñ€Ğ¾Ğ±Ğ¸Ñ‚Ğ¸ %@",
-            arguments: [role]
-        )
-    }
-
-    static func legalVersionLabel(_ version: String) -> String {
-        LocalizationStore.localizedFormat("legal.version_label", defaultValue: "Version %@", arguments: [version])
-    }
-
-    static func legalLastUpdatedLabel(_ date: String) -> String {
-        LocalizationStore.localizedFormat("legal.last_updated_label", defaultValue: "Last updated %@", arguments: [date])
-    }
-
-    static func authCurrentTermsVersion(_ version: String) -> String {
-        LocalizationStore.localizedFormat("auth.consent.current_terms_version", defaultValue: "Terms version %@", arguments: [version])
-    }
-
-    static func authCurrentPrivacyVersion(_ version: String) -> String {
-        LocalizationStore.localizedFormat("auth.consent.current_privacy_version", defaultValue: "Privacy version %@", arguments: [version])
-    }
-
-    enum SystemLogs {
-        static var ownerTitle: String { text("system_logs.owner.title", "Ğ–ÑƒÑ€Ğ½Ğ°Ğ» ÑĞ¸ÑÑ‚ĞµĞ¼Ğ¸") }
-        static var ownerSubtitle: String { text("system_logs.owner.subtitle", "Ğ”Ñ–Ñ—, Ğ¿Ğ¾Ğ¼Ğ¸Ğ»ĞºĞ¸ Ñ‚Ğ° Ñ‚ĞµÑ…Ğ½Ñ–Ñ‡Ğ½Ğ° Ğ´Ñ–Ğ°Ğ³Ğ½Ğ¾ÑÑ‚Ğ¸ĞºĞ°") }
-        static var ownerProfileSubtitle: String { text("system_logs.owner.profile_subtitle", "Ğ”Ñ–Ñ—, Ğ¿Ğ¾Ğ¼Ğ¸Ğ»ĞºĞ¸, Ğ±ĞµĞ·Ğ¿ĞµĞºĞ° Ñ‚Ğ° Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ") }
-        static var appAdminTitle: String { text("system_logs.app_admin.title", "Ğ–ÑƒÑ€Ğ½Ğ°Ğ» Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ—") }
-        static var appAdminSubtitle: String { text("system_logs.app_admin.subtitle", "ĞŸĞ¾Ğ¼Ğ¸Ğ»ĞºĞ¸, Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ Ñ‚Ğ° Ğ¾Ñ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var all: String { text("system_logs.section.all", "Ğ£ÑÑ–") }
-        static var actions: String { text("system_logs.section.actions", "Ğ”Ñ–Ñ—") }
-        static var errors: String { text("system_logs.section.errors", "ĞŸĞ¾Ğ¼Ğ¸Ğ»ĞºĞ¸") }
-        static var security: String { text("system_logs.section.security", "Ğ‘ĞµĞ·Ğ¿ĞµĞºĞ°") }
-        static var moderation: String { text("system_logs.section.moderation", "ĞœĞ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ") }
-        static var organizations: String { text("system_logs.section.organizations", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ—") }
-        static var users: String { text("system_logs.section.users", "ĞšĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ñ–") }
-        static var unreviewed: String { text("system_logs.filter.unreviewed", "ĞĞµĞ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ñ–") }
-        static var critical: String { text("system_logs.filter.critical", "ĞšÑ€Ğ¸Ñ‚Ğ¸Ñ‡Ğ½Ñ–") }
-        static var today: String { text("system_logs.filter.today", "Ğ¡ÑŒĞ¾Ğ³Ğ¾Ğ´Ğ½Ñ–") }
-        static var sevenDays: String { text("system_logs.filter.seven_days", "7 Ğ´Ğ½Ñ–Ğ²") }
-        static var sectionPickerLabel: String { text("system_logs.filter.section_picker", "Ğ Ğ¾Ğ·Ğ´Ñ–Ğ» Ğ¶ÑƒÑ€Ğ½Ğ°Ğ»Ñƒ") }
-        static var markReviewed: String { text("system_logs.action.mark_reviewed", "ĞŸĞ¾Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ ÑĞº Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğµ") }
-        static var filteredEmptyTitle: String { text("system_logs.empty.filtered.title", "ĞĞµĞ¼Ğ°Ñ” Ğ·Ğ°Ğ¿Ğ¸ÑÑ–Ğ² Ğ·Ğ° Ğ²Ğ¸Ğ±Ñ€Ğ°Ğ½Ğ¸Ğ¼Ğ¸ Ñ„Ñ–Ğ»ÑŒÑ‚Ñ€Ğ°Ğ¼Ğ¸") }
-        static var reviewed: String { text("system_logs.reviewed", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¾") }
-        static var notReviewed: String { text("system_logs.not_reviewed", "ĞĞµ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¾") }
-        static var notRecorded: String { text("system_logs.not_recorded", "ĞĞµ Ğ·Ğ°Ğ¿Ğ¸ÑĞ°Ğ½Ğ¾") }
-        static var unknown: String { text("system_logs.unknown", "ĞĞµĞ²Ñ–Ğ´Ğ¾Ğ¼Ğ¾") }
-        static var reviewedByCurrentUser: String { text("system_logs.reviewed_by.current_user", "ĞŸĞ¾Ñ‚Ğ¾Ñ‡Ğ½Ğ¸Ğ¹ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€") }
-        static var reviewedByAdmin: String { text("system_logs.reviewed_by.admin", "ĞĞ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€") }
-        static var records: String { text("system_logs.records.title", "Ğ—Ğ°Ğ¿Ğ¸ÑĞ¸") }
-        static var recordsCountSuffix: String { text("system_logs.records.count_suffix", "Ğ·Ğ°Ğ¿Ğ¸ÑÑ–Ğ²") }
-        static var loading: String { text("system_logs.loading", "Ğ—Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶ĞµĞ½Ğ½Ñ Ğ¶ÑƒÑ€Ğ½Ğ°Ğ»Ñƒ") }
-        static var clearSearch: String { text("system_logs.search.clear", "ĞÑ‡Ğ¸ÑÑ‚Ğ¸Ñ‚Ğ¸ Ğ¿Ğ¾ÑˆÑƒĞº") }
-        static var searchPlaceholder: String { text("system_logs.search.placeholder", "ĞŸĞ¾ÑˆÑƒĞº Ñƒ Ğ¶ÑƒÑ€Ğ½Ğ°Ğ»Ñ–") }
-        static var emptyTitle: String { text("system_logs.empty.title", "Ğ–ÑƒÑ€Ğ½Ğ°Ğ» Ğ¿Ğ¾ĞºĞ¸ Ğ¿Ğ¾Ñ€Ğ¾Ğ¶Ğ½Ñ–Ğ¹") }
-        static var emptyMessage: String { text("system_logs.empty.message", "ĞŸĞ¾Ğ´Ñ–Ñ— Ğ·â€™ÑĞ²Ğ»ÑÑ‚ÑŒÑÑ Ñ‚ÑƒÑ‚ Ğ¿Ñ–ÑĞ»Ñ Ğ¿Ñ–Ğ´ĞºĞ»ÑÑ‡ĞµĞ½Ğ½Ñ ÑĞ¸ÑÑ‚ĞµĞ¼Ğ½Ğ¾Ğ³Ğ¾ Ğ»Ğ¾Ğ³ÑƒĞ²Ğ°Ğ½Ğ½Ñ.") }
-        static var filteredEmptyMessage: String { text("system_logs.empty.filtered.message", "Ğ—Ğ¼Ñ–Ğ½Ñ–Ñ‚ÑŒ Ğ¿Ğ¾ÑˆÑƒĞº Ğ°Ğ±Ğ¾ Ñ„Ñ–Ğ»ÑŒÑ‚Ñ€Ğ¸, Ñ‰Ğ¾Ğ± Ğ¿Ğ¾Ğ±Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ñ–Ğ½ÑˆÑ– Ğ·Ğ°Ğ¿Ğ¸ÑĞ¸.") }
-        static var detailTitle: String { text("system_logs.detail.title", "Ğ”ĞµÑ‚Ğ°Ğ»Ñ– Ğ·Ğ°Ğ¿Ğ¸ÑÑƒ") }
-        static var actorSection: String { text("system_logs.detail.section.actor", "Ğ’Ğ¸ĞºĞ¾Ğ½Ğ°Ğ²ĞµÑ†ÑŒ") }
-        static var targetSection: String { text("system_logs.detail.section.target", "Ğ¦Ñ–Ğ»ÑŒ") }
-        static var organizationSection: String { text("system_logs.detail.section.organization", "ĞÑ€Ğ³Ğ°Ğ½Ñ–Ğ·Ğ°Ñ†Ñ–Ñ") }
-        static var classificationSection: String { text("system_logs.detail.section.classification", "ĞšĞ»Ğ°ÑĞ¸Ñ„Ñ–ĞºĞ°Ñ†Ñ–Ñ") }
-        static var diagnosticsSection: String { text("system_logs.detail.section.diagnostics", "Ğ”Ñ–Ğ°Ğ³Ğ½Ğ¾ÑÑ‚Ğ¸ĞºĞ°") }
-        static var deviceSection: String { text("system_logs.detail.section.device", "Ğ—Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½Ğ¾Ğº Ñ– Ğ¿Ñ€Ğ¸ÑÑ‚Ñ€Ñ–Ğ¹") }
-        static var reviewSection: String { text("system_logs.detail.section.review", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ´") }
-        static var metadataSection: String { text("system_logs.detail.section.metadata", "ĞœĞµÑ‚Ğ°Ğ´Ğ°Ğ½Ñ–") }
-        static var tracingSection: String { text("system_logs.detail.section.tracing", "Ğ¢Ñ€Ğ°ÑÑƒĞ²Ğ°Ğ½Ğ½Ñ") }
-        static var reviewStatusSection: String { text("system_logs.review_action.title", "Ğ¡Ñ‚Ğ°Ñ‚ÑƒÑ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ñƒ") }
-        static var reviewInstruction: String { text("system_logs.review_action.message", "ĞŸĞ¾Ğ·Ğ½Ğ°Ñ‡Ñ‚Ğµ Ğ·Ğ°Ğ¿Ğ¸Ñ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸Ğ¼ Ğ¿Ñ–ÑĞ»Ñ Ğ¿ĞµÑ€ĞµĞ²Ñ–Ñ€ĞºĞ¸, Ñ‰Ğ¾ Ğ²Ñ–Ğ½ Ğ½Ğµ Ğ¿Ğ¾Ñ‚Ñ€ĞµĞ±ÑƒÑ” Ğ´Ğ¾Ğ´Ğ°Ñ‚ĞºĞ¾Ğ²Ğ¾Ñ— Ğ´Ñ–Ñ—.") }
-        static var markingReviewed: String { text("system_logs.action.marking_reviewed", "ĞŸĞ¾Ğ·Ğ½Ğ°Ñ‡ĞµĞ½Ğ½Ñ") }
-        static var nameLabel: String { text("system_logs.detail.label.name", "Ğ†Ğ¼â€™Ñ") }
-        static var roleLabel: String { text("system_logs.detail.label.role", "Ğ Ğ¾Ğ»ÑŒ") }
-        static var typeLabel: String { text("system_logs.detail.label.type", "Ğ¢Ğ¸Ğ¿") }
-        static var titleLabel: String { text("system_logs.detail.label.title", "ĞĞ°Ğ·Ğ²Ğ°") }
-        static var categoryLabel: String { text("system_logs.detail.label.category", "ĞšĞ°Ñ‚ĞµĞ³Ğ¾Ñ€Ñ–Ñ") }
-        static var severityLabel: String { text("system_logs.detail.label.severity", "Ğ Ñ–Ğ²ĞµĞ½ÑŒ") }
-        static var eventLabel: String { text("system_logs.detail.label.event", "ĞŸĞ¾Ğ´Ñ–Ñ") }
-        static var outcomeLabel: String { text("system_logs.detail.label.outcome", "Ğ ĞµĞ·ÑƒĞ»ÑŒÑ‚Ğ°Ñ‚") }
-        static var retentionLabel: String { text("system_logs.detail.label.retention", "Ğ—Ğ±ĞµÑ€Ñ–Ğ³Ğ°Ğ½Ğ½Ñ") }
-        static var errorCodeLabel: String { text("system_logs.detail.label.error_code", "ĞšĞ¾Ğ´ Ğ¿Ğ¾Ğ¼Ğ¸Ğ»ĞºĞ¸") }
-        static var moduleLabel: String { text("system_logs.detail.label.module", "ĞœĞ¾Ğ´ÑƒĞ»ÑŒ") }
-        static var screenLabel: String { text("system_logs.detail.label.screen", "Ğ•ĞºÑ€Ğ°Ğ½") }
-        static var operationLabel: String { text("system_logs.detail.label.operation", "ĞĞ¿ĞµÑ€Ğ°Ñ†Ñ–Ñ") }
-        static var appVersionLabel: String { text("system_logs.detail.label.app_version", "Ğ’ĞµÑ€ÑÑ–Ñ Ğ·Ğ°ÑÑ‚Ğ¾ÑÑƒĞ½ĞºÑƒ") }
-        static var osVersionLabel: String { text("system_logs.detail.label.os_version", "Ğ’ĞµÑ€ÑÑ–Ñ ĞĞ¡") }
-        static var deviceLabel: String { text("system_logs.detail.label.device", "ĞŸÑ€Ğ¸ÑÑ‚Ñ€Ñ–Ğ¹") }
-        static var statusLabel: String { text("system_logs.detail.label.status", "Ğ¡Ñ‚Ğ°Ñ‚ÑƒÑ") }
-        static var reviewedAtLabel: String { text("system_logs.detail.label.reviewed_at", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¾ Ğ¾") }
-        static var reviewedByLabel: String { text("system_logs.detail.label.reviewed_by", "ĞŸĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒĞ²") }
-        static var createdAtLabel: String { text("system_logs.detail.label.created_at", "Ğ¡Ñ‚Ğ²Ğ¾Ñ€ĞµĞ½Ğ¾") }
-        static var correlationIdLabel: String { text("system_logs.detail.label.correlation_id", "ID Ğ·Ğ²â€™ÑĞ·ĞºÑƒ") }
-        static var adminUnreviewedSubtitle: String { text("system_logs.metric.unreviewed.admin_subtitle", "ĞŸĞ¾Ñ‚Ñ€ĞµĞ±ÑƒÑ” ÑƒĞ²Ğ°Ğ³Ğ¸ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ğ°") }
-        static var ownerUnreviewedSubtitle: String { text("system_logs.metric.unreviewed.owner_subtitle", "ĞŸĞ¾Ñ‚Ñ€ĞµĞ±ÑƒÑ” ÑƒĞ²Ğ°Ğ³Ğ¸ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°") }
-        static var highestLevelSubtitle: String { text("system_logs.metric.critical.subtitle", "ĞĞ°Ğ¹Ğ²Ğ¸Ñ‰Ğ¸Ğ¹ Ñ€Ñ–Ğ²ĞµĞ½ÑŒ") }
-        static var technicalDiagnosticsSubtitle: String { text("system_logs.metric.errors.subtitle", "Ğ¢ĞµÑ…Ğ½Ñ–Ñ‡Ğ½Ğ° Ğ´Ñ–Ğ°Ğ³Ğ½Ğ¾ÑÑ‚Ğ¸ĞºĞ°") }
-        static var adminAvailableSubtitle: String { text("system_logs.metric.moderation.subtitle", "Ğ”Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¾ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ñƒ") }
-        static var restrictedJournalSubtitle: String { text("system_logs.metric.security.subtitle", "ĞĞ±Ğ¼ĞµĞ¶ĞµĞ½Ğ¸Ğ¹ Ğ¶ÑƒÑ€Ğ½Ğ°Ğ»") }
-        static var ownerLoadPermissionError: String { text("system_logs.error.load.owner_permission", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ Ğ¶ÑƒÑ€Ğ½Ğ°Ğ». ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ¿Ñ€Ğ°Ğ²Ğ° Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°.") }
-        static var adminLoadPermissionError: String { text("system_logs.error.load.admin_permission", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ Ğ¶ÑƒÑ€Ğ½Ğ°Ğ» Ğ¼Ğ¾Ğ´ĞµÑ€Ğ°Ñ†Ñ–Ñ—. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ¿Ñ€Ğ°Ğ²Ğ° Ğ´Ğ¾ÑÑ‚ÑƒĞ¿Ñƒ Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ğ°.") }
-        static var indexRequiredError: String { text("system_logs.error.load.index_required", "Ğ”Ğ»Ñ Ñ†ÑŒĞ¾Ğ³Ğ¾ Ğ·Ğ°Ğ¿Ğ¸Ñ‚Ñƒ Ğ¶ÑƒÑ€Ğ½Ğ°Ğ»Ñƒ Ğ¿Ğ¾Ñ‚Ñ€Ñ–Ğ±ĞµĞ½ Ñ–Ğ½Ğ´ĞµĞºÑ Firestore. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ½Ğ°Ğ»Ğ°ÑˆÑ‚ÑƒĞ²Ğ°Ğ½Ğ½Ñ Ñ–Ğ½Ğ´ĞµĞºÑÑ–Ğ².") }
-        static var networkLoadError: String { text("system_logs.error.load.network", "Ğ–ÑƒÑ€Ğ½Ğ°Ğ» Ñ‚Ğ¸Ğ¼Ñ‡Ğ°ÑĞ¾Ğ²Ğ¾ Ğ½ĞµĞ´Ğ¾ÑÑ‚ÑƒĞ¿Ğ½Ğ¸Ğ¹. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ·â€™Ñ”Ğ´Ğ½Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° ÑĞ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.") }
-        static var genericLoadError: String { text("system_logs.error.load.generic", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ°Ğ²Ğ°Ğ½Ñ‚Ğ°Ğ¶Ğ¸Ñ‚Ğ¸ Ğ¶ÑƒÑ€Ğ½Ğ°Ğ» ÑĞ¸ÑÑ‚ĞµĞ¼Ğ¸. Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ğ¾Ğ½Ğ¾Ğ²Ğ¸Ñ‚Ğ¸ ÑÑ‚Ğ¾Ñ€Ñ–Ğ½ĞºÑƒ.") }
-        static var missingReviewerError: String { text("system_logs.error.review.missing_reviewer", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ²Ğ¸Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ ĞºĞ¾Ñ€Ğ¸ÑÑ‚ÑƒĞ²Ğ°Ñ‡Ğ° Ğ´Ğ»Ñ Ğ¿Ğ¾Ğ·Ğ½Ğ°Ñ‡ĞµĞ½Ğ½Ñ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ñƒ.") }
-        static var ownerReviewPermissionError: String { text("system_logs.error.review.owner_permission", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¿Ğ¾Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ğ·Ğ°Ğ¿Ğ¸Ñ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸Ğ¼. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ¿Ñ€Ğ°Ğ²Ğ° Ğ²Ğ»Ğ°ÑĞ½Ğ¸ĞºĞ°.") }
-        static var adminReviewPermissionError: String { text("system_logs.error.review.admin_permission", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¿Ğ¾Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ğ·Ğ°Ğ¿Ğ¸Ñ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸Ğ¼. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ¿Ñ€Ğ°Ğ²Ğ° Ğ°Ğ´Ğ¼Ñ–Ğ½Ñ–ÑÑ‚Ñ€Ğ°Ñ‚Ğ¾Ñ€Ğ°.") }
-        static var networkReviewError: String { text("system_logs.error.review.network", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ·Ğ±ĞµÑ€ĞµĞ³Ñ‚Ğ¸ ÑÑ‚Ğ°Ñ‚ÑƒÑ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ´Ñƒ. ĞŸĞµÑ€ĞµĞ²Ñ–Ñ€Ñ‚Ğµ Ğ·â€™Ñ”Ğ´Ğ½Ğ°Ğ½Ğ½Ñ Ñ‚Ğ° ÑĞ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.") }
-        static var genericReviewError: String { text("system_logs.error.review.generic", "ĞĞµ Ğ²Ğ´Ğ°Ğ»Ğ¾ÑÑ Ğ¿Ğ¾Ğ·Ğ½Ğ°Ñ‡Ğ¸Ñ‚Ğ¸ Ğ·Ğ°Ğ¿Ğ¸Ñ Ğ¿ĞµÑ€ĞµĞ³Ğ»ÑĞ½ÑƒÑ‚Ğ¸Ğ¼. Ğ¡Ğ¿Ñ€Ğ¾Ğ±ÑƒĞ¹Ñ‚Ğµ Ñ‰Ğµ Ñ€Ğ°Ğ·.") }
-    }
-
-    private static func text(_ key: String, _ defaultValue: String) -> String {
-        LocalizationStore.localizedString(key, defaultValue: defaultValue)
-    }
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíó<ñ:-jZ.¶›­–)Ş³V–×÷'Bf÷VæFF–öà ¦VçVÒ7G&–æw2°¢VçVÒF'2°¢7FF–2f"†öÖS¢7G&–ær²FW‡B‚'F"æ†öÖR"Â$†öÖR"’Ğ¢7FF–2f"WfVçG3¢7G&–ær²FW‡B‚'F"æWfVçG2"Â$WfVçG2"’Ğ¢7FF–2f"÷&væ—¦F–öç3¢7G&–ær²FW‡B‚'F"æ÷&væ—¦F–öç2"Â$÷&væ—¦F–öç2"’Ğ¢7FF–2f"&öf–ÆS¢7G&–ær²FW‡B‚'F"ç&öf–ÆR"Â%&öf–ÆR"’Ğ¢Ğ ¢VçVÒÆö6Äæ÷F–f–6F–öç2°¢7FF–2f"WfVçE&VÖ–æFW$fÆÆ&6´&öG“¢7G&–ær°¢7G&–ær†Æö6Æ—¦VC¢&æ÷F–f–6F–öç2æÆö6ÂæWfVçE÷&VÖ–æFW"æfÆÆ&6µö&öG’"ÂFVfVÇEfÇVS¢-	ıíMmò­íâıí}İ]-Íò"Â'VæFÆS¢æÖ–âÂÆö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆR¢Ğ¢7FF–2f"FW7EF—FÆS¢7G&–ær°¢7G&–ær†Æö6Æ—¦VC¢&æ÷F–f–6F–öç2æÆö6ÂçFW7BçF—FÆR"ÂFVfVÇEfÇVS¢-
+-]-í-Rıí-m]İİò"Â'VæFÆS¢æÖ–âÂÆö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆR¢Ğ¢7FF–2f"FW7D&öG“¢7G&–ær°¢7G&–ær†Æö6Æ—¦VC¢&æ÷F–f–6F–öç2æÆö6ÂçFW7Bæ&öG’"ÂFVfVÇEfÇVS¢-	½í­½Íİbıí-m]İİòımíí-Ââ"Â'VæFÆS¢æÖ–âÂÆö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆR¢Ğ¢Ğ ¢VçVÒæ÷F–f–6F–öä–æ&÷‚°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚çF—FÆR"Â$æ÷F–f–6F–öç2"’Ğ¢7FF–2f"7V'F—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç7V'F—FÆR"Â%WFFW2&÷WB–÷W"&WVW7G2æB7W÷'BÖW76vW2â"’Ğ¢7FF–2f"V×G•F—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æV×G’çF—FÆR"Â$æòæ÷F–f–6F–öç2–WB"’Ğ¢7FF–2f"V×G”ÖW76vS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æV×G’æÖW76vR"Â$æWr&WÆ–W2æB&WVW7BWFFW2v–ÆÂV"†W&Râ"’Ğ¢7FF–2f"Vç&VDV×G•F—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚çVç&VBæV×G’çF—FÆR"Â$æòVç&VBæ÷F–f–6F–öç2"’Ğ¢7FF–2f"Vç&VDV×G”ÖW76vS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚çVç&VBæV×G’æÖW76vR"Â%Vç&VBWFFW2v–ÆÂV"†W&Râ"’Ğ¢7FF–2f"f–ÇFW$ÆÃ¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æf–ÇFW"æÆÂ"Â$ÆÂ"’Ğ¢7FF–2f"f–ÇFW%Vç&VC¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æf–ÇFW"çVç&VB"Â%Vç&VB"’Ğ¢7FF–2f"Ö&´ÆÅ&VC¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æÖ&µöÆÅ÷&VB"Â$Ö&²ÆÂ2&VB"’Ğ¢7FF–2f"Ö&µ&VC¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æÖ&µ÷&VB"Â$Ö&²&VB"’Ğ¢7FF–2f"Ö&µVç&VC¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æÖ&µ÷Vç&VB"Â$Ö&²Vç&VB"’Ğ¢7FF–2f"&6†—fS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æ&6†—fR"Â$&6†—fR"’Ğ¢7FF–2f"FVÆWFS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æFVÆWFR"Â$FVÆWFR"’Ğ¢7FF–2f"FW7F–æF–öåVæf–Æ&ÆUF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æFW7F–æF–öå÷Væf–Æ&ÆRçF—FÆR"Â$æòÆöævW"f–Æ&ÆR"’Ğ¢7FF–2f"FW7F–æF–öåVæf–Æ&ÆTÖW76vS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æFW7F–æF–öå÷Væf–Æ&ÆRæÖW76vR"Â%F†—2æ÷F–f–6F–öâ6âæòÆöævW"&R÷VæVBâ"’Ğ¢7FF–2f"fVVF&6µ7V&Ö—GFVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æfVVF&6µ÷7V&Ö—GFVBçF—FÆR"Â$æWrW6W"&WVW7B"’Ğ¢7FF–2f"fVVF&6µ7V&Ö—GFVD&öG“¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æfVVF&6µ÷7V&Ö—GFVBæ&öG’"Â$W6W"7V&Ö—GFVBæWr&WVW7Bâ"’Ğ¢7FF–2f"fVVF&6µ&WÇ•F—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æfVVF&6µ÷&WÇ’çF—FÆR"Â%7W÷'B&WÆ–VB"’Ğ¢7FF–2f"fVVF&6µ&WÇ”&öG“¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æfVVF&6µ÷&WÇ’æ&öG’"Â%–÷R†fRæWr&WÇ’Fò–÷W"ÖW76vRâ"’Ğ¢7FF–2f"÷&væ—¦F–öä&÷fVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öåö&÷fVBçF—FÆR"Â$÷&væ—¦F–öâ&÷fVB"’Ğ¢7FF–2f"÷&væ—¦F–öäæVVG5&Wf—6–öåF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öåöæVVG5÷&Wf—6–öâçF—FÆR"Â$÷&væ—¦F–öâæVVG2&Wf—6–öâ"’Ğ¢7FF–2f"÷&væ—¦F–öå&V¦V7FVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öå÷&V¦V7FVBçF—FÆR"Â$÷&væ—¦F–öâ&V¦V7FVB"’Ğ¢7FF–2f"66÷VçE7FGW46†ævVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æ66÷VçE÷7FGW5ö6†ævVBçF—FÆR"Â$66÷VçB7FGW2WFFVB"’Ğ¢7FF–2f"ÆVvÄFö7VÖVçG5WFFVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æÆVvÅöFö7VÖVçG5÷WFFVBçF—FÆR"Â$ÆVvÂFö7VÖVçG2WFFVB"’Ğ¢7FF–2f"&öÆT6†ævVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç&öÆUö6†ævVBçF—FÆR"Â%&öÆRWFFVB"’Ğ¢7FF–2f"÷&væ—¦F–öå&öÆT76–væVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öå÷&öÆUö76–væVBçF—FÆR"Â$÷&væ—¦F–öâ&öÆR76–væVB"’Ğ¢7FF–2f"÷&væ—¦F–öå&öÆU&VÖ÷fVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öå÷&öÆU÷&VÖ÷fVBçF—FÆR"Â$÷&væ—¦F–öâ&öÆR&VÖ÷fVB"’Ğ¢7FF–2f"&W÷'E&Wf–WvVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç&W÷'E÷&Wf–WvVBçF—FÆR"Â%&W÷'B&Wf–WvVB"’Ğ¢7FF–2f"WfVçEWFFVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æWfVçE÷WFFVBçF—FÆR"Â$WfVçBWFFVB"’Ğ¢7FF–2f"WfVçD6æ6VÆÆVEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚æWfVçEö6æ6VÆÆVBçF—FÆR"Â$WfVçB6æ6VÆÆVB"’Ğ¢7FF–2f"7—7FVÔææ÷Væ6VÖVçEF—FÆS¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç7—7FVÕöææ÷Væ6VÖVçBçF—FÆR"Â%7—7FVÒææ÷Væ6VÖVçB"’Ğ¢7FF–2f"vVæW&–4&öG“¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ævVæW&–2æ&öG’"Â$÷VâF†—2æ÷F–f–6F–öâf÷"FWF–Ç2â"’Ğ¢7FF–2f"6WfW&—G”–æfó¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç6WfW&—G’æ–æfò"Â$–æfò"’Ğ¢7FF–2f"6WfW&—G•7V66W73¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç6WfW&—G’ç7V66W72"Â%7V66W72"’Ğ¢7FF–2f"6WfW&—G•v&æ–æs¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç6WfW&—G’çv&æ–ær"Â%v&æ–ær"’Ğ¢7FF–2f"6WfW&—G”7&—F–6Ã¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2æ–æ&÷‚ç6WfW&—G’æ7&—F–6Â"Â$7&—F–6Â"’Ğ ¢7FF–2gVæ2÷&væ—¦F–öä&÷fVD&öG’…ò÷&væ—¦F–öäæÖS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öåö&÷fVBæ&öG’"À¢FVfVÇEfÇVS¢"Tv2&÷fVBâ"À¢&wVÖVçG3¢¶÷&væ—¦F–öäæÖUĞ¢¢Ğ ¢7FF–2gVæ2÷&væ—¦F–öäæVVG5&Wf—6–öä&öG’…ò÷&væ—¦F–öäæÖS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öåöæVVG5÷&Wf—6–öâæ&öG’"À¢FVfVÇEfÇVS¢"TæVVG26†ævW2&Vf÷&R&÷fÂâ"À¢&wVÖVçG3¢¶÷&væ—¦F–öäæÖUĞ¢¢Ğ ¢7FF–2gVæ2÷&væ—¦F–öå&V¦V7FVD&öG’…ò÷&væ—¦F–öäæÖS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&æ÷F–f–6F–öç2æ–æ&÷‚æ÷&væ—¦F–öå÷&V¦V7FVBæ&öG’"À¢FVfVÇEfÇVS¢"Tv2&V¦V7FVBâ"À¢&wVÖVçG3¢¶÷&væ—¦F–öäæÖUĞ¢¢Ğ ¢7FF–2gVæ2Vç&VD6÷VçB…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&æ÷F–f–6F–öç2æ–æ&÷‚çVç&VEö6÷VçB"À¢FVfVÇEfÇVS¢"VÆÆBVç&VB"À¢&wVÖVçG3¢¶6÷VçEĞ¢¢Ğ¢Ğ ¢VçVÒæ÷F–f–6F–öå÷W°¢7FF–2f"7F–öä'WGFöã¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2ç÷Wæ7F–öâ"Â$÷Vâ"’Ğ¢7FF–2f"WFFTf–ÆVC¢7G&–ær²FW‡B‚&æ÷F–f–6F–öç2ç÷WæW'&÷"çWFFUöf–ÆVB"Â%Væ&ÆRFòWFFRF†—2æ÷F–f–6F–öâ&–v‡Bæ÷râ"’Ğ¢Ğ ¢VçVÒfVGW&VB°¢7FF–2f"ÆöDW'&÷%F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæ&ææW"æÆöEöW'&÷"çF—FÆR"Â$†–v†Æ–v‡G2Væf–Æ&ÆR"’Ğ¢7FF–2f"ÆöDæWGv÷&´W'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæ&ææW"æÆöEöW'&÷"ææWGv÷&²"Â$†–v†Æ–v‡G26÷VÆBæ÷B&RÆöFVBâ6†V6²–÷W"6öææV7F–öâæBG'’v–ââ"’Ğ¢7FF–2f"ÆöEW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæ&ææW"æÆöEöW'&÷"çW&Ö—76–öâ"Â$†–v†Æ–v‡G2&RFV×÷&&–Ç’Væf–Æ&ÆR&V6W6RF†V—"V&Æ—6†–ær6öæf–wW&F–öâæVVG2GFVçF–öââ"’Ğ¢7FF–2f"ÆöDFFW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæ&ææW"æÆöEöW'&÷"æFF"Â$†–v†Æ–v‡G26öçF–â–çfÆ–BV&Æ—6†–ærFFæB6÷VÆBæ÷B&R6†÷vââ"’Ğ¢7FF–2f"ÆöEVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæ&ææW"æÆöEöW'&÷"çVæ¶æ÷vâ"Â$†–v†Æ–v‡G26÷VÆBæ÷B&RÆöFVB&–v‡Bæ÷râ"’Ğ ¢7FF–2gVæ2&ææW%vT–æF–6F÷"†7W'&VçC¢–çBÂF÷FÃ¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæ&ææW"çvUö–æF–6F÷""À¢FVfVÇEfÇVS¢$fVGW&VB&ææW"VÆÆBöbVÆÆB"À¢&wVÖVçG3¢¶7W'&VçBÂF÷FÅĞ¢¢Ğ¢Ğ ¢VçVÒ66÷VçE7FGW4ÆW'B°¢7FF–2f"v&æVEF—FÆS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bçv&æVBçF—FÆR"Â-	ıíı]]Mm]İİòM½ò­=İ-"’Ğ¢7FF–2f"7W7VæFVEF—FÆS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bç7W7VæFVBçF—FÆR"Â-	­=İ"-Í}í-â}½í­í-İâ"’Ğ¢7FF–2f"&ææVEF—FÆS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bæ&ææVBçF—FÆR"Â-	­=İ"}½í­í-İâ"’Ğ¢7FF–2f"FV7F—fFVEF—FÆS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'BæFV7F—fFVBçF—FÆR"Â-	­=İ"M]­--í-İâ"’Ğ¢7FF–2f"&W7F÷&VEF—FÆS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bç&W7F÷&VBçF—FÆR"Â-	Mí-=òMâ­=İ--mMİí-½]İâ"’Ğ¢7FF–2f"v&æVDÖW76vS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bçv&æVBæÖW76vR"Â-	-‚Íím]-R’İM½b­í-=--ò}-í=İ­íÂÂ½Rıí--íİbıí=]İİòÍím=-ÂíÍ]m-‚Mí-=òMâ}]]İRMm’â"’Ğ¢7FF–2f"7W7VæFVDÖW76vS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bç7W7VæFVBæÖW76vR"Â-	}]]İbMmr-í}]İbÍím½-í-bíÍ]m]İbMâ}-]]İİò-Í}í-í=â½í­=-İİòâ"’Ğ¢7FF–2f"&ææVDÖW76vS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bæ&ææVBæÖW76vR"Â-	}]]İbMmr-Íím½-í-b­=İ-}½í­í-İbâ	ı=½m}İ’­íİ-]İ"ÍímR}½-òMí-=ıİÂÂı­âmRMí}-í½]İâı-½Í‚}-í=İ­2â"’Ğ¢7FF–2f"FV7F—fFVDÖW76vS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'BæFV7F—fFVBæÖW76vR"Â-	­=İ"M]­--í-İââ	}]]İbMmr-ı]íİ½ÍİbÍím½-í-bİ]Mí-=ıİbâ"’Ğ¢7FF–2f"&W7F÷&VDÖW76vS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bç&W7F÷&VBæÖW76vR"Â-	-‚Mí-=ò-mMİí-½]İââ	-‚}İí-2Íím]-R­í-=--òÍím½-í-ıÍ‚­=İ--mMıí-mMİâMâ-Rí½]’â"’Ğ¢7FF–2f"&V6öåF—FÆS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bç&V6öâ"Â-	ı}İ"’Ğ¢7FF–2f"7W7Vç6–öåVçF–ÅF—FÆS¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bç7W7Vç6–öå÷VçF–Â"Â-	½í­=-İİòMmBMâ"’Ğ¢7FF–2f"6¶æ÷vÆVFvVÖVçD'WGFöã¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bæ6¶æ÷vÆVFvVÖVçEö'WGFöâ"Â-	}í}=Ím½â"’Ğ¢7FF–2f"6¶æ÷vÆVFvVÖVçDÆöF–æs¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bæ6¶æ÷vÆVFvVÖVçEöÆöF–ær"Â-	}]m=MÍî(
+b"’Ğ¢7FF–2f"6¶æ÷vÆVFvVÖVçDf–ÆVC¢7G&–ær²FW‡B‚&66÷VçE÷7FGW5öÆW'Bæ6¶æ÷vÆVFvVÖVçEöf–ÆVB"Â-	İR-M½íòımM--]M-‚ıí-mMíÍ½]İİòâ	ı]]-m-R~(	MMİİİò-ıí=-RRrâ"’Ğ¢Ğ ¢VçVÒ6V&6‚°¢7FF–2f"÷Vã¢7G&–ær²FW‡B‚'6V&6‚æ÷Vâ"Â%6V&6‚"’Ğ¢7FF–2f"6Æ÷6S¢7G&–ær²FW‡B‚'6V&6‚æ6Æ÷6R"Â$6Æ÷6R6V&6‚"’Ğ¢7FF–2f"6ÆV#¢7G&–ær²FW‡B‚'6V&6‚æ6ÆV""Â$6ÆV"6V&6‚"’Ğ¢7FF–2f"æõ&W7VÇG5F—FÆS¢7G&–ær²FW‡B‚'6V&6‚ææõ÷&W7VÇG2çF—FÆR"Â$æ÷F†–ærf÷VæB"’Ğ¢7FF–2f"æõ&W7VÇG4ÖW76vS¢7G&–ær²FW‡B‚'6V&6‚ææõ÷&W7VÇG2æÖW76vR"Â%G'’F–ffW&VçB6V&6‚FW&Ò÷"F§W7BF†R7W'&VçBf–ÇFW'2â"’Ğ¢7FF–2f"†öÖUÆ6V†öÆFW#¢7G&–ær²FW‡B‚'6V&6‚çÆ6V†öÆFW"æ†öÖR"Â%6V&6‚WFFW2ÂWfVçG2ÂæB÷&væ—¦F–öç2"’Ğ¢7FF–2f"WfVçG5Æ6V†öÆFW#¢7G&–ær²FW‡B‚'6V&6‚çÆ6V†öÆFW"æWfVçG2"Â%6V&6‚WfVçG2"’Ğ¢7FF–2f"÷&væ—¦F–öç5Æ6V†öÆFW#¢7G&–ær²FW‡B‚'6V&6‚çÆ6V†öÆFW"æ÷&væ—¦F–öç2"Â%6V&6‚÷&væ—¦F–öç2"’Ğ¢Ğ ¢VçVÒ–ÖvW2°¢VçVÒ7&÷°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&–ÖvRæ7&÷çF—FÆR"Â$7&÷–ÖvR"’Ğ¢7FF–2f"†–çC¢7G&–ær²FW‡B‚&–ÖvRæ7&÷æ†–çB"Â$G&rFò&W÷6—F–öââ–æ6‚Fò¦ööÒâ"’Ğ¢7FF–2f"&W6WC¢7G&–ær²FW‡B‚&–ÖvRæ7&÷ç&W6WB"Â%&W6WB"’Ğ¢7FF–2f"6æ6VÃ¢7G&–ær²FW‡B‚&–ÖvRæ7&÷æ6æ6VÂ"Â$6æ6VÂ"’Ğ¢7FF–2f"Ç“¢7G&–ær²FW‡B‚&–ÖvRæ7&÷æÇ’"Â$Ç’"’Ğ¢Ğ ¢VçVÒfÆ–FF–öâ°¢7FF–2f"7V&T7V7E&F–ó¢7G&–ær²FW‡B‚&–ÖvRçfÆ–FF–öâæ7V7E÷&F–òç7V&R"Â$–ÖvR×W7B&R7V&Râ7&÷—BFòf—BF†Rg&ÖR&Vf÷&RWÆöF–ærâ"’Ğ¢Ğ¢Ğ ¢VçVÒfVGW&VDÖævVÖVçB°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBçF—FÆR"Â$fVGW&VB6öçFVçB"’Ğ¢7FF–2f"&öf–ÆTVçG'•F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç&öf–ÆUöVçG'’çF—FÆR"Â$fVGW&VB6öçFVçB"’Ğ¢7FF–2f"&öf–ÆTVçG'•7V'F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç&öf–ÆUöVçG'’ç7V'F—FÆR"Â$ÖævR†–v†Æ–v‡G26†÷vâ7&÷72†öÖRÂWfVçG2ÂæB÷&væ—¦F–öç2â"’Ğ¢7FF–2f"7V'F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç7V'F—FÆR"Â$7&VFRÂ&Wf–WrÂ66†VGVÆRÂVF—BÂÖ–w&FRÂæB&VÖ÷fR†–v†Æ–v‡G27&÷72F†RV&Æ–2â"’Ğ¢7FF–2f"V×G•F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæV×G’çF—FÆR"Â$æòfVGW&VB&ææW'2–WB"’Ğ¢7FF–2f"V×G”ÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæV×G’æÖW76vR"Â$7&VFRF†Rf—'7B†–v†Æ–v‡BæB6†ö÷6RW†7FÇ’v†W&RæBv†Vâ—B6†÷VÆBV"â"’Ğ¢7FF–2f"–æ7F—fS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæ–æ7F—fR"Â$–æ7F—fR"’Ğ¢7FF–2f"7F—fUFövvÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæ7F—fU÷FövvÆR"Â$7F—fR"’Ğ¢7FF–2f"WFF–æs¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBçWFF–ær"Â%WFF–ær"’Ğ¢7FF–2f"FVÆWFT&ææW#¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæFVÆWFR"Â$FVÆWFR&ææW""’Ğ¢7FF–2f"FVÆWFT6öæf—&ÖF–öåF—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæFVÆWFRæ6öæf—&ÒçF—FÆR"Â$FVÆWFRfVGW&VB&ææW#ò"’Ğ¢7FF–2gVæ2FVÆWFT6öæf—&ÖF–öäÖW76vR…òF—FÆS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæÖævVÖVçBæFVÆWFRæ6öæf—&ÒæÖW76vR"À¢FVfVÇEfÇVS¢%F†—2W&ÖæVçFÇ’FVÆWFW2(	ÂT(	ÒæB—G2WÆöFVB&ææW"–ÖvW2â"À¢&wVÖVçG3¢·F—FÆUĞ¢¢Ğ¢7FF–2f"6V7F–öç4Æ&VÃ¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç6V7F–öç2"Â%6V7F–öç2"’Ğ¢7FF–2f"&Vv–öäÆ&VÃ¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç&Vv–öâ"Â%&Vv–öâ"’Ğ¢7FF–2f"7F–öäÆ&VÃ¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæ7F–öâ"Â$7F–öâ"’Ğ¢7FF–2f"&–÷&—G”Æ&VÃ¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç&–÷&—G’"Â%&–÷&—G’"’Ğ¢7FF–2f"66†VGVÆTÆ&VÃ¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç66†VGVÆR"Â%66†VGVÆR"’Ğ¢7FF–2f"Ö—76–æu&Vv–öã¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæÖ—76–æu÷&Vv–öâ"Â$Ö—76–ær&Vv–öâ"’Ğ¢7FF–2f"7F–öäæöæS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæ7F–öâææöæR"Â$æòF7F–öâ"’Ğ¢7FF–2f"7F–öäW‡FW&æÅU$Ã¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæ7F–öâæW‡FW&æÅ÷W&Â"Â$W‡FW&æÂU$Â"’Ğ¢7FF–2f"Vç7W÷'FVDÆVv7“¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBçVç7W÷'FVEöÆVv7’"Â$æòÆöævW"7W÷'FVB"’Ğ¢7FF–2f"Ö–w&F–öå&WV—&VDÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæÖ–w&F–öâæÖW76vR"Â%F†—2&ææW"6öçF–ç2&WF—&VBwV–FRfÇVRâ÷Vâ—Böæ6RFòÖ–w&FR—BFò7W÷'FVB6V7F–öç2æB7F–öç2Â÷"FVÆWFR—BW&ÖæVçFÇ’â"’Ğ¢7FF–2f"FF&W—$ÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç&W—"æÖW76vR"Â%F†—2f—&W7F÷&RFö7VÖVçB6öçF–ç2–æ6ö×ÆWFR÷"Væ¶æ÷vâFFâ÷Vâ—BFò&W—"F†R7W÷'FVBf–VÆG2Â÷"FVÆWFR—BW&ÖæVçFÇ’â"’Ğ¢7FF–2f"7FGW4Ö–w&F–öå&WV—&VC¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç7FGW2æÖ–w&F–öå÷&WV—&VB"Â$æVVG2Ö–w&F–öâ"’Ğ¢7FF–2f"7FGW5&W—%&WV—&VC¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç7FGW2ç&W—%÷&WV—&VB"Â$æVVG2&W—""’Ğ¢7FF–2f"7FGW566†VGVÆVC¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç7FGW2ç66†VGVÆVB"Â%66†VGVÆVB"’Ğ¢7FF–2f"7FGW4Æ—fS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç7FGW2æÆ—fR"Â$Æ—fR"’Ğ¢7FF–2f"7FGW4W‡—&VC¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç7FGW2æW‡—&VB"Â$W‡—&VB"’Ğ¢7FF–2f"66†VGVÆTÇv—3¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç66†VGVÆRæÇv—2"Â$Çv—2"’Ğ¢7FF–2f"6V&6…Æ6V†öÆFW#¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBç6V&6‚çÆ6V†öÆFW""Â%6V&6‚&ææW'2'’æÖRÂ6öçFVçBÂ&Vv–öâÂ÷"”B"’Ğ¢7FF–2f"f–ÇFW$Æ&VÃ¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæf–ÇFW"æÆ&VÂ"Â%7FGW2f–ÇFW""’Ğ¢7FF–2f"f–ÇFW$ÆÃ¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæf–ÇFW"æÆÂ"Â$ÆÂ&ææW'2"’Ğ¢7FF–2f"f–ÇFW$æVVG4GFVçF–öã¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæf–ÇFW"ææVVG5öGFVçF–öâ"Â$æVVG2GFVçF–öâ"’Ğ¢7FF–2f"æôÖF6†W5F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBææõöÖF6†W2çF—FÆR"Â$æòÖF6†–ær&ææW'2"’Ğ¢7FF–2f"æôÖF6†W4ÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBææõöÖF6†W2æÖW76vR"Â$6†ævRF†R6V&6‚FW‡B÷"7FGW2f–ÇFW"â"’Ğ¢7FF–2f"æWGv÷&´W'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæW'&÷"ææWGv÷&²"Â%Væ&ÆRFòÆöBfVGW&VB6öçFVçBâ6†V6²–÷W"6öææV7F–öâæBG'’v–ââ"’Ğ¢7FF–2f"W&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæW'&÷"çW&Ö—76–öâ"Â%–÷RFòæ÷B†fRW&Ö—76–öâFòÖævRfVGW&VB6öçFVçBâ"’Ğ¢7FF–2f"fÆ–FF–öäW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæW'&÷"çfÆ–FF–öâ"Â$fVGW&VB6öçFVçBFF—2–æ6ö×ÆWFR÷"–çfÆ–Bâ"’Ğ¢7FF–2f"æ÷Df÷VæDW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæW'&÷"ææ÷Eöf÷VæB"Â$fVGW&VB6öçFVçBv2æ÷Bf÷VæBâ"’Ğ¢7FF–2f"Væ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæÖævVÖVçBæW'&÷"çVæ¶æ÷vâ"Â%Væ&ÆRFòWFFRfVGW&VB6öçFVçB&–v‡Bæ÷râ"’Ğ ¢7FF–2gVæ266†VGVÆU7F'G2…òFFS¢FFR’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæÖævVÖVçBç66†VGVÆRç7F'G2"À¢FVfVÇEfÇVS¢$g&öÒT"À¢&wVÖVçG3¢¶FFRæf÷&ÖGFVB†FFS¢æ&'&Wf–FVBÂF–ÖS¢ç6†÷'FVæVB•Ğ¢¢Ğ ¢7FF–2gVæ266†VGVÆTVæG2…òFFS¢FFR’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæÖævVÖVçBç66†VGVÆRæVæG2"À¢FVfVÇEfÇVS¢%VçF–ÂT"À¢&wVÖVçG3¢¶FFRæf÷&ÖGFVB†FFS¢æ&'&Wf–FVBÂF–ÖS¢ç6†÷'FVæVB•Ğ¢¢Ğ ¢7FF–2gVæ2&W7VÇG46÷VçB…òf—6–&ÆS¢–çBÂF÷FÃ¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæÖævVÖVçBç&W7VÇG5ö6÷VçB"À¢FVfVÇEfÇVS¢"SFÆÆBöbS"FÆÆB"À¢&wVÖVçG3¢·f—6–&ÆRÂF÷FÅĞ¢¢Ğ ¢7FF–2gVæ2fÆÆ&6´&ææW$æÖR…ò–C¢7G&–ærÂFFS¢FFR’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæÖævVÖVçBæfÆÆ&6µöæÖR"À¢FVfVÇEfÇVS¢$&ææW"T+rT"À¢&wVÖVçG3¢¶–BÂFFRæf÷&ÖGFVB†FFS¢æ&'&Wf–FVBÂF–ÖS¢æöÖ—GFVB•Ğ¢¢Ğ¢Ğ ¢VçVÒfVGW&VDVF—F÷"°¢7FF–2f"7&VFUF—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7&VFRçF—FÆR"Â$7&VFRfVGW&VB&ææW""’Ğ¢7FF–2f"VF—EF—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æVF—BçF—FÆR"Â$VF—BfVGW&VB&ææW""’Ğ¢7FF–2f"7V'F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç7V'F—FÆR"Â$6öæf–wW&RF†R†–v†Æ–v‡B6†÷vâ–âV&Æ–2&ææW"6&÷W6VÇ2â"’Ğ¢7FF–2f"7&VFT&ææW#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7&VFUö&ææW""Â$7&VFR&ææW""’Ğ¢7FF–2f"VF—D&ææW#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æVF—Eö&ææW""Â$VF—B&ææW""’Ğ¢7FF–2f"Ö–w&FT&ææW#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æÖ–w&FUö&ææW""Â$Ö–w&FRæBVF—B&ææW""’Ğ¢7FF–2f"&W—$&ææW#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç&W—%ö&ææW""Â%&W—"æBVF—B&ææW""’Ğ¢7FF–2f"7&VFTVçG'•7V'F—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7&VFUöVçG'’ç7V'F—FÆR"Â$FBæWr†–v†Æ–v‡Bf÷"öæR÷"Ö÷&R6V7F–öç2â"’Ğ¢7FF–2f"6fT6†ævW3¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6fUö6†ævW2"Â%6fR6†ævW2"’Ğ¢7FF–2f"6f–æs¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6f–ær"Â%6f–ær"’Ğ¢7FF–2f"6fU7V66W73¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6fU÷7V66W72"Â$fVGW&VB&ææW"6fVBâ"’Ğ¢7FF–2f"F—66&D6öæf—&ÖF–öåF—FÆS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æF—66&BçF—FÆR"Â$F—66&B&ææW"6†ævW3ò"’Ğ¢7FF–2f"F—66&D6öæf—&ÖF–öäÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æF—66&BæÖW76vR"Â%–÷W"Vç6fVB&ææW"6†ævW2v–ÆÂ&RÆ÷7Bâ"’Ğ¢7FF–2f"F—66&D6†ævW3¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æF—66&Bæ7F–öâ"Â$F—66&B6†ævW2"’Ğ¢7FF–2f"&6–756V7F–öã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6V7F–öâæ&6–72"Â$&6–72"’Ğ¢7FF–2f"&Wf–Wu6V7F–öã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6V7F–öâç&Wf–Wr"Â$Æ—fR&Wf–Wr"’Ğ¢7FF–2f"&Wf–Wt†VÇW#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç&Wf–Wræ†VÇW""Â%F†—2&Wf–WrW6W2F†R6ÖR6&B2†öÖRÂWfVçG2ÂæB÷&væ—¦F–öç2â"’Ğ¢7FF–2f"ÆVv7”Ö–w&F–öäÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æÖ–w&F–öâæÖW76vR"Â%&WF—&VBwV–FRfÇVW2vW&R&VÖ÷fVBg&öÒF†—2G&gBâ&Wf–WrF†R&WÆ6VÖVçB6V7F–öç2æB7F–öâÂF†Vâ6fRFò6ö×ÆWFRÖ–w&F–öââ"’Ğ¢7FF–2f"FF&W—$ÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç&W—"æÖW76vR"Â%Vç7W÷'FVB÷"–æ6ö×ÆWFRfÇVW2vW&Ræ÷&ÖÆ—¦VB–âF†—2G&gBâ&Wf–WrWfW'’6V7F–öâ&Vf÷&R6f–ærF†R&W—&VBFö7VÖVçBâ"’Ğ¢7FF–2f"–ÖvU6V7F–öã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6V7F–öâæ–ÖvR"Â$–ÖvR"’Ğ¢7FF–2f"F&vWF–æu6V7F–öã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6V7F–öâçF&vWF–ær"Â%F&vWF–ær"’Ğ¢7FF–2f"7F–öå6V7F–öã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6V7F–öâæ7F–öâ"Â$7F–öâ"’Ğ¢7FF–2f"66†VGVÆ–æu6V7F–öã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6V7F–öâç66†VGVÆ–ær"Â%66†VGVÆ–ær"’Ğ¢7FF–2f"–çFW&æÄæÖTf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBæ–çFW&æÅöæÖR"Â$–çFW&æÂæÖR"’Ğ¢7FF–2f"F—FÆTf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBçF—FÆR"Â$†VFÆ–æR"’Ğ¢7FF–2f"7V'F—FÆTf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBç7V'F—FÆR"Â%7V'F—FÆR"’Ğ¢7FF–2f"–ÖvT†VÇW#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ–ÖvRæ†VÇW""Â%W6Rv–FRc£’–ÖvRâF†RV&Æ–26&÷W6VÂ7&÷26fVÇ’–ç6–FRF†R6&B&÷VæG2â"’Ğ¢7FF–2f"&WÆ6T–ÖvS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ–ÖvRç&WÆ6R"Â%&WÆ6R–ÖvR"’Ğ¢7FF–2f"WÆöD–ÖvS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ–ÖvRçWÆöB"Â%WÆöB&ææW"–ÖvR"’Ğ¢7FF–2f"WÆöD–ÖvT†VÇW#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ–ÖvRçWÆöEö†VÇW""Â$&ææW"–ÖvR—2&WV—&VB&Vf÷&R6f–ærâ"’Ğ¢7FF–2f"–ÖvTÆöDf–ÆVC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ–ÖvRæÆöEöf–ÆVB"Â%Væ&ÆRFòÆöBF†R6VÆV7FVB–ÖvRâ"’Ğ¢7FF–2f"fÆ–FF–öä–ÖvT7V7E&F–ó¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæ–ÖvUö7V7E÷&F–ò"Â$–ÖvR×W7B&Rc£’â6†ö÷6R†÷&—¦öçFÂ†÷Fò÷"7&÷—B&Vf÷&RWÆöF–ærâ"’Ğ¢7FF–2f"7&÷–ç7G'V7F–öç3¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7&÷æ–ç7G'V7F–öç2"Â$Ö÷fRæB66ÆRF†R–ÖvR–ç6–FRF†Rc£’g&ÖRâ"’Ğ¢7FF–2f"&Vv–öå66÷Tf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBç&Vv–öå÷66÷R"Â%&Vv–öâ66÷R"’Ğ¢7FF–2f"&Vv–öå66÷TfVFW&Å7FFS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç&Vv–öå÷66÷RæfVFW&Å÷7FFR"Â$fVFW&Â7FFR"’Ğ¢7FF–2f"fVFW&Å7FFTf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBæfVFW&Å÷7FFR"Â$fVFW&Â7FFR"’Ğ¢7FF–2f"6VÆV7DfVFW&Å7FFS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç6VÆV7EöfVFW&Å÷7FFR"Â%6VÆV7BfVFW&Â7FFR"’Ğ¢7FF–2f"f—6–&ÆU6V7F–öç4f–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBçf—6–&ÆU÷6V7F–öç2"Â%f—6–&ÆR6V7F–öç2"’Ğ¢7FF–2f"7F–öåG—Tf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBæ7F–öå÷G—R"Â$7F–öâG—R"’Ğ¢7FF–2f"7F–öä†VÇW$æõF¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâæ†VÇW"ææõ÷F"Â%F†—2&ææW"v–ÆÂF—7Æ’öæÇ’âF–ær—Bv–ÆÂæ÷B÷Vâç—F†–ærâ"’Ğ¢7FF–2f"7F–öä†VÇW%F&vWC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâæ†VÇW"çF&vWB"Â%F–ærF†—2&ææW"÷Vç2F†R6VÆV7FVB6öçFVçBâ"’Ğ¢7FF–2f"7F–öä†VÇW$W‡FW&æÅU$Ã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâæ†VÇW"æW‡FW&æÅ÷W&Â"Â%F–ærF†—2&ææW"÷Vç2F†RW‡FW&æÂU$Ââ"’Ğ¢7FF–2f"6VÆV7EF&vWC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâç6VÆV7E÷F&vWB"Â%6VÆV7BF&vWB"’Ğ¢7FF–2f"6ÆV%F&vWC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâæ6ÆV%÷F&vWB"Â$6ÆV"6VÆV7FVBF&vWB"’Ğ¢7FF–2f"F&vWE–6¶W%6V&6ƒ¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâç6V&6…÷F&vWB"Â%6V&6‚'’F—FÆRÂ7VÖÖ'’Â6÷W&6RÂÆö6F–öâÂG—RÂ÷"”B"’Ğ¢7FF–2f"ÆöF–æuF&vWG3¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâæÆöF–æu÷F&vWG2"Â$ÆöF–ærF&vWG2"’Ğ¢7FF–2f"æõF&vWG4f÷VæC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâææõ÷F&vWG2çF—FÆR"Â$æòÖF6†–ærF&vWG2"’Ğ¢7FF–2f"æõF&vWG4f÷VæDÖW76vS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâææõ÷F&vWG2æÖW76vR"Â%G'’F–ffW&VçB6V&6‚÷"&Vg&W6‚F†RÆ—7Bâ"’Ğ¢7FF–2f"F&vWE–6¶W$ÆöDf–ÆVC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æ7F–öâæÆöEöf–ÆVB"Â%Væ&ÆRFòÆöB6VÆV7F&ÆRF&vWG2&–v‡Bæ÷râ"’Ğ¢7FF–2f"W‡FW&æÅU$Äf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBæW‡FW&æÅ÷W&Â"Â$W‡FW&æÂU$Â"’Ğ¢7FF–2f"GW&F–öäf–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBæGW&F–öâ"Â$F—7Æ’GW&F–öâ"’Ğ¢7FF–2f"&–÷&—G”f–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBç&–÷&—G’"Â%&–÷&—G’"’Ğ¢7FF–2f"7F'G4DVæ&ÆVC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"ç7F'G5öBæVæ&ÆVB"Â%W6R7F'BFFR"’Ğ¢7FF–2f"7F'G4Df–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBç7F'G5öB"Â%7F'G2B"’Ğ¢7FF–2f"VæG4DVæ&ÆVC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æVæG5öBæVæ&ÆVB"Â%W6RVæBFFR"’Ğ¢7FF–2f"VæG4Df–VÆC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æf–VÆBæVæG5öB"Â$VæG2B"’Ğ¢7FF–2f"fÆ–FF–öä–ÖvU&WV—&VC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæ–ÖvU÷&WV—&VB"Â%6VÆV7B÷"¶VW&ææW"–ÖvR&Vf÷&R6f–ærâ"’Ğ¢7FF–2f"fÆ–FF–öä–ÖvUU$Ã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæ–ÖvU÷W&Â"Â%F†RW†—7F–ær&ææW"–ÖvRU$Â—2–çfÆ–Bâ6†ö÷6RæWr–ÖvRâ"’Ğ¢7FF–2f"fÆ–FF–öåFW‡DÆVæwFƒ¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâçFW‡EöÆVæwF‚"Â$–çFW&æÂæÖRæB†VFÆ–æR6â6öçF–âWFò#6†&7FW'3²7V'F—FÆRWFò#Câ"’Ğ¢7FF–2f"fÆ–FF–öäGW&F–öã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæGW&F–öâ"Â$F—7Æ’GW&F–öâ×W7B&R&WGvVVâ2æB"6V6öæG2â"’Ğ¢7FF–2f"fÆ–FF–öå&–÷&—G“¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâç&–÷&—G’"Â%&–÷&—G’×W7B&R&WGvVVâæBâ"’Ğ¢7FF–2f"fÆ–FF–öå6V7F–öç3¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâç6V7F–öç2"Â%6VÆV7BBÆV7BöæRf—6–&ÆR6V7F–öââ"’Ğ¢7FF–2f"fÆ–FF–öäfVFW&Å7FFS¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæfVFW&Å÷7FFR"Â$fVFW&Â7FFR—2&WV—&VBf÷"fVFW&Â×7FFR&ææW'2â"’Ğ¢7FF–2f"fÆ–FF–öäW‡FW&æÅU$Ã¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæW‡FW&æÅ÷W&Â"Â$VçFW"fÆ–BW‡FW&æÂU$Ââ"’Ğ¢7FF–2f"fÆ–FF–öåF&vWD”C¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâçF&vWEö–B"Â%F&vWB”B—2&WV—&VBf÷"F†—27F–öâG—Râ"’Ğ¢7FF–2f"fÆ–FF–öäFFUv–æF÷s¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæFFU÷v–æF÷r"Â%7F'BFFR×W7B&R&Vf÷&RVæBFFRâ"’Ğ¢7FF–2f"fÆ–FF–öä÷væW%&WV—&VC¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"çfÆ–FF–öâæ÷væW%÷&WV—&VB"Â$÷væW"66÷VçB—2&WV—&VBFò6fRfVGW&VB6öçFVçBâ"’Ğ¢7FF–2f"6fTæWGv÷&´W'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æW'&÷"ææWGv÷&²"Â%Væ&ÆRFò6fRfVGW&VB6öçFVçBâ6†V6²–÷W"6öææV7F–öâæBG'’v–ââ"’Ğ¢7FF–2f"6fUW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æW'&÷"çW&Ö—76–öâ"Â%–÷RFòæ÷B†fRW&Ö—76–öâFò6fRfVGW&VB6öçFVçBâ"’Ğ¢7FF–2f"6fUfÆ–FF–öäW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æW'&÷"çfÆ–FF–öâ"Â$fVGW&VB&ææW"FF—2–æ6ö×ÆWFR÷"–çfÆ–Bâ"’Ğ¢7FF–2f"6fTæ÷Df÷VæDW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æW'&÷"ææ÷Eöf÷VæB"Â$fVGW&VB&ææW"v2æ÷Bf÷VæBâ"’Ğ¢7FF–2f"6fUVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&fVGW&VBæVF—F÷"æW'&÷"çVæ¶æ÷vâ"Â%Væ&ÆRFò6fRfVGW&VB6öçFVçB&–v‡Bæ÷râ"’Ğ ¢7FF–2gVæ2GW&F–öåfÇVR…ò6V6öæG3¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæVF—F÷"æGW&F–öâçfÇVR"À¢FVfVÇEfÇVS¢"VÆÆB6V2"À¢&wVÖVçG3¢·6V6öæG5Ğ¢¢Ğ ¢7FF–2gVæ2F&vWE–6¶W%F—FÆR…ò6öçFVçEG—S¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæVF—F÷"æ7F–öâç–6¶W%÷F—FÆR"À¢FVfVÇEfÇVS¢%6VÆV7BT"À¢&wVÖVçG3¢¶6öçFVçEG—UĞ¢¢Ğ ¢7FF–2gVæ26VÆV7FVEF&vWD”B…ò–C¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&fVGW&VBæVF—F÷"æ7F–öâç6VÆV7FVEö–B"À¢FVfVÇEfÇVS¢$”C¢T"À¢&wVÖVçG3¢¶–EĞ¢¢Ğ¢Ğ ¢VçVÒ†öÖR°¢7FF–2f"'&æEF—FÆS¢7G&–ær²FW‡B‚&†öÖRæ'&æE÷F—FÆR"Â%V·&–æ–â6öÖ×Væ—G’"’Ğ¢7FF–2f"'&æE7V'F—FÆS¢7G&–ær²FW‡B‚&†öÖRæ'&æE÷7V'F—FÆR"Â$W7G&–"’Ğ¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&†öÖRçF—FÆR"Â%V·&–æ–â6öÖ×Væ—G’F—&öÂ"’Ğ¢7FF–2f"7V'F—FÆS¢7G&–ær²FW‡B‚&†öÖRç7V'F—FÆR"Â$6ÆÒÂG'W7FVBÆ6Rf÷"WFFW2ÂWfVçG2Â÷&væ—¦F–öç2ÂæBæV–v†&÷"×FòÖæV–v†&÷"7W÷'Bâ"’Ğ¢7FF–2f"&Vv–öäÆÄW7G&–¢7G&–ær²FW‡B‚&†öÖRç&Vv–öâæÆÅöW7G&–"Â-	-ò	--mò"’Ğ¢7FF–2f"†–v†Æ–v‡G3¢7G&–ær²FW‡B‚&†öÖRæ†–v†Æ–v‡G2"Â$6öÖ×Væ—G’†–v†Æ–v‡G2"’Ğ¢7FF–2f"ÆFW7DæWw3¢7G&–ær²FW‡B‚&†öÖRæÆFW7EöæWw2"Â$ÆFW7BWFFW2"’Ğ¢7FF–2f"f–ÇFW$ÆÃ¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"æÆÂ"Â-
+=R"’Ğ¢7FF–2f"f–ÇFW$æWw3¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"ææWw2"Â-	İí-İ‚"’Ğ¢7FF–2f"f–ÇFW$WfVçG3¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"æWfVçG2"Â-	ıíMmr"’Ğ¢7FF–2f"f–ÇFW$÷&væ—¦F–öç3¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"æ÷&væ—¦F–öç2"Â-	í=İm}mmr"’Ğ¢7FF–2f"f–ÇFW%7V'67&—F–öç3¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"ç7V'67&—F–öç2"Â%7V'67&—F–öç2"’Ğ¢7FF–2f"f–ÇFW$ff÷&—FW3¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"æff÷&—FW2"Â$ff÷&—FW2"’Ğ¢7FF–2f"f–ÇFW%6fVC¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"ç6fVB"Â-	}]]m]İb"’Ğ¢7FF–2f"f–ÇFW%7V'67&–&VC¢7G&–ær²FW‡B‚&†öÖRæf–ÇFW"ç7V'67&–&VB"Â-	ımMıİb"’Ğ¢7FF–2f"V×G•6fVC¢7G&–ær²FW‡B‚&†öÖRæV×G’ç6fVB"Â-
+2-Rİ]ÍB}]]m]İRÍ-]m½m"â"’Ğ¢7FF–2f"V×G•7V'67&–&VC¢7G&–ær²FW‡B‚&†öÖRæV×G’ç7V'67&–&VB"Â-
+2-Rİ]ÍBımMıí¢"’Ğ¢7FF–2f"V×G•&Vv–öã¢7G&–ær²FW‡B‚&†öÖRæV×G’ç&Vv–öâ"Â-	İ]ÍB­íİ-]İ-2"íİíÍ2]=míİbâ"’Ğ¢7FF–2f"7V'67&–&W%7Vff—„öæS¢7G&–ær²FW‡B‚&†öÖRç7V'67&–&W'2ç7Vff—‚æöæR"Â-ımMıİ¢"’Ğ¢7FF–2f"7V'67&–&W%7Vff—„fWs¢7G&–ær²FW‡B‚&†öÖRç7V'67&–&W'2ç7Vff—‚æfWr"Â-ımMıİ­‚"’Ğ¢7FF–2f"7V'67&–&W%7Vff—„Öç“¢7G&–ær²FW‡B‚&†öÖRç7V'67&–&W'2ç7Vff—‚æÖç’"Â-ımMıİ­m""’Ğ¢7FF–2f"æ÷F–f–6F–öç3¢7G&–ær²FW‡B‚&†öÖRææ÷F–f–6F–öç2"Â$æ÷F–f–6F–öç2"’Ğ¢Ğ ¢VçVÒæWw2°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&æWw2çF—FÆR"Â$æWw2"’Ğ¢7FF–2f"†W&õF—FÆS¢7G&–ær²FW‡B‚&æWw2æ†W&òçF—FÆR"Â-	İí-İ‚=íÍM‚"’Ğ¢7FF–2f"†W&õ7V'F—FÆS¢7G&–ær²FW‡B‚&æWw2æ†W&òç7V'F—FÆR"Â-	-m½-bíİí-½]İİòÂí=í½í]İİò-m-ímr=­}İmm""	--mrâ"’Ğ¢7FF–2f"FWF–ÅF—FÆS¢7G&–ær²FW‡B‚&æWw2æFWF–ÂçF—FÆR"Â-	M]-½bİí-İ‚"’Ğ¢7FF–2f"FWF–Ä&FvS¢7G&–ær²FW‡B‚&æWw2æFWF–Âæ&FvR"Â-	İí-İ"’Ğ¢7FF–2f"7VÖÖ'•6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æFWF–Âç7VÖÖ'•÷6V7F–öâ"Â-	­íí-­â"’Ğ¢7FF–2f"&öG•6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æFWF–Âæ&öG•÷6V7F–öâ"Â-	ıââM]-Íò"’Ğ¢7FF–2f"6÷W&6U6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æFWF–Âç6÷W&6R"Â%6÷W&6R"’Ğ¢7FF–2f"Fw56V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æFWF–ÂçFw5÷6V7F–öâ"Â-
+-]=‚"’Ğ¢7FF–2f"&VÆFVE6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æFWF–Âç&VÆFVE÷6V7F–öâ"Â-	-Â-­íbÍímR=-‚mm­-â"’Ğ¢7FF–2f"&VÆFVE6V7F–öä7F–öã¢7G&–ær²FW‡B‚&æWw2æFWF–Âç&VÆFVEö7F–öâ"Â-	M--ò-b"’Ğ¢7FF–2f"V×G“¢7G&–ær²FW‡B‚&æWw2æV×G’"Â$æòæWw2f–Æ&ÆR–WBâ"’Ğ¢7FF–2f"&WG'“¢7G&–ær²FW‡B‚&æWw2ç&WG'’"Â%&WG'’"’Ğ¢7FF–2f"ÆöDæWGv÷&´W'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æÆöBææWGv÷&²"Â%Væ&ÆRFòÆöBæWw2â6†V6²–÷W"6öææV7F–öâæBG'’v–ââ"’Ğ¢7FF–2f"ÆöEW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æÆöBçW&Ö—76–öâ"Â%–÷RFòæ÷B†fRW&Ö—76–öâFòf–WrF†—2æWw2â"’Ğ¢7FF–2f"ÆöEfÆ–FF–öäW'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æÆöBçfÆ–FF–öâ"Â%F†RæWw2FF6÷VÆBæ÷B&RÆöFVBâ"’Ğ¢7FF–2f"ÆöEVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æÆöBçVæ¶æ÷vâ"Â%6öÖWF†–ærvVçBw&öærv†–ÆRÆöF–æræWw2â"’Ğ¢7FF–2f"7F–öåW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æ7F–öâçW&Ö—76–öâ"Â%–÷RFòæ÷B†fRW&Ö—76–öâFòW&f÷&ÒF†—27F–öââ"’Ğ¢7FF–2f"7F–öåfÆ–FF–öäW'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æ7F–öâçfÆ–FF–öâ"Â%F†RæWw2FF6÷VÆBæ÷B&R&ö6W76VBâ"’Ğ¢7FF–2f"7F–öäæ÷Df÷VæDW'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æ7F–öâææ÷Eöf÷VæB"Â%F†R6VÆV7FVBæWw2—FVÒ6÷VÆBæ÷B&Rf÷VæBâ"’Ğ¢7FF–2f"7F–öåVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&æWw2æW'&÷"æ7F–öâçVæ¶æ÷vâ"Â%6öÖWF†–ærvVçBw&öærv†–ÆR&ö6W76–ærF†RæWw2â"’Ğ¢7FF–2f"FVÆWFT6öæf—&ÖF–öã¢7G&–ær²FW‡B‚&æWw2æFVÆWFRæ6öæf—&ÖF–öâ"Â$FVÆWFRF†—2æWw2÷7Cò"’Ğ¢7FF–2f"FVÆWFS¢7G&–ær²FW‡B‚&æWw2æFVÆWFR"Â$FVÆWFR"’Ğ¢7FF–2f"6æ6VÃ¢7G&–ær²FW‡B‚&æWw2æ6æ6VÂ"Â$6æ6VÂ"’Ğ¢7FF–2f"FVÆWFTf–ÆVC¢7G&–ær²FW‡B‚&æWw2æFVÆWFUöf–ÆVB"Â$FVÆWFRf–ÆVB"’Ğ¢7FF–2f"F—6Ö—74W'&÷#¢7G&–ær²FW‡B‚&æWw2æF—6Ö—75öW'&÷""Â$ô²"’Ğ¢7FF–2f"Ö—76–æt÷&væ—¦F–öã¢7G&–ær²FW‡B‚&æWw2ç6÷W&6RæÖ—76–æuö÷&væ—¦F–öâ"Â-	í=İm}mmòİR-­}İ"’Ğ¢7FF–2gVæ2f–Wt6÷VçB…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&æWw2çf–Wuö6÷VçB"ÂFVfVÇEfÇVS¢"VÆÆBı]]=½ıMm""Â&wVÖVçG3¢¶6÷VçEÒ¢Ğ¢Ğ ¢VçVÒæWw4VF—F÷"°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çF—FÆR"Â-	MíM-‚İí-İ2"’Ğ¢7FF–2f"FEF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æFE÷F—FÆR"Â-	MíM-‚İí-İ2"’Ğ¢7FF–2f"VF—EF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æVF—E÷F—FÆR"Â-
+]M==--‚İí-İ2"’Ğ¢7FF–2f"VF—F÷%7V'F—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç7V'F—FÆR"Â-	ıíMm½m-Íò-m½-íâmİMíÍmmMâr=íÍMíââ"’Ğ¢7FF–2f"F—FÆTf–VÆE&WV—&VC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æf–VÆBçF—FÆU÷&WV—&VB"Â-	}=í½í-í¢İí-İ‚¢"’Ğ¢7FF–2f"F—FÆUÆ6V†öÆFW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çÆ6V†öÆFW"çF—FÆR"Â-	--]Mm-Â}=í½í-í¢"’Ğ¢7FF–2f"7VÖÖ'”f–VÆE&WV—&VC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æf–VÆBç7VÖÖ'•÷&WV—&VB"Â-	­íí-­’íı¢"’Ğ¢7FF–2f"7VÖÖ'•Æ6V†öÆFW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çÆ6V†öÆFW"ç7VÖÖ'’"Â-	­íí-­âíım-Âİí-İ2â
+m]’-]­"=MR-mMím-ò"ı­2İí-Òâ"’Ğ¢7FF–2f"6÷fW%6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6÷fW"çF—FÆR"Â-	í­½Mİ­İí-İ‚"’Ğ¢7FF–2f"6÷fW%WÆöEF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6÷fW"çWÆöE÷F—FÆR"Â-	MíM-RMí-âí­½Mİ­‚"’Ğ¢7FF–2f"6÷fW%WÆöD†VÇW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6÷fW"çWÆöEö†VÇW""Â$¥rÂärMâÔ"â
+]­íÍ]İMí-İâc£’"’Ğ¢7FF–2f"&WÆ6U†÷Fó¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6÷fW"ç&WÆ6R"Â-	}Ímİ-‚Mí-â"’Ğ¢7FF–2f"÷&væ—¦W%6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ÷&væ—¦W"çF—FÆR"Â-	í=İm}mmò¢"’Ğ¢7FF–2f"6VÆV7D÷&væ—¦W#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ÷&væ—¦W"ç6VÆV7B"Â-	í]m-Âí=İm}mmâ"’Ğ¢7FF–2f"æô÷&væ—¦W$66W73¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ÷&væ—¦W"ææõö66W72"Â-
+2-İ]ÍBí=İm}mm’M½òı=½m­mmrİí-Òâ"’Ğ¢7FF–2f"6FVv÷'”æWw3¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6FVv÷'’ææWw2"Â-	İí-İ"’Ğ¢7FF–2f"6FVv÷'”WfVçC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6FVv÷'’æWfVçB"Â-	ıíMmò"’Ğ¢7FF–2f"6FVv÷'”VGV6F–öã¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6FVv÷'’æVGV6F–öâ"Â-	í-m-"’Ğ¢7FF–2f"6FVv÷'”7VÇGW&S¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6FVv÷'’æ7VÇGW&R"Â-	­=½Í-="’Ğ¢7FF–2f"6FVv÷'”÷F†W#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ6FVv÷'’æ÷F†W""Â-mİR"’Ğ¢7FF–2f"&öG•6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ&öG’çF—FÆR"Â-	}Ím"İí-İ‚¢"’Ğ¢7FF–2f"&öG•Æ6V†öÆFW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ&öG’çÆ6V†öÆFW""Â-	İım-Âíİí-İ’-]­"İí-İ‚âââ"’Ğ¢7FF–2f"6÷W&6U6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç6÷W&6RçF—FÆR"Â%6÷W&6R"’Ğ¢7FF–2f"6÷W&6UÆ6V†öÆFW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç6÷W&6RçÆ6V†öÆFW""Â%vV'6—FR÷"6÷W&6RæÖR"’Ğ¢7FF–2f"6÷W&6T†VÇW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç6÷W&6Ræ†VÇW""Â$÷F–öæÂâFBV&Æ–6F–öâæÖR÷"Æ–æ²â"’Ğ¢7FF–2f"Fw56V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çFw2çF—FÆR"Â-
+-]=‚İ]íí.(	ı}­í-â’"’Ğ¢7FF–2f"Fw5Æ6V†öÆFW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çFw2çÆ6V†öÆFW""Â-	MíM-R-]=‚}]]r­íÍ2"’Ğ¢7FF–2f"Fw4†VÇW#¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çFw2æ†VÇW""Â-	İı­½C¢ımM-Í­Âí-m-Âmİ-]=mmò"’Ğ¢7FF–2f"FF—F–öæÅ6WGF–æw5F—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç6WGF–æw2çF—FÆR"Â-	MíM-­í-bİ½-=-İİò"’Ğ¢7FF–2f"&Vv–öå6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç&Vv–öâçF—FÆR"Â-
+]=míÒ"’Ğ¢7FF–2f"&Vv–öåF—FÆS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç&Vv–öâæf–VÆB"Â-
+M]M]½Íİ}]Í½ò"’Ğ¢7FF–2f"V&Æ—6ƒ¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çV&Æ—6‚"Â-	íı=½m­=--‚"’Ğ¢7FF–2f"6fT6†ævW3¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç6fUö6†ævW2"Â-	}]]=-‚"’Ğ¢7FF–2f"&–Ö'•V&Æ—6ƒ¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç&–Ö'•÷V&Æ—6‚"Â-	íı=½m­=--‚İí-İ2"’Ğ¢7FF–2f"&–Ö'•6fT6†ævW3¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç&–Ö'•÷6fUö6†ævW2"Â-	}]]=-‚}Ímİ‚"’Ğ¢7FF–2f"V&Æ—6†–æs¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çV&Æ—6†–ær"Â-	ı=½m­=MÍââââ"’Ğ¢7FF–2f"WÆöF–æt–ÖvS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çWÆöF–æuö–ÖvR"Â-	}-İ-m=MÍâMí-ââââ"’Ğ¢7FF–2f"&ö6W76–æt–ÖvS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç&ö6W76–æuö–ÖvR"Â-	=í-=MÍâMí-ââââ"’Ğ¢7FF–2f"V&Æ—6†VE7V66W76gVÆÇ“¢7G&–ær²FW‡B‚&æWw2æVF—F÷"ç7V66W72"Â$æWw2V&Æ—6†VB7V66W76gVÆÇ’â"’Ğ¢7FF–2f"WFFVE7V66W76gVÆÇ“¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çWFFVE÷7V66W72"Â$æWw2WFFVB7V66W76gVÆÇ’â"’Ğ¢7FF–2f"F—FÆU&WV—&VC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çfÆ–FF–öâçF—FÆU÷&WV—&VB"Â%F—FÆR—2&WV—&VBâ"’Ğ¢7FF–2f"7VÖÖ'•&WV—&VC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çfÆ–FF–öâç7VÖÖ'•÷&WV—&VB"Â%6†÷'BFW67&—F–öâ—2&WV—&VBâ"’Ğ¢7FF–2f"&öG•&WV—&VC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çfÆ–FF–öâæ&öG•÷&WV—&VB"Â$&öG’—2&WV—&VBâ"’Ğ¢7FF–2f"÷&væ—¦F–öå&WV—&VC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çfÆ–FF–öâæ÷&væ—¦F–öå÷&WV—&VB"Â-	í]m-Âí=İm}mmâM½òİí-İ‚â"’Ğ¢7FF–2f"÷&væ—¦F–öå&Vv–öå&WV—&VC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"çfÆ–FF–öâæ÷&væ—¦F–öå÷&Vv–öå÷&WV—&VB"Â-	ı]]Bı=½m­mmMâ}ıí-İm-Â]=míÒí=İm}mmrâ"’Ğ¢7FF–2f"–ÖvTÆöDf–ÆVC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ–ÖvUöÆöEöf–ÆVB"Â$f–ÆVBFòÆöBF†R6VÆV7FVB–ÖvRâ"’Ğ¢7FF–2f"–ÖvU&ö6W76–ætf–ÆVC¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ–ÖvU÷&ö6W76–æuöf–ÆVB"Â$f–ÆVBFò&ö6W72F†R6VÆV7FVB–ÖvRâ"’Ğ¢7FF–2f"–ÖvUFöôÆ&vS¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æ–ÖvU÷FöõöÆ&vR"Â$–ÖvR—2FöòÆ&vRâÆV6R6†ö÷6R6ÖÆÆW"†÷Fòâ"’Ğ¢7FF–2f"WF†÷$fÆÆ&6³¢7G&–ær²FW‡B‚&æWw2æVF—F÷"æWF†÷%öfÆÆ&6²"Â$æöç–Ö÷W2"’Ğ¢Ğ ¢VçVÒG&gE&V6÷fW'’°¢7FF–2f"&V6÷fW'•F—FÆS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’ç&V6÷fW'’çF—FÆR"Â$6öçF–çVR6fVBG&gCò"’Ğ¢7FF–2f"&V6÷fW'”ÖW76vS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’ç&V6÷fW'’æÖW76vR"Â$Æö6ÂG&gBg&öÒ–÷W"&Wf–÷W2æWw27&VFR6W76–öâ—2f–Æ&ÆRâ"’Ğ¢7FF–2f"WfVçE&V6÷fW'”ÖW76vS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’ç&V6÷fW'’æWfVçEöÖW76vR"Â$Æö6ÂG&gBg&öÒ–÷W"&Wf–÷W2WfVçB7&VFR6W76–öâ—2f–Æ&ÆRâ"’Ğ¢7FF–2f"÷&væ—¦F–öå&V6÷fW'”ÖW76vS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’ç&V6÷fW'’æ÷&væ—¦F–öåöÖW76vR"Â$Æö6ÂG&gBg&öÒ–÷W"&Wf–÷W2÷&væ—¦F–öâ7&VFR6W76–öâ—2f–Æ&ÆRâ"’Ğ¢7FF–2f"6öçF–çVTG&gC¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’ç&V6÷fW'’æ6öçF–çVR"Â$6öçF–çVRG&gB"’Ğ¢7FF–2f"7&VFTæWs¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’ç&V6÷fW'’æ7&VFUöæWr"Â$7&VFRæWr"’Ğ¢7FF–2f"FVÆWFTG&gC¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’ç&V6÷fW'’æFVÆWFR"Â$FVÆWFRG&gB"’Ğ¢7FF–2f"6Æ÷6UF—FÆS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’æ6Æ÷6RçF—FÆR"Â%6fRF†—2G&gCò"’Ğ¢7FF–2f"6Æ÷6TÖW76vS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’æ6Æ÷6RæÖW76vR"Â%–÷R†fRVç6fVBæWw26öçFVçBâ6fR—BÆö6ÆÇ’&Vf÷&R6Æ÷6–ær÷"F—66&B—Bâ"’Ğ¢7FF–2f"WfVçD6Æ÷6TÖW76vS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’æ6Æ÷6RæWfVçEöÖW76vR"Â%–÷R†fRVç6fVBWfVçB6öçFVçBâ6fR—BÆö6ÆÇ’&Vf÷&R6Æ÷6–ær÷"F—66&B—Bâ"’Ğ¢7FF–2f"÷&væ—¦F–öä6Æ÷6TÖW76vS¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’æ6Æ÷6Ræ÷&væ—¦F–öåöÖW76vR"Â%–÷R†fRVç6fVB÷&væ—¦F–öâ6öçFVçBâ6fR—BÆö6ÆÇ’&Vf÷&R6Æ÷6–ær÷"F—66&B—Bâ"’Ğ¢7FF–2f"6fTG&gDæD6Æ÷6S¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’æ6Æ÷6Rç6fR"Â%6fRG&gBæB6Æ÷6R"’Ğ¢7FF–2f"F—66&DG&gC¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’æ6Æ÷6RæF—66&B"Â$F—66&B"’Ğ¢7FF–2f"6öçF–çVTVF—F–æs¢7G&–ær²FW‡B‚&G&gE÷&V6÷fW'’æ6Æ÷6Ræ6öçF–çVUöVF—F–ær"Â$6öçF–çVRVF—F–ær"’Ğ¢Ğ ¢VçVÒWfVçG2°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&WfVçG2çF—FÆR"Â$WfVçG2"’Ğ¢7FF–2f"†W&õF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æ†W&òçF—FÆR"Â-	ıíMmr=íÍM‚"’Ğ¢7FF–2f"†W&õ7V'F—FÆS¢7G&–ær²FW‡B‚&WfVçG2æ†W&òç7V'F—FÆR"Â-	}=-m}bÂİ-}İİò-ımM-Í­ıí=rmr-Í‚â"’Ğ¢7FF–2f"W6öÖ–æuF—FÆS¢7G&–ær²FW‡B‚&WfVçG2ç6V7F–öâçW6öÖ–ær"Â%W6öÖ–ær"’Ğ¢7FF–2f"7EF—FÆS¢7G&–ær²FW‡B‚&WfVçG2ç6V7F–öâç7B"Â%7B"’Ğ¢7FF–2f"f–ÇFW$ÆÃ¢7G&–ær²FW‡B‚&WfVçG2æf–ÇFW"æÆÂ"Â-
+=b"’Ğ¢7FF–2f"f–ÇFW%FöF“¢7G&–ær²FW‡B‚&WfVçG2æf–ÇFW"çFöF’"Â%FöF’"’Ğ¢7FF–2f"f–ÇFW%F†—5vVV³¢7G&–ær²FW‡B‚&WfVçG2æf–ÇFW"çF†—5÷vVV²"Â%F†—2vVV²"’Ğ¢7FF–2f"f–ÇFW%&Vv—7FW&VC¢7G&–ær²FW‡B‚&WfVçG2æf–ÇFW"ç&Vv—7FW&VB"Â-	}]M-í-İb"’Ğ¢7FF–2f"ÆÄ6FVv÷&–W3¢7G&–ær²FW‡B‚&WfVçG2æf–ÇFW"æÆÅö6FVv÷&–W2"Â-
+=b­-]=ímr"’Ğ¢7FF–2f"6FVv÷'”VGV6F–öã¢7G&–ær²FW‡B‚&WfVçG2æ6FVv÷'’æVGV6F–öâ"Â-	í-m-"’Ğ¢7FF–2f"6FVv÷'”7VÇGW&S¢7G&–ær²FW‡B‚&WfVçG2æ6FVv÷'’æ7VÇGW&R"Â-	­=½Í-="’Ğ¢7FF–2f"6FVv÷'”ÖVWGW3¢7G&–ær²FW‡B‚&WfVçG2æ6FVv÷'’æÖVWGW2"Â-	}=-m}b"’Ğ¢7FF–2f"6FVv÷'”ÖVWGW6–æwVÆ#¢7G&–ær²FW‡B‚&WfVçG2æ6FVv÷'’æÖVWGW÷6–æwVÆ""Â-	}=-mr"’Ğ¢7FF–2f"6FVv÷'”6†–ÆG&Vã¢7G&–ær²FW‡B‚&WfVçG2æ6FVv÷'’æ6†–ÆG&Vâ"Â-	M½òMm-]’"’Ğ¢7FF–2f"6FVv÷'”÷F†W#¢7G&–ær²FW‡B‚&WfVçG2æ6FVv÷'’æ÷F†W""Â-mİR"’Ğ¢7FF–2f"V×G•6fVC¢7G&–ær²FW‡B‚&WfVçG2æV×G’ç6fVB"Â-
+2-Rİ]ÍB}]]m]İRıíMm’"’Ğ¢7FF–2f"V×G•&Vv—7FW&VC¢7G&–ær²FW‡B‚&WfVçG2æV×G’ç&Vv—7FW&VB"Â-
+2-Rİ]ÍB}]M-í-İRıíMm’åÆí	}]M-=-]ÂİıíMmrÂí}-‚}R-="â"’Ğ¢7FF–2f"f–ÇFW&VEW6öÖ–ætV×G“¢7G&–ær²FW‡B‚&WfVçG2æV×G’æf–ÇFW&VE÷W6öÖ–ær"Â$æòW6öÖ–ærWfVçG2ÖF6‚F†—2F–ÖR&ævR&–v‡Bæ÷râ"’Ğ¢7FF–2f"&Vv—7FW#¢7G&–ær²FW‡B‚&WfVçG2ç&Vv—7FW""Â-
+òımM2"’Ğ¢7FF–2f"&Vv—7FW&VC¢7G&–ær²FW‡B‚&WfVçG2ç&Vv—7FW&VB"Â-
+òM2"’Ğ¢7FF–2f"6öæf—&Õ&Vv—7FW%F—FÆS¢7G&–ær²FW‡B‚&WfVçG2ç&Vv—7G&F–öâæ6öæf—&Õ÷&Vv—7FW"çF—FÆR"Â%&Vv—7FW"f÷"F†—2WfVçCò"’Ğ¢7FF–2f"6öæf—&Õ&Vv—7FW$'WGFöã¢7G&–ær²FW‡B‚&WfVçG2ç&Vv—7G&F–öâæ6öæf—&Õ÷&Vv—7FW"æ'WGFöâ"Â%&Vv—7FW""’Ğ¢7FF–2f"6öæf—&Ô6æ6VÅ&Vv—7G&F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2ç&Vv—7G&F–öâæ6öæf—&Õö6æ6VÂçF—FÆR"Â$6æ6VÂ–÷W"&Vv—7G&F–öãò"’Ğ¢7FF–2f"6öæf—&Ô6æ6VÅ&Vv—7G&F–öä'WGFöã¢7G&–ær²FW‡B‚&WfVçG2ç&Vv—7G&F–öâæ6öæf—&Õö6æ6VÂæ'WGFöâ"Â$6æ6VÂ&Vv—7G&F–öâ"’Ğ¢7FF–2gVæ26öæf—&Õ&Vv—7FW$ÖW76vR…òWfVçEF—FÆS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&WfVçG2ç&Vv—7G&F–öâæ6öæf—&Õ÷&Vv—7FW"æÖW76vR"À¢FVfVÇEfÇVS¢%–÷Rv–ÆÂ&R&Vv—7FW&VBf÷"(	ÂT(	Òâ"À¢&wVÖVçG3¢¶WfVçEF—FÆUĞ¢¢Ğ¢7FF–2gVæ26öæf—&Ô6æ6VÅ&Vv—7G&F–öäÖW76vR…òWfVçEF—FÆS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&WfVçG2ç&Vv—7G&F–öâæ6öæf—&Õö6æ6VÂæÖW76vR"À¢FVfVÇEfÇVS¢%–÷Rv–ÆÂæòÆöævW"&R&Vv—7FW&VBf÷"(	ÂT(	Òâ"À¢&wVÖVçG3¢¶WfVçEF—FÆUĞ¢¢Ğ¢7FF–2f"v—FÆ—7FVC¢7G&–ær²FW‡B‚&WfVçG2çv—FÆ—7FVB"Â-
+2ı­2í}m­=-İİò"’Ğ¢7FF–2f"ÆÄF“¢7G&–ær²FW‡B‚&WfVçG2æÆÅöF’"Â-	ıíMmòİ-]ÂM]İÂ"’Ğ¢7FF–2f"V×G“¢7G&–ær²FW‡B‚&WfVçG2æV×G’"Â$æòWfVçG2f–Æ&ÆR–WBâ"’Ğ¢7FF–2f"&WG'“¢7G&–ær²FW‡B‚&WfVçG2ç&WG'’"Â%&WG'’"’Ğ¢7FF–2f"ÆöDæWGv÷&´W'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æÆöBææWGv÷&²"Â%Væ&ÆRFòÆöBWfVçG2â6†V6²–÷W"6öææV7F–öâæBG'’v–ââ"’Ğ¢7FF–2f"ÆöEW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æÆöBçW&Ö—76–öâ"Â%–÷RFòæ÷B†fRW&Ö—76–öâFòf–WrF†W6RWfVçG2â"’Ğ¢7FF–2f"ÆöEfÆ–FF–öäW'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æÆöBçfÆ–FF–öâ"Â%F†RWfVçBFF6÷VÆBæ÷B&RÆöFVBâ"’Ğ¢7FF–2f"ÆöEVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æÆöBçVæ¶æ÷vâ"Â%6öÖWF†–ærvVçBw&öærv†–ÆRÆöF–ærWfVçG2â"’Ğ¢7FF–2f"7F–öåW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æ7F–öâçW&Ö—76–öâ"Â%–÷RFòæ÷B†fRW&Ö—76–öâFòW&f÷&ÒF†—27F–öââ"’Ğ¢7FF–2f"7F–öåfÆ–FF–öäW'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æ7F–öâçfÆ–FF–öâ"Â%F†RWfVçBFF6÷VÆBæ÷B&R&ö6W76VBâ"’Ğ¢7FF–2f"7F–öäæ÷Df÷VæDW'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æ7F–öâææ÷Eöf÷VæB"Â%F†R6VÆV7FVBWfVçB6÷VÆBæ÷B&Rf÷VæBâ"’Ğ¢7FF–2f"7F–öåVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&WfVçG2æW'&÷"æ7F–öâçVæ¶æ÷vâ"Â%6öÖWF†–ærvVçBw&öærv†–ÆR&ö6W76–ærF†RWfVçBâ"’Ğ¢7FF–2f"FWF–Ä&FvS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ&FvR"Â-	}=-mr"’Ğ¢7FF–2f"&÷WE6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ&÷WB"Â-	ıâıíMmâ"’Ğ¢7FF–2f"FWF–Ä÷&væ—¦W%6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ÷&væ—¦W""Â$÷&væ—¦W""’Ğ¢7FF–2f"V&Æ—6†VD'•6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–ÂçV&Æ—6†VEö'’"Â%V&Æ—6†VB'’"’Ğ¢7FF–2f"÷&væ—¦W$6öçF7E6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ÷&væ—¦W%ö6öçF7B"Â$÷&væ—¦W"æB6öçF7B"’Ğ¢7FF–2f"FWF–Ç56V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–ÂæFWF–Ç2"Â-	M]-½b"’Ğ¢7FF–2f"Æö6F–öå6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–ÂæÆö6F–öâ"Â-	ÍmmRıí-]M]İİò"’Ğ¢7FF–2f"6–Ö–Æ$WfVçG3¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç6–Ö–Æ%öWfVçG2"Â-
+]ímbıíMmr"’Ğ¢7FF–2f"FEFô6ÆVæF#¢7G&–ær²FW‡B‚&WfVçG2æFWF–ÂæFE÷Fõö6ÆVæF""Â-	MíM-‚"­½]İM"’Ğ¢7FF–2f"6ÆVæF$FFVEF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%öFFVBçF—FÆR"Â-	MíMİâ"­½]İM"’Ğ¢7FF–2f"6ÆVæF$FFVDÖW76vS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%öFFVBæÖW76vR"Â-	ıíMmâ}]]m]İâ2-íÍ2­½]İMbâ"’Ğ¢7FF–2f"6ÆVæF$Ç&VG”FFVEF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%öÇ&VG•öFFVBçF—FÆR"Â-	-mRMíMİâ"’Ğ¢7FF–2f"6ÆVæF$Ç&VG”FFVDÖW76vS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%öÇ&VG•öFFVBæÖW76vR"Â-
+mâıíMmâ-mRMíMİâ"­½]İM2mm’]mrâ"’Ğ¢7FF–2f"6ÆVæF%W&Ö—76–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%÷W&Ö—76–öâçF—FÆR"Â-	İ]ÍBMí-=ı2Mâ­½]İMò"’Ğ¢7FF–2f"6ÆVæF%W&Ö—76–öäÖW76vS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%÷W&Ö—76–öâæÖW76vR"Â-	Mí}-í½Í-RMí-=òMâ­½]İMò"İ½-=-İİıR”õ2ÂíMíM--‚ıíMmrâ"’Ğ¢7FF–2f"6ÆVæF$W'&÷%F—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%öW'&÷"çF—FÆR"Â-	İR-M½íòMíM-‚ıíMmâ"’Ğ¢7FF–2f"6ÆVæF$W'&÷$ÖW76vS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6ÆVæF%öW'&÷"æÖW76vR"Â-
+ıí=-RRrım}İmRâ"’Ğ¢7FF–2f"6†&S¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç6†&R"Â-	ıíMm½-ò"’Ğ¢7FF–2f"f–Wt÷&væ—¦F–öã¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âçf–Wuö÷&væ—¦F–öâ"Â-	ı]]=½ıİ=-‚í=İm}mmâ"’Ğ¢7FF–2f"vVæW&–4WfVçD&FvS¢7G&–ær²FW‡B‚&WfVçG2æFWF–ÂævVæW&–5ö&FvR"Â-	ıíMmò"’Ğ¢7FF–2f"6æ6VÆÆVDæ÷F–6UF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6æ6VÆÆVEöæ÷F–6RçF—FÆR"Â$WfVçB6æ6VÆÆVB"’Ğ¢7FF–2f"6æ6VÆÆVDæ÷F–6T&öG“¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âæ6æ6VÆÆVEöæ÷F–6Ræ&öG’"Â%F†—2WfVçB—2æòÆöævW"F¶–ærÆ6Râ"’Ğ¢7FF–2f"W‡V7FVE'F–6—çG3¢7G&–ær²FW‡B‚&WfVçG2æFWF–ÂæW‡V7FVE÷'F–6—çG2"Â-	í}m­=-İâ=}İ­m""’Ğ¢7FF–2f"&Vv—7G&F–öäæ÷E&WV—&VC¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç&Vv—7G&F–öåöæ÷E÷&WV—&VB"Â%&Vv—7G&F–öâ—2æ÷B&WV—&VB"’Ğ¢7FF–2f"&Vv—7G&F–öäÖævVÖVçEF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç&Vv—7G&F–öåöÖævVÖVçBçF—FÆR"Â%&Vv—7FW&VB'F–6—çG2"’Ğ¢7FF–2f"&Vv—7G&F–öäÖævVÖVçDV×G“¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç&Vv—7G&F–öåöÖævVÖVçBæV×G’"Â-	ıí­‚İ]ÍB}]M-í-İR=}İ­m"â"’Ğ¢7FF–2f"&Vv—7G&F–öäÖævVÖVçDÆöF–æs¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç&Vv—7G&F–öåöÖævVÖVçBæÆöF–ær"Â$ÆöF–ær&Vv—7FW&VB'F–6—çG2âââ"’Ğ¢7FF–2f"&Vv—7G&F–öå'F–6—çDfÆÆ&6³¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç&Vv—7G&F–öåöÖævVÖVçBç'F–6—çEöfÆÆ&6²"Â%&Vv—7FW&VBW6W""’Ğ¢7FF–2f"FFVDFFS¢7G&–ær²FW‡B‚&WfVçG2æFWF–ÂæFFVEöFFR"Â-	MíMİâ"’Ğ¢7FF–2f"6†÷töäÖ¢7G&–ær²FW‡B‚&WfVçG2æFWF–Âç6†÷uööåöÖ"Â-	ıí­}-‚İ­-b"’Ğ¢7FF–2f"VF—F÷%F—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çF—FÆR"Â-
+--í-‚ıíMmâ"’Ğ¢7FF–2f"VF—EF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æVF—E÷F—FÆR"Â-
+]M==--‚ıíMmâ"’Ğ¢7FF–2f"VF—F÷%7V'F—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç7V'F—FÆR"Â-	}ıím-Â=íÍM2İ-m½-2ıíMmââ"’Ğ¢7FF–2f"FFU6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æFFU÷6V7F–öâ"Â-	M-b}¢"’Ğ¢7FF–2f"–ÖvU6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ–ÖvU÷6V7F–öâ"Â-	í­½Mİ­ıíMmr"’Ğ¢7FF–2f"6÷fW%WÆöEF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ6÷fW%÷WÆöE÷F—FÆR"Â-	MíM-RMí-âí­½Mİ­‚"’Ğ¢7FF–2f"6÷fW%WÆöD†VÇW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ6÷fW%÷WÆöEö†VÇW""Â$¥rÂärMâÔ"â
+]­íÍ]İMí-İâc£’"’Ğ¢7FF–2f"f–VÆEF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æf–VÆBçF—FÆR"Â-	İ}-ıíMmr¢"’Ğ¢7FF–2f"F—FÆUÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çÆ6V†öÆFW"çF—FÆR"Â-	--]Mm-Âİ}-2ıíMmr"’Ğ¢7FF–2f"f–VÆE7VÖÖ'“¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æf–VÆBç7VÖÖ'’"Â-	­íí-­’íı¢"’Ğ¢7FF–2f"7VÖÖ'•Æ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çÆ6V†öÆFW"ç7VÖÖ'’"Â-	­íí-­âíım-ÂıíMmââ
+m]’-]­"=MR-mMím-ò"ı­2ıíMm’â"’Ğ¢7FF–2f"f–VÆDFWF–Ç3¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æf–VÆBæFWF–Ç2"Â-	íııíMmr¢"’Ğ¢7FF–2f"FWF–Ç5Æ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çÆ6V†öÆFW"æFWF–Ç2"Â-	íım-Â-2ıíMmââ
+âİ=}İ­m"}]­Cò"’Ğ¢7FF–2f"f–VÆDÆö6F–öã¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æf–VÆBæÆö6F–öâ"Â-	ÍmmRıí-]M]İİò¢"’Ğ¢7FF–2f"Æö6F–öåÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çÆ6V†öÆFW"æÆö6F–öâ"Â-	--]Mm-ÂM]2âİ}-2Ímmò"’Ğ¢7FF–2f"FG&W75Æ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çÆ6V†öÆFW"æFG&W72"Â-	M]"’Ğ¢7FF–2f"Æö6F–öäæ÷FUF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æÆö6F–öåöæ÷FRçF—FÆR"Â-
+=-í}İ]İİòÍmmò"’Ğ¢7FF–2f"Æö6F–öäæ÷FUÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æÆö6F–öåöæ÷FRçÆ6V†öÆFW""Â-	İı­½C¢-]mBrM-í2Â"ıí-]RÂ}²ı-í=r"’Ğ¢7FF–2f"6VÆV7FVDÆö6F–öã¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç6VÆV7FVEöÆö6F–öâ"Â-	íİ½í­mmò"’Ğ¢7FF–2f"6V&6„Æö6F–öã¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç6V&6…öÆö6F–öâ"Â-	ıí=¢ÍmmòâM]‚"’Ğ¢7FF–2f"6VÆV7DÆö6F–öã¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç6VÆV7EöÆö6F–öâ"Â-	--‚"’Ğ¢7FF–2f"æôÆö6F–öå&W7VÇG3¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ææõöÆö6F–öå÷&W7VÇG2"Â-	İm}í=âİR}İM]İâ"’Ğ¢7FF–2f"6†ö÷6TöäÖ¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ6†ö÷6UööåöÖ"Â-	--‚İ­-b"’Ğ¢7FF–2f"f–VÆE7F'DFFS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æf–VÆBç7F'EöFFR"Â-	M-"’Ğ¢7FF–2f"7F'EF–ÖS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç7F'E÷F–ÖR"Â-	ıí}-í¢"’Ğ¢7FF–2f"f–VÆDVæDFFS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æf–VÆBæVæEöFFR"Â-	}­mİ}]İİò"’Ğ¢7FF–2f"VæEF–ÖS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æVæE÷F–ÖR"Â-	}-]]İİò"’Ğ¢7FF–2f"VF—F÷%V&Æ—6†W%6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çV&Æ—6†W%÷6V7F–öâ"Â%V&Æ—6†–ær÷&væ—¦F–öâ"’Ğ¢7FF–2f"VF—F÷$÷&væ—¦W%6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%÷6V7F–öâ"Â$÷&væ—¦W""’Ğ¢7FF–2f"÷&væ—¦W$æÖTf–VÆC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7BææÖR"Â$÷&væ—¦W"æÖR"’Ğ¢7FF–2f"÷&væ—¦W$æÖUÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7BææÖU÷Æ6V†öÆFW""Â$W‡FW&æÂ÷&væ—¦W"Â–bF–ffW&VçB"’Ğ¢7FF–2f"÷&væ—¦W%U$Äf–VÆC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7BçW&Â"Â$÷&væ—¦W"vV'6—FR"’Ğ¢7FF–2f"÷&væ—¦W%U$ÅÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7BçW&Å÷Æ6V†öÆFW""Â&‡GG3¢òöW†×ÆRæ÷&r"’Ğ¢7FF–2f"6öçF7E†öæTf–VÆC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7Bç†öæR"Â$6öçF7B†öæR"’Ğ¢7FF–2f"6öçF7E†öæUÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7Bç†öæU÷Æ6V†öÆFW""Â"³C2âââ"’Ğ¢7FF–2f"6öçF7DVÖ–Äf–VÆC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7BæVÖ–Â"Â$6öçF7BVÖ–Â"’Ğ¢7FF–2f"6öçF7DVÖ–ÅÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7BæVÖ–Å÷Æ6V†öÆFW""Â&æÖTW†×ÆRæ÷&r"’Ğ¢7FF–2f"6öçF7EU$Äf–VÆC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7Bæ6öçF7E÷W&Â"Â$6öçF7BÆ–æ²"’Ğ¢7FF–2f"6öçF7EU$ÅÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7Bæ6öçF7E÷W&Å÷Æ6V†öÆFW""Â%&Vv—7G&F–öâ÷"6öçF7BvR"’Ğ¢7FF–2f"÷&væ—¦W$6öçF7D†VÇW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ÷&væ—¦W%ö6öçF7Bæ†VÇW""Â$÷F–öæÂâFBW‡FW&æÂ÷&væ—¦W"÷"6öçF7BFWF–Ç2–bF–ffW&VçBg&öÒF†RV&Æ—6†–ær÷&væ—¦F–öââ"’Ğ¢7FF–2f"6FVv÷'•6V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ6FVv÷'•÷6V7F–öâ"Â-	­-]=ímò¢"’Ğ¢7FF–2f"Fw56V7F–öåF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çFw5÷6V7F–öâ"Â%Fw2"’Ğ¢7FF–2f"FuÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çFu÷Æ6V†öÆFW""Â$FBFr"’Ğ¢7FF–2f"Fw4†VÇW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çFw5ö†VÇW""Â$÷F–öæÂâFB6†÷'BFw2Fò†VÇV÷ÆRVæFW'7FæBF†RWfVçBF÷–2â"’Ğ¢7FF–2f"FEFs¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æFE÷Fr"Â$FBFr"’Ğ¢7FF–2f"&VÖ÷fUFs¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&VÖ÷fU÷Fr"Â%&VÖ÷fRFr"’Ğ¢7FF–2f"6FVv÷'•G&–æ–æs¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æ6FVv÷'’çG&–æ–ær"Â-	İ-}İİò"’Ğ¢7FF–2f"FF—F–öæÅ6WGF–æw5F—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç6WGF–æw2"Â-	MíM-­í-bİ½-=-İİò"’Ğ¢7FF–2f"&WV—&W5&Vv—7G&F–öåFövvÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&WV—&W5÷&Vv—7G&F–öâ"Â-	ıí-mİ]M-mmò"’Ğ¢7FF–2f"&WV—&W5&Vv—7G&F–öä†VÇW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&WV—&W5÷&Vv—7G&F–öåö†VÇW""Â%GW&âöâ&Vv—7G&F–öâFòÖævR&–6RæB'F–6—çB66—G’â"’Ğ¢7FF–2f"&–6UF—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&–6R"Â-	--m-Â"’Ğ¢7FF–2f"&–6UÆ6V†öÆFW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&–6U÷Æ6V†öÆFW""Â#"’Ğ¢7FF–2f"&–6T†VÇW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&–6Uö†VÇW""Â#Ò]}­í-í-İâ"’Ğ¢7FF–2f"Ö…'F–6—çG5F—FÆS¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"æÖ…÷'F–6—çG2"Â-	Í­Í½Íİ­m½Í­m-Â=}İ­m""’Ğ¢7FF–2f"VæÆ–Ö—FVE'F–6—çG3¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çVæÆ–Ö—FVE÷'F–6—çG2"Â-	İ]íÍ]m]İ"’Ğ¢7FF–2f"V&Æ—6„æ÷F–6S¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çV&Æ—6…öæ÷F–6R"Â-	ım½òı=½m­mmrıíMmâ=MR-Mİâ2-m}mb-"­½]İMbıíMm’â"’Ğ¢7FF–2f"V&Æ—6ƒ¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çV&Æ—6‚"Â-
+--í-‚ıíMmâ"’Ğ¢7FF–2f"6fT6†ævW3¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç6fUö6†ævW2"Â-	}]]=-‚"’Ğ¢7FF–2f"&–Ö'•V&Æ—6ƒ¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&–Ö'•÷V&Æ—6‚"Â-	íı=½m­=--‚ıíMmâ"’Ğ¢7FF–2f"&–Ö'•6fT6†ævW3¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç&–Ö'•÷6fUö6†ævW2"Â-	}]]=-‚}Ímİ‚"’Ğ¢7FF–2f"V&Æ—6†–æs¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çV&Æ—6†–ær"Â-	ı=½m­=MÍââââ"’Ğ¢7FF–2f"V&Æ—6†VE7V66W76gVÆÇ“¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"ç7V66W72"Â$WfVçBV&Æ—6†VB7V66W76gVÆÇ’â"’Ğ¢7FF–2f"WFFVE7V66W76gVÆÇ“¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çWFFVE÷7V66W72"Â$WfVçBWFFVB7V66W76gVÆÇ’â"’Ğ¢7FF–2f"7VÖÖ'•&WV—&VC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâç7VÖÖ'•÷&WV—&VB"Â-	­íí-­’íıíí"}ı}­í-’â"’Ğ¢7FF–2f"FWF–Ç5&WV—&VC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâæFWF–Ç5÷&WV—&VB"Â$FWF–Ç2&R&WV—&VBâ"’Ğ¢7FF–2f"FW67&—F–öå&WV—&VC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâæFW67&—F–öå÷&WV—&VB"Â$FW67&—F–öâ—2&WV—&VBâ"’Ğ¢7FF–2f"–çfÆ–DFFT÷&FW#¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâæ–çfÆ–EöFFUö÷&FW""Â$VæBFFR×W7B&RgFW"F†R7F'BFFRâ"’Ğ¢7FF–2f"7F'DFFT–å7C¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâç7F'EöFFUö–å÷7B"Â-	M-ıí}-­2İRÍímR=-‚"Íİ=½íÍ2â"’Ğ¢7FF–2f"–çfÆ–D66—G“¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâæ–çfÆ–Eö66—G’"Â-	Í­Í½Íİ­m½Í­m-Â=}İ­m"ÍB=-‚m½ÍRâ"’Ğ¢7FF–2f"–çfÆ–E&–6S¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâæ–çfÆ–E÷&–6R"Â-	--m-ÂİRÍímR=-‚-mN(	MÍİíââ"’Ğ¢7FF–2f"÷&væ—¦F–öå&WV—&VC¢7G&–ær²FW‡B‚&WfVçG2æVF—F÷"çfÆ–FF–öâæ÷&væ—¦F–öå÷&WV—&VB"Â-	í]m-Âí=İm}mmâM½òıíMmrâ"’Ğ¢7FF–2f"÷&væ—¦N7óÏ-¢G§²ÚîÆ­yÖ6¶W#¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç&öÆU÷–6¶W""Â-
+í½Â"’Ğ¢7FF–2f"&V6öåÆ6V†öÆFW#¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç&V6öâçÆ6V†öÆFW""Â-	ı}İòæ÷FR"’Ğ¢7FF–2f"76–vå&öÆT'WGFöã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ76–vå÷&öÆRæ'WGFöâ"Â-	ı}İ}-‚í½Â"’Ğ¢7FF–2f"6†ævT÷væW$'WGFöã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ6†ævUö÷væW"æ'WGFöâ"Â-	}Ímİ-‚-½İ­"’Ğ¢7FF–2f"76–vå&öÆU6V7F–öåF—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ76–vå÷&öÆRç6V7F–öå÷F—FÆR"Â-	ı}İ}-‚í½Â"’Ğ¢7FF–2f"76–vå&öÆU6V7F–öå7V'F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ76–vå÷&öÆRç6V7F–öå÷7V'F—FÆR"Â$÷væW"ı½-MíÍ‚ÍímRı}İ}-‚í½Â-m½Í­‚"­íİ­]-İm’í=İm}mmrâ"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆW5F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2çF—FÆR"Â-
+í½bı½-MíÍ‚"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆW57V'F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2ç7V'F—FÆR"Â$FÖ–âİRıí,«Íı}İ’mrí½ıÍ‚"í=İm}mmıRâ"’Ğ¢7FF–2f"7W'&VçEÆFf÷&Õ&öÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æ7W'&VçE÷&öÆR"Â-	ıí-í}İí½Â"’Ğ¢7FF–2f"76–väFÖ–ã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æ76–våööFÖ–â"Â-	ı}İ}-‚FÖ–â"’Ğ¢7FF–2f"&VÖ÷fTFÖ–ã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2ç&VÖ÷fUööFÖ–â"Â-	}İı-‚FÖ–â"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆT7F–öäfÆÆ&6µF—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æ7F–öå÷F—FÆR"Â-	}Ímİí½bı½-MíÍ‚"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆTVF—Dæ÷F–6S¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æVF—Eöæ÷F–6R"Â-	}Ímİí½b=MR-­íİİ}]]r6Æ÷VBgVæ7F–öâb}ıİ"VF—BÆörâ	}ıí-]‚-­mm-Âı}İ2"ıí½bİm}Rı]]BımM--]Mm]İİıÂâ"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆUW&Ö—76–öäFVæ–VC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2çW&Ö—76–öåöFVæ–VB"Â-	İ]Mí--İÍâı"M½ò}Ímİ‚í½bı½-MíÍ‚â"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆUF&vWD÷væW%&÷FV7FVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æW'&÷"çF&vWEö÷væW%÷&÷FV7FVB"Â$÷væW"}]]İ“¢}Ímİ-‚mâí½Â-="İRÍímİâ"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆU6VÆd6†ævU&V¦V7FVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æW'&÷"ç6VÆeö6†ævU÷&V¦V7FVB"Â-	-½İ2í½ÂİRÍímİ}Ímİ-‚"mÍíÍ2]­İbâ"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆUF&vWD66÷VçDæ÷EW6&ÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æW'&÷"çF&vWEö66÷VçEöæ÷E÷W6&ÆR"Â-
+í½ÂÍímİİM-‚½R­í-=-}2r­--İÂâıíı]]Mm]İÂ­=İ-íÂâ"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆTæô÷¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æW'&÷"ææõö÷"Â-
+mò}Ímİí½b-mR}-íí-İâ"’Ğ¢7FF–2f"ÆFf÷&Õ&öÆUF&vWDÖ—76–æs¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æW'&÷"çF&vWEöÖ—76–ær"Â-	­í-=-}M½ò}Ímİ‚í½bİR}İM]İââ"’Ğ¢7FF–2f"÷væW%&öÆT–Ö×WF&ÆTæ÷F–6S¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2æ÷væW%ö–Ö×WF&ÆR"Â$÷væW"İR}ÍmİíM-Íò"mÍíÍ2]­İbâ"’Ğ¢7FF–2f"6VÆe&öÆT6†ævTæ÷F–6S¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçÆFf÷&Õ÷&öÆW2ç6VÆeö6†ævUö&Æö6¶VB"Â-	-½İ2í½ÂİRÍímİ}Ímİ-‚-="â"’Ğ¢7FF–2f"7FGW5W&Ö—76–öäFVæ–VC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç7FGW2çW&Ö—76–öåöFVæ–VB"Â-	İ]Mí--İÍâı"M½ò}Ímİ‚--=2­í-=-}â"’Ğ¢7FF–2f"&öÆUW&Ö—76–öäFVæ–VC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç&öÆRçW&Ö—76–öåöFVæ–VB"Â-	İ]Mí--İÍâı"M½òı}İ}]İİòí½bâ"’Ğ¢7FF–2f"&VÖ÷fU&öÆUW&Ö—76–öäFVæ–VC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç&öÆRç&VÖ÷fU÷W&Ö—76–öåöFVæ–VB"Â-	İ]Mí--İÍâı"M½ò}İı--òí½bâ"’Ğ¢7FF–2f"÷væW$6†ævUW&Ö—76–öäFVæ–VC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷væW%ö6†ævRçW&Ö—76–öåöFVæ–VB"Â-	}Ímİ-‚-½İ­ÍímR½R÷væW"ı½-MíÍ‚â"’Ğ¢7FF–2f"÷væW$6†ævU6VÆV7DæWt÷væW#¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷væW%ö6†ævRç6VÆV7EöæWuö÷væW""Â-	í]m-Âİí-í=â-½İ­í=İm}mmrâ"’Ğ¢7FF–2f"6†ævW56fVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ6†ævW5÷6fVB"Â-	}Ímİ‚}]]m]İââ"’Ğ¢7FF–2f"6†ævW4f–ÆVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ6†ævW5öf–ÆVB"Â-	İR-M½íò}]]=-‚}Ímİ‚â"’Ğ¢7FF–2f"÷væW%G&ç6fW$öæÇ“¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷væW%÷G&ç6fW%ööæÇ’"Â-	ıí-í}İ’-½İ¢ÍímR=-‚}Ímİ]İ’½R}]]rG&ç6fW"÷væW#¢ı}İ}-R-½İ­íÂmİí=â­í-=-}"mm’í=İm}mmrâ"’Ğ¢7FF–2f"7F–öäfÆÆ&6µF—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ7F–öâæfÆÆ&6µ÷F—FÆR"Â-	Mmò"’Ğ¢7FF–2f"7F–öäVF—Dæ÷F–6S¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ7F–öâæVF—Eöæ÷F–6R"Â-	Mmò=MR}ıİ"VF—BÆörâ	}ıí-]‚-­mm-Âı}İ2"ıí½bİm}Rı]]BımM--]Mm]İİıÂâ"’Ğ¢7FF–2f"&VÖ÷fT÷&væ—¦F–öå&öÆUF—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç&öÆRç&VÖ÷fU÷F—FÆR"Â-	}İı-‚í½Â"í=İm}mmsò"’Ğ¢7FF–2f"&VÖ÷fT÷&væ—¦F–öå&öÆT'WGFöã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç&öÆRç&VÖ÷fUö'WGFöâ"Â-	}İı-‚í½Â"’Ğ¢7FF–2f"&VÖ÷fT÷væW%&öÆUv&æ–æs¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBç&öÆRç&VÖ÷fUö÷væW%÷v&æ–ær"Â-
+í½Â÷væW"İR}İmÍM-ÍòİııÍ2ÂíİR}½-‚í=İm}mmâ]r-½İ­â"’Ğ¢7FF–2f"6—G•&Vv–öã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ6—G•÷&Vv–öâ"Â-	Ím-âò]=míÒ"’Ğ¢7FF–2f"÷&væ—¦F–öå&öÆW5F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷&væ—¦F–öå÷&öÆW2çF—FÆR"Â-
+í½b"í=İm}mmıR"’Ğ¢7FF–2f"÷&væ—¦F–öå&öÆW57V'F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷&væ—¦F–öå÷&öÆW2ç7V'F—FÆR"Â-	í=İm}mmİbí½b­]=í-ÂMí-=ıíÂMâ--í]İİò-ÍíM]mmr­íİ-]İ-2â"’Ğ¢7FF–2f"÷&væ—¦F–öå&öÆW4V×G“¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷&væ—¦F–öå÷&öÆW2æV×G’"Â-
+í½]’"í=İm}mmıRİ]ÍBâ"’Ğ¢7FF–2f"&Æö6¶VEVçF–Ã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ&Æö6¶VE÷VçF–Â"Â-	½í­=-İİòMâ"’Ğ¢7FF–2f"VF—D†—7F÷'•F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæVF—Eö†—7F÷'’çF—FÆR"Â-m-ímòMm’"’Ğ¢7FF–2f"VF—D†—7F÷'•7V'F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæVF—Eö†—7F÷'’ç7V'F—FÆR"Â-	ıíı]]Mm]İİòÂ½í­=-İİòÂM]­--mmr-}Ímİ‚í½]’â"’Ğ¢7FF–2f"VF—D†—7F÷'”V×G“¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæVF—Eö†—7F÷'’æV×G’"Â-m-ímrMm’ıí­‚İ]ÍBâ"’Ğ¢7FF–2f"66÷VçD7F–öç5F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ66÷VçEö7F–öç2çF—FÆR"Â-	Mmrr­=İ-íÂ"’Ğ¢7FF–2f"66÷VçD7F–öç57V'F—FÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ66÷VçEö7F–öç2ç7V'F—FÆR"Â-
+Mm}}İR-M½]İİò­í-=-}İR-­íİ=M-Íòâ	M]­--mmò}]m=B--í--â-í=â­íİ-]İ-2â"’Ğ¢7FF–2f"f–ÇFW$ÆÃ¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"æÆÂ"Â-
+=b"’Ğ¢7FF–2f"f–ÇFW$7F—fS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"æ7F—fR"Â-	­--İb"’Ğ¢7FF–2f"f–ÇFW%v&æVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"çv&æVB"Â-	ıíı]]Mm]İİò"’Ğ¢7FF–2f"f–ÇFW%7W7VæFVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"ç7W7VæFVB"Â-
+-Í}í-â}½í­í-İb"’Ğ¢7FF–2f"f–ÇFW$&ææVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"æ&ææVB"Â-	}½í­í-İb"’Ğ¢7FF–2f"f–ÇFW$÷&væ—¦F–öä÷væW'3¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"æ÷&væ—¦F–öåö÷væW'2"Â-	-½İ­‚í=İm}mm’"’Ğ¢7FF–2f"f–ÇFW$÷&væ—¦F–öäFÖ–ç3¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"æ÷&væ—¦F–öåöFÖ–ç2"Â-	MÍmİ‚í=İm}mm’"’Ğ¢7FF–2f"f–ÇFW$÷&væ—¦F–öäÖöFW&F÷'3¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæf–ÇFW"æ÷&væ—¦F–öåöÖöFW&F÷'2"Â-	ÍíM]-í‚í=İm}mm’"’Ğ¢7FF–2f"7F–öåv&ã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ7F–öâçv&â"Â-	-M-‚ıíı]]Mm]İİò"’Ğ¢7FF–2f"7F–öå7W7VæC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ7F–öâç7W7VæB"Â-
+-Í}í-â}½í­=--‚"’Ğ¢7FF–2f"7F–öä&ã¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ7F–öâæ&â"Â-	}½í­=--‚İ}-mM‚"’Ğ¢7FF–2f"7F–öåVæ&Æö6³¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ7F–öâçVæ&Æö6²"Â-	}İı-‚½í­=-İİò"’Ğ¢7FF–2f"7F–öäFV7F—fFS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ7F–öâæFV7F—fFR"Â-	M]­--=--‚­í-=-}"’Ğ¢7FF–2f"÷&væ—¦F–öä÷væW%&öÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷&væ—¦F–öå÷&öÆRæ÷væW""Â-	-½İ¢í=İm}mmr"’Ğ¢7FF–2f"÷&væ—¦F–öäFÖ–å&öÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷&væ—¦F–öå÷&öÆRæFÖ–â"Â-	MÍmÒí=İm}mmr"’Ğ¢7FF–2f"÷&væ—¦F–öäÖöFW&F÷%&öÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ÷&væ—¦F–öå÷&öÆRæÖöFW&F÷""Â-	ÍíM]-íí=İm}mmr"’Ğ¢7FF–2gVæ2÷&væ—¦F–öå&öÆW4FF—F–öæÄ6÷VçB…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚'W6W%öÖævVÖVçBæ÷&væ—¦F–öå÷&öÆW2æFF—F–öæÅö6÷VçB"ÂFVfVÇEfÇVS¢"VÆÆBí2â"Â&wVÖVçG3¢¶6÷VçEÒ¢Ğ¢7FF–2f"V–C¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBçV–B"Â%T”B"’Ğ¢7FF–2f"¦ö–æVC¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ¦ö–æVB"Â-	M-]M-mmr"’Ğ¢7FF–2f"ÆVv7•&öÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæÆVv7•÷&öÆR"Â$ÆVv7’&öÆR"’Ğ¢7FF–2f"vÆö&Å&öÆS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBævÆö&Å÷&öÆR"Â$vÆö&Â&öÆR"’Ğ¢7FF–2f"66÷VçE7FGW3¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ66÷VçE÷7FGW2"Â$66÷VçB7FGW2"’Ğ¢7FF–2f"—77VS¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ—77VR"Â$—77VR"’Ğ¢7FF–2f"—77VTFÖ–ävÆö&Å&öÆTÖ—6ÖF6ƒ¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ—77VRæFÖ–åövÆö&Å÷&öÆUöÖ—6ÖF6‚"Â$ÆVv7’FÖ–â—2æ÷BÖVBFòF÷FÖ–â"’Ğ¢7FF–2f"—77VT÷væW$vÆö&Å&öÆTÖ—6ÖF6ƒ¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ—77VRæ÷væW%övÆö&Å÷&öÆUöÖ—6ÖF6‚"Â$ÆVv7’÷væW"—2æ÷BÖVBFò÷væW""’Ğ¢7FF–2f"—77VUW6W$vÆö&Å&öÆTÖ—76–æs¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ—77VRçW6W%övÆö&Å÷&öÆUöÖ—76–ær"Â$ÆVv7’W6W"—2Ö—76–ærvÆö&Â&öÆR"’Ğ¢7FF–2f"—77VT&Æö6¶VE7FGW4Ö—6ÖF6ƒ¢7G&–ær²FW‡B‚'W6W%öÖævVÖVçBæ—77VRæ&Æö6¶VE÷7FGW5öÖ—6ÖF6‚"Â$&Æö6¶VBW6W"7F–ÆÂ†27F—fR66÷VçB7FGW2"’Ğ¢Ğ ¢VçVÒfVFW&Å7FFW2°¢7FF–2gVæ2F—FÆR†f÷"7FFS¢W7G&–äfVFW&Å7FFR’Óâ7G&–ær°¢7v—F6‚7FFR°¢66Ræ'W&vVæÆæC ¢FW‡B‚&fVFW&Å÷7FFRæ'W&vVæÆæB"Â$'W&vVæÆæB"¢66Ræ¶W&çFVã ¢FW‡B‚&fVFW&Å÷7FFRæ¶W&çFVâ"Â$¶W&çFVâ"¢66Rææ–VFW&öW7FW'&V–6ƒ ¢FW‡B‚&fVFW&Å÷7FFRææ–VFW&öW7FW'&V–6‚"Â$æ–VFW&öW7FW'&V–6‚"¢66Ræö&W&öW7FW'&V–6ƒ ¢FW‡B‚&fVFW&Å÷7FFRæö&W&öW7FW'&V–6‚"Â$ö&W&öW7FW'&V–6‚"¢66Rç6Ç¦'W&s ¢FW‡B‚&fVFW&Å÷7FFRç6Ç¦'W&r"Â%6Ç¦'W&r"¢66Rç7FV–W&Ö&³ ¢FW‡B‚&fVFW&Å÷7FFRç7FV–W&Ö&²"Â%7FV–W&Ö&²"¢66RçF—&öÃ ¢FW‡B‚&fVFW&Å÷7FFRçF—&öÂ"Â%F—&öÂ"¢66Rçf÷&&Æ&W&s ¢FW‡B‚&fVFW&Å÷7FFRçf÷&&Æ&W&r"Â%f÷&&Æ&W&r"¢66Rçv–Vã ¢FW‡B‚&fVFW&Å÷7FFRçv–Vâ"Â%v–Vâ"¢Ğ¢Ğ¢Ğ ¢VçVÒ7F—f—G”Æör°¢7FF–2f"&Vv—7FW&VDf÷$WfVçC¢7G&–ær²FW‡B‚&7F—f—G•öÆörç&Vv—7FW&VEöf÷%öWfVçB"Â-	}]M-=--òİıíMmâ"’Ğ¢7FF–2f"6æ6VÆVDWfVçE&Vv—7G&F–öã¢7G&–ær²FW‡B‚&7F—f—G•öÆöræ6æ6VÆVEöWfVçE÷&Vv—7G&F–öâ"Â-
+­=-"]M-mmâİıíMmâ"’Ğ¢7FF–2f"föÆÆ÷vVD÷&væ—¦F–öã¢7G&–ær²FW‡B‚&7F—f—G•öÆöræföÆÆ÷vVEö÷&væ—¦F–öâ"Â-	ımMı-òİí=İm}mmâ"’Ğ¢7FF–2f"VæföÆÆ÷vVD÷&væ—¦F–öã¢7G&–ær²FW‡B‚&7F—f—G•öÆörçVæföÆÆ÷vVEö÷&væ—¦F–öâ"Â-	-mMı-ò-mBí=İm}mmr"’Ğ¢7FF–2f"6fVDæWw3¢7G&–ær²FW‡B‚&7F—f—G•öÆörç6fVEöæWw2"Â-	}]m2İí-İ2"’Ğ¢7FF–2f"Vç6fVDæWw3¢7G&–ær²FW‡B‚&7F—f—G•öÆörçVç6fVEöæWw2"Â-	ı"İí-İ2}b}]]m]İí=â"’Ğ¢7FF–2f"6fVDWfVçC¢7G&–ær²FW‡B‚&7F—f—G•öÆörç6fVEöWfVçB"Â-	}]m2ıíMmâ"’Ğ¢7FF–2f"Vç6fVDWfVçC¢7G&–ær²FW‡B‚&7F—f—G•öÆörçVç6fVEöWfVçB"Â-	ı"ıíMmâ}b}]]m]İí=â"’Ğ¢7FF–2f"6fVD÷&væ—¦F–öã¢7G&–ær²FW‡B‚&7F—f—G•öÆörç6fVEö÷&væ—¦F–öâ"Â-	}]m2í=İm}mmâ"’Ğ¢7FF–2f"Vç6fVD÷&væ—¦F–öã¢7G&–ær²FW‡B‚&7F—f—G•öÆörçVç6fVEö÷&væ—¦F–öâ"Â-	ı"í=İm}mmâ}b}]]m]İí=â"’Ğ¢Ğ ¢VçVÒ6WGF–æw2°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚'6WGF–æw2çF—FÆR"Â%6WGF–æw2"’Ğ¢7FF–2f"ÆæwVvS¢7G&–ær²FW‡B‚'6WGF–æw2æÆæwVvR"Â$ÆæwVvR"’Ğ¢7FF–2f"V&æ6S¢7G&–ær²FW‡B‚'6WGF–æw2æV&æ6R"Â$V&æ6R"’Ğ¢7FF–2f"&—f7•öÆ–7“¢7G&–ær²FW‡B‚'6WGF–æw2ç&—f7•÷öÆ–7’"Â%&—f7’öÆ–7’"’Ğ¢7FF–2f"FW&×3¢7G&–ær²FW‡B‚'6WGF–æw2çFW&×2"Â%FW&×2"’Ğ¢7FF–2f"Æ6V†öÆFW#¢7G&–ær²FW‡B‚'6WGF–æw2çÆ6V†öÆFW""Â%Æ6V†öÆFW""’Ğ¢7FF–2f"&VfW&Væ6W57V'F—FÆS¢7G&–ær²FW‡B‚'6WGF–æw2ç&VfW&Væ6W2ç7V'F—FÆR"Â$F§W7BF†RÆæwVvRæBV&æ6Rf÷"F†—2FWf–6Râ"’Ğ¢7FF–2f"ÆVvÅ6V7F–öã¢7G&–ær²FW‡B‚'6WGF–æw2æÆVvÅ÷6V7F–öâ"Â$ÆVvÂ"’Ğ¢7FF–2f"ÆVvÅ6V7F–öå7V'F—FÆS¢7G&–ær²FW‡B‚'6WGF–æw2æÆVvÅ÷6V7F–öâç7V'F—FÆR"Â%&Wf–WrF†R7W'&VçB&öGV7BFW&×2æB&—f7’–æf÷&ÖF–öââ"’Ğ¢7FF–2f"6W76–öå6V7F–öã¢7G&–ær²FW‡B‚'6WGF–æw2ç6W76–öå÷6V7F–öâ"Â%6W76–öâ"’Ğ¢7FF–2f"6W76–öå7V'F—FÆS¢7G&–ær²FW‡B‚'6WGF–æw2ç6W76–öâç7V'F—FÆR"Â%–÷R6â6–vâ÷WBBç’F–ÖRæB&WGW&âFòwVW7B'&÷w6–ærâ"’Ğ¢7FF–2f"vW&Öã¢7G&–ær²FW‡B‚'6WGF–æw2æÆæwVvRævW&Öâ"Â$vW&Öâ"’Ğ¢7FF–2f"V·&–æ–ã¢7G&–ær²FW‡B‚'6WGF–æw2æÆæwVvRçV·&–æ–â"Â%V·&–æ–â"’Ğ¢7FF–2f"7—7FVÓ¢7G&–ær²FW‡B‚'6WGF–æw2æV&æ6Rç7—7FVÒ"Â%7—7FVÒ"’Ğ¢7FF–2f"Æ–v‡C¢7G&–ær²FW‡B‚'6WGF–æw2æV&æ6RæÆ–v‡B"Â$Æ–v‡B"’Ğ¢7FF–2f"F&³¢7G&–ær²FW‡B‚'6WGF–æw2æV&æ6RæF&²"Â$F&²"’Ğ¢Ğ ¢VçVÒÆVvÂ°¢7FF–2f"fW'6–öäÆ&VÃ¢7G&–ær²FW‡B‚&ÆVvÂçfW'6–öåöÆ&VÂ"Â%fW'6–öâT"’Ğ¢7FF–2f"Æ7EWFFVDÆ&VÃ¢7G&–ær²FW‡B‚&ÆVvÂæÆ7E÷WFFVEöÆ&VÂ"Â$Æ7BWFFVBT"’Ğ ¢7FF–2f"FW&×4–çG&õF—FÆS¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æ–çG&òçF—FÆR"Â%W6–ærF†R"’Ğ¢7FF–2f"FW&×4–çG&ô&öG“¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æ–çG&òæ&öG’"Â%V·&–æ–â6öÖ×Væ—G’F—&öÂ†VÇ2V÷ÆRF—66÷fW"V&Æ–2WFFW2ÂWfVçG2Â÷&væ—¦F–öç2ÂæB&7F–6Â6öÖ×Væ—G’–æf÷&ÖF–öââ'’W6–ærF†Rv—F‚â66÷VçBÂ–÷Rw&VRFòW6R—BÆvgVÆÇ’Â&W7V7FgVÆÇ’ÂæBöæÇ’f÷"—G2–çFVæFVB6öÖ×Væ—G’W'÷6Râ"’Ğ¢7FF–2f"FW&×466÷VçEF—FÆS¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æ66÷VçBçF—FÆR"Â$66÷VçB&W7öç6–&–Æ—F–W2"’Ğ¢7FF–2f"FW&×466÷VçD&öG“¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æ66÷VçBæ&öG’"Â%–÷R&R&W7öç6–&ÆRf÷"F†R67W&7’öbF†R&öf–ÆRFWF–Ç2–÷R&÷f–FRÂf÷"¶VW–ær–÷W"6–vâÖ–â7&VFVçF–Ç2&—fFRÂæBf÷"F†R7F–öç2F¶VâF‡&÷Vv‚–÷W"66÷VçBâ–÷RÖ’æ÷B–×W'6öæFR÷F†W"V÷ÆR÷"7&VFR66÷VçG2FòWfFRÖöFW&F–öââ"’Ğ¢7FF–2f"FW&×46öçFVçEF—FÆS¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æ6öçFVçBçF—FÆR"Â$6öÖ×Væ—G’6öçFVçBæBÖöFW&F–öâ"’Ğ¢7FF–2f"FW&×46öçFVçD&öG“¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æ6öçFVçBæ&öG’"Â%W6W"×7V&Ö—GFVB6öçFVçB6â&R&Wf–WvVBÂÆ–Ö—FVBÂ÷"&VÖ÷fVBv†Vâ—B—2Ö—6ÆVF–ærÂVç6fRÂVæÆvgVÂÂ'W6—fRÂF—67&–Ö–æF÷'’Â7ÒÖÆ–¶RÂ÷"Vç&VÆFVBFòF†R(	—2W'÷6Râ&öÆW2v—F‚ÖöFW&F–öâ&W7öç6–&–Æ—F–W2Ö’ÖævR6öçFVçB66÷&F–ærFòF†R&ö¦V7N(	—2ÖöFW&F–öâÖöFVÂâ"’Ğ¢7FF–2f"FW&×4f–Æ&–Æ—G•F—FÆS¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æf–Æ&–Æ—G’çF—FÆR"Â$f–Æ&–Æ—G’æB6†ævW2"’Ğ¢7FF–2f"FW&×4f–Æ&–Æ—G”&öG“¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æf–Æ&–Æ—G’æ&öG’"Â%vRÖ’–×&÷fRÂ6†ævRÂ÷"FV×÷&&–Ç’Æ–Ö—B'G2öbF†R6W'f–6RÂ–æ6ÇVF–ær6öÖ×Væ—G’fVGW&W2æB66÷VçB66W72ÂFòÖ–çF–â&VÆ–&–Æ—G’Â6V7W&—G’ÂæB6ö×Æ–æ6RâvRFòæ÷B&öÖ—6RVæ–çFW''WFVBf–Æ&–Æ—G’â"’Ğ¢7FF–2f"FW&×4Æ–&–Æ—G•F—FÆS¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æÆ–&–Æ—G’çF—FÆR"Â$–æf÷&ÖF–öâæB&W7öç6–&–Æ—G’"’Ğ¢7FF–2f"FW&×4Æ–&–Æ—G”&öG“¢7G&–ær²FW‡B‚&ÆVvÂçFW&×2æÆ–&–Æ—G’æ&öG’"Â%F†R—2–çFVæFVBFò7W÷'B÷&–VçFF–öâæB6öÖ×Væ—G’6ö÷&F–æF–öââ—BFöW2æ÷B&WÆ6RÆVvÂÂÖVF–6ÂÂf–ææ6–ÂÂ÷"öff–6–Âv÷fW&æÖVçBGf–6RâW6W'2&VÖ–â&W7öç6–&ÆRf÷"FV6—6–öç2F†W’Ö¶R&6VBöâ6†&VB–æf÷&ÖF–öââ"’Ğ ¢7FF–2f"&—f7”–çG&õF—FÆS¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’æ–çG&òçF—FÆR"Â%v†BvR7F÷&R"’Ğ¢7FF–2f"&—f7”–çG&ô&öG“¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’æ–çG&òæ&öG’"Â%v†Vâ–÷R7&VFRâ66÷VçBÂvR7F÷&RF†R&öf–ÆRf–VÆG2æVVFVBf÷"F†RFògVæ7F–öã¢VÖ–ÂFG&W72ÂF—7Æ’æÖRÂ÷F–öæÂFVÆVw&ÒW6W&æÖRÂ6VÆV7FVBfVFW&Â7FFRÂ&öÆR÷7FGW2f–VÆG2ÂæBF–ÖW7F×2&VÆFVBFò66÷VçB7&VF–öâæB6öç6VçBâ"’Ğ¢7FF–2f"&—f7•W6vUF—FÆS¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’çW6vRçF—FÆR"Â%v‡’vRW6R–÷W"FF"’Ğ¢7FF–2f"&—f7•W6vT&öG“¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’çW6vRæ&öG’"Â%vRW6R66÷VçBFFFòWF†VçF–6FR–÷RÂ6†÷r–÷W"&öf–ÆRÂÇ’W&Ö—76–öç2Â7W÷'BfVVF&6²æBWfVçB&Vv—7G&F–öâÂæB¶VWF†R6öÖ×Væ—G’76R6fRF‡&÷Vv‚ÖöFW&F–öâæB'W6R&WfVçF–öââ"’Ğ¢7FF–2f"&—f7•7F÷&vUF—FÆS¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’ç7F÷&vRçF—FÆR"Â%7F÷&vRæB6W'f–6R&÷f–FW'2"’Ğ¢7FF–2f"&—f7•7F÷&vT&öG“¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’ç7F÷&vRæ&öG’"Â%F†—2W6W2f—&V&6R6W'f–6W2f÷"WF†VçF–6F–öâÂFF&6R7F÷&vRÂæBÖVF–7F÷&vRâFF—2&ö6W76VBöæÇ’FòFVÆ—fW"F†R(	—2fVGW&W2ÂÖ–çF–â6V7W&—G’ÂæB7W÷'B–çFW&æÂ÷W&F–öç2â"’Ğ¢7FF–2f"&—f7•6†&–æuF—FÆS¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’ç6†&–ærçF—FÆR"Â%6†&–æræBf—6–&–Æ—G’"’Ğ¢7FF–2f"&—f7•6†&–æt&öG“¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’ç6†&–æræ&öG’"Â%vRFòæ÷B6VÆÂ–÷W"W'6öæÂFFâ6öÖR&öf–ÆR–æf÷&ÖF–öâæBW6W"ÖvVæW&FVB6öçFVçBÖ’&Rf—6–&ÆR–ç6–FRF†Rv†W&RæVVFVBf÷"6öÖ×Væ—G’fVGW&W2âFÖ–æ—7G&F—fRæBÖöFW&F–öâ&öÆW2Ö’66W72&VÆWfçB&V6÷&G2FòVæf÷&6R'VÆW2æBÖævRF†R6W'f–6Râ"’Ğ¢7FF–2f"&—f7•&–v‡G5F—FÆS¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’ç&–v‡G2çF—FÆR"Â%–÷W"6†ö–6W2"’Ğ¢7FF–2f"&—f7•&–v‡G4&öG“¢7G&–ær²FW‡B‚&ÆVvÂç&—f7’ç&–v‡G2æ&öG’"Â%–÷R6âWFFR7W÷'FVB&öf–ÆRf–VÆG2–âF†Râ–b–÷RæVVB†VÇv—F‚66÷VçBFFÂÖöFW&F–öâVW7F–öç2Â÷"FVÆWF–öâ&WVW7G2Â6öçF7BF†R&ö¦V7BFVÒF‡&÷Vv‚F†R&÷f–FVB7W÷'B6†ææVÂâ"’Ğ¢7FF–2f"67&VVä–çG&ó¢7G&–ær²FW‡B‚&ÆVvÂç67&VVåö–çG&ò"Â%F†W6R–âÖFö7VÖVçG2FW67&–&RF†R7W'&VçB&öGV7BFW&×2æB&—f7’†æFÆ–ærf÷"–çFW&æÂæBFW7DfÆ–v‡B×7G–ÆRW6Râ"’Ğ¢Ğ ¢VçVÒÆVvÄ6ö×Æ–æ6R°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RçF—FÆR"Â%WFFVBÆVvÂFö7VÖVçG2"’Ğ¢7FF–2f"ÖW76vS¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RæÖW76vR"Â%ÆV6R&Wf–WræB66WBF†RWFFVBFW&×2÷"&—f7’öÆ–7’Fò6öçF–çVRW6–ær–÷W"&Vv—7FW&VB66÷VçBâ"’Ğ¢7FF–2f"&VDFö7VÖVçC¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6Rç&VEöFö7VÖVçB"Â%&VBFö7VÖVçB"’Ğ¢7FF–2f"&VDFö7VÖVçE7V'F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6Rç&VEöFö7VÖVçBç7V'F—FÆR"Â%&Wf–WrF†R7W'&VçB7F—fRfW'6–öâ&Vf÷&R66WF–ærâ"’Ğ¢7FF–2f"66WDÆÃ¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6Ræ66WEöÆÂ"Â$66WB&WV—&VBFö7VÖVçG2"’Ğ¢7FF–2f"66WF–æs¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6Ræ66WF–ær"Â$66WF–æ~(
+b"’Ğ¢7FF–2f"FV6Æ–æS¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RæFV6Æ–æR"Â$FV6Æ–æRæB6–vâ÷WB"’Ğ¢7FF–2f"FV6Æ–æT6öæf—&ÕF—FÆS¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RæFV6Æ–æRæ6öæf—&ÒçF—FÆR"Â$FV6Æ–æRWFFVBFW&×3ò"’Ğ¢7FF–2f"FV6Æ–æT6öæf—&ÔÖW76vS¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RæFV6Æ–æRæ6öæf—&ÒæÖW76vR"Â%v—F†÷WB66WF–ærF†RWFFVBFW&×2Â–÷R6ææ÷BW6R–÷W"&Vv—7FW&VB66÷VçBâ–÷Rv–ÆÂ&R6–væVB÷WBæB&WGW&æVBFòwVW7BÖöFRâ"’Ğ¢7FF–2f"FV6Æ–æT6öæf—&Ô7F–öã¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RæFV6Æ–æRæ6öæf—&Òæ7F–öâ"Â%6–vâ÷WB"’Ğ¢7FF–2f"ÆöDf–ÆVC¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RæW'&÷"æÆöEöf–ÆVB"Â%Væ&ÆRFò6†V6²F†R7W'&VçBÆVvÂFö7VÖVçG2&–v‡Bæ÷râ"’Ğ¢7FF–2f"66WDf–ÆVC¢7G&–ær²FW‡B‚&ÆVvÅö6ö×Æ–æ6RæW'&÷"æ66WEöf–ÆVB"Â%Væ&ÆRFò6fR–÷W"66WFæ6Râ6†V6²–÷W"6öææV7F–öâæBG'’v–ââ"’Ğ¢Ğ ¢VçVÒÆVvÄÖævVÖVçB°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçF—FÆR"Â$ÆVvÂFö7VÖVçG2"’Ğ¢7FF–2f"7V'F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBç7V'F—FÆR"Â$ÖævR7F—fRFW&×2æB&—f7’Fö7VÖVçG2ÂG&gG2ÂæB&WV—&VB&V66WFæ6Râ"’Ğ¢7FF–2f"W&Ö—76–öåF—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçW&Ö—76–öâçF—FÆR"Â$÷væW"66W72&WV—&VB"’Ğ¢7FF–2f"W&Ö—76–öäÖW76vS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçW&Ö—76–öâæÖW76vR"Â$öæÇ’F†R÷væW"6âÖævRÆVvÂFö7VÖVçG2â"’Ğ¢7FF–2f"ÆöDf–ÆVC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæW'&÷"æÆöEöf–ÆVB"Â%Væ&ÆRFòÆöBÆVvÂFö7VÖVçG2â"’Ğ¢7FF–2f"FW&×57V'F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçFW&×2ç7V'F—FÆR"Â%FW&×2öb6W'f–6R6†÷vâFò&Vv—7FW&VBW6W'2â"’Ğ¢7FF–2f"&—f7•7V'F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBç&—f7’ç7V'F—FÆR"Â%&—f7’öÆ–7’6†÷vâFò&Vv—7FW&VBW6W'2â"’Ğ¢7FF–2f"&WV—&W466WFæ6S¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBç&WV—&W5ö66WFæ6R"Â%&WV—&W266WFæ6R"’Ğ¢7FF–2f"66WFæ6Tæ÷E&WV—&VC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæ66WFæ6Uöæ÷E÷&WV—&VB"Â$66WFæ6Ræ÷B&WV—&VB"’Ğ¢7FF–2f"G&gDW†—7G3¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæG&gEöW†—7G2"Â$G&gBW†—7G2"’Ğ¢7FF–2f"7&VFTG&gC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæ7&VFUöG&gB"Â$7&VFRG&gB"’Ğ¢7FF–2f"VF—DG&gC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæVF—EöG&gB"Â$VF—BG&gB"’Ğ¢7FF–2f"VF—F÷%7V'F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæVF—F÷"ç7V'F—FÆR"Â$VF—BÆö6Æ—¦VBÖ&¶F÷vâæBV&Æ—6‚æWr–Ö×WF&ÆRfW'6–öââ"’Ğ¢7FF–2gVæ2VF—F÷%F—FÆR…òFö7VÖVçEF—FÆS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&ÆVvÅöÖævVÖVçBæVF—F÷"çF—FÆR"À¢FVfVÇEfÇVS¢$VF—BT"À¢&wVÖVçG3¢¶Fö7VÖVçEF—FÆUĞ¢¢Ğ¢7FF–2f"VF—F÷$–çG&ó¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæVF—F÷"æ–çG&ò"Â$G&gB6†ævW2&R&—fFRVçF–ÂV&Æ—6†VBâV&Æ—6†–ærWFFW2F†R7F—fRfW'6–öâf÷"ÆÂW6W'2â"’Ğ¢7FF–2f"fW'6–öå6V7F–öã¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçfW'6–öâç6V7F–öâ"Â%fW'6–öâæB66WFæ6R"’Ğ¢7FF–2f"fW'6–öå6V7F–öå7V'F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçfW'6–öâç6V7F–öâç7V'F—FÆR"Â%V&Æ—6†–ærF†—2G&gB7&VFW2F†RæW‡B7F—fRÆVvÂfW'6–öââ"’Ğ¢7FF–2f"6†ævU7VÖÖ'“¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæ6†ævU÷7VÖÖ'’"Â$6†ævR7VÖÖ'’"’Ğ¢7FF–2f"Æö6Æ—¦VD6öçFVçC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæÆö6Æ—¦VEö6öçFVçB"Â$Æö6Æ—¦VB6öçFVçB"’Ğ¢7FF–2f"Æö6Æ—¦VD6öçFVçE7V'F—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæÆö6Æ—¦VEö6öçFVçBç7V'F—FÆR"Â$VF—BF†RF—FÆRæBÖ&¶F÷vâ&öG’f÷"V6‚7W÷'FVBÆæwVvRâ"’Ğ¢7FF–2f"Æö6ÆU–6¶W#¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæÆö6ÆU÷–6¶W""Â$ÆæwVvR"’Ğ¢7FF–2f"Æö6Æ—¦VEF—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæÆö6Æ—¦VE÷F—FÆR"Â$Æö6Æ—¦VBF—FÆR"’Ğ¢7FF–2f"6fTG&gC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBç6fUöG&gB"Â%6fRG&gB"’Ğ¢7FF–2f"6f–æs¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBç6f–ær"Â%6f–æ~(
+b"’Ğ¢7FF–2f"G&gE6fVC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæG&gE÷6fVB"Â$G&gB6fVBâ"’Ğ¢7FF–2f"6fTf–ÆVC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæW'&÷"ç6fUöf–ÆVB"Â%Væ&ÆRFò6fRG&gBâ"’Ğ¢7FF–2f"&Wf–Ws¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBç&Wf–Wr"Â%&Wf–Wr"’Ğ¢7FF–2f"V&Æ—6ƒ¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçV&Æ—6‚"Â%V&Æ—6‚æWrfW'6–öâ"’Ğ¢7FF–2f"V&Æ—6†–æs¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçV&Æ—6†–ær"Â%V&Æ—6†–æ~(
+b"’Ğ¢7FF–2f"V&Æ—6„f–ÆVC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBæW'&÷"çV&Æ—6…öf–ÆVB"Â%Væ&ÆRFòV&Æ—6‚ÆVvÂFö7VÖVçBâ"’Ğ¢7FF–2f"Ö—76–ætvW&ÖåF—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçfÆ–FF–öâæÖ—76–æuövW&Öå÷F—FÆR"Â$Ö—76–ærvW&ÖâF—FÆR"’Ğ¢7FF–2f"Ö—76–ætvW&Öä6öçFVçC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçfÆ–FF–öâæÖ—76–æuövW&Öåö6öçFVçB"Â$Ö—76–ærvW&Öâ6öçFVçB"’Ğ¢7FF–2f"Ö—76–æuV·&–æ–åF—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçfÆ–FF–öâæÖ—76–æu÷V·&–æ–å÷F—FÆR"Â$Ö—76–ærV·&–æ–âF—FÆR"’Ğ¢7FF–2f"Ö—76–æuV·&–æ–ä6öçFVçC¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçfÆ–FF–öâæÖ—76–æu÷V·&–æ–åö6öçFVçB"Â$Ö—76–ærV·&–æ–â6öçFVçB"’Ğ¢7FF–2f"V&Æ—6„6öæf—&ÕF—FÆS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçV&Æ—6‚æ6öæf—&ÒçF—FÆR"Â%V&Æ—6‚æWrÆVvÂfW'6–öãò"’Ğ¢7FF–2f"V&Æ—6„6öæf—&ÔÖW76vS¢7G&–ær²FW‡B‚&ÆVvÅöÖævVÖVçBçV&Æ—6‚æ6öæf—&ÒæÖW76vR"Â%F†—2fW'6–öâ&V6öÖW2–Ö×WF&ÆRæB&WÆ6W2F†R7F—fRFö7VÖVçBâ–b66WFæ6R—2&WV—&VBÂW6W'2v—F‚öÆFW"66WFVBfW'6–öç2v–ÆÂæVVBFò66WBv–ââ"’Ğ¢Ğ ¢VçVÒ&öÆW2°¢7FF–2f"W6W#¢7G&–ær²FW‡B‚'&öÆRçW6W""Â%W6W""’Ğ¢7FF–2f"ÖöFW&F÷#¢7G&–ær²FW‡B‚'&öÆRæÖöFW&F÷""Â$ÖöFW&F÷""’Ğ¢7FF–2f"FÖ–ã¢7G&–ær²FW‡B‚'&öÆRæFÖ–â"Â$FÖ–â"’Ğ¢7FF–2f"÷væW#¢7G&–ær²FW‡B‚'&öÆRæ÷væW""Â$÷væW""’Ğ¢7FF–2f"F÷FÖ–ã¢7G&–ær²FW‡B‚'&öÆRçF÷öFÖ–â"Â%F÷FÖ–â"’Ğ¢Ğ ¢VçVÒF–Æöw2°¢7FF–2f"W'&÷%F—FÆS¢7G&–ær°¢7G&–ær€¢Æö6Æ—¦VC¢&F–Æöw2æW'&÷"çF—FÆR"À¢FVfVÇEfÇVS¢%6öÖWF†–ærvVçBw&öær"À¢'VæFÆS¢æÖ–âÀ¢Æö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆP¢¢Ğ ¢7FF–2f"7V66W75F—FÆS¢7G&–ær°¢7G&–ær€¢Æö6Æ—¦VC¢&F–Æöw2ç7V66W72çF—FÆR"À¢FVfVÇEfÇVS¢$FöæR"À¢'VæFÆS¢æÖ–âÀ¢Æö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆP¢¢Ğ¢Ğ ¢VçVÒ6öÖÖöâ°¢7FF–2f"¢7G&–ær²FW‡B‚&6öÖÖöâæ"Â$"’Ğ¢7FF–2f"ö³¢7G&–ær²FW‡B‚&6öÖÖöâæö²"Â$ô²"’Ğ¢7FF–2f"FöæS¢7G&–ær²FW‡B‚&6öÖÖöâæFöæR"Â-	=í-í-â"’Ğ¢7FF–2f"6æ6VÃ¢7G&–ær²FW‡B‚&6öÖÖöâæ6æ6VÂ"Â$6æ6VÂ"’Ğ¢7FF–2f"&6³¢7G&–ær²FW‡B‚&6öÖÖöâæ&6²"Â$&6²"’Ğ¢7FF–2f"Æ–¶W3¢7G&–ær²FW‡B‚&6öÖÖöâæÆ–¶W2"Â$Æ–¶W2"’Ğ¢7FF–2f"6öÖÖVçG3¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖÖVçG2"Â$6öÖÖVçG2"’Ğ¢7FF–2f"6—G“¢7G&–ær²FW‡B‚&6öÖÖöâæ6—G’"Â$6—G’"’Ğ¢7FF–2f"fVçVS¢7G&–ær²FW‡B‚&6öÖÖöâçfVçVR"Â%fVçVR"’Ğ¢7FF–2f"vV'6—FS¢7G&–ær²FW‡B‚&6öÖÖöâçvV'6—FR"Â%vV'6—FR"’Ğ¢7FF–2f"6öçF7C¢7G&–ær²FW‡B‚&6öÖÖöâæ6öçF7B"Â$6öçF7B"’Ğ¢7FF–2f"&–6S¢7G&–ær²FW‡B‚&6öÖÖöâç&–6R"Â%&–6R"’Ğ¢7FF–2f"W‡—&W3¢7G&–ær²FW‡B‚&6öÖÖöâæW‡—&W2"Â$W‡—&W2"’Ğ¢7FF–2f"7FGW3¢7G&–ær²FW‡B‚&6öÖÖöâç7FGW2"Â%7FGW2"’Ğ¢7FF–2f"7F—fS¢7G&–ær²FW‡B‚&6öÖÖöâæ7F—fR"Â$7F—fR"’Ğ¢7FF–2f"&Æö6¶VC¢7G&–ær²FW‡B‚&6öÖÖöâæ&Æö6¶VB"Â$&Æö6¶VB"’Ğ¢7FF–2f"v&æVC¢7G&–ær²FW‡B‚&6öÖÖöâçv&æVB"Â-	ıíı]]Mm]İİò"’Ğ¢7FF–2f"FV×÷&&–Ç”&Æö6¶VC¢7G&–ær²FW‡B‚&6öÖÖöâçFV×÷&&–Ç•ö&Æö6¶VB"Â-
+-Í}í-â}½í­í-İâ"’Ğ¢7FF–2f"FV7F—fFVC¢7G&–ær²FW‡B‚&6öÖÖöâæFV7F—fFVB"Â-	M]­--í-İâ"’Ğ¢7FF–2f"G&gC¢7G&–ær²FW‡B‚&6öÖÖöâæG&gB"Â$G&gB"’Ğ¢7FF–2f"VæF–æu&Wf–Ws¢7G&–ær²FW‡B‚&6öÖÖöâçVæF–æu÷&Wf–Wr"Â-	í}m­=BımM--]Mm]İİò"’Ğ¢7FF–2f"æVVG5&Wf—6–öã¢7G&–ær²FW‡B‚&6öÖÖöâææVVG5÷&Wf—6–öâ"Â-	ıí-]=BMííımí-İİò"’Ğ¢7FF–2f"&÷fVC¢7G&–ær²FW‡B‚&6öÖÖöâæ&÷fVB"Â$&÷fVB"’Ğ¢7FF–2f"&V¦V7FVC¢7G&–ær²FW‡B‚&6öÖÖöâç&V¦V7FVB"Â-	-mM]½]İâ"’Ğ¢7FF–2f"&6†—fVC¢7G&–ær²FW‡B‚&6öÖÖöâæ&6†—fVB"Â$&6†—fVB"’Ğ¢7FF–2f"æô—FV×3¢7G&–ær²FW‡B‚&6öÖÖöâææõö—FV×2"Â$æò—FV×2f–Æ&ÆRâ"’Ğ¢7FF–2f"æ÷Df–Æ&ÆS¢7G&–ær²FW‡B‚&6öÖÖöâææ÷Eöf–Æ&ÆR"Â$æ÷Bf–Æ&ÆR"’Ğ¢7FF–2f"f–WtÆÃ¢7G&–ær²FW‡B‚&6öÖÖöâçf–WuöÆÂ"Â-	M--ò-b"’Ğ¢7FF–2f"6öÖÖVçG5Æ6V†öÆFW#¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖÖVçG5÷Æ6V†öÆFW""Â$6öÖÖVçG2&RFV×÷&&–Ç’Væf–Æ&ÆRâ"’Ğ¢7FF–2f"æô6öÖÖVçG5–WC¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖÖVçG2æV×G’"Â-
+Rİ]ÍB­íÍ]İ-m"â"’Ğ¢7FF–2f"6öÖÖVçD–çWEÆ6V†öÆFW#¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖÖVçG2æ–çWE÷Æ6V†öÆFW""Â-	İım-Â­íÍ]İ-(
+b"’Ğ¢7FF–2f"6–vä–åFô6öÖÖVçC¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖÖVçG2ç6–våö–â"Â-
+=-mMm-ÂÂí­íÍ]İ-=--‚"’Ğ¢7FF–2f"FVÆWFT6öÖÖVçD6öæf—&ÖF–öã¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖÖVçG2æFVÆWFUö6öæf—&ÖF–öâ"Â-	-M½-‚m]’­íÍ]İ-ò"’Ğ¢7FF–2f"FVÆWFT6öÖÖVçDf–ÆVC¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖÖVçG2æFVÆWFUöf–ÆVB"Â-	İR-M½íò-M½-‚­íÍ]İ-"’Ğ¢7FF–2f"ÆVvÅÆ6V†öÆFW#¢7G&–ær²FW‡B‚&6öÖÖöâçÆ6V†öÆFW"æÆVvÂ"Â%Æ6V†öÆFW""’Ğ¢7FF–2f"WÆöD–ÖvUF—FÆS¢7G&–ær²FW‡B‚&6öÖÖöâçWÆöEö–ÖvRçF—FÆR"Â$FB–ÖvR"’Ğ¢7FF–2f"WÆöD–ÖvT†VÇW#¢7G&–ær²FW‡B‚&6öÖÖöâçWÆöEö–ÖvRæ†VÇW""Â$¥rÂärWFòÔ"â&V6öÖÖVæFVBc£’"’Ğ¢7FF–2f"6öÖ×Væ—G”ÖVÖ&W$fÆÆ&6³¢7G&–ær²FW‡B‚&6öÖÖöâæ6öÖ×Væ—G•öÖVÖ&W%öfÆÆ&6²"Â-
+=}İ¢ım½Íİí-‚"’Ğ¢Ğ ¢VçVÒ7F–öâ°¢7FF–2f"7&VFS¢7G&–ær²FW‡B‚&7F–öâæ7&VFR"Â$7&VFR"’Ğ¢7FF–2f"VF—C¢7G&–ær²FW‡B‚&7F–öâæVF—B"Â$VF—B"’Ğ¢7FF–2f"÷Vã¢7G&–ær²FW‡B‚&7F–öâæ÷Vâ"Â-	-mM­-‚"’Ğ¢7FF–2f"&WG'“¢7G&–ær²FW‡B‚&7F–öâç&WG'’"Â-
+ıí=--‚Rr"’Ğ¢7FF–2f"FVÆWFS¢7G&–ær²FW‡B‚&7F–öâæFVÆWFR"Â$FVÆWFR"’Ğ¢7FF–2f"6æ6VÃ¢7G&–ær²FW‡B‚&7F–öâæ6æ6VÂ"Â$6æ6VÂ"’Ğ¢7FF–2f"6†&S¢7G&–ær²FW‡B‚&7F–öâç6†&R"Â%6†&R"’Ğ¢7FF–2f"6fS¢7G&–ær²FW‡B‚&7F–öâç6fR"Â%6fR"’Ğ¢7FF–2f"6VæC¢7G&–ær²FW‡B‚&7F–öâç6VæB"Â%6VæB"’Ğ¢7FF–2f"Æ–¶S¢7G&–ær²FW‡B‚&7F–öâæÆ–¶R"Â$Æ–¶R"’Ğ¢7FF–2f"VæÆ–¶S¢7G&–ær²FW‡B‚&7F–öâçVæÆ–¶R"Â%VæÆ–¶R"’Ğ¢7FF–2f"6öÖ–æu6ööã¢7G&–ær²FW‡B‚&7F–öâæ6öÖ–æu÷6ööâ"Â$6öÖ–ær6ööâ"’Ğ¢7FF–2f"&Vv—7FW#¢7G&–ær²FW‡B‚&7F–öâç&Vv—7FW""Â%&Vv—7FW""’Ğ¢7FF–2f"6æ6VÅ&Vv—7G&F–öã¢7G&–ær²FW‡B‚&7F–öâæ6æ6VÅ÷&Vv—7G&F–öâ"Â$6æ6VÂ&Vv—7G&F–öâ"’Ğ¢7FF–2f"6fT6†ævW3¢7G&–ær²FW‡B‚&7F–öâç6fUö6†ævW2"Â%6fR6†ævW2"’Ğ¢Ğ ¢VçVÒfÆ–FF–öâ°¢7FF–2f"WF„VÖ–Å&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæWF‚æVÖ–Å÷&WV—&VB"Â$VÖ–Â—2&WV—&VBâ"’Ğ¢7FF–2f"WF„VÖ–Ä–çfÆ–C¢7G&–ær²FW‡B‚'fÆ–FF–öâæWF‚æVÖ–Åö–çfÆ–B"Â$VçFW"fÆ–BVÖ–ÂFG&W72â"’Ğ¢7FF–2f"WF…77v÷&EFöõ6†÷'C¢7G&–ær²FW‡B‚'fÆ–FF–öâæWF‚ç77v÷&E÷Föõ÷6†÷'B"Â%77v÷&B×W7B&RBÆV7B‚6†&7FW'2â"’Ğ¢7FF–2f"WF…77v÷&DÖ—6ÖF6ƒ¢7G&–ær²FW‡B‚'fÆ–FF–öâæWF‚ç77v÷&EöÖ—6ÖF6‚"Â%77v÷&G2Fòæ÷BÖF6‚â"’Ğ¢7FF–2f"WF„F—7Æ”æÖU&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæWF‚æF—7Æ•öæÖU÷&WV—&VB"Â$F—7Æ’æÖR—2&WV—&VBâ"’Ğ¢7FF–2f"WF…FW&×5&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæWF‚çFW&×5÷&WV—&VB"Â%–÷RæVVBFò66WBF†RFW&×2öbW6Râ"’Ğ¢7FF–2f"WF…&—f7•&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæWF‚ç&—f7•÷&WV—&VB"Â%–÷RæVVBFò66WBF†R&—f7’öÆ–7’â"’Ğ¢7FF–2f"æWw5F—FÆU&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâææWw2çF—FÆU÷&WV—&VB"Â$æWw2F—FÆR—2&WV—&VBâ"’Ğ¢7FF–2f"æWw57V'F—FÆU&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâææWw2ç7V'F—FÆU÷&WV—&VB"Â$æWw27V'F—FÆR—2&WV—&VBâ"’Ğ¢7FF–2f"æWw4&öG•Föõ6†÷'C¢7G&–ær²FW‡B‚'fÆ–FF–öâææWw2æ&öG•÷Föõ÷6†÷'B"Â$æWw2&öG’—2Föò6†÷'Bâ"’Ğ¢7FF–2f"WfVçEF—FÆU&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæWfVçBçF—FÆU÷&WV—&VB"Â$WfVçBF—FÆR—2&WV—&VBâ"’Ğ¢7FF–2f"WfVçDFWF–Ç5Föõ6†÷'C¢7G&–ær²FW‡B‚'fÆ–FF–öâæWfVçBæFWF–Ç5÷Föõ÷6†÷'B"Â$WfVçBFWF–Ç2&RFöò6†÷'Bâ"’Ğ¢7FF–2f"WfVçD6—G•&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæWfVçBæ6—G•÷&WV—&VB"Â$WfVçB6—G’—2&WV—&VBâ"’Ğ¢7FF–2f"WfVçEfVçVU&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæWfVçBçfVçVU÷&WV—&VB"Â$WfVçBfVçVR—2&WV—&VBâ"’Ğ¢7FF–2f"WfVçDFFT÷&FW$–çfÆ–C¢7G&–ær²FW‡B‚'fÆ–FF–öâæWfVçBæFFUö÷&FW%ö–çfÆ–B"Â$WfVçBVæBFFR×W7B&RgFW"F†R7F'BFFRâ"’Ğ¢7FF–2f"÷&væ—¦F–öäæÖU&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæ÷&væ—¦F–öâææÖU÷&WV—&VB"Â-	MíM-Rİ}-2ım½Íİí-‚â"’Ğ¢7FF–2f"÷&væ—¦F–öäFW67&—F–öåFöõ6†÷'C¢7G&–ær²FW‡B‚'fÆ–FF–öâæ÷&væ—¦F–öâæFW67&—F–öå÷Föõ÷6†÷'B"Â-	MíM-R­íí-­’íıíİÍ]İRİ#Í-í½m"â"’Ğ¢7FF–2f"÷&væ—¦F–öä6—G•&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæ÷&væ—¦F–öâæ6—G•÷&WV—&VB"Â-	-­mm-ÂÍm-âım½Íİí-‚â"’Ğ¢7FF–2f"÷&væ—¦F–öå&Vv–öå&WV—&VC¢7G&–ær²FW‡B‚'fÆ–FF–öâæ÷&væ—¦F–öâç&Vv–öå÷&WV—&VB"Â-	í]m-ÂM]M]½Íİ2}]Í½âÂMRımíBım½Íİí-â"’Ğ¢7FF–2f"÷&væ—¦F–öäVÖ–Ä–çfÆ–C¢7G&–ær²FW‡B‚'fÆ–FF–öâæ÷&væ—¦F–öâæVÖ–Åö–çfÆ–B"Â-	ı]]-m-RVÖ–ÂM½ò}.(	ı}­2â"’Ğ¢7FF–2f"÷&væ—¦F–öåvV'6—FT–çfÆ–C¢7G&–ær²FW‡B‚'fÆ–FF–öâæ÷&væ—¦F–öâçvV'6—FUö–çfÆ–B"Â-	MíM-Rıí-İRıí½İİòÂİı­½B‡GG3¢òöW†×ÆRæ÷&râ"’Ğ¢7FF–2f"÷&væ—¦F–öäf÷VæFVE–V$–çfÆ–C¢7G&–ær²FW‡B‚'fÆ–FF–öâæ÷&væ—¦F–öâæf÷VæFVE÷–V%ö–çfÆ–B"Â-	-­mm-Â­í]­-İ’m¢}İ=-İİòâ"’Ğ¢Ğ ¢VçVÒWF‚°¢7FF–2f"F—FÆS¢7G&–ær²FW‡B‚&WF‚çF—FÆR"Â$66÷VçB"’Ğ¢7FF–2f"ÆæF–æuF—FÆS¢7G&–ær²FW‡B‚&WF‚æÆæF–ærçF—FÆR"Â%vVÆ6öÖR"’Ğ¢7FF–2f"ÆæF–æu7V'F—FÆS¢7G&–ær²FW‡B‚&WF‚æÆæF–ærç7V'F—FÆR"Â$7&VFRâ66÷VçB÷"6–vâ–âFò6fRÆ–¶W2Â&Vv—7FW"f÷"WfVçG2Â6VæBfVVF&6²ÂæBÖævR6öçFVçB–b–÷W"&öÆRÆÆ÷w2—Bâ"’Ğ¢7FF–2f"6–vä–ã¢7G&–ær²FW‡B‚&WF‚ç6–våö–â"Â%6–vâ–â"’Ğ¢7FF–2f"7&VFT66÷VçC¢7G&–ær²FW‡B‚&WF‚æ7&VFUö66÷VçB"Â$7&VFR66÷VçB"’Ğ¢7FF–2f"VÖ–Ã¢7G&–ær²FW‡B‚&WF‚æVÖ–Â"Â$VÖ–Â"’Ğ¢7FF–2f"77v÷&C¢7G&–ær²FW‡B‚&WF‚ç77v÷&B"Â%77v÷&B"’Ğ¢7FF–2f"77v÷&E&WVC¢7G&–ær²FW‡B‚&WF‚ç77v÷&E÷&WVB"Â%&WVB77v÷&B"’Ğ¢7FF–2f"F—7Æ”æÖS¢7G&–ær²FW‡B‚&WF‚æF—7Æ•öæÖR"Â$F—7Æ’æÖR"’Ğ¢7FF–2f"FVÆVw&ÕW6W&æÖS¢7G&–ær²FW‡B‚&WF‚çFVÆVw&Ò"Â%FVÆVw&ÒW6W&æÖR"’Ğ¢7FF–2f"f÷&v÷E77v÷&C¢7G&–ær²FW‡B‚&WF‚æf÷&v÷E÷77v÷&B"Â$f÷&v÷B77v÷&Cò"’Ğ¢7FF–2f"6VæE&W6WDÆ–æ³¢7G&–ær²FW‡B‚&WF‚ç6VæE÷&W6WEöÆ–æ²"Â%6VæB&W6WBÆ–æ²"’Ğ¢7FF–2f"&W6WE77v÷&EF—FÆS¢7G&–ær²FW‡B‚&WF‚ç&W6WE÷77v÷&BçF—FÆR"Â%&W6WB77v÷&B"’Ğ¢7FF–2f"&W6WE77v÷&E7V'F—FÆS¢7G&–ær²FW‡B‚&WF‚ç&W6WE÷77v÷&Bç7V'F—FÆR"Â$VçFW"F†RVÖ–ÂÆ–æ¶VBFò–÷W"66÷VçBæBvRv–ÆÂ6VæB&W6WBÆ–æ²â"’Ğ¢7FF–2f"&W6WE77v÷&E7V66W73¢7G&–ær²FW‡B‚&WF‚ç&W6WE÷77v÷&Bç7V66W72"Â%F†R&W6WBÆ–æ²†2&VVâ6VçBâ"’Ğ¢7FF–2f"&Vv—7FW%F—FÆS¢7G&–ær²FW‡B‚&WF‚ç&Vv—7FW"çF—FÆR"Â$7&VFR66÷VçB"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öåF—FÆS¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâçF—FÆR"Â%fW&–g’–÷W"VÖ–Â"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öäFW67&—F–öã¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâæFW67&—F–öâ"Â%vR6VçBfW&–f–6F–öâÆ–æ²â6†V6²–÷W"–æ&÷‚æB÷Vâ—BFò7F—fFR–÷W"66÷VçBâ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå6VçC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç6VçB"Â$66÷VçB7&VFVBâfW&–f–6F–öâVÖ–Â6VçBâ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå&W6VçC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç&W6VçB"Â%fW&–f–6F–öâVÖ–Â†2&VVâ&W6VçBâ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå6VçEFó¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç6VçE÷Fò"Â%6VçBFò"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå7Ô†–çC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç7Õö†–çB"Â$6†V6²–÷W"7Òö§Væ²föÆFW"–b–÷RFòæ÷B6VRF†RÖW76vRâ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå&W6VæC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç&W6VæB"Â%&W6VæBfW&–f–6F–öâVÖ–Â"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå&W6VæF–æs¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç&W6VæF–ær"Â%&W6VæF–ærâââ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öä6†V6³¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâæ6†V6²"Â$’fW&–f–VBÂ6†V6²v–â"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öä6†V6¶–æs¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâæ6†V6¶–ær"Â$6†V6¶–ærâââ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå7V66W73¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç7V66W72"Â$VÖ–ÂfW&–f–VBâ–÷Ræ÷r†fRgVÆÂ66÷VçB66W72â"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå7F–ÆÅVæF–æs¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç7F–ÆÅ÷VæF–ær"Â%fW&–f–6F–öâ—27F–ÆÂVæF–ærâ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öäÇ&VG•fW&–f–VC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâæÇ&VG•÷fW&–f–VB"Â%F†—2VÖ–Â—2Ç&VG’fW&–f–VBâ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öä6†V6´f–ÆVC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâæ6†V6µöf–ÆVB"Â%Væ&ÆRFò6öæf—&ÒfW&–f–6F–öâ7FGW2–WBâG'’v–ââ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öåFöôÖç•&WVW7G3¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâçFöõöÖç•÷&WVW7G2"Â%FöòÖç’&WVW7G2âÆV6Rv—B&—BæBG'’v–ââ"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öå&W6VæDf–ÆVC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâç&W6VæEöf–ÆVB"Â$6÷VÆBæ÷B6VæBfW&–f–6F–öâVÖ–Âæ÷râG'’v–âÆFW"â"’Ğ¢7FF–2f"VÖ–ÅfW&–f–6F–öä6†ævT66÷VçC¢7G&–ær²FW‡B‚&WF‚æVÖ–Å÷fW&–f–6F–öâæ6†ævUö66÷VçB"Â%6–vâ÷WBæB6†ævR66÷VçB"’Ğ¢7FF–2f"Æöv–åF—FÆS¢7G&–ær²FW‡B‚&WF‚æÆöv–âçF—FÆR"Â%6–vâ–â"’Ğ¢7FF–2f"Æöv–å7V'F—FÆS¢7G&–ær²FW‡B‚&WF‚æÆöv–âç7V'F—FÆR"Â%W6R–÷W"66÷VçBVÖ–ÂæB77v÷&Bâ"’Ğ¢7FF–2f"6–vä–ä7F–öã¢7G&–ær²FW‡B‚&WF‚ç6–våö–âæ7F–öâ"Â%6–vâ–â"’Ğ¢7FF–2f"7&VFT66÷VçD7F–öã¢7G&–ær²FW‡B‚&WF‚æ7&VFUö66÷VçBæ7F–öâ"Â$7&VFR66÷VçB"’Ğ¢7FF–2f"6–væ–æt–ã¢7G&–ær²FW‡B‚&WF‚ç6–væ–æuö–â"Â%6–væ–ær–ââââ"’Ğ¢7FF–2f"7&VF–æt66÷VçC¢7G&–ær²FW‡B‚&WF‚æ7&VF–æuö66÷VçB"Â$7&VF–ær66÷VçBâââ"’Ğ¢7FF–2f"&W6WE77v÷&E6VæF–æs¢7G&–ær²FW‡B‚&WF‚ç&W6WE÷77v÷&Bç6VæF–ær"Â%6VæF–ærâââ"’Ğ¢7FF–2f"fVFW&Å7FFS¢7G&–ær²FW‡B‚&WF‚æfVFW&Å÷7FFR"Â$fVFW&Â7FFR"’Ğ¢7FF–2f"6–vä–ä–ç7FVC¢7G&–ær²FW‡B‚&WF‚ç6–våö–åö–ç7FVB"Â$Ç&VG’†fRâ66÷VçCò6–vâ–â"’Ğ¢7FF–2f"7&VFT66÷VçD–ç7FVC¢7G&–ær²FW‡B‚&WF‚æ7&VFUö66÷VçEö–ç7FVB"Â$æVVBâ66÷VçCò7&VFRöæR"’Ğ¢7FF–2f"&Vv—7FW%7V'F—FÆS¢7G&–ær²FW‡B‚&WF‚ç&Vv—7FW"ç7V'F—FÆR"Â$7&VFRâ66÷VçBv—F‚F†RW76VçF–Ç2â–÷R6â6ö×ÆWFR–÷W"&öf–ÆRÆFW"â"’Ğ¢7FF–2f"6öçF–çVT4wVW7C¢7G&–ær²FW‡B‚&WF‚æ6öçF–çVUö5öwVW7B"Â$6öçF–çVR2wVW7B"’Ğ¢7FF–2f"6öç6VçEF—FÆS¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBçF—FÆR"Â%FW&×2b&—f7’"’Ğ¢7FF–2f"6öç6VçE7V'F—FÆS¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBç7V'F—FÆR"Â%Fò7&VFRâ66÷VçBÂÆV6R6öæf—&ÒF†B–÷R66WBF†RFW&×2öbW6RæBF†R&—f7’öÆ–7’â"’Ğ¢7FF–2f"66WEFW&×3¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBæ66WE÷FW&×2"Â$’66WBF†RFW&×2öbW6R"’Ğ¢7FF–2f"66WE&—f7“¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBæ66WE÷&—f7’"Â$’66WBF†R&—f7’öÆ–7’"’Ğ¢7FF–2f"&Wf–WuFW&×3¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBç&Wf–Wu÷FW&×2"Â%&VBFW&×2öbW6R"’Ğ¢7FF–2f"&Wf–Wu&—f7“¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBç&Wf–Wu÷&—f7’"Â%&VB&—f7’öÆ–7’"’Ğ¢7FF–2f"7W'&VçEFW&×5fW'6–öã¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBæ7W'&VçE÷FW&×5÷fW'6–öâ"Â%FW&×2fW'6–öâT"’Ğ¢7FF–2f"7W'&VçE&—f7•fW'6–öã¢7G&–ær²FW‡B‚&WF‚æ6öç6VçBæ7W'&VçE÷&—f7•÷fW'6–öâ"Â%&—f7’fW'6–öâT"’Ğ¢7FF–2f"&WV—&VEF—FÆS¢7G&–ær²FW‡B‚&WF‚ç&WV—&VBçF—FÆR"Â%6–vâ–â&WV—&VB"’Ğ¢7FF–2f"Æ6V†öÆFW%F—FÆS¢7G&–ær²FW‡B‚&WF‚çÆ6V†öÆFW"çF—FÆR"Â%6–vâ–âFò6öçF–çVR"’Ğ¢7FF–2f"Æ6V†öÆFW$ÖW76vS¢7G&–ær²FW‡B‚&WF‚çÆ6V†öÆFW"æÖW76vR"Â$7&VFRâ66÷VçB÷"6–vâ–âFò66W72W'6öæÂfVGW&W2â"’Ğ¢7FF–2f"6–vä–äf–ÆVC¢7G&–ær²FW‡B‚&WF‚ç6–våö–åöf–ÆVB"Â%vR6÷VÆFî(	—B6–vâ–÷R–â&–v‡Bæ÷râ"’Ğ¢7FF–2f"&Vv—7G&F–öäf–ÆVC¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öåöf–ÆVB"Â%vR6÷VÆFî(	—B7&VFR–÷W"66÷VçB&–v‡Bæ÷râ"’Ğ¢7FF–2f"&Vv—7G&F–öä–çfÆ–DVÖ–Ã¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâæ–çfÆ–EöVÖ–Â"Â%ÆV6RVçFW"fÆ–BVÖ–ÂFG&W72â"’Ğ¢7FF–2f"&Vv—7G&F–öäVÖ–ÄÇ&VG”–åW6S¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâæVÖ–Åö–å÷W6R"Â%F†—2VÖ–ÂFG&W72—2Ç&VG’–âW6Râ"’Ğ¢7FF–2f"&Vv—7G&F–öåvVµ77v÷&C¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâçvVµ÷77v÷&B"Â$6†ö÷6R7G&öævW"77v÷&Bv—F‚BÆV7B‚6†&7FW'2â"’Ğ¢7FF–2f"&Vv—7G&F–öäæWGv÷&´W'&÷#¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâææWGv÷&µöW'&÷""Â%vR6÷VÆFî(	—B&V6‚F†R6W'fW"â6†V6²–÷W"6öææV7F–öâæBG'’v–ââ"’Ğ¢7FF–2f"&Vv—7G&F–öä÷W&F–öäæ÷DÆÆ÷vVC¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâæ÷W&F–öåöæ÷EöÆÆ÷vVB"Â$VÖ–Â&Vv—7G&F–öâ—2æ÷BVæ&ÆVB&–v‡Bæ÷râ"’Ğ¢7FF–2f"&Vv—7G&F–öåVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâçVæ¶æ÷våöW'&÷""Â%vR6÷VÆFî(	—Bf–æ—6‚&Vv—7G&F–öâ&–v‡Bæ÷râÆV6RG'’v–ââ"’Ğ¢7FF–2f"&Vv—7G&F–öå&öf–ÆUW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâç&öf–ÆU÷W&Ö—76–öâ"Â%–÷W"66÷VçBv27&VFVBÂ'WBF†R&öf–ÆR6WGWv2&Æö6¶VB'’&6¶VæB'VÆW2âÆV6R6öçF7B7W÷'B÷"FWÆ÷’F†RÆFW7Bf—&V&6R'VÆW2â"’Ğ¢7FF–2f"&Vv—7G&F–öå&öf–ÆTæWGv÷&´W'&÷#¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâç&öf–ÆUöæWGv÷&²"Â%–÷W"66÷VçBv27&VFVBÂ'WBF†R&öf–ÆR6WGW6÷VÆBæ÷Bf–æ—6‚&V6W6RöbæWGv÷&²&ö&ÆVÒâÆV6RG'’v–ââ"’Ğ¢7FF–2f"&Vv—7G&F–öå&öf–ÆUVæ¶æ÷väW'&÷#¢7G&–ær²FW‡B‚&WF‚ç&Vv—7G&F–öâç&öf–ÆU÷Væ¶æ÷vâ"Â%–÷W"66÷VçBv27&VFVBÂ'WBF†R&öf–ÆR6WGW6÷VÆBæ÷B&R6ö×ÆWFVBâÆV6RG'’v–âÆFW"â"’Ğ¢7FF–2f"&W6WE77v÷&Df–ÆVC¢7G&–ær²FW‡B‚&WF‚ç&W6WE÷77v÷&Bæf–ÆVB"Â%vR6÷VÆFî(	—B6VæB&W6WBÆ–æ²&–v‡Bæ÷râ"’Ğ¢7FF–2f"ÆöEW6W%&öf–ÆTf–ÆVC¢7G&–ær²FW‡B‚&WF‚æÆöE÷W6W%÷&öf–ÆRæf–ÆVB"Â$f–ÆVBFòÆöBW6W"&öf–ÆRâ"’Ğ¢Ğ ¢7FF–2gVæ2†öÖT†–v†Æ–v‡DæWw2…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&†öÖRæ†–v†Æ–v‡BææWw2"ÂFVfVÇEfÇVS¢"VÆÆB7W'&VçB6öÖ×Væ—G’WFFW2"Â&wVÖVçG3¢¶6÷VçEÒ¢Ğ ¢7FF–2gVæ2†öÖT†–v†Æ–v‡DWfVçG2…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&†öÖRæ†–v†Æ–v‡BæWfVçG2"ÂFVfVÇEfÇVS¢"VÆÆBW6öÖ–ærvF†W&–æw2æBv÷&·6†÷2"Â&wVÖVçG3¢¶6÷VçEÒ¢Ğ ¢7FF–2gVæ2†öÖT†–v†Æ–v‡D÷&væ—¦F–öç2…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&†öÖRæ†–v†Æ–v‡Bæ÷&væ—¦F–öç2"ÂFVfVÇEfÇVS¢"VÆÆBG'W7FVB7W÷'Bw&÷W2"Â&wVÖVçG3¢¶6÷VçEÒ¢Ğ ¢7FF–2gVæ26öÖÖVçDÆ–æR†WF†÷#¢7G&–ærÂ&öG“¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&6öÖÖöâæ6öÖÖVçEöÆ–æR"ÂFVfVÇEfÇVS¢"SD¢S"D"Â&wVÖVçG3¢¶WF†÷"Â&öG•Ò¢Ğ ¢7FF–2gVæ26öçF7DÆ–æR†ÖWF†öC¢7G&–ærÂfÇVS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&6öÖÖöâæ6öçF7EöÆ–æR"ÂFVfVÇEfÇVS¢"SD¢S"D"Â&wVÖVçG3¢¶ÖWF†öBÂfÇVUÒ¢Ğ ¢7FF–2gVæ2WF…&WV—&VDÖW76vR†f÷"6&–Æ—G“¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢&WF‚ç&WV—&VBæÖW76vR"À¢FVfVÇEfÇVS¢"SD&WV—&W2â66÷VçBâ–÷R6â¶VW'&÷w6–ær2wVW7Bf÷"æ÷râ"À¢&wVÖVçG3¢¶6&–Æ—G•Ğ¢¢Ğ ¢7FF–2gVæ2&öf–ÆU&Vv—7G&F–öç46÷VçB…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRç&Vv—7G&F–öç2æ6÷VçB"À¢FVfVÇEfÇVS¢"VÆÆB&Vv—7FW&VBWfVçG2"À¢&wVÖVçG3¢¶6÷VçEĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆTæ÷F–f–6F–öå&VÖ–æFW$Ö–çWFW2…ò6÷VçC¢–çB’Óâ7G&–ær°¢ÆWBf÷&ÖBÒ7G&–ær€¢Æö6Æ—¦VC¢'&öf–ÆRææ÷F–f–6F–öç2ç&VÖ–æFW"æÖ–çWFW2"À¢FVfVÇEfÇVS¢"VÆÆBÖ–â"À¢'VæFÆS¢æÖ–âÀ¢Æö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆP¢¢&WGW&â7G&–ær†f÷&ÖC¢f÷&ÖBÂÆö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆRÂ&wVÖVçG3¢¶6÷VçEÒ¢Ğ ¢7FF–2gVæ2&öf–ÆTæ÷F–f–6F–öå&VÖ–æFW$F—2…ò6÷VçC¢–çB’Óâ7G&–ær°¢ÆWBf÷&ÖBÒ7G&–ær€¢Æö6Æ—¦VC¢'&öf–ÆRææ÷F–f–6F–öç2ç&VÖ–æFW"æF—2"À¢FVfVÇEfÇVS¢"VÆÆBF’‡2’"À¢'VæFÆS¢æÖ–âÀ¢Æö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆP¢¢&WGW&â7G&–ær†f÷&ÖC¢f÷&ÖBÂÆö6ÆS¢Æö6Æ—¦F–öå7F÷&RæÆö6ÆRÂ&wVÖVçG3¢¶6÷VçEÒ¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öç46÷VçB…ò6÷VçC¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öç2æ6÷VçB"À¢FVfVÇEfÇVS¢"VÆÆBÖVÖ&W'6†—2"À¢&wVÖVçG3¢¶6÷VçEĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT&–ô6÷VçFW"…ò6÷VçC¢–çBÂòÆ–Ö—C¢–çB’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ&–òæ6÷VçFW""À¢FVfVÇEfÇVS¢"VÆÆBòVÆÆB"À¢&wVÖVçG3¢¶6÷VçBÂÆ–Ö—EĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öä”B…ò÷&væ—¦F–öä”C¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öâæ–B"À¢FVfVÇEfÇVS¢$÷&væ—¦F–öâT"À¢&wVÖVçG3¢¶÷&væ—¦F–öä”EĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öå&öÆR…ò&öÆS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öâç&öÆR"À¢FVfVÇEfÇVS¢%&öÆS¢T"À¢&wVÖVçG3¢·&öÆUĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öå66÷VE7V'F—FÆR…ò÷&væ—¦F–öä”C¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öâç66÷VE÷7V'F—FÆR"À¢FVfVÇEfÇVS¢%66÷VBFò÷&væ—¦F–öâTâ"À¢&wVÖVçG3¢¶÷&væ—¦F–öä”EĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öåFVÔ76–vä6öæf—&ÖF–öâ‡W6W$æÖS¢7G&–ærÂ&öÆS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öâçFVÒæ6öæf—&Òæ76–vâ"À¢FVfVÇEfÇVS¢-	ı}İ}-‚Tı¢Tò"À¢&wVÖVçG3¢·W6W$æÖRÂ&öÆUĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öåFVÔ6†ævT÷væW$6öæf—&ÖF–öâ…òW6W$æÖS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öâçFVÒæ6öæf—&Òæ6†ævUö÷væW""À¢FVfVÇEfÇVS¢-	}Ímİ-‚-½İ­İTò"À¢&wVÖVçG3¢·W6W$æÖUĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öåFVÕ&VÖ÷fT6öæf—&ÖF–öâ‡&öÆS¢7G&–ærÂW6W$æÖS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öâçFVÒæ6öæf—&Òç&VÖ÷fR"À¢FVfVÇEfÇVS¢-	}İı-‚í½ÂTM½òTò"À¢&wVÖVçG3¢·&öÆRÂW6W$æÖUĞ¢¢Ğ ¢7FF–2gVæ2&öf–ÆT÷&væ—¦F–öåFVÔÖ¶U&öÆR…ò&öÆS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB€¢'&öf–ÆRæ÷&væ—¦F–öâçFVÒæÖ¶U÷&öÆR"À¢FVfVÇEfÇVS¢-	}í-‚T"À¢&wVÖVçG3¢·&öÆUĞ¢¢Ğ ¢7FF–2gVæ2ÆVvÅfW'6–öäÆ&VÂ…òfW'6–öã¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&ÆVvÂçfW'6–öåöÆ&VÂ"ÂFVfVÇEfÇVS¢%fW'6–öâT"Â&wVÖVçG3¢·fW'6–öåÒ¢Ğ ¢7FF–2gVæ2ÆVvÄÆ7EWFFVDÆ&VÂ…òFFS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&ÆVvÂæÆ7E÷WFFVEöÆ&VÂ"ÂFVfVÇEfÇVS¢$Æ7BWFFVBT"Â&wVÖVçG3¢¶FFUÒ¢Ğ ¢7FF–2gVæ2WF„7W'&VçEFW&×5fW'6–öâ…òfW'6–öã¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&WF‚æ6öç6VçBæ7W'&VçE÷FW&×5÷fW'6–öâ"ÂFVfVÇEfÇVS¢%FW&×2fW'6–öâT"Â&wVÖVçG3¢·fW'6–öåÒ¢Ğ ¢7FF–2gVæ2WF„7W'&VçE&—f7•fW'6–öâ…òfW'6–öã¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VDf÷&ÖB‚&WF‚æ6öç6VçBæ7W'&VçE÷&—f7•÷fW'6–öâ"ÂFVfVÇEfÇVS¢%&—f7’fW'6–öâT"Â&wVÖVçG3¢·fW'6–öåÒ¢Ğ ¢VçVÒ7—7FVÔÆöw2°¢7FF–2f"÷væW%F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æ÷væW"çF—FÆR"Â-	m=İ²-]Í‚"’Ğ¢7FF–2f"÷væW%7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æ÷væW"ç7V'F—FÆR"Â-	MmrÂıíÍ½­‚--]]İm}İMm=İí-­"’Ğ¢7FF–2f"÷væW%&öf–ÆU7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æ÷væW"ç&öf–ÆU÷7V'F—FÆR"Â-	MmrÂıíÍ½­‚Â]}ı]­-ÍíM]mmò"’Ğ¢7FF–2f"FÖ–åF—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æöFÖ–âçF—FÆR"Â-	m=İ²ÍíM]mmr"’Ğ¢7FF–2f"FÖ–å7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æöFÖ–âç7V'F—FÆR"Â-	ıíÍ½­‚ÂÍíM]mmò-í=İm}mmr"’Ğ¢7FF–2f"ÆÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V7F–öâæÆÂ"Â-
+=b"’Ğ¢7FF–2f"7F–öç3¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V7F–öâæ7F–öç2"Â-	Mmr"’Ğ¢7FF–2f"W'&÷'3¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V7F–öâæW'&÷'2"Â-	ıíÍ½­‚"’Ğ¢7FF–2f"6V7W&—G“¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V7F–öâç6V7W&—G’"Â-	]}ı]­"’Ğ¢7FF–2f"ÖöFW&F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V7F–öâæÖöFW&F–öâ"Â-	ÍíM]mmò"’Ğ¢7FF–2f"÷&væ—¦F–öç3¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V7F–öâæ÷&væ—¦F–öç2"Â-	í=İm}mmr"’Ğ¢7FF–2f"W6W'3¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V7F–öâçW6W'2"Â-	­í-=-}b"’Ğ¢7FF–2f"Vç&Wf–WvVC¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æf–ÇFW"çVç&Wf–WvVB"Â-	İ]ı]]=½ıİ=-b"’Ğ¢7FF–2f"7&—F–6Ã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æf–ÇFW"æ7&—F–6Â"Â-	­-}İb"’Ğ¢7FF–2f"FöF“¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æf–ÇFW"çFöF’"Â-
+Íí=íMİb"’Ğ¢7FF–2f"6WfVäF—3¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æf–ÇFW"ç6WfVåöF—2"Â#rMİm""’Ğ¢7FF–2f"6V7F–öå–6¶W$Æ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æf–ÇFW"ç6V7F–öå÷–6¶W""Â-
+í}Mm²m=İ½2"’Ğ¢7FF–2f"Ö&µ&Wf–WvVC¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æ7F–öâæÖ&µ÷&Wf–WvVB"Â-	ıí}İ}-‚ı¢ı]]=½ıİ=-R"’Ğ¢7FF–2f"f–ÇFW&VDV×G•F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æV×G’æf–ÇFW&VBçF—FÆR"Â-	İ]ÍB}ım"}-İÍ‚Mm½Í-Í‚"’Ğ¢7FF–2f"&Wf–WvVC¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç&Wf–WvVB"Â-	ı]]=½ıİ=-â"’Ğ¢7FF–2f"æ÷E&Wf–WvVC¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ææ÷E÷&Wf–WvVB"Â-	İRı]]=½ıİ=-â"’Ğ¢7FF–2f"æ÷E&V6÷&FVC¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ææ÷E÷&V6÷&FVB"Â-	İR}ıİâ"’Ğ¢7FF–2f"Væ¶æ÷vã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2çVæ¶æ÷vâ"Â-	İ]-mMíÍâ"’Ğ¢7FF–2f"&Wf–WvVD'”7W'&VçEW6W#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç&Wf–WvVEö'’æ7W'&VçE÷W6W""Â-	ıí-í}İ’MÍmİm--í"’Ğ¢7FF–2f"&Wf–WvVD'”FÖ–ã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç&Wf–WvVEö'’æFÖ–â"Â-	MÍmİm--í"’Ğ¢7FF–2f"&V6÷&G3¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç&V6÷&G2çF—FÆR"Â-	}ı‚"’Ğ¢7FF–2f"&V6÷&G46÷VçE7Vff—ƒ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç&V6÷&G2æ6÷VçE÷7Vff—‚"Â-}ım""’Ğ¢7FF–2f"ÆöF–æs¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æÆöF–ær"Â-	}-İ-m]İİòm=İ½2"’Ğ¢7FF–2f"6ÆV%6V&6ƒ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V&6‚æ6ÆV""Â-	í}--‚ıí=¢"’Ğ¢7FF–2f"6V&6…Æ6V†öÆFW#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç6V&6‚çÆ6V†öÆFW""Â-	ıí=¢2m=İ½b"’Ğ¢7FF–2f"V×G•F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æV×G’çF—FÆR"Â-	m=İ²ıí­‚ıíímİm’"’Ğ¢7FF–2f"V×G”ÖW76vS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æV×G’æÖW76vR"Â-	ıíMmr~(	ı-½ı-Íò-="ım½òımM­½í}]İİò-]Íİí=â½í==-İİòâ"’Ğ¢7FF–2f"f–ÇFW&VDV×G”ÖW76vS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æV×G’æf–ÇFW&VBæÖW76vR"Â-	}Ímİm-Âıí=¢âMm½Í-‚Âíıí}-‚mİb}ı‚â"’Ğ¢7FF–2f"FWF–ÅF—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂçF—FÆR"Â-	M]-½b}ı2"’Ğ¢7FF–2f"7F÷%6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâæ7F÷""Â-	-­íİ-]mÂ"’Ğ¢7FF–2f"F&vWE6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâçF&vWB"Â-
+mm½Â"’Ğ¢7FF–2f"÷&væ—¦F–öå6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâæ÷&væ—¦F–öâ"Â-	í=İm}mmò"’Ğ¢7FF–2f"6Æ76–f–6F–öå6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâæ6Æ76–f–6F–öâ"Â-	­½Mm­mmò"’Ğ¢7FF–2f"F–væ÷7F–756V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâæF–væ÷7F–72"Â-	Mm=İí-­"’Ğ¢7FF–2f"FWf–6U6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâæFWf–6R"Â-	}-í=İí¢bı-m’"’Ğ¢7FF–2f"&Wf–Wu6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâç&Wf–Wr"Â-	ı]]=½ıB"’Ğ¢7FF–2f"ÖWFFF6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâæÖWFFF"Â-	Í]-Mİb"’Ğ¢7FF–2f"G&6–æu6V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–Âç6V7F–öâçG&6–ær"Â-
+-=-İİò"’Ğ¢7FF–2f"&Wf–Wu7FGW56V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç&Wf–Wuö7F–öâçF—FÆR"Â-
+--=ı]]=½ıM2"’Ğ¢7FF–2f"&Wf–Wt–ç7G'V7F–öã¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2ç&Wf–Wuö7F–öâæÖW76vR"Â-	ıí}İ}-R}ıı]]=½ıİ=-Âım½òı]]-m­‚Ââ-mÒİRıí-]=BMíM-­í-írMmrâ"’Ğ¢7FF–2f"Ö&¶–æu&Wf–WvVC¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æ7F–öâæÖ&¶–æu÷&Wf–WvVB"Â-	ıí}İ}]İİò"’Ğ¢7FF–2f"æÖTÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂææÖR"Â-mÎ(	ò"’Ğ¢7FF–2f"&öÆTÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂç&öÆR"Â-
+í½Â"’Ğ¢7FF–2f"G—TÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂçG—R"Â-
+-ò"’Ğ¢7FF–2f"F—FÆTÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂçF—FÆR"Â-	İ}-"’Ğ¢7FF–2f"6FVv÷'”Æ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæ6FVv÷'’"Â-	­-]=ímò"’Ğ¢7FF–2f"6WfW&—G”Æ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂç6WfW&—G’"Â-
+m-]İÂ"’Ğ¢7FF–2f"WfVçDÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæWfVçB"Â-	ıíMmò"’Ğ¢7FF–2f"÷WF6öÖTÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæ÷WF6öÖR"Â-
+]}=½Í-""’Ğ¢7FF–2f"&WFVçF–öäÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂç&WFVçF–öâ"Â-	}]m=İİò"’Ğ¢7FF–2f"W'&÷$6öFTÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæW'&÷%ö6öFR"Â-	­íBıíÍ½­‚"’Ğ¢7FF–2f"ÖöGVÆTÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæÖöGVÆR"Â-	ÍíM=½Â"’Ğ¢7FF–2f"67&VVäÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂç67&VVâ"Â-	]­Ò"’Ğ¢7FF–2f"÷W&F–öäÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæ÷W&F–öâ"Â-	íı]mmò"’Ğ¢7FF–2f"fW'6–öäÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæ÷fW'6–öâ"Â-	-]mò}-í=İ­2"’Ğ¢7FF–2f"÷5fW'6–öäÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæ÷5÷fW'6–öâ"Â-	-]mò	í
+"’Ğ¢7FF–2f"FWf–6TÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæFWf–6R"Â-	ı-m’"’Ğ¢7FF–2f"7FGW4Æ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂç7FGW2"Â-
+--="’Ğ¢7FF–2f"&Wf–WvVDDÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂç&Wf–WvVEöB"Â-	ı]]=½ıİ=-ââ"’Ğ¢7FF–2f"&Wf–WvVD'”Æ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂç&Wf–WvVEö'’"Â-	ı]]=½ıİ=""’Ğ¢7FF–2f"7&VFVDDÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæ7&VFVEöB"Â-
+--í]İâ"’Ğ¢7FF–2f"6÷'&VÆF–öä–DÆ&VÃ¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æFWF–ÂæÆ&VÂæ6÷'&VÆF–öåö–B"Â$”B}.(	ı}­2"’Ğ¢7FF–2f"FÖ–åVç&Wf–WvVE7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æÖWG&–2çVç&Wf–WvVBæFÖ–å÷7V'F—FÆR"Â-	ıí-]=B=-=‚MÍmİm--í"’Ğ¢7FF–2f"÷væW%Vç&Wf–WvVE7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æÖWG&–2çVç&Wf–WvVBæ÷væW%÷7V'F—FÆR"Â-	ıí-]=B=-=‚-½İ­"’Ğ¢7FF–2f"†–v†W7DÆWfVÅ7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æÖWG&–2æ7&—F–6Âç7V'F—FÆR"Â-	İ-’m-]İÂ"’Ğ¢7FF–2f"FV6†æ–6ÄF–væ÷7F–757V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æÖWG&–2æW'&÷'2ç7V'F—FÆR"Â-
+-]]İm}İMm=İí-­"’Ğ¢7FF–2f"FÖ–äf–Æ&ÆU7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æÖWG&–2æÖöFW&F–öâç7V'F—FÆR"Â-	Mí-=ıİâMÍmİm--í2"’Ğ¢7FF–2f"&W7G&–7FVD¦÷W&æÅ7V'F—FÆS¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æÖWG&–2ç6V7W&—G’ç7V'F—FÆR"Â-	íÍ]m]İ’m=İ²"’Ğ¢7FF–2f"÷væW$ÆöEW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"æÆöBæ÷væW%÷W&Ö—76–öâ"Â-	İR-M½íò}-İ-m-‚m=İ²â	ı]]-m-Rı-Mí-=ı2-½İ­â"’Ğ¢7FF–2f"FÖ–äÆöEW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"æÆöBæFÖ–å÷W&Ö—76–öâ"Â-	İR-M½íò}-İ-m-‚m=İ²ÍíM]mmrâ	ı]]-m-Rı-Mí-=ı2MÍmİm--íâ"’Ğ¢7FF–2f"–æFW…&WV—&VDW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"æÆöBæ–æFW…÷&WV—&VB"Â-	M½òmÍí=â}ı-2m=İ½2ıí-m]ÒmİM]­f—&W7F÷&Râ	ı]]-m-Rİ½-=-İİòmİM]­m"â"’Ğ¢7FF–2f"æWGv÷&´ÆöDW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"æÆöBææWGv÷&²"Â-	m=İ²-Í}í-âİ]Mí-=ıİ’â	ı]]-m-R~(	MMİİİò-ıí=-RRrâ"’Ğ¢7FF–2f"vVæW&–4ÆöDW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"æÆöBævVæW&–2"Â-	İR-M½íò}-İ-m-‚m=İ²-]Í‚â
+ıí=-Ríİí--‚-ímİ­2â"’Ğ¢7FF–2f"Ö—76–æu&Wf–WvW$W'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"ç&Wf–WræÖ—76–æu÷&Wf–WvW""Â-	İR-M½íò-}İ}-‚­í-=-}M½òıí}İ}]İİòı]]=½ıM2â"’Ğ¢7FF–2f"÷væW%&Wf–WuW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"ç&Wf–Wræ÷væW%÷W&Ö—76–öâ"Â-	İR-M½íòıí}İ}-‚}ıı]]=½ıİ=-Ââ	ı]]-m-Rı--½İ­â"’Ğ¢7FF–2f"FÖ–å&Wf–WuW&Ö—76–öäW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"ç&Wf–WræFÖ–å÷W&Ö—76–öâ"Â-	İR-M½íòıí}İ}-‚}ıı]]=½ıİ=-Ââ	ı]]-m-Rı-MÍmİm--íâ"’Ğ¢7FF–2f"æWGv÷&µ&Wf–WtW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"ç&Wf–WrææWGv÷&²"Â-	İR-M½íò}]]=-‚--=ı]]=½ıM2â	ı]]-m-R~(	MMİİİò-ıí=-RRrâ"’Ğ¢7FF–2f"vVæW&–5&Wf–WtW'&÷#¢7G&–ær²FW‡B‚'7—7FVÕöÆöw2æW'&÷"ç&Wf–WrævVæW&–2"Â-	İR-M½íòıí}İ}-‚}ıı]]=½ıİ=-Ââ
+ıí=-RRrâ"’Ğ¢Ğ ¢&—fFR7FF–2gVæ2FW‡B…ò¶W“¢7G&–ærÂòFVfVÇEfÇVS¢7G&–ær’Óâ7G&–ær°¢Æö6Æ—¦F–öå7F÷&RæÆö6Æ—¦VE7G&–ær†¶W’ÂFVfVÇEfÇVS¢FVfVÇEfÇVR¢Ğ§Ğ

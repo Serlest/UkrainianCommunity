@@ -55,11 +55,15 @@ extension OrganizationDetailView {
                         Image(systemName: editingCommentID == nil ? "paperplane.fill" : "checkmark")
                             .font(AppTheme.buttonLabelFont)
                             .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(
+                                width: AppTheme.minimumInteractiveTarget,
+                                height: AppTheme.minimumInteractiveTarget
+                            )
                             .background(AppTheme.accentPrimary, in: Circle())
                     }
                     .disabled(trimmedCommentText.isEmpty || viewModel.pendingOrganizationCommentIDs.contains(parentID))
                     .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
+                    .accessibilityLabel(editingCommentID == nil ? AppStrings.Action.send : AppStrings.Action.saveChanges)
                 }
 
                 Text("\(commentText.count)/1000")
@@ -141,7 +145,10 @@ extension OrganizationDetailView {
                 .font(AppTheme.sectionTitleFont)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(AppTheme.accentPrimary)
-                .frame(width: 34, height: 34)
+                .frame(
+                    width: AppTheme.minimumInteractiveTarget,
+                    height: AppTheme.minimumInteractiveTarget
+                )
                 .contentShape(Circle())
         }
         .menuStyle(.button)

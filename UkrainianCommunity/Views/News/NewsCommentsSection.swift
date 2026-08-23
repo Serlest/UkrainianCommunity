@@ -93,7 +93,10 @@ extension NewsDetailView {
                     .font(.title3.weight(.semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(AppTheme.accentPrimary)
-                    .frame(width: 34, height: 34)
+                    .frame(
+                        width: AppTheme.minimumInteractiveTarget,
+                        height: AppTheme.minimumInteractiveTarget
+                    )
                     .contentShape(Circle())
             }
             .menuStyle(.button)
@@ -131,11 +134,15 @@ extension NewsDetailView {
                             Image(systemName: editingCommentID == nil ? "paperplane.fill" : "checkmark")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(.white)
-                                .frame(width: 40, height: 40)
+                                .frame(
+                                    width: AppTheme.minimumInteractiveTarget,
+                                    height: AppTheme.minimumInteractiveTarget
+                                )
                                 .background(AppTheme.accentPrimary, in: Circle())
                         }
                         .disabled(trimmedCommentText.isEmpty || viewModel.pendingNewsCommentIDs.contains(parentID))
                         .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
+                        .accessibilityLabel(editingCommentID == nil ? AppStrings.Action.send : AppStrings.Action.saveChanges)
                     }
 
                     Text("\(commentText.count)/1000")
