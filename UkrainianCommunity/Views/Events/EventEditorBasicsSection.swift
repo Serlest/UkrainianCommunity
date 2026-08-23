@@ -184,6 +184,7 @@ extension EventEditorView {
             .buttonStyle(.plain)
             .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
 }

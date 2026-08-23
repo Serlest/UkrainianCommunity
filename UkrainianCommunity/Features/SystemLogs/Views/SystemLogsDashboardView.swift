@@ -72,15 +72,9 @@ struct SystemLogsDashboardView: View {
                 .onSubmit { isSearchFocused = false }
 
             if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Button {
+                AppSearchClearButton {
                     viewModel.searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(AppStrings.SystemLogs.clearSearch)
             }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)

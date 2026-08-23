@@ -18,6 +18,25 @@ struct AppIconControlButton: View {
     }
 }
 
+struct AppSearchClearButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark.circle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(
+                    width: AppTheme.minimumInteractiveTarget,
+                    height: AppTheme.minimumInteractiveTarget
+                )
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .accessibilityLabel(AppStrings.Search.clear)
+    }
+}
+
 struct AppGlassIconButton: View {
     let systemImage: String
     let accessibilityLabel: String
@@ -151,6 +170,7 @@ struct LikeButton: View {
         .buttonStyle(.plain)
         .frame(minHeight: AppTheme.minimumInteractiveTarget)
         .contentShape(Rectangle())
+        .accessibilityAddTraits(isLiked ? .isSelected : [])
     }
 }
 

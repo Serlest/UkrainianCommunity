@@ -139,6 +139,7 @@ struct AppFilterChip: View {
             size: .regular
         )
         .frame(minHeight: AppTheme.iconButtonSize)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -202,5 +203,6 @@ struct SelectableFilterChip: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

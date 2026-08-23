@@ -232,16 +232,12 @@ private struct AnalyticsDetailSearchField: View {
                     .onSubmit { isSearchFocused = false }
 
                 if !text.isEmpty {
-                    Button {
+                    AppSearchClearButton {
                         text = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(AppTheme.textSecondary)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(AppStrings.Search.clear)
                 }
             }
+            .frame(minHeight: AppTheme.searchControlHeight)
         }
     }
 }

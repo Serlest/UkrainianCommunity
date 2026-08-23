@@ -56,16 +56,12 @@ struct OwnerAnalyticsView: View {
                     .onSubmit { isSearchFocused = false }
 
                 if !viewModel.searchText.isEmpty {
-                    Button {
+                    AppSearchClearButton {
                         viewModel.searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(AppTheme.textSecondary)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(AppStrings.Search.clear)
                 }
             }
+            .frame(minHeight: AppTheme.searchControlHeight)
         }
     }
 

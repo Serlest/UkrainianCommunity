@@ -430,6 +430,7 @@ struct DetailHeaderActionButton: View {
     let accessibilityLabel: String
     let role: ButtonRole?
     let isDisabled: Bool
+    let isSelected: Bool
     let action: () -> Void
 
     init(
@@ -437,12 +438,14 @@ struct DetailHeaderActionButton: View {
         accessibilityLabel: String,
         role: ButtonRole? = nil,
         isDisabled: Bool = false,
+        isSelected: Bool = false,
         action: @escaping () -> Void
     ) {
         self.systemImage = systemImage
         self.accessibilityLabel = accessibilityLabel
         self.role = role
         self.isDisabled = isDisabled
+        self.isSelected = isSelected
         self.action = action
     }
 
@@ -456,6 +459,7 @@ struct DetailHeaderActionButton: View {
         }
         .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
         .disabled(isDisabled)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -876,20 +880,9 @@ struct AppSearchableBrandHeader: View {
                 }
 
             if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Button {
+                AppSearchClearButton {
                     searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(
-                            minWidth: AppTheme.minimumInteractiveTarget,
-                            minHeight: AppTheme.minimumInteractiveTarget
-                        )
-                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(AppStrings.Search.clear)
             }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)

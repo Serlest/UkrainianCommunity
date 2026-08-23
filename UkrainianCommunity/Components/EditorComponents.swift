@@ -22,6 +22,7 @@ struct AppEditorSectionTitle: View {
             .font(.headline.weight(.semibold))
             .foregroundStyle(AppTheme.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

@@ -171,6 +171,9 @@ private struct NotificationInboxRow: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title). \(bodyText). \(dateText)")
+        .accessibilityValue(notification.isRead ? "" : AppStrings.NotificationInbox.filterUnread)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive, action: deleteAction) {
                 Label(AppStrings.NotificationInbox.delete, systemImage: "trash")

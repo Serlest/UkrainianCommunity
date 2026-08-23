@@ -239,7 +239,8 @@ private struct OrganizationDetailHeaderActions: View {
             DetailHeaderActionButton(
                 systemImage: isBookmarked ? "bookmark.fill" : "bookmark",
                 accessibilityLabel: isBookmarked ? AppStrings.Organizations.removeBookmark : AppStrings.Organizations.addBookmark,
-                isDisabled: isBookmarkPending
+                isDisabled: isBookmarkPending,
+                isSelected: isBookmarked
             ) {
                 onBookmark()
             }

@@ -13,8 +13,9 @@ extension EventDetailView {
             Group {
                 DetailHeaderActionButton(
                     systemImage: event.isBookmarked ? "bookmark.fill" : "bookmark",
-                    accessibilityLabel: AppStrings.Action.save,
-                    isDisabled: viewModel.pendingEventBookmarkIDs.contains(event.id)
+                    accessibilityLabel: event.isBookmarked ? AppStrings.Action.unsave : AppStrings.Action.save,
+                    isDisabled: viewModel.pendingEventBookmarkIDs.contains(event.id),
+                    isSelected: event.isBookmarked
                 ) {
                     handleBookmark(for: event)
                 }

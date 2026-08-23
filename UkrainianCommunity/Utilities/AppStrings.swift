@@ -1943,6 +1943,7 @@ enum AppStrings {
         static var cancel: String { text("action.cancel", "Cancel") }
         static var share: String { text("action.share", "Share") }
         static var save: String { text("action.save", "Save") }
+        static var unsave: String { text("action.unsave", "Remove from saved") }
         static var send: String { text("action.send", "Send") }
         static var like: String { text("action.like", "Like") }
         static var unlike: String { text("action.unlike", "Unlike") }

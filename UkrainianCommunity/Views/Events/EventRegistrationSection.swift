@@ -263,6 +263,7 @@ extension EventDetailView {
             .buttonStyle(.plain)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityValue("\(count)")
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
 
         func publisherLine(for event: Event) -> some View {

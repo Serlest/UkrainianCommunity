@@ -175,6 +175,7 @@ struct DetailHeaderCard<MetadataContent: View>: View {
                 .foregroundStyle(AppTheme.textPrimary)
                 .lineSpacing(AppTheme.detailHeaderCardLineSpacing)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
 
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)

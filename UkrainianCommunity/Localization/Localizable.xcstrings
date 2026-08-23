@@ -747,6 +747,23 @@
         }
       }
     },
+    "action.unsave" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht mehr speichern"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прибрати зі збереженого"
+          }
+        }
+      }
+    },
     "activity_log.canceled_event_registration" : {
       "extractionState" : "manual",
       "localizations" : {

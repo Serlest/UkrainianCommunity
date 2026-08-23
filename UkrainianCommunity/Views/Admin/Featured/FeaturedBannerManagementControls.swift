@@ -56,14 +56,9 @@ struct FeaturedBannerManagementControls: View {
                         .autocorrectionDisabled()
 
                     if !searchText.isEmpty {
-                        Button {
+                        AppSearchClearButton {
                             searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(AppTheme.textSecondary)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(AppStrings.Search.clear)
                     }
                 }
                 .padding(.horizontal, AppTheme.inputHorizontalPadding)

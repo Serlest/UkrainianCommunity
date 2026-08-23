@@ -120,6 +120,7 @@ extension OrganizationDetailView {
         Label(title, systemImage: systemImage)
             .font(.headline.weight(.semibold))
             .foregroundStyle(AppTheme.textPrimary)
+            .accessibilityAddTraits(.isHeader)
     }
 
     func communityAvatar(for profile: PublicUserProfile) -> some View {

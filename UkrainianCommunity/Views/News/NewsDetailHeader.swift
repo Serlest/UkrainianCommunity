@@ -13,7 +13,8 @@ extension NewsDetailView {
             Group {
                 DetailHeaderActionButton(
                     systemImage: post.isBookmarked ? "bookmark.fill" : "bookmark",
-                    accessibilityLabel: AppStrings.Action.save
+                    accessibilityLabel: post.isBookmarked ? AppStrings.Action.unsave : AppStrings.Action.save,
+                    isSelected: post.isBookmarked
                 ) {
                     handleBookmark(for: post.id)
                 }
@@ -329,6 +330,7 @@ extension NewsDetailView {
             .accessibilityLabel(accessibilityLabel)
             .accessibilityValue("\(count)")
             .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
 
         func publisherLine(for post: NewsPost) -> some View {

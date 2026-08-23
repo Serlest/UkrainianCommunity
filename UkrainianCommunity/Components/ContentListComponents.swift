@@ -180,6 +180,7 @@ struct AppFeedThumbnail: View {
         }
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .accessibilityHidden(true)
     }
 }
 
@@ -258,6 +259,7 @@ struct SectionHeaderBlock: View {
             Text(title)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.primary)
+                .accessibilityAddTraits(.isHeader)
 
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)

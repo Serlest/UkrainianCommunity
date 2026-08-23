@@ -141,6 +141,9 @@ struct FeaturedBannerActionTargetPickerSheet: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(
+                            viewModel.actionTargetID == item.id ? .isSelected : []
+                        )
                     }
                     .listStyle(.plain)
                 }
@@ -206,6 +209,7 @@ struct FeaturedBannerActionTargetPickerRow: View {
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(AppTheme.accentPrimary)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, 6)

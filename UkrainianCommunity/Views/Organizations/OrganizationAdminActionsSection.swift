@@ -101,6 +101,7 @@ extension OrganizationDetailView {
             : .subscribe(organization.id)
         }
         .frame(maxWidth: 180)
+        .accessibilityAddTraits(organization.isSubscribed ? .isSelected : [])
     }
 
     func toggleLike(for organization: Organization) {
@@ -145,6 +146,7 @@ extension OrganizationDetailView {
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityValue("\(count)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     func organizationLinkButton(title: String, systemImage: String, destination: URL) -> some View {

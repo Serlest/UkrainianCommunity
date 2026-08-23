@@ -18,6 +18,9 @@ struct NewsOrganizerPickerSheet: View {
                             organizerRow(for: organization)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(
+                            organization.id == selectedOrganizationID ? .isSelected : []
+                        )
                     }
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
@@ -77,6 +80,7 @@ struct NewsOrganizerPickerSheet: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(AppTheme.accentPrimary)
+                        .accessibilityHidden(true)
                 }
             }
         }

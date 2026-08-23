@@ -658,13 +658,9 @@ struct UserManagementView: View {
                 .onSubmit { isSearchFocused = false }
 
             if !searchText.isEmpty {
-                Button {
+                AppSearchClearButton {
                     searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(AppTheme.textSecondary)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
@@ -1123,8 +1119,13 @@ private struct UserDetailView: View {
                                 pendingRoleRemoval = organization
                             } label: {
                                 Image(systemName: "minus.circle")
-                                    .foregroundStyle(AppTheme.accentDestructive)
+                                    .foregroundStyle(AppTheme.accentDestructiveForeground)
+                                    .frame(
+                                        width: AppTheme.minimumInteractiveTarget,
+                                        height: AppTheme.minimumInteractiveTarget
+                                    )
                             }
+                            .accessibilityLabel(AppStrings.UserManagement.removeOrganizationRoleButton)
                             .disabled(!canManageOrganizationRoles || item.role == .communityOwner || isUpdating)
                         }
                     }
@@ -1194,13 +1195,9 @@ private struct UserDetailView: View {
                         .onSubmit { focusedField = nil }
 
                     if !organizationSearchText.isEmpty {
-                        Button {
+                        AppSearchClearButton {
                             organizationSearchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(AppTheme.textSecondary)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, AppTheme.inputHorizontalPadding)
