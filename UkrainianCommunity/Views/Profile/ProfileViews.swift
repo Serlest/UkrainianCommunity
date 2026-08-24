@@ -378,7 +378,7 @@ struct ProfileView: View {
                         }
                         .padding(.horizontal, AppTheme.pageHorizontal)
                         .padding(.bottom, AppTheme.homeBottomContentPadding + 32)
-                        .frame(width: proxy.size.width, alignment: .topLeading)
+                        .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
                     }
                     .frame(width: proxy.size.width)
                     .onChange(of: scrollResetToken) {
@@ -947,11 +947,9 @@ struct ProfileView: View {
     }
 
     private func quickActionsSection(for user: AppUser, includeMyOrganizations: Bool = true) -> some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-                GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-            ],
+        AppAdaptiveGrid(
+            minimumWidth: 150,
+            maximumWidth: 260,
             spacing: AppTheme.eventsMetadataSpacing
         ) {
             if includeMyOrganizations {

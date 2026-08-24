@@ -102,12 +102,13 @@ struct ProfileReadOnlyField: View {
                 Text(value)
                     .font(.subheadline)
                     .foregroundStyle(AppTheme.textSecondary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, AppTheme.inputHorizontalPadding)
-            .frame(height: AppTheme.newsEditorInputHeight)
+            .padding(.vertical, 10)
+            .frame(minHeight: AppTheme.newsEditorInputHeight)
             .background(AppTheme.surfaceSecondary.opacity(0.68), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
@@ -153,7 +154,8 @@ struct ProfileEditorPickerRow<PickerContent: View>: View {
                 .font(.subheadline)
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.newsEditorInputHeight)
+        .padding(.vertical, 10)
+        .frame(minHeight: AppTheme.newsEditorInputHeight)
         .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)

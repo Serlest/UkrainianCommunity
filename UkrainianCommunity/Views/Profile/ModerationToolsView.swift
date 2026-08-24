@@ -482,78 +482,95 @@ private struct ModerationItemRow: View {
     let approveAction: () async -> Void
     let rejectAction: () async -> Void
     let detailsAction: (() -> Void)?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(item.type.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
-                Spacer()
-                Text(LocalizationStore.dateString(from: item.createdAt))
-                    .font(.caption)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.type.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimary)
+                    Spacer()
+                    Text(LocalizationStore.dateString(from: item.createdAt))
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
+                Text(item.title)
+                    .font(.headline)
+
+                Text(item.summary)
+                    .font(.subheadline)
                     .foregroundStyle(AppTheme.textSecondary)
-            }
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Text(item.title)
-                .font(.headline)
-
-            Text(item.summary)
-                .font(.subheadline)
-                .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(3)
-
-            if let submittedBy = item.submittedBy {
-                Text("\(AppStrings.Moderation.submittedBy): \(submittedBy)")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-
-            HStack(spacing: 12) {
-                if let detailsAction {
-                    Button(action: detailsAction) {
-                        Label(AppStrings.Moderation.openRequest, systemImage: "doc.text.magnifyingglass")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: AppTheme.iconButtonSize)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isProcessing)
+                if let submittedBy = item.submittedBy {
+                    Text("\(AppStrings.Moderation.submittedBy): \(submittedBy)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
 
-                PrimaryActionButton(
-                    title: AppStrings.Moderation.approve,
-                    isEnabled: !isProcessing,
-                    isLoading: isProcessing,
-                    systemImage: "checkmark"
-                ) {
-                    Task {
-                        await approveAction()
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: 12) {
+                        actionButtons
+                    }
+                } else {
+                    HStack(spacing: 12) {
+                        actionButtons
                     }
                 }
-
-                Button(role: .destructive) {
-                    Task {
-                        await rejectAction()
-                    }
-                } label: {
-                    Label(AppStrings.Moderation.reject, systemImage: "xmark")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentDestructive)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: AppTheme.iconButtonSize)
-                        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                                .strokeBorder(AppTheme.accentDestructive.opacity(0.18))
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(isProcessing)
-            }
             }
         }
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        if let detailsAction {
+            Button(action: detailsAction) {
+                Label(AppStrings.Moderation.openRequest, systemImage: "doc.text.magnifyingglass")
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.center)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: AppTheme.iconButtonSize)
+            }
+            .buttonStyle(.bordered)
+            .disabled(isProcessing)
+        }
+
+        PrimaryActionButton(
+            title: AppStrings.Moderation.approve,
+            isEnabled: !isProcessing,
+            isLoading: isProcessing,
+            systemImage: "checkmark"
+        ) {
+            Task {
+                await approveAction()
+            }
+        }
+
+        Button(role: .destructive) {
+            Task {
+                await rejectAction()
+            }
+        } label: {
+            Label(AppStrings.Moderation.reject, systemImage: "xmark")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accentDestructive)
+                .multilineTextAlignment(.center)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: AppTheme.iconButtonSize)
+                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
+                        .strokeBorder(AppTheme.accentDestructive.opacity(0.18))
+                )
+            }
+        .buttonStyle(.plain)
+        .disabled(isProcessing)
     }
 }
 
@@ -585,6 +602,7 @@ private struct ModerationOrganizationRequestSheet: View {
                     Color.clear.frame(height: 140)
                 }
                 .padding(AppTheme.pageHorizontal)
+                .appCenteredContent()
             }
             .background(AppBackgroundView())
             .navigationTitle(AppStrings.Moderation.organizationPreviewTitle)
@@ -656,8 +674,10 @@ private struct ModerationOrganizationRequestSheet: View {
                 } label: {
                     Label(AppStrings.Moderation.rejectRequest, systemImage: "trash")
                         .font(.subheadline.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
-                        .frame(height: AppTheme.iconButtonSize)
+                        .frame(minHeight: AppTheme.iconButtonSize)
                 }
                 .buttonStyle(.bordered)
                 .disabled(isProcessing || rejectionReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -665,6 +685,7 @@ private struct ModerationOrganizationRequestSheet: View {
         }
         .padding(.horizontal, AppTheme.pageHorizontal)
         .padding(.top, 8)
+        .appCenteredContent()
         .background(.regularMaterial)
     }
 

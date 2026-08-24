@@ -71,8 +71,9 @@ extension OrganizationDetailView {
                     .font(.footnote.weight(.semibold))
             }
             .foregroundStyle(AppTheme.accentPrimary)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .frame(height: AppTheme.iconButtonSize)
+            .frame(minHeight: AppTheme.iconButtonSize)
             .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)

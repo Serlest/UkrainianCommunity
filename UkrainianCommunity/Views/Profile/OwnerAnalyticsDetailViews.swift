@@ -246,7 +246,11 @@ private struct AnalyticsDetailMetricGrid: View {
     let items: [OwnerAnalyticsDetailMetricItem]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: AppTheme.eventsMetadataSpacing) {
+        AppAdaptiveGrid(
+            minimumWidth: 140,
+            maximumWidth: 240,
+            spacing: AppTheme.eventsMetadataSpacing
+        ) {
             ForEach(items) { item in
                 OwnerAnalyticsMetricTile(
                     title: item.title,
@@ -257,12 +261,6 @@ private struct AnalyticsDetailMetricGrid: View {
         }
     }
 
-    private var columns: [GridItem] {
-        [
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-        ]
-    }
 }
 
 private struct AnalyticsDetailChipFlow: View {

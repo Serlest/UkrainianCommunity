@@ -6,6 +6,7 @@ struct OwnerAnalyticsMetricTile: View {
     var previousValue: Int? = nil
     let systemImage: String
     var accentStyle: Bool = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         AppGlassCard(padding: 14, spacing: 8, shadowRadius: 8, shadowY: 4) {
@@ -25,8 +26,7 @@ struct OwnerAnalyticsMetricTile: View {
                         .font((accentStyle ? Font.title2 : Font.title3).weight(.bold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(title)
                         .font(.caption.weight(.semibold))
@@ -38,8 +38,8 @@ struct OwnerAnalyticsMetricTile: View {
                         Label(deltaPresentation.text, systemImage: deltaPresentation.systemImage)
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(deltaPresentation.color)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -116,9 +116,11 @@ struct OwnerAnalyticsShowMoreButton: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimary)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
+        .frame(minHeight: AppTheme.minimumInteractiveTarget)
         .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
@@ -238,7 +240,6 @@ private func trailingValue(_ value: Int, label: String) -> some View {
             .foregroundStyle(AppTheme.textPrimary)
             .monospacedDigit()
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
 
         Text(label)
             .font(.caption2.weight(.medium))

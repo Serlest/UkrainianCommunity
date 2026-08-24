@@ -20,6 +20,7 @@ struct FeaturedBannerCarouselView: View {
     let onBannerTap: (FeaturedBanner) -> Void
     private let actionResolver = FeaturedBannerActionResolver()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedBannerID: FeaturedBanner.ID?
     @State private var isUserInteracting = false
     @State private var isRestartingCarousel = false
@@ -63,18 +64,23 @@ struct FeaturedBannerCarouselView: View {
         switch sizing {
         case let .fixedHeight(height):
             carouselContent
-                .frame(height: height)
+                .frame(height: resolvedMinimumHeight(for: height))
         case let .aspectRatio(aspectRatio, maxHeight):
             Color.clear
                 .aspectRatio(aspectRatio, contentMode: .fit)
                 .frame(
                     maxWidth: maxHeight.map { $0 * aspectRatio },
-                    maxHeight: maxHeight
+                    minHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
+                    maxHeight: dynamicTypeSize.isAccessibilitySize ? nil : maxHeight
                 )
                 .overlay {
                     carouselContent
                 }
         }
+    }
+
+    private func resolvedMinimumHeight(for height: CGFloat) -> CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? max(height, AppTheme.accessibilityHeroMinHeight) : height
     }
 
     private var carouselContent: some View {

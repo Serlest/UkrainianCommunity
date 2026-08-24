@@ -12,13 +12,12 @@ struct ProfileStatItem: Identifiable {
 struct ProfileQuickStatsGrid: View {
     let stats: [ProfileStatItem]
 
-    private let columns = [
-        GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-        GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-    ]
-
     var body: some View {
-        LazyVGrid(columns: columns, spacing: AppTheme.eventsMetadataSpacing) {
+        AppAdaptiveGrid(
+            minimumWidth: 140,
+            maximumWidth: 240,
+            spacing: AppTheme.eventsMetadataSpacing
+        ) {
             ForEach(stats) { stat in
                 VStack(alignment: .leading, spacing: 8) {
                     Image(systemName: stat.systemImage)
@@ -62,13 +61,12 @@ struct ProfileQuickActionItem: Identifiable {
 struct ProfileQuickActionGrid: View {
     let items: [ProfileQuickActionItem]
 
-    private let columns = [
-        GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-        GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-    ]
-
     var body: some View {
-        LazyVGrid(columns: columns, spacing: AppTheme.eventsMetadataSpacing) {
+        AppAdaptiveGrid(
+            minimumWidth: 150,
+            maximumWidth: 260,
+            spacing: AppTheme.eventsMetadataSpacing
+        ) {
             ForEach(items) { item in
                 ProfileQuickActionCard(item: item)
             }
@@ -79,6 +77,7 @@ struct ProfileQuickActionGrid: View {
 
 struct ProfileQuickActionCard: View {
     let item: ProfileQuickActionItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -98,7 +97,7 @@ struct ProfileQuickActionCard: View {
                         .padding(.horizontal, 7)
                         .padding(.vertical, 4)
                         .background(item.status.tint.opacity(0.10), in: Capsule())
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         .frame(minWidth: 70)
                 } else {
                     Image(systemName: "chevron.right")
@@ -111,18 +110,23 @@ struct ProfileQuickActionCard: View {
             Text(item.title)
                 .font(AppTheme.buttonLabelFont)
                 .foregroundStyle(AppTheme.textPrimary)
-                .lineLimit(2)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 .truncationMode(.tail)
 
             Text(item.subtitle)
                 .font(AppTheme.cardSubtitleFont)
                 .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(2)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(AppTheme.eventsMetadataSpacing)
-        .frame(maxWidth: .infinity, minHeight: 116, maxHeight: 116, alignment: .topLeading)
+        .frame(
+            maxWidth: .infinity,
+            minHeight: 116,
+            maxHeight: dynamicTypeSize.isAccessibilitySize ? nil : 116,
+            alignment: .topLeading
+        )
         .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)

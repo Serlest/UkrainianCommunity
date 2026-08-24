@@ -88,12 +88,9 @@ extension OrganizationDetailView {
                 .font(AppTheme.sectionTitleFont)
                 .foregroundStyle(AppTheme.textPrimary)
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing, alignment: .topLeading),
-                    GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing, alignment: .topLeading)
-                ],
-                alignment: .leading,
+            AppAdaptiveGrid(
+                minimumWidth: 150,
+                maximumWidth: 260,
                 spacing: AppTheme.eventsMetadataSpacing
             ) {
                 ForEach(organizationFactItems(for: organization), id: \.title) { item in

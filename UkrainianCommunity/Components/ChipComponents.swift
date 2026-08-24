@@ -51,6 +51,7 @@ struct AppInfoChip: View {
     let size: Size
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         title: String,
@@ -79,8 +80,8 @@ struct AppInfoChip: View {
 
             Text(title)
                 .font(size.font)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let trailingSystemImage {
                 Image(systemName: trailingSystemImage)

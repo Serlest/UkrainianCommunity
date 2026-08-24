@@ -5,6 +5,7 @@ struct FeaturedBannerCardView: View {
     let banner: FeaturedBanner
     let previewImage: UIImage?
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(banner: FeaturedBanner, previewImage: UIImage? = nil) {
         self.banner = banner
@@ -100,7 +101,7 @@ struct FeaturedBannerCardView: View {
                     Text(titleText)
                         .font(AppTheme.featuredBannerTitleFont)
                         .foregroundStyle(AppTheme.textOnHero)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -109,7 +110,7 @@ struct FeaturedBannerCardView: View {
                     Text(subtitleText)
                         .font(AppTheme.featuredBannerSubtitleFont)
                         .foregroundStyle(AppTheme.textOnHero.opacity(0.88))
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }

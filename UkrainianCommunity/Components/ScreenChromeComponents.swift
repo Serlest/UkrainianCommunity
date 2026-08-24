@@ -76,6 +76,13 @@ private struct AdaptiveActionHeader<LeadingContent: View, TitleContent: View, Tr
     }
 }
 
+extension View {
+    func appCenteredContent(maxWidth: CGFloat = AppTheme.readableContentMaxWidth) -> some View {
+        frame(maxWidth: maxWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
+    }
+}
+
 /// Header for pushed/detail/admin/editor screens.
 ///
 /// This deliberately has no app logo. Future migrations should replace
@@ -216,6 +223,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
                 .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
                 .padding(.top, topPadding)
                 .padding(.bottom, bottomPadding)
+                .appCenteredContent()
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -331,30 +339,25 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
             AppBackgroundView()
                 .allowsHitTesting(false)
 
-            GeometryReader { proxy in
-                let contentWidth = max(proxy.size.width - (AppTheme.detailScreenHorizontalPadding * 2), 0)
-
-                ScrollViewReader { scrollProxy in
-                    ScrollView(.vertical, showsIndicators: true) {
-                        VStack(alignment: .leading, spacing: contentSpacing) {
-                            DetailActionHeader(
-                                title: title,
-                                subtitle: subtitle,
-                                backAction: backAction
-                            ) {
-                                headerActions
-                            }
-
-                            content(scrollProxy)
+            ScrollViewReader { scrollProxy in
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(alignment: .leading, spacing: contentSpacing) {
+                        DetailActionHeader(
+                            title: title,
+                            subtitle: subtitle,
+                            backAction: backAction
+                        ) {
+                            headerActions
                         }
-                        .frame(width: contentWidth, alignment: .leading)
-                        .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
-                        .padding(.top, topPadding)
-                        .padding(.bottom, bottomPadding)
+
+                        content(scrollProxy)
                     }
-                    .frame(width: proxy.size.width)
-                    .detailRefreshable(refreshAction)
+                    .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
+                    .padding(.top, topPadding)
+                    .padding(.bottom, bottomPadding)
+                    .appCenteredContent()
                 }
+                .detailRefreshable(refreshAction)
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -673,11 +676,13 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                 .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
                 .padding(.top, AppTheme.editorScreenTopPadding)
                 .padding(.bottom, AppTheme.editorScreenBottomPadding)
+                .appCenteredContent()
             }
 
             bottomActionContent
                 .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
                 .padding(.bottom, AppTheme.editorScreenBottomActionPadding)
+                .appCenteredContent()
         }
         .tint(AppTheme.accentPrimary)
         .navigationTitle(title)

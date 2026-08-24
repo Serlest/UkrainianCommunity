@@ -6,7 +6,11 @@ extension OrganizationEditorView {
             VStack(alignment: .leading, spacing: editorCardSpacing) {
                 editorSectionTitle(AppStrings.Organizations.contactSectionTitle)
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.eventsMetadataSpacing) {
+                AppAdaptiveGrid(
+                    minimumWidth: 240,
+                    maximumWidth: 360,
+                    spacing: AppTheme.eventsMetadataSpacing
+                ) {
                     iconTextField(systemImage: "envelope", placeholder: AppStrings.Organizations.fieldContactEmail, text: $viewModel.email)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)

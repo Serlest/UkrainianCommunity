@@ -89,6 +89,7 @@ struct OrganizationRequestPreviewView: View {
                 }
             }
             .padding(AppTheme.pageHorizontal)
+            .appCenteredContent()
         }
         .background(AppBackgroundView())
         .navigationTitle(AppStrings.Profile.previewOrganizationRequest)
@@ -135,6 +136,7 @@ struct OrganizationRequestCard: View {
     let organization: Organization
     let previewAction: () -> Void
     let editAction: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var canEdit: Bool {
         organization.moderationStatus == .needsRevision || organization.moderationStatus == .rejected
@@ -158,7 +160,7 @@ struct OrganizationRequestCard: View {
                             Text(organization.name)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(AppTheme.textPrimary)
-                                .lineLimit(2)
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                             statusBadge
                         }
@@ -166,7 +168,7 @@ struct OrganizationRequestCard: View {
                         Text(organization.shortDescription)
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
-                            .lineLimit(2)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -181,7 +183,8 @@ struct OrganizationRequestCard: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(AppTheme.accentPrimary)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 36)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.vertical, 9)
                             .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -193,7 +196,8 @@ struct OrganizationRequestCard: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(AppTheme.textSecondary)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 36)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.vertical, 9)
                             .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -209,7 +213,7 @@ struct OrganizationRequestCard: View {
             .font(.caption2.weight(.bold))
             .foregroundStyle(statusTint)
             .padding(.horizontal, 8)
-            .frame(height: 22)
+            .padding(.vertical, 4)
             .background(statusTint.opacity(0.12), in: Capsule())
             .overlay(Capsule().strokeBorder(statusTint.opacity(0.22)))
     }
@@ -252,6 +256,7 @@ struct ManagedOrganizationCard: View {
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     let contentStats: ManagedOrganizationContentStats?
     let isLoadingContentStats: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         AppEditorSectionCard {
@@ -271,7 +276,7 @@ struct ManagedOrganizationCard: View {
                             Text(organization.name)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(AppTheme.textPrimary)
-                                .lineLimit(2)
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                             roleBadge
                         }
@@ -279,7 +284,7 @@ struct ManagedOrganizationCard: View {
                         Text(organization.shortDescription)
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
-                            .lineLimit(2)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                         metadataChips
                     }
@@ -288,30 +293,43 @@ struct ManagedOrganizationCard: View {
 
                 statsRow
 
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    NavigationLink {
-                        OrganizationDetailView(
-                            viewModel: organizationsViewModel,
-                            organizationID: organization.id
-                        )
-                    } label: {
-                        managedOrganizationActionLabel(title: AppStrings.Profile.organizationOpen, systemImage: "arrow.up.right")
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            organizationActions
+                        }
+                    } else {
+                        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            organizationActions
+                        }
                     }
-                    .buttonStyle(.plain)
-
-                    NavigationLink {
-                        ManagedOrganizationView(
-                            organization: organization,
-                            organizationsViewModel: organizationsViewModel
-                        )
-                    } label: {
-                        managedOrganizationActionLabel(title: AppStrings.Profile.organizationManage, systemImage: "slider.horizontal.3")
-                    }
-                    .buttonStyle(.plain)
                 }
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var organizationActions: some View {
+        NavigationLink {
+            OrganizationDetailView(
+                viewModel: organizationsViewModel,
+                organizationID: organization.id
+            )
+        } label: {
+            managedOrganizationActionLabel(title: AppStrings.Profile.organizationOpen, systemImage: "arrow.up.right")
+        }
+        .buttonStyle(.plain)
+
+        NavigationLink {
+            ManagedOrganizationView(
+                organization: organization,
+                organizationsViewModel: organizationsViewModel
+            )
+        } label: {
+            managedOrganizationActionLabel(title: AppStrings.Profile.organizationManage, systemImage: "slider.horizontal.3")
+        }
+        .buttonStyle(.plain)
     }
 
     private var roleBadge: some View {
@@ -319,7 +337,7 @@ struct ManagedOrganizationCard: View {
             .font(.caption2.weight(.bold))
             .foregroundStyle(role.tint)
             .padding(.horizontal, 8)
-            .frame(height: 22)
+            .padding(.vertical, 4)
             .background(role.tint.opacity(0.12), in: Capsule())
             .overlay(
                 Capsule()
@@ -348,7 +366,7 @@ struct ManagedOrganizationCard: View {
     }
 
     private var statsRow: some View {
-        HStack(spacing: 8) {
+        AppAdaptiveGrid(minimumWidth: 90, maximumWidth: 160, spacing: 8) {
             managementStat(title: AppStrings.Profile.organizationStatSubscribers, value: "\(organization.subscriberCount)")
             managementStat(title: AppStrings.Profile.organizationStatNews, value: contentStatValue(contentStats?.newsCount))
             managementStat(title: AppStrings.Profile.organizationStatEvents, value: contentStatValue(contentStats?.eventCount))
@@ -370,7 +388,8 @@ struct ManagedOrganizationCard: View {
             Text(title)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 7)
@@ -387,7 +406,8 @@ struct ManagedOrganizationCard: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(AppTheme.accentPrimary)
             .frame(maxWidth: .infinity)
-            .frame(height: 38)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.vertical, 10)
             .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -424,7 +444,7 @@ struct ManagementPill: View {
             .font(.caption2.weight(.bold))
             .foregroundStyle(tint)
             .padding(.horizontal, 8)
-            .frame(height: 22)
+            .padding(.vertical, 4)
             .background(tint.opacity(0.12), in: Capsule())
             .overlay(Capsule().strokeBorder(tint.opacity(0.22)))
     }
@@ -437,6 +457,7 @@ struct OrganizationManagementRow: View {
     let systemImage: String
     let tint: Color
     var isEnabled = true
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -451,12 +472,12 @@ struct OrganizationManagementRow: View {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isEnabled ? AppTheme.textPrimary : AppTheme.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
 
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 

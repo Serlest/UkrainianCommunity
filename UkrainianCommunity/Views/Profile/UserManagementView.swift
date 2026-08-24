@@ -664,7 +664,7 @@ struct UserManagementView: View {
             }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.searchControlHeight)
+        .frame(minHeight: AppTheme.searchControlHeight)
         .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
@@ -1201,7 +1201,7 @@ private struct UserDetailView: View {
                     }
                 }
                 .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(height: AppTheme.searchControlHeight)
+                .frame(minHeight: AppTheme.searchControlHeight)
                 .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
@@ -1383,8 +1383,10 @@ private struct UserDetailView: View {
         Label(action.title, systemImage: action.systemImage)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(tint)
+            .multilineTextAlignment(.center)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .frame(height: AppTheme.iconButtonSize)
+            .frame(minHeight: AppTheme.iconButtonSize)
             .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
     }
 
@@ -1395,8 +1397,10 @@ private struct UserDetailView: View {
             Label(action.title, systemImage: action.systemImage)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(action.isRemoval ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .frame(height: AppTheme.iconButtonSize)
+                .frame(minHeight: AppTheme.iconButtonSize)
                 .background(
                     (action.isRemoval ? AppTheme.accentDestructive : AppTheme.accentPrimary).opacity(0.10),
                     in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)

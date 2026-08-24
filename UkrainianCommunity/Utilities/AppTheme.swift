@@ -65,6 +65,11 @@ enum AppTheme {
 
     static let pageHorizontal: CGFloat = 16
     static let sectionSpacing: CGFloat = 16
+    static let readableContentMaxWidth: CGFloat = 760
+    static let feedContentMaxWidth: CGFloat = 1_040
+    static let adaptiveCardMinimumWidth: CGFloat = 320
+    static let adaptiveCardMaximumWidth: CGFloat = 500
+    static let accessibilityHeroMinHeight: CGFloat = 280
     static let dashboardSpacing: CGFloat = 12
     static let cardPadding: CGFloat = 18
     static let detailCardPadding: CGFloat = 20

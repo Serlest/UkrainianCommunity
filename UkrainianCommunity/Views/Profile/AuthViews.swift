@@ -46,7 +46,7 @@ private struct AuthScreenScaffold<Content: View>: View {
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.top, AppTheme.sectionSpacing)
             .padding(.bottom, AppTheme.sectionSpacing * 2)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .appCenteredContent()
         }
         .keyboardDismissBackground {
             AppBackgroundView()
@@ -71,8 +71,10 @@ struct AuthLandingView: View {
                         Text(AppStrings.Auth.signIn)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.vertical, 12)
                             .frame(maxWidth: .infinity)
-                            .frame(height: AppTheme.iconButtonSize)
+                            .frame(minHeight: AppTheme.iconButtonSize)
                             .background(AppTheme.accentPrimary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -84,8 +86,10 @@ struct AuthLandingView: View {
                         Text(AppStrings.Auth.createAccount)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(AppTheme.accentPrimary)
+                            .multilineTextAlignment(.center)
+                            .padding(.vertical, 12)
                             .frame(maxWidth: .infinity)
-                            .frame(height: AppTheme.iconButtonSize)
+                            .frame(minHeight: AppTheme.iconButtonSize)
                             .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
@@ -444,7 +448,7 @@ struct EmailVerificationView: View {
                         }
                     }
                     .appActionButtonStyle(.secondary)
-                    .frame(height: AppTheme.iconButtonSize)
+                    .frame(minHeight: AppTheme.iconButtonSize)
                     .disabled(isBusy)
                     .frame(maxWidth: .infinity)
                 }

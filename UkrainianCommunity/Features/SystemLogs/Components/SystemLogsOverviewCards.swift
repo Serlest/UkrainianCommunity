@@ -3,13 +3,8 @@ import SwiftUI
 struct SystemLogsOverviewCards: View {
     let metrics: [SystemLogOverviewMetric]
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
-
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 10) {
+        AppAdaptiveGrid(minimumWidth: 150, maximumWidth: 260, spacing: 10) {
             ForEach(metrics) { metric in
                 SoftContentCard(padding: AppTheme.metricCardPadding) {
                     HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {

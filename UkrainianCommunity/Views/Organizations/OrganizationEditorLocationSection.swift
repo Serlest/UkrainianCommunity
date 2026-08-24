@@ -22,6 +22,7 @@ extension OrganizationEditorView {
                         Text(selectedRegionTitle)
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(viewModel.selectedFederalState == nil ? AppTheme.textSecondary : AppTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
@@ -30,7 +31,8 @@ extension OrganizationEditorView {
                             .foregroundStyle(AppTheme.textSecondary)
                     }
                     .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
-                    .frame(height: compactInputHeight)
+                    .padding(.vertical, 9)
+                    .frame(minHeight: compactInputHeight)
                     .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
@@ -75,8 +77,8 @@ extension OrganizationEditorView {
                 Text(selectedFoundedMonthTitle)
                     .font(.subheadline)
                     .foregroundStyle(viewModel.foundedMonth == nil ? AppTheme.textSecondary : AppTheme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
@@ -85,6 +87,7 @@ extension OrganizationEditorView {
                     .foregroundStyle(AppTheme.textSecondary)
             }
             .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
+            .padding(.vertical, 9)
             .frame(minHeight: compactInputHeight, alignment: .leading)
             .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
             .overlay(

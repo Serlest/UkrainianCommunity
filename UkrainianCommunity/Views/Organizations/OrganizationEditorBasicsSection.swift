@@ -106,7 +106,11 @@ extension OrganizationEditorView {
                 }
 
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.eventsMetadataSpacing) {
+                    AppAdaptiveGrid(
+                        minimumWidth: 240,
+                        maximumWidth: 360,
+                        spacing: AppTheme.eventsMetadataSpacing
+                    ) {
                         iconTextField(systemImage: "calendar", placeholder: AppStrings.Organizations.fieldFoundedYear, text: $viewModel.foundedYear)
                             .keyboardType(.numberPad)
 

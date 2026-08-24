@@ -406,8 +406,10 @@ struct EventEditorView: View {
         Label(title, systemImage: systemImage)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppTheme.textSecondary)
+            .multilineTextAlignment(.center)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .frame(height: AppTheme.searchControlHeight)
+            .frame(minHeight: AppTheme.searchControlHeight)
             .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)

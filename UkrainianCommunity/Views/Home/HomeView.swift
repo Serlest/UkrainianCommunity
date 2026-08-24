@@ -103,6 +103,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
+                .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
@@ -758,65 +759,86 @@ private struct HomeFilterRow: View {
 
 private struct HomeFeedCard: View {
     let item: HomeFeedItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         SoftContentCard(padding: AppTheme.homeFeedCardPadding) {
-            HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
-                leadingMedia
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
+                    HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
+                        leadingMedia
 
-                VStack(alignment: .leading, spacing: 4) {
-                    typeChip
+                        Spacer(minLength: 0)
 
-                    Text(item.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-
-                    if item.itemType == .organization {
-                        organizationMetadataLine
-                            .padding(.top, 1)
+                        rightAccessory
                     }
 
-                    if shouldShowPreview, !item.summary.isEmpty {
-                        Text(item.summary)
-                            .font(.caption2)
-                            .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
-                            .lineLimit(1)
-                    }
-
-                    if let publisherText {
-                        publisherLine(title: publisherText)
-                            .padding(.top, 1)
-                    }
-
-                    if item.itemType == .event {
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: AppTheme.compactCardInnerSpacing) {
-                                metadataLine
-                                if let secondaryMetadataText {
-                                    AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                metadataLine
-                                if let secondaryMetadataText {
-                                    AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
-                                }
-                            }
-                        }
-                    }
+                    cardDetails
                 }
+            } else {
+                HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
+                    leadingMedia
+                    cardDetails
 
-                if item.itemType != .organization {
-                    Spacer(minLength: 2)
+                    if item.itemType != .organization {
+                        Spacer(minLength: 2)
 
-                    rightAccessory
+                        rightAccessory
+                    }
                 }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var cardDetails: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            typeChip
+
+            Text(item.title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if item.itemType == .organization {
+                organizationMetadataLine
+                    .padding(.top, 1)
+            }
+
+            if shouldShowPreview, !item.summary.isEmpty {
+                Text(item.summary)
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let publisherText {
+                publisherLine(title: publisherText)
+                    .padding(.top, 1)
+            }
+
+            if item.itemType == .event {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: AppTheme.compactCardInnerSpacing) {
+                        metadataLine
+                        if let secondaryMetadataText {
+                            AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        metadataLine
+                        if let secondaryMetadataText {
+                            AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var leadingMedia: some View {
@@ -845,7 +867,8 @@ private struct HomeFeedCard: View {
         Text(publishedDateText)
             .font(.caption2.weight(.medium))
             .foregroundStyle(AppTheme.textSecondary)
-            .lineLimit(1)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
@@ -869,8 +892,8 @@ private struct HomeFeedCard: View {
         Label(title, systemImage: "person.crop.circle")
             .font(.caption2.weight(.medium))
             .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var metadataLine: some View {
@@ -881,9 +904,9 @@ private struct HomeFeedCard: View {
         Text(organizationMetadataText)
             .font(.caption2.weight(.medium))
             .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
-            .lineLimit(1)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
             .truncationMode(.tail)
-            .minimumScaleFactor(0.82)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var itemTypeTitle: String {
@@ -1082,6 +1105,7 @@ private struct HomeFeedCard: View {
 private struct HomeEventDateBadge: View {
     let date: Date
     let calendar: Calendar
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(date: Date, calendar: Calendar = .current) {
         self.date = date
@@ -1089,33 +1113,47 @@ private struct HomeEventDateBadge: View {
     }
 
     var body: some View {
-        VStack(spacing: 3) {
-            VStack(spacing: 1) {
-                Text(dayText)
-                    .font(.subheadline.weight(.bold))
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                Text("\(weekdayText), \(dayText) \(monthText)")
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(AppTheme.accentPrimary)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                            .strokeBorder(AppTheme.borderSubtle)
+                    )
+            } else {
+                VStack(spacing: 3) {
+                    VStack(spacing: 1) {
+                        Text(dayText)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(AppTheme.accentPrimary)
 
-                Text(monthText.uppercased())
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(AppTheme.accentDestructive)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                        Text(monthText.uppercased())
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(AppTheme.accentDestructive)
+                    }
+                    .frame(width: AppTheme.homeFeedDateBadgeSize, height: AppTheme.homeFeedDateBadgeSize)
+                    .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                            .strokeBorder(AppTheme.borderSubtle)
+                    )
+                    .shadow(color: AppTheme.textPrimary.opacity(0.06), radius: 5, y: 2)
+
+                    Text(weekdayText.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
+                        .lineLimit(1)
+                }
+                .frame(width: AppTheme.homeFeedDateBadgeSize)
             }
-            .frame(width: AppTheme.homeFeedDateBadgeSize, height: AppTheme.homeFeedDateBadgeSize)
-            .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                    .strokeBorder(AppTheme.borderSubtle)
-            )
-            .shadow(color: AppTheme.textPrimary.opacity(0.06), radius: 5, y: 2)
-
-            Text(weekdayText.uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
-                .lineLimit(1)
         }
-        .frame(width: AppTheme.homeFeedDateBadgeSize)
     }
 
     private var dayText: String {

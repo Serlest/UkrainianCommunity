@@ -155,8 +155,9 @@ extension OrganizationDetailView {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
                 .padding(.horizontal, AppTheme.dashboardSpacing)
+                .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .frame(height: AppTheme.iconButtonSize)
+                .frame(minHeight: AppTheme.iconButtonSize)
                 .background(
                     reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
                     in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
@@ -213,8 +214,9 @@ extension OrganizationDetailView {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(foregroundColor)
                 .padding(.horizontal, AppTheme.dashboardSpacing)
+                .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .frame(height: AppTheme.iconButtonSize)
+                .frame(minHeight: AppTheme.iconButtonSize)
                 .background(
                     backgroundColor,
                     in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)

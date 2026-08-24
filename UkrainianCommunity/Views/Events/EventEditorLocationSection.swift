@@ -141,8 +141,10 @@ extension EventEditorView {
                 Label(AppStrings.Events.chooseOnMap, systemImage: "map")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accentPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
-                    .frame(height: AppTheme.searchControlHeight)
+                    .frame(minHeight: AppTheme.searchControlHeight)
                     .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
@@ -397,8 +399,10 @@ struct EventMapPickerView: View {
                     Text(AppStrings.Events.selectLocation)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
-                        .frame(height: AppTheme.searchControlHeight)
+                        .frame(minHeight: AppTheme.searchControlHeight)
                         .background(
                             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
                                 .fill(selection == nil ? AppTheme.accentPrimary.opacity(0.28) : AppTheme.accentPrimary)
@@ -444,7 +448,7 @@ struct EventMapPickerView: View {
                 .onSubmit { isSearchFocused = false }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(height: AppTheme.searchControlHeight)
+        .frame(minHeight: AppTheme.searchControlHeight)
         .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)

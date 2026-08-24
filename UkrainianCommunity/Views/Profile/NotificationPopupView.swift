@@ -37,6 +37,7 @@ struct NotificationPopupView: View {
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.vertical, AppTheme.sectionSpacing)
+                .appCenteredContent()
             }
             .background(AppTheme.groupedBackground.ignoresSafeArea())
             .navigationTitle(title)

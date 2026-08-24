@@ -15,6 +15,7 @@ struct UnifiedEmptyStateCard<ActionContent: View>: View {
     let title: String
     let message: String
     @ViewBuilder let actionContent: ActionContent
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         systemImage: String,
@@ -42,13 +43,13 @@ struct UnifiedEmptyStateCard<ActionContent: View>: View {
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                     Text(message)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                         .multilineTextAlignment(.center)
-                        .lineLimit(3)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 

@@ -193,12 +193,23 @@ struct DetailHeaderCard<MetadataContent: View>: View {
 struct DetailActionRow<LeadingContent: View, TrailingContent: View>: View {
     @ViewBuilder let leadingContent: LeadingContent
     @ViewBuilder let trailingContent: TrailingContent
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(alignment: .center, spacing: AppTheme.detailActionRowSpacing) {
-            leadingContent
-            Spacer(minLength: 0)
-            trailingContent
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppTheme.detailActionRowSpacing) {
+                    leadingContent
+                    trailingContent
+                }
+            } else {
+                HStack(alignment: .center, spacing: AppTheme.detailActionRowSpacing) {
+                    leadingContent
+                    Spacer(minLength: 0)
+                    trailingContent
+                }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

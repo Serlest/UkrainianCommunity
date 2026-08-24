@@ -229,7 +229,11 @@ struct OwnerAnalyticsView: View {
     }
 
     private func metricGrid<T: Identifiable>(_ items: [T], accentFirst: Bool) -> some View where T: OwnerAnalyticsMetricDisplayable {
-        LazyVGrid(columns: metricColumns, spacing: AppTheme.eventsMetadataSpacing) {
+        AppAdaptiveGrid(
+            minimumWidth: 140,
+            maximumWidth: 240,
+            spacing: AppTheme.eventsMetadataSpacing
+        ) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 OwnerAnalyticsMetricTile(
                     title: item.title,
@@ -240,13 +244,6 @@ struct OwnerAnalyticsView: View {
                 )
             }
         }
-    }
-
-    private var metricColumns: [GridItem] {
-        [
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing),
-            GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing)
-        ]
     }
 
     private var emptyMessage: String {

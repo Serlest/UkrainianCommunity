@@ -34,6 +34,7 @@ struct ContentReportSheet: View {
                 }
                 .padding(AppTheme.pageHorizontal)
                 .padding(.bottom, AppTheme.sectionSpacing)
+                .appCenteredContent()
             }
             .scrollDismissesKeyboard(.interactively)
             .background(AppTheme.pageBackground)
@@ -202,6 +203,7 @@ struct ContentReportSheet: View {
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.vertical, 12)
+            .appCenteredContent()
         }
         .background(AppTheme.pageBackground)
     }
@@ -214,6 +216,7 @@ struct ContentReportSheet: View {
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.vertical, 12)
+            .appCenteredContent()
         }
         .background(AppTheme.pageBackground)
     }

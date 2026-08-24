@@ -15,6 +15,7 @@ struct AppHeroBanner<FooterContent: View>: View {
     @ViewBuilder let footerContent: FooterContent
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         title: String,
@@ -37,17 +38,17 @@ struct AppHeroBanner<FooterContent: View>: View {
             if imageSource.isRemoteBanner || (imageSource.isImageOnlyBanner && !displaysTextOverImage) {
                 GeometryReader { proxy in
                     bannerArtwork
-                        .frame(width: proxy.size.width, height: height)
+                        .frame(width: proxy.size.width, height: resolvedHeight)
                         .clipped()
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: height)
+                .frame(height: resolvedHeight)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
             } else {
                 ZStack(alignment: .bottomLeading) {
                     bannerArtwork
                         .frame(maxWidth: .infinity)
-                        .frame(height: height)
+                        .frame(height: resolvedHeight)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous))
 
                     LinearGradient(
@@ -66,12 +67,12 @@ struct AppHeroBanner<FooterContent: View>: View {
                             Text(title)
                                 .font(.title2.weight(.bold))
                                 .foregroundStyle(AppTheme.accentPrimaryForeground)
-                                .lineLimit(2)
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                             Text(subtitle)
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(AppTheme.textPrimary.opacity(0.78))
-                                .lineLimit(3)
+                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                         }
 
                         footerContent
@@ -104,7 +105,7 @@ struct AppHeroBanner<FooterContent: View>: View {
         case let .remoteURL(imageURL):
             RemoteCardImage(
                 imageURL: imageURL,
-                height: height,
+                height: resolvedHeight,
                 cornerRadius: AppTheme.heroRadius,
                 source: "AppHeroBanner",
                 isDecorative: true,
@@ -117,6 +118,12 @@ struct AppHeroBanner<FooterContent: View>: View {
         case .none:
             AppHeroFallbackSurface()
         }
+    }
+
+    private var resolvedHeight: CGFloat {
+        dynamicTypeSize.isAccessibilitySize
+            ? max(height, AppTheme.accessibilityHeroMinHeight)
+            : height
     }
 }
 

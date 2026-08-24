@@ -439,6 +439,7 @@ private struct FeedbackConversationSheet: View {
     let onClose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var replyText = ""
     @State private var validationMessage: String?
 
@@ -489,6 +490,7 @@ private struct FeedbackConversationSheet: View {
                         }
                         .padding(AppTheme.pageHorizontal)
                         .padding(.bottom, AppTheme.sectionSpacing)
+                        .appCenteredContent()
                     }
                     .onAppear {
                         scrollToLastMessage(with: proxy, animated: false)
@@ -538,33 +540,20 @@ private struct FeedbackConversationSheet: View {
                         }
                         .font(.caption)
 
-                        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                            PrimaryActionButton(
-                                title: isSending ? AppStrings.Feedback.sending : AppStrings.Feedback.send,
-                                isEnabled: !isSending,
-                                isLoading: isSending,
-                                systemImage: "paperplane"
-                            ) {
-                                submitReply()
+                        if dynamicTypeSize.isAccessibilitySize {
+                            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                                replyActions
                             }
-
-                            if allowsClose, let onClose {
-                                Button(action: onClose) {
-                                    Label(AppStrings.Feedback.closeFeedback, systemImage: "checkmark.seal")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(AppTheme.accentDestructive)
-                                        .frame(height: AppTheme.iconButtonSize)
-                                        .padding(.horizontal, 12)
-                                        .background(AppTheme.accentDestructive.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(isSending)
+                        } else {
+                            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                                replyActions
                             }
                         }
                     }
                 }
                 .padding(AppTheme.pageHorizontal)
                 .padding(.vertical, 12)
+                .appCenteredContent()
                 .background(AppTheme.pageBackground)
             }
             .background(AppTheme.pageBackground)
@@ -607,6 +596,34 @@ private struct FeedbackConversationSheet: View {
             } else {
                 validationMessage = "\(AppStrings.Feedback.sendMessageFailed) \(AppStrings.Feedback.tryAgain)"
             }
+        }
+    }
+
+    @ViewBuilder
+    private var replyActions: some View {
+        PrimaryActionButton(
+            title: isSending ? AppStrings.Feedback.sending : AppStrings.Feedback.send,
+            isEnabled: !isSending,
+            isLoading: isSending,
+            systemImage: "paperplane"
+        ) {
+            submitReply()
+        }
+
+        if allowsClose, let onClose {
+            Button(action: onClose) {
+                Label(AppStrings.Feedback.closeFeedback, systemImage: "checkmark.seal")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentDestructive)
+                    .multilineTextAlignment(.center)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: AppTheme.iconButtonSize)
+                    .padding(.horizontal, 12)
+                    .background(AppTheme.accentDestructive.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(isSending)
         }
     }
 

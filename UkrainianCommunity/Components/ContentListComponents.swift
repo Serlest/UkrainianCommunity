@@ -4,6 +4,7 @@ struct DashboardSectionHeader<TrailingContent: View>: View {
     let title: String
     let subtitle: String?
     @ViewBuilder let trailingContent: TrailingContent
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         title: String,
@@ -16,11 +17,20 @@ struct DashboardSectionHeader<TrailingContent: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            SectionHeaderBlock(title: title, subtitle: subtitle)
-
-            trailingContent
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionHeaderBlock(title: title, subtitle: subtitle)
+                    trailingContent
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    SectionHeaderBlock(title: title, subtitle: subtitle)
+                    trailingContent
+                }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -51,7 +61,7 @@ struct DashboardFeedContainer<Data: RandomAccessCollection, RowContent: View>: V
     }
 
     var body: some View {
-        LazyVStack(spacing: spacing) {
+        AppAdaptiveGrid(spacing: spacing) {
             ForEach(items) { item in
                 rowContent(item)
                     .onAppear {
@@ -62,11 +72,49 @@ struct DashboardFeedContainer<Data: RandomAccessCollection, RowContent: View>: V
     }
 }
 
+struct AppAdaptiveGrid<Content: View>: View {
+    let minimumWidth: CGFloat
+    let maximumWidth: CGFloat
+    let spacing: CGFloat
+    @ViewBuilder let content: Content
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    init(
+        minimumWidth: CGFloat = AppTheme.adaptiveCardMinimumWidth,
+        maximumWidth: CGFloat = AppTheme.adaptiveCardMaximumWidth,
+        spacing: CGFloat = 16,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.minimumWidth = minimumWidth
+        self.maximumWidth = maximumWidth
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    private var columns: [GridItem] {
+        guard !dynamicTypeSize.isAccessibilitySize else {
+            return [GridItem(.flexible())]
+        }
+
+        return [GridItem(
+            .adaptive(minimum: minimumWidth, maximum: maximumWidth),
+            spacing: spacing
+        )]
+    }
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: spacing) {
+            content
+        }
+    }
+}
+
 struct AppEventDateBlock: View {
     let date: Date
     let calendar: Calendar
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(date: Date, calendar: Calendar = .current) {
         self.date = date
@@ -74,20 +122,53 @@ struct AppEventDateBlock: View {
     }
 
     var body: some View {
-        VStack(spacing: 3) {
-            VStack(spacing: 1) {
-                Text(dayText)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .lineLimit(1)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                dateSurface {
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text(dayText)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                Text(monthText.uppercased())
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(AppTheme.accentDestructiveForeground)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                        Text(monthText.uppercased())
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(AppTheme.accentDestructiveForeground)
+
+                        Text(weekdayText.uppercased())
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                }
+            } else {
+                VStack(spacing: 3) {
+                    dateSurface {
+                        VStack(spacing: 1) {
+                            Text(dayText)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
+
+                            Text(monthText.uppercased())
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(AppTheme.accentDestructiveForeground)
+                        }
+                        .frame(width: AppTheme.eventsDateRailWidth, height: 52)
+                    }
+
+                    Text(weekdayText.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
+                        .lineLimit(1)
+                }
+                .frame(width: AppTheme.eventsDateRailWidth)
             }
-            .frame(width: AppTheme.eventsDateRailWidth, height: 52)
+        }
+    }
+
+    private func dateSurface<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
             .background(
                 reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
                 in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
@@ -102,13 +183,6 @@ struct AppEventDateBlock: View {
                 RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
                     .strokeBorder(AppTheme.glassBorder(for: colorScheme))
             )
-
-            Text(weekdayText.uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
-                .lineLimit(1)
-        }
-        .frame(width: AppTheme.eventsDateRailWidth)
     }
 
     private var dayText: String {
@@ -188,6 +262,7 @@ struct AppMetadataLine: View {
     let title: String
     let systemImage: String
     let tint: Color
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(title: String, systemImage: String, tint: Color = AppTheme.textSecondary) {
         self.title = title
@@ -199,8 +274,8 @@ struct AppMetadataLine: View {
         Label(title, systemImage: systemImage)
             .font(.caption2.weight(.medium))
             .foregroundStyle(tint)
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -208,14 +283,8 @@ struct AdaptiveCardGrid<Data: RandomAccessCollection, Content: View>: View where
     let items: Data
     @ViewBuilder let content: (Data.Element) -> Content
 
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
-    private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 16), count: horizontalSizeClass == .regular ? 2 : 1)
-    }
-
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 16) {
+        AppAdaptiveGrid {
             ForEach(items) { item in
                 content(item)
             }
@@ -230,12 +299,21 @@ struct MetadataRow: View {
 
     var body: some View {
         Label {
-            HStack {
-                Text(label)
-                Spacer()
-                Text(value)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundStyle(AppTheme.textSecondary)
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text(label)
+                    Spacer()
+                    Text(value)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(label)
+                    Text(value)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .fixedSize(horizontal: false, vertical: true)
             }
         } icon: {
             Image(systemName: systemImage)

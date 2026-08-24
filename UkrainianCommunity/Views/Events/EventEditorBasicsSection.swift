@@ -169,9 +169,10 @@ extension EventEditorView {
                 Label(category.title, systemImage: category.systemImage)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(isSelected ? AppTheme.accentPrimary : AppTheme.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 10)
-                    .frame(height: 32)
+                    .padding(.vertical, 7)
                     .background(
                         (isSelected ? AppTheme.accentPrimarySoft : AppTheme.surfaceGlass),
                         in: Capsule(style: .continuous)

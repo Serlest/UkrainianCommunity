@@ -190,12 +190,9 @@ struct OrganizationReadOnlyDetailContent: View {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 AppEditorSectionTitle(title: AppStrings.Organizations.mainInformationTitle)
 
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing, alignment: .topLeading),
-                        GridItem(.flexible(), spacing: AppTheme.eventsMetadataSpacing, alignment: .topLeading)
-                    ],
-                    alignment: .leading,
+                AppAdaptiveGrid(
+                    minimumWidth: 150,
+                    maximumWidth: 260,
                     spacing: AppTheme.eventsMetadataSpacing
                 ) {
                     ForEach(factItems, id: \.title) { item in

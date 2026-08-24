@@ -202,6 +202,7 @@ struct OrganizationsListView: View {
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
+                .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
@@ -540,39 +541,56 @@ func readableOrganizationErrorText(_ error: AppError?) -> String {
 
 private struct OrganizationCard: View {
     let organization: Organization
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         SoftContentCard(padding: AppTheme.compactCardInnerSpacing) {
-            HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
-                AppFeedThumbnail(
-                    imageURL: organization.imageURL,
-                    fallbackSystemImage: "building.2",
-                    tint: AppTheme.accentPrimary,
-                    fill: AppTheme.badgeBlueFill,
-                    size: thumbnailSize,
-                    cornerRadius: AppTheme.feedThumbnailRadius,
-                    source: "OrganizationCard"
-                )
-                .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
-
-                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingDense) {
-                    Text(organization.name)
-                        .font(AppTheme.cardTitleFont)
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-
-                    Text(organization.shortDescription)
-                        .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
-                        .lineLimit(2)
-
-                    organizationMetadataChips
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
+                    organizationThumbnail
+                    organizationDetails
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
+                    organizationThumbnail
+                    organizationDetails
+                }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var organizationThumbnail: some View {
+        AppFeedThumbnail(
+            imageURL: organization.imageURL,
+            fallbackSystemImage: "building.2",
+            tint: AppTheme.accentPrimary,
+            fill: AppTheme.badgeBlueFill,
+            size: thumbnailSize,
+            cornerRadius: AppTheme.feedThumbnailRadius,
+            source: "OrganizationCard"
+        )
+        .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
+    }
+
+    private var organizationDetails: some View {
+        VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingDense) {
+            Text(organization.name)
+                .font(AppTheme.cardTitleFont)
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(organization.shortDescription)
+                .font(AppTheme.cardSubtitleFont)
+                .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            organizationMetadataChips
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var thumbnailSize: CGFloat {

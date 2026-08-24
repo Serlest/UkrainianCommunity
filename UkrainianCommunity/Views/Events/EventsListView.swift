@@ -319,6 +319,7 @@ struct EventsListView: View {
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
+                .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
@@ -800,52 +801,84 @@ private func looksLikeRawEventAuthorIdentifier(_ value: String) -> Bool {
 
 private struct EventCard: View {
     let event: Event
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         SoftContentCard(padding: AppTheme.compactCardInnerSpacingTight) {
-            HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
-                AppEventDateBlock(date: event.startDate)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
+                    HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
+                        AppEventDateBlock(date: event.startDate)
 
-                VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
-                    typeChip
+                        Spacer(minLength: 0)
 
-                    Text(event.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-
-                    if !event.summary.isEmpty {
-                        Text(event.summary)
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary.opacity(0.88))
-                            .lineLimit(1)
+                        eventThumbnail
                     }
 
-                    HStack(spacing: AppTheme.compactCardInnerSpacingTight) {
-                        AppMetadataLine(title: timeText, systemImage: "clock")
-                        AppMetadataLine(title: locationText, systemImage: locationIcon)
-                    }
+                    eventDetails
                 }
-                .padding(.trailing, 6)
+            } else {
+                HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
+                    AppEventDateBlock(date: event.startDate)
+                    eventDetails
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                AppFeedThumbnail(
-                    imageURL: event.imageURL,
-                    fallbackSystemImage: "calendar",
-                    tint: AppTheme.accentPrimary,
-                    fill: AppTheme.badgeBlueFill,
-                    size: AppTheme.eventsThumbnailSize,
-                    cornerRadius: AppTheme.rowCardCornerRadius,
-                    source: "EventCard"
-                )
-                .padding(.trailing, 26)
-                .frame(maxHeight: AppTheme.eventsThumbnailSize)
-                .layoutPriority(-1)
+                    eventThumbnail
+                        .padding(.trailing, 26)
+                        .layoutPriority(-1)
+                }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var eventDetails: some View {
+        VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
+            typeChip
+
+            Text(event.title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !event.summary.isEmpty {
+                Text(event.summary)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary.opacity(0.88))
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppTheme.compactCardInnerSpacingTight) {
+                    AppMetadataLine(title: timeText, systemImage: "clock")
+                    AppMetadataLine(title: locationText, systemImage: locationIcon)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    AppMetadataLine(title: timeText, systemImage: "clock")
+                    AppMetadataLine(title: locationText, systemImage: locationIcon)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 0 : 6)
+    }
+
+    private var eventThumbnail: some View {
+        AppFeedThumbnail(
+            imageURL: event.imageURL,
+            fallbackSystemImage: "calendar",
+            tint: AppTheme.accentPrimary,
+            fill: AppTheme.badgeBlueFill,
+            size: AppTheme.eventsThumbnailSize,
+            cornerRadius: AppTheme.rowCardCornerRadius,
+            source: "EventCard"
+        )
+        .frame(maxHeight: AppTheme.eventsThumbnailSize)
     }
 
     private var typeChip: some View {
