@@ -25,6 +25,57 @@ struct AppBackButton: View {
     }
 }
 
+private struct AdaptiveActionHeader<LeadingContent: View, TitleContent: View, TrailingContent: View>: View {
+    let spacing: CGFloat
+    let allowsVerticalLayout: Bool
+    @ViewBuilder let leadingContent: LeadingContent
+    @ViewBuilder let titleContent: TitleContent
+    @ViewBuilder let trailingContent: TrailingContent
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    init(
+        spacing: CGFloat,
+        allowsVerticalLayout: Bool = true,
+        @ViewBuilder leadingContent: () -> LeadingContent,
+        @ViewBuilder titleContent: () -> TitleContent,
+        @ViewBuilder trailingContent: () -> TrailingContent
+    ) {
+        self.spacing = spacing
+        self.allowsVerticalLayout = allowsVerticalLayout
+        self.leadingContent = leadingContent()
+        self.titleContent = titleContent()
+        self.trailingContent = trailingContent()
+    }
+
+    var body: some View {
+        Group {
+            if allowsVerticalLayout && dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: spacing) {
+                    HStack(alignment: .top, spacing: spacing) {
+                        leadingContent
+
+                        Spacer(minLength: 0)
+
+                        trailingContent
+                    }
+
+                    titleContent
+                }
+            } else {
+                HStack(alignment: .top, spacing: spacing) {
+                    leadingContent
+                    titleContent
+
+                    Spacer(minLength: 0)
+
+                    trailingContent
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 /// Header for pushed/detail/admin/editor screens.
 ///
 /// This deliberately has no app logo. Future migrations should replace
@@ -52,30 +103,36 @@ struct PushedScreenHeader<TrailingContent: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.pushedScreenHeaderSpacing) {
+        AdaptiveActionHeader(
+            spacing: AppTheme.pushedScreenHeaderSpacing,
+            allowsVerticalLayout: showsBackButton
+        ) {
             if showsBackButton {
                 AppBackButton(action: backAction)
             }
-
-            VStack(alignment: .leading, spacing: AppTheme.pushedScreenHeaderTextSpacing) {
-                Text(title)
-                    .font(AppTheme.pushedScreenTitleFont)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(AppTheme.pushedScreenSubtitleFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, showsBackButton ? AppTheme.pushedScreenHeaderTitleTopOffset : 0)
-
+        } titleContent: {
+            titleBlock
+        } trailingContent: {
             trailingContent
         }
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: AppTheme.pushedScreenHeaderTextSpacing) {
+            Text(title)
+                .font(AppTheme.pushedScreenTitleFont)
+                .foregroundStyle(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(AppTheme.pushedScreenSubtitleFont)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, showsBackButton ? AppTheme.pushedScreenHeaderTitleTopOffset : 0)
     }
 }
 
@@ -375,18 +432,15 @@ struct DetailActionHeader<TrailingActions: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.detailScreenHeaderSpacing) {
+        AdaptiveActionHeader(spacing: AppTheme.detailScreenHeaderSpacing) {
             AppBackButton(action: backAction)
-
+        } titleContent: {
             titleBlock
-
-            Spacer(minLength: 0)
-
+        } trailingContent: {
             HStack(spacing: AppTheme.detailActionHeaderSpacing) {
                 trailingActions
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -636,7 +690,7 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
     }
 
     private var editorHeader: some View {
-        HStack(alignment: .top, spacing: AppTheme.editorScreenHeaderSpacing) {
+        AdaptiveActionHeader(spacing: AppTheme.editorScreenHeaderSpacing) {
             AppGlassIconButton(systemImage: closeStyle.systemImage, accessibilityLabel: closeStyle.accessibilityLabel) {
                 if let closeAction {
                     closeAction()
@@ -644,26 +698,29 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                     dismiss()
                 }
             }
-
-            VStack(alignment: .leading, spacing: AppTheme.editorScreenHeaderTextSpacing) {
-                Text(title)
-                    .font(AppTheme.editorScreenTitleFont)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(AppTheme.editorScreenSubtitleFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, AppTheme.editorScreenHeaderTitleTopOffset)
-
+        } titleContent: {
+            editorTitleBlock
+        } trailingContent: {
             trailingContent
         }
+    }
+
+    private var editorTitleBlock: some View {
+        VStack(alignment: .leading, spacing: AppTheme.editorScreenHeaderTextSpacing) {
+            Text(title)
+                .font(AppTheme.editorScreenTitleFont)
+                .foregroundStyle(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(AppTheme.editorScreenSubtitleFont)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, AppTheme.editorScreenHeaderTitleTopOffset)
     }
 }
 
