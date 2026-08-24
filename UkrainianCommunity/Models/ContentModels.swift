@@ -786,13 +786,6 @@ enum ModerationStatus: String, Codable {
     }
 }
 
-struct HomeHighlight: Identifiable {
-    let id: String
-    let title: String
-    let detail: String
-    let systemImage: String
-}
-
 enum HomeFeedSourceType: String, Codable {
     case app
     case organization

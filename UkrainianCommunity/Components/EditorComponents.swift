@@ -78,44 +78,6 @@ struct AppEditorField<Content: View>: View {
     }
 }
 
-struct AppEditorSubmitButton: View {
-    let title: String
-    let isEnabled: Bool
-    let isLoading: Bool
-    let loadingTitle: String
-    let action: () -> Void
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .tint(.white)
-                }
-
-                Text(isLoading ? loadingTitle : title)
-                    .font(.subheadline.weight(.semibold))
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, AppTheme.sectionSpacing)
-            .padding(.vertical, 12)
-            .frame(minHeight: AppTheme.iconButtonSize)
-            .background(
-                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                    .fill(isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.38))
-            )
-            .shadow(color: isEnabled ? AppTheme.glassShadow(for: colorScheme) : .clear, radius: 5, y: 2)
-        }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
-        .accessibilityLabel(title)
-    }
-}
-
 struct EditorTextField: View {
     let title: String
     @Binding var text: String

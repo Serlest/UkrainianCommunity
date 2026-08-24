@@ -41,53 +41,6 @@ enum ProfileModuleStatus {
 }
 
 
-struct ProfileTextModuleRow: View {
-    let title: String
-    let subtitle: String?
-    let accessory: AppNavigationRowAccessory
-
-    init(
-        title: String,
-        subtitle: String? = nil,
-        accessory: AppNavigationRowAccessory = .chevron
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.accessory = accessory
-    }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.footnote)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            Spacer(minLength: 12)
-
-            if accessory == .chevron {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 2)
-            }
-        }
-        .padding(.vertical, 7)
-        .frame(maxWidth: .infinity, minHeight: 58, alignment: .center)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-
 struct ProfileModuleRow: View {
     let title: String
     let subtitle: String?
@@ -170,22 +123,5 @@ struct OwnerVisibilityCountBadge: View {
                     .stroke(tint.opacity(0.24), lineWidth: 1)
             )
             .accessibilityLabel(displayText)
-    }
-}
-
-
-struct PlatformAccessStrip: View {
-    let user: AppUser
-
-    var body: some View {
-        HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
-            ProfileBadge(title: user.globalRole.title, systemImage: "person.badge.key")
-            ProfileBadge(title: AppStrings.Profile.verifiedAccess, systemImage: "checkmark.seal")
-
-            if PermissionService.hasOwnerRoleForDisplay(user: user) {
-                ProfileBadge(title: AppStrings.Profile.systemAccessLevel, systemImage: "lock.shield")
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

@@ -125,25 +125,6 @@ struct CommunityCard<Content: View>: View {
     }
 }
 
-struct DetailPageContainer<Content: View>: View {
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        GeometryReader { proxy in
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.detailPageContentSpacing) {
-                    content
-                }
-                .padding(.horizontal, AppTheme.detailPageHorizontalPadding)
-                .padding(.top, AppTheme.detailPageTopPadding)
-                .padding(.bottom, AppTheme.detailPageBottomPadding)
-                .frame(width: proxy.size.width, alignment: .leading)
-            }
-            .frame(width: proxy.size.width)
-        }
-    }
-}
-
 struct DetailCard<Content: View>: View {
     @ViewBuilder let content: Content
 

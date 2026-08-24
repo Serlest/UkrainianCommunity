@@ -184,34 +184,3 @@ struct AppHorizontalFilterRow<Content: View>: View {
         }
     }
 }
-
-struct SelectableFilterChip: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isSelected ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                .appGlassSurface(
-                    cornerRadius: AppTheme.iconButtonSize / 2,
-                    tint: isSelected ? AppTheme.accentPrimary : nil,
-                    isInteractive: true,
-                    fallbackSurface: isSelected ? AppTheme.badgeBlueFill : AppTheme.surfacePrimary,
-                    fallbackBorder: isSelected ? AppTheme.borderSubtle : Color.clear,
-                    shadowRadius: 0,
-                    shadowY: 0
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}

@@ -9,45 +9,6 @@ struct ProfileStatItem: Identifiable {
 }
 
 
-struct ProfileQuickStatsGrid: View {
-    let stats: [ProfileStatItem]
-
-    var body: some View {
-        AppAdaptiveGrid(
-            minimumWidth: 140,
-            maximumWidth: 240,
-            spacing: AppTheme.eventsMetadataSpacing
-        ) {
-            ForEach(stats) { stat in
-                VStack(alignment: .leading, spacing: 8) {
-                    Image(systemName: stat.systemImage)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
-
-                    Text(stat.value)
-                        .font(AppTheme.cardTitleFont)
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .monospacedDigit()
-
-                    Text(stat.title)
-                        .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(AppTheme.eventsMetadataSpacing)
-                .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                        .strokeBorder(AppTheme.borderSubtle)
-                )
-            }
-        }
-    }
-}
-
-
 struct ProfileQuickActionItem: Identifiable {
     let title: String
     let subtitle: String
@@ -55,23 +16,6 @@ struct ProfileQuickActionItem: Identifiable {
     let status: ProfileModuleStatus
 
     var id: String { "\(systemImage)-\(title)" }
-}
-
-
-struct ProfileQuickActionGrid: View {
-    let items: [ProfileQuickActionItem]
-
-    var body: some View {
-        AppAdaptiveGrid(
-            minimumWidth: 150,
-            maximumWidth: 260,
-            spacing: AppTheme.eventsMetadataSpacing
-        ) {
-            ForEach(items) { item in
-                ProfileQuickActionCard(item: item)
-            }
-        }
-    }
 }
 
 

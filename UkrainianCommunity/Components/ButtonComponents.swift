@@ -51,24 +51,6 @@ extension View {
     }
 }
 
-struct AppIconControlButton: View {
-    let systemImage: String
-    let accessibilityLabel: String
-    let action: () -> Void
-
-    init(systemImage: String, accessibilityLabel: String, action: @escaping () -> Void = {}) {
-        self.systemImage = systemImage
-        self.accessibilityLabel = accessibilityLabel
-        self.action = action
-    }
-
-    var body: some View {
-        AppGlassIconButton(systemImage: systemImage, accessibilityLabel: accessibilityLabel) {
-            action()
-        }
-    }
-}
-
 struct AppSearchClearButton: View {
     let action: () -> Void
 
