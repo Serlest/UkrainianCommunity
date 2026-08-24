@@ -14,7 +14,8 @@ struct OwnerAnalyticsView: View {
     var body: some View {
         ProfileDestinationLayout(
             title: AppStrings.OwnerAnalytics.title,
-            introSubtitle: AppStrings.OwnerAnalytics.subtitle
+            introSubtitle: AppStrings.OwnerAnalytics.subtitle,
+            contentSpacing: AppTheme.sectionSpacing
         ) {
             periodPicker
             searchField

@@ -3,14 +3,27 @@ import SwiftUI
 struct ProfileDestinationLayout<Content: View>: View {
     let title: String
     let introSubtitle: String
+    let contentSpacing: CGFloat
     @ViewBuilder let content: Content
+
+    init(
+        title: String,
+        introSubtitle: String,
+        contentSpacing: CGFloat = AppTheme.groupedContentSpacing,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.introSubtitle = introSubtitle
+        self.contentSpacing = contentSpacing
+        self.content = content()
+    }
 
     var body: some View {
         PushedScreenShell(
             title: title,
             subtitle: introSubtitle
         ) {
-            AppGroupedContentPlane {
+            AppGroupedContentPlane(spacing: contentSpacing) {
                 content
             }
         }

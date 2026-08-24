@@ -180,7 +180,10 @@ const callableOptions = {
 };
 
 const analyticsRollupScheduleOptions = {
-  schedule: "every 1 hours",
+  // Anchor materialization to the Vienna clock. A relative hourly schedule can
+  // otherwise leave the new dated "today" documents missing for most of the
+  // first hour after midnight while seven/thirty-day rollups still look valid.
+  schedule: "1 * * * *",
   timeZone: "Europe/Vienna",
   region: "europe-west3",
   maxInstances: 1,

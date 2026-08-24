@@ -850,16 +850,22 @@ struct AppBackgroundView: View {
 
 struct AppGroupedContentPlane<Content: View>: View {
     let padding: CGFloat
+    let spacing: CGFloat
     @ViewBuilder let content: Content
     @Environment(\.colorScheme) private var colorScheme
 
-    init(padding: CGFloat = AppTheme.groupedContentPadding, @ViewBuilder content: () -> Content) {
+    init(
+        padding: CGFloat = AppTheme.groupedContentPadding,
+        spacing: CGFloat = AppTheme.groupedContentSpacing,
+        @ViewBuilder content: () -> Content
+    ) {
         self.padding = padding
+        self.spacing = spacing
         self.content = content()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.groupedContentSpacing) {
+        VStack(alignment: .leading, spacing: spacing) {
             content
         }
         .padding(padding)

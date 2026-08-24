@@ -21,7 +21,7 @@ struct AnalyticsContentDetailView: View {
 
     var body: some View {
         AnalyticsDetailContainer(navigationTitle: AppStrings.OwnerAnalytics.detailAnalyticsTitle) {
-            AppGroupedContentPlane {
+            AppGroupedContentPlane(spacing: AppTheme.sectionSpacing) {
                 header
                 periodPicker
                 content
@@ -136,7 +136,7 @@ struct AnalyticsOrganizationDetailView: View {
 
     var body: some View {
         AnalyticsDetailContainer(navigationTitle: AppStrings.OwnerAnalytics.detailAnalyticsTitle) {
-            AppGroupedContentPlane {
+            AppGroupedContentPlane(spacing: AppTheme.sectionSpacing) {
                 header
                 periodPicker
                 searchField
