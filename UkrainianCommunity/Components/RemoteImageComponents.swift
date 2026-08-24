@@ -11,6 +11,14 @@ private enum RemoteImageCache {
     }()
 }
 
+private enum RemoteImageDecoder {
+    static func decode(_ data: Data) async -> UIImage? {
+        await Task.detached(priority: .userInitiated) {
+            UIImage(data: data)
+        }.value
+    }
+}
+
 enum RemoteImagePlaceholderStyle {
     case icon
     case glassSkeleton
@@ -146,7 +154,7 @@ struct RemoteImageView: View {
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            guard let image = UIImage(data: data) else {
+            guard let image = await RemoteImageDecoder.decode(data) else {
                 loadFailed = true
                 return
             }
@@ -329,7 +337,7 @@ struct AvatarArtworkView: View {
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            guard let image = UIImage(data: data) else {
+            guard let image = await RemoteImageDecoder.decode(data) else {
                 avatarLoadFailed = true
                 return
             }

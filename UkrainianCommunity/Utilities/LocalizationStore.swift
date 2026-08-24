@@ -1,6 +1,8 @@
 import Foundation
 
 enum LocalizationStore {
+    private nonisolated static let dateFormatterCache = LocalizedDateFormatterCache()
+
     nonisolated static var language: AppLanguage {
         get { AppLanguage.stored }
         set { AppLanguage.stored = newValue }
@@ -21,11 +23,16 @@ enum LocalizationStore {
     }
 
     nonisolated static func dateString(from date: Date, dateStyle: DateFormatter.Style = .medium, timeStyle: DateFormatter.Style = .none) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = locale
-        formatter.dateStyle = dateStyle
-        formatter.timeStyle = timeStyle
-        return formatter.string(from: date)
+        dateFormatterCache.string(
+            from: date,
+            locale: locale,
+            dateStyle: dateStyle,
+            timeStyle: timeStyle
+        )
+    }
+
+    nonisolated static func dateString(from date: Date, localizedTemplate template: String) -> String {
+        dateFormatterCache.string(from: date, locale: locale, localizedTemplate: template)
     }
 
     nonisolated static func timeRangeString(startDate: Date, endDate: Date?, isAllDay: Bool? = nil) -> String {
@@ -64,5 +71,71 @@ enum LocalizationStore {
             return nil
         }
         return Bundle(path: path)
+    }
+}
+
+private nonisolated final class LocalizedDateFormatterCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var formatters: [String: DateFormatter] = [:]
+
+    func string(
+        from date: Date,
+        locale: Locale,
+        dateStyle: DateFormatter.Style,
+        timeStyle: DateFormatter.Style
+    ) -> String {
+        withFormatter(
+            key: cacheKey(
+                locale: locale,
+                format: "styles:\(dateStyle.rawValue):\(timeStyle.rawValue)"
+            )
+        ) {
+            let formatter = DateFormatter()
+            formatter.locale = locale
+            formatter.dateStyle = dateStyle
+            formatter.timeStyle = timeStyle
+            return formatter
+        } format: {
+            $0.string(from: date)
+        }
+    }
+
+    func string(from date: Date, locale: Locale, localizedTemplate template: String) -> String {
+        withFormatter(key: cacheKey(locale: locale, format: "template:\(template)")) {
+            let formatter = DateFormatter()
+            formatter.locale = locale
+            formatter.setLocalizedDateFormatFromTemplate(template)
+            return formatter
+        } format: {
+            $0.string(from: date)
+        }
+    }
+
+    private func cacheKey(locale: Locale, format: String) -> String {
+        [
+            locale.identifier,
+            TimeZone.current.identifier,
+            String(describing: Calendar.current.identifier),
+            format
+        ].joined(separator: "|")
+    }
+
+    private func withFormatter(
+        key: String,
+        create: () -> DateFormatter,
+        format: (DateFormatter) -> String
+    ) -> String {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let formatter: DateFormatter
+        if let cachedFormatter = formatters[key] {
+            formatter = cachedFormatter
+        } else {
+            let newFormatter = create()
+            formatters[key] = newFormatter
+            formatter = newFormatter
+        }
+        return format(formatter)
     }
 }

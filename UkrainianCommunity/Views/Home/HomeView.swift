@@ -1161,17 +1161,11 @@ private struct HomeEventDateBadge: View {
     }
 
     private var weekdayText: String {
-        let formatter = DateFormatter()
-        formatter.locale = LocalizationStore.locale
-        formatter.setLocalizedDateFormatFromTemplate("EEE")
-        return formatter.string(from: date)
+        LocalizationStore.dateString(from: date, localizedTemplate: "EEE")
     }
 
     private var monthText: String {
-        let formatter = DateFormatter()
-        formatter.locale = LocalizationStore.locale
-        formatter.setLocalizedDateFormatFromTemplate("MMM")
-        return formatter.string(from: date)
+        LocalizationStore.dateString(from: date, localizedTemplate: "MMM")
     }
 }
 

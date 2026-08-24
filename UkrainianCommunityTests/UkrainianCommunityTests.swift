@@ -341,11 +341,16 @@ struct UkrainianCommunityTests {
 
         AppLanguage.stored = .german
         let germanDate = LocalizationStore.dateString(from: sampleDate)
+        let repeatedGermanDate = LocalizationStore.dateString(from: sampleDate)
+        let germanMonth = LocalizationStore.dateString(from: sampleDate, localizedTemplate: "MMMM")
 
         AppLanguage.stored = .ukrainian
         let ukrainianDate = LocalizationStore.dateString(from: sampleDate)
+        let ukrainianMonth = LocalizationStore.dateString(from: sampleDate, localizedTemplate: "MMMM")
 
+        #expect(germanDate == repeatedGermanDate)
         #expect(germanDate != ukrainianDate)
+        #expect(germanMonth != ukrainianMonth)
     }
 
     @Test func selectedLanguageAffectsCurrencyFormatting() {

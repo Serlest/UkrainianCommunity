@@ -325,10 +325,7 @@ extension OrganizationDetailView {
             return String(foundedYear)
         }
 
-        let formatter = DateFormatter()
-        formatter.locale = LocalizationStore.locale
-        formatter.setLocalizedDateFormatFromTemplate("LLLL yyyy")
-        return formatter.string(from: date)
+        return LocalizationStore.dateString(from: date, localizedTemplate: "LLLL yyyy")
     }
 
     func organizationTypeTitle(for organization: Organization) -> String {

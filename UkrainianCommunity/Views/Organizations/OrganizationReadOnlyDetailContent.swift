@@ -270,10 +270,7 @@ struct OrganizationReadOnlyDetailContent: View {
             components.month = foundedMonth
             components.day = 1
             if let date = components.date {
-                let formatter = DateFormatter()
-                formatter.locale = LocalizationStore.locale
-                formatter.dateFormat = "LLLL yyyy"
-                return formatter.string(from: date)
+                return LocalizationStore.dateString(from: date, localizedTemplate: "LLLL yyyy")
             }
         }
         return String(foundedYear)

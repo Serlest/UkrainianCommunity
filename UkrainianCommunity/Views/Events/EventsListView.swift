@@ -124,10 +124,7 @@ func eventScheduleText(for event: Event) -> String {
 }
 
 private func eventMonthTitleText(for date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.locale = LocalizationStore.locale
-    formatter.setLocalizedDateFormatFromTemplate("MMMM yyyy")
-    return formatter.string(from: date)
+    LocalizationStore.dateString(from: date, localizedTemplate: "MMMM yyyy")
 }
 
 struct EventsListView: View {

@@ -120,9 +120,7 @@ extension OrganizationEditorView {
             return AppStrings.Organizations.fieldFoundedMonthNone
         }
 
-        let formatter = DateFormatter()
-        formatter.locale = LocalizationStore.locale
-        formatter.setLocalizedDateFormatFromTemplate("LLLL")
-        return formatter.string(from: date).capitalized(with: LocalizationStore.locale)
+        return LocalizationStore.dateString(from: date, localizedTemplate: "LLLL")
+            .capitalized(with: LocalizationStore.locale)
     }
 }
