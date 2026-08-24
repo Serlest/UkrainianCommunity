@@ -158,20 +158,7 @@ extension OrganizationDetailView {
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: AppTheme.iconButtonSize)
-                .background(
-                    reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                )
-                .background {
-                    if !reduceTransparency {
-                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    }
-                }
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                        .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                )
+                .appGlassActionSurface(.regular)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -187,50 +174,18 @@ extension OrganizationDetailView {
         action: @escaping () -> Void = {}
     ) -> some View {
         let isInteractionDisabled = isPlaceholder || isDisabled
-        let foregroundColor: Color = {
-            if isDestructive {
-                return AppTheme.accentDestructive
-            }
-            return isPrimary ? .white : AppTheme.textPrimary
-        }()
-        let backgroundColor: Color = {
-            if isDestructive {
-                return AppTheme.badgeRedFill.opacity(isInteractionDisabled ? 0.62 : 1)
-            }
-            if isPrimary {
-                return AppTheme.accentPrimary.opacity(isInteractionDisabled ? 0.78 : 1)
-            }
-            return reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme)
-        }()
-        let borderColor: Color = {
-            if isDestructive {
-                return AppTheme.accentDestructive.opacity(isInteractionDisabled ? 0.24 : 0.38)
-            }
-            return isPrimary ? Color.white.opacity(0.18) : AppTheme.glassBorder(for: colorScheme)
-        }()
+        let hierarchy: AppGlassActionHierarchy = isDestructive
+            ? .destructive
+            : (isPrimary ? .prominent : .regular)
 
         return Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(foregroundColor)
                 .padding(.horizontal, AppTheme.dashboardSpacing)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: AppTheme.iconButtonSize)
-                .background(
-                    backgroundColor,
-                    in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                )
-                .background {
-                    if !reduceTransparency {
-                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    }
-                }
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                        .strokeBorder(borderColor)
-                )
+                .appGlassActionSurface(hierarchy, isEnabled: !isInteractionDisabled)
         }
         .buttonStyle(.plain)
         .disabled(isInteractionDisabled)

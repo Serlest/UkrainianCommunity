@@ -112,8 +112,6 @@ struct AppAdaptiveGrid<Content: View>: View {
 struct AppEventDateBlock: View {
     let date: Date
     let calendar: Calendar
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(date: Date, calendar: Calendar = .current) {
@@ -169,19 +167,12 @@ struct AppEventDateBlock: View {
 
     private func dateSurface<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
-            .background(
-                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-            )
-            .background {
-                if !reduceTransparency {
-                    RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
+            .appGlassSurface(
+                cornerRadius: AppTheme.cardRadius,
+                usesNativeGlass: false,
+                fallbackRole: .control,
+                shadowRadius: 0,
+                shadowY: 0
             )
     }
 

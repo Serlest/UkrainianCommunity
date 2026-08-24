@@ -49,8 +49,9 @@ struct AppInfoChip: View {
     let border: Color?
     let trailingSystemImage: String?
     let size: Size
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let glassTint: Color?
+    let isInteractive: Bool
+    let usesNativeGlass: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
@@ -60,7 +61,10 @@ struct AppInfoChip: View {
         fill: Color = AppTheme.badgeBlueFill,
         border: Color? = nil,
         trailingSystemImage: String? = nil,
-        size: Size = .regular
+        size: Size = .regular,
+        glassTint: Color? = nil,
+        isInteractive: Bool = false,
+        usesNativeGlass: Bool = false
     ) {
         self.title = title
         self.systemImage = systemImage
@@ -69,6 +73,9 @@ struct AppInfoChip: View {
         self.border = border
         self.trailingSystemImage = trailingSystemImage
         self.size = size
+        self.glassTint = glassTint
+        self.isInteractive = isInteractive
+        self.usesNativeGlass = usesNativeGlass
     }
 
     var body: some View {
@@ -91,23 +98,18 @@ struct AppInfoChip: View {
         .foregroundStyle(tint)
         .padding(.horizontal, size.horizontalPadding)
         .padding(.vertical, size.verticalPadding)
-        .background(
-            reduceTransparency ? fill.opacity(0.95) : fill,
-            in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+        .frame(minHeight: isInteractive ? AppTheme.minimumInteractiveTarget : nil)
+        .appGlassSurface(
+            cornerRadius: AppTheme.chipRadius,
+            tint: glassTint,
+            isInteractive: isInteractive,
+            usesNativeGlass: usesNativeGlass,
+            fallbackSurface: fill,
+            fallbackBorder: border,
+            borderOpacity: border == nil ? 0 : 1,
+            shadowRadius: 5,
+            shadowY: 2
         )
-        .background {
-            if !reduceTransparency {
-                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
-        }
-        .overlay {
-            if let border {
-                RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                    .strokeBorder(border)
-            }
-        }
-        .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.65), radius: 5, y: 2)
     }
 }
 
@@ -137,9 +139,11 @@ struct AppFilterChip: View {
             fill: isSelected ? AppTheme.accentPrimary : AppTheme.surfaceGlass,
             border: isSelected ? AppTheme.accentPrimary.opacity(0.18) : AppTheme.borderSubtle,
             trailingSystemImage: trailingSystemImage,
-            size: .regular
+            size: .regular,
+            glassTint: isSelected ? AppTheme.accentPrimary : nil,
+            isInteractive: true,
+            usesNativeGlass: true
         )
-        .frame(minHeight: AppTheme.iconButtonSize)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -155,8 +159,10 @@ struct AppHorizontalChipRow<Content: View>: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: spacing) {
-                content
+            AppGlassEffectGroup(spacing: spacing) {
+                HStack(spacing: spacing) {
+                    content
+                }
             }
             .padding(.horizontal, AppTheme.eventsMetadataSpacing)
             .padding(.vertical, 1)
@@ -194,13 +200,15 @@ struct SelectableFilterChip: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? AppTheme.badgeBlueFill : AppTheme.surfacePrimary)
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(isSelected ? AppTheme.borderSubtle : Color.clear)
+                .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                .appGlassSurface(
+                    cornerRadius: AppTheme.iconButtonSize / 2,
+                    tint: isSelected ? AppTheme.accentPrimary : nil,
+                    isInteractive: true,
+                    fallbackSurface: isSelected ? AppTheme.badgeBlueFill : AppTheme.surfacePrimary,
+                    fallbackBorder: isSelected ? AppTheme.borderSubtle : Color.clear,
+                    shadowRadius: 0,
+                    shadowY: 0
                 )
         }
         .buttonStyle(.plain)

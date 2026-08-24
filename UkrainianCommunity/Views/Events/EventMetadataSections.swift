@@ -660,18 +660,20 @@ extension EventDetailView {
         var managementCard: some View {
             if let event = viewModel.event(for: eventID), canEditEvent(event) || canDeleteEvent(event) {
                 detailGlassCard(padding: 9) {
-                    HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                        if canEditEvent(event) {
-                            eventManagementButton(title: AppStrings.Action.edit, systemImage: "pencil") {
-                                isShowingEditSheet = true
+                    AppGlassEffectGroup(spacing: AppTheme.eventsControlGroupSpacing) {
+                        HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+                            if canEditEvent(event) {
+                                eventManagementButton(title: AppStrings.Action.edit, systemImage: "pencil") {
+                                    isShowingEditSheet = true
+                                }
                             }
-                        }
 
-                        if canDeleteEvent(event) {
-                            eventManagementButton(title: eventDestructiveActionTitle(for: event), systemImage: "trash", role: .destructive) {
-                                showDeleteConfirmation = true
+                            if canDeleteEvent(event) {
+                                eventManagementButton(title: eventDestructiveActionTitle(for: event), systemImage: "trash", role: .destructive) {
+                                    showDeleteConfirmation = true
+                                }
+                                .disabled(isDeleting)
                             }
-                            .disabled(isDeleting)
                         }
                     }
                 }
@@ -682,14 +684,9 @@ extension EventDetailView {
             Button(role: role, action: action) {
                 Label(title, systemImage: systemImage)
                     .font(AppTheme.metadataStrongFont)
-                    .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                    .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                            .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                    )
+                    .appGlassActionSurface(role == .destructive ? .destructive : .regular)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(title)

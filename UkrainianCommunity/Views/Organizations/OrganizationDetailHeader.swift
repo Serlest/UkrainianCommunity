@@ -278,34 +278,12 @@ private struct OrganizationDetailHeaderActions: View {
 
 private extension View {
     func glassIconButtonBackground() -> some View {
-        modifier(OrganizationDetailGlassIconBackground())
-    }
-}
-
-private struct OrganizationDetailGlassIconBackground: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                in: RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
-            )
-            .background {
-                if !reduceTransparency {
-                    RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
-                        .fill(AppTheme.glassIconButtonMaterial)
-                }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
-                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-            )
-            .shadow(
-                color: AppTheme.glassShadow(for: colorScheme),
-                radius: AppTheme.glassIconButtonShadowRadius,
-                y: AppTheme.glassIconButtonShadowY
-            )
+        appGlassSurface(
+            cornerRadius: AppTheme.glassIconButtonCornerRadius,
+            isInteractive: true,
+            fallbackRole: .control,
+            shadowRadius: AppTheme.glassIconButtonShadowRadius,
+            shadowY: AppTheme.glassIconButtonShadowY
+        )
     }
 }

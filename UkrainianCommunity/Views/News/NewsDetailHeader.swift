@@ -258,20 +258,22 @@ extension NewsDetailView {
         func managementCard(for post: NewsPost) -> some View {
             if canEditNews || canDeleteNews {
                 detailGlassCard(padding: 9) {
-                    HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                        if canEditNews {
-                            managementActionButton(systemImage: "pencil", title: AppStrings.Action.edit) {
-                                isShowingEditSheet = true
+                    AppGlassEffectGroup(spacing: AppTheme.eventsControlGroupSpacing) {
+                        HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+                            if canEditNews {
+                                managementActionButton(systemImage: "pencil", title: AppStrings.Action.edit) {
+                                    isShowingEditSheet = true
+                                }
+                                .accessibilityHint(AppStrings.News.detailTitle)
                             }
-                            .accessibilityHint(AppStrings.News.detailTitle)
-                        }
 
-                        if canDeleteNews {
-                            managementActionButton(systemImage: "trash", title: AppStrings.Action.delete, role: .destructive) {
-                                showDeleteConfirmation = true
+                            if canDeleteNews {
+                                managementActionButton(systemImage: "trash", title: AppStrings.Action.delete, role: .destructive) {
+                                    showDeleteConfirmation = true
+                                }
+                                .disabled(isDeleting)
+                                .accessibilityHint(AppStrings.News.detailTitle)
                             }
-                            .disabled(isDeleting)
-                            .accessibilityHint(AppStrings.News.detailTitle)
                         }
                     }
                 }
@@ -287,17 +289,11 @@ extension NewsDetailView {
             Button(role: role, action: action) {
                 Label(title, systemImage: systemImage)
                     .font(AppTheme.metadataStrongFont)
-                    .foregroundStyle(role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 40)
-                    .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                            .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                    )
+                    .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                    .appGlassActionSurface(role == .destructive ? .destructive : .regular)
             }
             .buttonStyle(.plain)
-            .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())
             .accessibilityLabel(title)
         }

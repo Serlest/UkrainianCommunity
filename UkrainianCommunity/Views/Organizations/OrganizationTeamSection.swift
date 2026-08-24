@@ -74,11 +74,7 @@ extension OrganizationDetailView {
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
             .frame(minHeight: AppTheme.iconButtonSize)
-            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-            )
+            .appGlassActionSurface(.regular, isEnabled: !isLoadingCommunityPage)
         }
         .buttonStyle(.plain)
         .disabled(isLoadingCommunityPage)

@@ -172,7 +172,13 @@ struct ContentView: View {
             AppStrings.Safety.blockConfirmationTitle,
             isPresented: Binding(
                 get: { userBlockingCoordinator.pendingTarget != nil },
-                set: { if !$0 { userBlockingCoordinator.pendingTarget = nil } }
+                set: { isPresented in
+                    guard !isPresented else { return }
+                    Task { @MainActor in
+                        await Task.yield()
+                        userBlockingCoordinator.pendingTarget = nil
+                    }
+                }
             ),
             titleVisibility: .visible
         ) {
@@ -191,7 +197,13 @@ struct ContentView: View {
             AppStrings.Safety.blockErrorTitle,
             isPresented: Binding(
                 get: { userBlockingCoordinator.errorMessage != nil },
-                set: { if !$0 { userBlockingCoordinator.errorMessage = nil } }
+                set: { isPresented in
+                    guard !isPresented else { return }
+                    Task { @MainActor in
+                        await Task.yield()
+                        userBlockingCoordinator.errorMessage = nil
+                    }
+                }
             )
         ) {
             Button(AppStrings.Common.ok, role: .cancel) {

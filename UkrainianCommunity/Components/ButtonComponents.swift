@@ -1,5 +1,56 @@
 import SwiftUI
 
+enum AppGlassActionHierarchy {
+    case regular
+    case prominent
+    case destructive
+}
+
+extension View {
+    @ViewBuilder
+    func appGlassActionSurface(
+        _ hierarchy: AppGlassActionHierarchy,
+        isEnabled: Bool = true,
+        isInteractive: Bool = true
+    ) -> some View {
+        switch hierarchy {
+        case .regular:
+            foregroundStyle(AppTheme.accentPrimaryForeground)
+                .appGlassSurface(
+                    cornerRadius: AppTheme.iconButtonRadius,
+                    isInteractive: isInteractive && isEnabled,
+                    fallbackRole: .control,
+                    shadowRadius: AppTheme.glassIconButtonShadowRadius,
+                    shadowY: AppTheme.glassIconButtonShadowY
+                )
+                .opacity(isEnabled ? 1 : 0.58)
+        case .prominent:
+            foregroundStyle(.white)
+                .appGlassSurface(
+                    cornerRadius: AppTheme.iconButtonRadius,
+                    tint: isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.36),
+                    isInteractive: isInteractive && isEnabled,
+                    fallbackSurface: isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.36),
+                    fallbackUsesMaterial: false,
+                    borderOpacity: 0.42,
+                    shadowRadius: AppTheme.glassIconButtonShadowRadius,
+                    shadowY: AppTheme.glassIconButtonShadowY
+                )
+        case .destructive:
+            foregroundStyle(AppTheme.accentDestructiveForeground)
+                .appGlassSurface(
+                    cornerRadius: AppTheme.iconButtonRadius,
+                    tint: AppTheme.accentDestructive.opacity(isEnabled ? 0.18 : 0.08),
+                    isInteractive: isInteractive && isEnabled,
+                    borderOpacity: 0.72,
+                    shadowRadius: AppTheme.glassIconButtonShadowRadius,
+                    shadowY: AppTheme.glassIconButtonShadowY
+                )
+                .opacity(isEnabled ? 1 : 0.58)
+        }
+    }
+}
+
 struct AppIconControlButton: View {
     let systemImage: String
     let accessibilityLabel: String
@@ -43,8 +94,6 @@ struct AppGlassIconButton: View {
     let role: ButtonRole?
     let isPlaceholder: Bool
     let action: () -> Void
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(
         systemImage: String,
@@ -66,24 +115,14 @@ struct AppGlassIconButton: View {
                 .font(AppTheme.glassIconButtonIconFont)
                 .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
-                .background(
-                    reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
-                    in: RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
-                )
-                .background {
-                    if !reduceTransparency {
-                        RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
-                            .fill(AppTheme.glassIconButtonMaterial)
-                    }
-                }
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.glassIconButtonCornerRadius, style: .continuous)
-                        .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                )
-                .shadow(
-                    color: AppTheme.glassShadow(for: colorScheme),
-                    radius: AppTheme.glassIconButtonShadowRadius,
-                    y: AppTheme.glassIconButtonShadowY
+                .appGlassSurface(
+                    cornerRadius: AppTheme.glassIconButtonCornerRadius,
+                    tint: role == .destructive ? AppTheme.accentDestructive.opacity(0.18) : nil,
+                    isInteractive: !isPlaceholder,
+                    fallbackMaterial: AppTheme.glassIconButtonMaterial,
+                    fallbackRole: .control,
+                    shadowRadius: AppTheme.glassIconButtonShadowRadius,
+                    shadowY: AppTheme.glassIconButtonShadowY
                 )
         }
         .buttonStyle(.plain)
@@ -136,13 +175,13 @@ struct PrimaryActionButton: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .foregroundStyle(.white)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .frame(minHeight: AppTheme.iconButtonSize)
-            .background(
-                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                    .fill(isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.36))
+            .appGlassActionSurface(
+                .prominent,
+                isEnabled: isEnabled,
+                isInteractive: !isLoading
             )
         }
         .buttonStyle(.plain)

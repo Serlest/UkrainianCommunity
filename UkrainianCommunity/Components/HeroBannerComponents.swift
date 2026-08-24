@@ -13,8 +13,6 @@ struct AppHeroBanner<FooterContent: View>: View {
     let height: CGFloat
     let displaysTextOverImage: Bool
     @ViewBuilder let footerContent: FooterContent
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
@@ -82,21 +80,12 @@ struct AppHeroBanner<FooterContent: View>: View {
                 }
             }
         }
-        .background(
-            reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassSurface(for: colorScheme),
-            in: RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
+        .appGlassSurface(
+            cornerRadius: AppTheme.heroRadius,
+            usesNativeGlass: imageSource == .none,
+            shadowRadius: 14,
+            shadowY: 7
         )
-        .background {
-            if !reduceTransparency {
-                RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.heroRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-        )
-        .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: 14, y: 7)
     }
 
     @ViewBuilder

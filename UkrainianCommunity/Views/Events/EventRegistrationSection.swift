@@ -186,11 +186,7 @@ extension EventDetailView {
                     .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                    .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                            .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                    )
+                    .appGlassActionSurface(.regular)
             }
             .buttonStyle(.plain)
             .frame(minHeight: AppTheme.minimumInteractiveTarget)

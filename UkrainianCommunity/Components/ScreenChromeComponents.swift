@@ -48,27 +48,29 @@ private struct AdaptiveActionHeader<LeadingContent: View, TitleContent: View, Tr
     }
 
     var body: some View {
-        Group {
-            if allowsVerticalLayout && dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: spacing) {
+        AppGlassEffectGroup(spacing: spacing) {
+            Group {
+                if allowsVerticalLayout && dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: spacing) {
+                        HStack(alignment: .top, spacing: spacing) {
+                            leadingContent
+
+                            Spacer(minLength: 0)
+
+                            trailingContent
+                        }
+
+                        titleContent
+                    }
+                } else {
                     HStack(alignment: .top, spacing: spacing) {
                         leadingContent
+                        titleContent
 
                         Spacer(minLength: 0)
 
                         trailingContent
                     }
-
-                    titleContent
-                }
-            } else {
-                HStack(alignment: .top, spacing: spacing) {
-                    leadingContent
-                    titleContent
-
-                    Spacer(minLength: 0)
-
-                    trailingContent
                 }
             }
         }
@@ -866,6 +868,7 @@ struct AppGroupedContentPlane<Content: View>: View {
             cornerRadius: AppTheme.groupedContentCornerRadius,
             material: AppTheme.groupedContentMaterial,
             surface: AppTheme.groupedPlaneSurface(for: colorScheme),
+            usesNativeGlass: false,
             borderOpacity: AppTheme.groupedContentBorderOpacity,
             shadowRadius: AppTheme.groupedContentShadowRadius,
             shadowY: AppTheme.groupedContentShadowY
