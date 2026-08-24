@@ -68,10 +68,6 @@ service cloud.firestore {
       return isPlatformManagementTier();
     }
 
-    function canManageReports() {
-      return isPlatformManagementTier();
-    }
-
     function canManageOrganizationRequests() {
       return isAppOwner() || isAppAdmin();
     }
@@ -1399,11 +1395,6 @@ service cloud.firestore {
     function ownLikeDocumentRead(likeId) {
       return isVerifiedActiveUser()
         && likeId.matches('^.+_' + request.auth.uid + '$');
-    }
-
-    function ownDocumentCreate() {
-      return isVerifiedActiveUser()
-        && request.resource.data.userId == request.auth.uid;
     }
 
     function ownDocumentDelete() {
