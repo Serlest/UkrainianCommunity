@@ -880,13 +880,6 @@ service cloud.firestore {
         );
     }
 
-    function featuredBannerIdentityFieldsArePreserved(bannerId) {
-      return request.resource.data.id == resource.data.id
-        && request.resource.data.id == bannerId
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.createdBy == resource.data.createdBy;
-    }
-
     function featuredBannerMigrationIdentityFieldsAreValid(bannerId) {
       return request.resource.data.id == bannerId
         && (
@@ -919,43 +912,36 @@ service cloud.firestore {
     function validFeaturedBannerUpdate(bannerId) {
       return isVerifiedActiveUser()
         && canManageFeaturedBanners()
-        && featuredBannerStructurallyValid(resource.data, bannerId)
-        && featuredBannerStructurallyValid(request.resource.data, bannerId)
-        && featuredBannerIdentityFieldsArePreserved(bannerId)
-        && request.resource.data.updatedBy == request.auth.uid;
-    }
-
-    function validFeaturedBannerMigrationUpdate(bannerId) {
-      return isVerifiedActiveUser()
-        && canManageFeaturedBanners()
-        && !featuredBannerStructurallyValid(resource.data, bannerId)
-        && featuredBannerStructurallyValid(request.resource.data, bannerId)
-        && featuredBannerMigrationIdentityFieldsAreValid(bannerId)
-        && request.resource.data.updatedBy == request.auth.uid;
-    }
-
-    function validFeaturedBannerLifecycleUpdate(bannerId) {
-      return isVerifiedActiveUser()
-        && canManageFeaturedBanners()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'isActive',
-          'updatedAt',
-          'updatedBy'
-        ])
-        && request.resource.data.isActive is bool
+        && request.resource.data.updatedBy == request.auth.uid
         && (
-          request.resource.data.isActive == false
-          || featuredBannerStructurallyValid(resource.data, bannerId)
-        )
-        && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedBy == request.auth.uid;
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'isActive',
+              'updatedAt',
+              'updatedBy'
+            ])
+            && request.resource.data.isActive is bool
+            && (
+              request.resource.data.isActive == false
+              || featuredBannerStructurallyValid(resource.data, bannerId)
+            )
+            && request.resource.data.updatedAt is timestamp
+          )
+          || (
+            featuredBannerStructurallyValid(request.resource.data, bannerId)
+            && featuredBannerMigrationIdentityFieldsAreValid(bannerId)
+          )
+        );
     }
 
     function canReadFeaturedBanner() {
       return resource.data.isActive == true
         && resource.data.actionType in featuredBannerActionTypes()
-        && resource.data.visibleSections is list
-        && resource.data.visibleSections.hasAny(featuredBannerVisibleSections());
+        && (
+          'home' in resource.data.visibleSections
+          || 'events' in resource.data.visibleSections
+          || 'organizations' in resource.data.visibleSections
+        );
     }
 
     function safeUserCreate(uid) {
@@ -2186,9 +2172,7 @@ service cloud.firestore {
     match /featuredBanners/{bannerId} {
       allow read: if canManageFeaturedBanners() || canReadFeaturedBanner();
       allow create: if validFeaturedBannerCreate(bannerId);
-      allow update: if validFeaturedBannerUpdate(bannerId)
-        || validFeaturedBannerMigrationUpdate(bannerId)
-        || validFeaturedBannerLifecycleUpdate(bannerId);
+      allow update: if validFeaturedBannerUpdate(bannerId);
       allow delete: if isVerifiedActiveUser()
         && canManageFeaturedBanners();
     }

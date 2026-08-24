@@ -64,6 +64,9 @@ jobs:
       - name: Validate property lists and privacy manifests
         run: python3 scripts/validate_property_lists.py
 
+      - name: Validate release configuration
+        run: python3 scripts/validate_release_configuration.py
+
   firebase_affected:
     name: Firebase affected checks
     needs: changes

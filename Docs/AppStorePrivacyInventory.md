@@ -1,6 +1,6 @@
 # App Store privacy inventory
 
-Last code audit: 2026-08-22
+Last code audit: 2026-08-24
 
 This inventory is a release aid, not a substitute for the answers entered in App Store Connect. Recheck it whenever data flows or third-party SDKs change. Apple requires the App Store privacy answers to include the practices of third-party partners.
 
@@ -39,6 +39,8 @@ The client does not request Core Location permission or read the device's locati
 The first-party code uses `UserDefaults` and SwiftUI `@AppStorage` for user preferences and analytics consent. The privacy manifest declares `NSPrivacyAccessedAPICategoryUserDefaults` with reason `CA92.1`, limited to data accessible only by this app. No first-party uses of file timestamp, system boot time, disk-space, or active-keyboard required-reason API categories were found.
 
 ## Submission verification
+
+The local Xcode 26.6 Release-product audit on 2026-08-24 found the app manifest plus 29 embedded SDK manifests. This confirms packaging for the pinned dependencies, but the signed archive privacy report remains the submission source of truth.
 
 1. Archive the exact release commit in Xcode.
 2. Generate and inspect the archive's privacy report.

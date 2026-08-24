@@ -4,6 +4,8 @@ Use this checklist for the first release after the security and privacy hardenin
 
 ## Repository gate
 
+Run `python3 scripts/validate_release_configuration.py` on the exact release commit. This automated preflight checks build-number consistency, export-compliance metadata, privacy-manifest semantics, analytics defaults and the App Check client configuration. It does not replace the signed archive or its privacy report.
+
 - [ ] All required GitHub checks pass on the exact release commit.
 - [ ] iOS Debug build, Swift unit tests and UI tests pass on a supported simulator.
 - [ ] Firebase Functions lint/build and all emulator rules tests pass.
