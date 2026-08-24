@@ -76,7 +76,7 @@ async function runCLI() {
   const options = parseArguments(process.argv.slice(2));
   assertProductionFirestoreEndpoint();
   const app = initializeApp({
-    credential: cutoverCredential(),
+    credential: applicationDefault(),
     projectId: options.projectId,
   }, `analytics-schema-cutover-${Date.now()}`);
   try {
@@ -126,21 +126,6 @@ async function runCLI() {
   } finally {
     await deleteApp(app);
   }
-}
-
-function cutoverCredential() {
-  const accessToken = process.env.FIREBASE_CLI_ACCESS_TOKEN;
-  if (accessToken === undefined) {
-    return applicationDefault();
-  }
-  if (!/^[A-Za-z0-9._~-]+$/.test(accessToken)) {
-    throw new Error("FIREBASE_CLI_ACCESS_TOKEN is malformed");
-  }
-  return {
-    async getAccessToken() {
-      return {access_token: accessToken, expires_in: 3600};
-    },
-  };
 }
 
 export async function prepareAnalyticsSchemaCutover(database, options) {
