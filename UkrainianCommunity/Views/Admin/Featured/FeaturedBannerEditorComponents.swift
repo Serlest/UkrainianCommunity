@@ -18,7 +18,7 @@ struct FeaturedEditorValueRow: View {
             }
         } icon: {
             Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
         }
     }
 }
@@ -36,7 +36,7 @@ struct FeaturedBannerActionTargetSelectionField: View {
                 HStack(spacing: 10) {
                     Image(systemName: kind?.systemImage ?? "arrow.up.forward.app")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: AppTheme.metadataIconSize)
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -179,7 +179,7 @@ struct FeaturedBannerActionTargetPickerRow: View {
         HStack(alignment: .top, spacing: AppTheme.eventsControlGroupSpacing) {
             Image(systemName: item.kind.systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
                 .background(AppTheme.badgeBlueFill, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
 
@@ -208,7 +208,7 @@ struct FeaturedBannerActionTargetPickerRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .accessibilityHidden(true)
             }
         }

@@ -490,7 +490,7 @@ private struct ModerationItemRow: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(item.type.title)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                     Spacer()
                     Text(LocalizationStore.dateString(from: item.createdAt))
                         .font(.caption)
@@ -558,7 +558,7 @@ private struct ModerationItemRow: View {
         } label: {
             Label(AppStrings.Moderation.reject, systemImage: "xmark")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentDestructive)
+                .foregroundStyle(AppTheme.accentDestructiveForeground)
                 .multilineTextAlignment(.center)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
@@ -765,7 +765,7 @@ private struct OrganizationRequestPreviewContent: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: systemImage)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 24, height: 24)
                     .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
                 VStack(alignment: .leading, spacing: 2) {

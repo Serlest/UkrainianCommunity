@@ -168,7 +168,7 @@ extension EventEditorView {
             Button(action: action) {
                 Label(category.title, systemImage: category.systemImage)
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(isSelected ? AppTheme.accentPrimary : AppTheme.textSecondary)
+                    .foregroundStyle(isSelected ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 10)

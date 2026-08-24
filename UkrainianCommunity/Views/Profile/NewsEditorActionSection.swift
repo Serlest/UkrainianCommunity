@@ -35,7 +35,7 @@ extension NewsEditorView {
                 editorCard {
                     Label(statusMessage, systemImage: "arrow.triangle.2.circlepath")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                 }
             }
 
@@ -51,7 +51,7 @@ extension NewsEditorView {
                 editorCard {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppTheme.accentDestructive)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
                 }
             }
 
@@ -59,7 +59,7 @@ extension NewsEditorView {
                 editorCard {
                     Label(AppStrings.NewsEditor.organizationRegionRequired, systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppTheme.accentDestructive)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
                 }
             }
         }

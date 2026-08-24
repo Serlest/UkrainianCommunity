@@ -391,7 +391,7 @@ struct AppNavigationRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(tint == AppTheme.accentDestructive ? tint : AppTheme.textPrimary)
+                    .foregroundStyle(tint == AppTheme.accentDestructiveForeground ? tint : AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let subtitle, !subtitle.isEmpty {

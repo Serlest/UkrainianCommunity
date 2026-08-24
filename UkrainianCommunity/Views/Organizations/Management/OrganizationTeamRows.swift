@@ -58,7 +58,7 @@ struct OrganizationTeamMemberRow: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(canChangeRole ? AppTheme.accentPrimary : AppTheme.textSecondary)
+                        .foregroundStyle(canChangeRole ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
                         .frame(
                             width: AppTheme.minimumInteractiveTarget,
                             height: AppTheme.minimumInteractiveTarget
@@ -128,7 +128,7 @@ struct OrganizationTeamCandidateRow: View {
 
             Image(systemName: isOwnerTransfer ? "person.crop.circle.badge.checkmark" : "plus.circle.fill")
                 .font(.title3)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
         }
         .padding(.vertical, 4)
     }

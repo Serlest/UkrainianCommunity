@@ -70,7 +70,7 @@ extension OrganizationDetailView {
                 Text(AppStrings.Organizations.communityLoadMore)
                     .font(.footnote.weight(.semibold))
             }
-            .foregroundStyle(AppTheme.accentPrimary)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
             .frame(minHeight: AppTheme.iconButtonSize)
@@ -141,14 +141,14 @@ extension OrganizationDetailView {
             .overlay(
                 Text(communityInitials(for: profile))
                     .font(.footnote.weight(.bold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
             )
     }
 
     func communityRoleBadge(_ role: OrganizationCommunityRole) -> some View {
         Text(role.title)
             .font(.caption2.weight(.bold))
-            .foregroundStyle(AppTheme.accentPrimary)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
             .padding(.horizontal, 7)
             .frame(height: 22)
             .background(AppTheme.accentPrimary.opacity(0.10), in: Capsule())

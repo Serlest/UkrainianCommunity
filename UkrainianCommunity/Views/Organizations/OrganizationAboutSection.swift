@@ -68,7 +68,7 @@ extension OrganizationDetailView {
                             systemImage: isAboutExpanded ? "chevron.up" : "chevron.down"
                         )
                         .font(AppTheme.buttonLabelFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                     }
                     .buttonStyle(.plain)
                 }
@@ -211,7 +211,7 @@ extension OrganizationDetailView {
         HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
             Image(systemName: systemImage)
                 .font(AppTheme.buttonLabelFont)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
             VStack(alignment: .leading, spacing: 3) {

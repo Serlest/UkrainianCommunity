@@ -63,7 +63,7 @@ struct LegalComplianceView: View {
         VStack(alignment: .leading, spacing: 12) {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 48, height: 48)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
 
@@ -102,7 +102,7 @@ private struct LegalComplianceDocumentRow: View {
         HStack(spacing: 12) {
             Image(systemName: document.type == .terms ? "doc.text.fill" : "lock.shield.fill")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 28, height: 28)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 

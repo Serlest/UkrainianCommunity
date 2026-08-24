@@ -6,7 +6,7 @@ extension NewsDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Common.comments)
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     commentComposer(parentID: post.id)
 
@@ -92,7 +92,7 @@ extension NewsDetailView {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(.title3.weight(.semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(
                         width: AppTheme.minimumInteractiveTarget,
                         height: AppTheme.minimumInteractiveTarget
@@ -155,7 +155,7 @@ extension NewsDetailView {
                     } label: {
                         Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
                             .font(.footnote.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                     }
                     .buttonStyle(.plain)
                 }

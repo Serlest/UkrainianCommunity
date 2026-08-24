@@ -234,7 +234,7 @@ private struct RegistrationEventRow: View {
                     AppInfoChip(
                         title: AppStrings.Events.title.uppercased(),
                         systemImage: "calendar",
-                        tint: AppTheme.accentPrimary,
+                        tint: AppTheme.accentPrimaryForeground,
                         fill: AppTheme.badgeBlueFill,
                         size: .small
                     )
@@ -264,7 +264,7 @@ private struct RegistrationEventRow: View {
                     AppFeedThumbnail(
                         imageURL: event.imageURL,
                         fallbackSystemImage: "calendar",
-                        tint: AppTheme.accentPrimary,
+                        tint: AppTheme.accentPrimaryForeground,
                         fill: AppTheme.badgeBlueFill,
                         size: AppTheme.eventsThumbnailSize,
                         cornerRadius: 14,

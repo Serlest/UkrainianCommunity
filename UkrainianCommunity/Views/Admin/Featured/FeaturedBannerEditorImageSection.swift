@@ -85,7 +85,7 @@ struct FeaturedBannerEditorImageSection: View {
         VStack(spacing: AppTheme.eventsMetadataSpacing) {
             Image(systemName: "photo.badge.plus")
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
 
             Text(AppStrings.FeaturedEditor.uploadImage)
                 .font(.subheadline.weight(.semibold))

@@ -53,7 +53,7 @@ struct BlockedUsersView: View {
                     image.resizable().scaledToFill()
                 } else {
                     Image(systemName: "person.fill")
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                 }
             }
             .frame(width: 44, height: 44)

@@ -2,9 +2,10 @@ import {after, before, describe, test} from "node:test";
 
 import {
   assertFails,
+  assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {deleteDoc, doc, setDoc} from "firebase/firestore";
+import {deleteDoc, doc, getDoc, setDoc, Timestamp} from "firebase/firestore";
 import {readFileSync} from "node:fs";
 
 const PROJECT_ID = "demo-ukrainian-community-content-deletion";
@@ -43,6 +44,15 @@ before(async () => {
         sourceType: "organization",
         organizationId: "organization-1",
         moderationStatus: "approved",
+      }),
+      setDoc(doc(db, "organizations", "organization-1", "photos", "photo-1"), {
+        id: "photo-1",
+        organizationId: "organization-1",
+        imageURL: "https://example.com/photo-1.jpg",
+        caption: null,
+        uploadedBy: "org-owner",
+        createdAt: Timestamp.now(),
+        updatedAt: null,
       }),
     ]);
   });
@@ -84,5 +94,31 @@ describe("trusted content deletion boundary", () => {
     await assertFails(deleteDoc(doc(db, "news", "news-1")));
     await assertFails(deleteDoc(doc(db, "events", "event-1")));
     await assertFails(deleteDoc(doc(db, "organizations", "organization-1")));
+  });
+
+  test("keeps organization photo metadata readable but server-managed", async () => {
+    const ownerDb = database("org-owner");
+    const appOwnerDb = database("owner");
+    const existingPhoto = doc(ownerDb, "organizations", "organization-1", "photos", "photo-1");
+    const newPhoto = doc(ownerDb, "organizations", "organization-1", "photos", "photo-2");
+
+    await assertSucceeds(getDoc(existingPhoto));
+    await assertFails(setDoc(newPhoto, {
+      id: "photo-2",
+      organizationId: "organization-1",
+      imageURL: "https://example.com/photo-2.jpg",
+      caption: null,
+      uploadedBy: "org-owner",
+      createdAt: Timestamp.now(),
+      updatedAt: null,
+    }));
+    await assertFails(deleteDoc(existingPhoto));
+    await assertFails(deleteDoc(doc(
+      appOwnerDb,
+      "organizations",
+      "organization-1",
+      "photos",
+      "photo-1"
+    )));
   });
 });

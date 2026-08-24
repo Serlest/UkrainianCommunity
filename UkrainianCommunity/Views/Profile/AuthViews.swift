@@ -99,7 +99,7 @@ struct AuthLandingView: View {
                     } label: {
                         Text(AppStrings.Auth.createAccount)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                             .multilineTextAlignment(.center)
                             .padding(.vertical, 12)
                             .frame(maxWidth: .infinity)
@@ -224,8 +224,12 @@ struct LoginView: View {
     }
 
     private var validationHint: String? {
-        guard !canSubmit else { return nil }
+        guard hasStartedEnteringCredentials, !canSubmit else { return nil }
         return validationErrors.first
+    }
+
+    private var hasStartedEnteringCredentials: Bool {
+        !email.isEmpty || !password.isEmpty
     }
 }
 
@@ -360,8 +364,18 @@ struct RegisterView: View {
     }
 
     private var validationHint: String? {
-        guard !canSubmit else { return nil }
+        guard hasStartedRegistration, !canSubmit else { return nil }
         return validationErrors.first
+    }
+
+    private var hasStartedRegistration: Bool {
+        !email.isEmpty
+            || !password.isEmpty
+            || !repeatedPassword.isEmpty
+            || !displayName.isEmpty
+            || !telegramUsername.isEmpty
+            || acceptedTerms
+            || acceptedPrivacy
     }
 }
 
@@ -691,7 +705,7 @@ struct PasswordResetView: View {
     }
 
     private var validationHint: String? {
-        guard !canSubmit else { return nil }
+        guard !email.isEmpty, !canSubmit else { return nil }
         return validationErrors.first
     }
 }

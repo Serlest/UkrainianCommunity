@@ -6,7 +6,7 @@ extension EventDetailView {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "calendar.badge.exclamationmark")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentDestructive)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
                         .frame(width: 28)
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -30,7 +30,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Events.detailsSectionTitle)
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     EventDetailRow(systemImage: "calendar", title: AppStrings.Events.fieldStartDate, value: LocalizationStore.dateString(from: event.startDate, dateStyle: .full, timeStyle: .none))
                     EventDetailRow(systemImage: "clock", title: AppStrings.Events.startTime, value: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate))
@@ -71,7 +71,7 @@ extension EventDetailView {
         var registrationNotRequiredLine: some View {
             Label(AppStrings.Events.registrationNotRequired, systemImage: "checkmark.seal")
                 .font(AppTheme.metadataStrongFont)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
 
@@ -89,7 +89,7 @@ extension EventDetailView {
 
                             Text("\(resolvedRegistrationAttendeeCount(for: event))")
                                 .font(AppTheme.badgeFont)
-                                .foregroundStyle(AppTheme.accentPrimary)
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
                                 .monospacedDigit()
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
@@ -110,7 +110,7 @@ extension EventDetailView {
                         } else if let eventRegistrationAttendeesErrorMessage {
                             Text(eventRegistrationAttendeesErrorMessage)
                                 .font(AppTheme.metadataFont)
-                                .foregroundStyle(AppTheme.accentDestructive)
+                                .foregroundStyle(AppTheme.accentDestructiveForeground)
                         } else if eventRegistrationAttendees.isEmpty {
                             Text(AppStrings.Events.registrationManagementEmpty)
                                 .font(AppTheme.secondaryBodyFont)
@@ -255,7 +255,7 @@ extension EventDetailView {
                 HStack(spacing: 8) {
                     Image(systemName: systemImage)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(isSelected ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                        .foregroundStyle(isSelected ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
 
                     Text("\(count)")
                         .font(.footnote.weight(.semibold))

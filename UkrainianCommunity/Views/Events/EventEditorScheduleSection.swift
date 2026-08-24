@@ -138,7 +138,7 @@ extension EventEditorView {
                 HStack(alignment: .center, spacing: AppTheme.dashboardSpacing) {
                     Image(systemName: systemImage)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
                     Text(title)

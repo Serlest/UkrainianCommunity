@@ -74,6 +74,62 @@ private struct CurvedFlagStripe: Shape {
     }
 }
 
+struct AdaptiveBrandLockupView: View {
+    enum Layout {
+        case horizontal
+        case vertical
+    }
+
+    let layout: Layout
+
+    var body: some View {
+        Group {
+            switch layout {
+            case .horizontal:
+                HStack(spacing: 10) {
+                    brandSymbol(size: 56)
+                    brandText(titleFont: .title3, subtitleFont: .subheadline)
+                }
+            case .vertical:
+                VStack(spacing: 14) {
+                    brandSymbol(size: 132)
+                    brandText(titleFont: .largeTitle, subtitleFont: .title2)
+                        .multilineTextAlignment(.center)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(AppStrings.Home.brandTitle)
+    }
+
+    private func brandSymbol(size: CGFloat) -> some View {
+        Image("logo1")
+            .resizable()
+            .frame(width: size * 2.88, height: size)
+            .frame(width: size * 0.82, height: size, alignment: .leading)
+            .clipped()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+
+    private func brandText(titleFont: Font, subtitleFont: Font) -> some View {
+        let titleParts = AppStrings.Home.brandTitle.split(separator: " ", maxSplits: 1)
+        let primaryTitle = titleParts.first.map(String.init) ?? AppStrings.Home.brandTitle
+        let secondaryTitle = titleParts.count > 1 ? String(titleParts[1]) : ""
+
+        return VStack(alignment: layout == .horizontal ? .leading : .center, spacing: 0) {
+            Text(primaryTitle)
+                .font(titleFont.weight(.bold))
+                .foregroundStyle(AppTheme.textPrimary)
+
+            Text(secondaryTitle)
+                .font(subtitleFont.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
+        }
+        .fixedSize(horizontal: true, vertical: true)
+    }
+}
+
 struct AppBrandHeader<TrailingContent: View>: View {
     @ViewBuilder let trailingContent: TrailingContent
 
@@ -82,16 +138,14 @@ struct AppBrandHeader<TrailingContent: View>: View {
     }
 
     var body: some View {
-        BrandedScreenHeader(
-            title: AppStrings.Home.brandTitle,
-            subtitle: AppStrings.Home.brandSubtitle,
-            brandAssetName: "logo1",
-            showsBrandText: false,
-            brandSize: AppTheme.appHeaderLogoSize,
-            brandContentMode: .fit
-        ) {
+        HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+            AdaptiveBrandLockupView(layout: .horizontal)
+
+            Spacer(minLength: 0)
+
             trailingContent
         }
+        .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)
         .padding(.leading, AppTheme.appHeaderLeadingAdjustment)
     }
 }
@@ -118,12 +172,7 @@ struct AppCenteredBrandHeader<LeadingContent: View, TrailingContent: View>: View
                 trailingContent
             }
 
-            BrandMarkView(
-                size: AppTheme.appHeaderLogoSize.height,
-                width: AppTheme.appHeaderLogoSize.width,
-                assetName: "logo1",
-                contentMode: .fit
-            )
+            AdaptiveBrandLockupView(layout: .horizontal)
             .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)

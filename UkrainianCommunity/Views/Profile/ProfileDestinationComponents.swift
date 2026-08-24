@@ -27,7 +27,7 @@ struct ProfileDestinationEmptyStateCard: View {
             VStack(alignment: .center, spacing: 8) {
                 Image(systemName: systemImage)
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 38, height: 38)
                     .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 

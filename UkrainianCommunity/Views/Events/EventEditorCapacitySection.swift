@@ -117,7 +117,7 @@ extension EventEditorView {
             HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
                 Image(systemName: "info.circle")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
                 Text(AppStrings.Events.publishNotice)

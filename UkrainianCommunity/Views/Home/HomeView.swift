@@ -1121,7 +1121,7 @@ private struct HomeEventDateBadge: View {
             if dynamicTypeSize.isAccessibilitySize {
                 Text("\(weekdayText), \(dayText) \(monthText)")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 10)
@@ -1136,11 +1136,11 @@ private struct HomeEventDateBadge: View {
                     VStack(spacing: 1) {
                         Text(dayText)
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         Text(monthText.uppercased())
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(AppTheme.accentDestructive)
+                            .foregroundStyle(AppTheme.accentDestructiveForeground)
                     }
                     .frame(width: AppTheme.homeFeedDateBadgeSize, height: AppTheme.homeFeedDateBadgeSize)
                     .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))

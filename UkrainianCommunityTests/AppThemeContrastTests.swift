@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import Testing
 import UIKit
@@ -12,6 +13,33 @@ struct AppThemeContrastTests {
     @Test
     func destructiveForegroundMeetsAAInSupportedAppearances() {
         assertMeetsAA(AppTheme.accentDestructiveForeground)
+    }
+
+    @Test
+    func fixedFillTokensAreNotUsedAsForegroundStyles() throws {
+        let projectRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceRoot = projectRoot.appendingPathComponent("UkrainianCommunity", isDirectory: true)
+        let expression = try NSRegularExpression(
+            pattern: #"foreground(?:Style|Color)\([^\n]*AppTheme\.(?:accentPrimary|accentDestructive)(?!Foreground)"#
+        )
+        let enumerator = FileManager.default.enumerator(
+            at: sourceRoot,
+            includingPropertiesForKeys: nil
+        )
+        var violations: [String] = []
+
+        while let fileURL = enumerator?.nextObject() as? URL {
+            guard fileURL.pathExtension == "swift" else { continue }
+            let source = try String(contentsOf: fileURL, encoding: .utf8)
+            let range = NSRange(source.startIndex..<source.endIndex, in: source)
+            if expression.firstMatch(in: source, range: range) != nil {
+                violations.append(fileURL.path.replacingOccurrences(of: projectRoot.path + "/", with: ""))
+            }
+        }
+
+        #expect(violations.isEmpty, "Fixed fill colors used as foregrounds: \(violations.sorted())")
     }
 
     private func assertMeetsAA(_ color: Color) {

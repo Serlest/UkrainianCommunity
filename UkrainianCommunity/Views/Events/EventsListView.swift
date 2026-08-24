@@ -730,7 +730,7 @@ private struct EventMonthHeader: View {
     var body: some View {
         Text(title)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(AppTheme.accentPrimary)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
             .lineLimit(1)
             .padding(.horizontal, 2)
     }
@@ -869,7 +869,7 @@ private struct EventCard: View {
         AppFeedThumbnail(
             imageURL: event.imageURL,
             fallbackSystemImage: "calendar",
-            tint: AppTheme.accentPrimary,
+            tint: AppTheme.accentPrimaryForeground,
             fill: AppTheme.badgeBlueFill,
             size: AppTheme.eventsThumbnailSize,
             cornerRadius: AppTheme.rowCardCornerRadius,
@@ -882,7 +882,7 @@ private struct EventCard: View {
         AppInfoChip(
             title: AppStrings.Events.title.uppercased(),
             systemImage: "calendar",
-            tint: AppTheme.accentPrimary,
+            tint: AppTheme.accentPrimaryForeground,
             fill: AppTheme.badgeBlueFill,
             size: .small
         )

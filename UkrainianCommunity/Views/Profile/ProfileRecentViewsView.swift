@@ -227,7 +227,7 @@ private struct RecentViewRow: View {
                 AppFeedThumbnail(
                     imageURL: item.imageURL,
                     fallbackSystemImage: item.itemType.systemImage,
-                    tint: AppTheme.accentPrimary,
+                    tint: AppTheme.accentPrimaryForeground,
                     fill: AppTheme.accentPrimary.opacity(0.10),
                     size: 58,
                     cornerRadius: 12,

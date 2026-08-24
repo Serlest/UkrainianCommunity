@@ -235,7 +235,7 @@ struct OrganizationContactCard: View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: "person.crop.circle")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 28, height: 28)
                 .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
 
@@ -317,7 +317,7 @@ private struct OrganizationContactRow: View {
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: item.systemImage)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 28, height: 28)
                         .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
 

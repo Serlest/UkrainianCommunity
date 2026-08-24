@@ -7,7 +7,7 @@ extension EventEditorView {
                 editorStatusCard {
                     Label(statusMessage, systemImage: "arrow.triangle.2.circlepath")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                 }
             }
 
@@ -15,7 +15,7 @@ extension EventEditorView {
                 editorStatusCard {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppTheme.accentDestructive)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
                 }
             }
 
@@ -31,7 +31,7 @@ extension EventEditorView {
                 editorStatusCard {
                     Label(AppStrings.Events.organizationRegionRequired, systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppTheme.accentDestructive)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
                 }
             }
         }

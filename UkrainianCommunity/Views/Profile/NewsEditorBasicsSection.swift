@@ -64,7 +64,7 @@ extension NewsEditorView {
                             AppFeedThumbnail(
                                 imageURL: viewModel.organizerImageURL,
                                 fallbackSystemImage: "building.2",
-                                tint: AppTheme.accentPrimary,
+                                tint: AppTheme.accentPrimaryForeground,
                                 fill: AppTheme.accentPrimarySoft,
                                 size: organizerLogoSize,
                                 cornerRadius: AppTheme.feedThumbnailRadius,
@@ -80,7 +80,7 @@ extension NewsEditorView {
                                 AppInfoChip(
                                     title: organizerStatusTitle,
                                     systemImage: "building.2",
-                                    tint: AppTheme.accentPrimary,
+                                    tint: AppTheme.accentPrimaryForeground,
                                     fill: AppTheme.accentPrimarySoft,
                                     size: .small
                                 )
@@ -122,7 +122,7 @@ extension NewsEditorView {
             if canSelectOrganizer {
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 32, height: 32)
                     .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
             } else if organizerOrganizationsViewModel.isLoading {

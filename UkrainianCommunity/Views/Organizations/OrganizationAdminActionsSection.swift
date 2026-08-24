@@ -26,7 +26,7 @@ extension OrganizationDetailView {
                     HStack(spacing: 12) {
                         Image(systemName: "heart.fill")
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                             .frame(width: 36, height: 36)
                             .background(
                                 reduceTransparency ? AppTheme.glassFallbackSurface(for: colorScheme) : AppTheme.glassControlSurface(for: colorScheme),
@@ -133,7 +133,7 @@ extension OrganizationDetailView {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(isSelected ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                    .foregroundStyle(isSelected ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
 
                 Text("\(count)")
                     .font(.footnote.weight(.semibold))

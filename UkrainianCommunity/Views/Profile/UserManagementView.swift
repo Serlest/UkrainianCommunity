@@ -773,11 +773,11 @@ private struct ManagedUserRow: View {
                         }
 
                         if let primaryOrganizationRole {
-                            UserStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimary)
+                            UserStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimaryForeground)
                         }
 
                         if organizationRoles.count > 1 {
-                            UserStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimary)
+                            UserStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimaryForeground)
                         }
                     }
                 }
@@ -1065,7 +1065,7 @@ private struct UserDetailView: View {
                         if !organizationRoles.isEmpty {
                             HStack(spacing: 6) {
                                 ForEach(organizationRoles.prefix(3)) { item in
-                                    UserStatusBadge(title: roleTitle(item.role), tint: AppTheme.accentPrimary)
+                                    UserStatusBadge(title: roleTitle(item.role), tint: AppTheme.accentPrimaryForeground)
                                 }
                             }
                         }
@@ -1100,7 +1100,7 @@ private struct UserDetailView: View {
                         HStack(spacing: AppTheme.eventsMetadataSpacing) {
                             Image(systemName: roleIcon(item.role))
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(AppTheme.accentPrimary)
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
                                 .frame(width: 20)
 
                             VStack(alignment: .leading, spacing: 2) {
@@ -1287,22 +1287,22 @@ private struct UserDetailView: View {
                 .disabled(!canManage || isUpdating)
 
                 Button { pendingAction = .suspended } label: {
-                    actionLabel(.suspended, tint: AppTheme.accentDestructive)
+                    actionLabel(.suspended, tint: AppTheme.accentDestructiveForeground)
                 }
                 .disabled(!canManage || isUpdating)
 
                 Button { pendingAction = .banned } label: {
-                    actionLabel(.banned, tint: AppTheme.accentDestructive)
+                    actionLabel(.banned, tint: AppTheme.accentDestructiveForeground)
                 }
                 .disabled(!canManage || isUpdating)
 
                 Button { pendingAction = .unblocked } label: {
-                    actionLabel(.unblocked, tint: AppTheme.accentPrimary)
+                    actionLabel(.unblocked, tint: AppTheme.accentPrimaryForeground)
                 }
                 .disabled(!canManage || isUpdating)
 
                 Button { pendingAction = .deactivated } label: {
-                    actionLabel(.deactivated, tint: AppTheme.accentDestructive)
+                    actionLabel(.deactivated, tint: AppTheme.accentDestructiveForeground)
                 }
                 .disabled(!canManage || isUpdating)
             }
@@ -1396,7 +1396,7 @@ private struct UserDetailView: View {
         } label: {
             Label(action.title, systemImage: action.systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(action.isRemoval ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                .foregroundStyle(action.isRemoval ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
                 .multilineTextAlignment(.center)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
@@ -1605,7 +1605,7 @@ private struct UserManagementMetadataRow: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 18)
 
             Text(title)

@@ -46,7 +46,7 @@ struct OrganizerPickerSheet: View {
                 AppFeedThumbnail(
                     imageURL: organization.imageURL,
                     fallbackSystemImage: "building.2",
-                    tint: AppTheme.accentPrimary,
+                    tint: AppTheme.accentPrimaryForeground,
                     fill: AppTheme.badgeBlueFill,
                     size: AppTheme.organizationsThumbnailSize,
                     cornerRadius: AppTheme.feedThumbnailRadius,
@@ -79,7 +79,7 @@ struct OrganizerPickerSheet: View {
                 if organization.id == selectedOrganizationID {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .accessibilityHidden(true)
                 }
             }

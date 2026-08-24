@@ -288,7 +288,7 @@ private struct AnalyticsDetailValueRow: View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 34, height: 34)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -335,7 +335,7 @@ private struct AnalyticsDetailRegionRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "mappin.and.ellipse")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 34, height: 34)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -413,7 +413,7 @@ private struct AnalyticsOrganizationTopContentRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: item.contentType.analyticsDetailSystemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 34, height: 34)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 

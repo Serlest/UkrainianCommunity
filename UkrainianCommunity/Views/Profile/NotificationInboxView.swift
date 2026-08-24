@@ -256,13 +256,13 @@ private struct NotificationInboxRow: View {
     private var iconTint: Color {
         switch notification.severity {
         case .info:
-            return notification.isRead ? AppTheme.textSecondary : AppTheme.accentPrimary
+            return notification.isRead ? AppTheme.textSecondary : AppTheme.accentPrimaryForeground
         case .success:
             return .green
         case .warning:
             return AppTheme.accentSupport
         case .critical:
-            return AppTheme.accentDestructive
+            return AppTheme.accentDestructiveForeground
         }
     }
 

@@ -79,7 +79,7 @@ extension NewsEditorView {
             VStack(spacing: 7) {
                 Image(systemName: "photo.badge.plus")
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary.opacity(0.78))
+                    .foregroundStyle(AppTheme.accentPrimaryForeground.opacity(0.78))
 
                 Text(AppStrings.NewsEditor.coverUploadTitle)
                     .font(.footnote.weight(.semibold))

@@ -22,7 +22,7 @@ enum ManagedOrganizationRole {
     var tint: Color {
         switch self {
         case .owner:
-            return AppTheme.accentPrimary
+            return AppTheme.accentPrimaryForeground
         case .platformOwner:
             return .indigo
         case .admin:
@@ -51,7 +51,7 @@ struct OrganizationRequestPreviewView: View {
                         AppFeedThumbnail(
                             imageURL: organization.imageURL,
                             fallbackSystemImage: "building.2",
-                            tint: AppTheme.accentPrimary,
+                            tint: AppTheme.accentPrimaryForeground,
                             fill: AppTheme.accentPrimary.opacity(0.10),
                             size: 56,
                             source: "OrganizationRequestPreviewView"
@@ -61,7 +61,7 @@ struct OrganizationRequestPreviewView: View {
                             AppEditorSectionTitle(title: organization.name)
                             Text(organization.moderationStatus.title)
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(AppTheme.accentPrimary)
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
                             Text(organization.shortDescription)
                                 .font(.subheadline)
                                 .foregroundStyle(AppTheme.textSecondary)
@@ -181,7 +181,7 @@ struct OrganizationRequestCard: View {
                     Button(action: editAction) {
                         Label(AppStrings.Action.edit, systemImage: "pencil")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                             .frame(maxWidth: .infinity)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.vertical, 9)
@@ -265,7 +265,7 @@ struct ManagedOrganizationCard: View {
                     AppFeedThumbnail(
                         imageURL: organization.imageURL,
                         fallbackSystemImage: "building.2",
-                        tint: AppTheme.accentPrimary,
+                        tint: AppTheme.accentPrimaryForeground,
                         fill: AppTheme.accentPrimary.opacity(0.10),
                         size: 46,
                         source: "ManagedOrganizationCard"
@@ -404,7 +404,7 @@ struct ManagedOrganizationCard: View {
     private func managedOrganizationActionLabel(title: String, systemImage: String) -> some View {
         Label(title, systemImage: systemImage)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.accentPrimary)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
             .frame(maxWidth: .infinity)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, 10)

@@ -565,7 +565,7 @@ private struct OrganizationCard: View {
         AppFeedThumbnail(
             imageURL: organization.imageURL,
             fallbackSystemImage: "building.2",
-            tint: AppTheme.accentPrimary,
+            tint: AppTheme.accentPrimaryForeground,
             fill: AppTheme.badgeBlueFill,
             size: thumbnailSize,
             cornerRadius: AppTheme.feedThumbnailRadius,

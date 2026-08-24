@@ -356,7 +356,7 @@ private struct FeedbackInboxRow: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "bubble.left.and.bubble.right")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 38, height: 38)
                     .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
@@ -535,7 +535,7 @@ private struct FeedbackConversationSheet: View {
                             Spacer(minLength: 0)
                             if let validationMessage {
                                 Text(validationMessage)
-                                    .foregroundStyle(AppTheme.accentDestructive)
+                                    .foregroundStyle(AppTheme.accentDestructiveForeground)
                             }
                         }
                         .font(.caption)
@@ -614,7 +614,7 @@ private struct FeedbackConversationSheet: View {
             Button(action: onClose) {
                 Label(AppStrings.Feedback.closeFeedback, systemImage: "checkmark.seal")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentDestructive)
+                    .foregroundStyle(AppTheme.accentDestructiveForeground)
                     .multilineTextAlignment(.center)
                     .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
@@ -711,7 +711,7 @@ private struct FeedbackMessageBubble: View {
                 HStack(spacing: 6) {
                     Text(message.isSystem ? AppStrings.Feedback.supportLabel : message.senderRole.title)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(isOwnerMessage ? AppTheme.accentPrimary : AppTheme.textSecondary)
+                        .foregroundStyle(isOwnerMessage ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
 
                     Text(LocalizationStore.dateString(from: message.createdAt, dateStyle: .short, timeStyle: .short))
                         .font(.caption2)
@@ -748,11 +748,11 @@ private struct FeedbackStatusBadge: View {
     private var tint: Color {
         switch status {
         case .open:
-            return AppTheme.accentPrimary
+            return AppTheme.accentPrimaryForeground
         case .answered, .reviewed:
             return AppTheme.textSecondary
         case .archived, .closed:
-            return AppTheme.accentDestructive
+            return AppTheme.accentDestructiveForeground
         }
     }
 

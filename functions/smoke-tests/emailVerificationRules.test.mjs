@@ -6,7 +6,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
+import {doc, getDoc, setDoc, updateDoc, writeBatch} from "firebase/firestore";
 import {readFileSync} from "node:fs";
 
 const PROJECT_ID = "ukrainian-community-email-verification-rules";
@@ -242,6 +242,39 @@ describe("email verification enforcement", () => {
       unreadForOwner: true,
       unreadForUser: false,
     }));
+
+    const replyAt = new Date("2026-06-09T11:05:00Z");
+    const reply = {
+      id: "reply-1",
+      feedbackId: "feedback-verified",
+      senderId: "verified-user",
+      senderDisplayName: "Verified User",
+      senderRole: "user",
+      text: "Additional details",
+      createdAt: replyAt,
+      isSystem: false,
+    };
+    await assertFails(setDoc(
+      doc(verifiedDb, "feedback", "feedback-verified", "messages", "reply-1"),
+      reply
+    ));
+
+    const replyBatch = writeBatch(verifiedDb);
+    replyBatch.set(
+      doc(verifiedDb, "feedback", "feedback-verified", "messages", "reply-1"),
+      reply
+    );
+    replyBatch.update(doc(verifiedDb, "feedback", "feedback-verified"), {
+      status: "open",
+      updatedAt: replyAt,
+      lastMessageText: reply.text,
+      lastMessageAt: replyAt,
+      lastMessageByUserId: "verified-user",
+      lastMessageByRole: "user",
+      unreadForOwner: true,
+      unreadForUser: false,
+    });
+    await assertSucceeds(replyBatch.commit());
 
     await assertFails(setDoc(doc(verifiedDb, "feedback", "forged-context-report"), {
       id: "forged-context-report",

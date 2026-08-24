@@ -92,7 +92,7 @@ extension OrganizationDetailView {
                     .overlay(
                         Text(organizationInitials(for: organization))
                             .font(AppTheme.screenTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                     )
             }
         }
@@ -147,7 +147,7 @@ extension OrganizationDetailView {
         AppInfoChip(
             title: title.uppercased(),
             systemImage: systemImage,
-            tint: AppTheme.accentPrimary,
+            tint: AppTheme.accentPrimaryForeground,
             fill: AppTheme.accentPrimary.opacity(0.14),
             border: AppTheme.accentPrimary.opacity(0.18),
             size: .small
@@ -248,7 +248,7 @@ private struct OrganizationDetailHeaderActions: View {
             ShareLink(item: shareText) {
                 Image(systemName: "square.and.arrow.up")
                     .font(AppTheme.glassIconButtonIconFont)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
                     .glassIconButtonBackground()
             }

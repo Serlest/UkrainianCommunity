@@ -93,7 +93,7 @@ private struct LegalDocumentManagementCard: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: type == .terms ? "doc.text.fill" : "lock.shield.fill")
                         .font(.headline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 40, height: 40)
                         .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 

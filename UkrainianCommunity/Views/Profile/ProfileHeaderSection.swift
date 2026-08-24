@@ -157,7 +157,7 @@ struct ProfileMetadataRow: View {
             }
         } icon: {
             Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
         }
         .font(.subheadline)
     }
@@ -169,7 +169,7 @@ struct ProfileBadge: View {
     var body: some View {
         Label(title, systemImage: systemImage)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.accentPrimary)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
             .multilineTextAlignment(.leading)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)

@@ -639,25 +639,54 @@ service cloud.firestore {
 
     function safeFeedbackMessageCreate(feedbackId, messageId) {
       let parent = get(/databases/$(database)/documents/feedback/$(feedbackId)).data;
-      // TODO: Enforce message creation and parent summary updates as one logical
-      // operation with getAfter() or a server-side function in a later pass.
+      let parentAfter = getAfter(/databases/$(database)/documents/feedback/$(feedbackId)).data;
+      let message = request.resource.data;
       return isVerifiedActiveUser()
         && parent.status != 'closed'
-        && request.resource.data.keys().hasOnly(feedbackMessageFields())
-        && request.resource.data.id == messageId
-        && request.resource.data.feedbackId == feedbackId
-        && request.resource.data.senderId == request.auth.uid
-        && request.resource.data.senderDisplayName is string
-        && request.resource.data.text is string
-        && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 2000
-        && request.resource.data.createdAt is timestamp
-        && (!('isSystem' in request.resource.data) || request.resource.data.isSystem is bool)
+        && message.keys().hasOnly(feedbackMessageFields())
+        && message.id == messageId
+        && message.feedbackId == feedbackId
+        && message.senderId == request.auth.uid
+        && message.senderDisplayName is string
+        && message.text is string
+        && message.text.size() > 0
+        && message.text.size() <= 2000
+        && message.createdAt is timestamp
+        && (!('isSystem' in message) || message.isSystem is bool)
+        && parentAfter.diff(parent).affectedKeys().hasAny([
+          'updatedAt',
+          'lastMessageText',
+          'lastMessageAt',
+          'lastMessageByUserId',
+          'lastMessageByRole',
+          'unreadForOwner',
+          'unreadForUser'
+        ])
+        && parentAfter.updatedAt == message.createdAt
+        && parentAfter.lastMessageText == message.text
+        && parentAfter.lastMessageAt == message.createdAt
+        && parentAfter.lastMessageByUserId == request.auth.uid
+        && parentAfter.lastMessageByRole == message.senderRole
         && (
           (parent.userId == request.auth.uid
-            && request.resource.data.senderRole == 'user'
-            && (!('isSystem' in request.resource.data) || request.resource.data.isSystem == false))
-          || (canManageFeedback() && request.resource.data.senderRole == 'owner')
+            && message.senderRole == 'user'
+            && (!('isSystem' in message) || message.isSystem == false)
+            && parentAfter.status == 'open'
+            && parentAfter.unreadForOwner == true
+            && parentAfter.unreadForUser == false)
+          || (canManageFeedback()
+            && message.senderRole == 'owner'
+            && parentAfter.status in ['answered', 'closed']
+            && parentAfter.unreadForOwner == false
+            && parentAfter.unreadForUser == true
+            && (
+              (message.isSystem == true && parentAfter.status == 'closed')
+              || ((!('isSystem' in message) || message.isSystem == false)
+                && parentAfter.status == 'answered'
+                && parentAfter.ownerReply == message.text
+                && parentAfter.repliedAt == message.createdAt
+                && parentAfter.repliedByUserId == request.auth.uid)
+            ))
         );
     }
 
@@ -1069,10 +1098,6 @@ service cloud.firestore {
         || isOrganizationModerator(organizationId);
     }
 
-    function canManageOrganizationPhotos(organizationId) {
-      return canUseOrganizationOverride() || canEditOrganizationContent(organizationId);
-    }
-
     function canReadOrganizationByLookup(organizationId) {
       return canUseOrganizationOverride()
         || (exists(/databases/$(database)/documents/organizations/$(organizationId))
@@ -1125,22 +1150,6 @@ service cloud.firestore {
           && resource.data.submittedByUserId == request.auth.uid
           && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         );
-    }
-
-    function organizationPhotoFields() {
-      return ['id', 'organizationId', 'imageURL', 'caption', 'uploadedBy', 'createdAt', 'updatedAt'];
-    }
-
-    function safeOrganizationPhotoCreate(organizationId, photoId) {
-      return canManageOrganizationPhotos(organizationId)
-        && request.resource.data.keys().hasOnly(organizationPhotoFields())
-        && request.resource.data.id == photoId
-        && request.resource.data.organizationId == organizationId
-        && request.resource.data.imageURL is string
-        && request.resource.data.uploadedBy == request.auth.uid
-        && request.resource.data.createdAt is timestamp
-        && (!('caption' in request.resource.data) || request.resource.data.caption is string || request.resource.data.caption == null)
-        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt == null);
     }
 
     function canModerateOrganizationContent(organizationId) {
@@ -1976,10 +1985,9 @@ service cloud.firestore {
 
       match /photos/{photoId} {
         allow read: if canReadOrganizationByLookup(organizationId);
-        allow create: if safeOrganizationPhotoCreate(organizationId, photoId);
-        allow update: if false;
-        allow delete: if canManageOrganizationPhotos(organizationId)
-          && resource.data.organizationId == organizationId;
+        // Metadata mutations are serialized by callable functions so the
+        // 30-photo limit cannot be bypassed by concurrent clients.
+        allow create, update, delete: if false;
       }
 
       match /comments/{commentId} {

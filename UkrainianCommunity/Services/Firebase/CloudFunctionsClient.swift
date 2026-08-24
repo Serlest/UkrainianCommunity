@@ -29,6 +29,8 @@ enum CloudFunctionName: String, CaseIterable {
     case deleteFeaturedBanner
     case submitContentReport
     case setUserBlocked
+    case createOrganizationPhotoMetadata
+    case deleteOrganizationPhotoMetadata
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -197,6 +199,27 @@ struct OrganizationDeletionFunctionRequest: Codable, Equatable {
     let organizationId: String
 }
 
+struct OrganizationPhotoCreateFunctionRequest: Codable, Equatable {
+    let organizationId: String
+    let photoId: String
+    let imageURL: String
+    let caption: String?
+}
+
+struct OrganizationPhotoDeleteFunctionRequest: Codable, Equatable {
+    let organizationId: String
+    let photoId: String
+}
+
+struct OrganizationPhotoMutationFunctionResponse: Codable, Equatable {
+    let organizationId: String
+    let photoId: String
+    let photoCount: Int
+    let didChange: Bool
+    let uploadedBy: String?
+    let createdAt: String?
+}
+
 struct ContentDeletionFunctionResponse: Codable, Equatable {
     let status: String
     let deletedAt: String
@@ -362,6 +385,36 @@ final class CloudFunctionsClient {
         )
     }
 
+    func createOrganizationPhotoMetadata(
+        organizationId: String,
+        photoId: String,
+        imageURL: String,
+        caption: String?
+    ) async throws -> OrganizationPhotoMutationFunctionResponse {
+        try await call(
+            .createOrganizationPhotoMetadata,
+            request: OrganizationPhotoCreateFunctionRequest(
+                organizationId: organizationId,
+                photoId: photoId,
+                imageURL: imageURL,
+                caption: caption
+            )
+        )
+    }
+
+    func deleteOrganizationPhotoMetadata(
+        organizationId: String,
+        photoId: String
+    ) async throws -> OrganizationPhotoMutationFunctionResponse {
+        try await call(
+            .deleteOrganizationPhotoMetadata,
+            request: OrganizationPhotoDeleteFunctionRequest(
+                organizationId: organizationId,
+                photoId: photoId
+            )
+        )
+    }
+
     func deleteOwnAccount() async throws -> AccountDeletionFunctionResponse {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
     }
@@ -452,7 +505,9 @@ final class CloudFunctionsClient {
              .cancelEvent,
              .registerForEvent,
              .unregisterFromEvent,
-             .deleteOrganization:
+             .deleteOrganization,
+             .createOrganizationPhotoMetadata,
+             .deleteOrganizationPhotoMetadata:
             return functionName == .registerForEvent || functionName == .unregisterFromEvent
             ? .event
             : .organization
@@ -499,7 +554,9 @@ final class CloudFunctionsClient {
              .restoreUser,
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
-             .deleteFeaturedBanner:
+             .deleteFeaturedBanner,
+             .createOrganizationPhotoMetadata,
+             .deleteOrganizationPhotoMetadata:
             return true
         case .approveOrganization,
              .rejectOrganization,
@@ -561,7 +618,9 @@ final class CloudFunctionsClient {
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
              .submitContentReport,
-             .setUserBlocked:
+             .setUserBlocked,
+             .createOrganizationPhotoMetadata,
+             .deleteOrganizationPhotoMetadata:
             return nil
         }
     }
@@ -735,6 +794,12 @@ final class CloudFunctionsClient {
             metadata["newsId"] = request.newsId
         } else if let request = request as? OrganizationDeletionFunctionRequest {
             metadata["organizationId"] = request.organizationId
+        } else if let request = request as? OrganizationPhotoCreateFunctionRequest {
+            metadata["organizationId"] = request.organizationId
+            metadata["photoId"] = request.photoId
+        } else if let request = request as? OrganizationPhotoDeleteFunctionRequest {
+            metadata["organizationId"] = request.organizationId
+            metadata["photoId"] = request.photoId
         } else if let request = request as? ContentReportFunctionRequest {
             metadata["reportTargetType"] = request.targetType
             metadata["reportTargetId"] = request.targetId
@@ -753,6 +818,12 @@ final class CloudFunctionsClient {
         request: Request
     ) -> String? {
         if let request = request as? OrganizationRoleChangeFunctionRequest {
+            return request.organizationId
+        }
+        if let request = request as? OrganizationPhotoCreateFunctionRequest {
+            return request.organizationId
+        }
+        if let request = request as? OrganizationPhotoDeleteFunctionRequest {
             return request.organizationId
         }
         if let request = request as? PlatformRoleChangeFunctionRequest {

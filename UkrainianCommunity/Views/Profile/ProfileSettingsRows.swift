@@ -17,7 +17,7 @@ struct ProfileSettingsPickerRow<PickerContent: View>: View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 30, height: 30)
                 .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -52,7 +52,7 @@ struct ProfileSettingsToggleRow: View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 30, height: 30)
                 .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 

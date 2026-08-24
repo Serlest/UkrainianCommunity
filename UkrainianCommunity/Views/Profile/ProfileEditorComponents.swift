@@ -35,7 +35,7 @@ struct ProfileAvatarEditorCard: View {
                     PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
                         Label(AppStrings.Profile.changeAvatar, systemImage: "camera.fill")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
@@ -141,7 +141,7 @@ struct ProfileEditorPickerRow<PickerContent: View>: View {
         HStack(spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.metadataIconSize)
 
             Text(title)

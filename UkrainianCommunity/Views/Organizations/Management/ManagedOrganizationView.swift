@@ -171,7 +171,7 @@ struct ManagedOrganizationView: View {
                     AppFeedThumbnail(
                         imageURL: currentOrganization.imageURL,
                         fallbackSystemImage: "building.2",
-                        tint: AppTheme.accentPrimary,
+                        tint: AppTheme.accentPrimaryForeground,
                         fill: AppTheme.accentPrimary.opacity(0.10),
                         size: 52,
                         source: "ManagedOrganizationView"
@@ -381,13 +381,13 @@ struct ManagedOrganizationView: View {
                 if let statusMessage = teamViewModel.statusMessage {
                     Label(statusMessage, systemImage: "checkmark.circle")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                 }
 
                 if let errorMessage = teamViewModel.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(AppTheme.accentDestructive)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
                 }
             }
         }
@@ -567,7 +567,7 @@ struct ManagedOrganizationView: View {
                 title: title,
                 subtitle: subtitle,
                 systemImage: systemImage,
-                tint: role == .destructive ? AppTheme.accentDestructive : AppTheme.accentPrimary
+                tint: role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground
             )
         }
         .buttonStyle(.plain)
@@ -588,7 +588,7 @@ struct ManagedOrganizationView: View {
     private func managementCompactActionLabel(title: String, systemImage: String) -> some View {
         Label(title, systemImage: systemImage)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.accentPrimary)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
             .labelStyle(.iconOnly)
             .frame(
                 width: AppTheme.minimumInteractiveTarget,

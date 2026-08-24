@@ -116,6 +116,7 @@ struct OrganizationPhotoGallerySection: View {
     @State private var photoGridAvailableWidth: CGFloat = 0
 
     private let photoGridSpacing: CGFloat = 12
+    private let maximumCaptionLength = 500
 
     init(
         organizationId: String,
@@ -271,13 +272,13 @@ struct OrganizationPhotoGallerySection: View {
             if viewModel.isUploading {
                 Label(AppStrings.Organizations.photosUploading, systemImage: "arrow.up.circle")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
             }
 
             if let errorMessage = viewModel.errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(AppTheme.accentDestructive)
+                    .foregroundStyle(AppTheme.accentDestructiveForeground)
             }
         }
     }
@@ -298,9 +299,19 @@ struct OrganizationPhotoGallerySection: View {
 
     private var captionSheet: some View {
         Form {
-            Section(AppStrings.Organizations.photosCaption) {
+            Section {
                 TextField(AppStrings.Organizations.photosCaptionPlaceholder, text: $pendingCaption, axis: .vertical)
                     .lineLimit(2...4)
+                    .onChange(of: pendingCaption) { _, value in
+                        if value.count > maximumCaptionLength {
+                            pendingCaption = String(value.prefix(maximumCaptionLength))
+                        }
+                    }
+            } header: {
+                Text(AppStrings.Organizations.photosCaption)
+            } footer: {
+                Text("\(pendingCaption.count)/\(maximumCaptionLength)")
+                    .monospacedDigit()
             }
         }
         .navigationTitle(AppStrings.Organizations.photosAdd)
@@ -475,7 +486,7 @@ private struct OrganizationAddPhotoTile: View {
                 } else {
                     Image(systemName: "plus")
                         .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 38, height: 38)
                         .background(AppTheme.accentPrimarySoft, in: Circle())
                 }
@@ -483,7 +494,7 @@ private struct OrganizationAddPhotoTile: View {
 
             Text(AppStrings.Organizations.photosAdd)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .lineLimit(1)
         }
         .frame(width: cellSize, height: cellSize)

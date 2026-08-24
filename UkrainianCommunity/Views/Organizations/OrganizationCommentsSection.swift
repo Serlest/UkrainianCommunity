@@ -7,7 +7,7 @@ extension OrganizationDetailView {
             VStack(alignment: .leading, spacing: 10) {
                 Text(AppStrings.Common.comments)
                     .font(AppTheme.sectionTitleFont)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                 commentComposer(parentID: organization.id)
 
@@ -76,7 +76,7 @@ extension OrganizationDetailView {
                 } label: {
                     Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
                         .font(AppTheme.metadataStrongFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                 }
                 .buttonStyle(.plain)
             }
@@ -144,7 +144,7 @@ extension OrganizationDetailView {
             Image(systemName: "ellipsis.circle.fill")
                 .font(AppTheme.sectionTitleFont)
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(
                     width: AppTheme.minimumInteractiveTarget,
                     height: AppTheme.minimumInteractiveTarget

@@ -241,7 +241,7 @@ private struct ActivityHistoryRow: View {
                     AppFeedThumbnail(
                         imageURL: item.imageURL,
                         fallbackSystemImage: item.targetType.systemImage,
-                        tint: AppTheme.accentPrimary,
+                        tint: AppTheme.accentPrimaryForeground,
                         fill: AppTheme.accentPrimary.opacity(0.10),
                         size: 58,
                         cornerRadius: 12,

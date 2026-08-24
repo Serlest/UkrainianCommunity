@@ -58,7 +58,7 @@ extension OrganizationEditorView {
                     systemImage: "arrow.triangle.2.circlepath"
                 )
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
             }
         }
 
@@ -66,7 +66,7 @@ extension OrganizationEditorView {
             editorCard {
                 Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(AppTheme.accentDestructive)
+                    .foregroundStyle(AppTheme.accentDestructiveForeground)
             }
         }
 

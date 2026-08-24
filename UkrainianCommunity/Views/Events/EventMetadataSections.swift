@@ -17,7 +17,7 @@ extension EventDetailView {
                     HStack(spacing: AppTheme.dashboardSpacing) {
                         Image(systemName: "info.circle")
                             .font(AppTheme.buttonLabelFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
                             Text(AppStrings.Events.expectedParticipants)
@@ -38,11 +38,11 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AppStrings.Events.aboutSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     Text(event.details)
                         .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -56,7 +56,7 @@ extension EventDetailView {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                         Text(AppStrings.Events.tagsSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         AppHorizontalChipRow(spacing: 8) {
                             ForEach(event.tags, id: \.self) { tag in
@@ -78,13 +78,13 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Events.publishedBySectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     HStack(spacing: AppTheme.dashboardSpacing) {
                         AppFeedThumbnail(
                             imageURL: event.source.organizationImageURL,
                             fallbackSystemImage: "building.2",
-                            tint: AppTheme.accentPrimary,
+                            tint: AppTheme.accentPrimaryForeground,
                             fill: AppTheme.accentPrimarySoft,
                             size: AppTheme.organizationsThumbnailSize,
                             cornerRadius: AppTheme.feedThumbnailRadius,
@@ -106,7 +106,7 @@ extension EventDetailView {
                             AppInfoChip(
                                 title: event.source.sourceType == .organization ? AppStrings.Organizations.detailBadge : AppStrings.Home.brandTitle,
                                 systemImage: "building.2",
-                                tint: AppTheme.accentPrimary,
+                                tint: AppTheme.accentPrimaryForeground,
                                 fill: AppTheme.accentPrimarySoft,
                                 size: .small
                             )
@@ -125,7 +125,7 @@ extension EventDetailView {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(AppStrings.Events.organizerContactSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
                             ForEach(rows) { row in
@@ -154,7 +154,7 @@ extension EventDetailView {
             HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
                 Image(systemName: row.systemImage)
                     .font(AppTheme.metadataStrongFont)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -164,7 +164,7 @@ extension EventDetailView {
 
                     Text(row.value)
                         .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(row.url == nil ? AppTheme.textPrimary : AppTheme.accentPrimary)
+                        .foregroundStyle(row.url == nil ? AppTheme.textPrimary : AppTheme.accentPrimaryForeground)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -276,7 +276,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Events.detailsSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                     if event.requiresRegistration {
                         EventDetailRow(systemImage: "tag", title: AppStrings.Events.priceTitle, value: eventPriceText(for: event))
                         EventDetailRow(systemImage: "person.2", title: AppStrings.Events.expectedParticipants, value: eventParticipantsText(for: event))
@@ -293,7 +293,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     Text(AppStrings.Events.locationSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     if let coordinate = eventCoordinate(for: event) {
                         ViewThatFits(in: .horizontal) {
@@ -364,7 +364,7 @@ extension EventDetailView {
                     HStack(alignment: .top, spacing: 5) {
                         Image(systemName: "info.circle")
                             .font(AppTheme.metadataStrongFont)
-                            .foregroundStyle(AppTheme.accentPrimary.opacity(0.86))
+                            .foregroundStyle(AppTheme.accentPrimaryForeground.opacity(0.86))
                             .padding(.top, 1)
 
                         Text(locationNote)
@@ -420,7 +420,7 @@ extension EventDetailView {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                         Text(AppStrings.Events.similarEvents)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
                             ForEach(similarEvents) { relatedEvent in
@@ -509,7 +509,7 @@ extension EventDetailView {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(AppStrings.Common.comments)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     eventCommentComposer(eventID: event.id)
 
@@ -570,7 +570,7 @@ extension EventDetailView {
                     } label: {
                         Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
                             .font(AppTheme.metadataStrongFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                     }
                     .buttonStyle(.plain)
                 }
@@ -636,7 +636,7 @@ extension EventDetailView {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(AppTheme.sectionTitleFont)
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(
                         width: AppTheme.minimumInteractiveTarget,
                         height: AppTheme.minimumInteractiveTarget
@@ -772,7 +772,7 @@ extension EventDetailView {
                         AppInfoChip(
                             title: event.category.title,
                             systemImage: event.category.systemImage,
-                            tint: AppTheme.accentPrimary,
+                            tint: AppTheme.accentPrimaryForeground,
                             fill: AppTheme.accentPrimarySoft,
                             size: .small
                         )

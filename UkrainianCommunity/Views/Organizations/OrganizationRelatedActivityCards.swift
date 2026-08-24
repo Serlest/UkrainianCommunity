@@ -111,7 +111,7 @@ extension OrganizationDetailView {
                 .font(AppTheme.badgeFont)
         }
         .font(AppTheme.metadataStrongFont)
-        .foregroundStyle(AppTheme.accentPrimary)
+        .foregroundStyle(AppTheme.accentPrimaryForeground)
     }
 
     func switchToSection(_ section: OrganizationDetailSection) {
@@ -282,7 +282,7 @@ struct OrganizationActivityCompactCard: View {
         AppFeedThumbnail(
             imageURL: item.imageURL,
             fallbackSystemImage: itemTypeSystemImage,
-            tint: AppTheme.accentPrimary,
+            tint: AppTheme.accentPrimaryForeground,
             fill: AppTheme.accentPrimary.opacity(0.10),
             size: thumbnailSize,
             cornerRadius: AppTheme.feedThumbnailRadius,

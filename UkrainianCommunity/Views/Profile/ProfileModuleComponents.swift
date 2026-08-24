@@ -22,11 +22,11 @@ enum ProfileModuleStatus {
     var tint: Color {
         switch self {
         case .available, .active:
-            return AppTheme.accentPrimary
+            return AppTheme.accentPrimaryForeground
         case .accountRequired:
             return AppTheme.textSecondary
         case .locked:
-            return AppTheme.accentDestructive
+            return AppTheme.accentDestructiveForeground
         }
     }
 

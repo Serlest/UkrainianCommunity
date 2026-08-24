@@ -1445,7 +1445,7 @@ struct ProfileView: View {
                     title: AppStrings.Profile.signOut,
                     subtitle: AppStrings.Settings.sessionSubtitle,
                     systemImage: "rectangle.portrait.and.arrow.right",
-                    tint: AppTheme.accentDestructive,
+                    tint: AppTheme.accentDestructiveForeground,
                     status: .available,
                     accessory: .none
                 )
@@ -1464,7 +1464,7 @@ struct ProfileView: View {
                     title: AppStrings.Profile.deleteAccount,
                     subtitle: AppStrings.Profile.deleteAccountSubtitle,
                     systemImage: "trash",
-                    tint: AppTheme.accentDestructive,
+                    tint: AppTheme.accentDestructiveForeground,
                     status: .available,
                     accessory: .none
                 )

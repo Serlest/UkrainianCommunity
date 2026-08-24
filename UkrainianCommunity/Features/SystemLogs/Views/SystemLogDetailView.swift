@@ -119,7 +119,7 @@ struct SystemLogDetailView: View {
                 if let reviewErrorMessage {
                     Label(reviewErrorMessage, systemImage: "exclamationmark.triangle")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentDestructive)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

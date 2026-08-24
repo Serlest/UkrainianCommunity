@@ -1,10 +1,14 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseFunctions
 
 struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
-    // TODO: Enforce max photos server-side with organization.photoCount + transaction/rules
-    // or a Cloud Function. Firestore rules cannot count subcollection documents directly.
     private static let maxPhotosPerOrganization = 30
+    private static let responseDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     private let database = Firestore.firestore()
     private let imageUploadService = ImageUploadService.shared
@@ -20,12 +24,7 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
         }
     }
 
-    func addPhoto(organizationId: String, imageData: Data, caption: String?, uploadedBy: String) async throws -> OrganizationPhoto {
-        let existingSnapshot = try await photosCollection(organizationId: organizationId).limit(to: Self.maxPhotosPerOrganization + 1).getDocuments()
-        guard existingSnapshot.documents.count < Self.maxPhotosPerOrganization else {
-            throw AppError.validationFailed
-        }
-
+    func addPhoto(organizationId: String, imageData: Data, caption: String?, uploadedBy _: String) async throws -> OrganizationPhoto {
         let photoReference = photosCollection(organizationId: organizationId).document()
         let imageURL = try await imageUploadService.uploadOrganizationPhoto(
             data: imageData,
@@ -34,18 +33,30 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
         )
 
         let trimmedCaption = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let photo = OrganizationPhoto(
-            id: photoReference.documentID,
-            organizationId: organizationId,
-            imageURL: imageURL.absoluteString,
-            caption: trimmedCaption?.isEmpty == false ? trimmedCaption : nil,
-            uploadedBy: uploadedBy,
-            createdAt: Date(),
-            updatedAt: nil
-        )
 
         do {
-            try await photoReference.setData(makePhotoData(from: photo))
+            let response = try await CloudFunctionsClient.shared.createOrganizationPhotoMetadata(
+                organizationId: organizationId,
+                photoId: photoReference.documentID,
+                imageURL: imageURL.absoluteString,
+                caption: trimmedCaption?.isEmpty == false ? trimmedCaption : nil
+            )
+            guard response.organizationId == organizationId,
+                  response.photoId == photoReference.documentID,
+                  let uploadedBy = response.uploadedBy,
+                  let createdAtText = response.createdAt,
+                  let createdAt = Self.responseDateFormatter.date(from: createdAtText) else {
+                throw AppError.unknown
+            }
+            return OrganizationPhoto(
+                id: response.photoId,
+                organizationId: response.organizationId,
+                imageURL: imageURL.absoluteString,
+                caption: trimmedCaption?.isEmpty == false ? trimmedCaption : nil,
+                uploadedBy: uploadedBy,
+                createdAt: createdAt,
+                updatedAt: nil
+            )
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -63,19 +74,16 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
                     photoID: photoReference.documentID
                 )
             } catch {}
-            throw error
+            throw mapPhotoMutationError(error)
         }
-
-        return photo
     }
 
     func deletePhoto(_ photo: OrganizationPhoto) async throws {
         do {
-            try await imageUploadService.deleteOrganizationPhoto(organizationID: photo.organizationId, photoID: photo.id)
-        } catch {}
-
-        do {
-            try await photosCollection(organizationId: photo.organizationId).document(photo.id).delete()
+            _ = try await CloudFunctionsClient.shared.deleteOrganizationPhotoMetadata(
+                organizationId: photo.organizationId,
+                photoId: photo.id
+            )
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -87,8 +95,17 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
                     organizationId: photo.organizationId
                 )
             )
-            throw error
+            throw mapPhotoMutationError(error)
         }
+
+        // Metadata is authoritative. A failed object cleanup must not restore a
+        // deleted photo or corrupt the atomic counter; it is logged by storage.
+        do {
+            try await imageUploadService.deleteOrganizationPhoto(
+                organizationID: photo.organizationId,
+                photoID: photo.id
+            )
+        } catch {}
     }
 
     private func photosCollection(organizationId: String) -> CollectionReference {
@@ -113,17 +130,24 @@ struct FirestoreOrganizationPhotoRepository: OrganizationPhotoRepository {
             updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue()
         )
     }
+}
 
-    private func makePhotoData(from photo: OrganizationPhoto) -> [String: Any] {
-        [
-            "id": photo.id,
-            "organizationId": photo.organizationId,
-            "imageURL": photo.imageURL,
-            "caption": photo.caption ?? NSNull(),
-            "uploadedBy": photo.uploadedBy,
-            "createdAt": Timestamp(date: photo.createdAt),
-            "updatedAt": photo.updatedAt.map { Timestamp(date: $0) } ?? NSNull()
-        ]
+private func mapPhotoMutationError(_ error: Error) -> Error {
+    if let appError = error as? AppError {
+        return appError
+    }
+    guard let code = FunctionsErrorCode(rawValue: (error as NSError).code) else {
+        return error
+    }
+    switch code {
+    case .resourceExhausted, .invalidArgument, .failedPrecondition:
+        return AppError.validationFailed
+    case .permissionDenied, .unauthenticated:
+        return AppError.permissionDenied
+    case .notFound:
+        return AppError.notFound
+    default:
+        return error
     }
 }
 

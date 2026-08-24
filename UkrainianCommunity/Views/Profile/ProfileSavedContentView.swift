@@ -399,7 +399,7 @@ private struct SavedNewsCard: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "newspaper")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 38, height: 38)
                     .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
@@ -438,7 +438,7 @@ private struct SavedEventCard: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "calendar")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 38, height: 38)
                     .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
@@ -478,7 +478,7 @@ struct ProfileOrganizationListCard: View {
                 AppFeedThumbnail(
                     imageURL: organization.imageURL,
                     fallbackSystemImage: "building.2",
-                    tint: AppTheme.accentPrimary,
+                    tint: AppTheme.accentPrimaryForeground,
                     fill: AppTheme.accentPrimary.opacity(0.10),
                     size: thumbnailSize,
                     source: "ProfileOrganizationListCard"

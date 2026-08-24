@@ -21,6 +21,7 @@ export * from "./notifications/backendWriters";
 export * from "./notifications/eventRegistrationNotifications";
 export * from "./notifications/organizationFollowerNotifications";
 export * from "./organizations/approvalWorkflow";
+export * from "./organizations/organizationPhotoMutations";
 export * from "./organizations/roleManagement";
 export * from "./retention/dataRetention";
 export * from "./safety/contentReports";

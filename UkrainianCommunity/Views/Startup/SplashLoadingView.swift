@@ -25,9 +25,7 @@ struct SplashLoadingView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Image("logo2")
-                    .resizable()
-                    .scaledToFit()
+                AdaptiveBrandLockupView(layout: .vertical)
                     .frame(width: SplashTiming.logoSize, height: SplashTiming.logoSize)
                     .opacity(logoOpacity)
                     .scaleEffect(logoScale)

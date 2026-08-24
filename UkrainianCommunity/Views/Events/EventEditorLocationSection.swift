@@ -80,7 +80,7 @@ extension EventEditorView {
             HStack(spacing: AppTheme.eventsMetadataSpacing) {
                 Image(systemName: "mappin.and.ellipse")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -107,7 +107,7 @@ extension EventEditorView {
             HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -140,7 +140,7 @@ extension EventEditorView {
             } label: {
                 Label(AppStrings.Events.chooseOnMap, systemImage: "map")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .multilineTextAlignment(.center)
                     .padding(.vertical, 10)
                     .frame(maxWidth: .infinity)
@@ -460,7 +460,7 @@ struct EventMapPickerView: View {
         HStack(spacing: AppTheme.eventsMetadataSpacing) {
             Image(systemName: "mappin.circle")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
             VStack(alignment: .leading, spacing: 2) {

@@ -64,7 +64,7 @@ struct ContentReportSheet: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: target.targetType.systemImage)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 42, height: 42)
                     .background(
                         AppTheme.accentPrimary.opacity(0.12),
@@ -74,7 +74,7 @@ struct ContentReportSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(target.targetType.title)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .textCase(.uppercase)
 
                     Text(target.title)
@@ -117,7 +117,7 @@ struct ContentReportSheet: View {
                         Spacer(minLength: 0)
                         Text("\(details.count)/1000")
                             .font(.caption)
-                            .foregroundStyle(details.count > 1_000 ? AppTheme.accentDestructive : AppTheme.textSecondary)
+                            .foregroundStyle(details.count > 1_000 ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
                     }
 
                     ZStack(alignment: .topLeading) {
@@ -146,7 +146,7 @@ struct ContentReportSheet: View {
                     if selectedReason == .other && normalizedDetails == nil {
                         Text(AppStrings.Safety.otherDetailsRequired)
                             .font(.caption)
-                            .foregroundStyle(AppTheme.accentDestructive)
+                            .foregroundStyle(AppTheme.accentDestructiveForeground)
                     }
                 }
             }

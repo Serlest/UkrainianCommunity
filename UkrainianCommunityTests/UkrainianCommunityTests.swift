@@ -994,6 +994,19 @@ struct UkrainianCommunityTests {
         #expect(CloudFunctionName.allCases.contains(.deleteOrganization))
     }
 
+    @Test func organizationPhotoMutationsUseDedicatedServerCallables() {
+        #expect(
+            CloudFunctionName.createOrganizationPhotoMetadata.rawValue
+                == "createOrganizationPhotoMetadata"
+        )
+        #expect(
+            CloudFunctionName.deleteOrganizationPhotoMetadata.rawValue
+                == "deleteOrganizationPhotoMetadata"
+        )
+        #expect(CloudFunctionName.allCases.contains(.createOrganizationPhotoMetadata))
+        #expect(CloudFunctionName.allCases.contains(.deleteOrganizationPhotoMetadata))
+    }
+
     @Test func mediaStoragePathsAreCanonical() {
         #expect(MediaStoragePath.newsCover(newsID: "news-1") == "news/news-1/cover.jpg")
         #expect(MediaStoragePath.eventCover(eventID: "event-1") == "events/event-1/cover.jpg")

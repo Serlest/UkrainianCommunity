@@ -53,7 +53,7 @@ struct OrganizationReadOnlyDetailContent: View {
                                 AppInfoChip(
                                     title: organization.moderationStatus.title,
                                     systemImage: "clock.badge.checkmark",
-                                    tint: AppTheme.accentPrimary,
+                                    tint: AppTheme.accentPrimaryForeground,
                                     fill: AppTheme.accentPrimary.opacity(0.14),
                                     border: AppTheme.accentPrimary.opacity(0.20),
                                     size: .small
@@ -62,7 +62,7 @@ struct OrganizationReadOnlyDetailContent: View {
                             AppInfoChip(
                                 title: organizationTypeTitle,
                                 systemImage: "building.2",
-                                tint: AppTheme.accentPrimary,
+                                tint: AppTheme.accentPrimaryForeground,
                                 fill: AppTheme.accentPrimary.opacity(0.14),
                                 border: AppTheme.accentPrimary.opacity(0.18),
                                 size: .small
@@ -71,7 +71,7 @@ struct OrganizationReadOnlyDetailContent: View {
 
                         Text(organization.name)
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                             .fixedSize(horizontal: false, vertical: true)
 
                         if let shortDescription = trimmed(organization.shortDescription) {
@@ -104,7 +104,7 @@ struct OrganizationReadOnlyDetailContent: View {
                     .overlay(
                         Text(initials(for: organization.name))
                             .font(.title.weight(.bold))
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
                     )
             }
         }
@@ -123,7 +123,7 @@ struct OrganizationReadOnlyDetailContent: View {
                 HStack(spacing: 12) {
                     Image(systemName: "heart.fill")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 36, height: 36)
                         .background(cardSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(

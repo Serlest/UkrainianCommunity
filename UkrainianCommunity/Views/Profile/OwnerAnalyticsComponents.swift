@@ -14,7 +14,7 @@ struct OwnerAnalyticsMetricTile: View {
                 HStack(spacing: 8) {
                     Image(systemName: systemImage)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 30, height: 30)
                         .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -63,7 +63,7 @@ struct OwnerAnalyticsMetricTile: View {
         return OwnerAnalyticsDeltaPresentation(
             text: AppStrings.OwnerAnalytics.deltaVsPreviousPeriod(formattedPercentage),
             systemImage: delta > 0 ? "arrow.up.right" : "arrow.down.right",
-            color: delta > 0 ? AppTheme.accentPrimary : AppTheme.accentDestructive
+            color: delta > 0 ? AppTheme.accentPrimaryForeground : AppTheme.accentDestructiveForeground
         )
     }
 }
@@ -114,7 +114,7 @@ struct OwnerAnalyticsShowMoreButton: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.vertical, 10)
@@ -152,7 +152,7 @@ struct OwnerAnalyticsContentRow: View {
     private var rankBadge: some View {
         Text("#\(item.rank)")
             .font(.caption.weight(.bold))
-            .foregroundStyle(AppTheme.accentPrimary)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
             .frame(width: 34, height: 34)
             .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -178,7 +178,7 @@ struct OwnerAnalyticsRegionRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "mappin.and.ellipse")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 34, height: 34)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -215,7 +215,7 @@ struct OwnerAnalyticsFederalStateUserRow: View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: "person.2")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 34, height: 34)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 

@@ -115,7 +115,7 @@ extension NewsDetailView {
                 HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
                     Image(systemName: "info.circle")
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 24)
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -138,11 +138,11 @@ extension NewsDetailView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AppStrings.News.bodySectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     Text(post.body)
                         .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -156,13 +156,13 @@ extension NewsDetailView {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(AppStrings.News.sourceSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         if let url = source.url {
                             Link(destination: url) {
                                 Label(source.title, systemImage: "link")
                                     .font(AppTheme.metadataStrongFont)
-                                    .foregroundStyle(AppTheme.accentPrimary)
+                                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                                     .lineLimit(2)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
@@ -208,13 +208,13 @@ extension NewsDetailView {
                 DetailCard {
                     Text(AppStrings.News.tagsSectionTitle)
                         .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimary)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     AppHorizontalChipRow {
                         ForEach(post.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(AppTheme.metadataStrongFont)
-                                .foregroundStyle(AppTheme.accentPrimary)
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
                                 .background(AppTheme.accentPrimarySoft, in: Capsule())
@@ -310,7 +310,7 @@ extension NewsDetailView {
                 HStack(spacing: 8) {
                     Image(systemName: systemImage)
                         .font(AppTheme.buttonLabelFont)
-                        .foregroundStyle(isSelected ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+                        .foregroundStyle(isSelected ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
 
                     Text("\(count)")
                         .font(AppTheme.metadataStrongFont)
@@ -347,7 +347,7 @@ extension NewsDetailView {
                     VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                         Text(AppStrings.News.relatedSectionTitle)
                             .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimary)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
                             ForEach(relatedPosts) { relatedPost in
@@ -422,7 +422,7 @@ extension NewsDetailView {
             } else {
                 Image(systemName: "newspaper")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimary)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 82, height: 62)
                     .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous))
             }

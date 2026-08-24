@@ -179,7 +179,7 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
         case .scheduled:
             return .blue
         case .live:
-            return AppTheme.accentPrimary
+            return AppTheme.accentPrimaryForeground
         }
     }
 
@@ -257,7 +257,7 @@ struct FeaturedBannerMetadataLine: View {
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: systemImage)
-                .foregroundStyle(AppTheme.accentPrimary)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
         }
     }
 }

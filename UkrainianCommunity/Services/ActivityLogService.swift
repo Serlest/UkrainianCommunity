@@ -93,7 +93,7 @@ enum ActivityLogActionType: String, CaseIterable, Codable, Identifiable {
     var tint: Color {
         switch self {
         case .registeredForEvent, .followedOrganization, .savedNews, .savedEvent, .savedOrganization:
-            return AppTheme.accentPrimary
+            return AppTheme.accentPrimaryForeground
         case .canceledEventRegistration, .unfollowedOrganization, .unsavedNews, .unsavedEvent, .unsavedOrganization:
             return AppTheme.textSecondary
         }

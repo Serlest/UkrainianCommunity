@@ -103,7 +103,7 @@ struct SystemLogsDashboardView: View {
             SoftContentCard(padding: 16) {
                 Label(errorMessage, systemImage: "exclamationmark.triangle")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentDestructive)
+                    .foregroundStyle(AppTheme.accentDestructiveForeground)
             }
         } else if viewModel.isLoading && viewModel.logs.isEmpty {
             SoftContentCard(padding: 16) {
