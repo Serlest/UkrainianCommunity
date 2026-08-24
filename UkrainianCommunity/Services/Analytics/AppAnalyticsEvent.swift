@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppAnalyticsEvent: Sendable, Equatable {
+nonisolated struct AppAnalyticsEvent: Sendable, Equatable {
     let name: AnalyticsEventName
     let parameters: [AnalyticsParameterName: AnalyticsParameterValue]
 

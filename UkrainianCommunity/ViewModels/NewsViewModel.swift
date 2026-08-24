@@ -107,6 +107,8 @@ final class NewsViewModel: ObservableObject {
         let previousLikeState = posts[index].likeState
         let targetLikeState: LikeState = shouldLike ? .liked : .notLiked
         let post = posts[index]
+        let actionEvent = AppAnalyticsEvent.newsLike(post: post)
+        let actionCapture = shouldLike ? analyticsService.actionCapture(for: actionEvent) : nil
         let generation = authGeneration
         let taskKey = "like:\(postID)"
 
@@ -122,7 +124,7 @@ final class NewsViewModel: ObservableObject {
 
             do {
                 if shouldLike {
-                    try await repository.likeNews(id: postID)
+                    try await repository.likeNews(id: postID, actionCapture: actionCapture)
                 } else {
                     try await repository.unlikeNews(id: postID)
                 }
@@ -135,7 +137,7 @@ final class NewsViewModel: ObservableObject {
                     contentVersion &+= 1
                 }
                 if shouldLike {
-                    analyticsService.track(.newsLike(post: post))
+                    analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
                 error = nil
             } catch let appError as AppError {
@@ -189,8 +191,13 @@ final class NewsViewModel: ObservableObject {
     }
 
     func trackViewIfNeeded(for post: NewsPost, sourceScreen: String = "news_detail") {
-        guard !trackedNewsViewIDs.contains(post.id) else { return }
-        trackedNewsViewIDs.insert(post.id)
+        guard let collectionScopeID = analyticsService.collectionScopeID else { return }
+        let trackingKey = AnalyticsTrackingKey.daily(
+            contentID: post.id,
+            collectionScopeID: collectionScopeID
+        )
+        guard !trackedNewsViewIDs.contains(trackingKey) else { return }
+        trackedNewsViewIDs.insert(trackingKey)
         analyticsService.track(.newsView(
             contentID: post.id,
             contentTitle: post.title,
@@ -207,6 +214,8 @@ final class NewsViewModel: ObservableObject {
         guard !pendingNewsBookmarkIDs.contains(postID) else { return }
         let shouldBookmark = !posts[index].isBookmarked
         let post = posts[index]
+        let actionEvent = AppAnalyticsEvent.newsBookmark(post: post)
+        let actionCapture = shouldBookmark ? analyticsService.actionCapture(for: actionEvent) : nil
         let previousBookmarkState = posts[index].isBookmarked
         let generation = authGeneration
         let requestFeedRevision = feedRevision
@@ -227,7 +236,7 @@ final class NewsViewModel: ObservableObject {
 
             do {
                 if shouldBookmark {
-                    try await repository.bookmarkNews(id: postID)
+                    try await repository.bookmarkNews(id: postID, actionCapture: actionCapture)
                 } else {
                     try await repository.unbookmarkNews(id: postID)
                 }
@@ -239,7 +248,7 @@ final class NewsViewModel: ObservableObject {
                 }
                 ActivityLogRecorder.recordNews(post, actionType: shouldBookmark ? .savedNews : .unsavedNews)
                 if shouldBookmark {
-                    analyticsService.track(.newsBookmark(post: post))
+                    analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
                 error = nil
             } catch let appError as AppError {

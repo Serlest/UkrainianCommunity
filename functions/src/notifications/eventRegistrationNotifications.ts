@@ -1,4 +1,3 @@
-import { getMessaging } from "firebase-admin/messaging";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 import { db } from "../firebase/admin";
@@ -7,13 +6,13 @@ import {
   resolveNotificationRecipients,
   writeUserNotification,
 } from "./notificationPayloads";
+import { sendPushToRegistrationDocuments } from "./pushRegistrations";
 
 const triggerOptions = {
   region: "europe-west3",
   maxInstances: 10,
 };
 
-const fcmMulticastLimit = 500;
 
 type NotificationLanguage = "uk" | "de" | "en";
 
@@ -92,13 +91,6 @@ async function sendRegistrationPush(
     .doc(userId)
     .collection("notificationPushTokens")
     .get();
-  const tokens = tokenSnapshot.docs
-    .map((document) => stringField(document.data(), "token"))
-    .filter((token): token is string => token !== undefined);
-  if (tokens.length === 0) {
-    return;
-  }
-
   const data = buildNotificationDataPayload({
     notificationId,
     type: "eventRegistrationConfirmed",
@@ -110,23 +102,20 @@ async function sendRegistrationPush(
     routeTargetId: eventId,
   });
 
-  await Promise.all(chunks(tokens, fcmMulticastLimit).map((tokenChunk) =>
-    getMessaging().sendEachForMulticast({
-      tokens: tokenChunk,
-      notification: {
-        title: copy.title,
-        body: copy.body,
-      },
-      data,
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-          },
+  await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
+    notification: {
+      title: copy.title,
+      body: copy.body,
+    },
+    data,
+    apns: {
+      payload: {
+        aps: {
+          sound: "default",
         },
       },
-    })
-  ));
+    },
+  });
 }
 
 function isPublicApprovedEvent(data?: FirebaseFirestore.DocumentData): boolean {
@@ -192,12 +181,4 @@ function stringField(
 
 function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
-}
-
-function chunks<T>(values: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let index = 0; index < values.length; index += size) {
-    result.push(values.slice(index, index + size));
-  }
-  return result;
 }

@@ -1,3 +1,4 @@
+import DeviceCheck
 import FirebaseAuth
 import FirebaseAppCheck
 import FirebaseCore
@@ -28,7 +29,11 @@ private enum FirebaseBootstrap {
 
 private final class ProductionAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
     func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
-        AppAttestProvider(app: app)
+        if DCAppAttestService.shared.isSupported {
+            return AppAttestProvider(app: app)
+        }
+
+        return DeviceCheckProvider(app: app)
     }
 }
 
@@ -107,6 +112,7 @@ struct UkrainianCommunityApp: App {
 
         let shouldForceGuestSession = environment["UITestForceGuestSession"] == "1"
         let shouldForceAuthenticatedSession = environment["UITestForceAuthenticatedSession"] == "1"
+        let shouldForceOwnerSession = environment["UITestForceOwnerSession"] == "1"
         let sharedAuthState = AuthService.shared.authState
 
         if shouldForceGuestSession {
@@ -114,7 +120,9 @@ struct UkrainianCommunityApp: App {
         }
 
         Task { @MainActor in
-            if shouldForceAuthenticatedSession {
+            if shouldForceOwnerSession {
+                sharedAuthState.setAuthenticatedSession(user: MockContentBuilder.ownerUser())
+            } else if shouldForceAuthenticatedSession {
                 sharedAuthState.setAuthenticatedSession(user: MockContentBuilder.currentUser())
             } else if shouldForceGuestSession {
                 sharedAuthState.setGuestSession()
@@ -131,6 +139,11 @@ struct UkrainianCommunityApp: App {
         if let languageCode = environment["UITestAppLanguage"],
            let language = AppLanguage(rawValue: languageCode) {
             AppLanguage.stored = language
+        }
+
+        if let appearanceCode = environment["UITestAppAppearance"],
+           let appearance = AppAppearance(rawValue: appearanceCode) {
+            AppAppearance.stored = appearance
         }
     }
 

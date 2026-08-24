@@ -12,6 +12,7 @@ import {
   getDoc,
   getDocs,
   query,
+  serverTimestamp,
   setDoc,
   updateDoc,
   where,
@@ -165,6 +166,8 @@ function profileBootstrap(uid) {
     termsVersion: "1",
     privacyVersion: "1",
     communityMemberships: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
 }
 

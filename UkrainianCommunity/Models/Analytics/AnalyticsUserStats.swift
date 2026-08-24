@@ -10,6 +10,11 @@ struct AnalyticsUserStats: Codable, Equatable {
     let activeUsersSevenDays: Int
     let activeUsersThirtyDays: Int
     let usersByFederalState: [AustrianFederalState: Int]
+    var lifecycleCoverage: AnalyticsDetailCoverage? = nil
+
+    var resolvedLifecycleCoverage: AnalyticsDetailCoverage {
+        lifecycleCoverage ?? .complete
+    }
 
     var hasData: Bool {
         totalUsers > 0

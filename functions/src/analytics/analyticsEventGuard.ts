@@ -4,10 +4,25 @@ import {HttpsError} from "firebase-functions/v2/https";
 
 export const analyticsRateLimitMaximum = 120;
 export const analyticsRateLimitWindowMinutes = 5;
-export const analyticsReceiptRetentionHours = 48;
+// Must exceed the 48-hour accepted delivery horizon. The additional day keeps
+// the deterministic receipt present through daily cleanup timing and prevents
+// a same-day event from being replayed after its first receipt expires.
+export const analyticsReceiptRetentionHours = 72;
 export const analyticsRateLimitRetentionHours = 2;
 export const analyticsEventReceiptCollection = "analyticsEventReceipts";
 export const analyticsRateLimitCollection = "analyticsRateLimits";
+
+export function analyticsDeletionEventID(eventID: string): string {
+  return digest(["deleted-user", eventID]);
+}
+
+export function analyticsRegistrationEventID(eventID: string): string {
+  return digest(["registered-user", eventID]);
+}
+
+export function analyticsRegistrationUserKey(uid: string): string {
+  return digest(["registered-user-key", uid]);
+}
 
 export function analyticsReceiptID(
   uid: string,
@@ -43,6 +58,25 @@ export function nextAnalyticsRateLimitCount(currentValue: unknown): number {
   }
 
   return currentCount + 1;
+}
+
+export interface AnalyticsRateLimitState {
+  count: number;
+  bucketStartedAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
+}
+
+export function nextAnalyticsRateLimitState(
+  currentValue: unknown,
+  now: Date
+): AnalyticsRateLimitState {
+  return {
+    count: nextAnalyticsRateLimitCount(currentValue),
+    bucketStartedAt: rateLimitBucketStart(now),
+    updatedAt: now,
+    expiresAt: expirationDate(now, analyticsRateLimitRetentionHours),
+  };
 }
 
 export function expirationDate(now: Date, retentionHours: number): Date {

@@ -136,7 +136,7 @@ final class ProfileViewModel: ObservableObject {
 
             try await notificationPreferencesRepository.saveNotificationPreferences(updatedPreferences, userID: userID)
             if !updatedPreferences.notificationsEnabled {
-                await RemoteNotificationRegistrationService.shared.removeCurrentToken()
+                await RemoteNotificationRegistrationService.shared.removeCurrentRegistration()
             }
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaved
             loadedNotificationPreferencesUserID = userID

@@ -1,5 +1,4 @@
 import {FieldValue} from "firebase-admin/firestore";
-import {getMessaging} from "firebase-admin/messaging";
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
 
 import {db} from "./firebase/admin";
@@ -7,9 +6,11 @@ import {
   buildNotificationDataPayload,
   resolveNotificationRecipients,
 } from "./notifications/notificationPayloads";
+import {sendPushToRegistrationDocuments} from "./notifications/pushRegistrations";
 import {feedbackManagerGlobalRoles} from "./permissions/userPermissions";
 
 export * from "./counters/aggregation";
+export * from "./analytics/analyticsConsent";
 export * from "./analytics/trackAnalyticsEvent";
 export * from "./content/contentDeletion";
 export * from "./content/legacyContentMediaMigration";
@@ -20,6 +21,7 @@ export * from "./legal/legalDocuments";
 export * from "./notifications/backendWriters";
 export * from "./notifications/eventRegistrationNotifications";
 export * from "./notifications/organizationFollowerNotifications";
+export * from "./notifications/pushRegistrationMutations";
 export * from "./organizations/approvalWorkflow";
 export * from "./organizations/organizationPhotoMutations";
 export * from "./organizations/roleManagement";
@@ -284,15 +286,7 @@ async function sendPushIfEnabled(
     .doc(userId)
     .collection("notificationPushTokens")
     .get();
-  const tokens = tokensSnapshot.docs
-    .map((document) => document.data().token)
-    .filter((token): token is string => typeof token === "string" && token.length > 0);
-  if (tokens.length === 0) {
-    return;
-  }
-
-  await getMessaging().sendEachForMulticast({
-    tokens,
+  await sendPushToRegistrationDocuments(tokensSnapshot.docs, {
     data: {
       ...data,
       notificationId,

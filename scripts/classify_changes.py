@@ -47,7 +47,14 @@ IOS_UI_ROOTS = (
     "UkrainianCommunity/Views/",
     "UkrainianCommunityUITests/",
 )
+ANALYTICS_IOS_ROOTS = (
+    "UkrainianCommunity/Models/Analytics/",
+    "UkrainianCommunity/Repositories/Analytics/",
+    "UkrainianCommunity/ViewModels/Analytics/",
+    "UkrainianCommunity/Views/Profile/OwnerAnalytics",
+)
 IOS_RELEASE_PATHS = (
+    "UkrainianCommunity-Info.plist",
     "UkrainianCommunity.xcodeproj/",
     "UkrainianCommunity/UkrainianCommunity.entitlements",
 )
@@ -81,13 +88,16 @@ def is_static_only(path: str) -> bool:
         or name.lower().startswith("readme")
         or path.endswith(".md")
         or path == ".gitignore"
-        or is_localization(path)
         or path.endswith(PLIST_SUFFIXES)
     )
 
 
 def is_ios_ui_path(path: str) -> bool:
     return path.startswith(IOS_UI_ROOTS) or "/Views/" in path or "/Components/" in path
+
+
+def is_analytics_ios_path(path: str) -> bool:
+    return path.startswith(ANALYTICS_IOS_ROOTS)
 
 
 def classify(paths: list[str], force_full: bool = False) -> Lanes:
@@ -109,6 +119,19 @@ def classify(paths: list[str], force_full: bool = False) -> Lanes:
             lanes.enable_full()
             continue
 
+        if path.startswith(IOS_RELEASE_PATHS):
+            lanes.ios = True
+            lanes.ios_unit = True
+            lanes.ios_ui = True
+            lanes.ios_release = True
+            continue
+
+        if is_localization(path) or is_analytics_ios_path(path):
+            lanes.ios = True
+            lanes.ios_unit = True
+            lanes.ios_ui = True
+            continue
+
         if is_static_only(path):
             continue
 
@@ -125,13 +148,6 @@ def classify(paths: list[str], force_full: bool = False) -> Lanes:
         if path.startswith("Firebase/") or path in {"firebase.json", ".firebaserc"}:
             lanes.firebase = True
             lanes.rules = True
-            continue
-
-        if path.startswith(IOS_RELEASE_PATHS):
-            lanes.ios = True
-            lanes.ios_unit = True
-            lanes.ios_ui = True
-            lanes.ios_release = True
             continue
 
         if path.startswith("UkrainianCommunityTests/"):

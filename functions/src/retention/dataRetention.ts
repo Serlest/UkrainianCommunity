@@ -1,4 +1,10 @@
-import { DocumentData, Query, Timestamp } from "firebase-admin/firestore";
+import {
+  DocumentReference,
+  DocumentData,
+  Query,
+  QueryDocumentSnapshot,
+  Timestamp,
+} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
@@ -6,12 +12,19 @@ import {
   analyticsEventReceiptCollection,
   analyticsRateLimitCollection,
 } from "../analytics/analyticsEventGuard";
+import {
+  analyticsDeletedUserEventCollection,
+  analyticsUserActivityCollection,
+  analyticsUserRegistrationEventCollection,
+} from "../analytics/analyticsUserActivity";
 import {deleteEventContent, deleteNewsContent} from "../content/contentDeletion";
 import { db } from "../firebase/admin";
 
 const maxContentDocumentsPerRun = 200;
 const maxLogDocumentsPerPolicy = 400;
-const maxAnalyticsGuardDocumentsPerCollection = 1_000;
+export const analyticsCleanupPageSize = 500;
+export const maxAnalyticsCleanupPagesPerRun = 20;
+const mutableCleanupConcurrency = 40;
 
 export const contentRetentionMonths = 6;
 
@@ -30,6 +43,9 @@ type CleanupSummary = {
   systemLogs: number;
   analyticsEventReceipts: number;
   analyticsRateLimits: number;
+  analyticsUserActivity: number;
+  analyticsUserRegistrationEvents: number;
+  analyticsDeletedUserEvents: number;
 };
 
 export const cleanupExpiredData = onSchedule(
@@ -53,6 +69,18 @@ export const cleanupExpiredData = onSchedule(
       ),
       analyticsRateLimits: await cleanupExpiredAnalyticsGuards(
         analyticsRateLimitCollection,
+        now,
+      ),
+      analyticsUserActivity: await cleanupExpiredAnalyticsGuards(
+        analyticsUserActivityCollection,
+        now,
+      ),
+      analyticsUserRegistrationEvents: await cleanupExpiredAnalyticsGuards(
+        analyticsUserRegistrationEventCollection,
+        now,
+      ),
+      analyticsDeletedUserEvents: await cleanupExpiredAnalyticsGuards(
+        analyticsDeletedUserEventCollection,
         now,
       ),
     };
@@ -133,9 +161,87 @@ async function cleanupExpiredAnalyticsGuards(
   collection: string,
   now: Date,
 ): Promise<number> {
-  const query = db.collection(collection)
-    .where("expiresAt", "<=", Timestamp.fromDate(now));
-  return deleteLimitedQuery(query, maxAnalyticsGuardDocumentsPerCollection);
+  let deleted = 0;
+
+  for (let page = 0; page < maxAnalyticsCleanupPagesPerRun; page += 1) {
+    const snapshot = await db.collection(collection)
+      .where("expiresAt", "<=", Timestamp.fromDate(now))
+      .orderBy("expiresAt")
+      .limit(analyticsCleanupPageSize)
+      .get();
+    if (snapshot.empty) {
+      return deleted;
+    }
+
+    if (collection === analyticsUserActivityCollection) {
+      deleted += await deleteExpiredMutableActivityDocuments(snapshot.docs, now);
+    } else {
+      deleted += await deleteSnapshots(snapshot.docs);
+    }
+
+    if (snapshot.size < analyticsCleanupPageSize) {
+      return deleted;
+    }
+  }
+
+  logger.warn("Analytics retention cleanup reached its per-run page limit.", {
+    collection,
+    analyticsCleanupPageSize,
+    maxAnalyticsCleanupPagesPerRun,
+    deleted,
+  });
+  return deleted;
+}
+
+async function deleteExpiredMutableActivityDocuments(
+  documents: QueryDocumentSnapshot<DocumentData>[],
+  now: Date,
+): Promise<number> {
+  let deleted = 0;
+
+  for (let offset = 0; offset < documents.length; offset += mutableCleanupConcurrency) {
+    const chunk = documents.slice(offset, offset + mutableCleanupConcurrency);
+    const results = await Promise.all(chunk.map((document) =>
+      deleteExpiredAnalyticsActivityDocument(document.ref, now)
+    ));
+    deleted += results.filter(Boolean).length;
+  }
+
+  return deleted;
+}
+
+export async function deleteExpiredAnalyticsActivityDocument(
+  reference: DocumentReference<DocumentData>,
+  now: Date,
+): Promise<boolean> {
+  return db.runTransaction(async (transaction) => {
+    const current = await transaction.get(reference);
+    if (!current.exists || !isExpiredAnalyticsMarker(current.data()?.expiresAt, now)) {
+      return false;
+    }
+
+    transaction.delete(reference);
+    return true;
+  });
+}
+
+async function deleteSnapshots(
+  documents: QueryDocumentSnapshot<DocumentData>[],
+): Promise<number> {
+  if (documents.length === 0) {
+    return 0;
+  }
+
+  const writer = db.bulkWriter();
+  for (const document of documents) {
+    writer.delete(document.ref);
+  }
+  await writer.close();
+  return documents.length;
+}
+
+export function isExpiredAnalyticsMarker(value: unknown, now: Date): boolean {
+  return value instanceof Timestamp && value.toMillis() <= now.getTime();
 }
 
 async function deleteLimitedQuery(

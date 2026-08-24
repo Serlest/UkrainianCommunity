@@ -1,4 +1,54 @@
+import Charts
+import Foundation
 import SwiftUI
+
+enum OwnerAnalyticsDateFormatting {
+    static let analyticsCalendar = AnalyticsFirestoreSchema.analyticsCalendar
+    static let analyticsTimeZone = AnalyticsFirestoreSchema.analyticsTimeZone
+
+    static func isSameAnalyticsDay(_ lhs: Date, _ rhs: Date) -> Bool {
+        analyticsCalendar.isDate(lhs, inSameDayAs: rhs)
+    }
+
+    static func analyticsDayText(_ date: Date, locale: Locale = LocalizationStore.locale) -> String {
+        date.formatted(
+            Date.FormatStyle(
+                locale: locale,
+                calendar: analyticsCalendar,
+                timeZone: analyticsTimeZone
+            )
+            .day()
+            .month(.abbreviated)
+        )
+    }
+
+    static func relativeFreshnessText(
+        _ date: Date,
+        relativeTo referenceDate: Date = Date(),
+        locale: Locale = LocalizationStore.locale
+    ) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = locale
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: referenceDate)
+    }
+
+    static func absoluteFreshnessText(
+        _ date: Date,
+        locale: Locale = LocalizationStore.locale,
+        timeZone: TimeZone = .current
+    ) -> String {
+        date.formatted(
+            Date.FormatStyle(
+                date: .abbreviated,
+                time: .shortened,
+                locale: locale,
+                calendar: .current,
+                timeZone: timeZone
+            )
+        )
+    }
+}
 
 struct OwnerAnalyticsMetricTile: View {
     let title: String
@@ -7,43 +57,49 @@ struct OwnerAnalyticsMetricTile: View {
     let systemImage: String
     var accentStyle: Bool = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
 
     var body: some View {
-        AppGlassCard(padding: 14, spacing: 8, shadowRadius: 8, shadowY: 4) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: systemImage)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-                        .frame(width: 30, height: 30)
-                        .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
+                .frame(width: 30, height: 30)
+                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityHidden(true)
 
-                    Spacer(minLength: 4)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(OwnerAnalyticsFormatting.integer(value, locale: locale))
+                    .font((accentStyle ? Font.title2 : Font.title3).weight(.bold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(value.formatted())
-                        .font((accentStyle ? Font.title2 : Font.title3).weight(.bold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .monospacedDigit()
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let deltaPresentation {
+                    Label(deltaPresentation.text, systemImage: deltaPresentation.systemImage)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(deltaPresentation.color)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
-
-                    Text(title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if let deltaPresentation {
-                        Label(deltaPresentation.text, systemImage: deltaPresentation.systemImage)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(deltaPresentation.color)
-                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
             }
         }
+        .padding(AppTheme.metricCardPadding)
+        .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
+        .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.rowCardCornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.rowCardCornerRadius, style: .continuous)
+                .stroke(AppTheme.borderSubtle, lineWidth: 1)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(accessibilityValue)
     }
 
     private var deltaPresentation: OwnerAnalyticsDeltaPresentation? {
@@ -59,12 +115,249 @@ struct OwnerAnalyticsMetricTile: View {
         }
 
         let percentage = Double(delta) / Double(previousValue)
-        let formattedPercentage = percentage.formatted(.percent.precision(.fractionLength(0)))
+        let formattedPercentage = OwnerAnalyticsFormatting.percent(percentage, locale: locale)
         return OwnerAnalyticsDeltaPresentation(
             text: AppStrings.OwnerAnalytics.deltaVsPreviousPeriod(formattedPercentage),
             systemImage: delta > 0 ? "arrow.up.right" : "arrow.down.right",
             color: delta > 0 ? AppTheme.accentPrimaryForeground : AppTheme.accentDestructiveForeground
         )
+    }
+
+    private var accessibilityValue: String {
+        [OwnerAnalyticsFormatting.integer(value, locale: locale), deltaPresentation?.text]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+    }
+}
+
+struct OwnerAnalyticsTrendChart: View {
+    let points: [OwnerAnalyticsTrendPoint]
+    @Binding var selectedMetric: AnalyticsMetricType
+    let metricOptions: [AnalyticsMetricType]
+    @State private var selectedDate: Date?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            chartHeader
+
+            if let selectedPoint {
+                Text(AppStrings.OwnerAnalytics.trendSelection(
+                    metric: selectedMetric.analyticsTitle,
+                    date: OwnerAnalyticsDateFormatting.analyticsDayText(selectedPoint.date, locale: locale),
+                    value: selectedPoint.value
+                ))
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .monospacedDigit()
+            }
+
+            Chart(points) { point in
+                BarMark(
+                    x: .value(AppStrings.OwnerAnalytics.date, point.date, unit: .day),
+                    y: .value(selectedMetric.analyticsTitle, point.value)
+                )
+                .foregroundStyle(AppTheme.accentPrimaryForeground.gradient)
+                .cornerRadius(3)
+                .accessibilityLabel(OwnerAnalyticsDateFormatting.analyticsDayText(point.date, locale: locale))
+                .accessibilityValue("\(selectedMetric.analyticsTitle), \(OwnerAnalyticsFormatting.integer(point.value, locale: locale))")
+
+                if let selectedDate,
+                   OwnerAnalyticsDateFormatting.isSameAnalyticsDay(point.date, selectedDate) {
+                    RuleMark(x: .value(AppStrings.OwnerAnalytics.date, point.date, unit: .day))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .accessibilityHidden(true)
+                }
+            }
+            .chartXSelection(value: $selectedDate)
+            .chartYAxis {
+                AxisMarks(position: .leading)
+            }
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: min(points.count, 6))) { value in
+                    AxisGridLine().foregroundStyle(AppTheme.borderSubtle)
+                    AxisValueLabel {
+                        if let date = value.as(Date.self) {
+                            Text(OwnerAnalyticsDateFormatting.analyticsDayText(date, locale: locale))
+                        }
+                    }
+                }
+            }
+            .environment(\.calendar, OwnerAnalyticsDateFormatting.analyticsCalendar)
+            .environment(\.timeZone, OwnerAnalyticsDateFormatting.analyticsTimeZone)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 250 : 190)
+            .accessibilityLabel(AppStrings.OwnerAnalytics.trendAccessibilityLabel)
+            .accessibilityValue(chartAccessibilityValue)
+            .accessibilityAdjustableAction(adjustSelection)
+            .accessibilityIdentifier("ownerAnalytics.trendChart")
+        }
+        .onChange(of: selectedMetric) { _, _ in selectedDate = nil }
+        .onChange(of: points) { _, updatedPoints in
+            selectedDate = OwnerAnalyticsTrendSelection.normalizedDate(
+                selectedDate,
+                in: updatedPoints
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var chartHeader: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                chartTitle
+                metricPicker
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                chartTitle
+                Spacer(minLength: 8)
+                metricPicker
+            }
+        }
+    }
+
+    private var chartTitle: some View {
+        Text(AppStrings.OwnerAnalytics.trendTitle)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+    }
+
+    private var metricPicker: some View {
+        Picker(AppStrings.OwnerAnalytics.trendMetricPicker, selection: $selectedMetric) {
+            ForEach(metricOptions) { metric in
+                Text(metric.analyticsTitle).tag(metric)
+            }
+        }
+        .pickerStyle(.menu)
+    }
+
+    private var chartAccessibilityValue: String {
+        guard let selectedPoint else { return selectedMetric.analyticsTitle }
+        return [
+            selectedMetric.analyticsTitle,
+            OwnerAnalyticsDateFormatting.analyticsDayText(selectedPoint.date, locale: locale),
+            OwnerAnalyticsFormatting.integer(selectedPoint.value, locale: locale)
+        ].joined(separator: ", ")
+    }
+
+    private func adjustSelection(_ direction: AccessibilityAdjustmentDirection) {
+        let sortedPoints = points.sorted { $0.date < $1.date }
+        guard !sortedPoints.isEmpty else { return }
+
+        let currentIndex = selectedPoint.flatMap { selectedPoint in
+            sortedPoints.firstIndex(where: { OwnerAnalyticsDateFormatting.isSameAnalyticsDay($0.date, selectedPoint.date) })
+        }
+
+        switch direction {
+        case .increment:
+            let nextIndex = min((currentIndex ?? -1) + 1, sortedPoints.count - 1)
+            selectedDate = sortedPoints[nextIndex].date
+        case .decrement:
+            let nextIndex = max((currentIndex ?? sortedPoints.count) - 1, 0)
+            selectedDate = sortedPoints[nextIndex].date
+        @unknown default:
+            break
+        }
+    }
+
+    private var selectedPoint: OwnerAnalyticsTrendPoint? {
+        OwnerAnalyticsTrendSelection.point(for: selectedDate, in: points)
+    }
+}
+
+enum OwnerAnalyticsTrendSelection {
+    static func normalizedDate(
+        _ selectedDate: Date?,
+        in points: [OwnerAnalyticsTrendPoint]
+    ) -> Date? {
+        point(for: selectedDate, in: points) == nil ? nil : selectedDate
+    }
+
+    static func point(
+        for selectedDate: Date?,
+        in points: [OwnerAnalyticsTrendPoint]
+    ) -> OwnerAnalyticsTrendPoint? {
+        guard let selectedDate else { return nil }
+        return points.first {
+            OwnerAnalyticsDateFormatting.isSameAnalyticsDay($0.date, selectedDate)
+        }
+    }
+}
+
+struct OwnerAnalyticsFreshnessLabel: View {
+    let updatedAt: Date?
+    @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            Label(displayText(relativeTo: context.date), systemImage: "clock")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityText(relativeTo: context.date))
+        }
+    }
+
+    private func displayText(relativeTo referenceDate: Date) -> String {
+        guard let updatedAt else {
+            return AppStrings.OwnerAnalytics.updateTimeUnavailable
+        }
+        return AppStrings.OwnerAnalytics.updatedAt(
+            OwnerAnalyticsDateFormatting.relativeFreshnessText(
+                updatedAt,
+                relativeTo: referenceDate,
+                locale: locale
+            )
+        )
+    }
+
+    private func accessibilityText(relativeTo referenceDate: Date) -> String {
+        guard let updatedAt else { return displayText(relativeTo: referenceDate) }
+        return [
+            displayText(relativeTo: referenceDate),
+            OwnerAnalyticsDateFormatting.absoluteFreshnessText(
+                updatedAt,
+                locale: locale,
+                timeZone: timeZone
+            )
+        ].joined(separator: ", ")
+    }
+}
+
+struct OwnerAnalyticsStaleDataBanner: View {
+    let message: String
+    let isRetrying: Bool
+    let retryAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            InlineMessageCard(style: .error, message: message)
+                .accessibilityElement(children: .combine)
+
+            Button(action: retryAction) {
+                Label(AppStrings.OwnerAnalytics.retry, systemImage: "arrow.clockwise")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.bordered)
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .disabled(isRetrying)
+        }
+    }
+}
+
+struct OwnerAnalyticsPartialDataBanner: View {
+    let message: String
+
+    var body: some View {
+        InlineMessageCard(style: .info, message: message)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("ownerAnalytics.partialData")
     }
 }
 
@@ -127,34 +420,44 @@ struct OwnerAnalyticsShowMoreButton: View {
 
 struct OwnerAnalyticsContentRow: View {
     let item: AnalyticsTopContentItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        OwnerAnalyticsResponsiveValueRow(
+            value: item.viewCount,
+            label: AppStrings.OwnerAnalytics.views
+        ) {
             rankBadge
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.analyticsDisplayTitle)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 metadataText
             }
-
-            Spacer(minLength: 10)
-
-            trailingValue(item.viewCount, label: AppStrings.OwnerAnalytics.views)
         }
         .padding(.vertical, 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(item.analyticsDisplayTitle)
+        .accessibilityValue([
+            AppStrings.OwnerAnalytics.rank(OwnerAnalyticsFormatting.integer(item.rank, locale: locale)),
+            AppStrings.OwnerAnalytics.metricValue(AppStrings.OwnerAnalytics.views, item.viewCount),
+            item.analyticsMetadataText
+        ].filter { !$0.isEmpty }.joined(separator: ", "))
     }
 
     private var rankBadge: some View {
-        Text("#\(item.rank)")
+        Text("#\(OwnerAnalyticsFormatting.integer(item.rank, locale: locale))")
             .font(.caption.weight(.bold))
             .foregroundStyle(AppTheme.accentPrimaryForeground)
-            .frame(width: 34, height: 34)
+            .padding(.horizontal, 8)
+            .frame(minWidth: 34, minHeight: 34)
             .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .fixedSize(horizontal: true, vertical: true)
     }
 
     @ViewBuilder
@@ -165,7 +468,7 @@ struct OwnerAnalyticsContentRow: View {
             Text(item.analyticsMetadataText)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(2)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -175,18 +478,22 @@ struct OwnerAnalyticsRegionRow: View {
     let row: OwnerAnalyticsRegionRowModel
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        OwnerAnalyticsResponsiveValueRow(
+            value: row.viewCount,
+            label: AppStrings.OwnerAnalytics.views
+        ) {
             Image(systemName: "mappin.and.ellipse")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 34, height: 34)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(row.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if !row.breakdownLines.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
@@ -194,17 +501,17 @@ struct OwnerAnalyticsRegionRow: View {
                             Text(line)
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
-                                .lineLimit(1)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
             }
-
-            Spacer(minLength: 10)
-
-            trailingValue(row.viewCount, label: AppStrings.OwnerAnalytics.views)
         }
         .padding(.vertical, 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(row.title)
+        .accessibilityValue(([AppStrings.OwnerAnalytics.metricValue(AppStrings.OwnerAnalytics.views, row.viewCount)] + row.breakdownLines).joined(separator: ", "))
+        .accessibilityIdentifier("ownerAnalytics.region.\(row.id)")
     }
 }
 
@@ -212,39 +519,81 @@ struct OwnerAnalyticsFederalStateUserRow: View {
     let row: OwnerAnalyticsFederalStateUserRowModel
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        OwnerAnalyticsResponsiveValueRow(
+            value: row.userCount,
+            label: AppStrings.OwnerAnalytics.users
+        ) {
             Image(systemName: "person.2")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 34, height: 34)
                 .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityHidden(true)
 
             Text(AppStrings.FederalStates.title(for: row.federalState))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-                .lineLimit(1)
-
-            Spacer(minLength: 10)
-
-            trailingValue(row.userCount, label: AppStrings.OwnerAnalytics.users)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(AppStrings.FederalStates.title(for: row.federalState))
+        .accessibilityValue(AppStrings.OwnerAnalytics.metricValue(AppStrings.OwnerAnalytics.users, row.userCount))
+        .accessibilityIdentifier("ownerAnalytics.userRegion.\(row.federalState.rawValue)")
     }
 }
 
-@ViewBuilder
-private func trailingValue(_ value: Int, label: String) -> some View {
-    VStack(alignment: .trailing, spacing: 2) {
-        Text(value.formatted())
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(AppTheme.textPrimary)
-            .monospacedDigit()
-            .lineLimit(1)
+struct OwnerAnalyticsResponsiveValueRow<Leading: View>: View {
+    let value: Int
+    let label: String
+    @ViewBuilder let leading: Leading
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
 
-        Text(label)
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(AppTheme.textSecondary)
-            .lineLimit(1)
+    init(
+        value: Int,
+        label: String,
+        @ViewBuilder leading: () -> Leading
+    ) {
+        self.value = value
+        self.label = label
+        self.leading = leading()
+    }
+
+    var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .top, spacing: 12) {
+                        leading
+                    }
+
+                    trailingValue(alignment: .leading)
+                        .padding(.leading, 46)
+                }
+            } else {
+                HStack(alignment: .top, spacing: 12) {
+                    leading
+                    Spacer(minLength: 10)
+                    trailingValue(alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private func trailingValue(alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 2) {
+            Text(OwnerAnalyticsFormatting.integer(value, locale: locale))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(label)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
@@ -315,8 +664,8 @@ extension AnalyticsMetricType {
             AppStrings.OwnerAnalytics.organizationViews
         case .activeRegions:
             AppStrings.OwnerAnalytics.activeRegions
-        case .totalLikes:
-            AppStrings.OwnerAnalytics.totalLikes
+        case .newsLikes:
+            AppStrings.OwnerAnalytics.newsLikes
         case .totalBookmarks:
             AppStrings.OwnerAnalytics.totalBookmarks
         case .eventRegistrations:
@@ -342,7 +691,7 @@ extension AnalyticsMetricType {
             "building.2"
         case .activeRegions:
             "map"
-        case .totalLikes:
+        case .newsLikes:
             "heart"
         case .totalBookmarks:
             "bookmark"

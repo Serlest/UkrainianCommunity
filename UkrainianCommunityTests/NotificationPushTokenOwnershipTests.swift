@@ -3,8 +3,8 @@ import Testing
 
 private actor RecordingNotificationPushTokenRepository: NotificationPushTokenRepository {
     enum Mutation: Equatable, Sendable {
-        case save(userID: String, token: String)
-        case delete(userID: String, token: String)
+        case save(userID: String, registration: NotificationPushRegistration)
+        case delete(userID: String, registration: NotificationPushRegistration)
     }
 
     enum RepositoryError: Error {
@@ -18,15 +18,21 @@ private actor RecordingNotificationPushTokenRepository: NotificationPushTokenRep
         self.rejectsDeletes = rejectsDeletes
     }
 
-    func saveCurrentDeviceToken(userID: String, token: String) async throws {
-        mutations.append(.save(userID: userID, token: token))
+    func saveCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws {
+        mutations.append(.save(userID: userID, registration: registration))
     }
 
-    func deleteCurrentDeviceToken(userID: String, token: String) async throws {
+    func deleteCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws {
         if rejectsDeletes {
             throw RepositoryError.deleteRejected
         }
-        mutations.append(.delete(userID: userID, token: token))
+        mutations.append(.delete(userID: userID, registration: registration))
     }
 
     func recordedMutations() -> [Mutation] {
@@ -42,8 +48,11 @@ private actor GatedNotificationPushTokenRepository: NotificationPushTokenReposit
     private var firstSaveStartedContinuation: CheckedContinuation<Void, Never>?
     private var firstSaveReleaseContinuation: CheckedContinuation<Void, Never>?
 
-    func saveCurrentDeviceToken(userID: String, token: String) async throws {
-        mutations.append(.save(userID: userID, token: token))
+    func saveCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws {
+        mutations.append(.save(userID: userID, registration: registration))
         guard !hasStartedFirstSave else { return }
 
         hasStartedFirstSave = true
@@ -54,8 +63,11 @@ private actor GatedNotificationPushTokenRepository: NotificationPushTokenReposit
         }
     }
 
-    func deleteCurrentDeviceToken(userID: String, token: String) async throws {
-        mutations.append(.delete(userID: userID, token: token))
+    func deleteCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws {
+        mutations.append(.delete(userID: userID, registration: registration))
     }
 
     func waitUntilFirstSaveStarts() async {
@@ -83,12 +95,18 @@ private actor GatedDeleteNotificationPushTokenRepository: NotificationPushTokenR
     private var firstDeleteStartedContinuation: CheckedContinuation<Void, Never>?
     private var firstDeleteReleaseContinuation: CheckedContinuation<Void, Never>?
 
-    func saveCurrentDeviceToken(userID: String, token: String) async throws {
-        mutations.append(.save(userID: userID, token: token))
+    func saveCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws {
+        mutations.append(.save(userID: userID, registration: registration))
     }
 
-    func deleteCurrentDeviceToken(userID: String, token: String) async throws {
-        mutations.append(.delete(userID: userID, token: token))
+    func deleteCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws {
+        mutations.append(.delete(userID: userID, registration: registration))
         guard !hasStartedFirstDelete else { return }
 
         hasStartedFirstDelete = true
@@ -118,18 +136,38 @@ private actor GatedDeleteNotificationPushTokenRepository: NotificationPushTokenR
 
 @MainActor
 struct NotificationPushTokenOwnershipTests {
-    @Test func signOutDeletesTokenWhileOriginalUserIsStillConfigured() async throws {
+    private func fid(_ identifier: String) -> NotificationPushRegistration {
+        NotificationPushRegistration(identifier: identifier, kind: .firebaseInstallationID)
+    }
+
+    private func legacyToken(_ identifier: String) -> NotificationPushRegistration {
+        NotificationPushRegistration(identifier: identifier, kind: .legacyFCMToken)
+    }
+
+    @Test func registrationKindsUseIndependentStorageIdentities() {
+        let identifier = "shared-id"
+        let legacyDocumentID = FirestoreNotificationPushTokenRepository.documentID(
+            for: legacyToken(identifier)
+        )
+        let fidDocumentID = FirestoreNotificationPushTokenRepository.documentID(
+            for: fid(identifier)
+        )
+
+        #expect(legacyDocumentID != fidDocumentID)
+    }
+
+    @Test func signOutDeletesRegistrationWhileOriginalUserIsStillConfigured() async throws {
         let repository = RecordingNotificationPushTokenRepository()
         let coordinator = NotificationPushTokenOwnershipCoordinator(repository: repository)
 
         coordinator.configureUser("user-a", notificationsEnabled: true)
-        await coordinator.receiveToken("token-a")
+        await coordinator.receiveRegistration("fid-a", kind: .firebaseInstallationID)
         try await coordinator.prepareForSignOut()
 
         let mutations = await repository.recordedMutations()
         #expect(mutations == [
-            .save(userID: "user-a", token: "token-a"),
-            .delete(userID: "user-a", token: "token-a")
+            .save(userID: "user-a", registration: fid("fid-a")),
+            .delete(userID: "user-a", registration: fid("fid-a"))
         ])
         #expect(coordinator.currentUserID == "user-a")
 
@@ -137,36 +175,58 @@ struct NotificationPushTokenOwnershipTests {
         #expect(coordinator.currentUserID == nil)
     }
 
-    @Test func refreshedTokenReplacesPreviousOwnedToken() async {
+    @Test func immediateSignOutResolvesFIDBeforeMessagingCallback() async throws {
         let repository = RecordingNotificationPushTokenRepository()
         let coordinator = NotificationPushTokenOwnershipCoordinator(repository: repository)
 
         coordinator.configureUser("user-a", notificationsEnabled: true)
-        await coordinator.receiveToken("token-old")
-        await coordinator.receiveToken("token-new")
+        try await coordinator.prepareForSignOut {
+            self.fid("a123456789012345678901")
+        }
 
         let mutations = await repository.recordedMutations()
         #expect(mutations == [
-            .save(userID: "user-a", token: "token-old"),
-            .save(userID: "user-a", token: "token-new"),
-            .delete(userID: "user-a", token: "token-old")
+            .save(
+                userID: "user-a",
+                registration: fid("a123456789012345678901")
+            ),
+            .delete(
+                userID: "user-a",
+                registration: fid("a123456789012345678901")
+            )
         ])
     }
 
-    @Test func disabledNotificationsRemoveTokenAndRejectLaterUploads() async {
+    @Test func refreshedRegistrationReplacesPreviousOwnedRegistration() async {
         let repository = RecordingNotificationPushTokenRepository()
         let coordinator = NotificationPushTokenOwnershipCoordinator(repository: repository)
 
         coordinator.configureUser("user-a", notificationsEnabled: true)
-        await coordinator.receiveToken("token-a")
-        coordinator.configureUser("user-a", notificationsEnabled: false)
-        await coordinator.removeCurrentToken()
-        await coordinator.receiveToken("token-b")
+        await coordinator.receiveRegistration("fid-old", kind: .firebaseInstallationID)
+        await coordinator.receiveRegistration("fid-new", kind: .firebaseInstallationID)
 
         let mutations = await repository.recordedMutations()
         #expect(mutations == [
-            .save(userID: "user-a", token: "token-a"),
-            .delete(userID: "user-a", token: "token-a")
+            .save(userID: "user-a", registration: fid("fid-old")),
+            .save(userID: "user-a", registration: fid("fid-new")),
+            .delete(userID: "user-a", registration: fid("fid-old"))
+        ])
+    }
+
+    @Test func disabledNotificationsRemoveRegistrationAndRejectLaterUploads() async {
+        let repository = RecordingNotificationPushTokenRepository()
+        let coordinator = NotificationPushTokenOwnershipCoordinator(repository: repository)
+
+        coordinator.configureUser("user-a", notificationsEnabled: true)
+        await coordinator.receiveRegistration("fid-a", kind: .firebaseInstallationID)
+        coordinator.configureUser("user-a", notificationsEnabled: false)
+        await coordinator.removeCurrentRegistration()
+        await coordinator.receiveRegistration("fid-b", kind: .firebaseInstallationID)
+
+        let mutations = await repository.recordedMutations()
+        #expect(mutations == [
+            .save(userID: "user-a", registration: fid("fid-a")),
+            .delete(userID: "user-a", registration: fid("fid-a"))
         ])
     }
 
@@ -175,7 +235,7 @@ struct NotificationPushTokenOwnershipTests {
         let coordinator = NotificationPushTokenOwnershipCoordinator(repository: repository)
 
         coordinator.configureUser("user-a", notificationsEnabled: true)
-        await coordinator.receiveToken("token-a")
+        await coordinator.receiveRegistration("fid-a", kind: .firebaseInstallationID)
 
         var cleanupFailed = false
         do {
@@ -194,50 +254,66 @@ struct NotificationPushTokenOwnershipTests {
 
         coordinator.configureUser("user-a", notificationsEnabled: true)
         let oldUserSave = Task { @MainActor in
-            await coordinator.receiveToken("shared-device-token")
+            await coordinator.receiveRegistration("shared-device-fid", kind: .firebaseInstallationID)
         }
         await repository.waitUntilFirstSaveStarts()
 
         coordinator.configureUser("user-b", notificationsEnabled: true)
-        await coordinator.receiveToken("shared-device-token")
+        await coordinator.receiveRegistration("shared-device-fid", kind: .firebaseInstallationID)
         await repository.releaseFirstSave()
         await oldUserSave.value
 
-        await coordinator.receiveToken("shared-device-token")
+        await coordinator.receiveRegistration("shared-device-fid", kind: .firebaseInstallationID)
 
         let mutations = await repository.recordedMutations()
         #expect(mutations == [
-            .save(userID: "user-a", token: "shared-device-token"),
-            .save(userID: "user-b", token: "shared-device-token"),
-            .delete(userID: "user-a", token: "shared-device-token")
+            .save(userID: "user-a", registration: fid("shared-device-fid")),
+            .save(userID: "user-b", registration: fid("shared-device-fid")),
+            .delete(userID: "user-a", registration: fid("shared-device-fid"))
         ])
         #expect(coordinator.currentUserID == "user-b")
     }
 
-    @Test func staleDisableDeletionResavesTokenAfterSameUserReenables() async {
+    @Test func staleDisableDeletionResavesRegistrationAfterSameUserReenables() async {
         let repository = GatedDeleteNotificationPushTokenRepository()
         let coordinator = NotificationPushTokenOwnershipCoordinator(repository: repository)
 
         coordinator.configureUser("user-a", notificationsEnabled: true)
-        await coordinator.receiveToken("token-a")
+        await coordinator.receiveRegistration("fid-a", kind: .firebaseInstallationID)
 
         coordinator.configureUser("user-a", notificationsEnabled: false)
         let disable = Task { @MainActor in
-            await coordinator.removeCurrentToken()
+            await coordinator.removeCurrentRegistration()
         }
         await repository.waitUntilFirstDeleteStarts()
 
         coordinator.configureUser("user-a", notificationsEnabled: true)
-        await coordinator.saveCachedTokenIfNeeded()
+        await coordinator.saveCachedRegistrationIfNeeded()
         await repository.releaseFirstDelete()
         await disable.value
 
         let mutations = await repository.recordedMutations()
         #expect(mutations == [
-            .save(userID: "user-a", token: "token-a"),
-            .delete(userID: "user-a", token: "token-a"),
-            .save(userID: "user-a", token: "token-a")
+            .save(userID: "user-a", registration: fid("fid-a")),
+            .delete(userID: "user-a", registration: fid("fid-a")),
+            .save(userID: "user-a", registration: fid("fid-a"))
         ])
         #expect(coordinator.currentUserID == "user-a")
+    }
+
+    @Test func registrationKindParticipatesInOwnershipAndReplacement() async {
+        let repository = RecordingNotificationPushTokenRepository()
+        let coordinator = NotificationPushTokenOwnershipCoordinator(repository: repository)
+
+        coordinator.configureUser("user-a", notificationsEnabled: true)
+        await coordinator.receiveRegistration("shared-id", kind: .legacyFCMToken)
+        await coordinator.receiveRegistration("shared-id", kind: .firebaseInstallationID)
+
+        let mutations = await repository.recordedMutations()
+        #expect(mutations == [
+            .save(userID: "user-a", registration: legacyToken("shared-id")),
+            .save(userID: "user-a", registration: fid("shared-id")),
+            .delete(userID: "user-a", registration: legacyToken("shared-id"))
+        ])
     }
 }

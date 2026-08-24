@@ -1,6 +1,6 @@
 import Foundation
 
-enum AnalyticsEventName: String, Sendable, CaseIterable {
+nonisolated enum AnalyticsEventName: String, Sendable, CaseIterable {
     case newsView = "news_view"
     case newsLike = "news_like"
     case newsBookmark = "news_bookmark"

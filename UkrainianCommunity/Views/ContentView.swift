@@ -446,6 +446,7 @@ struct ContentView: View {
                 featuredBannerCache: container.featuredBannerCache,
                 legalDocumentRepository: container.legalDocumentRepository,
                 ownerAnalyticsRepository: container.ownerAnalyticsRepository,
+                analyticsService: container.analyticsService,
                 notificationInboxRepository: container.notificationInboxRepository,
                 notificationInboxViewModel: notificationInboxViewModel,
                 userBlockingCoordinator: userBlockingCoordinator,

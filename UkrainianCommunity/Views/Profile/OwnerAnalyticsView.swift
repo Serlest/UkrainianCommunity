@@ -4,6 +4,7 @@ struct OwnerAnalyticsView: View {
     private let repository: OwnerAnalyticsRepository
     @StateObject private var viewModel: OwnerAnalyticsViewModel
     @FocusState private var isSearchFocused: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(repository: OwnerAnalyticsRepository) {
         self.repository = repository
@@ -19,26 +20,40 @@ struct OwnerAnalyticsView: View {
             searchField
             content
         }
-        .task {
+        .task(id: viewModel.selectedPeriod) {
             await viewModel.loadIfNeeded()
         }
         .refreshable {
             await viewModel.load()
         }
+        .accessibilityIdentifier("screen.ownerAnalytics")
     }
 
     private var periodPicker: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                periodPickerControl
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                periodPickerControl
+                    .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    private var periodPickerControl: some View {
         Picker(AppStrings.OwnerAnalytics.periodPicker, selection: Binding(
             get: { viewModel.selectedPeriod },
             set: { period in
-                Task { await viewModel.selectPeriod(period) }
+                viewModel.preparePeriodSelection(period)
             }
         )) {
             ForEach(AnalyticsPeriod.allCases) { period in
                 Text(period.analyticsTitle).tag(period)
             }
         }
-        .pickerStyle(.segmented)
+        .accessibilityIdentifier("ownerAnalytics.periodPicker")
     }
 
     private var searchField: some View {
@@ -46,6 +61,7 @@ struct OwnerAnalyticsView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(AppTheme.textSecondary)
+                    .accessibilityHidden(true)
 
                 TextField(AppStrings.OwnerAnalytics.searchPlaceholder, text: $viewModel.searchText)
                     .textInputAutocapitalization(.never)
@@ -54,6 +70,7 @@ struct OwnerAnalyticsView: View {
                     .focused($isSearchFocused)
                     .submitLabel(.search)
                     .onSubmit { isSearchFocused = false }
+                    .accessibilityIdentifier("ownerAnalytics.search")
 
                 if !viewModel.searchText.isEmpty {
                     AppSearchClearButton {
@@ -69,7 +86,7 @@ struct OwnerAnalyticsView: View {
     private var content: some View {
         if viewModel.isLoading && !viewModel.hasContent {
             LoadingStateCard(title: AppStrings.OwnerAnalytics.loading)
-        } else if let errorMessage = viewModel.errorMessage {
+        } else if let errorMessage = viewModel.errorMessage, !viewModel.hasContent {
             ErrorStateCard(
                 title: AppStrings.OwnerAnalytics.loadFailedTitle,
                 message: errorMessage,
@@ -78,40 +95,98 @@ struct OwnerAnalyticsView: View {
                 Task { await viewModel.load() }
             }
         } else if !viewModel.hasContent {
+            if let partialDataMessage = viewModel.partialDataMessage {
+                OwnerAnalyticsPartialDataBanner(message: partialDataMessage)
+            }
+
             EmptyStateCard(
                 systemImage: "chart.bar.doc.horizontal",
                 title: AppStrings.OwnerAnalytics.emptyTitle,
                 message: emptyMessage
             )
-        } else if viewModel.hasActiveSearch && !viewModel.hasSearchResults {
+        } else {
+            loadedContent(staleErrorMessage: viewModel.errorMessage)
+        }
+    }
+
+    @ViewBuilder
+    private func loadedContent(staleErrorMessage: String?) -> some View {
+        if let staleErrorMessage {
+            OwnerAnalyticsStaleDataBanner(
+                message: AppStrings.OwnerAnalytics.staleData(staleErrorMessage),
+                isRetrying: viewModel.isLoading
+            ) {
+                Task { await viewModel.load() }
+            }
+        }
+
+
+        if let partialDataMessage = viewModel.partialDataMessage {
+            OwnerAnalyticsPartialDataBanner(message: partialDataMessage)
+        }
+
+        OwnerAnalyticsFreshnessLabel(updatedAt: viewModel.snapshot.generatedAt)
+            .accessibilityIdentifier("ownerAnalytics.updatedAt")
+
+        if viewModel.hasActiveSearch && !viewModel.hasSearchResults {
             EmptyStateCard(
                 systemImage: "magnifyingglass",
                 title: AppStrings.OwnerAnalytics.searchEmptyTitle,
                 message: AppStrings.OwnerAnalytics.searchEmptyMessage
             )
+            .accessibilityIdentifier("ownerAnalytics.search.empty")
         } else {
             overviewSection
+
+            if !viewModel.hasActiveSearch && viewModel.trendPoints.count > 1 {
+                OwnerAnalyticsSectionCard(
+                    title: AppStrings.OwnerAnalytics.trendSectionTitle,
+                    subtitle: AppStrings.OwnerAnalytics.trendSubtitle
+                ) {
+                    OwnerAnalyticsTrendChart(
+                        points: viewModel.trendPoints,
+                        selectedMetric: $viewModel.selectedTrendMetric,
+                        metricOptions: viewModel.trendMetricOptions
+                    )
+                }
+            }
+
+            actionsOverviewSection
             contentAnalyticsSection
             regionalActivitySection
             userAnalyticsSection
-            actionsOverviewSection
+
+            if !viewModel.hasActiveSearch {
+                OwnerAnalyticsSectionCard(title: AppStrings.OwnerAnalytics.methodologyTitle) {
+                    Text(AppStrings.OwnerAnalytics.methodologyMessage)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 
+    @ViewBuilder
     private var overviewSection: some View {
-        OwnerAnalyticsSectionCard(
-            title: AppStrings.OwnerAnalytics.overviewTitle,
-            subtitle: viewModel.selectedPeriod.analyticsSummarySubtitle
-        ) {
-            metricGrid(viewModel.overviewMetricItems, accentFirst: true)
+        if !viewModel.overviewMetricItems.isEmpty || !viewModel.contentViewMetricItems.isEmpty {
+            OwnerAnalyticsSectionCard(
+                title: AppStrings.OwnerAnalytics.overviewTitle,
+                subtitle: viewModel.selectedPeriod.analyticsSummarySubtitle
+            ) {
+                if !viewModel.overviewMetricItems.isEmpty {
+                    metricGrid(viewModel.overviewMetricItems, accentFirst: true)
+                }
 
-            if !viewModel.contentViewMetricItems.isEmpty {
-                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                    Text(AppStrings.OwnerAnalytics.activityOverviewTitle)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
+                if !viewModel.contentViewMetricItems.isEmpty {
+                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                        Text(AppStrings.OwnerAnalytics.activityOverviewTitle)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
 
-                    metricGrid(viewModel.contentViewMetricItems, accentFirst: false)
+                        metricGrid(viewModel.contentViewMetricItems, accentFirst: false)
+                    }
                 }
             }
         }
@@ -119,32 +194,53 @@ struct OwnerAnalyticsView: View {
 
     @ViewBuilder
     private var actionsOverviewSection: some View {
-        if viewModel.snapshot.actionStats.hasData {
+        if viewModel.snapshot.actionStats.hasData && !viewModel.actionMetricItems.isEmpty {
             OwnerAnalyticsSectionCard(
                 title: AppStrings.OwnerAnalytics.actionsOverviewTitle,
                 subtitle: AppStrings.OwnerAnalytics.actionsOverviewSubtitle
             ) {
                 metricGrid(viewModel.actionMetricItems, accentFirst: false)
             }
+        } else if !viewModel.hasActiveSearch {
+            OwnerAnalyticsSectionCard(
+                title: AppStrings.OwnerAnalytics.actionsOverviewTitle,
+                subtitle: AppStrings.OwnerAnalytics.actionsOverviewSubtitle
+            ) {
+                OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.actionsOverviewEmpty)
+            }
         }
     }
 
     @ViewBuilder
     private var userAnalyticsSection: some View {
-        if viewModel.snapshot.userStats.hasData {
+        if viewModel.snapshot.userStats.hasData
+            && (!viewModel.userMetricItems.isEmpty || !viewModel.userFederalStateRows.isEmpty) {
             OwnerAnalyticsSectionCard(
                 title: AppStrings.OwnerAnalytics.userAnalyticsTitle,
                 subtitle: AppStrings.OwnerAnalytics.userAnalyticsSubtitle
             ) {
-                metricGrid(viewModel.userMetricItems, accentFirst: false)
+                if viewModel.snapshot.userStats.resolvedLifecycleCoverage.isPartial,
+                   let startsAt = viewModel.snapshot.userStats.resolvedLifecycleCoverage.startsAt {
+                    OwnerAnalyticsPartialDataBanner(
+                        message: AppStrings.OwnerAnalytics.lifecyclePartialCoverage(
+                            startDate: startsAt
+                        )
+                    )
+                    .accessibilityIdentifier("ownerAnalytics.lifecyclePartialData")
+                }
 
-                if viewModel.userFederalStateRows.isEmpty {
+                if !viewModel.userMetricItems.isEmpty {
+                    metricGrid(viewModel.userMetricItems, accentFirst: false)
+                }
+
+                if !viewModel.hasActiveSearch && viewModel.userFederalStateRows.isEmpty {
                     OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.userFederalStatesEmpty)
-                } else {
+                } else if !viewModel.userFederalStateRows.isEmpty {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                         Text(AppStrings.OwnerAnalytics.usersByFederalState)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(AppTheme.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
                             ForEach(viewModel.userFederalStateRows) { row in
@@ -186,6 +282,8 @@ struct OwnerAnalyticsView: View {
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityHint(AppStrings.OwnerAnalytics.openDetailHint)
+                                .accessibilityIdentifier("ownerAnalytics.content.\(item.contentType.rawValue).\(item.contentID)")
                             }
 
                             if section.hasHiddenItems || section.canCollapse {
@@ -199,6 +297,13 @@ struct OwnerAnalyticsView: View {
                         }
                     }
                 }
+            }
+        } else if !viewModel.hasActiveSearch {
+            OwnerAnalyticsSectionCard(
+                title: AppStrings.OwnerAnalytics.topContentEmptyTitle,
+                subtitle: AppStrings.OwnerAnalytics.topContentSubtitle
+            ) {
+                OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.topContentEmptyMessage)
             }
         }
     }
@@ -224,6 +329,13 @@ struct OwnerAnalyticsView: View {
                         }
                     }
                 }
+            }
+        } else if !viewModel.hasActiveSearch {
+            OwnerAnalyticsSectionCard(
+                title: AppStrings.OwnerAnalytics.regionActivityEmptyTitle,
+                subtitle: AppStrings.OwnerAnalytics.regionActivitySubtitle
+            ) {
+                OwnerAnalyticsInlineEmptyState(message: AppStrings.OwnerAnalytics.regionActivityEmptyMessage)
             }
         }
     }
@@ -261,14 +373,16 @@ struct OwnerAnalyticsView: View {
             AnalyticsOrganizationDetailView(
                 repository: repository,
                 organizationID: item.organizationID ?? item.contentID,
-                initialTitle: item.analyticsDisplayTitle
+                initialTitle: item.analyticsDisplayTitle,
+                initialPeriod: viewModel.selectedPeriod
             )
         } else {
             AnalyticsContentDetailView(
                 repository: repository,
                 contentID: item.contentID,
                 contentType: item.contentType,
-                initialTitle: item.analyticsDisplayTitle
+                initialTitle: item.analyticsDisplayTitle,
+                initialPeriod: viewModel.selectedPeriod
             )
         }
     }

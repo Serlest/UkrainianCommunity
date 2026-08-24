@@ -15,8 +15,33 @@ enum MockContentBuilder {
             role: .moderator,
             blockState: .active,
             selectedFederalState: .tirol,
+            acceptedTermsAt: calendar.date(byAdding: .month, value: -8, to: .now),
+            acceptedPrivacyAt: calendar.date(byAdding: .month, value: -8, to: .now),
+            acceptedTermsVersion: AuthService.currentTermsVersion,
+            acceptedPrivacyVersion: AuthService.currentPrivacyVersion,
             createdAt: calendar.date(byAdding: .month, value: -8, to: .now) ?? .now,
             updatedAt: calendar.date(byAdding: .day, value: -2, to: .now) ?? .now
+        )
+    }
+
+    nonisolated static func ownerUser() -> AppUser {
+        AppUser(
+            id: "owner-1",
+            fullName: localized("mock.owner.name", "Platform Owner"),
+            displayName: localized("mock.owner.display_name", "Owner"),
+            city: localized("mock.city.vienna", "Vienna"),
+            email: "owner@example.com",
+            bio: localized("mock.owner.bio", "Responsible for platform quality, safety, and community operations."),
+            role: .owner,
+            globalRole: .owner,
+            blockState: .active,
+            selectedFederalState: .wien,
+            acceptedTermsAt: calendar.date(byAdding: .year, value: -1, to: .now),
+            acceptedPrivacyAt: calendar.date(byAdding: .year, value: -1, to: .now),
+            acceptedTermsVersion: AuthService.currentTermsVersion,
+            acceptedPrivacyVersion: AuthService.currentPrivacyVersion,
+            createdAt: calendar.date(byAdding: .year, value: -1, to: .now) ?? .now,
+            updatedAt: .now
         )
     }
 

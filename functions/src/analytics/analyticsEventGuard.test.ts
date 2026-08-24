@@ -4,13 +4,39 @@ import {test} from "node:test";
 import {HttpsError} from "firebase-functions/v2/https";
 
 import {
+  analyticsDeletionEventID,
+  analyticsRegistrationEventID,
+  analyticsRegistrationUserKey,
   analyticsRateLimitID,
   analyticsRateLimitMaximum,
   analyticsReceiptID,
+  analyticsReceiptRetentionHours,
   expirationDate,
   nextAnalyticsRateLimitCount,
+  nextAnalyticsRateLimitState,
   rateLimitBucketStart,
 } from "./analyticsEventGuard";
+
+test("deleted-user event IDs are stable and opaque", () => {
+  const first = analyticsDeletionEventID("cloud-event-123");
+  assert.equal(first, analyticsDeletionEventID("cloud-event-123"));
+  assert.notEqual(first, analyticsDeletionEventID("cloud-event-456"));
+  assert.match(first, /^[a-f0-9]{64}$/);
+  assert.equal(first.includes("cloud-event"), false);
+});
+
+test("registered-user lifecycle identifiers are stable and opaque", () => {
+  const eventID = analyticsRegistrationEventID("cloud-event-123");
+  const userKey = analyticsRegistrationUserKey("user-secret");
+
+  assert.equal(eventID, analyticsRegistrationEventID("cloud-event-123"));
+  assert.equal(userKey, analyticsRegistrationUserKey("user-secret"));
+  assert.notEqual(eventID, userKey);
+  assert.match(eventID, /^[a-f0-9]{64}$/);
+  assert.match(userKey, /^[a-f0-9]{64}$/);
+  assert.equal(eventID.includes("cloud-event"), false);
+  assert.equal(userKey.includes("user-secret"), false);
+});
 
 test("builds stable opaque receipt and rate-limit identifiers", () => {
   const receipt = analyticsReceiptID(
@@ -52,7 +78,25 @@ test("increments valid counters and rejects exhausted buckets", () => {
   );
 });
 
+test("builds one deterministic rate-limit update for preflight consumption", () => {
+  const now = new Date("2026-08-23T20:03:59.000Z");
+  const state = nextAnalyticsRateLimitState(7, now);
+
+  assert.equal(state.count, 8);
+  assert.equal(state.bucketStartedAt.toISOString(), "2026-08-23T20:00:00.000Z");
+  assert.equal(state.updatedAt.toISOString(), now.toISOString());
+  assert.equal(state.expiresAt.toISOString(), "2026-08-23T22:03:59.000Z");
+});
+
 test("computes explicit retention expirations", () => {
+  assert.ok(analyticsReceiptRetentionHours > 48);
+  assert.equal(
+    expirationDate(
+      new Date("2026-08-23T20:00:00Z"),
+      analyticsReceiptRetentionHours
+    ).toISOString(),
+    "2026-08-26T20:00:00.000Z"
+  );
   assert.equal(
     expirationDate(new Date("2026-08-23T20:00:00Z"), 2).toISOString(),
     "2026-08-23T22:00:00.000Z"

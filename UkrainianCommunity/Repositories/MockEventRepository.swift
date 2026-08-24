@@ -70,7 +70,7 @@ struct MockEventRepository: EventRepository {
         try await store.eventRegistrations(eventID: eventID)
     }
 
-    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult {
+    func registerForEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult {
         try await store.setEventRegistration(id: id, isRegistered: true)
     }
 
@@ -78,7 +78,7 @@ struct MockEventRepository: EventRepository {
         try await store.setEventRegistration(id: id, isRegistered: false)
     }
 
-    func bookmarkEvent(id: String) async throws {
+    func bookmarkEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await store.setEventBookmark(id: id, isBookmarked: true)
     }
 

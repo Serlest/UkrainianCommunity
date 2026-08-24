@@ -45,7 +45,7 @@ struct MockOrganizationRepository: OrganizationRepository {
         try await store.toggleOrganizationLike(id: id, isLiked: false)
     }
 
-    func subscribeOrganization(id: String) async throws {
+    func subscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await store.toggleOrganizationSubscription(id: id, isSubscribed: true)
     }
 
@@ -81,7 +81,7 @@ struct MockOrganizationRepository: OrganizationRepository {
         try await store.deleteOrganizationComment(organizationID: organizationID, commentID: commentID)
     }
 
-    func bookmarkOrganization(id: String) async throws {
+    func bookmarkOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await store.setOrganizationBookmark(id: id, isBookmarked: true)
     }
 

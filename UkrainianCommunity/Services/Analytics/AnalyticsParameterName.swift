@@ -1,6 +1,6 @@
 import Foundation
 
-enum AnalyticsParameterName: String, Sendable, CaseIterable {
+nonisolated enum AnalyticsParameterName: String, Sendable, CaseIterable {
     case contentID = "content_id"
     case contentTitle = "content_title"
     case contentType = "content_type"

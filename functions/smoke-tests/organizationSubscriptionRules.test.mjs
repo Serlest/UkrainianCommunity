@@ -12,6 +12,7 @@ import {
   getDoc,
   getDocs,
   query,
+  serverTimestamp,
   setDoc,
   where,
 } from "firebase/firestore";
@@ -84,7 +85,7 @@ function subscription(organizationId, userId) {
     id: `organization_follow_${organizationId}_${userId}`,
     userId,
     subscribedOrganizationId: organizationId,
-    createdAt: new Date("2026-08-01T10:00:00Z"),
+    createdAt: serverTimestamp(),
   };
 }
 

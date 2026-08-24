@@ -771,12 +771,12 @@ struct FirestoreEventRepository: EventRepository {
         }
     }
 
-    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult {
+    func registerForEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw EventRegistrationMutationError.permissionDenied
         }
 
-        let result = try await registrationMutator.registerForEvent(id: id)
+        let result = try await registrationMutator.registerForEvent(id: id, actionCapture: actionCapture)
         guard result.eventID == id, result.registeredCount >= 0 else {
             throw EventRegistrationMutationError.unavailable
         }
@@ -805,17 +805,28 @@ struct FirestoreEventRepository: EventRepository {
         return result
     }
 
-    func bookmarkEvent(id: String) async throws {
+    func bookmarkEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
         }
 
-        try await eventBookmarkReference(eventID: id, userID: uid).setData([
+        let database = Firestore.firestore()
+        let batch = database.batch()
+        batch.setData([
             "id": id,
             "eventId": id,
             "userId": uid,
             "createdAt": FieldValue.serverTimestamp()
-        ], merge: true)
+        ], forDocument: eventBookmarkReference(eventID: id, userID: uid))
+        if let actionCapture,
+           actionCapture.eventName == "event_bookmark",
+           actionCapture.contentID == id {
+            batch.setData(
+                actionCapture.firestoreData,
+                forDocument: database.collection("analyticsActionProofs").document(actionCapture.proofID)
+            )
+        }
+        try await batch.commit()
         await sessionDataCache.updateBookmarkedEventID(id, isBookmarked: true, for: uid)
     }
 

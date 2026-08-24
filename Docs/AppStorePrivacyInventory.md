@@ -20,8 +20,9 @@ This inventory is a release aid, not a substitute for the answers entered in App
 | User Content — Photos or Videos | Avatar, news/event/organization images and gallery media | Yes | App Functionality | Uploaded to Firebase Storage; current client selects images |
 | User Content — Other User Content | Bios, posts, events, organizations, comments, feedback and reports | Yes | App Functionality | Firestore content and moderation flows |
 | Identifiers — User ID | Firebase UID and internal document IDs | Yes | App Functionality | Authentication, authorization and ownership |
-| Identifiers — Device ID | FCM registration token and its hashed document identifier | Yes | App Functionality | Push notifications; not used for tracking |
-| Usage Data — Product Interaction | Views, likes, bookmarks, follows, registrations and comparable actions | Yes for server aggregates; Firebase Analytics depends on consent | App Functionality; Analytics | Analytics must remain disabled until explicit opt-in |
+| Identifiers — Device ID | Firebase Installation ID for new builds, legacy FCM registration tokens during migration, and hashed document identifiers | Yes | App Functionality | Push notifications; not used for tracking. The dual-schema migration is documented in `Docs/PushRegistrationMigration.md` |
+| Usage Data — Product Interaction | Operational account-feature records: per-account news/event view deduplication, public view counters, news likes, bookmarks, organization follows and event registrations | Yes for per-account records; public counters are aggregate | App Functionality | Created when a signed-in user uses the relevant feature, independently of optional analytics consent; preserves requested state, prevents duplicate lifetime view counts and maintains feature/public counters |
+| Usage Data — Product Interaction | Optional daily first-party signals for views, likes, bookmarks, follows and registrations | Yes while deduplicating; owner reports are aggregate | Analytics | Sent to the first-party aggregation callable only after explicit opt-in; owner reports do not expose participant lists |
 | Diagnostics — Other Diagnostic Data | Security, moderation, audit and operational logs | Yes when an actor is known | App Functionality | Restricted system logs used for safety and support |
 
 ## Location distinction
@@ -32,7 +33,20 @@ The client does not request Core Location permission or read the device's locati
 
 - Contacts, health, fitness, financial, payment, browsing history, search history, sensitive information, advertising data, microphone, or device location.
 - A user phone number is not part of the account profile. Phone numbers may appear as publisher-provided event or organization contact information.
-- Analytics is opt-in: the absence of a saved choice now resolves to disabled.
+- Optional first-party owner aggregate analytics is opt-in: the absence of a saved choice resolves to disabled. Operational records required for account features are separate and are not controlled by this consent.
+
+## Operational feature records, analytics consent and retention
+
+- Google/Firebase Analytics is not linked in the iOS target. The app does not send automatic SDK events, app-instance analytics identifiers, advertising signals or analytics-derived location.
+- Consent is stored per local principal and journaled server-side with versioned disclosure evidence. A choice made by account A is not inherited by account B, and the legacy installation-wide opt-in is not migrated as consent. Guests cannot enable server aggregation because it requires a verified, non-anonymous account.
+- The callable requires the exact current server-recorded consent generation. Production enablement still requires an approved lawful-basis/controller decision and matching published policy text.
+- Signed-in use of account features creates operational account-linked records independently of optional analytics consent. Persistent per-content markers deduplicate news and event views across the content lifetime and drive public view counters. Like, bookmark, organization-follow and event-registration records preserve the feature state requested by the user and may also drive public counters or notifications. This is App Functionality processing, not optional analytics processing.
+- Turning off optional analytics does not delete or prevent those operational records, reverse a requested action, or disable the corresponding public counters. It stops only future optional daily owner-analytics signals and invalidates incompatible queued signals.
+- The client sends an optional analytics signal only for a verified, non-anonymous account after server-confirmed opt-in. Its payload contains the event name, canonical content identifier, consent generation, optional one-time action-proof binding and bounded occurrence time; display metadata is resolved again on the server.
+- Optional interaction signals are account-linked while being deduplicated. The analytics backend accepts delayed signals for up to 48 hours, keeps signal-deduplication receipts for 72 hours, and keeps analytics account-activity/deletion markers for 60 days; owner-facing aggregate documents contain counts and public content metadata, not participant lists. Operational feature records follow their own feature/account/content lifecycle and are not governed by this analytics receipt period.
+- Owner reporting keeps the sources distinct: daily views, actions and tracked-active windows use only opted-in signals, while public feature counters and total-account, status, account-registration, deletion and profile-region statistics are operational data calculated independently of optional analytics consent.
+- The durable local outbox stores an opaque hash of the principal, the minimal event payload, and retry state. Opt-out, logout, or account replacement invalidates delivery and removes incompatible queued data.
+- Neither operational feature records nor optional analytics signals are used for advertising or cross-app tracking. The public privacy policy and App Store Connect answers must preserve this App Functionality-versus-Analytics distinction and the same account-linked wording; do not describe either processing path as anonymous. Region reports use the region assigned to published content and never device location.
 
 ## Required-reason APIs
 
@@ -46,3 +60,4 @@ The local Xcode 26.6 Release-product audit on 2026-08-24 found the app manifest 
 2. Generate and inspect the archive's privacy report.
 3. Compare the report, Firebase's current SDK disclosures, this inventory, the public privacy policy and App Store Connect answers.
 4. Resolve every mismatch before upload; do not copy this table blindly into App Store Connect.
+5. Verify the production App Check parameter is enabled only after App Attest registration and enforcement metrics have been confirmed.

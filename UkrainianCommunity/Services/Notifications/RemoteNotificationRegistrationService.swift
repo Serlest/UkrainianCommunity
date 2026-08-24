@@ -5,18 +5,25 @@ import UserNotifications
 #if canImport(FirebaseMessaging)
 private import FirebaseMessaging
 #endif
+#if canImport(FirebaseInstallations)
+private import FirebaseInstallations
+#endif
+
+private enum RemoteNotificationRegistrationError: Error {
+    case missingFirebaseInstallationID
+}
 
 @MainActor
 final class RemoteNotificationRegistrationService: NSObject {
     static let shared = RemoteNotificationRegistrationService()
     private static let isDebugLoggingEnabled = false
 
-    private let tokenOwnership = NotificationPushTokenOwnershipCoordinator(
+    private let registrationOwnership = NotificationPushTokenOwnershipCoordinator(
         repository: FirestoreNotificationPushTokenRepository()
     )
     private var hasAPNSToken = false
     private var hasRequestedRemoteRegistration = false
-    private var isRefreshingMessagingToken = false
+    private var isRefreshingMessagingRegistration = false
     private var lastAuthorizationRequestUserID: String?
     private var messagingDelegateAdapter: AnyObject?
     private var userConfigurationGeneration = 0
@@ -24,11 +31,18 @@ final class RemoteNotificationRegistrationService: NSObject {
     private override init() {
         super.init()
         #if canImport(FirebaseMessaging)
-        let adapter = FirebaseMessagingDelegateAdapter { [weak self] fcmToken in
+        let adapter = FirebaseMessagingDelegateAdapter { [weak self] installationID in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.debugLog(fcmToken == nil ? "FCM registration token callback received without a token." : "FCM registration token callback received.")
-                await self.tokenOwnership.receiveToken(fcmToken)
+                self.debugLog(
+                    installationID == nil
+                        ? "FCM registration callback received without an installation ID."
+                        : "FCM installation ID received."
+                )
+                await self.registrationOwnership.receiveRegistration(
+                    installationID,
+                    kind: .firebaseInstallationID
+                )
             }
         }
         messagingDelegateAdapter = adapter
@@ -37,33 +51,33 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     func configure(repository: NotificationPushTokenRepository) {
-        tokenOwnership.configure(repository: repository)
+        registrationOwnership.configure(repository: repository)
     }
 
     func configureUser(_ userID: String?) {
         userConfigurationGeneration &+= 1
-        if tokenOwnership.currentUserID != userID {
+        if registrationOwnership.currentUserID != userID {
             lastAuthorizationRequestUserID = nil
         }
-        tokenOwnership.configureUser(userID, notificationsEnabled: false)
+        registrationOwnership.configureUser(userID, notificationsEnabled: false)
     }
 
     func configureUser(_ userID: String?, notificationsEnabled: Bool) {
         userConfigurationGeneration &+= 1
         let generation = userConfigurationGeneration
-        if tokenOwnership.currentUserID != userID {
+        if registrationOwnership.currentUserID != userID {
             lastAuthorizationRequestUserID = nil
         }
-        tokenOwnership.configureUser(userID, notificationsEnabled: notificationsEnabled)
+        registrationOwnership.configureUser(userID, notificationsEnabled: notificationsEnabled)
         guard let userID else { return }
 
         Task { [weak self] in
             guard let self,
                   self.isCurrentUserConfiguration(generation: generation, userID: userID) else { return }
             if notificationsEnabled {
-                await self.tokenOwnership.saveCachedTokenIfNeeded()
+                await self.registrationOwnership.saveCachedRegistrationIfNeeded()
             } else {
-                await self.tokenOwnership.removeCurrentToken()
+                await self.registrationOwnership.removeCurrentRegistration()
             }
             guard self.isCurrentUserConfiguration(generation: generation, userID: userID) else { return }
             await self.registerIfAuthorizedOrRequestIfNeeded(
@@ -76,7 +90,7 @@ final class RemoteNotificationRegistrationService: NSObject {
 
     func requestAuthorizationAndRegister() async throws -> Bool {
         let generation = userConfigurationGeneration
-        let userID = tokenOwnership.currentUserID
+        let userID = registrationOwnership.currentUserID
         return try await requestAuthorizationAndRegister(
             generation: generation,
             userID: userID
@@ -93,31 +107,34 @@ final class RemoteNotificationRegistrationService: NSObject {
         let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
         guard isCurrentUserConfiguration(generation: generation, userID: userID) else { return false }
         debugLog("requestAuthorization result: granted=\(granted)")
-        tokenOwnership.setNotificationsEnabled(granted)
+        registrationOwnership.setNotificationsEnabled(granted)
         guard granted else { return false }
 
         registerForRemoteNotificationsIfNeeded()
         return true
     }
 
-    func removeCurrentToken() async {
+    func removeCurrentRegistration() async {
         userConfigurationGeneration &+= 1
-        await tokenOwnership.removeCurrentToken()
+        await registrationOwnership.removeCurrentRegistration()
     }
 
     func prepareForSignOut() async throws {
         userConfigurationGeneration &+= 1
-        try await tokenOwnership.prepareForSignOut()
+        try await registrationOwnership.prepareForSignOut { [weak self] in
+            guard let self else { return nil }
+            return try await self.currentFirebaseInstallationRegistration()
+        }
     }
 
     func completeSignOut() {
         userConfigurationGeneration &+= 1
         lastAuthorizationRequestUserID = nil
-        tokenOwnership.completeSignOut()
+        registrationOwnership.completeSignOut()
     }
 
     func resumeAfterFailedSignOut() async {
-        await tokenOwnership.resumeAfterFailedSignOut()
+        await registrationOwnership.resumeAfterFailedSignOut()
     }
 
     func didRegisterForRemoteNotifications(deviceToken: Data) {
@@ -126,7 +143,7 @@ final class RemoteNotificationRegistrationService: NSObject {
         hasAPNSToken = true
         Messaging.messaging().apnsToken = deviceToken
         Task {
-            await refreshMessagingTokenIfAvailable()
+            await refreshMessagingRegistrationIfAvailable()
         }
         #endif
     }
@@ -167,25 +184,60 @@ final class RemoteNotificationRegistrationService: NSObject {
         }
     }
 
-    private func refreshMessagingTokenIfAvailable() async {
+    private func refreshMessagingRegistrationIfAvailable() async {
         #if canImport(FirebaseMessaging)
         guard hasAPNSToken else {
-            debugLog("Skipping FCM token refresh until APNs token is available.")
+            debugLog("Skipping FCM registration until an APNs token is available.")
             return
         }
-        guard !isRefreshingMessagingToken else { return }
-        isRefreshingMessagingToken = true
-        defer { isRefreshingMessagingToken = false }
+        guard !isRefreshingMessagingRegistration else { return }
+        isRefreshingMessagingRegistration = true
+        defer { isRefreshingMessagingRegistration = false }
 
         do {
-            let token = try await Messaging.messaging().token()
-            debugLog("FCM token received.")
-            await tokenOwnership.receiveToken(token)
+            try await withCheckedThrowingContinuation {
+                (continuation: CheckedContinuation<Void, any Error>) in
+                Messaging.messaging().register { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+            // Firebase delivers the FID through the Messaging delegate both for a
+            // new registration and an already registered installation.
+            debugLog("FCM registration request completed.")
         } catch {
-            debugLog("FCM token refresh failed: \(error)")
+            debugLog("FCM registration failed: \(error)")
         }
         #else
         debugLog("FirebaseMessaging is not linked; remote push token upload is inactive.")
+        #endif
+    }
+
+    private func currentFirebaseInstallationRegistration() async throws -> NotificationPushRegistration? {
+        #if canImport(FirebaseInstallations)
+        let identifier = try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<String, any Error>) in
+            Installations.installations().installationID { identifier, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let identifier {
+                    continuation.resume(returning: identifier)
+                } else {
+                    continuation.resume(
+                        throwing: RemoteNotificationRegistrationError.missingFirebaseInstallationID
+                    )
+                }
+            }
+        }
+        return NotificationPushRegistration(
+            identifier: identifier,
+            kind: .firebaseInstallationID
+        )
+        #else
+        return nil
         #endif
     }
 
@@ -196,7 +248,7 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     private func isCurrentUserConfiguration(generation: Int, userID: String?) -> Bool {
-        userConfigurationGeneration == generation && tokenOwnership.currentUserID == userID
+        userConfigurationGeneration == generation && registrationOwnership.currentUserID == userID
     }
 
     private func debugLog(_ message: String) {
@@ -209,14 +261,14 @@ final class RemoteNotificationRegistrationService: NSObject {
 
 #if canImport(FirebaseMessaging)
 private final class FirebaseMessagingDelegateAdapter: NSObject, MessagingDelegate {
-    private let onTokenReceived: @Sendable (String?) -> Void
+    private let onRegistrationReceived: @Sendable (String?) -> Void
 
-    init(onTokenReceived: @escaping @Sendable (String?) -> Void) {
-        self.onTokenReceived = onTokenReceived
+    init(onRegistrationReceived: @escaping @Sendable (String?) -> Void) {
+        self.onRegistrationReceived = onRegistrationReceived
     }
 
-    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        onTokenReceived(fcmToken)
+    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistration installationID: String?) {
+        onRegistrationReceived(installationID)
     }
 }
 #endif

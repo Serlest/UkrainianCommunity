@@ -49,9 +49,25 @@ protocol NotificationInboxRepository {
     func createNotification(userID: String, notification: AppNotification) async throws
 }
 
+nonisolated enum NotificationPushRegistrationKind: String, Sendable {
+    case firebaseInstallationID = "fid"
+    case legacyFCMToken = "token"
+}
+
+nonisolated struct NotificationPushRegistration: Hashable, Sendable {
+    let identifier: String
+    let kind: NotificationPushRegistrationKind
+}
+
 protocol NotificationPushTokenRepository {
-    func saveCurrentDeviceToken(userID: String, token: String) async throws
-    func deleteCurrentDeviceToken(userID: String, token: String) async throws
+    func saveCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws
+    func deleteCurrentDeviceRegistration(
+        userID: String,
+        registration: NotificationPushRegistration
+    ) async throws
 }
 
 protocol FeedbackRepository {
@@ -183,7 +199,7 @@ enum EventRegistrationMutationError: Error, Equatable {
 
 protocol EventRegistrationMutating {
     @MainActor
-    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult
+    func registerForEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult
 
     @MainActor
     func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult
@@ -211,14 +227,14 @@ protocol NewsRepository {
     func updateNews(_ news: NewsPost) async throws
     func updateNewsImageURL(id: String, imageURL: String?) async throws
     func deleteNews(id: String) async throws
-    func likeNews(id: String) async throws
+    func likeNews(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unlikeNews(id: String) async throws
     func recordNewsView(id: String) async throws -> Bool
     func fetchNewsComments(newsID: String) async throws -> [Comment]
     func addNewsComment(newsID: String, text: String, author: AppUser) async throws -> Comment
     func updateNewsComment(newsID: String, commentID: String, text: String) async throws -> Comment
     func deleteNewsComment(newsID: String, commentID: String) async throws
-    func bookmarkNews(id: String) async throws
+    func bookmarkNews(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unbookmarkNews(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
 }
@@ -244,7 +260,7 @@ protocol EventRepository: EventRegistrationMutating {
     func addEventComment(eventID: String, text: String, author: AppUser) async throws -> Comment
     func updateEventComment(eventID: String, commentID: String, text: String) async throws -> Comment
     func deleteEventComment(eventID: String, commentID: String) async throws
-    func bookmarkEvent(id: String) async throws
+    func bookmarkEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unbookmarkEvent(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
 }
@@ -261,7 +277,7 @@ protocol OrganizationRepository {
     func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL
     func likeOrganization(id: String) async throws
     func unlikeOrganization(id: String) async throws
-    func subscribeOrganization(id: String) async throws
+    func subscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unsubscribeOrganization(id: String) async throws
     func fetchOrganizationSubscriberPage(organizationID: String, limit: Int, after cursor: OrganizationSubscriberCursor?) async throws -> OrganizationSubscriberPage
     func fetchPublicUserProfiles(userIDs: [String]) async throws -> [PublicUserProfile]
@@ -269,7 +285,7 @@ protocol OrganizationRepository {
     func addOrganizationComment(organizationID: String, text: String, author: AppUser) async throws -> Comment
     func updateOrganizationComment(organizationID: String, commentID: String, text: String) async throws -> Comment
     func deleteOrganizationComment(organizationID: String, commentID: String) async throws
-    func bookmarkOrganization(id: String) async throws
+    func bookmarkOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unbookmarkOrganization(id: String) async throws
     func isOrganizationBookmarked(id: String) async throws -> Bool
     func fetchBookmarkedOrganizationIDs() async throws -> Set<String>

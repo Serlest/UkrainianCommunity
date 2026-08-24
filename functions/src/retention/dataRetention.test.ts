@@ -1,12 +1,20 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
+import {Timestamp} from "firebase-admin/firestore";
+
+import {
+  analyticsUserActivityRetentionDays,
+} from "../analytics/analyticsUserActivity";
 import {
   analyticsRateLimitRetentionHours,
   analyticsReceiptRetentionHours,
 } from "../analytics/analyticsEventGuard";
 import {
+  analyticsCleanupPageSize,
   contentRetentionMonths,
+  isExpiredAnalyticsMarker,
+  maxAnalyticsCleanupPagesPerRun,
   subtractUtcDays,
   subtractUtcMonths,
   systemLogRetentionDays,
@@ -25,8 +33,27 @@ test("content retention is six calendar months", () => {
 });
 
 test("analytics guard retention remains short-lived", () => {
-  assert.equal(analyticsReceiptRetentionHours, 48);
+  // Receipts must outlive the accepted 48-hour delivery horizon so a delayed
+  // retry cannot be replayed after the first receipt has already expired.
+  assert.equal(analyticsReceiptRetentionHours, 72);
   assert.equal(analyticsRateLimitRetentionHours, 2);
+  assert.equal(analyticsUserActivityRetentionDays, 60);
+  assert.equal(analyticsCleanupPageSize, 500);
+  assert.equal(maxAnalyticsCleanupPagesPerRun, 20);
+  assert.equal(
+    isExpiredAnalyticsMarker(
+      Timestamp.fromDate(new Date("2026-08-23T03:59:59.000Z")),
+      new Date("2026-08-23T04:00:00.000Z")
+    ),
+    true
+  );
+  assert.equal(
+    isExpiredAnalyticsMarker(
+      Timestamp.fromDate(new Date("2026-08-23T04:00:01.000Z")),
+      new Date("2026-08-23T04:00:00.000Z")
+    ),
+    false
+  );
 });
 
 test("system log retention matrix remains explicit", () => {

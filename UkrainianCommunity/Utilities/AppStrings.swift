@@ -862,6 +862,51 @@ enum AppStrings {
         static var showMore: String { text("owner_analytics.show_more", "Show more") }
         static var showLess: String { text("owner_analytics.show_less", "Show less") }
         static var overviewTitle: String { text("owner_analytics.overview.title", "Overview") }
+        static var trendSectionTitle: String { text("owner_analytics.trend.section_title", "Activity trend") }
+        static var trendSubtitle: String { text("owner_analytics.trend.subtitle", "Daily values for the selected period") }
+        static var trendTitle: String { text("owner_analytics.trend.title", "Metric") }
+        static var trendMetricPicker: String { text("owner_analytics.trend.metric_picker", "Trend metric") }
+        static var trendAccessibilityLabel: String { text("owner_analytics.trend.accessibility_label", "Analytics trend chart") }
+        static var date: String { text("owner_analytics.date", "Date") }
+        static var methodologyTitle: String { text("owner_analytics.methodology.title", "How these metrics work") }
+        static var methodologyMessage: String { text("owner_analytics.methodology.message", "Views, tracked engagement, and tracked-active windows include signed-in users who opted in; the same signal is deduplicated per user, content item, and analytics day. They describe tracked signals, not unique-user conversion. Account totals, status, registrations, and deletions are operational statistics for all accounts. Content regions come from the region assigned to published content; device location is not collected.") }
+        static var openDetailHint: String { text("owner_analytics.open_detail_hint", "Opens detailed analytics") }
+        static func trendSelection(metric: String, date: String, value: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.trend.selection",
+                defaultValue: "%1$@ · %2$@ · %3$@",
+                arguments: [metric, date, OwnerAnalyticsFormatting.integer(value)]
+            )
+        }
+        static func metricValue(_ metric: String, _ value: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.metric_value",
+                defaultValue: "%1$@: %2$@",
+                arguments: [metric, OwnerAnalyticsFormatting.integer(value)]
+            )
+        }
+        static func rank(_ formattedValue: String) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.rank",
+                defaultValue: "Rank %@",
+                arguments: [formattedValue]
+            )
+        }
+        static func updatedAt(_ value: String) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.updated_at",
+                defaultValue: "Updated %@",
+                arguments: [value]
+            )
+        }
+        static var updateTimeUnavailable: String { text("owner_analytics.updated_at.unavailable", "Update time unavailable") }
+        static func staleData(_ error: String) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.stale_data",
+                defaultValue: "Showing the last successful data. Refresh failed: %@",
+                arguments: [error]
+            )
+        }
         static var activityOverviewTitle: String { text("owner_analytics.activity_overview.title", "Views by content type") }
         static var todaySummarySubtitle: String { text("owner_analytics.overview.today_subtitle", "Metrics for today") }
         static var sevenDaysSummarySubtitle: String { text("owner_analytics.overview.seven_days_subtitle", "Metrics for the last 7 days") }
@@ -869,16 +914,20 @@ enum AppStrings {
         static var totalViews: String { text("owner_analytics.metric.total_views", "Total views") }
         static var deltaNoChange: String { text("owner_analytics.delta.no_change", "No change") }
         static func deltaVsPreviousPeriod(_ value: String) -> String {
-            String(format: text("owner_analytics.delta.vs_previous_period", "%@ vs previous period"), value)
+            LocalizationStore.localizedFormat(
+                "owner_analytics.delta.vs_previous_period",
+                defaultValue: "%@ vs previous period",
+                arguments: [value]
+            )
         }
         static var newsViews: String { text("owner_analytics.metric.news_views", "News views") }
         static var eventViews: String { text("owner_analytics.metric.event_views", "Event views") }
         static var organizationViews: String { text("owner_analytics.metric.organization_views", "Organization profile views") }
-        static var activeRegions: String { text("owner_analytics.metric.active_regions", "Active regions") }
-        static var actionsOverviewTitle: String { text("owner_analytics.actions.title", "Engagement and churn") }
-        static var actionsOverviewSubtitle: String { text("owner_analytics.actions.subtitle", "Likes, saves, registrations, follows, cancellations, and unfollows") }
-        static var actionsOverviewEmpty: String { text("owner_analytics.actions.empty", "Action analytics will appear after users like, save, register, or follow content.") }
-        static var totalLikes: String { text("owner_analytics.actions.total_likes", "Likes") }
+        static var activeRegions: String { text("owner_analytics.metric.active_regions", "Content regions") }
+        static var actionsOverviewTitle: String { text("owner_analytics.actions.title", "Tracked engagement") }
+        static var actionsOverviewSubtitle: String { text("owner_analytics.actions.subtitle", "Opt-in tracked likes, saves, event registrations, and organization follows") }
+        static var actionsOverviewEmpty: String { text("owner_analytics.actions.empty", "Tracked engagement will appear after signed-in users who opted in like or save content, register for events, or follow organizations.") }
+        static var newsLikes: String { text("owner_analytics.actions.news_likes", "News likes") }
         static var totalBookmarks: String { text("owner_analytics.actions.total_bookmarks", "Saves") }
         static var eventRegistrations: String { text("owner_analytics.actions.event_registrations", "Event registrations") }
         static var cancelledEventRegistrations: String { text("owner_analytics.actions.cancelled_event_registrations", "Cancelled registrations") }
@@ -888,19 +937,26 @@ enum AppStrings {
         static var userAnalyticsSubtitle: String { text("owner_analytics.user_analytics.subtitle", "Account growth, status, and activity") }
         static var totalUsers: String { text("owner_analytics.user.total_users", "Total users") }
         static var newRegistrations: String { text("owner_analytics.user.new_registrations", "New registrations") }
+        static func lifecyclePartialCoverage(startDate: Date) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.user.lifecycle_partial_coverage",
+                defaultValue: "Exact account creation and deletion history for this period starts on %@. Earlier values are a lower-bound estimate from the previous system and may omit changes between snapshots.",
+                arguments: [OwnerAnalyticsFormatting.date(startDate)]
+            )
+        }
         static var deletedAccounts: String { text("owner_analytics.user.deleted_accounts", "Deleted accounts") }
         static var blockedUsers: String { text("owner_analytics.user.blocked_users", "Blocked users") }
         static var deactivatedUsers: String { text("owner_analytics.user.deactivated_users", "Deactivated users") }
-        static var activeUsersToday: String { text("owner_analytics.user.active_today", "Active today") }
-        static var activeUsersSevenDays: String { text("owner_analytics.user.active_seven_days", "Active 7 days") }
-        static var activeUsersThirtyDays: String { text("owner_analytics.user.active_thirty_days", "Active 30 days") }
+        static var activeUsersToday: String { text("owner_analytics.user.active_today", "Tracked active today") }
+        static var activeUsersSevenDays: String { text("owner_analytics.user.active_seven_days", "Tracked active 7 days") }
+        static var activeUsersThirtyDays: String { text("owner_analytics.user.active_thirty_days", "Tracked active 30 days") }
         static var usersByFederalState: String { text("owner_analytics.user.by_federal_state", "Users by federal state") }
         static var userFederalStatesEmpty: String { text("owner_analytics.user.federal_states_empty", "Federal-state user counts will appear after user profiles include a selected state.") }
         static var users: String { text("owner_analytics.user.users", "Users") }
         static var topContentTitle: String { text("owner_analytics.top_content.title", "Top content") }
         static var topContentSubtitle: String { text("owner_analytics.top_content.subtitle", "Top items for the selected period") }
         static var topContentEmptyTitle: String { text("owner_analytics.top_content.empty.title", "Top content is not ready yet") }
-        static var topContentEmptyMessage: String { text("owner_analytics.top_content.empty.message", "There are no aggregated views for this period yet.") }
+        static var topContentEmptyMessage: String { text("owner_analytics.top_content.empty.message", "There are no tracked views for this period yet.") }
         static var popularNewsTitle: String { text("owner_analytics.popular.news", "Popular News") }
         static var popularEventsTitle: String { text("owner_analytics.popular.events", "Popular Events") }
         static var popularOrganizationsTitle: String { text("owner_analytics.popular.organizations", "Popular Organizations") }
@@ -908,12 +964,23 @@ enum AppStrings {
         static var newsDetailSubtitle: String { text("owner_analytics.detail.news.subtitle", "News performance for the selected period") }
         static var eventDetailSubtitle: String { text("owner_analytics.detail.event.subtitle", "Event performance for the selected period") }
         static var organizationDetailSubtitle: String { text("owner_analytics.detail.organization.subtitle", "Organization performance for the selected period") }
-        static var conversionRate: String { text("owner_analytics.detail.conversion_rate", "Conversion rate") }
+        static var registrationsPerTrackedView: String { text("owner_analytics.detail.registrations_per_tracked_view", "Registrations per tracked view") }
         static var profileViews: String { text("owner_analytics.detail.profile_views", "Profile views") }
+        static var detailRegionActivityTitle: String { text("owner_analytics.detail.region_activity.title", "Activity by content region") }
+        static var detailRegionActivitySubtitle: String { text("owner_analytics.detail.region_activity.subtitle", "Tracked views and actions grouped by the region assigned to published content. Device location is not collected.") }
+        static var detailRegionActivityEmptyMessage: String { text("owner_analytics.detail.region_activity.empty.message", "Regional activity will appear after users who opted in view or act on published content that has an assigned region.") }
+        static func detailPartialCoverage(startDate: Date) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.detail.partial_coverage",
+                defaultValue: "Detailed analytics for this period is available only from %@. Earlier lifetime totals are archived and are not presented as daily data.",
+                arguments: [OwnerAnalyticsFormatting.date(startDate)]
+            )
+        }
+        static var trackedSignals: String { text("owner_analytics.detail.tracked_signals", "Tracked signals") }
         static var topNews: String { text("owner_analytics.detail.top_news", "Top news") }
         static var topEvents: String { text("owner_analytics.detail.top_events", "Top events") }
         static var noDetailAnalyticsTitle: String { text("owner_analytics.detail.empty.title", "No detail analytics yet") }
-        static var noDetailAnalyticsMessage: String { text("owner_analytics.detail.empty.message", "Detail analytics will appear after this item receives views or actions for the selected period.") }
+        static var noDetailAnalyticsMessage: String { text("owner_analytics.detail.empty.message", "Detail analytics will appear after this item receives tracked views or actions from signed-in users who opted in during the selected period.") }
         static var likes: String { text("owner_analytics.detail.likes", "Likes") }
         static var saves: String { text("owner_analytics.detail.saves", "Saves") }
         static var registrations: String { text("owner_analytics.detail.registrations", "Registrations") }
@@ -923,12 +990,12 @@ enum AppStrings {
         static var views: String { text("owner_analytics.views", "Views") }
         static var region: String { text("owner_analytics.region.label", "Region") }
         static var organization: String { text("owner_analytics.organization.label", "Organization") }
-        static var regionActivityTitle: String { text("owner_analytics.region_activity.title", "Region activity") }
-        static var regionActivitySubtitle: String { text("owner_analytics.region_activity.subtitle", "Views grouped by Austrian region") }
-        static var regionActivityEmptyTitle: String { text("owner_analytics.region_activity.empty.title", "Region activity is empty") }
-        static var regionActivityEmptyMessage: String { text("owner_analytics.region_activity.empty.message", "Regions will appear after views include safe regional parameters.") }
+        static var regionActivityTitle: String { text("owner_analytics.region_activity.title", "Viewed content regions") }
+        static var regionActivitySubtitle: String { text("owner_analytics.region_activity.subtitle", "Views grouped by the region assigned to published content. Device location is not collected.") }
+        static var regionActivityEmptyTitle: String { text("owner_analytics.region_activity.empty.title", "No viewed content regions yet") }
+        static var regionActivityEmptyMessage: String { text("owner_analytics.region_activity.empty.message", "Regions appear after users who opted in view content that has a region assigned.") }
         static var emptyTitle: String { text("owner_analytics.empty.title", "No analytics data yet") }
-        static var emptyTodayMessage: String { text("owner_analytics.empty.today_message", "Analytics will appear after users start viewing content.") }
+        static var emptyTodayMessage: String { text("owner_analytics.empty.today_message", "Analytics will appear after signed-in users who opted in view published content.") }
         static var emptyRollupMessage: String { text("owner_analytics.empty.rollup_message", "This period will appear after scheduled analytics rollups are available. Today's data may already be available separately.") }
         static var loading: String { text("owner_analytics.loading", "Loading analytics...") }
         static var loadFailedTitle: String { text("owner_analytics.error.load_failed.title", "Failed to load analytics") }
@@ -937,7 +1004,18 @@ enum AppStrings {
         static var loadFailedNetwork: String { text("owner_analytics.error.load_failed.network", "Analytics is temporarily unavailable. Check your connection and try again.") }
         static var loadFailedNotFound: String { text("owner_analytics.error.load_failed.not_found", "Analytics data has not been created yet.") }
         static var loadFailedValidation: String { text("owner_analytics.error.load_failed.validation", "Analytics data has an unexpected format.") }
+        static var rollupRefreshing: String { text("owner_analytics.error.rollup_refreshing", "Analytics for this period is being refreshed. Try again in a moment.") }
         static var retry: String { text("owner_analytics.retry", "Retry") }
+        static func partialData(_ sources: String) -> String {
+            LocalizationStore.localizedFormat(
+                "owner_analytics.partial_data",
+                defaultValue: "Some analytics is temporarily unavailable: %@. Available sections are still shown; pull to refresh.",
+                arguments: [sources]
+            )
+        }
+        static var sourceTopContent: String { text("owner_analytics.source.top_content", "top content") }
+        static var sourceContentRegions: String { text("owner_analytics.source.content_regions", "content regions") }
+        static var sourceUsers: String { text("owner_analytics.source.users", "user statistics") }
         static var contentItemsSuffix: String { text("owner_analytics.region_activity.content_items_suffix", "content items") }
         static var contentTypeNews: String { text("owner_analytics.content_type.news", "News") }
         static var contentTypeEvent: String { text("owner_analytics.content_type.event", "Event") }
@@ -1269,14 +1347,6 @@ enum AppStrings {
         static var ownerPrivacyPlatformRulesSubtitle: String { text("profile.owner.privacy_platform_rules.subtitle", "Політики приватності та правила використання платформи.") }
         static var ownerLegalDocuments: String { text("profile.owner.legal_documents", "Правові документи") }
         static var ownerLegalDocumentsSubtitle: String { text("profile.owner.legal_documents.subtitle", "Умови користування та політика конфіденційності.") }
-        static var ownerAnalytics: String { text("profile.owner.analytics", "Аналітика") }
-        static var ownerAnalyticsSubtitle: String { text("profile.owner.analytics.subtitle", "Аналітичні модулі без fake numbers, поки backend не готовий.") }
-        static var ownerAnalyticsAdvancedSubtitle: String { text("profile.owner.analytics.advanced_subtitle", "Активні користувачі, події, організації, регіони та retention.") }
-        static var ownerActiveUsers: String { text("profile.owner.analytics.active_users", "Активні користувачі") }
-        static var ownerPopularEvents: String { text("profile.owner.analytics.popular_events", "Популярні події") }
-        static var ownerOrganizationActivity: String { text("profile.owner.analytics.organization_activity", "Активність організацій") }
-        static var ownerRegionalStats: String { text("profile.owner.analytics.regional_stats", "Регіональна статистика") }
-        static var ownerRetention: String { text("profile.owner.analytics.retention", "Утримання користувачів") }
         static var ownerAdvancedSystems: String { text("profile.owner.advanced_systems", "Розширені системи платформи") }
         static var ownerAdvancedSystemsSubtitle: String { text("profile.owner.advanced_systems.subtitle", "Аналітика, журнал дій, безпека, інтеграції та backup systems.") }
         static var ownerAuditSecurity: String { text("profile.owner.audit_security", "Безпека і журнал дій") }
@@ -1355,6 +1425,9 @@ enum AppStrings {
         static var languageSettingsSubtitle: String { text("profile.settings.language.subtitle", "Мова інтерфейсу застосунку.") }
         static var appAppearance: String { text("profile.settings.app_appearance", "Тема оформлення") }
         static var appearanceSettingsSubtitle: String { text("profile.settings.appearance.subtitle", "Системна, світла або темна тема.") }
+        static var analyticsCollectionTitle: String { text("profile.settings.analytics.title", "Optional aggregate analytics") }
+        static var analyticsCollectionSubtitle: String { text("profile.settings.analytics.subtitle", "Optional. Contributes daily view and action signals to protected aggregate reports for content owners. Turning this off stops only those analytics signals. Account-linked records needed for features you use—including persistent view deduplication/public counters, likes, bookmarks, follows, and registrations—are still created. Never used for advertising or cross-app tracking.") }
+        static var analyticsCollectionUnavailableSubtitle: String { text("profile.settings.analytics.unavailable_subtitle", "Sign in with a verified account to choose whether to contribute optional aggregate analytics. Records needed to provide account features are separate from this choice.") }
         static var regionSettings: String { text("profile.settings.region", "Регіон / федеральна земля") }
         static var regionSettingsSubtitle: String { text("profile.settings.region.subtitle", "Регіон використовується для локального контенту.") }
         static var privacySettingsSubtitle: String { text("profile.settings.privacy.subtitle", "Політика приватності та обробка даних.") }
@@ -1804,7 +1877,7 @@ enum AppStrings {
         static var privacyIntroTitle: String { text("legal.privacy.intro.title", "What we store") }
         static var privacyIntroBody: String { text("legal.privacy.intro.body", "When you create an account, we store the profile fields needed for the app to function: email address, display name, optional Telegram username, selected federal state, role/status fields, and timestamps related to account creation and consent.") }
         static var privacyUsageTitle: String { text("legal.privacy.usage.title", "Why we use your data") }
-        static var privacyUsageBody: String { text("legal.privacy.usage.body", "We use account data to authenticate you, show your profile, apply permissions, support feedback and event registration, and keep the community space safe through moderation and abuse prevention.") }
+        static var privacyUsageBody: String { text("legal.privacy.usage.body", "We use account data to authenticate you, show your profile, apply permissions, support feedback and event registration, and protect the community through moderation and abuse prevention. Using account features creates account-linked operational records needed to provide them, including persistent news/event view deduplication and public counters, likes, bookmarks, organization follows, and registrations. These records are created independently of the optional analytics setting. If you opt in, separate daily view and action signals contribute to protected first-party aggregate reports for content owners; opting out stops only those analytics signals.") }
         static var privacyStorageTitle: String { text("legal.privacy.storage.title", "Storage and service providers") }
         static var privacyStorageBody: String { text("legal.privacy.storage.body", "This app uses Firebase services for authentication, database storage, and media storage. Data is processed only to deliver the app’s features, maintain security, and support internal operations.") }
         static var privacySharingTitle: String { text("legal.privacy.sharing.title", "Sharing and visibility") }

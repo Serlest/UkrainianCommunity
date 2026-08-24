@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import plistlib
 import re
 import sys
@@ -17,10 +18,28 @@ ENTITLEMENTS = (
     REPOSITORY_ROOT / "UkrainianCommunity" / "UkrainianCommunity.entitlements"
 )
 PROJECT_FILE = REPOSITORY_ROOT / "UkrainianCommunity.xcodeproj" / "project.pbxproj"
+PACKAGE_RESOLVED = (
+    REPOSITORY_ROOT
+    / "UkrainianCommunity.xcodeproj"
+    / "project.xcworkspace"
+    / "xcshareddata"
+    / "swiftpm"
+    / "Package.resolved"
+)
 APP_SOURCE = (
     REPOSITORY_ROOT / "UkrainianCommunity" / "App" / "UkrainianCommunityApp.swift"
 )
+PUSH_REGISTRATION_MUTATIONS_SOURCE = (
+    REPOSITORY_ROOT
+    / "functions"
+    / "src"
+    / "notifications"
+    / "pushRegistrationMutations.ts"
+)
+FUNCTIONS_PACKAGE = REPOSITORY_ROOT / "functions" / "package.json"
+QUALITY_WORKFLOW = REPOSITORY_ROOT / ".github" / "workflows" / "quality.yml"
 APP_BUNDLE_IDENTIFIER = "at.serlest.UkrainianCommunity"
+AUDITED_FIREBASE_IOS_SDK_VERSION = "12.18.0"
 
 
 def load_plist(path: Path) -> dict[str, Any]:
@@ -95,19 +114,98 @@ def validate_app_check(source: str, failures: list[str]) -> None:
         )
 
 
+def validate_firebase_package_version(project: str, failures: list[str]) -> None:
+    requirement_match = re.search(
+        r'repositoryURL = "https://github.com/firebase/firebase-ios-sdk";'
+        r".*?minimumVersion = ([^;]+);",
+        project,
+        re.DOTALL,
+    )
+    if (
+        requirement_match is None
+        or requirement_match.group(1).strip() != AUDITED_FIREBASE_IOS_SDK_VERSION
+    ):
+        failures.append(
+            "Firebase iOS SDK minimum version must remain at the audited "
+            f"{AUDITED_FIREBASE_IOS_SDK_VERSION} FID migration baseline"
+        )
+
+    resolved = json.loads(PACKAGE_RESOLVED.read_text(encoding="utf-8"))
+    resolved_version = next(
+        (
+            pin.get("state", {}).get("version")
+            for pin in resolved.get("pins", [])
+            if pin.get("identity") == "firebase-ios-sdk"
+        ),
+        None,
+    )
+    if resolved_version != AUDITED_FIREBASE_IOS_SDK_VERSION:
+        failures.append(
+            "Package.resolved must pin the audited Firebase iOS SDK version "
+            f"{AUDITED_FIREBASE_IOS_SDK_VERSION}; re-audit FID behavior before upgrading"
+        )
+    if "productName = FirebaseInstallations;" not in project:
+        failures.append(
+            "FirebaseInstallations must be linked for sign-out registration cleanup"
+        )
+
+
+def validate_push_registration_cleanup(failures: list[str]) -> None:
+    source = PUSH_REGISTRATION_MUTATIONS_SOURCE.read_text(encoding="utf-8")
+    callable_options_match = re.search(
+        r"const callableOptions\s*=\s*\{.*?enforceAppCheck:\s*true,?.*?\};",
+        source,
+        re.DOTALL,
+    )
+    callable_uses_options = re.search(
+        r"deleteNotificationPushRegistration\s*=\s*onCall\(\s*callableOptions,",
+        source,
+    )
+    if callable_options_match is None or callable_uses_options is None:
+        failures.append(
+            "Push registration cleanup callable must enforce Firebase App Check"
+        )
+
+    package = json.loads(FUNCTIONS_PACKAGE.read_text(encoding="utf-8"))
+    integration_script = package.get("scripts", {}).get(
+        "test:notifications:integration"
+    )
+    if not isinstance(integration_script, str) or (
+        "pushRegistrationMutations.integration.test.js" not in integration_script
+    ):
+        failures.append(
+            "Functions must expose the push registration cleanup emulator test"
+        )
+
+    workflow = QUALITY_WORKFLOW.read_text(encoding="utf-8")
+    if "npm run test:notifications:integration" not in workflow:
+        failures.append(
+            "Quality CI must run the push registration cleanup emulator test"
+        )
+
+
 def main() -> int:
     failures: list[str] = []
 
     info_plist = load_plist(INFO_PLIST)
     if info_plist.get("ITSAppUsesNonExemptEncryption") is not False:
         failures.append("Info.plist must declare ITSAppUsesNonExemptEncryption as false")
-    if info_plist.get("GOOGLE_ANALYTICS_COLLECTION_ENABLED") is not False:
-        failures.append("Firebase Analytics must be disabled by default")
-    if (
-        info_plist.get("GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS")
-        is not False
-    ):
-        failures.append("Analytics ad-personalization signals must be disabled")
+    if info_plist.get("FirebaseMessagingInstallationIdEnabled") is not True:
+        failures.append(
+            "Info.plist must enable FirebaseMessagingInstallationIdEnabled"
+        )
+    forbidden_analytics_keys = {
+        "FIREBASE_ANALYTICS_COLLECTION_ENABLED",
+        "GOOGLE_ANALYTICS_COLLECTION_ENABLED",
+        "GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS",
+        "GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED",
+    }
+    present_analytics_keys = sorted(forbidden_analytics_keys.intersection(info_plist))
+    if present_analytics_keys:
+        failures.append(
+            "Firebase Analytics is not shipped; remove its Info.plist keys: "
+            + ", ".join(present_analytics_keys)
+        )
 
     validate_privacy_manifest(load_plist(PRIVACY_MANIFEST), failures)
 
@@ -118,7 +216,13 @@ def main() -> int:
     ):
         failures.append("Release entitlements must use the production App Attest environment")
 
-    settings = app_build_settings(PROJECT_FILE.read_text(encoding="utf-8"))
+    project_source = PROJECT_FILE.read_text(encoding="utf-8")
+    if "FirebaseAnalytics" in project_source:
+        failures.append("FirebaseAnalytics must not be linked in the release target")
+    validate_firebase_package_version(project_source, failures)
+    validate_push_registration_cleanup(failures)
+
+    settings = app_build_settings(project_source)
     versions = build_versions(settings)
     if len(settings) != 2 or len(versions) != 2:
         failures.append("Expected Debug and Release build settings for the app target")

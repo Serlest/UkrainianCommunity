@@ -1,6 +1,5 @@
 import { FieldPath, FieldValue } from "firebase-admin/firestore";
 import type { Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
-import { getMessaging } from "firebase-admin/messaging";
 import {
   onDocumentCreated,
   onDocumentUpdated,
@@ -11,6 +10,7 @@ import {
   buildNotificationDataPayload,
   resolveNotificationRecipients,
 } from "./notificationPayloads";
+import { sendPushToRegistrationDocuments } from "./pushRegistrations";
 
 const triggerOptions = {
   region: "europe-west3",
@@ -19,7 +19,6 @@ const triggerOptions = {
 
 const followerPageSize = 250;
 const concurrentRecipientWrites = 50;
-const fcmMulticastLimit = 500;
 
 type PublishedContentKind = "news" | "event";
 type NotificationLanguage = "uk" | "de" | "en";
@@ -273,13 +272,6 @@ async function sendFollowerPushes(
         .collection("notificationPushTokens")
         .get(),
     ]);
-    const tokens = tokenSnapshot.docs
-      .map((document) => stringField(document.data(), "token"))
-      .filter((token): token is string => token !== undefined);
-    if (tokens.length === 0) {
-      return;
-    }
-
     const data = buildNotificationDataPayload({
       notificationId: notification.notificationId,
       type: content.kind === "news"
@@ -294,23 +286,20 @@ async function sendFollowerPushes(
     });
     const copy = followerNotificationCopy(content, notificationLanguage(userSnapshot.data()));
 
-    await Promise.all(chunks(tokens, fcmMulticastLimit).map((tokenChunk) =>
-      getMessaging().sendEachForMulticast({
-        tokens: tokenChunk,
-        notification: {
-          title: copy.title,
-          body: copy.body,
-        },
-        data,
-        apns: {
-          payload: {
-            aps: {
-              sound: "default",
-            },
+    await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
+      notification: {
+        title: copy.title,
+        body: copy.body,
+      },
+      data,
+      apns: {
+        payload: {
+          aps: {
+            sound: "default",
           },
         },
-      })
-    ));
+      },
+    });
   }));
 }
 

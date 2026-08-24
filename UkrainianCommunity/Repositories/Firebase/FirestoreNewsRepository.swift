@@ -287,13 +287,16 @@ struct FirestoreNewsRepository: NewsRepository {
         )
     }
 
-    func likeNews(id: String) async throws {
+    func likeNews(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
         }
 
         let newsReference = collection.document(id)
         let likeReference = likesCollection.document(likeDocumentID(newsID: id, userID: uid))
+        let proofReference = actionCapture.map {
+            Firestore.firestore().collection("analyticsActionProofs").document($0.proofID)
+        }
         let likeData: [String: Any] = [
             "id": likeReference.documentID,
             "newsId": id,
@@ -316,6 +319,12 @@ struct FirestoreNewsRepository: NewsRepository {
                 }
 
                 transaction.setData(likeData, forDocument: likeReference)
+                if let actionCapture,
+                   actionCapture.eventName == "news_like",
+                   actionCapture.contentID == id,
+                   let proofReference {
+                    transaction.setData(actionCapture.firestoreData, forDocument: proofReference)
+                }
             } catch {
                 errorPointer?.pointee = (error as NSError)
             }
@@ -543,18 +552,29 @@ struct FirestoreNewsRepository: NewsRepository {
         }
     }
 
-    func bookmarkNews(id: String) async throws {
+    func bookmarkNews(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
         }
 
+        let database = Firestore.firestore()
         let bookmarkReference = bookmarkReference(newsID: id, userID: uid)
-        try await bookmarkReference.setData([
+        let batch = database.batch()
+        batch.setData([
             "id": id,
             "newsId": id,
             "userId": uid,
             "createdAt": FieldValue.serverTimestamp()
-        ], merge: true)
+        ], forDocument: bookmarkReference)
+        if let actionCapture,
+           actionCapture.eventName == "news_bookmark",
+           actionCapture.contentID == id {
+            batch.setData(
+                actionCapture.firestoreData,
+                forDocument: database.collection("analyticsActionProofs").document(actionCapture.proofID)
+            )
+        }
+        try await batch.commit()
         await sessionDataCache.updateBookmarkedNewsID(id, isBookmarked: true, for: uid)
     }
 

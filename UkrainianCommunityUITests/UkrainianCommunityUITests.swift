@@ -35,6 +35,26 @@ final class UkrainianCommunityUITests: XCTestCase {
         return app
     }
 
+    private func launchOwnerApp(
+        language: String = "de",
+        appearance: String? = nil,
+        contentSizeCategory: String? = nil
+    ) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments.append("-ui-testing")
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = language
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        if let appearance {
+            app.launchEnvironment["UITestAppAppearance"] = appearance
+        }
+        if let contentSizeCategory {
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSizeCategory]
+        }
+        app.launch()
+        return app
+    }
+
     private func attachScreenshot(
         named name: String,
         from app: XCUIApplication,
@@ -88,7 +108,21 @@ final class UkrainianCommunityUITests: XCTestCase {
 
         let tabButton = rootTabButton(tab, in: tabBar)
         XCTAssertTrue(tabButton.waitForExistence(timeout: timeout), file: file, line: line)
-        tabButton.tap()
+        if tabButton.isHittable {
+            tabButton.tap()
+        } else if let tabIndex = rootTabs.firstIndex(of: tab) {
+            // On iOS 26 the Liquid Glass tab button can briefly report an
+            // invalid XCTest hit point even though its visible TabBar frame is
+            // already stable. Tapping the corresponding TabBar segment keeps
+            // the test deterministic without adding product-only UI hooks.
+            let horizontalOffset = (CGFloat(tabIndex) + 0.5) / CGFloat(rootTabs.count)
+            tabBar.coordinate(
+                withNormalizedOffset: CGVector(dx: horizontalOffset, dy: 0.5)
+            ).tap()
+        } else {
+            XCTFail("Unknown root tab index: \(tab.tabIdentifier)", file: file, line: line)
+            return
+        }
 
         XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout), file: file, line: line)
         XCTAssertEqual(app.state, .runningForeground, file: file, line: line)
@@ -96,9 +130,18 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     private func rootTabButton(_ tab: MainTabSpec, in tabBar: XCUIElement) -> XCUIElement {
         let identifiedButton = tabBar.buttons[tab.tabIdentifier]
-        return identifiedButton.waitForExistence(timeout: 1)
-            ? identifiedButton
-            : tabBar.buttons[tab.tabLabel]
+        if identifiedButton.waitForExistence(timeout: 1) {
+            return identifiedButton
+        }
+
+        // Some iOS 26 accessibility-size tab layouts omit the Label's custom
+        // identifier. The tab order is a product contract and is verified by
+        // a dedicated UI test, so its stable index is a language-neutral
+        // fallback (unlike a hard-coded localized label).
+        guard let tabIndex = rootTabs.firstIndex(of: tab) else {
+            return tabBar.buttons[tab.tabLabel]
+        }
+        return tabBar.buttons.element(boundBy: tabIndex)
     }
 
     private func navigateBackIfPossible(in app: XCUIApplication) {
@@ -113,10 +156,36 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     private func scrollToElement(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 6) {
         var remainingSwipes = maxSwipes
-        while !element.exists && remainingSwipes > 0 {
+        while (!element.exists || !element.isHittable) && remainingSwipes > 0 {
             app.swipeUp()
             remainingSwipes -= 1
         }
+    }
+
+    private func element(_ identifier: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    private func openOwnerAnalytics(in app: XCUIApplication) {
+        tapRootTab(rootTabs[3], in: app)
+
+        let analyticsLink = element("profile.owner.analytics", in: app)
+        scrollToElement(analyticsLink, in: app, maxSwipes: 14)
+        XCTAssertTrue(analyticsLink.exists)
+        XCTAssertTrue(analyticsLink.isHittable)
+        analyticsLink.tap()
+
+        let analyticsScreen = element("screen.ownerAnalytics", in: app)
+        if !analyticsScreen.waitForExistence(timeout: 10), analyticsLink.isHittable {
+            // After a long profile scroll, iOS 26 can occasionally consume the
+            // first tap while the scroll view is still settling. Retry only
+            // when navigation demonstrably did not happen.
+            analyticsLink.tap()
+        }
+        XCTAssertTrue(
+            analyticsScreen.waitForExistence(timeout: 10),
+            "Owner analytics did not open after tapping its profile link"
+        )
     }
 
     @MainActor
@@ -266,7 +335,10 @@ final class UkrainianCommunityUITests: XCTestCase {
         assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)
 
         let eventCard = app.buttons["event.card.event-1"]
-        XCTAssertTrue(eventCard.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            eventCard.waitForExistence(timeout: 20),
+            "The deterministic mock event did not finish loading"
+        )
         eventCard.tap()
 
         let registerButton = app.buttons["event.register.event-1"]
@@ -312,6 +384,59 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(termsLink.exists)
         XCTAssertTrue(privacyLink.exists)
     }
+
+    @MainActor
+    func testOwnerAnalyticsSearchPeriodAndDetailJourney() throws {
+        let app = launchOwnerApp()
+        openOwnerAnalytics(in: app)
+
+        XCTAssertTrue(element("ownerAnalytics.updatedAt", in: app).waitForExistence(timeout: 10))
+
+        let searchField = element("ownerAnalytics.search", in: app)
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        searchField.tap()
+        searchField.typeText("zzzz-no-match")
+        XCTAssertTrue(element("ownerAnalytics.search.empty", in: app).waitForExistence(timeout: 5))
+
+        let clearSearchButton = app.buttons["Suche löschen"].firstMatch
+        XCTAssertTrue(clearSearchButton.waitForExistence(timeout: 5))
+        clearSearchButton.tap()
+        XCTAssertFalse(element("ownerAnalytics.search.empty", in: app).exists)
+
+        let sevenDayButton = app.buttons["7 Tage"].firstMatch
+        XCTAssertTrue(sevenDayButton.waitForExistence(timeout: 5))
+        sevenDayButton.tap()
+
+        let trendChart = element("ownerAnalytics.trendChart", in: app)
+        scrollToElement(trendChart, in: app, maxSwipes: 10)
+        XCTAssertTrue(trendChart.exists)
+
+        let contentLink = element("ownerAnalytics.content.news.news-language-courses-update", in: app)
+        scrollToElement(contentLink, in: app, maxSwipes: 14)
+        XCTAssertTrue(contentLink.exists)
+        XCTAssertTrue(contentLink.isHittable)
+        contentLink.tap()
+
+        XCTAssertTrue(element("screen.ownerAnalytics.contentDetail", in: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(element("ownerAnalytics.detail.periodPicker", in: app).waitForExistence(timeout: 5))
+        attachScreenshot(named: "Owner Analytics Detail", from: app)
+    }
+
+    @MainActor
+    func testOwnerAnalyticsSupportsDarkUkrainianAccessibilityText() throws {
+        let app = launchOwnerApp(
+            language: "uk",
+            appearance: "dark",
+            contentSizeCategory: "UICTContentSizeCategoryAccessibilityXXXL"
+        )
+        openOwnerAnalytics(in: app)
+
+        XCTAssertTrue(element("ownerAnalytics.periodPicker", in: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(element("ownerAnalytics.updatedAt", in: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(element("ownerAnalytics.search", in: app).waitForExistence(timeout: 10))
+        XCTAssertEqual(app.state, .runningForeground)
+        attachScreenshot(named: "Owner Analytics Ukrainian Dark AX", from: app)
+    }
 }
 
 private enum AppStringsPlaceholder {
@@ -319,7 +444,7 @@ private enum AppStringsPlaceholder {
     static let acceptPrivacyDE = "Ich akzeptiere die Datenschutzerklärung"
 }
 
-private struct MainTabSpec {
+private struct MainTabSpec: Equatable {
     let screenIdentifier: String
     let tabIdentifier: String
     let tabLabel: String

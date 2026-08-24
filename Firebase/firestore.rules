@@ -498,7 +498,16 @@ service cloud.firestore {
     }
 
     function notificationPushTokenFields() {
-      return ['id', 'token', 'platform', 'deviceName', 'appVersion', 'createdAt', 'updatedAt'];
+      return [
+        'id',
+        'token',
+        'registrationType',
+        'platform',
+        'deviceName',
+        'appVersion',
+        'createdAt',
+        'updatedAt'
+      ];
     }
 
     function validNotificationPushTokenWrite(uid, tokenId) {
@@ -509,6 +518,11 @@ service cloud.firestore {
         && request.resource.data.token is string
         && request.resource.data.token.size() > 0
         && request.resource.data.token.size() <= 4096
+        // Missing type is the legacy schema used by supported older clients.
+        && (!('registrationType' in request.resource.data)
+          || request.resource.data.registrationType == 'token'
+          || (request.resource.data.registrationType == 'fid'
+            && request.resource.data.token.matches('^[A-Za-z0-9_-]{22}$')))
         && request.resource.data.platform == 'ios'
         && (!('deviceName' in request.resource.data) || request.resource.data.deviceName is string)
         && (!('appVersion' in request.resource.data) || request.resource.data.appVersion is string)
@@ -971,6 +985,30 @@ service cloud.firestore {
 
     function safeUserCreate(uid) {
       return isSelf(uid)
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'fullName',
+          'displayName',
+          'city',
+          'email',
+          'bio',
+          'telegramUsername',
+          'isBlocked',
+          'blockState',
+          'globalRole',
+          'selectedFederalState',
+          'accountStatus',
+          'warningCount',
+          'communityMemberships',
+          'acceptedTermsAt',
+          'acceptedPrivacyAt',
+          'acceptedTermsVersion',
+          'acceptedPrivacyVersion',
+          'termsVersion',
+          'privacyVersion',
+          'createdAt',
+          'updatedAt'
+        ])
         && request.resource.data.id == uid
         && request.resource.data.fullName is string
         && request.resource.data.displayName is string
@@ -992,6 +1030,15 @@ service cloud.firestore {
         && request.resource.data.acceptedPrivacyVersion is string
         && request.resource.data.termsVersion is string
         && request.resource.data.privacyVersion is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedAt == request.time
+        && (
+          !('telegramUsername' in request.resource.data)
+          || request.resource.data.telegramUsername == null
+          || request.resource.data.telegramUsername is string
+        )
         && request.resource.data.communityMemberships is list
         && request.resource.data.communityMemberships.size() == 0;
     }
@@ -1431,7 +1478,22 @@ service cloud.firestore {
       return isVerifiedActiveUser()
         && request.resource.data.id == likeId
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.createdAt is timestamp;
+        && request.resource.data.createdAt == request.time;
+    }
+
+    function approvedNewsTargetExists(newsId) {
+      return exists(/databases/$(database)/documents/news/$(newsId))
+        && get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved';
+    }
+
+    function approvedEventTargetExists(eventId) {
+      return exists(/databases/$(database)/documents/events/$(eventId))
+        && get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved';
+    }
+
+    function approvedOrganizationTargetExists(organizationId) {
+      return exists(/databases/$(database)/documents/organizations/$(organizationId))
+        && get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderationStatus == 'approved';
     }
 
     function validNewsLikeCreate(likeId) {
@@ -1439,8 +1501,9 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(newsLikeFields())
         && request.resource.data.newsId is string
         && request.resource.data.newsId.size() > 0
+        && !request.resource.data.newsId.matches('^(event_|organization_).*')
         && likeId == request.resource.data.newsId + '_' + request.auth.uid
-        && exists(/databases/$(database)/documents/news/$(request.resource.data.newsId));
+        && approvedNewsTargetExists(request.resource.data.newsId);
     }
 
     function validEventLikeCreate(likeId) {
@@ -1449,7 +1512,7 @@ service cloud.firestore {
         && request.resource.data.eventId is string
         && request.resource.data.eventId.size() > 0
         && likeId == 'event_' + request.resource.data.eventId + '_' + request.auth.uid
-        && exists(/databases/$(database)/documents/events/$(request.resource.data.eventId));
+        && approvedEventTargetExists(request.resource.data.eventId);
     }
 
     function validOrganizationLikeCreate(likeId) {
@@ -1457,8 +1520,9 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(organizationLikeFields())
         && request.resource.data.organizationId is string
         && request.resource.data.organizationId.size() > 0
+        && !request.resource.data.organizationId.matches('^follow_.*')
         && likeId == 'organization_' + request.resource.data.organizationId + '_' + request.auth.uid
-        && exists(/databases/$(database)/documents/organizations/$(request.resource.data.organizationId));
+        && approvedOrganizationTargetExists(request.resource.data.organizationId);
     }
 
     function validOrganizationSubscriptionCreate(likeId) {
@@ -1467,7 +1531,7 @@ service cloud.firestore {
         && request.resource.data.subscribedOrganizationId is string
         && request.resource.data.subscribedOrganizationId.size() > 0
         && likeId == 'organization_follow_' + request.resource.data.subscribedOrganizationId + '_' + request.auth.uid
-        && exists(/databases/$(database)/documents/organizations/$(request.resource.data.subscribedOrganizationId));
+        && approvedOrganizationTargetExists(request.resource.data.subscribedOrganizationId);
     }
 
     function canReadOrganizationSubscription() {
@@ -1479,10 +1543,72 @@ service cloud.firestore {
     }
 
     function validLikeCreate(likeId) {
-      return validNewsLikeCreate(likeId)
-        || validEventLikeCreate(likeId)
-        || validOrganizationLikeCreate(likeId)
-        || validOrganizationSubscriptionCreate(likeId);
+      // Route by the one canonical target field before evaluating the more
+      // expensive authorization branch. This stays below the rules expression
+      // budget on denied writes and keys().hasOnly still rejects mixed targets.
+      return ('newsId' in request.resource.data)
+        ? validNewsLikeCreate(likeId)
+        : ('eventId' in request.resource.data)
+          ? validEventLikeCreate(likeId)
+          : ('organizationId' in request.resource.data)
+            ? validOrganizationLikeCreate(likeId)
+            : ('subscribedOrganizationId' in request.resource.data)
+              ? validOrganizationSubscriptionCreate(likeId)
+              : false;
+    }
+
+    function validAnalyticsActionProofCreate(proofId) {
+      return isVerifiedActiveUser()
+        && request.resource.data.keys().hasOnly([
+          'proofId',
+          'eventName',
+          'contentId',
+          'actorBinding',
+          'sessionBinding',
+          'createdAt',
+          'expiresAt'
+        ])
+        && request.resource.data.proofId == proofId
+        && proofId.matches('^[0-9A-Fa-f-]{36}$')
+        && request.resource.data.eventName in [
+          'news_like',
+          'news_bookmark',
+          'event_bookmark',
+          'organization_follow',
+          'organization_bookmark'
+        ]
+        && request.resource.data.contentId is string
+        && request.resource.data.contentId.size() > 0
+        && request.resource.data.contentId.size() <= 512
+        && !request.resource.data.contentId.matches('.*\\/.*')
+        && request.resource.data.actorBinding.matches('^[0-9a-f]{64}$')
+        && request.resource.data.sessionBinding.matches('^[0-9a-f]{64}$')
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt > request.time + duration.value(47, 'h')
+        && request.resource.data.expiresAt <= request.time + duration.value(48, 'h')
+        && analyticsActionTargetCreatedInSameWrite(
+          request.resource.data.eventName,
+          request.resource.data.contentId
+        );
+    }
+
+    function analyticsActionTargetCreatedInSameWrite(eventName, contentId) {
+      return eventName == 'news_like'
+        ? !exists(/databases/$(database)/documents/likes/$(contentId + '_' + request.auth.uid))
+          && existsAfter(/databases/$(database)/documents/likes/$(contentId + '_' + request.auth.uid))
+        : eventName == 'news_bookmark'
+          ? !exists(/databases/$(database)/documents/users/$(request.auth.uid)/newsBookmarks/$(contentId))
+            && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/newsBookmarks/$(contentId))
+          : eventName == 'event_bookmark'
+            ? !exists(/databases/$(database)/documents/users/$(request.auth.uid)/eventBookmarks/$(contentId))
+              && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/eventBookmarks/$(contentId))
+            : eventName == 'organization_follow'
+              ? !exists(/databases/$(database)/documents/likes/$('organization_follow_' + contentId + '_' + request.auth.uid))
+                && existsAfter(/databases/$(database)/documents/likes/$('organization_follow_' + contentId + '_' + request.auth.uid))
+              : eventName == 'organization_bookmark'
+                ? !exists(/databases/$(database)/documents/users/$(request.auth.uid)/organizationBookmarks/$(contentId))
+                  && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/organizationBookmarks/$(contentId))
+                : false;
     }
 
     function isOrganizationContent(data) {
@@ -1789,9 +1915,12 @@ service cloud.firestore {
 
         allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['id', 'newsId', 'userId', 'createdAt'])
           && request.resource.data.id == newsId
           && request.resource.data.newsId == newsId
-          && request.resource.data.userId == uid;
+          && request.resource.data.userId == uid
+          && request.resource.data.createdAt == request.time
+          && approvedNewsTargetExists(newsId);
 
         allow update: if false;
 
@@ -1806,9 +1935,12 @@ service cloud.firestore {
 
         allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['id', 'eventId', 'userId', 'createdAt'])
           && request.resource.data.id == eventId
           && request.resource.data.eventId == eventId
-          && request.resource.data.userId == uid;
+          && request.resource.data.userId == uid
+          && request.resource.data.createdAt == request.time
+          && approvedEventTargetExists(eventId);
 
         allow update: if false;
 
@@ -1823,9 +1955,12 @@ service cloud.firestore {
 
         allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['id', 'organizationId', 'userId', 'createdAt'])
           && request.resource.data.id == organizationId
           && request.resource.data.organizationId == organizationId
-          && request.resource.data.userId == uid;
+          && request.resource.data.userId == uid
+          && request.resource.data.createdAt == request.time
+          && approvedOrganizationTargetExists(organizationId);
 
         allow update: if false;
 
@@ -1840,14 +1975,19 @@ service cloud.firestore {
 
         allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['id', 'eventId', 'userId', 'createdAt'])
           && request.resource.data.id == eventId
           && request.resource.data.eventId == eventId
-          && request.resource.data.userId == uid;
+          && request.resource.data.userId == uid
+          && request.resource.data.createdAt == request.time
+          && exists(/databases/$(database)/documents/events/$(eventId))
+          && get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved';
 
         allow update: if false;
 
-        allow delete: if isVerifiedActiveUser()
-          && request.auth.uid == uid;
+        // View markers are immutable deduplication records. Account/content
+        // cleanup runs with Admin credentials and does not need client access.
+        allow delete: if false;
       }
 
       match /newsViews/{newsId} {
@@ -1855,14 +1995,19 @@ service cloud.firestore {
 
         allow create: if isVerifiedActiveUser()
           && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['id', 'newsId', 'userId', 'createdAt'])
           && request.resource.data.id == newsId
           && request.resource.data.newsId == newsId
-          && request.resource.data.userId == uid;
+          && request.resource.data.userId == uid
+          && request.resource.data.createdAt == request.time
+          && exists(/databases/$(database)/documents/news/$(newsId))
+          && get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved';
 
         allow update: if false;
 
-        allow delete: if isVerifiedActiveUser()
-          && request.auth.uid == uid;
+        // View markers are immutable deduplication records. Account/content
+        // cleanup runs with Admin credentials and does not need client access.
+        allow delete: if false;
       }
 
       match /recentViews/{recentViewId} {
@@ -1913,7 +2058,8 @@ service cloud.firestore {
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 1000
           && request.resource.data.createdAt is timestamp
-          && request.resource.data.isDeleted == false;
+          && request.resource.data.isDeleted == false
+          && approvedNewsTargetExists(newsId);
 
         allow update: if isVerifiedActiveUser()
           && resource.data.authorId == request.auth.uid
@@ -1958,7 +2104,8 @@ service cloud.firestore {
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 1000
           && request.resource.data.createdAt is timestamp
-          && request.resource.data.isDeleted == false;
+          && request.resource.data.isDeleted == false
+          && approvedEventTargetExists(eventId);
 
         allow update: if isVerifiedActiveUser()
           && resource.data.authorId == request.auth.uid
@@ -2081,6 +2228,21 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // A proof is a short-lived, create-only bridge between an operational
+    // action and delayed analytics delivery. Clients cannot read or mutate it.
+    match /analyticsActionProofs/{proofId} {
+      allow read, update, delete: if false;
+      allow create: if validAnalyticsActionProofCreate(proofId);
+    }
+
+    match /analyticsConsentStates/{userId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /analyticsConsentReceipts/{receiptId} {
+      allow read, create, update, delete: if false;
+    }
+
     match /analyticsTopContent/{periodId} {
       allow read: if isOwner();
       allow create, update, delete: if false;
@@ -2114,6 +2276,56 @@ service cloud.firestore {
         allow read: if isOwner();
         allow create, update, delete: if false;
       }
+    }
+
+    // Short-lived, server-only activity markers and idempotent lifecycle events
+    // feed restricted aggregate metrics. Interaction activity is consent-based;
+    // account registration/deletion totals are operational statistics for all
+    // accounts. These marker documents are never client-readable or writable.
+    match /analyticsUserActivity/{userId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /analyticsDeletedUserEvents/{eventId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /analyticsUserRegistrationEvents/{eventId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /analyticsAggregateCleanupState/{collectionId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /analyticsSchemaState/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /analyticsSchemaCutoverArchives/{document=**} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /analyticsUserLifecycleBaselines/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    // Per-source counter transition/tombstone state is an Admin-SDK-only
+    // idempotency boundary. It must never be observable or mutable by clients.
+    match /counterAggregationSourceStates/{stateId} {
+      allow read, create, update, delete: if false;
+    }
+
+    // Immutable migration baselines preserve lifetime view totals that cannot
+    // be reconstructed after account-owned view markers have been deleted.
+    match /counterAggregationBaselines/{baselineId} {
+      allow read, create, update, delete: if false;
+    }
+
+    // Permanent invariant violations are acknowledged into a server-only
+    // dead-letter queue so retry:true cannot loop forever on poison events.
+    match /counterAggregationDeadLetters/{deadLetterId} {
+      allow read, create, update, delete: if false;
     }
 
     match /auditLogs/{auditLogId} {

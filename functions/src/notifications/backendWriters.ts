@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { getMessaging } from "firebase-admin/messaging";
 import {
   onDocumentDeleted,
   onDocumentUpdated,
@@ -20,6 +19,7 @@ import {
   resolveNotificationRecipients,
   writeUserNotification,
 } from "./notificationPayloads";
+import { sendPushToRegistrationDocuments } from "./pushRegistrations";
 
 type SystemAnnouncementTargetMode = "all" | "role" | "userIds";
 
@@ -62,7 +62,6 @@ const callableOptions = {
 
 const maxFanoutRecipients = 200;
 const soonWindowMs = 24 * 60 * 60 * 1000;
-const fcmMulticastLimit = 500;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -305,13 +304,6 @@ async function sendEventCancellationPushes(
         .collection("notificationPushTokens")
         .get(),
     ]);
-    const tokens = tokenSnapshot.docs
-      .map((document) => stringField(document.data(), "token"))
-      .filter((token): token is string => token !== undefined);
-    if (tokens.length === 0) {
-      return false;
-    }
-
     const copy = eventCancellationCopy(
       eventTitleValue,
       notificationLanguage(userSnapshot.data())
@@ -327,25 +319,22 @@ async function sendEventCancellationPushes(
       routeTargetId: eventId,
     });
 
-    await Promise.all(chunks(tokens, fcmMulticastLimit).map((tokenChunk) =>
-      getMessaging().sendEachForMulticast({
-        tokens: tokenChunk,
-        notification: {
-          title: copy.title,
-          body: copy.body,
-        },
-        data,
-        apns: {
-          payload: {
-            aps: {
-              sound: "default",
-            },
+    const delivery = await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
+      notification: {
+        title: copy.title,
+        body: copy.body,
+      },
+      data,
+      apns: {
+        payload: {
+          aps: {
+            sound: "default",
           },
         },
-      })
-    ));
+      },
+    });
 
-    return true;
+    return delivery.targetCount > 0;
   }));
 
   return sendResults.filter(Boolean).length;
@@ -680,12 +669,4 @@ function notificationLanguage(data?: FirebaseFirestore.DocumentData): Notificati
 
 function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
-}
-
-function chunks<T>(values: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let index = 0; index < values.length; index += size) {
-    result.push(values.slice(index, index + size));
-  }
-  return result;
 }

@@ -1,5 +1,12 @@
 import Foundation
 
+struct AnalyticsDetailCoverage: Codable, Equatable {
+    let startsAt: Date?
+    let isPartial: Bool
+
+    static let complete = AnalyticsDetailCoverage(startsAt: nil, isPartial: false)
+}
+
 struct AnalyticsContentDetailSnapshot: Codable, Equatable, Identifiable {
     let period: AnalyticsPeriod
     let contentID: String
@@ -13,6 +20,9 @@ struct AnalyticsContentDetailSnapshot: Codable, Equatable, Identifiable {
     let metrics: AnalyticsContentDetailMetrics
     let regions: [AnalyticsDetailRegionStats]
     let updatedAt: Date?
+    var coverage: AnalyticsDetailCoverage? = nil
+
+    var resolvedCoverage: AnalyticsDetailCoverage { coverage ?? .complete }
 
     var id: String { "\(period.rawValue):\(contentType.rawValue):\(contentID)" }
     var hasData: Bool { metrics.hasData || !regions.isEmpty }
@@ -20,7 +30,8 @@ struct AnalyticsContentDetailSnapshot: Codable, Equatable, Identifiable {
     static func empty(
         period: AnalyticsPeriod,
         contentID: String,
-        contentType: AnalyticsContentType
+        contentType: AnalyticsContentType,
+        coverage: AnalyticsDetailCoverage = .complete
     ) -> AnalyticsContentDetailSnapshot {
         AnalyticsContentDetailSnapshot(
             period: period,
@@ -34,7 +45,8 @@ struct AnalyticsContentDetailSnapshot: Codable, Equatable, Identifiable {
             regionScope: nil,
             metrics: .empty,
             regions: [],
-            updatedAt: nil
+            updatedAt: nil,
+            coverage: coverage
         )
     }
 }
@@ -80,13 +92,17 @@ struct AnalyticsOrganizationDetailSnapshot: Codable, Equatable, Identifiable {
     let topEvents: [AnalyticsOrganizationTopContentItem]
     let regions: [AnalyticsDetailRegionStats]
     let updatedAt: Date?
+    var coverage: AnalyticsDetailCoverage? = nil
+
+    var resolvedCoverage: AnalyticsDetailCoverage { coverage ?? .complete }
 
     var id: String { "\(period.rawValue):\(organizationID)" }
     var hasData: Bool { metrics.hasData || !topNews.isEmpty || !topEvents.isEmpty || !regions.isEmpty }
 
     static func empty(
         period: AnalyticsPeriod,
-        organizationID: String
+        organizationID: String,
+        coverage: AnalyticsDetailCoverage = .complete
     ) -> AnalyticsOrganizationDetailSnapshot {
         AnalyticsOrganizationDetailSnapshot(
             period: period,
@@ -98,7 +114,8 @@ struct AnalyticsOrganizationDetailSnapshot: Codable, Equatable, Identifiable {
             topNews: [],
             topEvents: [],
             regions: [],
-            updatedAt: nil
+            updatedAt: nil,
+            coverage: coverage
         )
     }
 }
@@ -138,8 +155,29 @@ struct AnalyticsDetailRegionStats: Codable, Equatable, Identifiable {
     let federalState: AustrianFederalState?
     let metrics: [String: Int]
 
-    var id: String { "\(regionScope.rawValue):\(federalState?.rawValue ?? "all")" }
-    var total: Int { metrics.values.reduce(0, +) }
+    nonisolated var id: String { "\(regionScope.rawValue):\(federalState?.rawValue ?? "all")" }
+    nonisolated var viewCount: Int {
+        ["views", "profileViews", "newsViews", "eventViews"]
+            .map { metrics[$0, default: 0] }
+            .reduce(0, +)
+    }
+
+    nonisolated var trackedSignalCount: Int {
+        metrics.values
+            .filter { $0 > 0 }
+            .reduce(0, +)
+    }
+
+    nonisolated static func isOrderedByTrackedActivity(
+        _ lhs: AnalyticsDetailRegionStats,
+        _ rhs: AnalyticsDetailRegionStats
+    ) -> Bool {
+        if lhs.trackedSignalCount == rhs.trackedSignalCount {
+            return lhs.id < rhs.id
+        }
+
+        return lhs.trackedSignalCount > rhs.trackedSignalCount
+    }
 }
 
 struct AnalyticsOrganizationTopContentItem: Codable, Equatable, Identifiable {
@@ -152,5 +190,5 @@ struct AnalyticsOrganizationTopContentItem: Codable, Equatable, Identifiable {
     let metrics: [String: Int]
 
     var id: String { "\(contentType.rawValue):\(contentID)" }
-    var primaryCount: Int { metrics.values.max() ?? 0 }
+    var viewCount: Int { metrics["views", default: 0] }
 }

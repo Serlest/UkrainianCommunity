@@ -1,6 +1,14 @@
 import Foundation
 
 enum AnalyticsFirestoreSchema {
+    nonisolated static let analyticsTimeZone = TimeZone(identifier: "Europe/Vienna")!
+
+    nonisolated static var analyticsCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = analyticsTimeZone
+        return calendar
+    }
     static let activeViewMetricTypes: [AnalyticsMetricType] = [
         .newsViews,
         .eventViews,
@@ -47,6 +55,14 @@ enum AnalyticsFirestoreSchema {
                 thirtyDays
             }
         }
+
+        static func value(
+            for period: AnalyticsPeriod,
+            now: Date,
+            calendar: Calendar = AnalyticsFirestoreSchema.analyticsCalendar
+        ) -> String {
+            period == .today ? dailyDocumentID(for: now, calendar: calendar) : value(for: period)
+        }
     }
 
     enum DailyStatsField {
@@ -59,6 +75,7 @@ enum AnalyticsFirestoreSchema {
         static let organizationViews = "organizationViews"
         static let activeRegions = "activeRegions"
         static let totalLikes = "totalLikes"
+        static let newsLikes = "newsLikes"
         static let totalBookmarks = "totalBookmarks"
         static let eventRegistrations = "eventRegistrations"
         static let cancelledEventRegistrations = "cancelledEventRegistrations"
@@ -66,7 +83,7 @@ enum AnalyticsFirestoreSchema {
         static let organizationUnfollows = "organizationUnfollows"
     }
 
-    enum TopContentField {
+    nonisolated enum TopContentField {
         static let items = "items"
         static let itemsByKey = "itemsByKey"
         static let contentID = "contentID"
@@ -81,7 +98,7 @@ enum AnalyticsFirestoreSchema {
         static let rank = "rank"
     }
 
-    enum RegionStatsField {
+    nonisolated enum RegionStatsField {
         static let regions = "regions"
         static let regionsByKey = "regionsByKey"
         static let regionScope = "regionScope"
@@ -92,7 +109,7 @@ enum AnalyticsFirestoreSchema {
         static let metrics = "metrics"
     }
 
-    enum UserStatsField {
+    nonisolated enum UserStatsField {
         static let period = "period"
         static let generatedAt = "generatedAt"
         static let metrics = "metrics"
@@ -105,9 +122,13 @@ enum AnalyticsFirestoreSchema {
         static let activeUsersSevenDays = "activeUsersSevenDays"
         static let activeUsersThirtyDays = "activeUsersThirtyDays"
         static let usersByFederalState = "usersByFederalState"
+        static let sourceDocumentIDs = "sourceDocumentIDs"
+        static let lifecycleCoverageStartDay = "lifecycleCoverageStartDay"
+        static let coveredLifecycleSourceDocumentIDs = "coveredLifecycleSourceDocumentIDs"
+        static let isLifecyclePartialCoverage = "isLifecyclePartialCoverage"
     }
 
-    enum DetailStatsField {
+    nonisolated enum DetailStatsField {
         static let items = "items"
         static let organizations = "organizations"
         static let periodID = "periodId"
@@ -124,6 +145,12 @@ enum AnalyticsFirestoreSchema {
         static let topNews = "topNews"
         static let topEvents = "topEvents"
         static let updatedAt = "updatedAt"
+        static let sourceDocumentIDs = "sourceDocumentIDs"
+        static let rollupGeneration = "rollupGeneration"
+        static let rollupInProgressGeneration = "rollupInProgressGeneration"
+        static let coverageStartDay = "coverageStartDay"
+        static let coveredSourceDocumentIDs = "coveredSourceDocumentIDs"
+        static let isPartialCoverage = "isPartialCoverage"
 
         static let views = "views"
         static let likes = "likes"
@@ -138,11 +165,47 @@ enum AnalyticsFirestoreSchema {
         static let eventRegistrations = "eventRegistrations"
     }
 
-    static func dailyDocumentID(for date: Date, calendar: Calendar = .current) -> String {
+    nonisolated static func dailyDocumentID(
+        for date: Date,
+        calendar: Calendar = analyticsCalendar
+    ) -> String {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         let year = components.year ?? 0
         let month = components.month ?? 0
         let day = components.day ?? 0
         return String(format: "%04d-%02d-%02d", year, month, day)
+    }
+
+    nonisolated static func date(
+        forDailyDocumentID documentID: String,
+        calendar: Calendar = analyticsCalendar
+    ) -> Date? {
+        let components = documentID.split(separator: "-").compactMap { Int($0) }
+        guard components.count == 3,
+              documentID.count == 10,
+              let date = calendar.date(from: DateComponents(
+                timeZone: calendar.timeZone,
+                year: components[0],
+                month: components[1],
+                day: components[2],
+                hour: 12
+              )),
+              dailyDocumentID(for: date, calendar: calendar) == documentID else {
+            return nil
+        }
+        return calendar.startOfDay(for: date)
+    }
+
+    nonisolated static func trailingDailyDocumentIDs(
+        endingAt date: Date,
+        dayCount: Int,
+        calendar: Calendar = analyticsCalendar
+    ) -> [String] {
+        guard dayCount > 0 else { return [] }
+        return (0..<dayCount).compactMap { offset in
+            calendar.date(byAdding: .day, value: -offset, to: date).map {
+                dailyDocumentID(for: $0, calendar: calendar)
+            }
+        }
     }
 }

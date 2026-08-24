@@ -6,7 +6,14 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {doc, getDoc, setDoc, updateDoc, writeBatch} from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  writeBatch,
+} from "firebase/firestore";
 import {readFileSync} from "node:fs";
 
 const PROJECT_ID = "ukrainian-community-email-verification-rules";
@@ -129,11 +136,49 @@ function user(uid, overrides = {}) {
     termsVersion: "1",
     privacyVersion: "1",
     communityMemberships: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
     ...overrides,
   };
 }
 
 describe("email verification enforcement", () => {
+  test("profile bootstrap requires server timestamps and rejects extra fields", async () => {
+    const validDb = auth("strict-profile", false);
+    await assertSucceeds(setDoc(
+      doc(validDb, "users", "strict-profile"),
+      user("strict-profile")
+    ));
+
+    const forgedDb = auth("forged-profile", false);
+    await assertFails(setDoc(
+      doc(forgedDb, "users", "forged-profile"),
+      user("forged-profile", {createdAt: new Date("2020-01-01T00:00:00Z")})
+    ));
+
+    const extraFieldDb = auth("extra-field-profile", false);
+    await assertFails(setDoc(
+      doc(extraFieldDb, "users", "extra-field-profile"),
+      user("extra-field-profile", {analyticsDay: "forged"})
+    ));
+  });
+
+  test("analytics lifecycle marker collections are server-only", async () => {
+    const verifiedDb = auth("verified-user", true);
+    for (const collectionName of [
+      "analyticsUserActivity",
+      "analyticsDeletedUserEvents",
+      "analyticsUserRegistrationEvents",
+    ]) {
+      const reference = doc(verifiedDb, collectionName, "forged-marker");
+      await assertFails(getDoc(reference));
+      await assertFails(setDoc(reference, {
+        analyticsDay: "2026-08-24",
+        expiresAt: serverTimestamp(),
+      }));
+    }
+  });
+
   test("unverified user can create profile bootstrap document, but cannot write interaction content", async () => {
     const unverifiedDb = auth("pending-user", false);
 
@@ -197,13 +242,14 @@ describe("email verification enforcement", () => {
       id: "news-1_verified-user",
       userId: "verified-user",
       newsId: "news-1",
-      createdAt: new Date("2026-06-09T11:00:00Z"),
+      createdAt: serverTimestamp(),
     }));
 
     await assertSucceeds(setDoc(doc(verifiedDb, "users", "verified-user", "newsBookmarks", "news-1"), {
       id: "news-1",
       newsId: "news-1",
       userId: "verified-user",
+      createdAt: serverTimestamp(),
     }));
 
     await assertFails(setDoc(doc(verifiedDb, "registrations", "event_event-1_verified-user"), {

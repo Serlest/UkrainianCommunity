@@ -4,11 +4,12 @@ App Check must be introduced in phases. Enabling enforcement before the updated 
 
 ## Implemented in the repository
 
-- Release builds use Apple App Attest.
+- Release builds prefer Apple App Attest and fall back to DeviceCheck on devices that do not support App Attest.
 - Debug builds and simulators use the Firebase App Check debug provider.
 - The App Attest production entitlement is present.
 - App Check is configured before `FirebaseApp.configure()`.
 - No debug token is stored in source control.
+- The analytics callable reads the `ENFORCE_ANALYTICS_APP_CHECK` deployment parameter; its safe default is `false` until this rollout gate is complete.
 
 ## Required console setup before deployment
 
@@ -25,7 +26,7 @@ App Check must be introduced in phases. Enabling enforcement before the updated 
 3. Investigate unexpected unverified traffic before blocking it.
 4. Enable enforcement one service at a time, beginning with a low-risk service.
 5. Observe errors and metrics after each service for at least one normal usage cycle.
-6. Add `enforceAppCheck: true` to callable Functions only after active clients send valid tokens.
+6. Set `ENFORCE_ANALYTICS_APP_CHECK=true` for the reviewed deployment and verify the analytics callable after active clients send valid tokens.
 7. Do not enable replay protection by default; assess its added latency separately for sensitive endpoints.
 
 ## Rollback

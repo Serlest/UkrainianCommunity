@@ -366,13 +366,16 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         await sessionDataCache.updateLikedOrganizationID(id, isLiked: false, for: uid)
     }
 
-    func subscribeOrganization(id: String) async throws {
+    func subscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
         }
 
         let organizationReference = collection.document(id)
         let subscriptionReference = likesCollection.document(subscriptionDocumentID(organizationID: id, userID: uid))
+        let proofReference = actionCapture.map {
+            Firestore.firestore().collection("analyticsActionProofs").document($0.proofID)
+        }
 
         do {
             _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
@@ -394,6 +397,12 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
                         "userId": uid,
                         "createdAt": FieldValue.serverTimestamp()
                     ], forDocument: subscriptionReference)
+                    if let actionCapture,
+                       actionCapture.eventName == "organization_follow",
+                       actionCapture.contentID == id,
+                       let proofReference {
+                        transaction.setData(actionCapture.firestoreData, forDocument: proofReference)
+                    }
                 } catch {
                     errorPointer?.pointee = error as NSError
                 }
@@ -622,15 +631,26 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .delete()
     }
 
-    func bookmarkOrganization(id: String) async throws {
+    func bookmarkOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         let uid = try ensureAuthenticatedUserID()
 
-        try await organizationBookmarkReference(organizationID: id, userID: uid).setData([
+        let database = Firestore.firestore()
+        let batch = database.batch()
+        batch.setData([
             "id": id,
             "organizationId": id,
             "userId": uid,
             "createdAt": FieldValue.serverTimestamp()
-        ], merge: true)
+        ], forDocument: organizationBookmarkReference(organizationID: id, userID: uid))
+        if let actionCapture,
+           actionCapture.eventName == "organization_bookmark",
+           actionCapture.contentID == id {
+            batch.setData(
+                actionCapture.firestoreData,
+                forDocument: database.collection("analyticsActionProofs").document(actionCapture.proofID)
+            )
+        }
+        try await batch.commit()
         await sessionDataCache.updateBookmarkedOrganizationID(id, isBookmarked: true, for: uid)
     }
 

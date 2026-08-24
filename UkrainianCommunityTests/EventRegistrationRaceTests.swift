@@ -453,7 +453,7 @@ private final class ControlledEventRepository: @MainActor EventRepository {
         }
     }
 
-    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult {
+    func registerForEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult {
         try await suspendRegistrationRequest()
     }
 
@@ -461,7 +461,7 @@ private final class ControlledEventRepository: @MainActor EventRepository {
         try await suspendRegistrationRequest()
     }
 
-    func bookmarkEvent(id: String) async throws { try await suspendBookmarkRequest() }
+    func bookmarkEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws { try await suspendBookmarkRequest() }
     func unbookmarkEvent(id: String) async throws { try await suspendBookmarkRequest() }
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws {}
 

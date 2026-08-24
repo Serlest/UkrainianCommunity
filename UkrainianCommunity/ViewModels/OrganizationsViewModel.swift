@@ -186,6 +186,9 @@ final class OrganizationsViewModel: ObservableObject {
         let previousSubscriptionState = organizations[index].isSubscribed
         let previousSubscriberCount = organizations[index].subscriberCount
         let optimisticSubscriberCount = max(0, previousSubscriberCount + (shouldSubscribe ? 1 : -1))
+        let organization = organizations[index]
+        let actionEvent = AppAnalyticsEvent.organizationFollow(organization: organization)
+        let actionCapture = shouldSubscribe ? analyticsService.actionCapture(for: actionEvent) : nil
         let generation = authGeneration
         let requestFeedRevision = feedRevision
         let taskKey = "subscription:\(organizationID)"
@@ -206,7 +209,7 @@ final class OrganizationsViewModel: ObservableObject {
 
             do {
                 if shouldSubscribe {
-                    try await repository.subscribeOrganization(id: organizationID)
+                    try await repository.subscribeOrganization(id: organizationID, actionCapture: actionCapture)
                 } else {
                     try await repository.unsubscribeOrganization(id: organizationID)
                 }
@@ -223,7 +226,11 @@ final class OrganizationsViewModel: ObservableObject {
                 }
                 let currentOrganization = organizations[currentIndex]
                 ActivityLogRecorder.recordOrganization(currentOrganization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
-                analyticsService.track(shouldSubscribe ? .organizationFollow(organization: currentOrganization) : .organizationUnfollow(organization: currentOrganization))
+                if shouldSubscribe {
+                    analyticsService.track(actionEvent, actionCapture: actionCapture)
+                } else {
+                    analyticsService.track(.organizationUnfollow(organization: currentOrganization))
+                }
                 error = nil
             } catch let appError as AppError {
                 guard isCurrentAuthGeneration(generation) else { return }
@@ -256,6 +263,9 @@ final class OrganizationsViewModel: ObservableObject {
         guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
         guard !pendingOrganizationBookmarkIDs.contains(organizationID) else { return }
         let shouldBookmark = !organizations[index].isBookmarked
+        let organization = organizations[index]
+        let actionEvent = AppAnalyticsEvent.organizationBookmark(organization: organization)
+        let actionCapture = shouldBookmark ? analyticsService.actionCapture(for: actionEvent) : nil
         let previousBookmarkState = organizations[index].isBookmarked
         let generation = authGeneration
         let requestFeedRevision = feedRevision
@@ -276,7 +286,7 @@ final class OrganizationsViewModel: ObservableObject {
 
             do {
                 if shouldBookmark {
-                    try await repository.bookmarkOrganization(id: organizationID)
+                    try await repository.bookmarkOrganization(id: organizationID, actionCapture: actionCapture)
                 } else {
                     try await repository.unbookmarkOrganization(id: organizationID)
                 }
@@ -290,7 +300,7 @@ final class OrganizationsViewModel: ObservableObject {
                 let currentOrganization = organizations[currentIndex]
                 ActivityLogRecorder.recordOrganization(currentOrganization, actionType: shouldBookmark ? .savedOrganization : .unsavedOrganization)
                 if shouldBookmark {
-                    analyticsService.track(.organizationBookmark(organization: currentOrganization))
+                    analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
                 error = nil
             } catch let appError as AppError {
@@ -328,8 +338,13 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func trackViewIfNeeded(for organization: Organization, sourceScreen: String = "organization_detail") {
-        guard !trackedOrganizationViewIDs.contains(organization.id) else { return }
-        trackedOrganizationViewIDs.insert(organization.id)
+        guard let collectionScopeID = analyticsService.collectionScopeID else { return }
+        let trackingKey = AnalyticsTrackingKey.daily(
+            contentID: organization.id,
+            collectionScopeID: collectionScopeID
+        )
+        guard !trackedOrganizationViewIDs.contains(trackingKey) else { return }
+        trackedOrganizationViewIDs.insert(trackingKey)
         analyticsService.track(.organizationView(
             organizationID: organization.id,
             organizationName: organization.name,

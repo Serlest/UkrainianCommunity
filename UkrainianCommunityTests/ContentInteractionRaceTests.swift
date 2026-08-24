@@ -365,7 +365,7 @@ private final class ControlledNewsRepository: NewsRepository {
     func updateNewsImageURL(id: String, imageURL: String?) async throws {}
     func deleteNews(id: String) async throws {}
 
-    func likeNews(id: String) async throws {
+    func likeNews(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await suspendLikeRequest()
     }
 
@@ -394,7 +394,7 @@ private final class ControlledNewsRepository: NewsRepository {
             commentDeleteContinuations[requestNumber] = continuation
         }
     }
-    func bookmarkNews(id: String) async throws {
+    func bookmarkNews(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await suspendBookmarkRequest()
     }
     func unbookmarkNews(id: String) async throws {
@@ -499,7 +499,7 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
         try await suspendLikeRequest()
     }
 
-    func subscribeOrganization(id: String) async throws {}
+    func subscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {}
     func unsubscribeOrganization(id: String) async throws {}
     func fetchOrganizationSubscriberPage(
         organizationID: String,
@@ -517,7 +517,7 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
         UkrainianCommunity.Comment(id: commentID, authorName: "Author", body: text, createdAt: .now)
     }
     func deleteOrganizationComment(organizationID: String, commentID: String) async throws {}
-    func bookmarkOrganization(id: String) async throws {}
+    func bookmarkOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {}
     func unbookmarkOrganization(id: String) async throws {}
     func isOrganizationBookmarked(id: String) async throws -> Bool { false }
     func fetchBookmarkedOrganizationIDs() async throws -> Set<String> { [] }

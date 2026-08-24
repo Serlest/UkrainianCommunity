@@ -1,26 +1,75 @@
 import {
+  FieldPath,
   FieldValue,
   Timestamp,
-  type Transaction,
   type DocumentData,
+  type Query,
+  type QueryDocumentSnapshot,
+  type Transaction,
 } from "firebase-admin/firestore";
-import { onDocumentDeleted } from "firebase-functions/v2/firestore";
+import {
+  onDocumentCreated,
+  onDocumentDeleted,
+} from "firebase-functions/v2/firestore";
+import * as logger from "firebase-functions/logger";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import {defineBoolean} from "firebase-functions/params";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
-import { requireAuth } from "../auth/context";
+import {assertActiveUser, requireVerifiedActiveUser} from "../auth/context";
 import { db } from "../firebase/admin";
+import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
+import {
+  analyticsActionProofCollection,
+  analyticsActionReceiptID,
+  isMatchingAnalyticsActionReceipt,
+  optionalAnalyticsActionProofBinding,
+  validateAnalyticsActionProof,
+  type AnalyticsActionProofBinding,
+} from "./analyticsActionProof";
+import {
+  analyticsConsentStateCollection,
+  isCurrentAnalyticsConsent,
+} from "./analyticsConsent";
+import {dailyDocumentIDFor, datedAnalyticsDocumentIDs} from "./analyticsDate";
+import {
+  analyticsDetailCoverage,
+  rollupAnalyticsDetailPeriods,
+} from "./analyticsDetailRollup";
 import {hasActiveRegionAnalytics} from "./analyticsRollupSanitization";
 import {
+  loadAnalyticsSchemaGateState,
+  requireAnalyticsSchemaReady,
+} from "./analyticsSchemaGate";
+import {
+  analyticsActivityLookupBatchSize,
+  analyticsActivityExpirationDate,
+  analyticsActivityWindowIndex,
+  analyticsActivityWindows,
+  analyticsDeletedUserEventCollection,
+  analyticsMaterializationPageSize,
+  analyticsUserRegistrationEventCollection,
+  analyticsUserLifecycleBaselineCollection,
+  analyticsUserActivityCollection,
+  boundedAnalyticsBatches,
+  isAnalyticsLifecycleEventAfterCoverage,
+  latestAnalyticsActivityDate,
+  nextAnalyticsScanCursor,
+  setBoundedAnalyticsRegistrationFallback,
+  shouldUseAnalyticsRegistrationFallback,
+  type AnalyticsActivityWindowIndex,
+} from "./analyticsUserActivity";
+import {
+  analyticsDeletionEventID,
   analyticsEventReceiptCollection,
   analyticsRateLimitID,
   analyticsRateLimitCollection,
-  analyticsRateLimitRetentionHours,
+  analyticsRegistrationEventID,
+  analyticsRegistrationUserKey,
   analyticsReceiptID,
   analyticsReceiptRetentionHours,
   expirationDate,
-  nextAnalyticsRateLimitCount,
-  rateLimitBucketStart,
+  nextAnalyticsRateLimitState,
 } from "./analyticsEventGuard";
 import {
   resolveCanonicalAnalyticsContent,
@@ -34,11 +83,9 @@ type AnalyticsEventName =
   | "news_bookmark"
   | "event_view"
   | "event_register"
-  | "event_cancel_registration"
   | "event_bookmark"
   | "organization_view"
   | "organization_follow"
-  | "organization_unfollow"
   | "organization_bookmark";
 
 type AnalyticsEventKind = "view" | "action";
@@ -55,6 +102,27 @@ interface AnalyticsEventConfig {
 interface TrackAnalyticsEventRequest {
   name: AnalyticsEventName;
   parameters: Record<string, unknown>;
+  consentID: string;
+  actionProof?: AnalyticsActionProofBinding;
+  occurredAtMilliseconds?: number;
+}
+
+interface AnalyticsActionProofDescriptor {
+  documentPath: string;
+  contentField: "newsId" | "eventId" | "organizationId" | "subscribedOrganizationId";
+}
+
+interface NormalizedAnalyticsRegion {
+  regionScope: "austria" | "federalState";
+  federalState?: string;
+}
+
+interface RateLimitedAnalyticsContentDependencies {
+  consumeRateLimit: (uid: string, receivedAt: Date) => Promise<void>;
+  resolveCanonicalContent: (
+    contentType: AnalyticsContentType,
+    contentID: string
+  ) => Promise<CanonicalAnalyticsContent>;
 }
 
 interface SanitizedAnalyticsEvent {
@@ -74,11 +142,11 @@ interface SanitizedAnalyticsEvent {
 }
 
 interface RollupPeriod {
-  documentID: "seven_days" | "thirty_days";
+  documentID: "today" | "seven_days" | "thirty_days";
   dayCount: number;
 }
 
-interface RollupTopContentItem {
+export interface RollupTopContentItem {
   contentID: string;
   contentType: AnalyticsContentType;
   title: string;
@@ -95,13 +163,20 @@ interface RollupRegionStatsItem {
   regionScope: string;
   federalState?: string;
   viewCount: number;
-  contentKeys: Set<string>;
   metrics: Map<string, number>;
 }
+
+const enforceAnalyticsAppCheck = defineBoolean(
+  "ENFORCE_ANALYTICS_APP_CHECK",
+  {default: false}
+);
 
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  // Release gate: keep the default false until App Attest/DeviceCheck metrics,
+  // production registration, and CI debug-token coverage are verified.
+  enforceAppCheck: enforceAnalyticsAppCheck,
 };
 
 const analyticsRollupScheduleOptions = {
@@ -109,6 +184,11 @@ const analyticsRollupScheduleOptions = {
   timeZone: "Europe/Vienna",
   region: "europe-west3",
   maxInstances: 1,
+  // A detail generation rewrites and then prunes a shared materialized view.
+  // Never allow two invocations to interleave inside the single instance.
+  concurrency: 1,
+  timeoutSeconds: 540,
+  memory: "512MiB" as const,
 };
 
 const schema = {
@@ -119,6 +199,10 @@ const schema = {
     contentStats: "analyticsContentStats",
     organizationStats: "analyticsOrganizationStats",
     userStats: "analyticsUserStats",
+    userActivity: analyticsUserActivityCollection,
+    registeredUserEvents: analyticsUserRegistrationEventCollection,
+    userLifecycleBaselines: analyticsUserLifecycleBaselineCollection,
+    deletedUserEvents: analyticsDeletedUserEventCollection,
     rollupState: "analyticsRollupState",
     eventReceipts: analyticsEventReceiptCollection,
     rateLimits: analyticsRateLimitCollection,
@@ -204,6 +288,9 @@ const schema = {
     activeThirtyDays: "activeThirtyDays",
     usersByFederalState: "usersByFederalState",
     sourceDocumentIDs: "sourceDocumentIDs",
+    lifecycleCoverageStartDay: "lifecycleCoverageStartDay",
+    coveredLifecycleSourceDocumentIDs: "coveredLifecycleSourceDocumentIDs",
+    isLifecyclePartialCoverage: "isLifecyclePartialCoverage",
   },
 } as const;
 
@@ -243,13 +330,6 @@ const eventConfigs: Record<AnalyticsEventName, AnalyticsEventConfig> = {
     contentMetricField: "registrations",
     organizationMetricField: "eventRegistrations",
   },
-  event_cancel_registration: {
-    contentType: "event",
-    metricField: "eventCancelledRegistrations",
-    eventKind: "action",
-    contentMetricField: "cancelledRegistrations",
-    compatibilityMetricFields: ["cancelledEventRegistrations"],
-  },
   event_bookmark: {
     contentType: "event",
     metricField: "eventBookmarks",
@@ -271,13 +351,6 @@ const eventConfigs: Record<AnalyticsEventName, AnalyticsEventConfig> = {
     contentMetricField: "follows",
     organizationMetricField: "follows",
   },
-  organization_unfollow: {
-    contentType: "organization",
-    metricField: "organizationUnfollows",
-    eventKind: "action",
-    contentMetricField: "unfollows",
-    organizationMetricField: "unfollows",
-  },
   organization_bookmark: {
     contentType: "organization",
     metricField: "organizationBookmarks",
@@ -292,12 +365,6 @@ const activeRegionViewMetricFields = [
   "newsViews",
   "eventViews",
   "organizationViews",
-] as const;
-
-const activeContentKeyPrefixes = [
-  "news_",
-  "event_",
-  "organization_",
 ] as const;
 
 const federalStates = new Set([
@@ -333,6 +400,10 @@ const allowedAnalyticsParameterNames = new Set([
 
 const rollupPeriods: RollupPeriod[] = [
   {
+    documentID: "today",
+    dayCount: 1,
+  },
+  {
     documentID: "seven_days",
     dayCount: 7,
   },
@@ -345,25 +416,47 @@ const rollupPeriods: RollupPeriod[] = [
 export const trackAnalyticsEvent = onCall(
   callableOptions,
   async (request): Promise<{ tracked: boolean }> => {
-    const actor = requireAuth(request);
-    const now = new Date();
+    const actor = await requireVerifiedActiveUser(request);
+    // This read intentionally precedes parsing, rate-limit consumption,
+    // canonical lookups, proofs, and aggregate writes. A prepared v1→v2
+    // cutover therefore leaves the client outbox retryable without consuming
+    // its attempt budget or opening a write window that finalize could erase.
+    await requireAnalyticsSchemaReady(db);
+    const receivedAt = new Date();
 
     const analyticsRequest = parseAnalyticsRequest(request.data);
+    const requestedOccurredAt = analyticsEventDate(
+      analyticsRequest.occurredAtMilliseconds,
+      receivedAt
+    );
     const config = eventConfigs[analyticsRequest.name];
     const contentID = requiredSafeID(
       analyticsRequest.parameters.content_id,
       "content_id"
     );
-    const canonicalContent = await resolveCanonicalAnalyticsContent(
+    const canonicalContent = await resolveRateLimitedAnalyticsContent(
+      actor.uid,
       config.contentType,
-      contentID
+      contentID,
+      receivedAt
     );
     const analyticsEvent = sanitizeAnalyticsEvent(analyticsRequest, canonicalContent);
+    if (analyticsRequest.actionProof === undefined) {
+      await requireLegacyAnalyticsActionProof(
+        actor.uid,
+        analyticsRequest.name,
+        analyticsEvent.contentID,
+        requestedOccurredAt
+      );
+    }
     const tracked = await commitAnalyticsEvent(
       actor.uid,
+      analyticsRequest.consentID,
       analyticsRequest.name,
       analyticsEvent,
-      now
+      analyticsRequest.actionProof,
+      requestedOccurredAt,
+      receivedAt
     );
 
     return {tracked};
@@ -373,38 +466,97 @@ export const trackAnalyticsEvent = onCall(
 export const rollupAnalyticsPeriods = onSchedule(
   analyticsRollupScheduleOptions,
   async () => {
-    await materializeTodayAnalyticsSnapshots();
-    await Promise.all(rollupPeriods.map(rollupAnalyticsPeriod));
+    const schemaState = await analyticsSchemaStateForSchedule();
+    if (schemaState === undefined) {
+      return;
+    }
+    const anchor = new Date();
+    await Promise.all([
+      ...rollupPeriods.map((period) => rollupAnalyticsPeriod(period, anchor)),
+      rollupAnalyticsDetailPeriods(
+        db,
+        rollupPeriods,
+        anchor,
+        schemaState.cutoverDay
+      ),
+    ]);
   }
 );
 
 export const rollupUserAnalyticsStats = onSchedule(
   analyticsRollupScheduleOptions,
   async () => {
-    await materializeUserAnalyticsStats();
+    const schemaState = await analyticsSchemaStateForSchedule();
+    if (schemaState === undefined) {
+      return;
+    }
+    await materializeUserAnalyticsStats(schemaState.cutoverDay);
   }
 );
+
+async function analyticsSchemaStateForSchedule() {
+  const state = await loadAnalyticsSchemaGateState(db);
+  const isReady = state?.status === "complete";
+  if (!isReady) {
+    logger.warn("Analytics materialization paused for schema transition.", {
+      schemaVersion: state?.schemaVersion ?? null,
+      cutoverStatus: state?.status ?? "missing-or-invalid",
+    });
+  }
+  return isReady ? state : undefined;
+}
 
 export const trackDeletedUserAnalyticsAggregate = onDocumentDeleted(
   {
     document: "users/{userID}",
     region: "europe-west3",
     maxInstances: 10,
+    retry: true,
   },
-  async () => {
-    const todayDocumentID = schema.periodDocumentIDs[0];
-    const datedDocumentID = dailyDocumentIDFor(new Date());
-    const deletionUpdate = {
-      [schema.userStatsFields.metrics]: {
-        [schema.userStatsFields.deletedAccounts]: FieldValue.increment(1),
-      },
-      updatedAt: FieldValue.serverTimestamp(),
-    };
+  async (event) => {
+    const eventTime = new Date(event.time);
+    const now = Number.isFinite(eventTime.getTime()) ? eventTime : new Date();
+    const datedDocumentID = dailyDocumentIDFor(now);
+    const eventReference = db
+      .collection(schema.collections.deletedUserEvents)
+      .doc(analyticsDeletionEventID(event.id));
 
     await Promise.all([
-      db.collection(schema.collections.userStats).doc(todayDocumentID).set(deletionUpdate, { merge: true }),
-      db.collection(schema.collections.userStats).doc(datedDocumentID).set(deletionUpdate, { merge: true }),
+      eventReference.set({
+        analyticsDay: datedDocumentID,
+        deletedAt: Timestamp.fromDate(now),
+        expiresAt: Timestamp.fromDate(analyticsActivityExpirationDate(now)),
+      }),
+      db.collection(schema.collections.userActivity).doc(event.params.userID).delete(),
     ]);
+  }
+);
+
+export const trackRegisteredUserAnalyticsAggregate = onDocumentCreated(
+  {
+    document: "users/{userID}",
+    region: "europe-west3",
+    maxInstances: 10,
+    retry: true,
+  },
+  async (event) => {
+    // The profile's immutable createdAt is also used by the migration
+    // baseline. Using CloudEvent delivery time here would put one account on
+    // opposite sides of the cutover boundary when delivery is delayed.
+    const registeredAt = dateValue(event.data?.data().createdAt);
+    if (registeredAt === undefined) {
+      throw new Error("Created user profile is missing an immutable createdAt timestamp.");
+    }
+    const eventReference = db
+      .collection(schema.collections.registeredUserEvents)
+      .doc(analyticsRegistrationEventID(event.id));
+
+    await eventReference.set({
+      analyticsDay: dailyDocumentIDFor(registeredAt),
+      registeredAt: Timestamp.fromDate(registeredAt),
+      userKey: analyticsRegistrationUserKey(event.params.userID),
+      expiresAt: Timestamp.fromDate(analyticsActivityExpirationDate(registeredAt)),
+    });
   }
 );
 
@@ -413,11 +565,17 @@ export function parseAnalyticsRequest(data: unknown): TrackAnalyticsEventRequest
     throw new HttpsError("invalid-argument", "Request payload must be an object.");
   }
 
-  if (
-    Object.keys(data).length !== 2
-    || !("name" in data)
+  const allowedFields = new Set([
+    "name",
+    "parameters",
+    "consentID",
+    "actionProof",
+    "occurredAtMilliseconds",
+  ]);
+  if (!("name" in data)
     || !("parameters" in data)
-  ) {
+    || !("consentID" in data)
+    || Object.keys(data).some((field) => !allowedFields.has(field))) {
     throw new HttpsError("invalid-argument", "Request payload has unsupported fields.");
   }
 
@@ -430,7 +588,138 @@ export function parseAnalyticsRequest(data: unknown): TrackAnalyticsEventRequest
   return {
     name,
     parameters,
+    consentID: requiredConsentID(data.consentID),
+    actionProof: optionalAnalyticsActionProofBinding(data.actionProof),
+    occurredAtMilliseconds: optionalTimestampMilliseconds(
+      data.occurredAtMilliseconds
+    ),
   };
+}
+
+export async function resolveRateLimitedAnalyticsContent(
+  uid: string,
+  contentType: AnalyticsContentType,
+  contentID: string,
+  receivedAt: Date,
+  dependencies: RateLimitedAnalyticsContentDependencies = {
+    consumeRateLimit: consumeAnalyticsRateLimit,
+    resolveCanonicalContent: resolveCanonicalAnalyticsContent,
+  }
+): Promise<CanonicalAnalyticsContent> {
+  // Consume the attempt budget before the canonical Firestore lookup. This
+  // prevents forged/missing content IDs from creating unmetered document reads.
+  await dependencies.consumeRateLimit(uid, receivedAt);
+  return dependencies.resolveCanonicalContent(contentType, contentID);
+}
+
+export function analyticsEventDate(
+  occurredAtMilliseconds: number | undefined,
+  receivedAt: Date
+): Date {
+  if (occurredAtMilliseconds === undefined) {
+    return receivedAt;
+  }
+
+  const occurredAt = new Date(occurredAtMilliseconds);
+  const maximumFutureSkewMilliseconds = 5 * 60 * 1_000;
+  const maximumDeliveryDelayMilliseconds = 48 * 60 * 60 * 1_000;
+  if (!Number.isFinite(occurredAt.getTime())
+    || occurredAt.getTime() > receivedAt.getTime() + maximumFutureSkewMilliseconds
+    || occurredAt.getTime() < receivedAt.getTime() - maximumDeliveryDelayMilliseconds) {
+    throw new HttpsError(
+      "invalid-argument",
+      "occurredAtMilliseconds is outside the accepted delivery window."
+    );
+  }
+
+  return occurredAt;
+}
+
+export function analyticsActionProofDescriptor(
+  eventName: AnalyticsEventName,
+  uid: string,
+  contentID: string
+): AnalyticsActionProofDescriptor | undefined {
+  switch (eventName) {
+    case "news_like":
+      return {
+        documentPath: `likes/${contentID}_${uid}`,
+        contentField: "newsId",
+      };
+    case "news_bookmark":
+      return {
+        documentPath: `users/${uid}/newsBookmarks/${contentID}`,
+        contentField: "newsId",
+      };
+    case "event_register":
+      return {
+        documentPath: `registrations/event_${contentID}_${uid}`,
+        contentField: "eventId",
+      };
+    case "event_bookmark":
+      return {
+        documentPath: `users/${uid}/eventBookmarks/${contentID}`,
+        contentField: "eventId",
+      };
+    case "organization_follow":
+      return {
+        documentPath: `likes/organization_follow_${contentID}_${uid}`,
+        contentField: "subscribedOrganizationId",
+      };
+    case "organization_bookmark":
+      return {
+        documentPath: `users/${uid}/organizationBookmarks/${contentID}`,
+        contentField: "organizationId",
+      };
+    case "news_view":
+    case "event_view":
+    case "organization_view":
+      return undefined;
+  }
+}
+
+export function isValidAnalyticsActionProof(
+  data: DocumentData | undefined,
+  descriptor: AnalyticsActionProofDescriptor,
+  uid: string,
+  contentID: string,
+  occurredAt: Date
+): boolean {
+  if (data === undefined
+    || data.userId !== uid
+    || data[descriptor.contentField] !== contentID) {
+    return false;
+  }
+
+  const createdAt = dateValue(data.createdAt);
+  return createdAt !== undefined
+    && dailyDocumentIDFor(createdAt) === dailyDocumentIDFor(occurredAt);
+}
+
+async function requireLegacyAnalyticsActionProof(
+  uid: string,
+  eventName: AnalyticsEventName,
+  contentID: string,
+  occurredAt: Date
+): Promise<void> {
+  const descriptor = analyticsActionProofDescriptor(eventName, uid, contentID);
+  if (descriptor === undefined) {
+    return;
+  }
+
+  const snapshot = await db.doc(descriptor.documentPath).get();
+  if (!snapshot.exists || !isValidAnalyticsActionProof(
+    snapshot.data(),
+    descriptor,
+    uid,
+    contentID,
+    occurredAt
+  )) {
+    throw new HttpsError(
+      "failed-precondition",
+      "The tracked action could not be verified."
+    );
+  }
 }
 
 export function sanitizeAnalyticsEvent(
@@ -520,41 +809,146 @@ function validateOptionalGuestFlag(value: unknown): void {
   throw new HttpsError("invalid-argument", "is_guest must be a boolean value.");
 }
 
+function optionalTimestampMilliseconds(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== "number"
+    || !Number.isSafeInteger(value)
+    || value <= 0) {
+    throw new HttpsError(
+      "invalid-argument",
+      "occurredAtMilliseconds must be a positive integer."
+    );
+  }
+
+  return value;
+}
+
+async function consumeAnalyticsRateLimit(uid: string, receivedAt: Date): Promise<void> {
+  const reference = db.collection(schema.collections.rateLimits).doc(
+    analyticsRateLimitID(uid, receivedAt)
+  );
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(reference);
+    const state = nextAnalyticsRateLimitState(snapshot.data()?.count, receivedAt);
+
+    transaction.set(reference, {
+      count: state.count,
+      bucketStartedAt: Timestamp.fromDate(state.bucketStartedAt),
+      updatedAt: Timestamp.fromDate(state.updatedAt),
+      expiresAt: Timestamp.fromDate(state.expiresAt),
+    });
+  });
+}
+
 async function commitAnalyticsEvent(
   uid: string,
+  consentID: string,
   eventName: AnalyticsEventName,
   analyticsEvent: SanitizedAnalyticsEvent,
-  now: Date
+  actionProof: AnalyticsActionProofBinding | undefined,
+  requestedOccurredAt: Date,
+  receivedAt: Date
 ): Promise<boolean> {
-  const dailyDocumentID = dailyDocumentIDFor(now);
-  const receiptReference = db.collection(schema.collections.eventReceipts).doc(
-    analyticsReceiptID(
-      uid,
-      dailyDocumentID,
-      eventName,
-      analyticsEvent.contentType,
-      analyticsEvent.contentID
-    )
-  );
-  const rateLimitReference = db.collection(schema.collections.rateLimits).doc(
-    analyticsRateLimitID(uid, now)
-  );
+  const activityReference = db.collection(schema.collections.userActivity).doc(uid);
+  const userReference = db.collection("users").doc(uid);
+  const consentReference = db.collection(analyticsConsentStateCollection).doc(uid);
+  const proofReference = actionProof === undefined
+    ? undefined
+    : db.collection(analyticsActionProofCollection).doc(actionProof.proofID);
+  const actionReceiptReference = actionProof === undefined
+    ? undefined
+    : db.collection(schema.collections.eventReceipts)
+      .doc(analyticsActionReceiptID(actionProof.proofID));
 
   return db.runTransaction(async (transaction) => {
+    // Re-read the profile inside the same transaction as the activity marker.
+    // Account deletion first mutates and then deletes this document, which now
+    // conflicts with an in-flight analytics write and prevents a UID-keyed
+    // marker from being recreated after deletion.
+    const [userSnapshot, consentSnapshot] = await transaction.getAll(
+      userReference,
+      consentReference
+    );
+    assertAnalyticsUserProfileActive(uid, userSnapshot.exists, userSnapshot.data());
+    if (!isCurrentAnalyticsConsent(consentSnapshot.data(), consentID)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "A current server-recorded analytics consent is required."
+      );
+    }
+
+    let occurredAt = requestedOccurredAt;
+    if (actionProof !== undefined && actionReceiptReference !== undefined) {
+      const actionReceiptSnapshot = await transaction.get(actionReceiptReference);
+      if (actionReceiptSnapshot.exists) {
+        if (!isMatchingAnalyticsActionReceipt(
+          actionReceiptSnapshot.data(),
+          actionProof,
+          uid,
+          analyticsEvent.contentType
+        )) {
+          throw new HttpsError("already-exists", "The analytics proof receipt conflicts.");
+        }
+        return false;
+      }
+      if (proofReference === undefined) {
+        throw new HttpsError("internal", "Analytics proof reference is unavailable.");
+      }
+      const proofSnapshot = await transaction.get(proofReference);
+      occurredAt = validateAnalyticsActionProof(
+        proofSnapshot.data(),
+        actionProof,
+        uid,
+        consentID,
+        receivedAt
+      ).createdAt;
+    }
+
+    const dailyDocumentID = dailyDocumentIDFor(occurredAt);
+    const receiptReference = db.collection(schema.collections.eventReceipts).doc(
+      analyticsReceiptID(
+        uid,
+        dailyDocumentID,
+        eventName,
+        analyticsEvent.contentType,
+        analyticsEvent.contentID
+      )
+    );
     const receiptSnapshot = await transaction.get(receiptReference);
-    const rateLimitSnapshot = await transaction.get(rateLimitReference);
-    const nextRateLimitCount = nextAnalyticsRateLimitCount(
-      rateLimitSnapshot.data()?.count
+    const activitySnapshot = await transaction.get(activityReference);
+    const lastActiveAt = latestAnalyticsActivityDate(
+      dateValue(activitySnapshot.data()?.lastActiveAt),
+      occurredAt
     );
 
-    transaction.set(rateLimitReference, {
-      count: nextRateLimitCount,
-      bucketStartedAt: Timestamp.fromDate(rateLimitBucketStart(now)),
-      updatedAt: Timestamp.fromDate(now),
-      expiresAt: Timestamp.fromDate(
-        expirationDate(now, analyticsRateLimitRetentionHours)
-      ),
-    });
+    // This server-only marker powers active-user aggregates without using
+    // profile edits as a proxy for activity. It contains no event or content data.
+    transaction.set(activityReference, {
+      lastActiveAt: Timestamp.fromDate(lastActiveAt),
+      updatedAt: Timestamp.fromDate(receivedAt),
+      expiresAt: Timestamp.fromDate(analyticsActivityExpirationDate(lastActiveAt)),
+    }, {merge: true});
+
+    if (actionProof !== undefined
+      && proofReference !== undefined
+      && actionReceiptReference !== undefined) {
+      transaction.create(actionReceiptReference, {
+        receiptKind: "actionProof",
+        proofId: actionProof.proofID,
+        actorBinding: actionProof.actorBinding,
+        eventName: actionProof.eventName,
+        contentType: analyticsEvent.contentType,
+        contentID: actionProof.contentID,
+        sessionBinding: actionProof.sessionBinding,
+        createdAt: Timestamp.fromDate(receivedAt),
+        expiresAt: Timestamp.fromMillis(receivedAt.getTime() + 48 * 60 * 60 * 1_000),
+      });
+      transaction.delete(proofReference);
+    }
 
     if (receiptSnapshot.exists) {
       return false;
@@ -565,17 +959,18 @@ async function commitAnalyticsEvent(
       contentType: analyticsEvent.contentType,
       contentID: analyticsEvent.contentID,
       analyticsDay: dailyDocumentID,
-      createdAt: Timestamp.fromDate(now),
+      occurredAt: Timestamp.fromDate(occurredAt),
+      createdAt: Timestamp.fromDate(receivedAt),
       expiresAt: Timestamp.fromDate(
-        expirationDate(now, analyticsReceiptRetentionHours)
+        expirationDate(receivedAt, analyticsReceiptRetentionHours)
       ),
     });
 
-    updateDailyStats(transaction, dailyDocumentID, analyticsEvent);
-    updateContentDetailStats(transaction, analyticsEvent);
+    updateDailyStats(transaction, dailyDocumentID, occurredAt, analyticsEvent);
+    updateContentDetailStats(transaction, dailyDocumentID, analyticsEvent);
 
     if (analyticsEvent.organizationID !== undefined) {
-      updateOrganizationDetailStats(transaction, analyticsEvent);
+      updateOrganizationDetailStats(transaction, dailyDocumentID, analyticsEvent);
     }
 
     if (analyticsEvent.eventKind === "view") {
@@ -587,9 +982,29 @@ async function commitAnalyticsEvent(
   });
 }
 
+function requiredConsentID(value: unknown): string {
+  if (typeof value !== "string"
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+    throw new HttpsError("invalid-argument", "consentID is invalid.");
+  }
+  return value;
+}
+
+export function assertAnalyticsUserProfileActive(
+  uid: string,
+  exists: boolean,
+  data: DocumentData | undefined
+): void {
+  if (!exists) {
+    throw new HttpsError("permission-denied", "User profile does not exist.");
+  }
+  assertActiveUser(userPermissionSnapshotFromData(uid, data));
+}
+
 function updateDailyStats(
   transaction: Transaction,
   dailyDocumentID: string,
+  occurredAt: Date,
   analyticsEvent: SanitizedAnalyticsEvent
 ): void {
   const dailyStatsReference = db
@@ -610,7 +1025,7 @@ function updateDailyStats(
   }
 
   const data: DocumentData = {
-    [schema.dailyStatsFields.date]: Timestamp.now(),
+    [schema.dailyStatsFields.date]: Timestamp.fromDate(occurredAt),
     updatedAt: FieldValue.serverTimestamp(),
     [schema.dailyStatsFields.metrics]: metrics,
   };
@@ -627,15 +1042,17 @@ function updateDailyStats(
 
 function updateContentDetailStats(
   transaction: Transaction,
+  dailyDocumentID: string,
   analyticsEvent: SanitizedAnalyticsEvent
 ): void {
-  const reference = db
+  const parentReference = db
     .collection(schema.collections.contentStats)
-    .doc(schema.periodDocumentIDs[0])
+    .doc(dailyDocumentID);
+  const reference = parentReference
     .collection(schema.detailStatsFields.items)
     .doc(contentMapKey(analyticsEvent));
   const data: DocumentData = {
-    [schema.detailStatsFields.periodID]: schema.periodDocumentIDs[0],
+    [schema.detailStatsFields.periodID]: dailyDocumentID,
     [schema.detailStatsFields.contentID]: analyticsEvent.contentID,
     [schema.detailStatsFields.contentType]: analyticsEvent.contentType,
     [schema.detailStatsFields.contentTitle]: analyticsEvent.title,
@@ -648,11 +1065,16 @@ function updateContentDetailStats(
   addOptionalDetailMetadata(data, analyticsEvent);
   addRegionDetailMetrics(data, analyticsEvent.contentMetricField, analyticsEvent);
 
+  transaction.set(parentReference, {
+    [schema.detailStatsFields.periodID]: dailyDocumentID,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
   transaction.set(reference, data, {merge: true});
 }
 
 function updateOrganizationDetailStats(
   transaction: Transaction,
+  dailyDocumentID: string,
   analyticsEvent: SanitizedAnalyticsEvent
 ): void {
   if (analyticsEvent.organizationID === undefined) {
@@ -660,28 +1082,24 @@ function updateOrganizationDetailStats(
   }
 
   const organizationMetricField = analyticsEvent.organizationMetricField;
-  const reference = db
+  const parentReference = db
     .collection(schema.collections.organizationStats)
-    .doc(schema.periodDocumentIDs[0])
+    .doc(dailyDocumentID);
+  const reference = parentReference
     .collection(schema.detailStatsFields.organizations)
     .doc(analyticsEvent.organizationID);
   const data: DocumentData = {
-    [schema.detailStatsFields.periodID]: schema.periodDocumentIDs[0],
+    [schema.detailStatsFields.periodID]: dailyDocumentID,
     [schema.detailStatsFields.organizationID]: analyticsEvent.organizationID,
     [schema.detailStatsFields.updatedAt]: FieldValue.serverTimestamp(),
   };
 
-  if (analyticsEvent.organizationName !== undefined) {
-    data[schema.detailStatsFields.organizationName] = analyticsEvent.organizationName;
-  }
-
-  if (analyticsEvent.regionScope !== undefined) {
-    data[schema.detailStatsFields.regionScope] = analyticsEvent.regionScope;
-  }
-
-  if (analyticsEvent.federalState !== undefined) {
-    data[schema.detailStatsFields.federalState] = analyticsEvent.federalState;
-  }
+  data[schema.detailStatsFields.organizationName] =
+    analyticsEvent.organizationName ?? null;
+  data[schema.detailStatsFields.regionScope] =
+    analyticsEvent.regionScope ?? null;
+  data[schema.detailStatsFields.federalState] =
+    analyticsEvent.federalState ?? null;
 
   if (organizationMetricField !== undefined) {
     data[schema.detailStatsFields.metrics] = {
@@ -692,6 +1110,10 @@ function updateOrganizationDetailStats(
 
   addOrganizationTopContent(data, analyticsEvent);
 
+  transaction.set(parentReference, {
+    [schema.detailStatsFields.periodID]: dailyDocumentID,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, {merge: true});
   transaction.set(reference, data, {merge: true});
 }
 
@@ -699,25 +1121,18 @@ function addOptionalDetailMetadata(
   data: DocumentData,
   analyticsEvent: SanitizedAnalyticsEvent
 ): void {
-  if (analyticsEvent.category !== undefined) {
-    data[schema.detailStatsFields.category] = analyticsEvent.category;
-  }
-
-  if (analyticsEvent.organizationID !== undefined) {
-    data[schema.detailStatsFields.organizationID] = analyticsEvent.organizationID;
-  }
-
-  if (analyticsEvent.organizationName !== undefined) {
-    data[schema.detailStatsFields.organizationName] = analyticsEvent.organizationName;
-  }
-
-  if (analyticsEvent.regionScope !== undefined) {
-    data[schema.detailStatsFields.regionScope] = analyticsEvent.regionScope;
-  }
-
-  if (analyticsEvent.federalState !== undefined) {
-    data[schema.detailStatsFields.federalState] = analyticsEvent.federalState;
-  }
+  // These maps are updated with merge semantics throughout a Vienna day.
+  // Writing an explicit null is the tombstone for canonical metadata that was
+  // removed or became inapplicable; omitting the key would preserve stale data.
+  data[schema.detailStatsFields.category] = analyticsEvent.category ?? null;
+  data[schema.detailStatsFields.organizationID] =
+    analyticsEvent.organizationID ?? null;
+  data[schema.detailStatsFields.organizationName] =
+    analyticsEvent.organizationName ?? null;
+  data[schema.detailStatsFields.regionScope] =
+    analyticsEvent.regionScope ?? null;
+  data[schema.detailStatsFields.federalState] =
+    analyticsEvent.federalState ?? null;
 }
 
 function addRegionDetailMetrics(
@@ -725,20 +1140,24 @@ function addRegionDetailMetrics(
   metricField: string,
   analyticsEvent: SanitizedAnalyticsEvent
 ): void {
+  const normalizedRegion = normalizeAnalyticsRegion(
+    analyticsEvent.regionScope,
+    analyticsEvent.federalState
+  );
   const regionKey = analyticsRegionKey(analyticsEvent);
-  if (analyticsEvent.regionScope === undefined || regionKey === undefined) {
+  if (normalizedRegion === undefined || regionKey === undefined) {
     return;
   }
 
   const region: DocumentData = {
-    [schema.detailStatsFields.regionScope]: analyticsEvent.regionScope,
+    [schema.detailStatsFields.regionScope]: normalizedRegion.regionScope,
     [schema.detailStatsFields.metrics]: {
       [metricField]: FieldValue.increment(1),
     },
   };
 
-  if (analyticsEvent.federalState !== undefined) {
-    region[schema.detailStatsFields.federalState] = analyticsEvent.federalState;
+  if (normalizedRegion.federalState !== undefined) {
+    region[schema.detailStatsFields.federalState] = normalizedRegion.federalState;
   }
 
   data[schema.detailStatsFields.regionsByKey] = {
@@ -750,7 +1169,8 @@ function addOrganizationTopContent(
   data: DocumentData,
   analyticsEvent: SanitizedAnalyticsEvent
 ): void {
-  if (analyticsEvent.contentType !== "news" && analyticsEvent.contentType !== "event") {
+  if (analyticsEvent.eventKind !== "view"
+    || (analyticsEvent.contentType !== "news" && analyticsEvent.contentType !== "event")) {
     return;
   }
 
@@ -766,17 +1186,11 @@ function addOrganizationTopContent(
     },
   };
 
-  if (analyticsEvent.category !== undefined) {
-    item[schema.detailStatsFields.category] = analyticsEvent.category;
-  }
-
-  if (analyticsEvent.regionScope !== undefined) {
-    item[schema.detailStatsFields.regionScope] = analyticsEvent.regionScope;
-  }
-
-  if (analyticsEvent.federalState !== undefined) {
-    item[schema.detailStatsFields.federalState] = analyticsEvent.federalState;
-  }
+  item[schema.detailStatsFields.category] = analyticsEvent.category ?? null;
+  item[schema.detailStatsFields.regionScope] =
+    analyticsEvent.regionScope ?? null;
+  item[schema.detailStatsFields.federalState] =
+    analyticsEvent.federalState ?? null;
 
   data[field] = {
     [contentMapKey(analyticsEvent)]: item,
@@ -790,7 +1204,7 @@ function updateTopContent(
 ): void {
   const reference = db
     .collection(schema.collections.topContent)
-    .doc(schema.periodDocumentIDs[0]);
+    .doc(dailyDocumentID);
   const item: DocumentData = {
     [schema.topContentFields.contentID]: analyticsEvent.contentID,
     [schema.topContentFields.contentType]: analyticsEvent.contentType,
@@ -798,25 +1212,15 @@ function updateTopContent(
     [schema.topContentFields.viewCount]: FieldValue.increment(1),
   };
 
-  if (analyticsEvent.category !== undefined) {
-    item[schema.topContentFields.category] = analyticsEvent.category;
-  }
-
-  if (analyticsEvent.organizationID !== undefined) {
-    item[schema.topContentFields.organizationID] = analyticsEvent.organizationID;
-  }
-
-  if (analyticsEvent.organizationName !== undefined) {
-    item[schema.topContentFields.organizationName] = analyticsEvent.organizationName;
-  }
-
-  if (analyticsEvent.regionScope !== undefined) {
-    item[schema.topContentFields.regionScope] = analyticsEvent.regionScope;
-  }
-
-  if (analyticsEvent.federalState !== undefined) {
-    item[schema.topContentFields.federalState] = analyticsEvent.federalState;
-  }
+  item[schema.topContentFields.category] = analyticsEvent.category ?? null;
+  item[schema.topContentFields.organizationID] =
+    analyticsEvent.organizationID ?? null;
+  item[schema.topContentFields.organizationName] =
+    analyticsEvent.organizationName ?? null;
+  item[schema.topContentFields.regionScope] =
+    analyticsEvent.regionScope ?? null;
+  item[schema.topContentFields.federalState] =
+    analyticsEvent.federalState ?? null;
 
   transaction.set(reference, {
     [schema.rollupStateFields.dateDocumentID]: dailyDocumentID,
@@ -832,29 +1236,29 @@ function updateRegionStats(
   dailyDocumentID: string,
   analyticsEvent: SanitizedAnalyticsEvent
 ): void {
-  const regionScope = analyticsEvent.regionScope;
+  const normalizedRegion = normalizeAnalyticsRegion(
+    analyticsEvent.regionScope,
+    analyticsEvent.federalState
+  );
   const regionKey = analyticsRegionKey(analyticsEvent);
-  if (regionScope === undefined || regionKey === undefined) {
+  if (normalizedRegion === undefined || regionKey === undefined) {
     return;
   }
 
   const reference = db
     .collection(schema.collections.regionStats)
-    .doc(schema.periodDocumentIDs[0]);
+    .doc(dailyDocumentID);
   const region: DocumentData = {
-    [schema.regionStatsFields.regionScope]: regionScope,
+    [schema.regionStatsFields.regionScope]: normalizedRegion.regionScope,
     [schema.regionStatsFields.viewCount]: FieldValue.increment(1),
-    [schema.regionStatsFields.contentKeys]: {
-      [contentMapKey(analyticsEvent)]: true,
-    },
     [schema.regionStatsFields.metrics]: {
       [schema.dailyStatsFields.totalViews]: FieldValue.increment(1),
       [analyticsEvent.metricField]: FieldValue.increment(1),
     },
   };
 
-  if (analyticsEvent.federalState !== undefined) {
-    region[schema.regionStatsFields.federalState] = analyticsEvent.federalState;
+  if (normalizedRegion.federalState !== undefined) {
+    region[schema.regionStatsFields.federalState] = normalizedRegion.federalState;
   }
 
   transaction.set(reference, {
@@ -866,102 +1270,11 @@ function updateRegionStats(
   }, {merge: true});
 }
 
-async function materializeTodayAnalyticsSnapshots(): Promise<void> {
-  const todayDocumentID = schema.periodDocumentIDs[0];
-  const currentDatedDocumentID = dailyDocumentIDFor(new Date());
-  const stateReference = db
-    .collection(schema.collections.rollupState)
-    .doc(todayDocumentID);
-  const [stateSnapshot, topContentSnapshot, regionStatsSnapshot] = await Promise.all([
-    stateReference.get(),
-    db.collection(schema.collections.topContent).doc(todayDocumentID).get(),
-    db.collection(schema.collections.regionStats).doc(todayDocumentID).get(),
-  ]);
-  const previousDatedDocumentID = stringValue(
-    stateSnapshot.data()?.[schema.rollupStateFields.dateDocumentID]
-  );
-  const snapshotDatedDocumentID = previousDatedDocumentID ?? currentDatedDocumentID;
-  const isNewDay = previousDatedDocumentID !== undefined
-    && previousDatedDocumentID !== currentDatedDocumentID;
-  const batch = db.batch();
-  let hasWrites = false;
-
-  // The live "today" docs are cheap per-view write targets. The dated docs are
-  // stable daily snapshots used later by seven-day and thirty-day rollups.
-  const topContentData = topContentSnapshot.data();
-  if (topContentData !== undefined) {
-    batch.set(
-      db.collection(schema.collections.topContent).doc(snapshotDatedDocumentID),
-      dailySnapshotData(topContentData, todayDocumentID, snapshotDatedDocumentID)
-    );
-    hasWrites = true;
-  }
-
-  const regionStatsData = regionStatsSnapshot.data();
-  if (regionStatsData !== undefined) {
-    batch.set(
-      db.collection(schema.collections.regionStats).doc(snapshotDatedDocumentID),
-      dailySnapshotData(regionStatsData, todayDocumentID, snapshotDatedDocumentID)
-    );
-    hasWrites = true;
-  }
-
-  if (isNewDay) {
-    batch.set(
-      db.collection(schema.collections.topContent).doc(todayDocumentID),
-      emptyTopContentData(currentDatedDocumentID)
-    );
-    batch.set(
-      db.collection(schema.collections.regionStats).doc(todayDocumentID),
-      emptyRegionStatsData(currentDatedDocumentID)
-    );
-    hasWrites = true;
-  }
-
-  batch.set(stateReference, {
-    [schema.rollupStateFields.dateDocumentID]: currentDatedDocumentID,
-    updatedAt: FieldValue.serverTimestamp(),
-  }, { merge: true });
-  hasWrites = true;
-
-  if (hasWrites) {
-    await batch.commit();
-  }
-}
-
-function dailySnapshotData(
-  sourceData: DocumentData,
-  sourceDocumentID: string,
-  snapshotDocumentID: string
-): DocumentData {
-  return {
-    ...sourceData,
-    sourceDocumentID,
-    snapshotDocumentID,
-    updatedAt: FieldValue.serverTimestamp(),
-  };
-}
-
-function emptyTopContentData(datedDocumentID: string): DocumentData {
-  return {
-    [schema.rollupStateFields.dateDocumentID]: datedDocumentID,
-    [schema.topContentFields.items]: [],
-    [schema.topContentFields.itemsByKey]: {},
-    updatedAt: FieldValue.serverTimestamp(),
-  };
-}
-
-function emptyRegionStatsData(datedDocumentID: string): DocumentData {
-  return {
-    [schema.rollupStateFields.dateDocumentID]: datedDocumentID,
-    [schema.regionStatsFields.regions]: [],
-    [schema.regionStatsFields.regionsByKey]: {},
-    updatedAt: FieldValue.serverTimestamp(),
-  };
-}
-
-async function rollupAnalyticsPeriod(period: RollupPeriod): Promise<void> {
-  const sourceDocumentIDs = rollupSourceDocumentIDs(period.dayCount);
+async function rollupAnalyticsPeriod(
+  period: RollupPeriod,
+  anchor: Date
+): Promise<void> {
+  const sourceDocumentIDs = datedAnalyticsDocumentIDs(period.dayCount, anchor);
   const [topContent, regionStats] = await Promise.all([
     loadTopContentRollup(sourceDocumentIDs),
     loadRegionStatsRollup(sourceDocumentIDs),
@@ -993,51 +1306,236 @@ async function rollupAnalyticsPeriod(period: RollupPeriod): Promise<void> {
   await batch.commit();
 }
 
-async function materializeUserAnalyticsStats(): Promise<void> {
+async function materializeUserAnalyticsStats(
+  lifecycleCoverageStartDay: string
+): Promise<void> {
   const now = new Date();
-  const currentDatedDocumentID = dailyDocumentIDFor(now);
+  const windowIndex = analyticsActivityWindowIndex(now);
+  const currentDatedDocumentID = windowIndex.todayDocumentID;
   const todayDocumentID = schema.periodDocumentIDs[0];
-  const [usersSnapshot, existingTodaySnapshot, existingDatedSnapshot] = await Promise.all([
-    db.collection("users")
-      .select("createdAt", "updatedAt", "accountStatus", "blockState", "selectedFederalState")
-      .get(),
-    db.collection(schema.collections.userStats).doc(todayDocumentID).get(),
-    db.collection(schema.collections.userStats).doc(currentDatedDocumentID).get(),
-  ]);
-  const users = usersSnapshot.docs.map((document) => document.data());
-  const existingTodayDeletedAccounts = deletedAccountsFromData(existingTodaySnapshot.data());
-  const existingDatedDeletedAccounts = deletedAccountsFromData(existingDatedSnapshot.data());
-  const todayDeletedAccounts = Math.max(
-    existingTodayDeletedAccounts,
-    existingDatedDeletedAccounts
+  let baseStats = emptyUserAnalyticsBaseStats();
+  const fallbackRegistrationDayByUserKey = new Map<string, string>();
+  const lifecycleBaselineSnapshots = await db.getAll(
+    ...windowIndex.thirtyDayDocumentIDs.map((documentID) => db
+      .collection(schema.collections.userLifecycleBaselines)
+      .doc(documentID))
   );
-  const baseStats = userAnalyticsBaseStats(users, now);
-  const todayStats = userAnalyticsPeriodStats(baseStats, users, 1, todayDeletedAccounts, now);
-  const sevenDaySourceDocumentIDs = userStatsSourceDocumentIDs(7, now);
-  const thirtyDaySourceDocumentIDs = userStatsSourceDocumentIDs(30, now);
-  const [sevenDayDeletedAccounts, thirtyDayDeletedAccounts] = await Promise.all([
-    deletedAccountsForSourceDocuments(sevenDaySourceDocumentIDs, currentDatedDocumentID, todayDeletedAccounts),
-    deletedAccountsForSourceDocuments(thirtyDaySourceDocumentIDs, currentDatedDocumentID, todayDeletedAccounts),
-  ]);
-  const sevenDayStats = userAnalyticsPeriodStats(baseStats, users, 7, sevenDayDeletedAccounts, now);
-  const thirtyDayStats = userAnalyticsPeriodStats(baseStats, users, 30, thirtyDayDeletedAccounts, now);
+  const lifecycleBaselines = lifecycleBaselineSnapshots.flatMap((snapshot) => {
+    if (!snapshot.exists) {
+      return [];
+    }
+    const data = snapshot.data();
+    const newRegistrations = requiredLifecycleBaselineCount(
+      data?.newRegistrations,
+      snapshot.id,
+      "newRegistrations"
+    );
+    const deletedAccounts = requiredLifecycleBaselineCount(
+      data?.deletedAccounts,
+      snapshot.id,
+      "deletedAccounts"
+    );
+    const coveredThrough = dateValue(data?.coveredThrough);
+    if (data?.schemaVersion !== 2 || data?.analyticsDay !== snapshot.id ||
+      coveredThrough === undefined) {
+      throw new Error(`Analytics lifecycle baseline ${snapshot.id} is malformed.`);
+    }
+    return [{
+      analyticsDay: snapshot.id,
+      newRegistrations,
+      deletedAccounts,
+      coveredThrough,
+    }];
+  });
+  const lifecycleCoverageByDay = new Map(
+    lifecycleBaselines.map((baseline) => [
+      baseline.analyticsDay,
+      baseline.coveredThrough,
+    ] as const)
+  );
+
+  // User profiles are streamed in stable document-ID order. Activity is read
+  // only for the current page, so neither collection is ever loaded into one
+  // unbounded snapshot or retained in memory for the whole run.
+  await forEachAnalyticsScanPage(
+    db.collection("users")
+      .select("createdAt", "accountStatus", "blockState", "selectedFederalState"),
+    async (documents) => {
+      const activityByUserID = await loadAnalyticsActivityByUserID(
+        documents.map((document) => document.id)
+      );
+      const users = documents.map((document): UserAnalyticsSourceUser => ({
+        userKey: analyticsRegistrationUserKey(document.id),
+        data: document.data(),
+        lastActiveAt: activityByUserID.get(document.id),
+      }));
+      baseStats = combinedUserAnalyticsBaseStats(
+        baseStats,
+        userAnalyticsBaseStats(users, now, windowIndex)
+      );
+
+      for (const user of users) {
+        const createdAt = dateValue(user.data.createdAt);
+        if (createdAt === undefined || createdAt.getTime() > now.getTime()) {
+          continue;
+        }
+
+        const createdDay = dailyDocumentIDFor(createdAt);
+        if (shouldUseAnalyticsRegistrationFallback(
+          createdDay,
+          createdAt,
+          windowIndex,
+          lifecycleCoverageByDay
+        )) {
+          setBoundedAnalyticsRegistrationFallback(
+            fallbackRegistrationDayByUserKey,
+            user.userKey,
+            createdDay
+          );
+        }
+      }
+    }
+  );
+
+  let registrationCounts = emptyAnalyticsLifecyclePeriodCounts();
+  await forEachAnalyticsScanPage(
+    db.collection(schema.collections.registeredUserEvents)
+      .select("analyticsDay", "userKey", "registeredAt"),
+    (documents) => {
+      const eventDays: string[] = [];
+      for (const document of documents) {
+        const analyticsDay = stringValue(document.data().analyticsDay);
+        const userKey = stringValue(document.data().userKey);
+        const registeredAt = dateValue(document.data().registeredAt);
+        if (analyticsDay === undefined || userKey === undefined ||
+          registeredAt === undefined || dailyDocumentIDFor(registeredAt) !== analyticsDay) {
+          throw new Error(`Analytics registration event ${document.id} is malformed.`);
+        }
+
+        if (isAnalyticsLifecycleEventAfterCoverage(
+          analyticsDay,
+          registeredAt,
+          lifecycleCoverageByDay
+        )) {
+          eventDays.push(analyticsDay);
+          fallbackRegistrationDayByUserKey.delete(userKey);
+        }
+      }
+      registrationCounts = combinedAnalyticsLifecyclePeriodCounts(
+        registrationCounts,
+        analyticsLifecyclePeriodCounts(eventDays, windowIndex)
+      );
+    }
+  );
+  registrationCounts = combinedAnalyticsLifecyclePeriodCounts(
+    registrationCounts,
+    analyticsLifecyclePeriodCounts(
+      fallbackRegistrationDayByUserKey.values(),
+      windowIndex
+    )
+  );
+
+  registrationCounts = combinedAnalyticsLifecyclePeriodCounts(
+    registrationCounts,
+    analyticsLifecycleWeightedPeriodCounts(
+      lifecycleBaselines.map((baseline) => ({
+        analyticsDay: baseline.analyticsDay,
+        count: baseline.newRegistrations,
+      })),
+      windowIndex
+    )
+  );
+
+  let deletionCounts = emptyAnalyticsLifecyclePeriodCounts();
+  await forEachAnalyticsScanPage(
+    db.collection(schema.collections.deletedUserEvents)
+      .select("analyticsDay", "deletedAt"),
+    (documents) => {
+      const eventDays = documents.flatMap((document) => {
+        const analyticsDay = stringValue(document.data().analyticsDay);
+        const deletedAt = dateValue(document.data().deletedAt);
+        if (analyticsDay === undefined || deletedAt === undefined ||
+          dailyDocumentIDFor(deletedAt) !== analyticsDay) {
+          throw new Error(`Analytics deletion event ${document.id} is malformed.`);
+        }
+        return isAnalyticsLifecycleEventAfterCoverage(
+          analyticsDay,
+          deletedAt,
+          lifecycleCoverageByDay
+        ) ? [analyticsDay] : [];
+      });
+      deletionCounts = combinedAnalyticsLifecyclePeriodCounts(
+        deletionCounts,
+        analyticsLifecyclePeriodCounts(eventDays, windowIndex)
+      );
+    }
+  );
+  deletionCounts = combinedAnalyticsLifecyclePeriodCounts(
+    deletionCounts,
+    analyticsLifecycleWeightedPeriodCounts(
+      lifecycleBaselines.map((baseline) => ({
+        analyticsDay: baseline.analyticsDay,
+        count: baseline.deletedAccounts,
+      })),
+      windowIndex
+    )
+  );
+
+  const todaySourceDocumentIDs = [currentDatedDocumentID];
+  const todayStats = userAnalyticsPeriodStats(
+    baseStats,
+    registrationCounts.today,
+    deletionCounts.today
+  );
+  const sevenDaySourceDocumentIDs = windowIndex.sevenDayDocumentIDs;
+  const thirtyDaySourceDocumentIDs = windowIndex.thirtyDayDocumentIDs;
+  const sevenDayStats = userAnalyticsPeriodStats(
+    baseStats,
+    registrationCounts.sevenDays,
+    deletionCounts.sevenDays
+  );
+  const thirtyDayStats = userAnalyticsPeriodStats(
+    baseStats,
+    registrationCounts.thirtyDays,
+    deletionCounts.thirtyDays
+  );
   const batch = db.batch();
 
   batch.set(
     db.collection(schema.collections.userStats).doc(todayDocumentID),
-    userAnalyticsDocumentData("today", todayStats, [currentDatedDocumentID])
+    userAnalyticsDocumentData(
+      "today",
+      todayStats,
+      todaySourceDocumentIDs,
+      lifecycleCoverageStartDay
+    )
   );
   batch.set(
     db.collection(schema.collections.userStats).doc(currentDatedDocumentID),
-    userAnalyticsDocumentData(currentDatedDocumentID, todayStats, [currentDatedDocumentID])
+    userAnalyticsDocumentData(
+      currentDatedDocumentID,
+      todayStats,
+      todaySourceDocumentIDs,
+      lifecycleCoverageStartDay
+    )
   );
   batch.set(
     db.collection(schema.collections.userStats).doc("seven_days"),
-    userAnalyticsDocumentData("seven_days", sevenDayStats, sevenDaySourceDocumentIDs)
+    userAnalyticsDocumentData(
+      "seven_days",
+      sevenDayStats,
+      sevenDaySourceDocumentIDs,
+      lifecycleCoverageStartDay
+    )
   );
   batch.set(
     db.collection(schema.collections.userStats).doc("thirty_days"),
-    userAnalyticsDocumentData("thirty_days", thirtyDayStats, thirtyDaySourceDocumentIDs)
+    userAnalyticsDocumentData(
+      "thirty_days",
+      thirtyDayStats,
+      thirtyDaySourceDocumentIDs,
+      lifecycleCoverageStartDay
+    )
   );
 
   await batch.commit();
@@ -1065,7 +1563,115 @@ type UserAnalyticsBaseStats = {
   usersByFederalState: Record<string, number>;
 };
 
-function userAnalyticsBaseStats(users: DocumentData[], now: Date): UserAnalyticsBaseStats {
+type UserAnalyticsSourceUser = {
+  userKey: string;
+  data: DocumentData;
+  lastActiveAt?: Date;
+};
+
+export type AnalyticsLifecyclePeriodCounts = {
+  today: number;
+  sevenDays: number;
+  thirtyDays: number;
+};
+
+async function forEachAnalyticsScanPage(
+  baseQuery: Query<DocumentData>,
+  processPage: (
+    documents: QueryDocumentSnapshot<DocumentData>[]
+  ) => Promise<void> | void
+): Promise<void> {
+  let cursor: string | undefined;
+
+  while (true) {
+    let query = baseQuery
+      .orderBy(FieldPath.documentId())
+      .limit(analyticsMaterializationPageSize);
+    if (cursor !== undefined) {
+      query = query.startAfter(cursor);
+    }
+
+    const snapshot = await query.get();
+    if (snapshot.empty) {
+      return;
+    }
+
+    await processPage(snapshot.docs);
+    cursor = nextAnalyticsScanCursor(
+      snapshot.docs.map((document) => document.id),
+      analyticsMaterializationPageSize
+    );
+    if (cursor === undefined) {
+      return;
+    }
+  }
+}
+
+async function loadAnalyticsActivityByUserID(
+  userIDs: readonly string[]
+): Promise<Map<string, Date>> {
+  const activityByUserID = new Map<string, Date>();
+  const batches = boundedAnalyticsBatches(
+    userIDs,
+    analyticsActivityLookupBatchSize
+  );
+  const snapshotBatches = await Promise.all(batches.map((batch) => {
+    const references = batch.map((userID) => db
+      .collection(schema.collections.userActivity)
+      .doc(userID));
+    return db.getAll(...references);
+  }));
+
+  for (const snapshots of snapshotBatches) {
+    for (const snapshot of snapshots) {
+      const lastActiveAt = dateValue(snapshot.data()?.lastActiveAt);
+      if (lastActiveAt !== undefined) {
+        activityByUserID.set(snapshot.id, lastActiveAt);
+      }
+    }
+  }
+
+  return activityByUserID;
+}
+
+function emptyUserAnalyticsBaseStats(): UserAnalyticsBaseStats {
+  return {
+    totalUsers: 0,
+    blockedUsers: 0,
+    deactivatedUsers: 0,
+    activeUsersToday: 0,
+    activeUsersSevenDays: 0,
+    activeUsersThirtyDays: 0,
+    usersByFederalState: {},
+  };
+}
+
+function combinedUserAnalyticsBaseStats(
+  left: UserAnalyticsBaseStats,
+  right: UserAnalyticsBaseStats
+): UserAnalyticsBaseStats {
+  const usersByFederalState = {...left.usersByFederalState};
+  for (const [federalState, count] of Object.entries(right.usersByFederalState)) {
+    usersByFederalState[federalState] =
+      (usersByFederalState[federalState] ?? 0) + count;
+  }
+
+  return {
+    totalUsers: left.totalUsers + right.totalUsers,
+    blockedUsers: left.blockedUsers + right.blockedUsers,
+    deactivatedUsers: left.deactivatedUsers + right.deactivatedUsers,
+    activeUsersToday: left.activeUsersToday + right.activeUsersToday,
+    activeUsersSevenDays: left.activeUsersSevenDays + right.activeUsersSevenDays,
+    activeUsersThirtyDays: left.activeUsersThirtyDays + right.activeUsersThirtyDays,
+    usersByFederalState,
+  };
+}
+
+function userAnalyticsBaseStats(
+  users: UserAnalyticsSourceUser[],
+  now: Date,
+  windowIndex: AnalyticsActivityWindowIndex
+): UserAnalyticsBaseStats {
   const usersByFederalState: Record<string, number> = {};
   let blockedUsers = 0;
   let deactivatedUsers = 0;
@@ -1074,29 +1680,33 @@ function userAnalyticsBaseStats(users: DocumentData[], now: Date): UserAnalytics
   let activeUsersThirtyDays = 0;
 
   for (const user of users) {
-    const federalState = stringValue(user.selectedFederalState);
+    const federalState = stringValue(user.data.selectedFederalState);
     if (federalState !== undefined && federalStates.has(federalState)) {
       usersByFederalState[federalState] = (usersByFederalState[federalState] ?? 0) + 1;
     }
 
-    const restricted = isRestrictedUser(user);
-    if (isDeactivatedUser(user)) {
+    const restricted = isRestrictedUser(user.data);
+    if (isDeactivatedUser(user.data)) {
       deactivatedUsers += 1;
     } else if (restricted) {
       blockedUsers += 1;
     }
 
-    const updatedAt = dateValue(user.updatedAt);
-    if (updatedAt !== undefined && !restricted) {
-      if (isSameAnalyticsDay(updatedAt, now)) {
+    if (!restricted) {
+      const activity = analyticsActivityWindows(
+        user.lastActiveAt,
+        now,
+        windowIndex
+      );
+      if (activity.today) {
         activeUsersToday += 1;
       }
 
-      if (isWithinTrailingDays(updatedAt, now, 7)) {
+      if (activity.sevenDays) {
         activeUsersSevenDays += 1;
       }
 
-      if (isWithinTrailingDays(updatedAt, now, 30)) {
+      if (activity.thirtyDays) {
         activeUsersThirtyDays += 1;
       }
     }
@@ -1115,19 +1725,9 @@ function userAnalyticsBaseStats(users: DocumentData[], now: Date): UserAnalytics
 
 function userAnalyticsPeriodStats(
   baseStats: UserAnalyticsBaseStats,
-  users: DocumentData[],
-  dayCount: number,
-  deletedAccounts: number,
-  now: Date
+  newRegistrations: number,
+  deletedAccounts: number
 ): UserAnalyticsStats {
-  const newRegistrations = users
-    .map((user) => dateValue(user.createdAt))
-    .filter((createdAt): createdAt is Date => createdAt !== undefined)
-    .filter((createdAt) => dayCount === 1
-      ? isSameAnalyticsDay(createdAt, now)
-      : isWithinTrailingDays(createdAt, now, dayCount))
-    .length;
-
   return {
     ...baseStats,
     newRegistrations,
@@ -1138,8 +1738,13 @@ function userAnalyticsPeriodStats(
 function userAnalyticsDocumentData(
   period: string,
   stats: UserAnalyticsStats,
-  sourceDocumentIDs: string[]
+  sourceDocumentIDs: readonly string[],
+  lifecycleCoverageStartDay: string
 ): DocumentData {
+  const lifecycleCoverage = analyticsDetailCoverage(
+    sourceDocumentIDs,
+    lifecycleCoverageStartDay
+  );
   return {
     [schema.userStatsFields.period]: period,
     [schema.userStatsFields.generatedAt]: FieldValue.serverTimestamp(),
@@ -1158,26 +1763,103 @@ function userAnalyticsDocumentData(
     },
     [schema.userStatsFields.usersByFederalState]: stats.usersByFederalState,
     [schema.userStatsFields.sourceDocumentIDs]: sourceDocumentIDs,
+    [schema.userStatsFields.lifecycleCoverageStartDay]:
+      lifecycleCoverage.coverageStartDay,
+    [schema.userStatsFields.coveredLifecycleSourceDocumentIDs]:
+      lifecycleCoverage.coveredSourceDocumentIDs,
+    [schema.userStatsFields.isLifecyclePartialCoverage]:
+      lifecycleCoverage.isPartialCoverage,
     updatedAt: FieldValue.serverTimestamp(),
   };
 }
 
-async function deletedAccountsForSourceDocuments(
-  sourceDocumentIDs: string[],
-  currentDatedDocumentID: string,
-  todayDeletedAccounts: number
-): Promise<number> {
-  const historicalDocumentIDs = sourceDocumentIDs.filter(
-    (documentID) => documentID !== currentDatedDocumentID
-  );
-  const snapshots = await Promise.all(historicalDocumentIDs.map((documentID) =>
-    db.collection(schema.collections.userStats).doc(documentID).get()
-  ));
+export function analyticsLifecyclePeriodCounts(
+  eventDays: Iterable<string>,
+  windowIndex: AnalyticsActivityWindowIndex
+): AnalyticsLifecyclePeriodCounts {
+  const counts = emptyAnalyticsLifecyclePeriodCounts();
+  for (const eventDay of eventDays) {
+    if (eventDay === windowIndex.todayDocumentID) {
+      counts.today += 1;
+    }
+    if (windowIndex.sevenDayDocumentIDSet.has(eventDay)) {
+      counts.sevenDays += 1;
+    }
+    if (windowIndex.thirtyDayDocumentIDSet.has(eventDay)) {
+      counts.thirtyDays += 1;
+    }
+  }
+  return counts;
+}
 
-  return snapshots.reduce(
-    (total, snapshot) => total + deletedAccountsFromData(snapshot.data()),
-    todayDeletedAccounts
+export function analyticsLifecycleWeightedPeriodCounts(
+  dailyCounts: Iterable<{analyticsDay: string; count: number}>,
+  windowIndex: AnalyticsActivityWindowIndex
+): AnalyticsLifecyclePeriodCounts {
+  const counts = emptyAnalyticsLifecyclePeriodCounts();
+  for (const dailyCount of dailyCounts) {
+    if (!Number.isSafeInteger(dailyCount.count) || dailyCount.count < 0) {
+      throw new RangeError("Analytics lifecycle baseline count must be non-negative.");
+    }
+    if (dailyCount.analyticsDay === windowIndex.todayDocumentID) {
+      counts.today += dailyCount.count;
+    }
+    if (windowIndex.sevenDayDocumentIDSet.has(dailyCount.analyticsDay)) {
+      counts.sevenDays += dailyCount.count;
+    }
+    if (windowIndex.thirtyDayDocumentIDSet.has(dailyCount.analyticsDay)) {
+      counts.thirtyDays += dailyCount.count;
+    }
+  }
+  return counts;
+}
+
+function emptyAnalyticsLifecyclePeriodCounts(): AnalyticsLifecyclePeriodCounts {
+  return {today: 0, sevenDays: 0, thirtyDays: 0};
+}
+
+function combinedAnalyticsLifecyclePeriodCounts(
+  left: AnalyticsLifecyclePeriodCounts,
+  right: AnalyticsLifecyclePeriodCounts
+): AnalyticsLifecyclePeriodCounts {
+  return {
+    today: left.today + right.today,
+    sevenDays: left.sevenDays + right.sevenDays,
+    thirtyDays: left.thirtyDays + right.thirtyDays,
+  };
+}
+
+export function analyticsLifecycleEventCount(
+  eventDays: string[],
+  sourceDocumentIDs: string[]
+): number {
+  const sourceDocumentIDSet = new Set(sourceDocumentIDs);
+  return eventDays.filter((documentID) =>
+    sourceDocumentIDSet.has(documentID)
+  ).length;
+}
+
+export function analyticsRegistrationDays(
+  registrationEvents: Array<{analyticsDay: string; userKey: string}>,
+  currentUsers: Array<{userKey: string; createdAt?: Date}>,
+  now: Date
+): string[] {
+  const registeredUserKeys = new Set(
+    registrationEvents.map((event) => event.userKey)
   );
+  const fallbackDays = currentUsers.flatMap((user) => {
+    if (registeredUserKeys.has(user.userKey)
+      || user.createdAt === undefined
+      || user.createdAt.getTime() > now.getTime()) {
+      return [];
+    }
+    return [dailyDocumentIDFor(user.createdAt)];
+  });
+
+  return [
+    ...registrationEvents.map((event) => event.analyticsDay),
+    ...fallbackDays,
+  ];
 }
 
 async function loadTopContentRollup(
@@ -1186,15 +1868,19 @@ async function loadTopContentRollup(
   const snapshots = await Promise.all(sourceDocumentIDs.map((documentID) =>
     db.collection(schema.collections.topContent).doc(documentID).get()
   ));
+  return mergeAnalyticsTopContentSources(snapshots.map((snapshot) => {
+    const data = snapshot.data();
+    return data === undefined ? [] : topContentItemsFromData(data);
+  }));
+}
+
+export function mergeAnalyticsTopContentSources(
+  sourcesNewestFirst: ReadonlyArray<ReadonlyArray<RollupTopContentItem>>
+): RollupTopContentItem[] {
   const itemsByKey = new Map<string, RollupTopContentItem>();
 
-  for (const snapshot of snapshots) {
-    const data = snapshot.data();
-    if (data === undefined) {
-      continue;
-    }
-
-    for (const item of topContentItemsFromData(data)) {
+  for (const sourceItems of sourcesNewestFirst) {
+    for (const item of sourceItems) {
       const key = contentRollupKey(item.contentType, item.contentID);
       const current = itemsByKey.get(key);
       if (current === undefined) {
@@ -1205,23 +1891,27 @@ async function loadTopContentRollup(
       itemsByKey.set(key, {
         ...current,
         title: current.title || item.title,
-        category: current.category ?? item.category,
-        organizationID: current.organizationID ?? item.organizationID,
-        organizationName: current.organizationName ?? item.organizationName,
-        federalState: current.federalState ?? item.federalState,
-        regionScope: current.regionScope ?? item.regionScope,
         viewCount: current.viewCount + item.viewCount,
       });
     }
   }
 
-  return Array.from(itemsByKey.values())
-    .sort((left, right) => right.viewCount - left.viewCount)
-    .slice(0, 20)
-    .map((item, index) => ({
-      ...item,
-      rank: index + 1,
-    }));
+  // Each UI section gets its own meaningful ranking. A single global top 20
+  // allowed one dominant content type to hide every item from the others.
+  return (["news", "event", "organization"] as AnalyticsContentType[])
+    .flatMap((contentType) => Array.from(itemsByKey.values())
+      .filter((item) => item.contentType === contentType)
+      .sort((left, right) => {
+        if (left.viewCount === right.viewCount) {
+          return left.contentID.localeCompare(right.contentID);
+        }
+        return right.viewCount - left.viewCount;
+      })
+      .slice(0, 20)
+      .map((item, index) => ({
+        ...item,
+        rank: index + 1,
+      })));
 }
 
 async function loadRegionStatsRollup(
@@ -1249,7 +1939,6 @@ async function loadRegionStatsRollup(
       regionsByKey.set(key, {
         ...current,
         viewCount: current.viewCount + region.viewCount,
-        contentKeys: new Set([...current.contentKeys, ...region.contentKeys]),
         metrics: combinedMetrics(current.metrics, region.metrics),
       });
     }
@@ -1260,10 +1949,13 @@ async function loadRegionStatsRollup(
     .slice(0, 50);
 }
 
-function topContentItemsFromData(data: DocumentData): RollupTopContentItem[] {
+export function topContentItemsFromData(data: DocumentData): RollupTopContentItem[] {
   const itemsByKey = data[schema.topContentFields.itemsByKey];
   if (isRecord(itemsByKey)) {
-    return Object.values(itemsByKey).flatMap(topContentItemFromUnknown);
+    const mappedItems = Object.values(itemsByKey).flatMap(topContentItemFromUnknown);
+    if (mappedItems.length > 0) {
+      return mappedItems;
+    }
   }
 
   const items = data[schema.topContentFields.items];
@@ -1281,7 +1973,8 @@ function topContentItemFromUnknown(value: unknown): RollupTopContentItem[] {
 
   const contentID = stringValue(value[schema.topContentFields.contentID]);
   const contentType = analyticsContentType(value[schema.topContentFields.contentType]);
-  if (contentID === undefined || contentType === undefined) {
+  const viewCount = positiveInteger(value[schema.topContentFields.viewCount]);
+  if (contentID === undefined || contentType === undefined || viewCount === 0) {
     return [];
   }
 
@@ -1294,15 +1987,18 @@ function topContentItemFromUnknown(value: unknown): RollupTopContentItem[] {
     organizationName: stringValue(value[schema.topContentFields.organizationName]),
     federalState: stringValue(value[schema.topContentFields.federalState]),
     regionScope: stringValue(value[schema.topContentFields.regionScope]),
-    viewCount: positiveInteger(value[schema.topContentFields.viewCount]),
+    viewCount,
     rank: positiveInteger(value[schema.topContentFields.rank]),
   }];
 }
 
-function regionStatsItemsFromData(data: DocumentData): RollupRegionStatsItem[] {
+export function regionStatsItemsFromData(data: DocumentData): RollupRegionStatsItem[] {
   const regionsByKey = data[schema.regionStatsFields.regionsByKey];
   if (isRecord(regionsByKey)) {
-    return Object.values(regionsByKey).flatMap(regionStatsItemFromUnknown);
+    const mappedRegions = Object.values(regionsByKey).flatMap(regionStatsItemFromUnknown);
+    if (mappedRegions.length > 0) {
+      return mappedRegions;
+    }
   }
 
   const regions = data[schema.regionStatsFields.regions];
@@ -1319,27 +2015,25 @@ function regionStatsItemFromUnknown(value: unknown): RollupRegionStatsItem[] {
   }
 
   const regionScope = stringValue(value[schema.regionStatsFields.regionScope]);
-  if (regionScope === undefined || !regionScopes.has(regionScope)) {
+  const federalState = stringValue(value[schema.regionStatsFields.federalState]);
+  const normalizedRegion = normalizeAnalyticsRegion(regionScope, federalState);
+  if (normalizedRegion === undefined) {
     return [];
   }
-
-  const federalState = stringValue(value[schema.regionStatsFields.federalState]);
-  const contentKeys = activeContentKeys(value[schema.regionStatsFields.contentKeys]);
   const metrics = activeRegionMetricMap(value[schema.regionStatsFields.metrics]);
   const viewCount = Array.from(metrics.values()).reduce(
     (total, metricValue) => total + metricValue,
     0
   );
-  if (!hasActiveRegionAnalytics(viewCount, contentKeys.length)) {
+  if (!hasActiveRegionAnalytics(viewCount, 0)) {
     return [];
   }
   metrics.set(schema.dailyStatsFields.totalViews, viewCount);
 
   return [{
-    regionScope,
-    federalState,
+    regionScope: normalizedRegion.regionScope,
+    federalState: normalizedRegion.federalState,
     viewCount,
-    contentKeys: new Set(contentKeys),
     metrics,
   }];
 }
@@ -1400,10 +2094,6 @@ function regionStatsData(item: RollupRegionStatsItem): DocumentData {
   const data: DocumentData = {
     [schema.regionStatsFields.regionScope]: item.regionScope,
     [schema.regionStatsFields.viewCount]: item.viewCount,
-    [schema.regionStatsFields.contentCount]: item.contentKeys.size,
-    [schema.regionStatsFields.contentKeys]: Object.fromEntries(
-      Array.from(item.contentKeys).map((key) => [key, true])
-    ),
     [schema.regionStatsFields.metrics]: Object.fromEntries(item.metrics),
   };
 
@@ -1516,6 +2206,19 @@ function positiveInteger(value: unknown): number {
     : 0;
 }
 
+function requiredLifecycleBaselineCount(
+  value: unknown,
+  analyticsDay: string,
+  field: string
+): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw new Error(
+      `Analytics lifecycle baseline ${analyticsDay}.${field} is malformed.`
+    );
+  }
+  return value;
+}
+
 function analyticsContentType(value: unknown): AnalyticsContentType | undefined {
   switch (value) {
     case "news":
@@ -1525,16 +2228,6 @@ function analyticsContentType(value: unknown): AnalyticsContentType | undefined 
     default:
       return undefined;
   }
-}
-
-function activeContentKeys(value: unknown): string[] {
-  if (!isRecord(value)) {
-    return [];
-  }
-
-  return Object.keys(value).filter((key) =>
-    activeContentKeyPrefixes.some((prefix) => key.startsWith(prefix))
-  );
 }
 
 function activeRegionMetricMap(value: unknown): Map<string, number> {
@@ -1578,19 +2271,6 @@ function isDeactivatedUser(user: DocumentData): boolean {
     || stringValue(user.blockState) === "deactivated";
 }
 
-function deletedAccountsFromData(data: DocumentData | undefined): number {
-  if (data === undefined) {
-    return 0;
-  }
-
-  const metrics = data[schema.userStatsFields.metrics];
-  if (isRecord(metrics)) {
-    return positiveInteger(metrics[schema.userStatsFields.deletedAccounts]);
-  }
-
-  return positiveInteger(data[schema.userStatsFields.deletedAccounts]);
-}
-
 function dateValue(value: unknown): Date | undefined {
   if (value instanceof Timestamp) {
     return value.toDate();
@@ -1603,43 +2283,39 @@ function dateValue(value: unknown): Date | undefined {
   return undefined;
 }
 
-function isSameAnalyticsDay(date: Date, now: Date): boolean {
-  return dailyDocumentIDFor(date) === dailyDocumentIDFor(now);
-}
-
-function isWithinTrailingDays(date: Date, now: Date, dayCount: number): boolean {
-  const start = new Date(now);
-  start.setUTCDate(now.getUTCDate() - Math.max(0, dayCount - 1));
-  start.setUTCHours(0, 0, 0, 0);
-  return date.getTime() >= start.getTime() && date.getTime() <= now.getTime();
-}
-
-function dailyDocumentIDFor(date: Date): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Vienna",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const year = datePart(parts, "year");
-  const month = datePart(parts, "month");
-  const day = datePart(parts, "day");
-  return `${year}-${month}-${day}`;
-}
-
-function datePart(parts: Intl.DateTimeFormatPart[], type: string): string {
-  return parts.find((part) => part.type === type)?.value ?? "00";
-}
-
 function analyticsRegionKey(analyticsEvent: SanitizedAnalyticsEvent): string | undefined {
-  if (analyticsEvent.regionScope === undefined) {
+  const normalizedRegion = normalizeAnalyticsRegion(
+    analyticsEvent.regionScope,
+    analyticsEvent.federalState
+  );
+  if (normalizedRegion === undefined) {
     return undefined;
   }
 
   return [
-    analyticsEvent.regionScope,
-    analyticsEvent.federalState ?? "all",
+    normalizedRegion.regionScope,
+    normalizedRegion.federalState ?? "all",
   ].join("_");
+}
+
+export function normalizeAnalyticsRegion(
+  regionScope: string | undefined,
+  federalState: string | undefined
+): NormalizedAnalyticsRegion | undefined {
+  if (regionScope === "austria") {
+    return {regionScope: "austria"};
+  }
+
+  // City-level analytics intentionally does not retain a city name. Fold it
+  // into its federal state instead of presenting a fake city bucket or
+  // counting the same state twice under two scopes.
+  if ((regionScope === "federalState" || regionScope === "city")
+    && federalState !== undefined
+    && federalStates.has(federalState)) {
+    return {regionScope: "federalState", federalState};
+  }
+
+  return undefined;
 }
 
 function contentMapKey(analyticsEvent: SanitizedAnalyticsEvent): string {
@@ -1665,26 +2341,4 @@ function regionRollupKey(
   federalState: string | undefined
 ): string {
   return [regionScope, federalState ?? "all"].join("_");
-}
-
-function rollupSourceDocumentIDs(dayCount: number): string[] {
-  const today = new Date();
-  // Rollups combine the live "today" aggregate with prior dated documents if
-  // those documents exist. They do not read or create per-user analytics data.
-  const priorDayCount = Math.max(0, dayCount - 1);
-  const documentIDs = Array.from({ length: priorDayCount }, (_, offset) => {
-    const date = new Date(today);
-    date.setUTCDate(today.getUTCDate() - offset - 1);
-    return dailyDocumentIDFor(date);
-  });
-
-  return [schema.periodDocumentIDs[0], ...documentIDs];
-}
-
-function userStatsSourceDocumentIDs(dayCount: number, now: Date): string[] {
-  return Array.from({ length: dayCount }, (_, offset) => {
-    const date = new Date(now);
-    date.setUTCDate(now.getUTCDate() - offset);
-    return dailyDocumentIDFor(date);
-  });
 }

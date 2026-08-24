@@ -9,17 +9,52 @@ from classify_changes import classify
 
 
 class ClassifyChangesTests(unittest.TestCase):
-    def test_docs_localization_and_plists_stay_static_only(self) -> None:
-        lanes = classify(
-            [
-                "Docs/ReleaseSecurityChecklist.md",
-                "UkrainianCommunity/Localization/Localizable.xcstrings",
-                "UkrainianCommunity-Info.plist",
-            ]
-        )
+    def test_docs_and_non_release_plists_stay_static_only(self) -> None:
+        lanes = classify(["Docs/ReleaseSecurityChecklist.md", "Example.plist"])
         self.assertFalse(lanes.firebase)
         self.assertFalse(lanes.ios)
         self.assertFalse(lanes.full)
+
+    def test_app_info_plist_runs_release_validation(self) -> None:
+        lanes = classify(["UkrainianCommunity-Info.plist"])
+        self.assertTrue(lanes.ios)
+        self.assertTrue(lanes.ios_unit)
+        self.assertTrue(lanes.ios_ui)
+        self.assertTrue(lanes.ios_release)
+        self.assertFalse(lanes.full)
+
+    def test_localization_starts_ios_units_and_ui(self) -> None:
+        paths = [
+            "UkrainianCommunity/Localization/Localizable.xcstrings",
+            "UkrainianCommunity/Resources/de.lproj/Localizable.strings",
+            "UkrainianCommunity/Resources/Plural.stringsdict",
+        ]
+
+        for path in paths:
+            with self.subTest(path=path):
+                lanes = classify([path])
+                self.assertTrue(lanes.ios)
+                self.assertTrue(lanes.ios_unit)
+                self.assertTrue(lanes.ios_ui)
+                self.assertFalse(lanes.ios_release)
+                self.assertFalse(lanes.full)
+
+    def test_analytics_product_paths_start_ios_units_and_ui(self) -> None:
+        paths = [
+            "UkrainianCommunity/Models/Analytics/OwnerAnalyticsSnapshot.swift",
+            "UkrainianCommunity/Repositories/Analytics/FirestoreOwnerAnalyticsRepository.swift",
+            "UkrainianCommunity/ViewModels/Analytics/OwnerAnalyticsViewModel.swift",
+            "UkrainianCommunity/Views/Profile/OwnerAnalyticsDetailViews.swift",
+        ]
+
+        for path in paths:
+            with self.subTest(path=path):
+                lanes = classify([path])
+                self.assertTrue(lanes.ios)
+                self.assertTrue(lanes.ios_unit)
+                self.assertTrue(lanes.ios_ui)
+                self.assertFalse(lanes.ios_release)
+                self.assertFalse(lanes.full)
 
     def test_functions_do_not_start_rules_or_ios(self) -> None:
         lanes = classify(["functions/src/analytics/trackAnalyticsEvent.ts"])

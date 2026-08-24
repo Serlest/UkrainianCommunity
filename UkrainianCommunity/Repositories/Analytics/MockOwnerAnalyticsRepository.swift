@@ -85,7 +85,7 @@ extension MockOwnerAnalyticsRepository {
     }
 
     private static func sampleDailyStats(period: AnalyticsPeriod) -> [AnalyticsDailyStats] {
-        let calendar = Calendar.current
+        let calendar = AnalyticsFirestoreSchema.analyticsCalendar
         let today = calendar.startOfDay(for: Date())
 
         return (0..<period.dayCount).reversed().compactMap { offset in
@@ -99,7 +99,7 @@ extension MockOwnerAnalyticsRepository {
                     .organizationViews: 63 + index * 3,
                     .totalViews: 249 + index * 13,
                     .activeRegions: min(6, 3 + index % 4),
-                    .totalLikes: 18 + index * 2,
+                    .newsLikes: 18 + index * 2,
                     .totalBookmarks: 12 + index,
                     .eventRegistrations: 9 + index,
                     .cancelledEventRegistrations: max(1, index / 2),
@@ -217,7 +217,7 @@ extension MockOwnerAnalyticsRepository {
     private static func sampleActionStats(period: AnalyticsPeriod) -> AnalyticsActionStats {
         let dailyStats = sampleDailyStats(period: period)
         return AnalyticsActionStats(
-            totalLikes: dailyStats.map { $0.value(for: .totalLikes) }.reduce(0, +),
+            newsLikes: dailyStats.map { $0.value(for: .newsLikes) }.reduce(0, +),
             totalBookmarks: dailyStats.map { $0.value(for: .totalBookmarks) }.reduce(0, +),
             eventRegistrations: dailyStats.map { $0.value(for: .eventRegistrations) }.reduce(0, +),
             cancelledEventRegistrations: dailyStats.map { $0.value(for: .cancelledEventRegistrations) }.reduce(0, +),

@@ -31,6 +31,7 @@ enum CloudFunctionName: String, CaseIterable {
     case setUserBlocked
     case createOrganizationPhotoMetadata
     case deleteOrganizationPhotoMetadata
+    case deleteNotificationPushRegistration
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -182,6 +183,7 @@ struct EventCancellationFunctionResponse: Codable, Equatable {
 
 private struct EventRegistrationFunctionRequest: Codable, Equatable {
     let eventId: String
+    let actionProof: AnalyticsActionCapture?
 }
 
 private struct EventRegistrationFunctionResponse: Codable, Equatable {
@@ -230,6 +232,16 @@ struct AccountDeletionFunctionRequest: Codable, Equatable {}
 struct AccountDeletionFunctionResponse: Codable, Equatable {
     let status: String
     let completedAt: String
+}
+
+nonisolated struct PushRegistrationDeletionFunctionRequest: Codable, Equatable {
+    let userId: String
+    let identifier: String
+    let registrationType: String
+}
+
+nonisolated struct PushRegistrationDeletionFunctionResponse: Codable, Equatable {
+    let deletedRegistrationCount: Int
 }
 
 final class CloudFunctionsClient {
@@ -366,12 +378,12 @@ final class CloudFunctionsClient {
         try await call(.cancelEvent, request: request)
     }
 
-    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult {
-        try await eventRegistrationMutation(.registerForEvent, eventID: id)
+    func registerForEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult {
+        try await eventRegistrationMutation(.registerForEvent, eventID: id, actionCapture: actionCapture)
     }
 
     func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult {
-        try await eventRegistrationMutation(.unregisterFromEvent, eventID: id)
+        try await eventRegistrationMutation(.unregisterFromEvent, eventID: id, actionCapture: nil)
     }
 
     func deleteNews(id: String) async throws -> ContentDeletionFunctionResponse {
@@ -419,14 +431,24 @@ final class CloudFunctionsClient {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
     }
 
+    func deleteNotificationPushRegistration(
+        _ request: PushRegistrationDeletionFunctionRequest
+    ) async throws -> PushRegistrationDeletionFunctionResponse {
+        try await call(.deleteNotificationPushRegistration, request: request)
+    }
+
     private func eventRegistrationMutation(
         _ functionName: CloudFunctionName,
-        eventID: String
+        eventID: String,
+        actionCapture: AnalyticsActionCapture?
     ) async throws -> EventRegistrationMutationResult {
         do {
             let response: EventRegistrationFunctionResponse = try await call(
                 functionName,
-                request: EventRegistrationFunctionRequest(eventId: eventID)
+                request: EventRegistrationFunctionRequest(
+                    eventId: eventID,
+                    actionProof: actionCapture
+                )
             )
             guard response.eventId == eventID, response.registeredCount >= 0 else {
                 throw EventRegistrationMutationError.unavailable
@@ -520,7 +542,8 @@ final class CloudFunctionsClient {
              .banUser,
              .deactivateUser,
              .restoreUser,
-             .deleteOwnAccount:
+             .deleteOwnAccount,
+             .deleteNotificationPushRegistration:
             return .userProfile
         case .acceptLegalDocument:
             return .legalDocument
@@ -566,7 +589,8 @@ final class CloudFunctionsClient {
              .registerForEvent,
              .unregisterFromEvent,
              .submitContentReport,
-             .setUserBlocked:
+             .setUserBlocked,
+             .deleteNotificationPushRegistration:
             return false
         }
     }
@@ -620,7 +644,8 @@ final class CloudFunctionsClient {
              .submitContentReport,
              .setUserBlocked,
              .createOrganizationPhotoMetadata,
-             .deleteOrganizationPhotoMetadata:
+             .deleteOrganizationPhotoMetadata,
+             .deleteNotificationPushRegistration:
             return nil
         }
     }

@@ -180,6 +180,8 @@ final class EventsViewModel: ObservableObject {
         let shouldRegister = event.registrationState != .registered
         let operationID = UUID()
         let generation = sessionGeneration
+        let actionEvent = AppAnalyticsEvent.eventRegister(event: event)
+        let actionCapture = shouldRegister ? analyticsService.actionCapture(for: actionEvent) : nil
 
         pendingEventRegistrationIDs.insert(eventID)
         registrationOperationIDs[eventID] = operationID
@@ -193,7 +195,8 @@ final class EventsViewModel: ObservableObject {
                 eventID: eventID,
                 shouldRegister: shouldRegister,
                 operationID: operationID,
-                generation: generation
+                generation: generation,
+                actionCapture: actionCapture
             )
         }
         registrationTasks[eventID] = task
@@ -208,13 +211,14 @@ final class EventsViewModel: ObservableObject {
         eventID: String,
         shouldRegister: Bool,
         operationID: UUID,
-        generation: Int
+        generation: Int,
+        actionCapture: AnalyticsActionCapture?
     ) async {
         defer { finishRegistrationMutation(eventID, operationID: operationID, generation: generation) }
 
         do {
             let result = if shouldRegister {
-                try await registrationMutator.registerForEvent(id: eventID)
+                try await registrationMutator.registerForEvent(id: eventID, actionCapture: actionCapture)
             } else {
                 try await registrationMutator.cancelEventRegistration(id: eventID)
             }
@@ -237,11 +241,14 @@ final class EventsViewModel: ObservableObject {
                 ? .registeredForEvent
                 : .canceledEventRegistration
             )
-            analyticsService.track(
-                result.registrationState == .registered
-                ? .eventRegister(event: eventBeforeMutation)
-                : .eventCancelRegistration(event: eventBeforeMutation)
-            )
+            if result.registrationState == .registered {
+                analyticsService.track(
+                    .eventRegister(event: eventBeforeMutation),
+                    actionCapture: actionCapture
+                )
+            } else {
+                analyticsService.track(.eventCancelRegistration(event: eventBeforeMutation))
+            }
         } catch is CancellationError {
         } catch let mutationError as EventRegistrationMutationError {
             guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }
@@ -288,6 +295,8 @@ final class EventsViewModel: ObservableObject {
         guard !pendingEventBookmarkIDs.contains(eventID) else { return }
         let shouldBookmark = !events[index].isBookmarked
         let event = events[index]
+        let actionEvent = AppAnalyticsEvent.eventBookmark(event: event)
+        let actionCapture = shouldBookmark ? analyticsService.actionCapture(for: actionEvent) : nil
         let previousBookmarkState = events[index].isBookmarked
         let generation = sessionGeneration
         let requestFeedRevision = feedRevision
@@ -308,7 +317,7 @@ final class EventsViewModel: ObservableObject {
 
             do {
                 if shouldBookmark {
-                    try await repository.bookmarkEvent(id: eventID)
+                    try await repository.bookmarkEvent(id: eventID, actionCapture: actionCapture)
                 } else {
                     try await repository.unbookmarkEvent(id: eventID)
                 }
@@ -320,7 +329,7 @@ final class EventsViewModel: ObservableObject {
                 }
                 ActivityLogRecorder.recordEvent(event, actionType: shouldBookmark ? .savedEvent : .unsavedEvent)
                 if shouldBookmark {
-                    analyticsService.track(.eventBookmark(event: event))
+                    analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
                 error = nil
             } catch let appError as AppError {
@@ -387,8 +396,13 @@ final class EventsViewModel: ObservableObject {
     }
 
     func trackViewIfNeeded(for event: Event, sourceScreen: String = "event_detail") {
-        guard !trackedEventViewIDs.contains(event.id) else { return }
-        trackedEventViewIDs.insert(event.id)
+        guard let collectionScopeID = analyticsService.collectionScopeID else { return }
+        let trackingKey = AnalyticsTrackingKey.daily(
+            contentID: event.id,
+            collectionScopeID: collectionScopeID
+        )
+        guard !trackedEventViewIDs.contains(trackingKey) else { return }
+        trackedEventViewIDs.insert(trackingKey)
         analyticsService.track(.eventView(
             contentID: event.id,
             contentTitle: event.title,

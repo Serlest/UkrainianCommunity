@@ -37,7 +37,7 @@ struct MockNewsRepository: NewsRepository {
         try await store.deleteNews(id: id)
     }
 
-    func likeNews(id: String) async throws {
+    func likeNews(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await store.toggleNewsLike(id: id, isLiked: true)
     }
 
@@ -53,7 +53,7 @@ struct MockNewsRepository: NewsRepository {
         try await store.newsComments(newsID: newsID)
     }
 
-    func bookmarkNews(id: String) async throws {
+    func bookmarkNews(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await store.setNewsBookmark(id: id, isBookmarked: true)
     }
 

@@ -5,6 +5,12 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
+import {
+  analyticsActionProofCollection,
+  analyticsActionProofDocumentData,
+  requireMatchingAnalyticsActionProofBinding,
+  type AnalyticsActionProofBinding,
+} from "../analytics/analyticsActionProof";
 
 export type EventRegistrationMutationAction = "register" | "unregister";
 export type EventRegistrationState = "registered" | "notRegistered";
@@ -50,7 +56,12 @@ export const registerForEvent = onCall(
   async (request): Promise<EventRegistrationMutationResponse> => {
     const auth = await requireVerifiedActiveUser(request);
     const eventId = eventDocumentId(request.data);
-    return mutateEventRegistration("register", eventId, auth.uid);
+    const actionProof = requireMatchingAnalyticsActionProofBinding(
+      isRecord(request.data) ? request.data.actionProof : undefined,
+      "event_register",
+      eventId
+    );
+    return mutateEventRegistration("register", eventId, auth.uid, actionProof);
   }
 );
 
@@ -66,7 +77,8 @@ export const unregisterFromEvent = onCall(
 export async function mutateEventRegistration(
   action: EventRegistrationMutationAction,
   eventId: string,
-  userId: string
+  userId: string,
+  actionProof?: AnalyticsActionProofBinding
 ): Promise<EventRegistrationMutationResponse> {
   const eventReference = db.collection("events").doc(eventId);
   const registrationId = registrationDocumentId(eventId, userId);
@@ -92,6 +104,12 @@ export async function mutateEventRegistration(
 
     if (plan.registrationData !== undefined) {
       transaction.create(registrationReference, plan.registrationData);
+      if (actionProof !== undefined) {
+        transaction.create(
+          db.collection(analyticsActionProofCollection).doc(actionProof.proofID),
+          analyticsActionProofDocumentData(actionProof, userId, now.toDate())
+        );
+      }
     }
     if (plan.counterOperationData !== undefined && plan.counterOperationId !== undefined) {
       transaction.create(

@@ -1,7 +1,7 @@
 import Foundation
 
 struct AnalyticsActionStats: Codable, Equatable {
-    let totalLikes: Int
+    let newsLikes: Int
     let totalBookmarks: Int
     let eventRegistrations: Int
     let cancelledEventRegistrations: Int
@@ -9,7 +9,7 @@ struct AnalyticsActionStats: Codable, Equatable {
     let organizationUnfollows: Int
 
     var hasData: Bool {
-        totalLikes > 0
+        newsLikes > 0
             || totalBookmarks > 0
             || eventRegistrations > 0
             || cancelledEventRegistrations > 0
@@ -18,7 +18,7 @@ struct AnalyticsActionStats: Codable, Equatable {
     }
 
     static let empty = AnalyticsActionStats(
-        totalLikes: 0,
+        newsLikes: 0,
         totalBookmarks: 0,
         eventRegistrations: 0,
         cancelledEventRegistrations: 0,

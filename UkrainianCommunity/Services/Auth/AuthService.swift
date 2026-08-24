@@ -128,8 +128,8 @@ final class AuthService {
         backend: FirebaseAuthBackend(),
         profileProvider: UserProfileService.shared
     )
-    static let currentTermsVersion = "2026.1"
-    static let currentPrivacyVersion = "2026.1"
+    nonisolated static let currentTermsVersion = "2026.1"
+    nonisolated static let currentPrivacyVersion = "2026.1"
 
     let authState: AuthState
 

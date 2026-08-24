@@ -36,13 +36,14 @@ struct UkrainianCommunityTests {
 
         let service = AnalyticsConsentService(userDefaults: defaults)
 
-        #expect(service.isAnalyticsEnabled == false)
+        #expect(service.isAnalyticsEnabled(for: "user-a") == false)
 
-        service.setAnalyticsEnabled(true)
-        #expect(service.isAnalyticsEnabled == true)
+        service.setAnalyticsEnabled(true, for: "user-a")
+        #expect(service.isAnalyticsEnabled(for: "user-a") == true)
+        #expect(service.isAnalyticsEnabled(for: "user-b") == false)
 
-        service.setAnalyticsEnabled(false)
-        #expect(service.isAnalyticsEnabled == false)
+        service.setAnalyticsEnabled(false, for: "user-a")
+        #expect(service.isAnalyticsEnabled(for: "user-a") == false)
     }
 
     private func makeUser(
@@ -924,7 +925,7 @@ struct UkrainianCommunityTests {
         let initialRegisteredEvents = try await repository.fetchRegisteredEvents()
         #expect(initialRegisteredEvents.allSatisfy { $0.registrationState == .registered })
 
-        _ = try await repository.registerForEvent(id: targetEvent.id)
+        _ = try await repository.registerForEvent(id: targetEvent.id, actionCapture: nil)
 
         let registeredEvents = try await repository.fetchRegisteredEvents()
 

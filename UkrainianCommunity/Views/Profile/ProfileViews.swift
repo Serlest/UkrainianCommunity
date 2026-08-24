@@ -40,6 +40,7 @@ struct ProfileView: View {
     private let featuredBannerCache: FeaturedBannerCache
     private let legalDocumentRepository: LegalDocumentRepository
     private let ownerAnalyticsRepository: OwnerAnalyticsRepository
+    private let analyticsService: AnalyticsTracking
     private let donationConfigRepository: DonationConfigRepository
     private let notificationInboxRepository: NotificationInboxRepository
     @ObservedObject private var userBlockingCoordinator: UserBlockingCoordinator
@@ -82,6 +83,7 @@ struct ProfileView: View {
     @State private var isShowingDeleteAccountSheet = false
     @State private var deleteAccountConfirmationText = ""
     @State private var deleteAccountErrorMessage: String?
+    @State private var isAnalyticsCollectionEnabled: Bool
     @Binding var navigationPath: [ProfileNavigationRoute]
     let scrollResetToken: Int
 
@@ -98,6 +100,7 @@ struct ProfileView: View {
         featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         ownerAnalyticsRepository: OwnerAnalyticsRepository = FirestoreOwnerAnalyticsRepository(),
+        analyticsService: AnalyticsTracking = NoopAnalyticsService(),
         donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         notificationInboxViewModel: NotificationInboxViewModel? = nil,
@@ -123,6 +126,7 @@ struct ProfileView: View {
         self.featuredBannerCache = featuredBannerCache
         self.legalDocumentRepository = legalDocumentRepository
         self.ownerAnalyticsRepository = ownerAnalyticsRepository
+        self.analyticsService = analyticsService
         self.donationConfigRepository = donationConfigRepository
         self.notificationInboxRepository = notificationInboxRepository
         self.notificationInboxViewModel = notificationInboxViewModel ?? NotificationInboxViewModel(
@@ -132,6 +136,7 @@ struct ProfileView: View {
         self.onNotificationTap = onNotificationTap
         self.onBrowseDestinationSelected = onBrowseDestinationSelected
         self.scrollResetToken = scrollResetToken
+        _isAnalyticsCollectionEnabled = State(initialValue: analyticsService.isCollectionEnabled)
         _navigationPath = navigationPath
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(
             repository: eventRepository,
@@ -393,6 +398,7 @@ struct ProfileView: View {
             profileDestination(for: route)
         }
         .task {
+            isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
             await viewModel.loadIfNeeded()
             await donationConfigViewModel.loadIfNeeded()
             if authState.isAuthenticated {
@@ -410,6 +416,11 @@ struct ProfileView: View {
                 myFeedbackViewModel.reset()
                 ownerVisibilityViewModel.reset()
             }
+        }
+        .onChange(of: authState.user?.id) {
+            // Consent is scoped to the active principal. Never leave the
+            // previous account's switch value visible after an account change.
+            isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
         }
         .refreshable {
             await viewModel.refresh()
@@ -876,6 +887,8 @@ struct ProfileView: View {
                     }
                     .labelsHidden()
                 }
+
+                analyticsConsentRow
             }
         }
     }
@@ -1122,6 +1135,7 @@ struct ProfileView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.owner.analytics")
 
                         NavigationLink(value: ProfileNavigationRoute.systemLogs(.owner)) {
                             ProfileModuleRow(
@@ -1281,6 +1295,8 @@ struct ProfileView: View {
                     .labelsHidden()
                 }
 
+                analyticsConsentRow
+
             }
         }
     }
@@ -1316,6 +1332,8 @@ struct ProfileView: View {
                     }
                     .labelsHidden()
                 }
+
+                analyticsConsentRow
 
                 Button(action: beginEditingProfile) {
                     ProfileModuleRow(
@@ -1414,6 +1432,8 @@ struct ProfileView: View {
                     .labelsHidden()
                 }
 
+                analyticsConsentRow
+
                 NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
                     ProfileModuleRow(title: AppStrings.Profile.termsOfUse, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
                 }
@@ -1434,6 +1454,25 @@ struct ProfileView: View {
         ProfileSectionCard(title: DonationLocalization.publicSectionTitle(for: appLanguage)) {
             ProfileDonationSupportCard(config: donationConfigViewModel.config, language: appLanguage)
         }
+    }
+
+    private var analyticsConsentRow: some View {
+        ProfileSettingsToggleRow(
+            title: AppStrings.Profile.analyticsCollectionTitle,
+            subtitle: analyticsService.isCollectionAvailable
+                ? AppStrings.Profile.analyticsCollectionSubtitle
+                : AppStrings.Profile.analyticsCollectionUnavailableSubtitle,
+            systemImage: "chart.bar.xaxis",
+            isOn: Binding(
+                get: { isAnalyticsCollectionEnabled },
+                set: { isEnabled in
+                    isAnalyticsCollectionEnabled = isEnabled
+                    analyticsService.setCollectionEnabled(isEnabled)
+                }
+            )
+        )
+        .disabled(!analyticsService.isCollectionAvailable)
+        .accessibilityIdentifier("profile.settings.analyticsConsent")
     }
 
     private var logoutSection: some View {

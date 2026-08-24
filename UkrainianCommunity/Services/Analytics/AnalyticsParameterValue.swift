@@ -1,6 +1,6 @@
 import Foundation
 
-enum AnalyticsParameterValue: Sendable, Equatable {
+nonisolated enum AnalyticsParameterValue: Sendable, Equatable {
     case string(String)
     case int(Int)
     case double(Double)
