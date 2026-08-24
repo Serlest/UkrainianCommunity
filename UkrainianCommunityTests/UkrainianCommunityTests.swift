@@ -353,6 +353,21 @@ struct UkrainianCommunityTests {
         #expect(germanMonth != ukrainianMonth)
     }
 
+    @Test func selectedLanguageAffectsLocalizedStrings() {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+
+        AppLanguage.stored = .german
+        let germanHome = LocalizationStore.localizedString("tab.home", defaultValue: "Home")
+        let repeatedGermanHome = LocalizationStore.localizedString("tab.home", defaultValue: "Home")
+
+        AppLanguage.stored = .ukrainian
+        let ukrainianHome = LocalizationStore.localizedString("tab.home", defaultValue: "Home")
+
+        #expect(germanHome == repeatedGermanHome)
+        #expect(germanHome != ukrainianHome)
+    }
+
     @Test func selectedLanguageAffectsCurrencyFormatting() {
         let previousLanguage = AppLanguage.stored
         defer { AppLanguage.stored = previousLanguage }

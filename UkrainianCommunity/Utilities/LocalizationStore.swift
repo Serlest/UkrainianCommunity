@@ -1,6 +1,7 @@
 import Foundation
 
 enum LocalizationStore {
+    private nonisolated static let localizedBundleCache = LocalizedBundleCache()
     private nonisolated static let dateFormatterCache = LocalizedDateFormatterCache()
 
     nonisolated static var language: AppLanguage {
@@ -67,10 +68,28 @@ enum LocalizationStore {
     }
 
     nonisolated private static func bundle(for languageCode: String) -> Bundle? {
-        guard let path = Bundle.main.path(forResource: languageCode, ofType: "lproj") else {
+        localizedBundleCache.bundle(for: languageCode)
+    }
+}
+
+private nonisolated final class LocalizedBundleCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var bundles: [String: Bundle] = [:]
+
+    func bundle(for languageCode: String) -> Bundle? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let cachedBundle = bundles[languageCode] {
+            return cachedBundle
+        }
+
+        guard let path = Bundle.main.path(forResource: languageCode, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
             return nil
         }
-        return Bundle(path: path)
+        bundles[languageCode] = bundle
+        return bundle
     }
 }
 
