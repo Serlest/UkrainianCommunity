@@ -392,12 +392,35 @@ actor MockRepositoryStore {
         events[index].likeCount += isLiked ? 1 : -1
     }
 
-    func setEventRegistration(id: String, isRegistered: Bool) throws {
+    func setEventRegistration(id: String, isRegistered: Bool) throws -> EventRegistrationMutationResult {
         guard let index = events.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         let currentState = events[index].registrationState
         let currentlyRegistered = currentState == .registered
 
-        guard currentlyRegistered != isRegistered else { return }
+        guard currentlyRegistered != isRegistered else {
+            return EventRegistrationMutationResult(
+                eventID: id,
+                registrationState: currentState,
+                registeredCount: events[index].registeredCount,
+                didChange: false
+            )
+        }
+
+        if isRegistered {
+            guard events[index].requiresRegistration else {
+                throw EventRegistrationMutationError.registrationNotRequired
+            }
+            guard !events[index].isCancelled else {
+                throw EventRegistrationMutationError.eventCancelled
+            }
+            guard events[index].startDate > .now else {
+                throw EventRegistrationMutationError.eventPast
+            }
+            if let capacity = events[index].capacity,
+               events[index].registeredCount >= capacity {
+                throw EventRegistrationMutationError.full
+            }
+        }
 
         events[index].registrationState = isRegistered ? .registered : .notRegistered
         let adjustedCount = isRegistered
@@ -444,7 +467,17 @@ actor MockRepositoryStore {
             tags: events[index].tags,
             isAllDay: events[index].isAllDay,
             isBookmarked: events[index].isBookmarked,
-            commentCount: events[index].commentCount
+            commentCount: events[index].commentCount,
+            cancellationState: events[index].cancellationState,
+            cancelledAt: events[index].cancelledAt,
+            cancellationReason: events[index].cancellationReason
+        )
+
+        return EventRegistrationMutationResult(
+            eventID: id,
+            registrationState: isRegistered ? .registered : .notRegistered,
+            registeredCount: adjustedCount,
+            didChange: true
         )
     }
 

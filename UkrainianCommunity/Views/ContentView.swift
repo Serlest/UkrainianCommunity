@@ -40,7 +40,7 @@ struct ContentView: View {
     @State private var eventsSearchResetToken = 0
     @State private var organizationsSearchResetToken = 0
     @State private var profileScrollResetToken = 0
-    @State private var lastHandledAuthSessionKey: String?
+    @State private var lastHandledAuthIdentityResetKey: String?
     @State private var notificationRouteErrorMessage: String?
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
@@ -112,7 +112,7 @@ struct ContentView: View {
         .environment(\.userBlockingPresentation, UserBlockingPresentationConfiguration(
             present: userBlockingCoordinator.present
         ))
-        .task(id: authSessionKey) {
+        .task(id: authTaskKey) {
             await SessionDataCache.shared.resetForAuthChange(userID: notificationInboxUserID)
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
@@ -124,7 +124,7 @@ struct ContentView: View {
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.user)
         }
-        .onChange(of: authSessionKey) { _, newKey in
+        .onChange(of: authIdentityResetKey, initial: true) { _, newKey in
             handleAuthIdentityChange(for: newKey)
         }
         .onChange(of: notificationInboxViewModel.snapshotVersion) { _, _ in
@@ -306,21 +306,20 @@ struct ContentView: View {
         scheduleNavigationReset(for: selectedTab, scrollToTop: true)
     }
 
-    private var authSessionKey: String {
-        if let userID = authState.user?.id, authState.isAuthenticated {
-            return "authenticated:\(userID)"
-        }
+    private var authTaskKey: String {
+        ContentAuthLifecyclePolicy.taskKey(
+            sessionState: authState.sessionState,
+            authenticatedUserID: notificationInboxUserID,
+            pendingSessionUserID: authState.pendingSessionUserID,
+            pendingVerificationEmail: authState.pendingVerificationEmail
+        )
+    }
 
-        switch authState.sessionState {
-        case .guest:
-            return "guest"
-        case .restoring:
-            return "loading:restoring"
-        case .authenticated:
-            return "loading:authenticated"
-        case .verificationPending:
-            return "verificationPending:\(authState.pendingVerificationEmail ?? "pending")"
-        }
+    private var authIdentityResetKey: String {
+        ContentAuthLifecyclePolicy.identityResetKey(
+            sessionState: authState.sessionState,
+            authenticatedUserID: notificationInboxUserID
+        )
     }
 
     private var notificationInboxUserID: String? {
@@ -481,18 +480,17 @@ struct ContentView: View {
     }
 
     private func handleAuthIdentityChange(for key: String) {
-        guard lastHandledAuthSessionKey != key else { return }
-        guard lastHandledAuthSessionKey != nil else {
-            lastHandledAuthSessionKey = key
+        guard lastHandledAuthIdentityResetKey != key else { return }
+        guard lastHandledAuthIdentityResetKey != nil else {
+            lastHandledAuthIdentityResetKey = key
             return
         }
 
-        lastHandledAuthSessionKey = key
+        lastHandledAuthIdentityResetKey = key
 
         selectTabIfNeeded(.home)
         isShowingNotificationInbox = false
         resetNavigationStateAfterAuthChange()
-        authState.dismissAuthFlow()
 
         homeViewModel.resetForAuthChange()
         newsViewModel.resetForAuthChange()
@@ -604,10 +602,14 @@ struct ContentView: View {
 
         do {
             let preferences = try await container.notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            guard !Task.isCancelled,
+                  authState.isAuthenticated,
+                  authState.user?.id == userID else { return }
             RemoteNotificationRegistrationService.shared.configureUser(
                 userID,
                 notificationsEnabled: preferences.notificationsEnabled
             )
+        } catch is CancellationError {
         } catch {
             #if DEBUG
             print("[Notifications] Notification preferences fetch failed during remote registration setup: \(error)")
@@ -765,7 +767,7 @@ struct ContentView: View {
     }
 
     private func handlePendingRemoteNotificationRouteIfReady() {
-        guard authState.sessionState != .restoring,
+        guard ContentAuthLifecyclePolicy.canHandlePendingRoute(in: authState.sessionState),
               let route = remoteNotificationRouteCoordinator.pendingRoute else {
             return
         }
@@ -842,6 +844,52 @@ struct ContentView: View {
 
     private func showNotificationRouteUnavailable() {
         notificationRouteErrorMessage = AppStrings.NotificationInbox.destinationUnavailableMessage
+    }
+}
+
+enum ContentAuthLifecyclePolicy {
+    static func taskKey(
+        sessionState: AuthSessionState,
+        authenticatedUserID: String?,
+        pendingSessionUserID: String?,
+        pendingVerificationEmail: String?
+    ) -> String {
+        if let authenticatedUserID {
+            return "authenticated:\(authenticatedUserID)"
+        }
+
+        switch sessionState {
+        case .guest:
+            return "guest"
+        case .restoring:
+            return "loading:restoring"
+        case .authenticating:
+            return "loading:authenticating:\(pendingSessionUserID ?? "pending")"
+        case .authenticated:
+            return "loading:authenticated"
+        case .verificationPending:
+            return "verificationPending:\(pendingVerificationEmail ?? "pending")"
+        case .sessionUnavailable:
+            return "sessionUnavailable:\(pendingSessionUserID ?? "pending")"
+        }
+    }
+
+    static func identityResetKey(
+        sessionState: AuthSessionState,
+        authenticatedUserID: String?
+    ) -> String {
+        guard sessionState == .authenticated,
+              let authenticatedUserID else { return "guest" }
+        return "authenticated:\(authenticatedUserID)"
+    }
+
+    static func canHandlePendingRoute(in sessionState: AuthSessionState) -> Bool {
+        switch sessionState {
+        case .guest, .authenticated:
+            return true
+        case .restoring, .authenticating, .verificationPending, .sessionUnavailable:
+            return false
+        }
     }
 }
 

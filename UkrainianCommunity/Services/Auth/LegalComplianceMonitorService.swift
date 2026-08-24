@@ -13,6 +13,9 @@ final class LegalComplianceMonitorService: ObservableObject {
     private var acceptingUserID: String?
     private var locallyAcceptedUserID: String?
     private var locallyAcceptedVersions: [LegalDocumentType: String] = [:]
+    private var configuredUserID: String?
+    private var configurationGeneration: UInt = 0
+    private var acceptanceGeneration: UInt = 0
 
     init(
         legalDocumentRepository: LegalDocumentRepository,
@@ -24,9 +27,11 @@ final class LegalComplianceMonitorService: ObservableObject {
 
     func configure(user: AppUser?) async {
         guard let user else {
+            configurationGeneration &+= 1
+            configuredUserID = nil
+            invalidateAcceptance()
             evaluatedKey = nil
             activeRequirement = nil
-            acceptingUserID = nil
             locallyAcceptedUserID = nil
             locallyAcceptedVersions = [:]
             errorMessage = nil
@@ -34,9 +39,11 @@ final class LegalComplianceMonitorService: ObservableObject {
         }
 
         guard !isAccepting || acceptingUserID != user.id else { return }
-        if isAccepting {
-            isAccepting = false
-            acceptingUserID = nil
+        let identityChanged = configuredUserID != user.id
+        if identityChanged {
+            invalidateAcceptance()
+            activeRequirement = nil
+            errorMessage = nil
         }
         updateLocalAcceptedVersions(for: user)
 
@@ -45,17 +52,27 @@ final class LegalComplianceMonitorService: ObservableObject {
             user.acceptedTermsVersion ?? "",
             user.acceptedPrivacyVersion ?? ""
         ].joined(separator: ":")
-        guard evaluatedKey != key else { return }
+        guard identityChanged || evaluatedKey != key else { return }
+
+        configurationGeneration &+= 1
+        let generation = configurationGeneration
+        let userID = user.id
+        configuredUserID = userID
         evaluatedKey = key
         errorMessage = nil
 
         do {
+            try Task.checkCancellation()
             async let termsDocument = legalDocumentRepository.fetchActiveDocument(type: .terms)
             async let privacyDocument = legalDocumentRepository.fetchActiveDocument(type: .privacy)
             let documents = try await [termsDocument, privacyDocument]
+            try Task.checkCancellation()
+            guard isCurrentConfiguration(generation: generation, userID: userID, key: key) else {
+                return
+            }
             let requiredDocuments = documents.filter { document in
                 guard document.requiresAcceptance else { return false }
-                if locallyAcceptedUserID == user.id,
+                if locallyAcceptedUserID == userID,
                    locallyAcceptedVersions[document.type] == document.version {
                     return false
                 }
@@ -69,25 +86,61 @@ final class LegalComplianceMonitorService: ObservableObject {
             }
 
             activeRequirement = requiredDocuments.isEmpty ? nil : LegalComplianceRequirement(
-                userID: user.id,
+                userID: userID,
                 requiredDocuments: requiredDocuments
             )
+        } catch is CancellationError {
+            guard isCurrentConfiguration(generation: generation, userID: userID, key: key) else {
+                return
+            }
+            evaluatedKey = nil
         } catch {
+            guard isCurrentConfiguration(generation: generation, userID: userID, key: key) else {
+                return
+            }
             activeRequirement = nil
             errorMessage = AppStrings.LegalCompliance.loadFailed
         }
     }
 
     func acceptRequiredDocuments(authState: AuthState) async {
-        guard let requirement = activeRequirement, !isAccepting else { return }
+        guard let requirement = activeRequirement,
+              !isAccepting,
+              configuredUserID == requirement.userID,
+              authState.isAuthenticated,
+              authState.user?.id == requirement.userID else {
+            return
+        }
+
+        configurationGeneration &+= 1
+        acceptanceGeneration &+= 1
+        let generation = acceptanceGeneration
+        let userID = requirement.userID
         let requiredDocuments = requirement.requiredDocuments
         var acceptedVersions: [LegalDocumentType: String] = [:]
         isAccepting = true
-        acceptingUserID = requirement.userID
+        acceptingUserID = userID
         errorMessage = nil
+        defer {
+            clearAcceptanceIfOwned(generation: generation, userID: userID)
+        }
 
         do {
             for document in requiredDocuments {
+                guard isCurrentAcceptance(
+                    generation: generation,
+                    userID: userID,
+                    authState: authState
+                ) else { return }
+                guard !Task.isCancelled else {
+                    preservePartialAcceptance(
+                        acceptedVersions,
+                        requirement: requirement,
+                        userID: userID
+                    )
+                    return
+                }
+
                 let receipt = try await legalDocumentRepository.acceptDocument(
                     type: document.type,
                     version: document.version,
@@ -95,34 +148,111 @@ final class LegalComplianceMonitorService: ObservableObject {
                     locale: AppLanguage.stored.rawValue,
                     acceptedFromPlatform: "ios"
                 )
-                acceptedVersions[receipt.documentType] = receipt.version
-            }
 
-            if acceptingUserID == requirement.userID {
-                rememberAcceptedVersions(acceptedVersions, userID: requirement.userID)
-                activeRequirement = nil
-                evaluatedKey = nil
-                errorMessage = nil
-                if let refreshedUser = try? await userRepository.fetchCurrentUser() {
-                    authState.user = refreshedUser
+                guard isCurrentAcceptance(
+                    generation: generation,
+                    userID: userID,
+                    authState: authState
+                ) else { return }
+                acceptedVersions[receipt.documentType] = receipt.version
+                guard !Task.isCancelled else {
+                    preservePartialAcceptance(
+                        acceptedVersions,
+                        requirement: requirement,
+                        userID: userID
+                    )
+                    return
                 }
             }
-            isAccepting = false
-            acceptingUserID = nil
-            await configure(user: authState.user)
-        } catch {
-            rememberAcceptedVersions(acceptedVersions, userID: requirement.userID)
-            isAccepting = false
-            acceptingUserID = nil
-            evaluatedKey = nil
 
-            if let refreshedUser = try? await userRepository.fetchCurrentUser() {
-                authState.user = refreshedUser
-                await configure(user: refreshedUser)
-            } else if let currentUser = authState.user {
-                await configure(user: currentUser)
+            guard isCurrentAcceptance(
+                generation: generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
+
+            rememberAcceptedVersions(acceptedVersions, userID: userID)
+            activeRequirement = nil
+            evaluatedKey = nil
+            errorMessage = nil
+
+            guard isCurrentAcceptance(
+                generation: generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
+            let refreshedUser = try? await userRepository.fetchCurrentUser()
+            guard isCurrentAcceptance(
+                generation: generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
+
+            if let refreshedUser, refreshedUser.id == userID {
+                _ = authState.updateAuthenticatedUser(refreshedUser)
             }
 
+            clearAcceptanceIfOwned(generation: generation, userID: userID)
+            guard isCurrentAcceptanceGeneration(
+                generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
+            let currentUser = authState.user
+            await configure(user: currentUser)
+            guard isCurrentAcceptanceGeneration(
+                generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
+        } catch {
+            guard isCurrentAcceptance(
+                generation: generation,
+                userID: userID,
+                authState: authState
+            ) else { return }
+
+            if Task.isCancelled || error is CancellationError {
+                preservePartialAcceptance(
+                    acceptedVersions,
+                    requirement: requirement,
+                    userID: userID
+                )
+                return
+            }
+
+            rememberAcceptedVersions(acceptedVersions, userID: userID)
+            evaluatedKey = nil
+
+            guard isCurrentAcceptance(
+                generation: generation,
+                userID: userID,
+                authState: authState
+            ) else { return }
+            let refreshedUser = try? await userRepository.fetchCurrentUser()
+            guard isCurrentAcceptance(
+                generation: generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
+
+            if let refreshedUser, refreshedUser.id == userID {
+                _ = authState.updateAuthenticatedUser(refreshedUser)
+            }
+
+            clearAcceptanceIfOwned(generation: generation, userID: userID)
+            guard isCurrentAcceptanceGeneration(
+                generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
+            let currentUser = authState.user
+            await configure(user: currentUser)
+            guard isCurrentAcceptanceGeneration(
+                generation,
+                userID: userID,
+                authState: authState
+            ), !Task.isCancelled else { return }
             errorMessage = AppStrings.LegalCompliance.acceptFailed
         }
     }
@@ -134,7 +264,9 @@ final class LegalComplianceMonitorService: ObservableObject {
         }
         activeRequirement = nil
         evaluatedKey = nil
-        acceptingUserID = nil
+        configuredUserID = nil
+        configurationGeneration &+= 1
+        invalidateAcceptance()
         locallyAcceptedUserID = nil
         locallyAcceptedVersions = [:]
         errorMessage = nil
@@ -174,6 +306,66 @@ final class LegalComplianceMonitorService: ObservableObject {
         if locallyAcceptedVersions.isEmpty {
             locallyAcceptedUserID = nil
         }
+    }
+
+    private func invalidateAcceptance() {
+        acceptanceGeneration &+= 1
+        isAccepting = false
+        acceptingUserID = nil
+    }
+
+    private func clearAcceptanceIfOwned(generation: UInt, userID: String) {
+        guard acceptanceGeneration == generation,
+              acceptingUserID == userID else { return }
+        isAccepting = false
+        acceptingUserID = nil
+    }
+
+    private func isCurrentConfiguration(generation: UInt, userID: String, key: String) -> Bool {
+        configurationGeneration == generation
+            && configuredUserID == userID
+            && evaluatedKey == key
+    }
+
+    private func isCurrentAcceptance(
+        generation: UInt,
+        userID: String,
+        authState: AuthState
+    ) -> Bool {
+        acceptanceGeneration == generation
+            && acceptingUserID == userID
+            && isAccepting
+            && configuredUserID == userID
+            && authState.isAuthenticated
+            && authState.user?.id == userID
+    }
+
+    private func isCurrentAcceptanceGeneration(
+        _ generation: UInt,
+        userID: String,
+        authState: AuthState
+    ) -> Bool {
+        acceptanceGeneration == generation
+            && configuredUserID == userID
+            && authState.isAuthenticated
+            && authState.user?.id == userID
+    }
+
+    private func preservePartialAcceptance(
+        _ acceptedVersions: [LegalDocumentType: String],
+        requirement: LegalComplianceRequirement,
+        userID: String
+    ) {
+        rememberAcceptedVersions(acceptedVersions, userID: userID)
+        evaluatedKey = nil
+
+        let remainingDocuments = requirement.requiredDocuments.filter { document in
+            acceptedVersions[document.type] != document.version
+        }
+        activeRequirement = remainingDocuments.isEmpty ? nil : LegalComplianceRequirement(
+            userID: userID,
+            requiredDocuments: remainingDocuments
+        )
     }
 }
 

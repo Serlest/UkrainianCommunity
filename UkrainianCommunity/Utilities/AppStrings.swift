@@ -488,6 +488,15 @@ enum AppStrings {
         static var confirmRegisterButton: String { text("events.registration.confirm_register.button", "Register") }
         static var confirmCancelRegistrationTitle: String { text("events.registration.confirm_cancel.title", "Cancel your registration?") }
         static var confirmCancelRegistrationButton: String { text("events.registration.confirm_cancel.button", "Cancel registration") }
+        static var registrationErrorTitle: String { text("events.registration.error.title", "Registration could not be updated") }
+        static var registrationFullError: String { text("events.registration.error.full", "This event is fully booked.") }
+        static var registrationNotRequiredError: String { text("events.registration.error.not_required", "This event does not accept in-app registrations.") }
+        static var registrationCancelledError: String { text("events.registration.error.cancelled", "Registration is closed because this event was cancelled.") }
+        static var registrationPastError: String { text("events.registration.error.past", "Registration is closed because this event has already started.") }
+        static var registrationPermissionError: String { text("events.registration.error.permission", "Your account cannot update this registration. Verify your email and try again.") }
+        static var registrationNetworkError: String { text("events.registration.error.network", "The server could not be reached. Check your connection and try again.") }
+        static var registrationNotFoundError: String { text("events.registration.error.not_found", "This event is no longer available.") }
+        static var registrationUnavailableError: String { text("events.registration.error.unavailable", "Registration could not be updated right now. Please try again.") }
         static func confirmRegisterMessage(_ eventTitle: String) -> String {
             LocalizationStore.localizedFormat(
                 "events.registration.confirm_register.message",

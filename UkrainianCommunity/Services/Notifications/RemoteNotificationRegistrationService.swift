@@ -19,6 +19,7 @@ final class RemoteNotificationRegistrationService: NSObject {
     private var isRefreshingMessagingToken = false
     private var lastAuthorizationRequestUserID: String?
     private var messagingDelegateAdapter: AnyObject?
+    private var userConfigurationGeneration = 0
 
     private override init() {
         super.init()
@@ -40,6 +41,7 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     func configureUser(_ userID: String?) {
+        userConfigurationGeneration &+= 1
         if tokenOwnership.currentUserID != userID {
             lastAuthorizationRequestUserID = nil
         }
@@ -47,28 +49,49 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     func configureUser(_ userID: String?, notificationsEnabled: Bool) {
+        userConfigurationGeneration &+= 1
+        let generation = userConfigurationGeneration
         if tokenOwnership.currentUserID != userID {
             lastAuthorizationRequestUserID = nil
         }
         tokenOwnership.configureUser(userID, notificationsEnabled: notificationsEnabled)
-        guard userID != nil else {
-            return
-        }
+        guard let userID else { return }
 
-        Task {
+        Task { [weak self] in
+            guard let self,
+                  self.isCurrentUserConfiguration(generation: generation, userID: userID) else { return }
             if notificationsEnabled {
-                await tokenOwnership.saveCachedTokenIfNeeded()
+                await self.tokenOwnership.saveCachedTokenIfNeeded()
             } else {
-                await tokenOwnership.removeCurrentToken()
+                await self.tokenOwnership.removeCurrentToken()
             }
-            await registerIfAuthorizedOrRequestIfNeeded(notificationsEnabled: notificationsEnabled)
+            guard self.isCurrentUserConfiguration(generation: generation, userID: userID) else { return }
+            await self.registerIfAuthorizedOrRequestIfNeeded(
+                notificationsEnabled: notificationsEnabled,
+                generation: generation,
+                userID: userID
+            )
         }
     }
 
     func requestAuthorizationAndRegister() async throws -> Bool {
+        let generation = userConfigurationGeneration
+        let userID = tokenOwnership.currentUserID
+        return try await requestAuthorizationAndRegister(
+            generation: generation,
+            userID: userID
+        )
+    }
+
+    private func requestAuthorizationAndRegister(
+        generation: Int,
+        userID: String?
+    ) async throws -> Bool {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard isCurrentUserConfiguration(generation: generation, userID: userID) else { return false }
         debugLog("Notification authorization status before request: \(settings.authorizationStatus.debugDescription)")
         let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+        guard isCurrentUserConfiguration(generation: generation, userID: userID) else { return false }
         debugLog("requestAuthorization result: granted=\(granted)")
         tokenOwnership.setNotificationsEnabled(granted)
         guard granted else { return false }
@@ -78,14 +101,18 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     func removeCurrentToken() async {
+        userConfigurationGeneration &+= 1
         await tokenOwnership.removeCurrentToken()
     }
 
     func prepareForSignOut() async throws {
+        userConfigurationGeneration &+= 1
         try await tokenOwnership.prepareForSignOut()
     }
 
     func completeSignOut() {
+        userConfigurationGeneration &+= 1
+        lastAuthorizationRequestUserID = nil
         tokenOwnership.completeSignOut()
     }
 
@@ -108,10 +135,16 @@ final class RemoteNotificationRegistrationService: NSObject {
         debugLog("Remote notification registration failed: \(error)")
     }
 
-    private func registerIfAuthorizedOrRequestIfNeeded(notificationsEnabled: Bool) async {
-        guard notificationsEnabled else { return }
+    private func registerIfAuthorizedOrRequestIfNeeded(
+        notificationsEnabled: Bool,
+        generation: Int,
+        userID: String
+    ) async {
+        guard notificationsEnabled,
+              isCurrentUserConfiguration(generation: generation, userID: userID) else { return }
 
         let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard isCurrentUserConfiguration(generation: generation, userID: userID) else { return }
         debugLog("Notification authorization status: \(settings.authorizationStatus.debugDescription)")
 
         if settings.authorizationStatus.allowsRemoteRegistration {
@@ -121,11 +154,14 @@ final class RemoteNotificationRegistrationService: NSObject {
 
         guard notificationsEnabled,
               settings.authorizationStatus == .notDetermined,
-              lastAuthorizationRequestUserID != tokenOwnership.currentUserID else { return }
+              lastAuthorizationRequestUserID != userID else { return }
 
-        lastAuthorizationRequestUserID = tokenOwnership.currentUserID
+        lastAuthorizationRequestUserID = userID
         do {
-            _ = try await requestAuthorizationAndRegister()
+            _ = try await requestAuthorizationAndRegister(
+                generation: generation,
+                userID: userID
+            )
         } catch {
             debugLog("requestAuthorization failed: \(error)")
         }
@@ -157,6 +193,10 @@ final class RemoteNotificationRegistrationService: NSObject {
         guard !hasRequestedRemoteRegistration else { return }
         hasRequestedRemoteRegistration = true
         UIApplication.shared.registerForRemoteNotifications()
+    }
+
+    private func isCurrentUserConfiguration(generation: Int, userID: String?) -> Bool {
+        userConfigurationGeneration == generation && tokenOwnership.currentUserID == userID
     }
 
     private func debugLog(_ message: String) {

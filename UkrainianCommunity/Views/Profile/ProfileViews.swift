@@ -1342,11 +1342,13 @@ struct ProfileView: View {
                     ProfileModuleRow(title: AppStrings.Settings.terms, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.legal.terms")
 
                 NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
                     ProfileModuleRow(title: AppStrings.Settings.privacyPolicy, subtitle: AppStrings.Profile.privacySettingsSubtitle, systemImage: "lock.doc", status: .available)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.legal.privacy")
 
             }
         }
@@ -1416,11 +1418,13 @@ struct ProfileView: View {
                     ProfileModuleRow(title: AppStrings.Profile.termsOfUse, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.legal.terms")
 
                 NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
                     ProfileModuleRow(title: AppStrings.Profile.privacyPolicy, subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion), systemImage: "lock.doc", status: .available)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.legal.privacy")
 
             }
         }
@@ -1534,7 +1538,7 @@ struct ProfileView: View {
                 avatarImageData: selectedAvatarImageData
             )
             guard let updatedUser else { return }
-            authState.user = updatedUser
+            guard authState.updateAuthenticatedUser(updatedUser) else { return }
             isShowingEditProfileSheet = false
         }
     }

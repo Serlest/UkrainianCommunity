@@ -305,12 +305,12 @@ final class UkrainianCommunityUITests: XCTestCase {
         let app = launchApp()
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
 
-        let privacyLabel = app.staticTexts["Datenschutz"].firstMatch
-        let termsLabel = app.staticTexts["Nutzungsbedingungen"].firstMatch
-        scrollToElement(privacyLabel, in: app)
-        scrollToElement(termsLabel, in: app)
-        XCTAssertTrue(privacyLabel.exists)
-        XCTAssertTrue(termsLabel.exists)
+        let privacyLink = app.buttons["profile.legal.privacy"].firstMatch
+        let termsLink = app.buttons["profile.legal.terms"].firstMatch
+        scrollToElement(termsLink, in: app)
+        scrollToElement(privacyLink, in: app)
+        XCTAssertTrue(termsLink.exists)
+        XCTAssertTrue(privacyLink.exists)
     }
 }
 

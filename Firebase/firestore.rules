@@ -1619,27 +1619,6 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderationStatus']);
     }
 
-    function registrationFields() {
-      return ['id', 'eventId', 'userId', 'registeredAt', 'createdAt'];
-    }
-
-    function validRegistrationCreate(registrationId) {
-      let eventPath = /databases/$(database)/documents/events/$(request.resource.data.eventId);
-      return isVerifiedActiveUser()
-        && request.resource.data.keys().hasOnly(registrationFields())
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.eventId is string
-        && request.resource.data.eventId.size() > 0
-        && request.resource.data.id == registrationId
-        && registrationId == 'event_' + request.resource.data.eventId + '_' + request.auth.uid
-        && request.resource.data.registeredAt is timestamp
-        && request.resource.data.createdAt is timestamp
-        && exists(eventPath)
-        && get(eventPath).data.moderationStatus == 'approved'
-        && get(eventPath).data.startDate is timestamp
-        && get(eventPath).data.startDate > request.time;
-    }
-
     function hasRegistrationForEvent(eventId) {
       return isVerifiedActiveUser()
         && exists(/databases/$(database)/documents/registrations/$(registrationDocumentId(eventId)));
@@ -2061,12 +2040,9 @@ service cloud.firestore {
         || canReadManagedEventRegistration()
         || isOwner();
 
-      allow create: if validRegistrationCreate(registrationId);
-
-      allow update: if false;
-
-      allow delete: if ownDocumentDelete()
-        || isOwner();
+      // Registration membership and registeredCount are one server-owned invariant.
+      // Clients must use registerForEvent/unregisterFromEvent callable functions.
+      allow create, update, delete: if false;
     }
 
     match /feedback/{feedbackId} {

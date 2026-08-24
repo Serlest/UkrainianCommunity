@@ -3,9 +3,14 @@ import Combine
 
 enum AuthSessionState: Equatable {
     case restoring
+    case authenticating
     case guest
     case authenticated
     case verificationPending
+    /// Firebase still owns a non-anonymous session, but the app cannot safely
+    /// construct an `AppUser` yet. This state deliberately fails closed instead
+    /// of presenting an authenticated Firebase client as an app guest.
+    case sessionUnavailable
 }
 
 enum AuthFlowDestination: String, Identifiable {
@@ -14,17 +19,32 @@ enum AuthFlowDestination: String, Identifiable {
     case register
     case passwordReset
     case emailVerification
+    case sessionRecovery
 
     var id: String { rawValue }
 }
 
 final class AuthState: ObservableObject {
-    @Published var user: AppUser?
-    @Published var isLoading: Bool = false
+    typealias UserProfileLoader = (String) async throws -> AppUser
+
+    @Published private(set) var user: AppUser?
+    @Published private(set) var isLoading: Bool = false
     @Published var errorMessage: String?
-    @Published var pendingVerificationEmail: String?
+    @Published private(set) var pendingVerificationEmail: String?
+    @Published private(set) var pendingSessionUserID: String?
     @Published private(set) var sessionState: AuthSessionState = .restoring
     @Published var presentedAuthFlow: AuthFlowDestination?
+
+    private let userProfileLoader: UserProfileLoader
+    private var userLoadGeneration = 0
+
+    init(
+        userProfileLoader: @escaping UserProfileLoader = {
+            try await UserProfileService.shared.fetchExistingUserProfile(uid: $0)
+        }
+    ) {
+        self.userProfileLoader = userProfileLoader
+    }
 
     var isGuest: Bool {
         sessionState == .guest
@@ -32,6 +52,10 @@ final class AuthState: ObservableObject {
 
     var isAuthenticated: Bool {
         sessionState == .authenticated
+    }
+
+    var isAuthenticating: Bool {
+        sessionState == .authenticating
     }
 
     var isVerificationPending: Bool {
@@ -42,32 +66,85 @@ final class AuthState: ObservableObject {
         sessionState == .restoring
     }
 
+    var isSessionUnavailable: Bool {
+        sessionState == .sessionUnavailable
+    }
+
     @MainActor
     func beginRestoringSession() {
+        invalidateUserLoad()
+        user = nil
+        pendingVerificationEmail = nil
+        pendingSessionUserID = nil
         sessionState = .restoring
         errorMessage = nil
     }
 
     @MainActor
+    func beginAuthenticatingSession(userID: String? = nil, email: String? = nil) {
+        invalidateUserLoad()
+        user = nil
+        pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        pendingSessionUserID = userID
+        sessionState = .authenticating
+        errorMessage = nil
+    }
+
+    @MainActor
     func setGuestSession() {
+        invalidateUserLoad()
         user = nil
         pendingVerificationEmail = nil
+        pendingSessionUserID = nil
         sessionState = .guest
         errorMessage = nil
     }
 
     @MainActor
-    func setAuthenticatedSession() {
+    func setAuthenticatedSession(user: AppUser) {
+        invalidateUserLoad()
+        self.user = user
         pendingVerificationEmail = nil
+        pendingSessionUserID = user.id
         sessionState = .authenticated
+        errorMessage = nil
     }
 
     @MainActor
-    func setVerificationPendingSession(email: String?) {
+    @discardableResult
+    func updateAuthenticatedUser(_ updatedUser: AppUser) -> Bool {
+        guard sessionState == .authenticated,
+              let currentUser = user,
+              currentUser.id == updatedUser.id else {
+            return false
+        }
+
+        user = updatedUser
+        return true
+    }
+
+    @MainActor
+    func setVerificationPendingSession(userID: String, email: String?) {
+        invalidateUserLoad()
         user = nil
+        pendingSessionUserID = userID
         pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
         sessionState = .verificationPending
         errorMessage = nil
+    }
+
+    @MainActor
+    func setSessionUnavailable(
+        userID: String,
+        email: String?,
+        errorMessage: String
+    ) {
+        invalidateUserLoad()
+        user = nil
+        pendingSessionUserID = userID
+        pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        sessionState = .sessionUnavailable
+        self.errorMessage = errorMessage
     }
 
     @MainActor
@@ -82,15 +159,44 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func loadUser(uid: String) async {
+        guard sessionState == .authenticated,
+              let currentUser = user,
+              currentUser.id == uid else {
+            return
+        }
+
+        userLoadGeneration &+= 1
+        let loadGeneration = userLoadGeneration
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            if userLoadGeneration == loadGeneration {
+                isLoading = false
+            }
+        }
 
-        let result = await UserProfileService.shared.fetchUserProfile(uid: uid)
-        user = result
-
-        if result == nil {
+        do {
+            let result = try await userProfileLoader(uid)
+            guard userLoadGeneration == loadGeneration,
+                  sessionState == .authenticated,
+                  user?.id == uid,
+                  result.id == uid else {
+                return
+            }
+            _ = updateAuthenticatedUser(result)
+        } catch {
+            guard userLoadGeneration == loadGeneration,
+                  sessionState == .authenticated,
+                  user?.id == uid else {
+                return
+            }
             errorMessage = AppStrings.Auth.loadUserProfileFailed
         }
+    }
+
+    @MainActor
+    private func invalidateUserLoad() {
+        userLoadGeneration &+= 1
+        isLoading = false
     }
 }

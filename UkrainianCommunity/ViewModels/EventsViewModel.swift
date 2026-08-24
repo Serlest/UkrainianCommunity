@@ -1,6 +1,11 @@
 import Combine
 import Foundation
 
+struct EventRegistrationPresentationError: Equatable {
+    let eventID: String
+    let reason: EventRegistrationMutationError
+}
+
 @MainActor
 final class EventsViewModel: ObservableObject {
     @Published var events: [Event]
@@ -14,7 +19,9 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var pendingEventBookmarkIDs = Set<String>()
     @Published private(set) var pendingEventViewIDs = Set<String>()
     @Published private(set) var pendingEventCommentIDs = Set<String>()
+    @Published private(set) var registrationError: EventRegistrationPresentationError?
     private let repository: EventRepository
+    private let registrationMutator: EventRegistrationMutating
     private let analyticsService: AnalyticsTracking
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
@@ -24,15 +31,26 @@ final class EventsViewModel: ObservableObject {
     private var nextPageCursor: EventPageCursor?
     private var trackedEventViewIDs = Set<String>()
     private var visibilityPolicy = ContentVisibilityPolicy()
+    private var registrationTasks: [String: Task<Void, Never>] = [:]
+    private var registrationOperationIDs: [String: UUID] = [:]
+    private var interactionTasks: [String: Task<Void, Never>] = [:]
+    private var sessionGeneration = 0
+    private var feedRevision: UInt = 0
 
     init(
         repository: EventRepository,
         notificationPreferencesRepository: NotificationPreferencesRepository? = nil,
         localEventReminderService: LocalEventReminderServiceProtocol? = nil,
-        analyticsService: AnalyticsTracking = NoopAnalyticsService()
+        analyticsService: AnalyticsTracking = NoopAnalyticsService(),
+        registrationMutator: EventRegistrationMutating? = nil
     ) {
         self.repository = repository
         self.analyticsService = analyticsService
+        if let registrationMutator {
+            self.registrationMutator = registrationMutator
+        } else {
+            self.registrationMutator = repository
+        }
         events = []
         isLoading = false
     }
@@ -68,6 +86,13 @@ final class EventsViewModel: ObservableObject {
     }
 
     func resetForAuthChange() {
+        sessionGeneration &+= 1
+        feedRevision &+= 1
+        registrationTasks.values.forEach { $0.cancel() }
+        interactionTasks.values.forEach { $0.cancel() }
+        registrationTasks = [:]
+        registrationOperationIDs = [:]
+        interactionTasks = [:]
         loadTask?.cancel()
         nextPageTask?.cancel()
         loadTask = nil
@@ -83,6 +108,7 @@ final class EventsViewModel: ObservableObject {
         pendingEventBookmarkIDs = []
         pendingEventViewIDs = []
         pendingEventCommentIDs = []
+        registrationError = nil
         trackedEventViewIDs = []
         listenerBag.removeAll()
         hasLoaded = false
@@ -96,6 +122,7 @@ final class EventsViewModel: ObservableObject {
 
     func applyContentVisibility(_ policy: ContentVisibilityPolicy) {
         visibilityPolicy = policy
+        feedRevision &+= 1
         events = policy.visibleEvents(events)
         contentVersion &+= 1
     }
@@ -104,10 +131,19 @@ final class EventsViewModel: ObservableObject {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingEventLikeIDs.contains(eventID) else { return }
         let shouldLike = events[index].likeState == .notLiked
+        let desiredState: LikeState = shouldLike ? .liked : .notLiked
+        let generation = sessionGeneration
+        let taskKey = "like:\(eventID)"
 
-        Task {
-            pendingEventLikeIDs.insert(eventID)
-            defer { pendingEventLikeIDs.remove(eventID) }
+        pendingEventLikeIDs.insert(eventID)
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentSession(generation) {
+                    self.pendingEventLikeIDs.remove(eventID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if shouldLike {
@@ -116,90 +152,134 @@ final class EventsViewModel: ObservableObject {
                     try await repository.unlikeEvent(id: eventID)
                 }
 
-                events[index].likeState = shouldLike ? .liked : .notLiked
-                events[index].likeCount += shouldLike ? 1 : -1
+                guard isCurrentSession(generation),
+                      let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
+                if events[currentIndex].likeState != desiredState {
+                    events[currentIndex].likeState = desiredState
+                    events[currentIndex].likeCount = max(
+                        0,
+                        events[currentIndex].likeCount + (shouldLike ? 1 : -1)
+                    )
+                }
                 contentVersion &+= 1
                 error = nil
             } catch let appError as AppError {
+                guard isCurrentSession(generation) else { return }
                 error = appError
             } catch {
+                guard isCurrentSession(generation) else { return }
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func toggleRegistration(for eventID: String) {
-        guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard let event = events.first(where: { $0.id == eventID }) else { return }
         guard !pendingEventRegistrationIDs.contains(eventID) else { return }
-        let shouldRegister = events[index].registrationState != .registered
-        let event = events[index]
+        let shouldRegister = event.registrationState != .registered
+        let operationID = UUID()
+        let generation = sessionGeneration
 
-        Task {
-            pendingEventRegistrationIDs.insert(eventID)
-            defer { pendingEventRegistrationIDs.remove(eventID) }
+        pendingEventRegistrationIDs.insert(eventID)
+        registrationOperationIDs[eventID] = operationID
+        if registrationError?.eventID == eventID {
+            registrationError = nil
+        }
 
-            do {
-                if shouldRegister {
-                    try await repository.registerForEvent(id: eventID)
-                } else {
-                    try await repository.cancelEventRegistration(id: eventID)
-                }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performRegistrationMutation(
+                eventID: eventID,
+                shouldRegister: shouldRegister,
+                operationID: operationID,
+                generation: generation
+            )
+        }
+        registrationTasks[eventID] = task
+    }
 
-                let updatedRegisteredCount = shouldRegister
-                    ? events[index].registeredCount + 1
-                    : max(0, events[index].registeredCount - 1)
+    func dismissRegistrationError(for eventID: String) {
+        guard registrationError?.eventID == eventID else { return }
+        registrationError = nil
+    }
 
-                events[index] = Event(
-                    id: events[index].id,
-                    title: events[index].title,
-                    summary: events[index].summary,
-                    details: events[index].details,
-                    regionScope: events[index].regionScope,
-                    federalState: events[index].federalState,
-                    source: events[index].source,
-                    authorId: events[index].authorId,
-                    authorName: events[index].authorName,
-                    city: events[index].city,
-                    venue: events[index].venue,
-                    address: events[index].address,
-                    locationNote: events[index].locationNote,
-                    latitude: events[index].latitude,
-                    longitude: events[index].longitude,
-                    organizerName: events[index].organizerName,
-                    organizerURL: events[index].organizerURL,
-                    contactPhone: events[index].contactPhone,
-                    contactEmail: events[index].contactEmail,
-                    contactURL: events[index].contactURL,
-                    imageURL: events[index].imageURL,
-                    startDate: events[index].startDate,
-                    endDate: events[index].endDate,
-                    createdAt: events[index].createdAt,
-                    updatedAt: events[index].updatedAt,
-                    requiresRegistration: events[index].requiresRegistration,
-                    price: events[index].price,
-                    capacity: events[index].capacity,
-                    registeredCount: updatedRegisteredCount,
-                    comments: events[index].comments,
-                    moderationStatus: events[index].moderationStatus,
-                    registrationState: shouldRegister ? .registered : .notRegistered,
-                    likeCount: events[index].likeCount,
-                    likeState: events[index].likeState,
-                    viewCount: events[index].viewCount,
-                    category: events[index].category,
-                    tags: events[index].tags,
-                    isAllDay: events[index].isAllDay,
-                    isBookmarked: events[index].isBookmarked,
-                    commentCount: events[index].commentCount
-                )
-                contentVersion &+= 1
-                ActivityLogRecorder.recordEvent(event, actionType: shouldRegister ? .registeredForEvent : .canceledEventRegistration)
-                analyticsService.track(shouldRegister ? .eventRegister(event: event) : .eventCancelRegistration(event: event))
-                error = nil
-            } catch let appError as AppError {
-                error = appError
-            } catch {
-                self.error = .unknown
+    private func performRegistrationMutation(
+        eventID: String,
+        shouldRegister: Bool,
+        operationID: UUID,
+        generation: Int
+    ) async {
+        defer { finishRegistrationMutation(eventID, operationID: operationID, generation: generation) }
+
+        do {
+            let result = if shouldRegister {
+                try await registrationMutator.registerForEvent(id: eventID)
+            } else {
+                try await registrationMutator.cancelEventRegistration(id: eventID)
             }
+            guard result.eventID == eventID, result.registeredCount >= 0 else {
+                throw EventRegistrationMutationError.unavailable
+            }
+            guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation),
+                  !Task.isCancelled,
+                  let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+
+            let eventBeforeMutation = events[index]
+            events[index] = eventBeforeMutation.applyingRegistrationMutation(result)
+            contentVersion &+= 1
+            registrationError = nil
+
+            guard result.didChange else { return }
+            ActivityLogRecorder.recordEvent(
+                eventBeforeMutation,
+                actionType: result.registrationState == .registered
+                ? .registeredForEvent
+                : .canceledEventRegistration
+            )
+            analyticsService.track(
+                result.registrationState == .registered
+                ? .eventRegister(event: eventBeforeMutation)
+                : .eventCancelRegistration(event: eventBeforeMutation)
+            )
+        } catch is CancellationError {
+        } catch let mutationError as EventRegistrationMutationError {
+            guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }
+            registrationError = EventRegistrationPresentationError(eventID: eventID, reason: mutationError)
+        } catch let appError as AppError {
+            guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }
+            registrationError = EventRegistrationPresentationError(
+                eventID: eventID,
+                reason: Self.registrationMutationError(from: appError)
+            )
+        } catch {
+            guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }
+            registrationError = EventRegistrationPresentationError(eventID: eventID, reason: .unavailable)
+        }
+    }
+
+    private func finishRegistrationMutation(_ eventID: String, operationID: UUID, generation: Int) {
+        guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }
+        pendingEventRegistrationIDs.remove(eventID)
+        registrationOperationIDs[eventID] = nil
+        registrationTasks[eventID] = nil
+    }
+
+    private func isCurrentRegistrationMutation(_ eventID: String, operationID: UUID, generation: Int) -> Bool {
+        sessionGeneration == generation && registrationOperationIDs[eventID] == operationID
+    }
+
+    private static func registrationMutationError(from appError: AppError) -> EventRegistrationMutationError {
+        switch appError {
+        case .network:
+            .network
+        case .permissionDenied:
+            .permissionDenied
+        case .notFound:
+            .notFound
+        case .validationFailed,
+             .unknown:
+            .unavailable
         }
     }
 
@@ -208,12 +288,23 @@ final class EventsViewModel: ObservableObject {
         guard !pendingEventBookmarkIDs.contains(eventID) else { return }
         let shouldBookmark = !events[index].isBookmarked
         let event = events[index]
+        let previousBookmarkState = events[index].isBookmarked
+        let generation = sessionGeneration
+        let requestFeedRevision = feedRevision
+        let taskKey = "bookmark:\(eventID)"
 
-        Task {
-            pendingEventBookmarkIDs.insert(eventID)
-            events[index].isBookmarked = shouldBookmark
-            contentVersion &+= 1
-            defer { pendingEventBookmarkIDs.remove(eventID) }
+        pendingEventBookmarkIDs.insert(eventID)
+        events[index].isBookmarked = shouldBookmark
+        contentVersion &+= 1
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentSession(generation) {
+                    self.pendingEventBookmarkIDs.remove(eventID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if shouldBookmark {
@@ -221,42 +312,78 @@ final class EventsViewModel: ObservableObject {
                 } else {
                     try await repository.unbookmarkEvent(id: eventID)
                 }
+                guard isCurrentSession(generation),
+                      let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
+                if events[currentIndex].isBookmarked == previousBookmarkState {
+                    events[currentIndex].isBookmarked = shouldBookmark
+                    contentVersion &+= 1
+                }
                 ActivityLogRecorder.recordEvent(event, actionType: shouldBookmark ? .savedEvent : .unsavedEvent)
                 if shouldBookmark {
                     analyticsService.track(.eventBookmark(event: event))
                 }
                 error = nil
             } catch let appError as AppError {
-                events[index].isBookmarked.toggle()
-                contentVersion &+= 1
+                guard isCurrentSession(generation) else { return }
+                rollbackBookmark(
+                    eventID: eventID,
+                    optimisticState: shouldBookmark,
+                    previousState: previousBookmarkState,
+                    requestFeedRevision: requestFeedRevision
+                )
                 error = appError
             } catch {
-                events[index].isBookmarked.toggle()
-                contentVersion &+= 1
+                guard isCurrentSession(generation) else { return }
+                rollbackBookmark(
+                    eventID: eventID,
+                    optimisticState: shouldBookmark,
+                    previousState: previousBookmarkState,
+                    requestFeedRevision: requestFeedRevision
+                )
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func recordView(for eventID: String) {
-        guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard let event = events.first(where: { $0.id == eventID }) else { return }
         guard !pendingEventViewIDs.contains(eventID) else { return }
+        let baselineViewCount = event.viewCount
+        let generation = sessionGeneration
+        let taskKey = "view:\(eventID)"
 
-        Task {
-            pendingEventViewIDs.insert(eventID)
-            defer { pendingEventViewIDs.remove(eventID) }
+        pendingEventViewIDs.insert(eventID)
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentSession(generation) {
+                    self.pendingEventViewIDs.remove(eventID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if try await repository.recordEventView(id: eventID) {
-                    events[index].viewCount += 1
+                    guard isCurrentSession(generation),
+                          let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
+                    events[currentIndex].viewCount = max(
+                        events[currentIndex].viewCount,
+                        baselineViewCount + 1
+                    )
+                } else {
+                    guard isCurrentSession(generation) else { return }
                 }
                 error = nil
             } catch let appError as AppError {
+                guard isCurrentSession(generation) else { return }
                 error = appError
             } catch {
+                guard isCurrentSession(generation) else { return }
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func trackViewIfNeeded(for event: Event, sourceScreen: String = "event_detail") {
@@ -274,19 +401,24 @@ final class EventsViewModel: ObservableObject {
     }
 
     func loadComments(for eventID: String, forceRefresh: Bool = false) async {
+        let generation = sessionGeneration
         startListeningComments(for: eventID)
         guard forceRefresh || !(repository is EventRealtimeRepository) else { return }
-        guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard events.contains(where: { $0.id == eventID }) else { return }
 
         do {
             let comments = try await repository.fetchEventComments(eventID: eventID)
+            guard isCurrentSession(generation),
+                  let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
-            events[index].comments = visibleComments
-            events[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            events[currentIndex].comments = visibleComments
+            events[currentIndex].commentCount = visibleComments.filter { !$0.isDeleted }.count
             error = nil
         } catch let appError as AppError {
+            guard isCurrentSession(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentSession(generation) else { return }
             self.error = .unknown
         }
     }
@@ -297,18 +429,22 @@ final class EventsViewModel: ObservableObject {
 
     private func startListeningComments(for eventID: String) {
         let key = "eventComments:\(eventID)"
+        let generation = sessionGeneration
         guard !listenerBag.contains(key),
               let realtimeRepository = repository as? EventRealtimeRepository else { return }
 
         listenerBag.set(realtimeRepository.listenEventComments(eventID: eventID) { [weak self] comments in
-            guard let self, let index = self.events.firstIndex(where: { $0.id == eventID }) else { return }
+            guard let self,
+                  self.isCurrentSession(generation),
+                  let index = self.events.firstIndex(where: { $0.id == eventID }) else { return }
             let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             self.events[index].comments = visibleComments
             self.events[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
             self.error = nil
         } onError: { [weak self] appError in
-            self?.listenerBag.remove(key)
-            self?.error = appError
+            guard let self, self.isCurrentSession(generation) else { return }
+            self.listenerBag.remove(key)
+            self.error = appError
             #if DEBUG
             print("Realtime listener failed: purpose=eventComments key=\(key) error=\(appError)")
             #endif
@@ -316,60 +452,88 @@ final class EventsViewModel: ObservableObject {
     }
 
     func addComment(to eventID: String, text: String, author: AppUser) async {
-        guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard events.contains(where: { $0.id == eventID }) else { return }
         guard !pendingEventCommentIDs.contains(eventID) else { return }
+        let generation = sessionGeneration
         pendingEventCommentIDs.insert(eventID)
-        defer { pendingEventCommentIDs.remove(eventID) }
+        defer {
+            if isCurrentSession(generation) {
+                pendingEventCommentIDs.remove(eventID)
+            }
+        }
 
         do {
             let comment = try await repository.addEventComment(eventID: eventID, text: text, author: author)
-            events[index].comments.upsertCommentByID(comment)
-            events[index].commentCount = events[index].comments.filter { !$0.isDeleted }.count
+            guard isCurrentSession(generation),
+                  let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
+            events[currentIndex].comments.upsertCommentByID(comment)
+            events[currentIndex].commentCount = events[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
         } catch let appError as AppError {
+            guard isCurrentSession(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentSession(generation) else { return }
             self.error = .unknown
         }
     }
 
     func updateComment(eventID: String, commentID: String, text: String) async {
-        guard let eventIndex = events.firstIndex(where: { $0.id == eventID }),
-              let commentIndex = events[eventIndex].comments.firstIndex(where: { $0.id == commentID }) else {
+        guard let event = events.first(where: { $0.id == eventID }),
+              event.comments.contains(where: { $0.id == commentID }) else {
             return
         }
         let pendingID = "\(eventID)_\(commentID)"
         guard !pendingEventCommentIDs.contains(pendingID) else { return }
+        let generation = sessionGeneration
         pendingEventCommentIDs.insert(pendingID)
-        defer { pendingEventCommentIDs.remove(pendingID) }
+        defer {
+            if isCurrentSession(generation) {
+                pendingEventCommentIDs.remove(pendingID)
+            }
+        }
 
         do {
             let comment = try await repository.updateEventComment(eventID: eventID, commentID: commentID, text: text)
-            events[eventIndex].comments[commentIndex] = comment
-            events[eventIndex].comments = events[eventIndex].comments.deduplicatedCommentsByID()
+            guard isCurrentSession(generation),
+                  let currentEventIndex = events.firstIndex(where: { $0.id == eventID }),
+                  let currentCommentIndex = events[currentEventIndex].comments.firstIndex(where: { $0.id == commentID }) else { return }
+            events[currentEventIndex].comments[currentCommentIndex] = comment
+            events[currentEventIndex].comments = events[currentEventIndex].comments.deduplicatedCommentsByID()
             error = nil
         } catch let appError as AppError {
+            guard isCurrentSession(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentSession(generation) else { return }
             self.error = .unknown
         }
     }
 
     func deleteComment(eventID: String, commentID: String) async {
-        guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
+        guard events.contains(where: { $0.id == eventID }) else { return }
         let pendingID = "\(eventID)_\(commentID)"
         guard !pendingEventCommentIDs.contains(pendingID) else { return }
+        let generation = sessionGeneration
         pendingEventCommentIDs.insert(pendingID)
-        defer { pendingEventCommentIDs.remove(pendingID) }
+        defer {
+            if isCurrentSession(generation) {
+                pendingEventCommentIDs.remove(pendingID)
+            }
+        }
 
         do {
             try await repository.deleteEventComment(eventID: eventID, commentID: commentID)
-            events[index].comments.removeAll { $0.id == commentID }
-            events[index].commentCount = max(0, events[index].commentCount - 1)
+            guard isCurrentSession(generation),
+                  let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
+            events[currentIndex].comments.removeAll { $0.id == commentID }
+            events[currentIndex].commentCount = events[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
         } catch let appError as AppError {
+            guard isCurrentSession(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentSession(generation) else { return }
             self.error = .unknown
         }
     }
@@ -380,19 +544,24 @@ final class EventsViewModel: ObservableObject {
 
     func loadEventIfNeeded(eventID: String, force: Bool = false) async {
         guard force || event(for: eventID) == nil else { return }
+        let generation = sessionGeneration
 
         do {
             let event = try await repository.fetchEvent(id: eventID)
+            guard isCurrentSession(generation) else { return }
             cacheEvent(event)
             error = nil
         } catch let appError as AppError {
+            guard isCurrentSession(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentSession(generation) else { return }
             self.error = .unknown
         }
     }
 
     func cacheEvent(_ event: Event) {
+        feedRevision &+= 1
         guard let visibleEvent = visibilityPolicy.visibleEvents([event]).first else {
             events.removeAll { $0.id == event.id }
             return
@@ -411,28 +580,35 @@ final class EventsViewModel: ObservableObject {
 
     func deleteEvent(id: String) async throws {
         let organizationID = event(for: id)?.source.organizationId
+        let generation = sessionGeneration
 
         do {
             try await repository.deleteEvent(id: id)
+            guard isCurrentSession(generation) else { return }
+            feedRevision &+= 1
             events.removeAll { $0.id == id }
             contentVersion &+= 1
             error = nil
             AppContentChangeBus.postEventsChanged(organizationID: organizationID)
         } catch let appError as AppError {
+            guard isCurrentSession(generation) else { throw appError }
             error = appError
             throw appError
         } catch {
+            guard isCurrentSession(generation) else { throw error }
             self.error = .unknown
             throw AppError.unknown
         }
     }
 
     func removeDeletedEvent(id: String) {
+        feedRevision &+= 1
         events.removeAll { $0.id == id }
         contentVersion &+= 1
     }
 
     private func startLoad(force: Bool) async {
+        let generation = sessionGeneration
         guard force || !hasLoaded else { return }
         if force {
             nextPageTask?.cancel()
@@ -447,14 +623,16 @@ final class EventsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad()
+            await self.performLoad(generation: generation)
         }
         loadTask = task
         await task.value
+        guard isCurrentSession(generation) else { return }
         self.loadTask = nil
     }
 
     func loadNextPageIfNeeded(currentItemID: String? = nil) async {
+        let generation = sessionGeneration
         guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
         if let currentItemID, events.suffix(5).contains(where: { $0.id == currentItemID }) == false {
             return
@@ -467,20 +645,27 @@ final class EventsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoadNextPage()
+            await self.performLoadNextPage(generation: generation)
         }
         nextPageTask = task
         await task.value
+        guard isCurrentSession(generation) else { return }
         nextPageTask = nil
     }
 
-    private func performLoad() async {
+    private func performLoad(generation: Int) async {
+        guard isCurrentSession(generation) else { return }
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if isCurrentSession(generation) {
+                isLoading = false
+            }
+        }
 
         do {
             let page = try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nil)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
+            feedRevision &+= 1
             events = visibilityPolicy.visibleEvents(page.items)
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -490,22 +675,28 @@ final class EventsViewModel: ObservableObject {
             lastLoadedAt = Date()
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
             self.error = .unknown
         }
     }
 
-    private func performLoadNextPage() async {
+    private func performLoadNextPage(generation: Int) async {
+        guard isCurrentSession(generation) else { return }
         guard let nextPageCursor else { return }
         isLoadingNextPage = true
-        defer { isLoadingNextPage = false }
+        defer {
+            if isCurrentSession(generation) {
+                isLoadingNextPage = false
+            }
+        }
 
         do {
             let page = try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nextPageCursor)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
+            feedRevision &+= 1
             appendUniqueEvents(page.items)
             self.nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -514,10 +705,10 @@ final class EventsViewModel: ObservableObject {
             lastLoadedAt = Date()
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
             self.error = .unknown
         }
     }
@@ -525,5 +716,22 @@ final class EventsViewModel: ObservableObject {
     private func appendUniqueEvents(_ newEvents: [Event]) {
         let existingIDs = Set(events.map(\.id))
         events.append(contentsOf: visibilityPolicy.visibleEvents(newEvents).filter { !existingIDs.contains($0.id) })
+    }
+
+    private func rollbackBookmark(
+        eventID: String,
+        optimisticState: Bool,
+        previousState: Bool,
+        requestFeedRevision: UInt
+    ) {
+        guard feedRevision == requestFeedRevision,
+              let currentIndex = events.firstIndex(where: { $0.id == eventID }),
+              events[currentIndex].isBookmarked == optimisticState else { return }
+        events[currentIndex].isBookmarked = previousState
+        contentVersion &+= 1
+    }
+
+    private func isCurrentSession(_ generation: Int) -> Bool {
+        sessionGeneration == generation
     }
 }

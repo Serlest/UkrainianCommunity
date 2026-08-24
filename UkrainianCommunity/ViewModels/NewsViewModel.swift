@@ -23,6 +23,9 @@ final class NewsViewModel: ObservableObject {
     private var nextPageCursor: NewsPageCursor?
     private var trackedNewsViewIDs = Set<String>()
     private var visibilityPolicy = ContentVisibilityPolicy()
+    private var authGeneration: UInt = 0
+    private var feedRevision: UInt = 0
+    private var interactionTasks: [String: Task<Void, Never>] = [:]
 
     init(repository: NewsRepository, analyticsService: AnalyticsTracking = NoopAnalyticsService()) {
         self.repository = repository
@@ -62,10 +65,14 @@ final class NewsViewModel: ObservableObject {
     }
 
     func resetForAuthChange() {
+        authGeneration &+= 1
+        feedRevision &+= 1
         loadTask?.cancel()
         nextPageTask?.cancel()
+        interactionTasks.values.forEach { $0.cancel() }
         loadTask = nil
         nextPageTask = nil
+        interactionTasks.removeAll()
         posts = []
         isLoading = false
         isLoadingNextPage = false
@@ -97,11 +104,21 @@ final class NewsViewModel: ObservableObject {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         guard !pendingNewsLikeIDs.contains(postID) else { return }
         let shouldLike = posts[index].likeState == .notLiked
+        let previousLikeState = posts[index].likeState
+        let targetLikeState: LikeState = shouldLike ? .liked : .notLiked
         let post = posts[index]
+        let generation = authGeneration
+        let taskKey = "like:\(postID)"
 
-        Task {
-            pendingNewsLikeIDs.insert(postID)
-            defer { pendingNewsLikeIDs.remove(postID) }
+        pendingNewsLikeIDs.insert(postID)
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentAuthGeneration(generation) {
+                    self.pendingNewsLikeIDs.remove(postID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if shouldLike {
@@ -110,40 +127,65 @@ final class NewsViewModel: ObservableObject {
                     try await repository.unlikeNews(id: postID)
                 }
 
-                posts[index].likeState = shouldLike ? .liked : .notLiked
-                posts[index].likeCount += shouldLike ? 1 : -1
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation),
+                      let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
+                if posts[currentIndex].likeState == previousLikeState {
+                    posts[currentIndex].likeState = targetLikeState
+                    posts[currentIndex].likeCount = max(0, posts[currentIndex].likeCount + (shouldLike ? 1 : -1))
+                    contentVersion &+= 1
+                }
                 if shouldLike {
                     analyticsService.track(.newsLike(post: post))
                 }
                 error = nil
             } catch let appError as AppError {
+                guard isCurrentAuthGeneration(generation) else { return }
                 error = appError
             } catch {
+                guard isCurrentAuthGeneration(generation) else { return }
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func recordView(for postID: String) {
         guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
         guard !pendingNewsViewIDs.contains(postID) else { return }
+        let previousViewCount = posts[index].viewCount
+        let generation = authGeneration
+        let taskKey = "view:\(postID)"
 
-        Task {
-            pendingNewsViewIDs.insert(postID)
-            defer { pendingNewsViewIDs.remove(postID) }
+        pendingNewsViewIDs.insert(postID)
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentAuthGeneration(generation) {
+                    self.pendingNewsViewIDs.remove(postID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if try await repository.recordNewsView(id: postID) {
-                    posts[index].viewCount += 1
+                    guard isCurrentAuthGeneration(generation),
+                          let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
+                    if posts[currentIndex].viewCount == previousViewCount {
+                        posts[currentIndex].viewCount += 1
+                    }
+                } else {
+                    guard isCurrentAuthGeneration(generation) else { return }
                 }
                 error = nil
             } catch let appError as AppError {
+                guard isCurrentAuthGeneration(generation) else { return }
                 error = appError
             } catch {
+                guard isCurrentAuthGeneration(generation) else { return }
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func trackViewIfNeeded(for post: NewsPost, sourceScreen: String = "news_detail") {
@@ -165,13 +207,23 @@ final class NewsViewModel: ObservableObject {
         guard !pendingNewsBookmarkIDs.contains(postID) else { return }
         let shouldBookmark = !posts[index].isBookmarked
         let post = posts[index]
+        let previousBookmarkState = posts[index].isBookmarked
+        let generation = authGeneration
+        let requestFeedRevision = feedRevision
+        let taskKey = "bookmark:\(postID)"
 
+        pendingNewsBookmarkIDs.insert(postID)
         posts[index].isBookmarked = shouldBookmark
         contentVersion &+= 1
 
-        Task {
-            pendingNewsBookmarkIDs.insert(postID)
-            defer { pendingNewsBookmarkIDs.remove(postID) }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentAuthGeneration(generation) {
+                    self.pendingNewsBookmarkIDs.remove(postID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if shouldBookmark {
@@ -179,37 +231,59 @@ final class NewsViewModel: ObservableObject {
                 } else {
                     try await repository.unbookmarkNews(id: postID)
                 }
+                guard isCurrentAuthGeneration(generation),
+                      let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
+                if posts[currentIndex].isBookmarked == previousBookmarkState {
+                    posts[currentIndex].isBookmarked = shouldBookmark
+                    contentVersion &+= 1
+                }
                 ActivityLogRecorder.recordNews(post, actionType: shouldBookmark ? .savedNews : .unsavedNews)
                 if shouldBookmark {
                     analyticsService.track(.newsBookmark(post: post))
                 }
                 error = nil
             } catch let appError as AppError {
-                posts[index].isBookmarked.toggle()
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackBookmark(
+                    postID: postID,
+                    optimisticState: shouldBookmark,
+                    previousState: previousBookmarkState,
+                    requestFeedRevision: requestFeedRevision
+                )
                 error = appError
             } catch {
-                posts[index].isBookmarked.toggle()
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackBookmark(
+                    postID: postID,
+                    optimisticState: shouldBookmark,
+                    previousState: previousBookmarkState,
+                    requestFeedRevision: requestFeedRevision
+                )
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func loadComments(for postID: String, forceRefresh: Bool = false) async {
+        let generation = authGeneration
         startListeningComments(for: postID)
         guard forceRefresh || !(repository is NewsRealtimeRepository) else { return }
-        guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
+        guard posts.contains(where: { $0.id == postID }) else { return }
 
         do {
             let comments = try await repository.fetchNewsComments(newsID: postID)
+            guard isCurrentAuthGeneration(generation),
+                  let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
-            posts[index].comments = visibleComments
-            posts[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            posts[currentIndex].comments = visibleComments
+            posts[currentIndex].commentCount = visibleComments.filter { !$0.isDeleted }.count
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
@@ -220,18 +294,22 @@ final class NewsViewModel: ObservableObject {
 
     private func startListeningComments(for postID: String) {
         let key = "newsComments:\(postID)"
+        let generation = authGeneration
         guard !listenerBag.contains(key),
               let realtimeRepository = repository as? NewsRealtimeRepository else { return }
 
         listenerBag.set(realtimeRepository.listenNewsComments(newsID: postID) { [weak self] comments in
-            guard let self, let index = self.posts.firstIndex(where: { $0.id == postID }) else { return }
+            guard let self,
+                  self.isCurrentAuthGeneration(generation),
+                  let index = self.posts.firstIndex(where: { $0.id == postID }) else { return }
             let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             self.posts[index].comments = visibleComments
             self.posts[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
             self.error = nil
         } onError: { [weak self] appError in
-            self?.listenerBag.remove(key)
-            self?.error = appError
+            guard let self, self.isCurrentAuthGeneration(generation) else { return }
+            self.listenerBag.remove(key)
+            self.error = appError
             #if DEBUG
             print("Realtime listener failed: purpose=newsComments key=\(key) error=\(appError)")
             #endif
@@ -239,60 +317,88 @@ final class NewsViewModel: ObservableObject {
     }
 
     func addComment(to postID: String, text: String, author: AppUser) async {
-        guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
+        guard posts.contains(where: { $0.id == postID }) else { return }
         guard !pendingNewsCommentIDs.contains(postID) else { return }
+        let generation = authGeneration
         pendingNewsCommentIDs.insert(postID)
-        defer { pendingNewsCommentIDs.remove(postID) }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                pendingNewsCommentIDs.remove(postID)
+            }
+        }
 
         do {
             let comment = try await repository.addNewsComment(newsID: postID, text: text, author: author)
-            posts[index].comments.upsertCommentByID(comment)
-            posts[index].commentCount = posts[index].comments.filter { !$0.isDeleted }.count
+            guard isCurrentAuthGeneration(generation),
+                  let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
+            posts[currentIndex].comments.upsertCommentByID(comment)
+            posts[currentIndex].commentCount = posts[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
 
     func updateComment(postID: String, commentID: String, text: String) async {
-        guard let postIndex = posts.firstIndex(where: { $0.id == postID }),
-              let commentIndex = posts[postIndex].comments.firstIndex(where: { $0.id == commentID }) else {
+        guard let post = posts.first(where: { $0.id == postID }),
+              post.comments.contains(where: { $0.id == commentID }) else {
             return
         }
         let pendingID = "\(postID)_\(commentID)"
         guard !pendingNewsCommentIDs.contains(pendingID) else { return }
+        let generation = authGeneration
         pendingNewsCommentIDs.insert(pendingID)
-        defer { pendingNewsCommentIDs.remove(pendingID) }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                pendingNewsCommentIDs.remove(pendingID)
+            }
+        }
 
         do {
             let comment = try await repository.updateNewsComment(newsID: postID, commentID: commentID, text: text)
-            posts[postIndex].comments[commentIndex] = comment
-            posts[postIndex].comments = posts[postIndex].comments.deduplicatedCommentsByID()
+            guard isCurrentAuthGeneration(generation),
+                  let currentPostIndex = posts.firstIndex(where: { $0.id == postID }),
+                  let currentCommentIndex = posts[currentPostIndex].comments.firstIndex(where: { $0.id == commentID }) else { return }
+            posts[currentPostIndex].comments[currentCommentIndex] = comment
+            posts[currentPostIndex].comments = posts[currentPostIndex].comments.deduplicatedCommentsByID()
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
 
     func deleteComment(postID: String, commentID: String) async {
-        guard let index = posts.firstIndex(where: { $0.id == postID }) else { return }
+        guard posts.contains(where: { $0.id == postID }) else { return }
         let pendingID = "\(postID)_\(commentID)"
         guard !pendingNewsCommentIDs.contains(pendingID) else { return }
+        let generation = authGeneration
         pendingNewsCommentIDs.insert(pendingID)
-        defer { pendingNewsCommentIDs.remove(pendingID) }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                pendingNewsCommentIDs.remove(pendingID)
+            }
+        }
 
         do {
             try await repository.deleteNewsComment(newsID: postID, commentID: commentID)
-            posts[index].comments.removeAll { $0.id == commentID }
-            posts[index].commentCount = max(0, posts[index].commentCount - 1)
+            guard isCurrentAuthGeneration(generation),
+                  let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
+            posts[currentIndex].comments.removeAll { $0.id == commentID }
+            posts[currentIndex].commentCount = posts[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
@@ -307,17 +413,21 @@ final class NewsViewModel: ObservableObject {
 
     func deleteNews(id: String) async throws {
         let organizationID = post(for: id)?.source.organizationId
+        let generation = authGeneration
 
         do {
             try await repository.deleteNews(id: id)
+            guard isCurrentAuthGeneration(generation) else { return }
             posts.removeAll { $0.id == id }
             contentVersion &+= 1
             error = nil
             AppContentChangeBus.postNewsChanged(organizationID: organizationID)
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { throw appError }
             error = appError
             throw appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { throw error }
             self.error = .unknown
             throw AppError.unknown
         }
@@ -329,6 +439,7 @@ final class NewsViewModel: ObservableObject {
     }
 
     func loadNextPageIfNeeded(currentItemID: String? = nil) async {
+        let generation = authGeneration
         guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
         if let currentItemID, posts.suffix(5).contains(where: { $0.id == currentItemID }) == false {
             return
@@ -341,14 +452,16 @@ final class NewsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoadNextPage()
+            await self.performLoadNextPage(generation: generation)
         }
         nextPageTask = task
         await task.value
+        guard isCurrentAuthGeneration(generation) else { return }
         nextPageTask = nil
     }
 
     private func startLoad(force: Bool) async {
+        let generation = authGeneration
         guard force || !hasLoaded else { return }
         if force {
             nextPageTask?.cancel()
@@ -363,20 +476,27 @@ final class NewsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad()
+            await self.performLoad(generation: generation)
         }
         loadTask = task
         await task.value
+        guard isCurrentAuthGeneration(generation) else { return }
         self.loadTask = nil
     }
 
-    private func performLoad() async {
+    private func performLoad(generation: UInt) async {
+        guard isCurrentAuthGeneration(generation) else { return }
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                isLoading = false
+            }
+        }
 
         do {
             let page = try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nil)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
+            feedRevision &+= 1
             posts = visibilityPolicy.visibleNews(page.items)
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -386,22 +506,27 @@ final class NewsViewModel: ObservableObject {
             lastLoadedAt = Date()
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
 
-    private func performLoadNextPage() async {
+    private func performLoadNextPage(generation: UInt) async {
+        guard isCurrentAuthGeneration(generation) else { return }
         guard let nextPageCursor else { return }
         isLoadingNextPage = true
-        defer { isLoadingNextPage = false }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                isLoadingNextPage = false
+            }
+        }
 
         do {
             let page = try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nextPageCursor)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             appendUniquePosts(page.items)
             self.nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -410,10 +535,10 @@ final class NewsViewModel: ObservableObject {
             lastLoadedAt = Date()
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
@@ -421,5 +546,22 @@ final class NewsViewModel: ObservableObject {
     private func appendUniquePosts(_ newPosts: [NewsPost]) {
         let existingIDs = Set(posts.map(\.id))
         posts.append(contentsOf: visibilityPolicy.visibleNews(newPosts).filter { !existingIDs.contains($0.id) })
+    }
+
+    private func rollbackBookmark(
+        postID: String,
+        optimisticState: Bool,
+        previousState: Bool,
+        requestFeedRevision: UInt
+    ) {
+        guard feedRevision == requestFeedRevision,
+              let currentIndex = posts.firstIndex(where: { $0.id == postID }),
+              posts[currentIndex].isBookmarked == optimisticState else { return }
+        posts[currentIndex].isBookmarked = previousState
+        contentVersion &+= 1
+    }
+
+    private func isCurrentAuthGeneration(_ generation: UInt) -> Bool {
+        generation == authGeneration
     }
 }

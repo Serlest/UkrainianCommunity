@@ -190,7 +190,7 @@ describe("email verification enforcement", () => {
     }));
   });
 
-  test("verified user can write interaction and feedback content", async () => {
+  test("verified user can write client-owned interactions while registration stays server-owned", async () => {
     const verifiedDb = auth("verified-user", true);
 
     await assertSucceeds(setDoc(doc(verifiedDb, "likes", "news-1_verified-user"), {
@@ -206,7 +206,7 @@ describe("email verification enforcement", () => {
       userId: "verified-user",
     }));
 
-    await assertSucceeds(setDoc(doc(verifiedDb, "registrations", "event_event-1_verified-user"), {
+    await assertFails(setDoc(doc(verifiedDb, "registrations", "event_event-1_verified-user"), {
       id: "event_event-1_verified-user",
       eventId: "event-1",
       userId: "verified-user",

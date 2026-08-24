@@ -70,11 +70,11 @@ struct MockEventRepository: EventRepository {
         try await store.eventRegistrations(eventID: eventID)
     }
 
-    func registerForEvent(id: String) async throws {
+    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult {
         try await store.setEventRegistration(id: id, isRegistered: true)
     }
 
-    func cancelEventRegistration(id: String) async throws {
+    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult {
         try await store.setEventRegistration(id: id, isRegistered: false)
     }
 

@@ -527,7 +527,7 @@ struct Event: Identifiable, Codable {
         self.cancellationReason = Self.trimmedOptional(cancellationReason)
     }
 
-    var isCancelled: Bool {
+    nonisolated var isCancelled: Bool {
         cancellationState == "cancelled"
     }
 

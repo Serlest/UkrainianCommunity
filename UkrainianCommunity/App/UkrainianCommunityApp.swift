@@ -115,8 +115,7 @@ struct UkrainianCommunityApp: App {
 
         Task { @MainActor in
             if shouldForceAuthenticatedSession {
-                sharedAuthState.user = MockContentBuilder.currentUser()
-                sharedAuthState.setAuthenticatedSession()
+                sharedAuthState.setAuthenticatedSession(user: MockContentBuilder.currentUser())
             } else if shouldForceGuestSession {
                 sharedAuthState.setGuestSession()
             } else {

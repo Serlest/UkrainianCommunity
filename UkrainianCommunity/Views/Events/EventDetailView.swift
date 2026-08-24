@@ -248,6 +248,18 @@ struct EventDetailView: View {
             },
             set: { if $0 == nil { commentDeleteErrorMessage = nil } }
         ))
+        .appErrorDialog(Binding(
+            get: {
+                guard let registrationError = viewModel.registrationError,
+                      registrationError.eventID == eventID else { return nil }
+                return AppErrorDialog(
+                    title: AppStrings.Events.registrationErrorTitle,
+                    message: readableEventRegistrationErrorText(registrationError.reason),
+                    okTitle: AppStrings.Events.dismissError
+                )
+            },
+            set: { if $0 == nil { viewModel.dismissRegistrationError(for: eventID) } }
+        ))
         .alert(calendarAlert?.title ?? "", isPresented: Binding(
             get: { calendarAlert != nil },
             set: { if !$0 { calendarAlert = nil } }
@@ -595,6 +607,27 @@ struct EventDetailView: View {
 
         guard let url else { return }
         UIApplication.shared.open(url)
+    }
+}
+
+func readableEventRegistrationErrorText(_ error: EventRegistrationMutationError) -> String {
+    switch error {
+    case .full:
+        AppStrings.Events.registrationFullError
+    case .registrationNotRequired:
+        AppStrings.Events.registrationNotRequiredError
+    case .eventCancelled:
+        AppStrings.Events.registrationCancelledError
+    case .eventPast:
+        AppStrings.Events.registrationPastError
+    case .permissionDenied:
+        AppStrings.Events.registrationPermissionError
+    case .network:
+        AppStrings.Events.registrationNetworkError
+    case .notFound:
+        AppStrings.Events.registrationNotFoundError
+    case .unavailable:
+        AppStrings.Events.registrationUnavailableError
     }
 }
 

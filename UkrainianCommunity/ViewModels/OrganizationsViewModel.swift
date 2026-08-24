@@ -30,6 +30,9 @@ final class OrganizationsViewModel: ObservableObject {
     private var nextPageCursor: OrganizationPageCursor?
     private var trackedOrganizationViewIDs = Set<String>()
     private var visibilityPolicy = ContentVisibilityPolicy()
+    private var authGeneration: UInt = 0
+    private var feedRevision: UInt = 0
+    private var interactionTasks: [String: Task<Void, Never>] = [:]
 
     init(
         repository: OrganizationRepository,
@@ -74,10 +77,14 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func resetForAuthChange() {
+        authGeneration &+= 1
+        feedRevision &+= 1
         loadTask?.cancel()
         nextPageTask?.cancel()
+        interactionTasks.values.forEach { $0.cancel() }
         loadTask = nil
         nextPageTask = nil
+        interactionTasks.removeAll()
         organizations = []
         isLoading = false
         isLoadingNextPage = false
@@ -107,14 +114,25 @@ final class OrganizationsViewModel: ObservableObject {
         let shouldLike = organizations[index].likeState == .notLiked
         let previousLikeState = organizations[index].likeState
         let previousLikeCount = organizations[index].likeCount
+        let optimisticLikeState: LikeState = shouldLike ? .liked : .notLiked
+        let optimisticLikeCount = max(0, previousLikeCount + (shouldLike ? 1 : -1))
+        let generation = authGeneration
+        let requestFeedRevision = feedRevision
+        let taskKey = "like:\(organizationID)"
 
-        organizations[index].likeState = shouldLike ? .liked : .notLiked
-        organizations[index].likeCount = max(0, previousLikeCount + (shouldLike ? 1 : -1))
+        pendingOrganizationLikeIDs.insert(organizationID)
+        organizations[index].likeState = optimisticLikeState
+        organizations[index].likeCount = optimisticLikeCount
         contentVersion &+= 1
 
-        Task {
-            pendingOrganizationLikeIDs.insert(organizationID)
-            defer { pendingOrganizationLikeIDs.remove(organizationID) }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentAuthGeneration(generation) {
+                    self.pendingOrganizationLikeIDs.remove(organizationID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if shouldLike {
@@ -123,36 +141,68 @@ final class OrganizationsViewModel: ObservableObject {
                     try await repository.unlikeOrganization(id: organizationID)
                 }
 
+                guard isCurrentAuthGeneration(generation),
+                      let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+                if organizations[currentIndex].likeState == previousLikeState {
+                    organizations[currentIndex].likeState = optimisticLikeState
+                    organizations[currentIndex].likeCount = max(
+                        0,
+                        organizations[currentIndex].likeCount + (shouldLike ? 1 : -1)
+                    )
+                    contentVersion &+= 1
+                }
                 error = nil
             } catch let appError as AppError {
-                organizations[index].likeState = previousLikeState
-                organizations[index].likeCount = previousLikeCount
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackLike(
+                    organizationID: organizationID,
+                    optimisticState: optimisticLikeState,
+                    optimisticCount: optimisticLikeCount,
+                    previousState: previousLikeState,
+                    previousCount: previousLikeCount,
+                    requestFeedRevision: requestFeedRevision
+                )
                 error = appError
             } catch {
-                organizations[index].likeState = previousLikeState
-                organizations[index].likeCount = previousLikeCount
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackLike(
+                    organizationID: organizationID,
+                    optimisticState: optimisticLikeState,
+                    optimisticCount: optimisticLikeCount,
+                    previousState: previousLikeState,
+                    previousCount: previousLikeCount,
+                    requestFeedRevision: requestFeedRevision
+                )
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func toggleSubscription(for organizationID: String) {
         guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
         guard !pendingOrganizationSubscriptionIDs.contains(organizationID) else { return }
         let shouldSubscribe = !organizations[index].isSubscribed
-        let organization = organizations[index]
         let previousSubscriptionState = organizations[index].isSubscribed
         let previousSubscriberCount = organizations[index].subscriberCount
+        let optimisticSubscriberCount = max(0, previousSubscriberCount + (shouldSubscribe ? 1 : -1))
+        let generation = authGeneration
+        let requestFeedRevision = feedRevision
+        let taskKey = "subscription:\(organizationID)"
 
         pendingOrganizationSubscriptionIDs.insert(organizationID)
         organizations[index].isSubscribed = shouldSubscribe
-        organizations[index].subscriberCount = max(0, previousSubscriberCount + (shouldSubscribe ? 1 : -1))
+        organizations[index].subscriberCount = optimisticSubscriberCount
         contentVersion &+= 1
 
-        Task {
-            defer { pendingOrganizationSubscriptionIDs.remove(organizationID) }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentAuthGeneration(generation) {
+                    self.pendingOrganizationSubscriptionIDs.remove(organizationID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if shouldSubscribe {
@@ -161,36 +211,68 @@ final class OrganizationsViewModel: ObservableObject {
                     try await repository.unsubscribeOrganization(id: organizationID)
                 }
 
-                ActivityLogRecorder.recordOrganization(organization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
-                analyticsService.track(shouldSubscribe ? .organizationFollow(organization: organization) : .organizationUnfollow(organization: organization))
+                guard isCurrentAuthGeneration(generation),
+                      let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+                if organizations[currentIndex].isSubscribed == previousSubscriptionState {
+                    organizations[currentIndex].isSubscribed = shouldSubscribe
+                    organizations[currentIndex].subscriberCount = max(
+                        0,
+                        organizations[currentIndex].subscriberCount + (shouldSubscribe ? 1 : -1)
+                    )
+                    contentVersion &+= 1
+                }
+                let currentOrganization = organizations[currentIndex]
+                ActivityLogRecorder.recordOrganization(currentOrganization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
+                analyticsService.track(shouldSubscribe ? .organizationFollow(organization: currentOrganization) : .organizationUnfollow(organization: currentOrganization))
                 error = nil
             } catch let appError as AppError {
-                organizations[index].isSubscribed = previousSubscriptionState
-                organizations[index].subscriberCount = previousSubscriberCount
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackSubscription(
+                    organizationID: organizationID,
+                    optimisticState: shouldSubscribe,
+                    optimisticCount: optimisticSubscriberCount,
+                    previousState: previousSubscriptionState,
+                    previousCount: previousSubscriberCount,
+                    requestFeedRevision: requestFeedRevision
+                )
                 error = appError
             } catch {
-                organizations[index].isSubscribed = previousSubscriptionState
-                organizations[index].subscriberCount = previousSubscriberCount
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackSubscription(
+                    organizationID: organizationID,
+                    optimisticState: shouldSubscribe,
+                    optimisticCount: optimisticSubscriberCount,
+                    previousState: previousSubscriptionState,
+                    previousCount: previousSubscriberCount,
+                    requestFeedRevision: requestFeedRevision
+                )
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func toggleBookmark(for organizationID: String) {
         guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
         guard !pendingOrganizationBookmarkIDs.contains(organizationID) else { return }
         let shouldBookmark = !organizations[index].isBookmarked
-        let organization = organizations[index]
         let previousBookmarkState = organizations[index].isBookmarked
+        let generation = authGeneration
+        let requestFeedRevision = feedRevision
+        let taskKey = "bookmark:\(organizationID)"
 
         pendingOrganizationBookmarkIDs.insert(organizationID)
         organizations[index].isBookmarked = shouldBookmark
         contentVersion &+= 1
 
-        Task {
-            defer { pendingOrganizationBookmarkIDs.remove(organizationID) }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if self.isCurrentAuthGeneration(generation) {
+                    self.pendingOrganizationBookmarkIDs.remove(organizationID)
+                    self.interactionTasks[taskKey] = nil
+                }
+            }
 
             do {
                 if shouldBookmark {
@@ -199,21 +281,39 @@ final class OrganizationsViewModel: ObservableObject {
                     try await repository.unbookmarkOrganization(id: organizationID)
                 }
 
-                ActivityLogRecorder.recordOrganization(organization, actionType: shouldBookmark ? .savedOrganization : .unsavedOrganization)
+                guard isCurrentAuthGeneration(generation),
+                      let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+                if organizations[currentIndex].isBookmarked == previousBookmarkState {
+                    organizations[currentIndex].isBookmarked = shouldBookmark
+                    contentVersion &+= 1
+                }
+                let currentOrganization = organizations[currentIndex]
+                ActivityLogRecorder.recordOrganization(currentOrganization, actionType: shouldBookmark ? .savedOrganization : .unsavedOrganization)
                 if shouldBookmark {
-                    analyticsService.track(.organizationBookmark(organization: organization))
+                    analyticsService.track(.organizationBookmark(organization: currentOrganization))
                 }
                 error = nil
             } catch let appError as AppError {
-                organizations[index].isBookmarked = previousBookmarkState
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackBookmark(
+                    organizationID: organizationID,
+                    optimisticState: shouldBookmark,
+                    previousState: previousBookmarkState,
+                    requestFeedRevision: requestFeedRevision
+                )
                 error = appError
             } catch {
-                organizations[index].isBookmarked = previousBookmarkState
-                contentVersion &+= 1
+                guard isCurrentAuthGeneration(generation) else { return }
+                rollbackBookmark(
+                    organizationID: organizationID,
+                    optimisticState: shouldBookmark,
+                    previousState: previousBookmarkState,
+                    requestFeedRevision: requestFeedRevision
+                )
                 self.error = .unknown
             }
         }
+        interactionTasks[taskKey] = task
     }
 
     func organization(for organizationID: String) -> Organization? {
@@ -242,6 +342,7 @@ final class OrganizationsViewModel: ObservableObject {
     func resolveOrganization(id organizationID: String) async -> Organization? {
         let trimmedID = organizationID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return nil }
+        let generation = authGeneration
 
         if let organization = organization(for: trimmedID) {
             return organization
@@ -249,6 +350,7 @@ final class OrganizationsViewModel: ObservableObject {
 
         do {
             let organization = try await repository.fetchOrganization(id: trimmedID)
+            guard isCurrentAuthGeneration(generation) else { return nil }
             guard visibilityPolicy.visibleOrganizations([organization]).isEmpty == false else {
                 return nil
             }
@@ -257,9 +359,11 @@ final class OrganizationsViewModel: ObservableObject {
             error = nil
             return organization
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return nil }
             error = appError
             return nil
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return nil }
             self.error = .unknown
             return nil
         }
@@ -270,17 +374,21 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func loadComments(for organizationID: String, forceRefresh: Bool = false) async {
+        let generation = authGeneration
         startListeningComments(for: organizationID)
         guard forceRefresh || !(repository is OrganizationRealtimeRepository) else { return }
         do {
             let comments = try await repository.fetchOrganizationComments(organizationID: organizationID)
+            guard isCurrentAuthGeneration(generation) else { return }
             organizationCommentsByID[organizationID] = visibilityPolicy.visibleComments(
                 comments.deduplicatedCommentsByID()
             )
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
@@ -291,18 +399,20 @@ final class OrganizationsViewModel: ObservableObject {
 
     private func startListeningComments(for organizationID: String) {
         let key = "organizationComments:\(organizationID)"
+        let generation = authGeneration
         guard !listenerBag.contains(key),
               let realtimeRepository = repository as? OrganizationRealtimeRepository else { return }
 
         listenerBag.set(realtimeRepository.listenOrganizationComments(organizationID: organizationID) { [weak self] comments in
-            guard let self else { return }
+            guard let self, self.isCurrentAuthGeneration(generation) else { return }
             self.organizationCommentsByID[organizationID] = self.visibilityPolicy.visibleComments(
                 comments.deduplicatedCommentsByID()
             )
             self.error = nil
         } onError: { [weak self] appError in
-            self?.listenerBag.remove(key)
-            self?.error = appError
+            guard let self, self.isCurrentAuthGeneration(generation) else { return }
+            self.listenerBag.remove(key)
+            self.error = appError
             #if DEBUG
             print("Realtime listener failed: purpose=organizationComments key=\(key) error=\(appError)")
             #endif
@@ -311,51 +421,75 @@ final class OrganizationsViewModel: ObservableObject {
 
     func addComment(to organizationID: String, text: String, author: AppUser) async {
         guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+        let generation = authGeneration
         pendingOrganizationCommentIDs.insert(organizationID)
-        defer { pendingOrganizationCommentIDs.remove(organizationID) }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                pendingOrganizationCommentIDs.remove(organizationID)
+            }
+        }
 
         do {
             let comment = try await repository.addOrganizationComment(organizationID: organizationID, text: text, author: author)
+            guard isCurrentAuthGeneration(generation) else { return }
             organizationCommentsByID[organizationID, default: []].upsertCommentByID(comment)
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
 
     func updateComment(organizationID: String, commentID: String, text: String) async {
         guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+        let generation = authGeneration
         pendingOrganizationCommentIDs.insert(organizationID)
-        defer { pendingOrganizationCommentIDs.remove(organizationID) }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                pendingOrganizationCommentIDs.remove(organizationID)
+            }
+        }
 
         do {
             let updated = try await repository.updateOrganizationComment(organizationID: organizationID, commentID: commentID, text: text)
+            guard isCurrentAuthGeneration(generation) else { return }
             if let index = organizationCommentsByID[organizationID]?.firstIndex(where: { $0.id == commentID }) {
                 organizationCommentsByID[organizationID]?[index] = updated
                 organizationCommentsByID[organizationID] = organizationCommentsByID[organizationID]?.deduplicatedCommentsByID()
             }
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
 
     func deleteComment(organizationID: String, commentID: String) async {
         guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+        let generation = authGeneration
         pendingOrganizationCommentIDs.insert(organizationID)
-        defer { pendingOrganizationCommentIDs.remove(organizationID) }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                pendingOrganizationCommentIDs.remove(organizationID)
+            }
+        }
 
         do {
             try await repository.deleteOrganizationComment(organizationID: organizationID, commentID: commentID)
+            guard isCurrentAuthGeneration(generation) else { return }
             organizationCommentsByID[organizationID]?.removeAll { $0.id == commentID }
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
@@ -378,6 +512,7 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func loadOrganizationRequests(for user: AppUser?) async {
+        let generation = authGeneration
         guard let user else {
             organizationRequests = []
             listenerBag.removeAll(matchingPrefix: "submittedOrganizationRequests:")
@@ -388,33 +523,40 @@ final class OrganizationsViewModel: ObservableObject {
             return
         }
 
-        await fetchOrganizationRequestsOnce(userID: user.id)
+        await fetchOrganizationRequestsOnce(userID: user.id, generation: generation)
     }
 
-    private func fetchOrganizationRequestsOnce(userID: String) async {
+    private func fetchOrganizationRequestsOnce(userID: String, generation: UInt) async {
         do {
-            organizationRequests = try await repository.fetchOrganizationRequests(submittedByUserID: userID).deduplicatedOrganizationsByID()
+            let requests = try await repository.fetchOrganizationRequests(submittedByUserID: userID)
+            guard isCurrentAuthGeneration(generation) else { return }
+            organizationRequests = requests.deduplicatedOrganizationsByID()
             error = nil
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
 
     private func startListeningOrganizationRequests(for userID: String) -> Bool {
         let key = "submittedOrganizationRequests:\(userID)"
+        let generation = authGeneration
         listenerBag.removeAll(except: key, matchingPrefix: "submittedOrganizationRequests:")
         guard let realtimeRepository = repository as? OrganizationRealtimeRepository else { return false }
         guard !listenerBag.contains(key) else { return true }
 
         listenerBag.set(realtimeRepository.listenSubmittedOrganizationRequests(userID: userID) { [weak self] requests in
-            self?.organizationRequests = requests.deduplicatedOrganizationsByID()
-            self?.error = nil
+            guard let self, self.isCurrentAuthGeneration(generation) else { return }
+            self.organizationRequests = requests.deduplicatedOrganizationsByID()
+            self.error = nil
         } onError: { [weak self] appError in
-            self?.listenerBag.remove(key)
-            self?.error = appError
-            Task { await self?.fetchOrganizationRequestsOnce(userID: userID) }
+            guard let self, self.isCurrentAuthGeneration(generation) else { return }
+            self.listenerBag.remove(key)
+            self.error = appError
+            Task { await self.fetchOrganizationRequestsOnce(userID: userID, generation: generation) }
             #if DEBUG
             print("Realtime listener failed: purpose=submittedOrganizationRequests key=\(key) error=\(appError)")
             #endif
@@ -445,21 +587,29 @@ final class OrganizationsViewModel: ObservableObject {
             throw AppError.permissionDenied
         }
         guard !pendingOrganizationDeleteIDs.contains(id) else { return }
+        let generation = authGeneration
 
         pendingOrganizationDeleteIDs.insert(id)
-        defer { pendingOrganizationDeleteIDs.remove(id) }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                pendingOrganizationDeleteIDs.remove(id)
+            }
+        }
 
         do {
             try await repository.deleteOrganization(id: id)
+            guard isCurrentAuthGeneration(generation) else { return }
             error = nil
             validationErrorMessage = nil
             removeDeletedOrganization(id: id)
             organizationRequests.removeAll { $0.id == id }
             AppContentChangeBus.postOrganizationsChanged(organizationID: id)
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { throw appError }
             error = appError
             throw appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { throw error }
             self.error = .unknown
             throw AppError.unknown
         }
@@ -472,6 +622,7 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     private func startLoad(force: Bool) async {
+        let generation = authGeneration
         guard force || !hasLoaded else { return }
         if force {
             nextPageTask?.cancel()
@@ -486,14 +637,16 @@ final class OrganizationsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad()
+            await self.performLoad(generation: generation)
         }
         loadTask = task
         await task.value
+        guard isCurrentAuthGeneration(generation) else { return }
         self.loadTask = nil
     }
 
     func loadNextPageIfNeeded(currentItemID: String? = nil) async {
+        let generation = authGeneration
         guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
         if let currentItemID, organizations.suffix(5).contains(where: { $0.id == currentItemID }) == false {
             return
@@ -506,20 +659,27 @@ final class OrganizationsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoadNextPage()
+            await self.performLoadNextPage(generation: generation)
         }
         nextPageTask = task
         await task.value
+        guard isCurrentAuthGeneration(generation) else { return }
         nextPageTask = nil
     }
 
-    private func performLoad() async {
+    private func performLoad(generation: UInt) async {
+        guard isCurrentAuthGeneration(generation) else { return }
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                isLoading = false
+            }
+        }
 
         do {
             let page = try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nil)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
+            feedRevision &+= 1
             organizations = visibilityPolicy.visibleOrganizations(page.items)
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -529,22 +689,27 @@ final class OrganizationsViewModel: ObservableObject {
             lastLoadedAt = Date()
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
 
-    private func performLoadNextPage() async {
+    private func performLoadNextPage(generation: UInt) async {
+        guard isCurrentAuthGeneration(generation) else { return }
         guard let nextPageCursor else { return }
         isLoadingNextPage = true
-        defer { isLoadingNextPage = false }
+        defer {
+            if isCurrentAuthGeneration(generation) {
+                isLoadingNextPage = false
+            }
+        }
 
         do {
             let page = try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nextPageCursor)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             appendUniqueOrganizations(page.items)
             self.nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
@@ -553,10 +718,10 @@ final class OrganizationsViewModel: ObservableObject {
             lastLoadedAt = Date()
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             self.error = .unknown
         }
     }
@@ -568,35 +733,44 @@ final class OrganizationsViewModel: ObservableObject {
 
     private func saveOrganization(_ organization: Organization, imageData: Data?, isEditing: Bool) async throws {
         guard !isSavingOrganization else { return }
+        let generation = authGeneration
 
         isSavingOrganization = true
         validationErrorMessage = nil
         defer {
-            isSavingOrganization = false
-            isUploadingOrganizationImage = false
+            if isCurrentAuthGeneration(generation) {
+                isSavingOrganization = false
+                isUploadingOrganizationImage = false
+            }
         }
 
         do {
             if isEditing {
-                try await ensureOrganizationRequestIsStillEditable(organization)
+                try await ensureOrganizationRequestIsStillEditable(organization, generation: generation)
+                guard isCurrentAuthGeneration(generation) else { return }
             }
 
             if !isEditing && organization.moderationStatus != .approved {
                 try await repository.createOrganization(organization)
+                guard isCurrentAuthGeneration(generation) else { return }
                 var organizationToInsert = organization
 
                 if let imageData {
                     do {
                         isUploadingOrganizationImage = true
                         let uploadedURL = try await repository.uploadOrganizationImage(data: imageData, organizationID: organization.id)
+                        guard isCurrentAuthGeneration(generation) else { return }
                         isUploadingOrganizationImage = false
                         organizationToInsert = organization.settingOrganizationImageURL(uploadedURL.absoluteString)
                         try await repository.updateOrganization(organizationToInsert)
+                        guard isCurrentAuthGeneration(generation) else { return }
                     } catch {
+                        guard isCurrentAuthGeneration(generation) else { throw error }
                         isUploadingOrganizationImage = false
                         do {
                             try await repository.deleteOrganization(id: organization.id)
                         } catch {}
+                        guard isCurrentAuthGeneration(generation) else { throw error }
                         throw error
                     }
                 }
@@ -612,6 +786,7 @@ final class OrganizationsViewModel: ObservableObject {
             if let imageData {
                 isUploadingOrganizationImage = true
                 let uploadedURL = try await repository.uploadOrganizationImage(data: imageData, organizationID: organization.id)
+                guard isCurrentAuthGeneration(generation) else { return }
                 resolvedImageURL = uploadedURL.absoluteString
                 isUploadingOrganizationImage = false
             } else {
@@ -680,10 +855,12 @@ final class OrganizationsViewModel: ObservableObject {
 
             if isEditing {
                 try await repository.updateOrganization(organizationToSave)
+                guard isCurrentAuthGeneration(generation) else { return }
                 replaceOrganization(organizationToSave)
                 replaceOrganizationRequest(organizationToSave)
             } else {
                 try await repository.createOrganization(organizationToSave)
+                guard isCurrentAuthGeneration(generation) else { return }
                 if organizationToSave.moderationStatus == .approved {
                     organizations.insert(organizationToSave, at: 0)
                 } else {
@@ -695,27 +872,31 @@ final class OrganizationsViewModel: ObservableObject {
             error = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: organizationToSave.id)
         } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { throw appError }
             error = appError
             throw appError
         } catch {
+            guard isCurrentAuthGeneration(generation) else { throw error }
             self.error = .unknown
             validationErrorMessage = error.localizedDescription
             throw AppError.unknown
         }
     }
 
-    private func ensureOrganizationRequestIsStillEditable(_ organization: Organization) async throws {
+    private func ensureOrganizationRequestIsStillEditable(_ organization: Organization, generation: UInt) async throws {
         guard organization.submittedByUserId != nil else { return }
         guard [.pendingReview, .needsRevision, .rejected].contains(organization.moderationStatus) else { return }
 
         do {
             let latest = try await repository.fetchOrganization(id: organization.id)
+            guard isCurrentAuthGeneration(generation) else { throw CancellationError() }
             guard latest.submittedByUserId == organization.submittedByUserId,
                   [.pendingReview, .needsRevision, .rejected].contains(latest.moderationStatus) else {
                 validationErrorMessage = AppStrings.Organizations.requestAlreadyReviewed
                 throw AppError.validationFailed
             }
         } catch AppError.notFound {
+            guard isCurrentAuthGeneration(generation) else { throw AppError.notFound }
             validationErrorMessage = AppStrings.Organizations.requestAlreadyReviewed
             throw AppError.validationFailed
         }
@@ -736,20 +917,77 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func approveOrganizationRequest(id: String, reviewerID: String) async throws {
+        let generation = authGeneration
         try await repository.approveOrganizationRequest(id: id, reviewerID: reviewerID)
+        guard isCurrentAuthGeneration(generation) else { return }
         organizationRequests.removeAll { $0.id == id }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
     }
 
     func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
+        let generation = authGeneration
         try await repository.requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
+        guard isCurrentAuthGeneration(generation) else { return }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
     }
 
     func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
+        let generation = authGeneration
         try await repository.rejectOrganizationRequest(id: id, reason: reason, reviewerID: reviewerID)
+        guard isCurrentAuthGeneration(generation) else { return }
         organizationRequests.removeAll { $0.id == id }
         AppContentChangeBus.postOrganizationsChanged(organizationID: id)
+    }
+
+    private func rollbackLike(
+        organizationID: String,
+        optimisticState: LikeState,
+        optimisticCount: Int,
+        previousState: LikeState,
+        previousCount: Int,
+        requestFeedRevision: UInt
+    ) {
+        guard feedRevision == requestFeedRevision,
+              let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }),
+              organizations[currentIndex].likeState == optimisticState,
+              organizations[currentIndex].likeCount == optimisticCount else { return }
+        organizations[currentIndex].likeState = previousState
+        organizations[currentIndex].likeCount = max(0, previousCount)
+        contentVersion &+= 1
+    }
+
+    private func rollbackSubscription(
+        organizationID: String,
+        optimisticState: Bool,
+        optimisticCount: Int,
+        previousState: Bool,
+        previousCount: Int,
+        requestFeedRevision: UInt
+    ) {
+        guard feedRevision == requestFeedRevision,
+              let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }),
+              organizations[currentIndex].isSubscribed == optimisticState,
+              organizations[currentIndex].subscriberCount == optimisticCount else { return }
+        organizations[currentIndex].isSubscribed = previousState
+        organizations[currentIndex].subscriberCount = max(0, previousCount)
+        contentVersion &+= 1
+    }
+
+    private func rollbackBookmark(
+        organizationID: String,
+        optimisticState: Bool,
+        previousState: Bool,
+        requestFeedRevision: UInt
+    ) {
+        guard feedRevision == requestFeedRevision,
+              let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }),
+              organizations[currentIndex].isBookmarked == optimisticState else { return }
+        organizations[currentIndex].isBookmarked = previousState
+        contentVersion &+= 1
+    }
+
+    private func isCurrentAuthGeneration(_ generation: UInt) -> Bool {
+        generation == authGeneration
     }
 
 }

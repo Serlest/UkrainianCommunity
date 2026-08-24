@@ -12,12 +12,14 @@ final class AccountStatusMonitorService: ObservableObject {
     private var listener: ListenerRegistration?
     private var observedUserID: String?
     private var presentedNoticeID: String?
+    private var acknowledgementGeneration = 0
 
     func configure(userID: String?, authState: AuthState) {
         guard observedUserID != userID else { return }
 
         listener?.remove()
         listener = nil
+        invalidateAcknowledgement()
         observedUserID = userID
         activeNotice = nil
         acknowledgementError = nil
@@ -32,23 +34,33 @@ final class AccountStatusMonitorService: ObservableObject {
             }
 
             Task { @MainActor in
-                self?.handle(snapshot: snapshot, authState: authState)
+                self?.handle(snapshot: snapshot, expectedUserID: userID, authState: authState)
             }
         }
     }
 
     func acknowledgeActiveNotice() async {
-        guard let notice = activeNotice else { return }
+        guard let notice = activeNotice,
+              observedUserID == notice.userID else { return }
+
+        acknowledgementGeneration &+= 1
+        let generation = acknowledgementGeneration
         isAcknowledging = true
         acknowledgementError = nil
-        defer { isAcknowledging = false }
+        defer {
+            if acknowledgementGeneration == generation {
+                isAcknowledging = false
+            }
+        }
 
         do {
             try await db.collection("users").document(notice.userID).updateData([
                 "statusAcknowledgedAt": FieldValue.serverTimestamp()
             ])
+            guard isCurrentAcknowledgement(generation: generation, notice: notice) else { return }
             activeNotice = nil
         } catch {
+            guard isCurrentAcknowledgement(generation: generation, notice: notice) else { return }
             acknowledgementError = AppStrings.AccountStatusAlert.acknowledgementFailed
         }
     }
@@ -57,24 +69,36 @@ final class AccountStatusMonitorService: ObservableObject {
         listener?.remove()
     }
 
-    private func handle(snapshot: DocumentSnapshot?, authState: AuthState?) {
+    private func handle(
+        snapshot: DocumentSnapshot?,
+        expectedUserID: String,
+        authState: AuthState?
+    ) {
         guard
+            observedUserID == expectedUserID,
             let snapshot,
             snapshot.exists,
-            let user = makeUser(from: snapshot)
+            let authState,
+            let currentUser = authState.user,
+            currentUser.id == expectedUserID,
+            let user = makeUser(from: snapshot, preserving: currentUser)
         else {
             return
         }
 
-        authState?.user = user
+        guard authState.updateAuthenticatedUser(user) else { return }
 
         guard let notice = AccountStatusNotice(user: user) else {
+            if activeNotice != nil || isAcknowledging {
+                invalidateAcknowledgement()
+            }
             activeNotice = nil
             presentedNoticeID = nil
             return
         }
 
         guard notice.id != presentedNoticeID else { return }
+        invalidateAcknowledgement()
         presentedNoticeID = notice.id
         acknowledgementError = nil
         activeNotice = notice
@@ -98,42 +122,91 @@ final class AccountStatusMonitorService: ObservableObject {
         }
     }
 
-    private func makeUser(from document: DocumentSnapshot) -> AppUser? {
+    private func makeUser(from document: DocumentSnapshot, preserving currentUser: AppUser) -> AppUser? {
         guard let data = document.data() else { return nil }
-        let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
-        let globalRole = (data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user
-        let isBlocked = data["isBlocked"] as? Bool ?? false
-        let blockState = UserBlockState(rawValue: data["blockState"] as? String ?? "") ?? (isBlocked ? .suspendedUntil : .active)
+        let snapshotUserID = data["id"] as? String ?? document.documentID
+        guard snapshotUserID == currentUser.id,
+              document.documentID == currentUser.id else { return nil }
 
-        return AppUser(
-            id: data["id"] as? String ?? document.documentID,
-            fullName: data["fullName"] as? String ?? "",
-            displayName: data["displayName"] as? String ?? data["fullName"] as? String ?? "",
-            city: data["city"] as? String ?? "",
-            email: data["email"] as? String ?? "",
-            avatarURL: (data["avatarURL"] as? String).flatMap(URL.init(string:)),
-            bio: data["bio"] as? String ?? "",
-            telegramUsername: data["telegramUsername"] as? String,
-            role: legacyRole,
-            globalRole: globalRole,
-            moderatorSections: (data["moderatorSections"] as? [String] ?? []).compactMap(AppSection.init(rawValue:)),
+        let legacyBlockState = (data["isBlocked"] as? Bool).map {
+            $0 ? UserBlockState.suspendedUntil : .active
+        }
+        let blockState = (data["blockState"] as? String).flatMap(UserBlockState.init(rawValue:))
+            ?? legacyBlockState
+            ?? currentUser.blockState
+        let update = AccountStatusSnapshotUpdate(
             blockState: blockState,
-            accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:)) ?? (blockState.isRestricted ? .suspendedUntil : .active),
+            accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:))
+                ?? (blockState.isRestricted ? .suspendedUntil : .active),
             banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),
             warningCount: data["warningCount"] as? Int ?? 0,
             statusReason: data["statusReason"] as? String,
             statusMessage: data["statusMessage"] as? String,
             statusUpdatedAt: (data["statusUpdatedAt"] as? Timestamp)?.dateValue(),
             statusUpdatedBy: data["statusUpdatedBy"] as? String,
-            statusAcknowledgedAt: (data["statusAcknowledgedAt"] as? Timestamp)?.dateValue(),
-            communityMemberships: [],
-            selectedFederalState: (data["selectedFederalState"] as? String).flatMap(AustrianFederalState.init(rawValue:)),
-            acceptedTermsAt: (data["acceptedTermsAt"] as? Timestamp)?.dateValue(),
-            acceptedPrivacyAt: (data["acceptedPrivacyAt"] as? Timestamp)?.dateValue(),
-            termsVersion: data["termsVersion"] as? String,
-            privacyVersion: data["privacyVersion"] as? String,
-            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast,
-            updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? .distantPast
+            statusAcknowledgedAt: (data["statusAcknowledgedAt"] as? Timestamp)?.dateValue()
+        )
+        return update.applying(to: currentUser)
+    }
+
+    private func isCurrentAcknowledgement(
+        generation: Int,
+        notice: AccountStatusNotice
+    ) -> Bool {
+        acknowledgementGeneration == generation
+            && observedUserID == notice.userID
+            && activeNotice?.id == notice.id
+    }
+
+    private func invalidateAcknowledgement() {
+        acknowledgementGeneration &+= 1
+        isAcknowledging = false
+    }
+}
+
+struct AccountStatusSnapshotUpdate {
+    let blockState: UserBlockState
+    let accountStatus: AccountStatus
+    let banExpiresAt: Date?
+    let warningCount: Int
+    let statusReason: String?
+    let statusMessage: String?
+    let statusUpdatedAt: Date?
+    let statusUpdatedBy: String?
+    let statusAcknowledgedAt: Date?
+
+    func applying(to user: AppUser) -> AppUser {
+        AppUser(
+            id: user.id,
+            fullName: user.fullName,
+            displayName: user.displayName,
+            city: user.city,
+            email: user.email,
+            avatarURL: user.avatarURL,
+            bio: user.bio,
+            telegramUsername: user.telegramUsername,
+            role: user.role,
+            globalRole: user.globalRole,
+            moderatorSections: user.moderatorSections,
+            blockState: blockState,
+            accountStatus: accountStatus,
+            banExpiresAt: banExpiresAt,
+            warningCount: warningCount,
+            statusReason: statusReason,
+            statusMessage: statusMessage,
+            statusUpdatedAt: statusUpdatedAt,
+            statusUpdatedBy: statusUpdatedBy,
+            statusAcknowledgedAt: statusAcknowledgedAt,
+            communityMemberships: user.communityMemberships,
+            selectedFederalState: user.selectedFederalState,
+            acceptedTermsAt: user.acceptedTermsAt,
+            acceptedPrivacyAt: user.acceptedPrivacyAt,
+            acceptedTermsVersion: user.acceptedTermsVersion,
+            acceptedPrivacyVersion: user.acceptedPrivacyVersion,
+            termsVersion: user.termsVersion,
+            privacyVersion: user.privacyVersion,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         )
     }
 }

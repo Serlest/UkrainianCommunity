@@ -8,9 +8,14 @@ struct FirestoreEventRepository: EventRepository {
     private let registrationsCollection = Firestore.firestore().collection("registrations")
     private let publicProfilesCollection = Firestore.firestore().collection("publicProfiles")
     private let sessionDataCache: SessionDataCache
+    private let registrationMutator: EventRegistrationMutating
 
-    init(sessionDataCache: SessionDataCache = .shared) {
+    init(
+        sessionDataCache: SessionDataCache = .shared,
+        registrationMutator: EventRegistrationMutating = CloudFunctionsClient.shared
+    ) {
         self.sessionDataCache = sessionDataCache
+        self.registrationMutator = registrationMutator
     }
 
     func fetchEvents() async throws -> [Event] {
@@ -766,77 +771,38 @@ struct FirestoreEventRepository: EventRepository {
         }
     }
 
-    func registerForEvent(id: String) async throws {
+    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult {
         guard let uid = Auth.auth().currentUser?.uid else {
-            throw AppError.permissionDenied
+            throw EventRegistrationMutationError.permissionDenied
         }
 
-        let eventReference = collection.document(id)
-        let registrationReference = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid))
-        let registrationData: [String: Any] = [
-            "id": registrationReference.documentID,
-            "eventId": id,
-            "userId": uid,
-            "registeredAt": FieldValue.serverTimestamp(),
-            "createdAt": FieldValue.serverTimestamp()
-        ]
-
-        do {
-            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
-            do {
-                let eventSnapshot = try transaction.getDocument(eventReference)
-                guard eventSnapshot.exists else {
-                    errorPointer?.pointee = AppError.notFound.asNSError
-                    return nil
-                }
-
-                // Do not pre-read the registration document here. Firestore rules allow create
-                // and deny update, so the deterministic document id acts as create-only protection.
-                transaction.setData(registrationData, forDocument: registrationReference)
-            } catch {
-                errorPointer?.pointee = error as NSError
-            }
-
-            return nil
-            }
-        } catch {
-            throw error
+        let result = try await registrationMutator.registerForEvent(id: id)
+        guard result.eventID == id, result.registeredCount >= 0 else {
+            throw EventRegistrationMutationError.unavailable
         }
-        await sessionDataCache.updateRegisteredEventID(id, isRegistered: true, for: uid)
+        await sessionDataCache.updateRegisteredEventID(
+            id,
+            isRegistered: result.registrationState == .registered,
+            for: uid
+        )
+        return result
     }
 
-    func cancelEventRegistration(id: String) async throws {
+    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult {
         guard let uid = Auth.auth().currentUser?.uid else {
-            throw AppError.permissionDenied
+            throw EventRegistrationMutationError.permissionDenied
         }
 
-        let eventReference = collection.document(id)
-        let registrationReference = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid))
-        do {
-            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
-            do {
-                let eventSnapshot = try transaction.getDocument(eventReference)
-                guard eventSnapshot.exists else {
-                    errorPointer?.pointee = AppError.notFound.asNSError
-                    return nil
-                }
-
-                let registrationSnapshot = try transaction.getDocument(registrationReference)
-                guard registrationSnapshot.exists else {
-                    return nil
-                }
-
-                transaction.deleteDocument(registrationReference)
-            } catch {
-                errorPointer?.pointee = error as NSError
-            }
-
-            return nil
-            }
-        } catch {
-            throw error
+        let result = try await registrationMutator.cancelEventRegistration(id: id)
+        guard result.eventID == id, result.registeredCount >= 0 else {
+            throw EventRegistrationMutationError.unavailable
         }
-        await sessionDataCache.updateRegisteredEventID(id, isRegistered: false, for: uid)
+        await sessionDataCache.updateRegisteredEventID(
+            id,
+            isRegistered: result.registrationState == .registered,
+            for: uid
+        )
+        return result
     }
 
     func bookmarkEvent(id: String) async throws {

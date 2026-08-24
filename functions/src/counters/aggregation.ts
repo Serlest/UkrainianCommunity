@@ -96,13 +96,40 @@ async function updateLikeCounter(
 
 async function updateRegistrationCounter(
   data: Record<string, unknown> | undefined,
-  delta: CounterDelta
+  delta: CounterDelta,
+  registrationId?: string
 ): Promise<void> {
   if (data === undefined || !(await counterAggregationEnabled())) {
     return;
   }
 
+  if (delta > 0 && data.counterManagedAtomically === true) {
+    return;
+  }
+
+  if (delta < 0) {
+    const operationId = registrationCounterDedupeOperationId(data, registrationId);
+    if (operationId !== undefined) {
+      const operation = await db
+        .collection("eventRegistrationCounterOperations")
+        .doc(operationId)
+        .get();
+      if (operation.data()?.operation === "unregister") {
+        return;
+      }
+    }
+  }
+
   await updateExistingCounter("events", stringField(data, "eventId"), "registeredCount", delta);
+}
+
+export function registrationCounterDedupeOperationId(
+  data: Record<string, unknown> | undefined,
+  registrationId?: string
+): string | undefined {
+  return data === undefined
+    ? registrationId
+    : stringField(data, "counterOperationId") ?? registrationId;
 }
 
 async function updateCounterFromParam(
@@ -135,14 +162,14 @@ export const aggregateLikeCounterOnDelete = onDocumentDeleted(
 export const aggregateRegistrationCounterOnCreate = onDocumentCreated(
   { ...triggerOptions, document: "registrations/{registrationId}" },
   async (event) => {
-    await updateRegistrationCounter(event.data?.data(), 1);
+    await updateRegistrationCounter(event.data?.data(), 1, event.params.registrationId);
   }
 );
 
 export const aggregateRegistrationCounterOnDelete = onDocumentDeleted(
   { ...triggerOptions, document: "registrations/{registrationId}" },
   async (event) => {
-    await updateRegistrationCounter(event.data?.data(), -1);
+    await updateRegistrationCounter(event.data?.data(), -1, event.params.registrationId);
   }
 );
 

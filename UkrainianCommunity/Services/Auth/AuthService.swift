@@ -33,82 +33,242 @@ enum RegistrationError: Error {
     case profileUnknown
 }
 
+enum AuthSessionTransitionError: Error {
+    case backendSessionChanged
+    case signOutFailed
+}
+
+protocol AuthSessionUserProviding: AnyObject {
+    var uid: String { get }
+    var email: String? { get }
+    var isAnonymous: Bool { get }
+    var isEmailVerified: Bool { get }
+
+    func reload() async throws
+    func refreshIDToken() async throws
+    func sendVerificationEmail() async throws
+    func updateDisplayName(_ displayName: String) async throws
+    func deleteAccount() async throws
+}
+
+protocol AuthBackendProviding: AnyObject {
+    var currentSessionUser: (any AuthSessionUserProviding)? { get }
+
+    func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding
+    func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding
+    func signInAnonymously() async throws -> any AuthSessionUserProviding
+    func sendPasswordReset(email: String) async throws
+    func signOut() throws
+}
+
+protocol AuthProfileProviding: AnyObject {
+    func createRegisteredUserDocument(for uid: String, draft: RegistrationProfileDraft) async throws
+    func fetchExistingUserProfile(uid: String) async throws -> AppUser
+}
+
+@MainActor
+protocol AuthNotificationRegistrationProviding: AnyObject {
+    func prepareForSignOut() async throws
+    func completeSignOut()
+    func resumeAfterFailedSignOut() async
+}
+
+extension User: AuthSessionUserProviding {
+    func refreshIDToken() async throws {
+        _ = try await getIDTokenResult(forcingRefresh: true)
+    }
+
+    func sendVerificationEmail() async throws {
+        try await sendEmailVerification()
+    }
+
+    func updateDisplayName(_ displayName: String) async throws {
+        let request = createProfileChangeRequest()
+        request.displayName = displayName
+        try await request.commitChanges()
+    }
+
+    func deleteAccount() async throws {
+        try await delete()
+    }
+}
+
+extension UserProfileService: AuthProfileProviding {}
+extension RemoteNotificationRegistrationService: AuthNotificationRegistrationProviding {}
+
+private final class FirebaseAuthBackend: AuthBackendProviding {
+    var currentSessionUser: (any AuthSessionUserProviding)? {
+        Auth.auth().currentUser
+    }
+
+    func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding {
+        (try await Auth.auth().signIn(withEmail: email, password: password)).user
+    }
+
+    func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding {
+        (try await Auth.auth().createUser(withEmail: email, password: password)).user
+    }
+
+    func signInAnonymously() async throws -> any AuthSessionUserProviding {
+        (try await Auth.auth().signInAnonymously()).user
+    }
+
+    func sendPasswordReset(email: String) async throws {
+        try await Auth.auth().sendPasswordReset(withEmail: email)
+    }
+
+    func signOut() throws {
+        try Auth.auth().signOut()
+    }
+}
+
 final class AuthService {
-    static let shared = AuthService()
+    static let shared = AuthService(
+        authState: AuthState(),
+        backend: FirebaseAuthBackend(),
+        profileProvider: UserProfileService.shared
+    )
     static let currentTermsVersion = "2026.1"
     static let currentPrivacyVersion = "2026.1"
 
-    let authState = AuthState()
+    let authState: AuthState
+
+    private let backend: any AuthBackendProviding
+    private let profileProvider: any AuthProfileProviding
+    private let notificationRegistration: (any AuthNotificationRegistrationProviding)?
+    @MainActor private var transitionGeneration: UInt = 0
+    // Firebase user and session calls cannot be cancelled once started.
+    // Serializing them lets a newer transition replace any stale backend result
+    // before it publishes app state.
+    @MainActor private var isBackendSessionAccessInFlight = false
+    @MainActor private var backendSessionAccessWaiters: [CheckedContinuation<Void, Never>] = []
 
     var currentUser: User? { Auth.auth().currentUser }
     var isAuthenticated: Bool { authState.isAuthenticated }
 
+    init(
+        authState: AuthState,
+        backend: any AuthBackendProviding,
+        profileProvider: any AuthProfileProviding,
+        notificationRegistration: (any AuthNotificationRegistrationProviding)? = nil
+    ) {
+        self.authState = authState
+        self.backend = backend
+        self.profileProvider = profileProvider
+        self.notificationRegistration = notificationRegistration
+    }
+
     @MainActor
     func restoreSession() async {
+        let transition = beginTransition()
+        await restoreSession(transition: transition)
+    }
+
+    @MainActor
+    private func restoreSession(transition: UInt) async {
+        guard isCurrentTransition(transition) else { return }
         authState.beginRestoringSession()
 
-        guard let currentUser else {
-            authState.setGuestSession()
+        let currentSessionUser: (any AuthSessionUserProviding)?
+        do {
+            currentSessionUser = try await synchronizedCurrentSessionUser(transition: transition)
+        } catch {
             return
         }
 
-        guard !currentUser.isAnonymous else {
-            do {
-                try Auth.auth().signOut()
-            } catch {
-                print("Anonymous sign-out error: \(error.localizedDescription)")
-            }
-
+        guard let sessionUser = currentSessionUser else {
             authState.setGuestSession()
+            authState.dismissAuthFlow()
+            return
+        }
+
+        guard !sessionUser.isAnonymous else {
+            do {
+                try await performSynchronizedBackendSessionOperation(transition: transition) {
+                    try backend.signOut()
+                }
+                authState.setGuestSession()
+                authState.dismissAuthFlow()
+            } catch {
+                guard isCurrentTransition(transition) else { return }
+                print("Anonymous sign-out error: \(error.localizedDescription)")
+                authState.setSessionUnavailable(
+                    userID: sessionUser.uid,
+                    email: sessionUser.email,
+                    errorMessage: AppStrings.Auth.loadUserProfileFailed
+                )
+                authState.presentAuthFlow(.sessionRecovery)
+            }
             return
         }
 
         do {
-            let isEmailVerified = try await isCurrentUserEmailVerified()
+            let isEmailVerified = try await isCurrentUserEmailVerified(
+                sessionUser,
+                transition: transition
+            )
+            try validateCurrentBackendUser(sessionUser, transition: transition)
 
             if !isEmailVerified {
-                authState.setVerificationPendingSession(email: currentUser.email)
+                authState.setVerificationPendingSession(userID: sessionUser.uid, email: sessionUser.email)
                 authState.presentAuthFlow(.emailVerification)
                 return
             }
 
-            let user = try await loadExistingUserProfile(uid: currentUser.uid)
-            authState.user = user
-            authState.setAuthenticatedSession()
+            let user = try await loadExistingUserProfile(uid: sessionUser.uid)
+            try validateAuthenticatedProfile(
+                user,
+                sessionUser: sessionUser,
+                transition: transition
+            )
+            authState.setAuthenticatedSession(user: user)
+            authState.dismissAuthFlow()
         } catch {
-            if isMissingProfileError(error) {
-                do {
-                    try Auth.auth().signOut()
-                } catch {
-                    print("Missing profile sign-out error: \(error.localizedDescription)")
-                }
+            guard isCurrentTransition(transition) else { return }
 
-                authState.setGuestSession()
+            if isMissingProfileError(error) {
+                let didRollback = await rollbackSessionToGuest(
+                    sessionUser,
+                    fallbackMessage: AppStrings.Auth.loadUserProfileFailed,
+                    transition: transition
+                )
+                if didRollback {
+                    authState.dismissAuthFlow()
+                }
                 return
             }
 
-            authState.setGuestSession()
-            if let verificationError = error as? AuthVerificationError {
-                authState.errorMessage = mapVerificationFlowMessage(for: verificationError)
-            } else {
-                authState.errorMessage = error.localizedDescription
-            }
+            publishUnavailableSession(sessionUser, error: error, transition: transition)
         }
     }
 
     @MainActor
     func signInAnonymously() async {
-        if let currentUser {
-            if currentUser.isAnonymous {
+        let transition = beginTransition()
+
+        let currentSessionUser: (any AuthSessionUserProviding)?
+        do {
+            currentSessionUser = try await synchronizedCurrentSessionUser(transition: transition)
+        } catch {
+            return
+        }
+
+        if let sessionUser = currentSessionUser {
+            if sessionUser.isAnonymous {
                 authState.setGuestSession()
+            } else {
+                await restoreSession(transition: transition)
             }
             return
         }
 
         do {
-            _ = try await Auth.auth().signInAnonymously()
+            _ = try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await backend.signInAnonymously()
+            }
             authState.setGuestSession()
         } catch {
+            guard isCurrentTransition(transition) else { return }
             print("Auth error: \(error.localizedDescription)")
         }
     }
@@ -116,16 +276,29 @@ final class AuthService {
     @MainActor
     @discardableResult
     func signOut() async -> Bool {
-        let notificationRegistration = RemoteNotificationRegistrationService.shared
+        let transition = beginTransition()
+        let notificationRegistration = resolvedNotificationRegistration
 
         do {
+            _ = try await synchronizedCurrentSessionUser(transition: transition)
             try await notificationRegistration.prepareForSignOut()
-            try Auth.auth().signOut()
+            guard isCurrentTransition(transition) else {
+                await notificationRegistration.resumeAfterFailedSignOut()
+                return false
+            }
+
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try backend.signOut()
+            }
             notificationRegistration.completeSignOut()
             authState.setGuestSession()
+            authState.dismissAuthFlow()
             return true
         } catch {
+            guard isCurrentTransition(transition) else { return false }
             await notificationRegistration.resumeAfterFailedSignOut()
+            guard isCurrentTransition(transition) else { return false }
+            reconcileAfterFailedSignOut(error, transition: transition)
             print("Sign out error: \(error.localizedDescription)")
             return false
         }
@@ -133,15 +306,22 @@ final class AuthService {
 
     @MainActor
     @discardableResult
-    func completeAccountDeletionSignOut() -> Bool {
-        let notificationRegistration = RemoteNotificationRegistrationService.shared
-        notificationRegistration.completeSignOut()
+    func completeAccountDeletionSignOut() async -> Bool {
+        let transition = beginTransition()
+        let notificationRegistration = resolvedNotificationRegistration
 
         do {
-            try Auth.auth().signOut()
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try backend.signOut()
+            }
+            notificationRegistration.completeSignOut()
             authState.setGuestSession()
+            authState.dismissAuthFlow()
             return true
         } catch {
+            guard isCurrentTransition(transition) else { return false }
+            notificationRegistration.completeSignOut()
+            reconcileAfterFailedSignOut(error, transition: transition)
             print("Post-deletion sign out error: \(error.localizedDescription)")
             return false
         }
@@ -149,30 +329,73 @@ final class AuthService {
 
     @MainActor
     func signIn(email: String, password: String) async throws -> AppUser {
-        let result = try await Auth.auth().signIn(withEmail: email, password: password)
-        let isEmailVerified = try await isCurrentUserEmailVerified(result.user)
+        let transition = beginTransition()
+        try await prepareForInteractiveAuthentication(transition: transition)
 
-        guard isEmailVerified else {
-            authState.setVerificationPendingSession(email: result.user.email)
-            authState.presentAuthFlow(.emailVerification)
-            throw AuthVerificationError.emailNotVerified
+        let sessionUser: any AuthSessionUserProviding
+        do {
+            sessionUser = try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await backend.signIn(email: email, password: password)
+            }
+            authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email)
+        } catch {
+            guard isCurrentTransition(transition) else { throw error }
+            reconcileAfterFailedAuthenticationStart(error, transition: transition)
+            throw error
         }
 
-        let user = try await loadExistingUserProfile(uid: result.user.uid)
-        authState.user = user
-        authState.setAuthenticatedSession()
-        authState.dismissAuthFlow()
-        return user
+        do {
+            let isEmailVerified = try await isCurrentUserEmailVerified(
+                sessionUser,
+                transition: transition
+            )
+            try validateCurrentBackendUser(sessionUser, transition: transition)
+
+            guard isEmailVerified else {
+                authState.setVerificationPendingSession(userID: sessionUser.uid, email: sessionUser.email)
+                authState.presentAuthFlow(.emailVerification)
+                throw AuthVerificationError.emailNotVerified
+            }
+
+            let user = try await loadExistingUserProfile(uid: sessionUser.uid)
+            try validateAuthenticatedProfile(
+                user,
+                sessionUser: sessionUser,
+                transition: transition
+            )
+            authState.setAuthenticatedSession(user: user)
+            authState.dismissAuthFlow()
+            return user
+        } catch AuthVerificationError.emailNotVerified {
+            throw AuthVerificationError.emailNotVerified
+        } catch {
+            guard isCurrentTransition(transition) else { throw error }
+            _ = await rollbackSessionToGuest(
+                sessionUser,
+                fallbackMessage: readableSessionFailure(error),
+                transition: transition
+            )
+            throw error
+        }
     }
 
     @MainActor
-    func register(draft: RegistrationProfileDraft, password: String) async throws -> AppUser {
-        let firebaseUser: User
+    func register(draft: RegistrationProfileDraft, password: String) async throws {
+        let transition = beginTransition()
+        try await prepareForInteractiveAuthentication(transition: transition)
+
+        let sessionUser: any AuthSessionUserProviding
 
         do {
-            let result = try await Auth.auth().createUser(withEmail: draft.email, password: password)
-            firebaseUser = result.user
+            sessionUser = try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await backend.createUser(email: draft.email, password: password)
+            }
+            authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email ?? draft.email)
         } catch {
+            guard isCurrentTransition(transition) else {
+                throw mapAuthRegistrationError(error)
+            }
+            reconcileAfterFailedAuthenticationStart(error, transition: transition)
             #if DEBUG
             print("Registration auth creation failed: \(error.localizedDescription)")
             #endif
@@ -180,57 +403,108 @@ final class AuthService {
         }
 
         do {
-            let request = firebaseUser.createProfileChangeRequest()
-            request.displayName = draft.displayName
-            try await request.commitChanges()
-
-            try await UserProfileService.shared.createRegisteredUserDocument(for: firebaseUser.uid, draft: draft)
-
-            do {
-                try await sendEmailVerification(to: firebaseUser)
-                authState.errorMessage = nil
-            } catch {
-                authState.errorMessage = mapVerificationFlowMessage(for: error)
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await sessionUser.updateDisplayName(draft.displayName)
             }
-
-            let user = try await loadExistingUserProfile(uid: firebaseUser.uid)
-            authState.setVerificationPendingSession(email: user.email)
-            authState.presentAuthFlow(.emailVerification)
-            return user
+            try validateCurrentBackendUser(sessionUser, transition: transition)
+            try await profileProvider.createRegisteredUserDocument(for: sessionUser.uid, draft: draft)
+            try validateCurrentBackendUser(sessionUser, transition: transition)
         } catch {
             let mappedError = mapProfileCreationError(error)
+            guard isCurrentTransition(transition) else { throw mappedError }
             #if DEBUG
             print("Registration profile creation failed: \(error.localizedDescription)")
             #endif
 
             do {
-                try await firebaseUser.delete()
+                try await performSynchronizedBackendSessionOperation(transition: transition) {
+                    try await sessionUser.deleteAccount()
+                }
             } catch {
                 #if DEBUG
                 print("Registration cleanup error: \(error.localizedDescription)")
                 #endif
             }
 
-            try? Auth.auth().signOut()
-            authState.setGuestSession()
+            guard isCurrentTransition(transition) else { throw mappedError }
+            _ = await rollbackSessionToGuest(
+                sessionUser,
+                fallbackMessage: readableSessionFailure(error),
+                transition: transition
+            )
             throw mappedError
+        }
+
+        try ensureCurrentTransition(transition)
+        authState.setVerificationPendingSession(
+            userID: sessionUser.uid,
+            email: sessionUser.email ?? draft.email
+        )
+        authState.presentAuthFlow(.emailVerification)
+
+        do {
+            try await sendEmailVerification(to: sessionUser, transition: transition)
+            guard isCurrentTransition(transition) else { return }
+            guard backend.currentSessionUser?.uid == sessionUser.uid else {
+                publishUnavailableSession(
+                    sessionUser,
+                    error: AuthSessionTransitionError.backendSessionChanged,
+                    transition: transition
+                )
+                return
+            }
+            guard authState.isVerificationPending,
+                  authState.pendingSessionUserID == sessionUser.uid else {
+                return
+            }
+            authState.errorMessage = nil
+        } catch {
+            guard isCurrentTransition(transition) else { return }
+            guard backend.currentSessionUser?.uid == sessionUser.uid else {
+                publishUnavailableSession(sessionUser, error: error, transition: transition)
+                return
+            }
+            guard authState.isVerificationPending,
+                  authState.pendingSessionUserID == sessionUser.uid else {
+                return
+            }
+            authState.errorMessage = mapVerificationFlowMessage(for: error)
         }
     }
 
     func sendPasswordReset(email: String) async throws {
-        try await Auth.auth().sendPasswordReset(withEmail: email)
+        try await backend.sendPasswordReset(email: email)
     }
 
-    func sendEmailVerification(to user: User? = nil) async throws {
-        let currentUser = user ?? self.currentUser
-        guard let currentUser else { throw AuthVerificationError.noCurrentUser }
+    @MainActor
+    func sendEmailVerification() async throws {
+        let transition = transitionGeneration
+        let currentSessionUser = try await synchronizedCurrentSessionUser(transition: transition)
+        guard let sessionUser = currentSessionUser else {
+            throw AuthVerificationError.noCurrentUser
+        }
+
+        try await sendEmailVerification(to: sessionUser, transition: transition)
+    }
+
+    @MainActor
+    private func sendEmailVerification(
+        to sessionUser: any AuthSessionUserProviding,
+        transition: UInt
+    ) async throws {
 
         do {
-            if try await isCurrentUserEmailVerifiedForResend(currentUser) {
+            if try await isCurrentUserEmailVerifiedForResend(
+                sessionUser,
+                transition: transition
+            ) {
                 throw AuthVerificationError.alreadyVerified
             }
 
-            try await currentUser.sendEmailVerification()
+            try ensureCurrentTransition(transition)
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await sessionUser.sendVerificationEmail()
+            }
         } catch let error as AuthVerificationError {
             throw error
         } catch {
@@ -240,25 +514,55 @@ final class AuthService {
 
     @MainActor
     func verifyEmailAndAuthenticate() async throws -> AppUser {
-        guard let currentUser = currentUser else {
+        let transition = beginTransition()
+        let currentSessionUser = try await synchronizedCurrentSessionUser(transition: transition)
+        guard let sessionUser = currentSessionUser else {
+            authState.setGuestSession()
             throw AuthVerificationError.noCurrentUser
         }
 
+        var verifiedEmail = false
         do {
-            let isEmailVerified = try await isCurrentUserEmailVerified(currentUser)
+            let isEmailVerified = try await isCurrentUserEmailVerified(
+                sessionUser,
+                transition: transition
+            )
+            try validateCurrentBackendUser(sessionUser, transition: transition)
 
             guard isEmailVerified else {
                 throw AuthVerificationError.emailNotVerified
             }
+            verifiedEmail = true
 
-            let user = try await loadExistingUserProfile(uid: currentUser.uid)
-            authState.user = user
-            authState.setAuthenticatedSession()
+            let user = try await loadExistingUserProfile(uid: sessionUser.uid)
+            try validateAuthenticatedProfile(
+                user,
+                sessionUser: sessionUser,
+                transition: transition
+            )
+            authState.setAuthenticatedSession(user: user)
             authState.dismissAuthFlow()
             return user
         } catch {
+            guard isCurrentTransition(transition) else { throw error }
+
             if isMissingProfileError(error) {
+                _ = await rollbackSessionToGuest(
+                    sessionUser,
+                    fallbackMessage: AppStrings.Auth.loadUserProfileFailed,
+                    transition: transition
+                )
                 throw AuthVerificationError.checkFailed
+            }
+
+            if verifiedEmail {
+                publishUnavailableSession(sessionUser, error: error, transition: transition)
+            } else if backend.currentSessionUser?.uid != sessionUser.uid {
+                publishUnavailableSession(sessionUser, error: error, transition: transition)
+            } else {
+                authState.setVerificationPendingSession(userID: sessionUser.uid, email: sessionUser.email)
+                authState.errorMessage = mapVerificationFlowMessage(for: error)
+                authState.presentAuthFlow(.emailVerification)
             }
 
             throw error
@@ -266,19 +570,26 @@ final class AuthService {
     }
 
     private func loadExistingUserProfile(uid: String) async throws -> AppUser {
-        try await UserProfileService.shared.fetchExistingUserProfile(uid: uid)
+        try await profileProvider.fetchExistingUserProfile(uid: uid)
     }
 
     @MainActor
-    private func isCurrentUserEmailVerified(_ user: User) async throws -> Bool {
+    private func isCurrentUserEmailVerified(
+        _ user: any AuthSessionUserProviding,
+        transition: UInt
+    ) async throws -> Bool {
         do {
-            try await user.reload()
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await user.reload()
+            }
             guard user.isEmailVerified else {
                 return false
             }
 
             do {
-                _ = try await user.getIDTokenResult(forcingRefresh: true)
+                try await performSynchronizedBackendSessionOperation(transition: transition) {
+                    try await user.refreshIDToken()
+                }
             } catch {
                 throw AuthVerificationError.checkFailed
             }
@@ -292,9 +603,14 @@ final class AuthService {
     }
 
     @MainActor
-    private func isCurrentUserEmailVerifiedForResend(_ user: User) async throws -> Bool {
+    private func isCurrentUserEmailVerifiedForResend(
+        _ user: any AuthSessionUserProviding,
+        transition: UInt
+    ) async throws -> Bool {
         do {
-            try await user.reload()
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await user.reload()
+            }
             return user.isEmailVerified
         } catch {
             throw mapAuthVerificationError(error)
@@ -302,17 +618,272 @@ final class AuthService {
     }
 
     @MainActor
-    private func isCurrentUserEmailVerified() async throws -> Bool {
-        guard let currentUser else { throw AuthVerificationError.noCurrentUser }
-        return try await isCurrentUserEmailVerified(currentUser)
+    func retryUnavailableSession() async {
+        guard authState.isSessionUnavailable else { return }
+        let transition = beginTransition()
+        await restoreSession(transition: transition)
+    }
+
+    @MainActor
+    private var resolvedNotificationRegistration: any AuthNotificationRegistrationProviding {
+        notificationRegistration ?? RemoteNotificationRegistrationService.shared
+    }
+
+    @MainActor
+    private func prepareForInteractiveAuthentication(transition: UInt) async throws {
+        try ensureCurrentTransition(transition)
+
+        let hasBackendSession = try await synchronizedCurrentSessionUser(
+            transition: transition
+        ) != nil
+        let hasPublishedBackendSession = authState.isAuthenticated
+            || authState.isVerificationPending
+            || authState.isSessionUnavailable
+            || authState.isAuthenticating
+
+        guard hasBackendSession || hasPublishedBackendSession else {
+            authState.beginAuthenticatingSession()
+            return
+        }
+
+        let notificationRegistration = resolvedNotificationRegistration
+        do {
+            try await notificationRegistration.prepareForSignOut()
+            guard isCurrentTransition(transition) else {
+                await notificationRegistration.resumeAfterFailedSignOut()
+                throw AuthSessionTransitionError.backendSessionChanged
+            }
+
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try backend.signOut()
+            }
+            notificationRegistration.completeSignOut()
+            authState.setGuestSession()
+            authState.beginAuthenticatingSession()
+        } catch {
+            guard isCurrentTransition(transition) else { throw error }
+            await notificationRegistration.resumeAfterFailedSignOut()
+            guard isCurrentTransition(transition) else { throw error }
+            reconcileAfterFailedSignOut(error, transition: transition)
+            throw AuthSessionTransitionError.signOutFailed
+        }
+    }
+
+    @MainActor
+    @discardableResult
+    private func rollbackSessionToGuest(
+        _ attemptedUser: any AuthSessionUserProviding,
+        fallbackMessage: String,
+        transition: UInt
+    ) async -> Bool {
+        guard isCurrentTransition(transition) else { return false }
+
+        guard let currentUser = backend.currentSessionUser else {
+            authState.setGuestSession()
+            return true
+        }
+
+        guard !currentUser.isAnonymous else {
+            authState.setGuestSession()
+            return true
+        }
+
+        guard currentUser.uid == attemptedUser.uid else {
+            authState.setSessionUnavailable(
+                userID: currentUser.uid,
+                email: currentUser.email,
+                errorMessage: fallbackMessage
+            )
+            authState.presentAuthFlow(.sessionRecovery)
+            return false
+        }
+
+        do {
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try backend.signOut()
+            }
+            authState.setGuestSession()
+            return true
+        } catch {
+            guard isCurrentTransition(transition) else { return false }
+            authState.setSessionUnavailable(
+                userID: currentUser.uid,
+                email: currentUser.email,
+                errorMessage: fallbackMessage
+            )
+            authState.presentAuthFlow(.sessionRecovery)
+            return false
+        }
+    }
+
+    @MainActor
+    private func publishUnavailableSession(
+        _ sessionUser: any AuthSessionUserProviding,
+        error: Error,
+        transition: UInt
+    ) {
+        guard isCurrentTransition(transition) else { return }
+
+        guard let currentUser = backend.currentSessionUser, !currentUser.isAnonymous else {
+            authState.setGuestSession()
+            authState.dismissAuthFlow()
+            return
+        }
+
+        let userToPublish = currentUser.uid == sessionUser.uid ? sessionUser : currentUser
+        authState.setSessionUnavailable(
+            userID: userToPublish.uid,
+            email: userToPublish.email,
+            errorMessage: readableSessionFailure(error)
+        )
+        authState.presentAuthFlow(.sessionRecovery)
+    }
+
+    @MainActor
+    private func reconcileAfterFailedAuthenticationStart(_ error: Error, transition: UInt) {
+        guard isCurrentTransition(transition) else { return }
+
+        guard let currentUser = backend.currentSessionUser, !currentUser.isAnonymous else {
+            authState.setGuestSession()
+            return
+        }
+
+        authState.setSessionUnavailable(
+            userID: currentUser.uid,
+            email: currentUser.email,
+            errorMessage: readableSessionFailure(error)
+        )
+        authState.presentAuthFlow(.sessionRecovery)
+    }
+
+    @MainActor
+    private func reconcileAfterFailedSignOut(_ error: Error, transition: UInt) {
+        guard isCurrentTransition(transition) else { return }
+
+        guard let currentUser = backend.currentSessionUser, !currentUser.isAnonymous else {
+            authState.setGuestSession()
+            authState.dismissAuthFlow()
+            return
+        }
+
+        let stateAlreadyMatchesBackend = (
+            authState.isAuthenticated && authState.user?.id == currentUser.uid
+        ) || (
+            (authState.isVerificationPending || authState.isSessionUnavailable)
+                && authState.pendingSessionUserID == currentUser.uid
+        )
+
+        guard !stateAlreadyMatchesBackend else { return }
+
+        authState.setSessionUnavailable(
+            userID: currentUser.uid,
+            email: currentUser.email,
+            errorMessage: readableSessionFailure(error)
+        )
+        authState.presentAuthFlow(.sessionRecovery)
+    }
+
+    @MainActor
+    private func validateCurrentBackendUser(
+        _ expectedUser: any AuthSessionUserProviding,
+        transition: UInt
+    ) throws {
+        try ensureCurrentTransition(transition)
+        guard backend.currentSessionUser?.uid == expectedUser.uid else {
+            throw AuthSessionTransitionError.backendSessionChanged
+        }
+    }
+
+    @MainActor
+    private func validateAuthenticatedProfile(
+        _ user: AppUser,
+        sessionUser: any AuthSessionUserProviding,
+        transition: UInt
+    ) throws {
+        try validateCurrentBackendUser(sessionUser, transition: transition)
+        guard user.id == sessionUser.uid else {
+            throw AuthSessionTransitionError.backendSessionChanged
+        }
+    }
+
+    @MainActor
+    private func synchronizedCurrentSessionUser(
+        transition: UInt
+    ) async throws -> (any AuthSessionUserProviding)? {
+        try await performSynchronizedBackendSessionOperation(transition: transition) {
+            backend.currentSessionUser
+        }
+    }
+
+    @MainActor
+    private func performSynchronizedBackendSessionOperation<Result>(
+        transition: UInt,
+        operation: () async throws -> Result
+    ) async throws -> Result {
+        try await acquireBackendSessionAccess(transition: transition)
+        defer { releaseBackendSessionAccess() }
+
+        try ensureCurrentTransition(transition)
+        let result = try await operation()
+        try ensureCurrentTransition(transition)
+        return result
+    }
+
+    @MainActor
+    private func acquireBackendSessionAccess(transition: UInt) async throws {
+        try ensureCurrentTransition(transition)
+
+        while isBackendSessionAccessInFlight {
+            await withCheckedContinuation { continuation in
+                backendSessionAccessWaiters.append(continuation)
+            }
+            try ensureCurrentTransition(transition)
+        }
+
+        isBackendSessionAccessInFlight = true
+    }
+
+    @MainActor
+    private func releaseBackendSessionAccess() {
+        isBackendSessionAccessInFlight = false
+
+        let waiters = backendSessionAccessWaiters
+        backendSessionAccessWaiters.removeAll()
+        for waiter in waiters {
+            waiter.resume()
+        }
+    }
+
+    @MainActor
+    private func beginTransition() -> UInt {
+        transitionGeneration &+= 1
+        return transitionGeneration
+    }
+
+    @MainActor
+    private func isCurrentTransition(_ transition: UInt) -> Bool {
+        transitionGeneration == transition
+    }
+
+    @MainActor
+    private func ensureCurrentTransition(_ transition: UInt) throws {
+        guard isCurrentTransition(transition) else {
+            throw AuthSessionTransitionError.backendSessionChanged
+        }
+    }
+
+    private func readableSessionFailure(_ error: Error) -> String {
+        if error is AuthVerificationError {
+            return mapVerificationFlowMessage(for: error)
+        }
+
+        return AppStrings.Auth.loadUserProfileFailed
     }
 
     private func isMissingProfileError(_ error: Error) -> Bool {
         guard let appError = error as? AppError else { return false }
         return appError == .notFound
     }
-
-    private init() {}
 
     private func mapAuthRegistrationError(_ error: Error) -> RegistrationError {
         guard let nsError = error as NSError?,

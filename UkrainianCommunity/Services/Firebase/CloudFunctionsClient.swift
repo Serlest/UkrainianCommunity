@@ -11,6 +11,8 @@ enum CloudFunctionName: String, CaseIterable {
     case rejectOrganization
     case requestOrganizationRevision
     case cancelEvent
+    case registerForEvent
+    case unregisterFromEvent
     case deleteNews
     case deleteOrganization
     case assignAppAdmin
@@ -176,6 +178,17 @@ struct EventCancellationFunctionResponse: Codable, Equatable {
     let cancelledAt: String
 }
 
+private struct EventRegistrationFunctionRequest: Codable, Equatable {
+    let eventId: String
+}
+
+private struct EventRegistrationFunctionResponse: Codable, Equatable {
+    let eventId: String
+    let registrationState: EventRegistrationState
+    let registeredCount: Int
+    let didChange: Bool
+}
+
 struct NewsDeletionFunctionRequest: Codable, Equatable {
     let newsId: String
 }
@@ -330,6 +343,14 @@ final class CloudFunctionsClient {
         try await call(.cancelEvent, request: request)
     }
 
+    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult {
+        try await eventRegistrationMutation(.registerForEvent, eventID: id)
+    }
+
+    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult {
+        try await eventRegistrationMutation(.unregisterFromEvent, eventID: id)
+    }
+
     func deleteNews(id: String) async throws -> ContentDeletionFunctionResponse {
         try await call(.deleteNews, request: NewsDeletionFunctionRequest(newsId: id))
     }
@@ -343,6 +364,31 @@ final class CloudFunctionsClient {
 
     func deleteOwnAccount() async throws -> AccountDeletionFunctionResponse {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
+    }
+
+    private func eventRegistrationMutation(
+        _ functionName: CloudFunctionName,
+        eventID: String
+    ) async throws -> EventRegistrationMutationResult {
+        do {
+            let response: EventRegistrationFunctionResponse = try await call(
+                functionName,
+                request: EventRegistrationFunctionRequest(eventId: eventID)
+            )
+            guard response.eventId == eventID, response.registeredCount >= 0 else {
+                throw EventRegistrationMutationError.unavailable
+            }
+            return EventRegistrationMutationResult(
+                eventID: response.eventId,
+                registrationState: response.registrationState,
+                registeredCount: response.registeredCount,
+                didChange: response.didChange
+            )
+        } catch let mutationError as EventRegistrationMutationError {
+            throw mutationError
+        } catch {
+            throw EventRegistrationFunctionErrorMapper.map(error)
+        }
     }
 
     func call<Request: Encodable, Response: Decodable>(
@@ -404,8 +450,12 @@ final class CloudFunctionsClient {
              .rejectOrganization,
              .requestOrganizationRevision,
              .cancelEvent,
+             .registerForEvent,
+             .unregisterFromEvent,
              .deleteOrganization:
-            return .organization
+            return functionName == .registerForEvent || functionName == .unregisterFromEvent
+            ? .event
+            : .organization
         case .deleteNews:
             return .newsPost
         case .assignAppAdmin,
@@ -456,6 +506,8 @@ final class CloudFunctionsClient {
              .requestOrganizationRevision,
              .acceptLegalDocument,
              .deleteOwnAccount,
+             .registerForEvent,
+             .unregisterFromEvent,
              .submitContentReport,
              .setUserBlocked:
             return false
@@ -499,6 +551,8 @@ final class CloudFunctionsClient {
              .rejectOrganization,
              .requestOrganizationRevision,
              .cancelEvent,
+             .registerForEvent,
+             .unregisterFromEvent,
              .deleteNews,
              .deleteOrganization,
              .acceptLegalDocument,
@@ -687,6 +741,8 @@ final class CloudFunctionsClient {
         } else if let request = request as? UserBlockFunctionRequest {
             metadata["targetUserId"] = request.targetUserId
             metadata["isBlocked"] = String(request.isBlocked)
+        } else if let request = request as? EventRegistrationFunctionRequest {
+            metadata["eventId"] = request.eventId
         }
 
         return metadata
@@ -726,6 +782,9 @@ final class CloudFunctionsClient {
         if let request = request as? UserBlockFunctionRequest {
             return request.targetUserId
         }
+        if let request = request as? EventRegistrationFunctionRequest {
+            return request.eventId
+        }
         return nil
     }
 
@@ -758,6 +817,48 @@ final class CloudFunctionsClient {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
+}
+
+extension CloudFunctionsClient: EventRegistrationMutating {}
+
+enum EventRegistrationFunctionErrorMapper {
+    static func map(_ error: Error) -> EventRegistrationMutationError {
+        let nsError = error as NSError
+        guard nsError.domain == FunctionsErrorDomain,
+              let code = FunctionsErrorCode(rawValue: nsError.code) else {
+            return nsError.domain == NSURLErrorDomain ? .network : .unavailable
+        }
+
+        let reason = serverReason(from: nsError)
+        switch (code, reason) {
+        case (.resourceExhausted, "event-full"):
+            return .full
+        case (.failedPrecondition, "registration-not-required"):
+            return .registrationNotRequired
+        case (.failedPrecondition, "event-cancelled"):
+            return .eventCancelled
+        case (.failedPrecondition, "event-past"):
+            return .eventPast
+        case (.permissionDenied, _), (.unauthenticated, _):
+            return .permissionDenied
+        case (.notFound, _):
+            return .notFound
+        case (.deadlineExceeded, _), (.unavailable, _), (.aborted, _), (.cancelled, _):
+            return .network
+        default:
+            return .unavailable
+        }
+    }
+
+    private static func serverReason(from error: NSError) -> String? {
+        if let details = error.userInfo[FunctionsErrorDetailsKey] as? [String: Any] {
+            return details["reason"] as? String
+        }
+        if let details = error.userInfo[FunctionsErrorDetailsKey] as? NSDictionary {
+            return details["reason"] as? String
+        }
+        return nil
+    }
 }
 
 private extension String {

@@ -6,6 +6,12 @@ enum NotificationPushTokenOwnershipError: Error {
 
 @MainActor
 final class NotificationPushTokenOwnershipCoordinator {
+    private struct InFlightTokenMutation: Hashable {
+        let generation: Int
+        let userID: String
+        let token: String
+    }
+
     private static let pendingMutationTimeout: Duration = .seconds(10)
     private static let pendingMutationPollInterval: Duration = .milliseconds(50)
 
@@ -13,10 +19,11 @@ final class NotificationPushTokenOwnershipCoordinator {
     private(set) var currentUserID: String?
     private var currentToken: String?
     private var lastSavedTokenKey: String?
-    private var inFlightTokenKeys: Set<String> = []
-    private var tokensPendingDeletion: Set<String> = []
+    private var inFlightTokenMutations: Set<InFlightTokenMutation> = []
+    private var tokensPendingDeletionByUserID: [String: Set<String>] = [:]
     private var notificationsEnabled = false
     private var isPreparingForSignOut = false
+    private var configurationGeneration = 0
 
     init(repository: NotificationPushTokenRepository) {
         self.repository = repository
@@ -27,20 +34,27 @@ final class NotificationPushTokenOwnershipCoordinator {
     }
 
     func configureUser(_ userID: String?, notificationsEnabled: Bool) {
-        if currentUserID != userID {
+        let identityChanged = currentUserID != userID
+        let resolvedNotificationsEnabled = userID != nil && notificationsEnabled
+        let preferenceChanged = self.notificationsEnabled != resolvedNotificationsEnabled
+        if identityChanged || preferenceChanged {
+            configurationGeneration &+= 1
+        }
+        if identityChanged {
             lastSavedTokenKey = nil
+            isPreparingForSignOut = false
         }
 
         currentUserID = userID
-        self.notificationsEnabled = userID != nil && notificationsEnabled
-
-        if userID == nil {
-            isPreparingForSignOut = false
-        }
+        self.notificationsEnabled = resolvedNotificationsEnabled
     }
 
     func setNotificationsEnabled(_ isEnabled: Bool) {
-        notificationsEnabled = currentUserID != nil && isEnabled
+        let resolvedNotificationsEnabled = currentUserID != nil && isEnabled
+        if notificationsEnabled != resolvedNotificationsEnabled {
+            configurationGeneration &+= 1
+            notificationsEnabled = resolvedNotificationsEnabled
+        }
     }
 
     func receiveToken(_ rawToken: String?) async {
@@ -54,26 +68,44 @@ final class NotificationPushTokenOwnershipCoordinator {
               !isPreparingForSignOut,
               let userID = currentUserID else { return }
 
+        let generation = configurationGeneration
         let newTokenKey = tokenKey(userID: userID, token: token)
         if lastSavedTokenKey == newTokenKey {
             try? await deletePendingTokens(userID: userID)
             return
         }
-        guard !inFlightTokenKeys.contains(newTokenKey) else { return }
+        let mutation = InFlightTokenMutation(
+            generation: generation,
+            userID: userID,
+            token: token
+        )
+        guard !inFlightTokenMutations.contains(mutation) else { return }
 
-        inFlightTokenKeys.insert(newTokenKey)
-        defer { inFlightTokenKeys.remove(newTokenKey) }
+        inFlightTokenMutations.insert(mutation)
+        defer { inFlightTokenMutations.remove(mutation) }
 
+        let repository = repository
         do {
             try await repository.saveCurrentDeviceToken(userID: userID, token: token)
+            guard isCurrentOwnership(generation: generation, userID: userID) else {
+                await removeStaleSavedToken(
+                    userID: userID,
+                    token: token,
+                    repository: repository
+                )
+                return
+            }
+            guard notificationsEnabled,
+                  !isPreparingForSignOut else { return }
             lastSavedTokenKey = newTokenKey
+            tokensPendingDeletionByUserID[userID]?.remove(token)
 
             if let previousToken,
                previousToken != token,
                previousSavedTokenKey == tokenKey(userID: userID, token: previousToken) {
-                tokensPendingDeletion.insert(previousToken)
-                try await deletePendingTokens(userID: userID)
+                tokensPendingDeletionByUserID[userID, default: []].insert(previousToken)
             }
+            try await deletePendingTokens(userID: userID)
         } catch {
             // A later token callback, lifecycle event, or sign-out retries the
             // unfinished upload or stale-token cleanup.
@@ -85,7 +117,8 @@ final class NotificationPushTokenOwnershipCoordinator {
     }
 
     func removeCurrentToken() async {
-        notificationsEnabled = false
+        setNotificationsEnabled(false)
+        let generation = configurationGeneration
         guard let userID = currentUserID,
               let token = currentToken else { return }
 
@@ -94,6 +127,12 @@ final class NotificationPushTokenOwnershipCoordinator {
             try await deletePendingTokens(userID: userID)
             try await repository.deleteCurrentDeviceToken(userID: userID, token: token)
             clearSavedTokenKey(userID: userID, token: token)
+            guard configurationGeneration != generation,
+                  currentUserID == userID,
+                  notificationsEnabled,
+                  !isPreparingForSignOut,
+                  currentToken == token else { return }
+            await saveCachedTokenIfNeeded()
         } catch {
             // Preference changes remain usable offline; the next authenticated
             // lifecycle event retries cleanup.
@@ -101,6 +140,9 @@ final class NotificationPushTokenOwnershipCoordinator {
     }
 
     func prepareForSignOut() async throws {
+        if !isPreparingForSignOut {
+            configurationGeneration &+= 1
+        }
         isPreparingForSignOut = true
 
         do {
@@ -113,20 +155,24 @@ final class NotificationPushTokenOwnershipCoordinator {
             clearSavedTokenKey(userID: userID, token: token)
         } catch {
             isPreparingForSignOut = false
+            configurationGeneration &+= 1
             throw error
         }
     }
 
     func completeSignOut() {
+        configurationGeneration &+= 1
         currentUserID = nil
         lastSavedTokenKey = nil
-        tokensPendingDeletion.removeAll()
         notificationsEnabled = false
         isPreparingForSignOut = false
     }
 
     func resumeAfterFailedSignOut() async {
-        isPreparingForSignOut = false
+        if isPreparingForSignOut {
+            configurationGeneration &+= 1
+            isPreparingForSignOut = false
+        }
         await saveCachedTokenIfNeeded()
     }
 
@@ -134,7 +180,7 @@ final class NotificationPushTokenOwnershipCoordinator {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: Self.pendingMutationTimeout)
 
-        while inFlightTokenKeys.contains(where: { $0.hasPrefix("\(userID):") }) {
+        while inFlightTokenMutations.contains(where: { $0.userID == userID }) {
             guard clock.now < deadline else {
                 throw NotificationPushTokenOwnershipError.pendingMutationTimedOut
             }
@@ -150,9 +196,45 @@ final class NotificationPushTokenOwnershipCoordinator {
     }
 
     private func deletePendingTokens(userID: String) async throws {
-        for token in tokensPendingDeletion.sorted() {
+        if currentUserID == userID,
+           notificationsEnabled,
+           let currentToken {
+            tokensPendingDeletionByUserID[userID]?.remove(currentToken)
+        }
+
+        for token in (tokensPendingDeletionByUserID[userID] ?? []).sorted() {
             try await repository.deleteCurrentDeviceToken(userID: userID, token: token)
-            tokensPendingDeletion.remove(token)
+            tokensPendingDeletionByUserID[userID]?.remove(token)
+        }
+
+        if tokensPendingDeletionByUserID[userID]?.isEmpty == true {
+            tokensPendingDeletionByUserID[userID] = nil
+        }
+    }
+
+    private func isCurrentOwnership(generation: Int, userID: String) -> Bool {
+        configurationGeneration == generation && currentUserID == userID
+    }
+
+    private func removeStaleSavedToken(
+        userID: String,
+        token: String,
+        repository: NotificationPushTokenRepository
+    ) async {
+        do {
+            try await repository.deleteCurrentDeviceToken(userID: userID, token: token)
+            clearSavedTokenKey(userID: userID, token: token)
+
+            guard currentUserID == userID,
+                  notificationsEnabled,
+                  !isPreparingForSignOut,
+                  currentToken == token else { return }
+            await saveCachedTokenIfNeeded()
+        } catch {
+            tokensPendingDeletionByUserID[userID, default: []].insert(token)
+            // Firestore rules can reject old-user cleanup after an account switch.
+            // Keep that ownership queued in memory so the next authorized lifecycle
+            // for that user can retry without publishing stale local completion state.
         }
     }
 

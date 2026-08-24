@@ -5,17 +5,29 @@ struct AuthFlowContainerView: View {
     let initialDestination: AuthFlowDestination
     @EnvironmentObject private var authState: AuthState
 
+    private var requiresResolvedSession: Bool {
+        switch initialDestination {
+        case .emailVerification, .sessionRecovery:
+            return true
+        case .landing, .login, .register, .passwordReset:
+            return false
+        }
+    }
+
     var body: some View {
         NavigationStack {
             destinationView(for: initialDestination)
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(AppStrings.Common.cancel) {
-                            authState.dismissAuthFlow()
+                    if !requiresResolvedSession {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(AppStrings.Common.cancel) {
+                                authState.dismissAuthFlow()
+                            }
                         }
                     }
                 }
         }
+        .interactiveDismissDisabled(requiresResolvedSession)
     }
 
     @ViewBuilder
@@ -29,6 +41,8 @@ struct AuthFlowContainerView: View {
             RegisterView()
         case .emailVerification:
             EmailVerificationView()
+        case .sessionRecovery:
+            SessionRecoveryView()
         case .passwordReset:
             PasswordResetView()
         }
@@ -323,7 +337,7 @@ struct RegisterView: View {
             defer { isSubmitting = false }
 
             do {
-                _ = try await AuthService.shared.register(draft: draft, password: password)
+                try await AuthService.shared.register(draft: draft, password: password)
             } catch {
                 errorMessage = readableRegistrationErrorMessage(error)
             }
@@ -439,13 +453,7 @@ struct EmailVerificationView: View {
                     .accessibilityIdentifier("auth.verification.resend")
 
                     Button(AppStrings.Auth.emailVerificationChangeAccount) {
-                        Task {
-                            isSigningOut = true
-                            defer { isSigningOut = false }
-                            if await AuthService.shared.signOut() {
-                                authState.dismissAuthFlow()
-                            }
-                        }
+                        signOutAndChangeAccount()
                     }
                     .appActionButtonStyle(.secondary)
                     .frame(minHeight: AppTheme.iconButtonSize)
@@ -500,6 +508,99 @@ struct EmailVerificationView: View {
 
                 message = readableAuthErrorMessage(error, fallback: AppStrings.Auth.emailVerificationCheckFailed)
             }
+        }
+    }
+
+    private func signOutAndChangeAccount() {
+        isSigningOut = true
+        message = nil
+
+        Task {
+            defer { isSigningOut = false }
+            if await AuthService.shared.signOut() {
+                authState.dismissAuthFlow()
+            } else {
+                message = AppStrings.Profile.signOutFailed
+            }
+        }
+    }
+}
+
+struct SessionRecoveryView: View {
+    @EnvironmentObject private var authState: AuthState
+    @State private var isRetrying = false
+    @State private var isSigningOut = false
+    @State private var message: String?
+
+    private var isBusy: Bool {
+        isRetrying || isSigningOut
+    }
+
+    var body: some View {
+        AuthScreenScaffold {
+            AuthHeaderView(
+                title: AppStrings.Auth.title,
+                subtitle: AppStrings.Auth.loadUserProfileFailed
+            )
+
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    InlineMessageCard(
+                        style: .error,
+                        message: message ?? authState.errorMessage ?? AppStrings.Auth.loadUserProfileFailed
+                    )
+
+                    PrimaryActionButton(
+                        title: AppStrings.Action.retry,
+                        isEnabled: !isBusy,
+                        isLoading: isRetrying,
+                        systemImage: "arrow.clockwise"
+                    ) {
+                        retrySession()
+                    }
+                    .accessibilityIdentifier("auth.session_recovery.retry")
+
+                    Button(AppStrings.Auth.emailVerificationChangeAccount) {
+                        signOut()
+                    }
+                    .appActionButtonStyle(.secondary)
+                    .frame(minHeight: AppTheme.iconButtonSize)
+                    .disabled(isBusy)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("auth.session_recovery.sign_out")
+                }
+            }
+        }
+        .navigationTitle(AppStrings.Auth.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("auth.session_recovery.screen")
+        .onAppear {
+            message = authState.errorMessage
+        }
+    }
+
+    private func retrySession() {
+        isRetrying = true
+        message = nil
+
+        Task {
+            await AuthService.shared.retryUnavailableSession()
+            message = authState.errorMessage
+            isRetrying = false
+        }
+    }
+
+    private func signOut() {
+        isSigningOut = true
+        message = nil
+
+        Task {
+            if await AuthService.shared.signOut() {
+                authState.dismissAuthFlow()
+            } else {
+                message = AppStrings.Profile.signOutFailed
+            }
+            isSigningOut = false
         }
     }
 }

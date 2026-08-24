@@ -303,17 +303,21 @@ struct HomeView: View {
         switch authState.sessionState {
         case .restoring:
             "restoring"
+        case .authenticating:
+            "authenticating:\(authState.pendingSessionUserID ?? "pending")"
         case .guest:
             "guest"
         case .authenticated:
             "authenticated:\(authState.user?.id ?? "pending")"
         case .verificationPending:
             "verificationPending:\(authState.pendingVerificationEmail ?? "pending")"
+        case .sessionUnavailable:
+            "sessionUnavailable:\(authState.pendingSessionUserID ?? "pending")"
         }
     }
 
     private var isAuthBootstrapReady: Bool {
-        authState.sessionState != .restoring
+        authState.sessionState != .restoring && authState.sessionState != .authenticating
     }
 
     private func loadContentWhenAuthIsReady() async {

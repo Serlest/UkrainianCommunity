@@ -145,6 +145,50 @@ struct EventPage {
     let hasMore: Bool
 }
 
+struct EventRegistrationMutationResult: Equatable {
+    let eventID: String
+    let registrationState: EventRegistrationState
+    let registeredCount: Int
+    let didChange: Bool
+}
+
+enum EventRegistrationMutationError: Error, Equatable {
+    case full
+    case registrationNotRequired
+    case eventCancelled
+    case eventPast
+    case permissionDenied
+    case network
+    case notFound
+    case unavailable
+
+    var appError: AppError {
+        switch self {
+        case .permissionDenied:
+            .permissionDenied
+        case .network:
+            .network
+        case .notFound:
+            .notFound
+        case .full,
+             .registrationNotRequired,
+             .eventCancelled,
+             .eventPast:
+            .validationFailed
+        case .unavailable:
+            .unknown
+        }
+    }
+}
+
+protocol EventRegistrationMutating {
+    @MainActor
+    func registerForEvent(id: String) async throws -> EventRegistrationMutationResult
+
+    @MainActor
+    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult
+}
+
 struct OrganizationPageCursor: Equatable {
     let createdAt: Date
     let documentID: String
@@ -179,7 +223,7 @@ protocol NewsRepository {
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
 }
 
-protocol EventRepository {
+protocol EventRepository: EventRegistrationMutating {
     func fetchEvents() async throws -> [Event]
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage
     func fetchEvent(id: String) async throws -> Event
@@ -200,8 +244,6 @@ protocol EventRepository {
     func addEventComment(eventID: String, text: String, author: AppUser) async throws -> Comment
     func updateEventComment(eventID: String, commentID: String, text: String) async throws -> Comment
     func deleteEventComment(eventID: String, commentID: String) async throws
-    func registerForEvent(id: String) async throws
-    func cancelEventRegistration(id: String) async throws
     func bookmarkEvent(id: String) async throws
     func unbookmarkEvent(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
@@ -288,6 +330,58 @@ extension EventRepository {
         Array(try await fetchEvents()
             .filter { $0.source.organizationId == organizationID }
             .prefix(max(1, limit)))
+    }
+}
+
+extension Event {
+    func applyingRegistrationMutation(_ result: EventRegistrationMutationResult) -> Event {
+        guard result.eventID == id else { return self }
+
+        return Event(
+            id: id,
+            title: title,
+            summary: summary,
+            details: details,
+            regionScope: regionScope,
+            federalState: federalState,
+            source: source,
+            authorId: authorId,
+            authorName: authorName,
+            city: city,
+            venue: venue,
+            address: address,
+            locationNote: locationNote,
+            latitude: latitude,
+            longitude: longitude,
+            organizerName: organizerName,
+            organizerURL: organizerURL,
+            contactPhone: contactPhone,
+            contactEmail: contactEmail,
+            contactURL: contactURL,
+            imageURL: imageURL,
+            startDate: startDate,
+            endDate: endDate,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            requiresRegistration: requiresRegistration,
+            price: price,
+            capacity: capacity,
+            registeredCount: max(0, result.registeredCount),
+            comments: comments,
+            moderationStatus: moderationStatus,
+            registrationState: result.registrationState,
+            likeCount: likeCount,
+            likeState: likeState,
+            viewCount: viewCount,
+            category: category,
+            tags: tags,
+            isAllDay: isAllDay,
+            isBookmarked: isBookmarked,
+            commentCount: commentCount,
+            cancellationState: cancellationState,
+            cancelledAt: cancelledAt,
+            cancellationReason: cancellationReason
+        )
     }
 }
 

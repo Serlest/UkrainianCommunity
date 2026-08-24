@@ -5659,6 +5659,159 @@
         }
       }
     },
+    "events.registration.error.cancelled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung ist geschlossen, weil diese Veranstaltung abgesagt wurde."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реєстрацію закрито, оскільки цю подію скасовано."
+          }
+        }
+      }
+    },
+    "events.registration.error.full" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Veranstaltung ist ausgebucht."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі місця на цю подію вже зайняті."
+          }
+        }
+      }
+    },
+    "events.registration.error.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося зв’язатися із сервером. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "events.registration.error.not_found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Veranstaltung ist nicht mehr verfügbar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ця подія більше недоступна."
+          }
+        }
+      }
+    },
+    "events.registration.error.not_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diese Veranstaltung ist keine Anmeldung in der App vorgesehen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для цієї події реєстрація в застосунку не передбачена."
+          }
+        }
+      }
+    },
+    "events.registration.error.past" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung ist geschlossen, weil diese Veranstaltung bereits begonnen hat."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реєстрацію закрито, оскільки ця подія вже розпочалася."
+          }
+        }
+      }
+    },
+    "events.registration.error.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Konto darf diese Anmeldung nicht ändern. Bestätige deine E-Mail-Adresse und versuche es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш обліковий запис не може змінити цю реєстрацію. Підтвердьте електронну адресу та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "events.registration.error.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung konnte nicht aktualisiert werden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося оновити реєстрацію"
+          }
+        }
+      }
+    },
+    "events.registration.error.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anmeldung kann derzeit nicht aktualisiert werden. Versuche es bitte erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зараз не вдалося оновити реєстрацію. Спробуйте ще раз."
+          }
+        }
+      }
+    },
     "events.retry" : {
       "extractionState" : "manual",
       "localizations" : {

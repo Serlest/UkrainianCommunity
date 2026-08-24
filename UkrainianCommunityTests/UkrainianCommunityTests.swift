@@ -187,7 +187,7 @@ struct UkrainianCommunityTests {
         #expect(authState.user == nil)
 
         await MainActor.run {
-            authState.setAuthenticatedSession()
+            authState.setAuthenticatedSession(user: MockContentBuilder.currentUser())
         }
 
         #expect(authState.isAuthenticated)
@@ -924,7 +924,7 @@ struct UkrainianCommunityTests {
         let initialRegisteredEvents = try await repository.fetchRegisteredEvents()
         #expect(initialRegisteredEvents.allSatisfy { $0.registrationState == .registered })
 
-        try await repository.registerForEvent(id: targetEvent.id)
+        _ = try await repository.registerForEvent(id: targetEvent.id)
 
         let registeredEvents = try await repository.fetchRegisteredEvents()
 
