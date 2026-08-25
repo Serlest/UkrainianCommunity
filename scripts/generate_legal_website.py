@@ -86,17 +86,35 @@ def markdown_blocks(source: str) -> tuple[str, str, str]:
     output: list[str] = []
     paragraph: list[str] = []
     list_items: list[str] = []
+    list_tag: str | None = None
     section_open = False
 
     def flush_paragraph() -> None:
         if paragraph:
-            output.append(f"<p>{inline(' '.join(paragraph))}</p>")
+            output.append(
+                "<p>" + "<br>\n".join(inline(line) for line in paragraph) + "</p>"
+            )
             paragraph.clear()
 
     def flush_list() -> None:
+        nonlocal list_tag
         if list_items:
-            output.append("<ul>" + "".join(f"<li>{inline(item)}</li>" for item in list_items) + "</ul>")
+            tag = list_tag or "ul"
+            output.append(
+                f"<{tag}>"
+                + "".join(f"<li>{inline(item)}</li>" for item in list_items)
+                + f"</{tag}>"
+            )
             list_items.clear()
+        list_tag = None
+
+    def append_list_item(tag: str, item: str) -> None:
+        nonlocal list_tag
+        flush_paragraph()
+        if list_tag is not None and list_tag != tag:
+            flush_list()
+        list_tag = tag
+        list_items.append(item)
 
     index = 0
     while index < len(lines):
@@ -133,8 +151,9 @@ def markdown_blocks(source: str) -> tuple[str, str, str]:
             flush_list()
             output.append(f"<h3>{inline(line[4:])}</h3>")
         elif line.startswith("- "):
-            flush_paragraph()
-            list_items.append(line[2:].strip())
+            append_list_item("ul", line[2:].strip())
+        elif ordered_item := re.match(r"^\d+[.)]\s+(.+)$", line):
+            append_list_item("ol", ordered_item.group(1).strip())
         elif not line:
             flush_paragraph()
             flush_list()

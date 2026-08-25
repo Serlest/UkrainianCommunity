@@ -21,43 +21,92 @@ struct LegalMarkdownRenderer: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .textSelection(.enabled)
     }
 
     @ViewBuilder
     private func blockView(_ block: LegalMarkdownBlock) -> some View {
         switch block.kind {
         case .heading(let level):
-            inlineText(block.text)
-                .font(font(forHeadingLevel: level))
-                .foregroundStyle(AppTheme.textPrimary)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
+            headingView(block.text, level: level)
         case .paragraph:
             inlineText(block.text)
                 .font(.body)
                 .foregroundStyle(AppTheme.textPrimary)
-                .lineSpacing(4)
+                .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
         case .bullet:
-            HStack(alignment: .top, spacing: 10) {
-                Text("•")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .padding(.top, 1)
-                    .accessibilityHidden(true)
-
-                inlineText(block.text)
-                    .font(.body)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .lineSpacing(4)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            listRow(marker: "•", text: block.text, numbered: false)
+        case .ordered(let marker):
+            listRow(marker: marker, text: block.text, numbered: true)
         }
     }
 
+    @ViewBuilder
+    private func headingView(_ value: String, level: Int) -> some View {
+        if level == 2, let numbered = LegalMarkdownParser.numberedHeading(from: value) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(numbered.number)
+                    .font(.caption.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(AppTheme.accentPrimarySoft, in: Capsule())
+
+                inlineText(numbered.title)
+                    .font(font(forHeadingLevel: level))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                if level == 2 {
+                    Capsule()
+                        .fill(AppTheme.accentPrimary)
+                        .frame(width: 34, height: 4)
+                        .accessibilityHidden(true)
+                }
+
+                inlineText(value)
+                    .font(font(forHeadingLevel: level))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityAddTraits(.isHeader)
+        }
+    }
+
+    private func listRow(marker: String, text: String, numbered: Bool) -> some View {
+        HStack(alignment: .top, spacing: 11) {
+            Text(marker)
+                .font(numbered ? .caption.weight(.bold) : .body.weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
+                .frame(width: 28, alignment: .center)
+                .frame(minHeight: 24, alignment: .top)
+                .background(numbered ? AppTheme.accentPrimarySoft : Color.clear, in: Capsule())
+                .padding(.top, numbered ? 1 : 0)
+                .accessibilityHidden(true)
+
+            inlineText(text)
+                .font(.body)
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineSpacing(5)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     private func inlineText(_ value: String) -> Text {
-        if let attributed = try? AttributedString(markdown: value) {
+        let options = AttributedString.MarkdownParsingOptions(
+            interpretedSyntax: .inlineOnlyPreservingWhitespace
+        )
+        if let attributed = try? AttributedString(markdown: value, options: options) {
             return Text(attributed)
         }
 
@@ -83,8 +132,8 @@ struct LegalMarkdownRenderer: View {
             return level == 1 ? 22 : 18
         case .paragraph:
             return 12
-        case .bullet:
-            return 8
+        case .bullet, .ordered:
+            return 10
         }
     }
 }
@@ -98,6 +147,7 @@ private struct LegalMarkdownBlock: Identifiable {
         case heading(level: Int)
         case paragraph
         case bullet
+        case ordered(marker: String)
     }
 }
 
@@ -110,7 +160,7 @@ private enum LegalMarkdownParser {
         func flushParagraph() {
             let text = paragraphLines
                 .map { $0.trimmingCharacters(in: .whitespaces) }
-                .joined(separator: " ")
+                .joined(separator: "\n")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
 
             if !text.isEmpty {
@@ -137,6 +187,17 @@ private enum LegalMarkdownParser {
             if let bulletText = bulletText(from: line) {
                 flushParagraph()
                 blocks.append(LegalMarkdownBlock(kind: .bullet, text: bulletText))
+                continue
+            }
+
+            if let orderedItem = orderedItem(from: line) {
+                flushParagraph()
+                blocks.append(
+                    LegalMarkdownBlock(
+                        kind: .ordered(marker: orderedItem.marker),
+                        text: orderedItem.text
+                    )
+                )
                 continue
             }
 
@@ -184,5 +245,27 @@ private enum LegalMarkdownParser {
         let text = String(line.dropFirst(2))
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return text.isEmpty ? nil : text
+    }
+
+    static func numberedHeading(from value: String) -> (number: String, title: String)? {
+        guard let item = orderedItem(from: value) else { return nil }
+        return (String(item.marker.dropLast()), item.text)
+    }
+
+    private static func orderedItem(from line: String) -> (marker: String, text: String)? {
+        guard let separatorIndex = line.firstIndex(where: { $0 == "." || $0 == ")" }) else {
+            return nil
+        }
+
+        let number = line[..<separatorIndex]
+        guard !number.isEmpty, number.allSatisfy(\.isNumber) else { return nil }
+
+        let afterSeparator = line.index(after: separatorIndex)
+        guard afterSeparator < line.endIndex, line[afterSeparator].isWhitespace else { return nil }
+
+        let text = line[afterSeparator...]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        return ("\(number).", text)
     }
 }
