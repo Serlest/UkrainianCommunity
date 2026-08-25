@@ -8,6 +8,8 @@ export type AccountDeletionPatch =
   | "auditTarget"
   | "commentAuthor"
   | "contentAuthor"
+  | "dsaReporter"
+  | "dsaTargetAuthor"
   | "feedbackMessageAuthor"
   | "legalAcceptance"
   | "organizationPhotoUploader"
@@ -109,6 +111,24 @@ export const accountDeletionReferencePolicies = [
     operator: "==",
     action: "anonymize",
     patch: "organizationPhotoUploader",
+  },
+  {
+    name: "DSA case reporters",
+    scope: "collection",
+    collection: "dsaCases",
+    field: "reporterUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "dsaReporter",
+  },
+  {
+    name: "DSA case affected authors",
+    scope: "collection",
+    collection: "dsaCases",
+    field: "targetAuthorId",
+    operator: "==",
+    action: "anonymize",
+    patch: "dsaTargetAuthor",
   },
   {
     name: "feedback messages written as a manager",

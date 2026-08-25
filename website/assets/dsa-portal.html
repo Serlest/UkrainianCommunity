@@ -1,0 +1,45 @@
+<section class="dsa-portal" aria-labelledby="dsa-form-title">
+  <div class="dsa-tabs" role="tablist">
+    <button type="button" class="dsa-tab is-active" data-dsa-tab="notice"><span data-lang="de">Neue Meldung</span><span data-lang="uk">Нова скарга</span></button>
+    <button type="button" class="dsa-tab" data-dsa-tab="status"><span data-lang="de">Fall prüfen / Einspruch</span><span data-lang="uk">Перевірити справу / оскаржити</span></button>
+  </div>
+
+  <form id="dsa-notice-form" class="dsa-form" novalidate>
+    <h2 id="dsa-form-title"><span data-lang="de">Strukturierte Meldung nach dem DSA</span><span data-lang="uk">Структурована скарга за DSA</span></h2>
+    <p><span data-lang="de">Nach dem Absenden erhalten Sie sofort eine Vorgangsnummer und einen vertraulichen Zugangscode.</span><span data-lang="uk">Після надсилання ви одразу отримаєте номер справи та конфіденційний код доступу.</span></p>
+    <div class="form-grid">
+      <label><span data-lang="de">Kategorie</span><span data-lang="uk">Категорія</span>
+        <select name="category" required>
+          <option value="">—</option><option value="hate" data-de="Hassrede" data-uk="Мова ненависті">Hassrede</option><option value="terrorism" data-de="Gewalt oder Terrorismus" data-uk="Насильство або тероризм">Gewalt oder Terrorismus</option><option value="childSafety" data-de="Kinderschutz" data-uk="Захист дітей">Kinderschutz</option><option value="privacy" data-de="Privatsphäre / personenbezogene Daten" data-uk="Приватність / персональні дані">Privatsphäre / personenbezogene Daten</option><option value="defamation" data-de="Beleidigung / Rufschädigung" data-uk="Образа / наклеп">Beleidigung / Rufschädigung</option><option value="fraud" data-de="Betrug" data-uk="Шахрайство">Betrug</option><option value="intellectualProperty" data-de="Geistiges Eigentum" data-uk="Інтелектуальна власність">Geistiges Eigentum</option><option value="consumerProtection" data-de="Verbraucherschutz" data-uk="Захист споживачів">Verbraucherschutz</option><option value="other" data-de="Sonstiges" data-uk="Інше">Sonstiges</option>
+        </select>
+      </label>
+      <label><span data-lang="de">Genaue Fundstelle (Link oder Inhalts-ID)</span><span data-lang="uk">Точне місце (посилання або ID)</span><input name="exactLocation" maxlength="2048" required></label>
+    </div>
+    <label><span data-lang="de">Welcher Inhalt ist betroffen?</span><span data-lang="uk">Який вміст стосується скарги?</span><textarea name="contentDescription" maxlength="500" required></textarea></label>
+    <label><span data-lang="de">Warum ist der Inhalt rechtswidrig?</span><span data-lang="uk">Чому цей вміст є незаконним?</span><textarea name="illegalExplanation" maxlength="5000" required></textarea></label>
+    <div class="form-grid">
+      <label><span data-lang="de">Rechtsgrundlage (falls bekannt)</span><span data-lang="uk">Правова підстава (якщо відома)</span><textarea name="legalBasis" maxlength="1000"></textarea></label>
+      <label><span data-lang="de">Belege oder weitere Fundstellen</span><span data-lang="uk">Докази або додаткові посилання</span><textarea name="evidence" maxlength="5000"></textarea></label>
+    </div>
+    <div class="form-grid" data-contact-fields>
+      <label><span data-lang="de">Vollständiger Name</span><span data-lang="uk">Повне ім’я</span><input name="reporterName" maxlength="160" required autocomplete="name"></label>
+      <label><span data-lang="de">E-Mail-Adresse</span><span data-lang="uk">Електронна адреса</span><input name="reporterEmail" maxlength="254" required type="email" autocomplete="email"></label>
+    </div>
+    <label class="check-row"><input type="checkbox" name="contactException"><span><span data-lang="de">Ausnahme beim Kinderschutz: Ich möchte keine Kontaktdaten angeben.</span><span data-lang="uk">Виняток для захисту дітей: я не хочу вказувати контактні дані.</span></span></label>
+    <label class="check-row"><input type="checkbox" name="goodFaithConfirmed" required><span><span data-lang="de">Ich bestätige nach bestem Wissen, dass diese Angaben richtig und vollständig sind.</span><span data-lang="uk">Наскільки мені відомо, ці відомості правильні й повні.</span></span></label>
+    <label class="honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+    <div class="dsa-message" data-dsa-notice-message hidden></div>
+    <button class="button button-primary" type="submit"><span data-lang="de">Meldung verbindlich absenden</span><span data-lang="uk">Надіслати скаргу</span></button>
+  </form>
+
+  <form id="dsa-status-form" class="dsa-form" hidden novalidate>
+    <h2><span data-lang="de">Fallstatus und Einspruch</span><span data-lang="uk">Статус справи та оскарження</span></h2>
+    <div class="form-grid">
+      <label><span data-lang="de">Vorgangsnummer</span><span data-lang="uk">Номер справи</span><input name="caseNumber" required autocomplete="off"></label>
+      <label><span data-lang="de">Vertraulicher Zugangscode</span><span data-lang="uk">Конфіденційний код доступу</span><input name="accessToken" required autocomplete="off"></label>
+    </div>
+    <div class="dsa-message" data-dsa-status-message hidden></div>
+    <button class="button button-primary" type="submit"><span data-lang="de">Status anzeigen</span><span data-lang="uk">Показати статус</span></button>
+    <div data-dsa-case-result hidden></div>
+  </form>
+</section>

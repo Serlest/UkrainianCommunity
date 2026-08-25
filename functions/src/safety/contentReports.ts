@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 
-import { Timestamp, type DocumentData } from "firebase-admin/firestore";
+import { type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
+import {createDsaCase, type DsaNoticeCategory} from "./dsaCases";
 
 export type ContentReportTargetType = "news" | "event" | "organization" | "comment";
 export type ContentReportParentType = "news" | "event" | "organization";
@@ -24,7 +25,10 @@ export interface ContentReportRequest {
   parentType?: ContentReportParentType;
   parentId?: string;
   reason: ContentReportReason;
-  details?: string;
+  illegalExplanation: string;
+  legalBasis?: string;
+  evidence?: string;
+  goodFaithConfirmed: true;
 }
 
 interface ResolvedReportTarget {
@@ -38,6 +42,9 @@ interface ContentReportResponse {
   status: "open";
   submittedAt: string;
   wasDuplicate: boolean;
+  caseNumber: string;
+  accessToken: string;
+  acknowledgementAt: string;
 }
 
 const callableOptions = {
@@ -149,6 +156,9 @@ export function parseContentReportRequest(value: unknown): ContentReportRequest 
       "Parent fields are only supported when reporting a comment."
     );
   }
+  if (value.goodFaithConfirmed !== true) {
+    throw new HttpsError("failed-precondition", "The good-faith declaration is required.");
+  }
 
   return {
     targetType,
@@ -156,7 +166,10 @@ export function parseContentReportRequest(value: unknown): ContentReportRequest 
     parentType,
     parentId,
     reason: enumValue(value.reason, "reason", reportReasons),
-    details: optionalString(value.details, "details", 1_000),
+    illegalExplanation: requiredString(value.illegalExplanation, "illegalExplanation", 5_000),
+    legalBasis: optionalString(value.legalBasis, "legalBasis", 1_000),
+    evidence: optionalString(value.evidence, "evidence", 5_000),
+    goodFaithConfirmed: true,
   };
 }
 
@@ -259,8 +272,24 @@ async function resolveReportTarget(report: ContentReportRequest): Promise<Resolv
   return resolvedParentTarget(parentType, ensurePublicTarget(snapshot.data()));
 }
 
-function reportMessage(report: ContentReportRequest): string {
-  return report.details ?? `Content report reason: ${report.reason}`;
+function noticeCategory(reason: ContentReportReason): DsaNoticeCategory {
+  switch (reason) {
+  case "hate": return "hate";
+  case "violence": return "terrorism";
+  case "sexual": return "childSafety";
+  case "privacy": return "privacy";
+  case "spam": return "fraud";
+  case "harassment": return "defamation";
+  case "misinformation":
+  case "other": return "other";
+  }
+}
+
+function exactContentLocation(report: ContentReportRequest): string {
+  if (report.targetType === "comment") {
+    return `ukrainiancommunity://${report.parentType}/${report.parentId}/comments/${report.targetId}`;
+  }
+  return `ukrainiancommunity://${report.targetType}/${report.targetId}`;
 }
 
 export const submitContentReport = onCall(
@@ -276,68 +305,44 @@ export const submitContentReport = onCall(
       throw new HttpsError("failed-precondition", "You cannot report your own content.");
     }
 
-    const reportId = contentReportDocumentId(actor.uid, report);
-    const reference = db.collection("feedback").doc(reportId);
-    const submittedAt = Timestamp.now();
-    const slaDueAt = Timestamp.fromMillis(
-      submittedAt.toMillis() + reportSlaHours(report.reason) * 60 * 60 * 1_000
-    );
     const user = userSnapshot.data() ?? {};
     const userDisplayName = normalizedText(
       user.displayName ?? user.name,
       "Community member",
       120
     );
-    let wasDuplicate = false;
-
-    await db.runTransaction(async (transaction) => {
-      const existing = await transaction.get(reference);
-      wasDuplicate = existing.exists;
-      const existingData = existing.data() ?? {};
-      const occurrenceCount = typeof existingData.occurrenceCount === "number"
-        ? existingData.occurrenceCount + 1
-        : 1;
-      const message = reportMessage(report);
-      const reportContext = {
-        targetType: report.targetType,
-        targetId: report.targetId,
-        parentType: report.parentType ?? null,
-        parentId: report.parentId ?? null,
-        targetAuthorId: target.authorId ?? null,
-        targetTitle: target.title,
-        targetExcerpt: target.excerpt,
-        reason: report.reason,
-        isUrgent: urgentReasons.has(report.reason),
-        slaDueAt,
-      };
-
-      transaction.set(reference, {
-        id: reportId,
-        type: "report",
-        subject: `Report: ${target.title}`.slice(0, 200),
-        message,
-        status: "open",
-        createdAt: existingData.createdAt ?? submittedAt,
-        updatedAt: submittedAt,
-        lastMessageText: message,
-        lastMessageAt: submittedAt,
-        lastMessageByUserId: actor.uid,
-        lastMessageByRole: "user",
-        unreadForOwner: true,
-        unreadForUser: false,
-        userId: actor.uid,
-        userDisplayName,
-        reportContext,
-        occurrenceCount,
-        lastReportedAt: submittedAt,
-      }, { merge: true });
+    const receipt = await createDsaCase({
+      exactLocation: exactContentLocation(report),
+      contentDescription: target.title,
+      illegalExplanation: report.illegalExplanation,
+      legalBasis: report.legalBasis,
+      evidence: report.evidence,
+      category: noticeCategory(report.reason),
+      reporterName: userDisplayName,
+      reporterEmail: typeof actor.token.email === "string" ? actor.token.email : undefined,
+      contactException: false,
+      goodFaithConfirmed: true,
+      preferredLanguage: user.language === "uk" ? "uk" : "de",
+      reporterUserId: actor.uid,
+      targetType: report.targetType,
+      targetId: report.targetId,
+      parentType: report.parentType,
+      parentId: report.parentId,
+      targetAuthorId: target.authorId,
+      targetTitle: target.title,
+      targetExcerpt: target.excerpt,
+      reason: report.reason,
+      isUrgent: urgentReasons.has(report.reason),
     });
 
     return {
-      reportId,
+      reportId: receipt.reportId,
       status: "open",
-      submittedAt: submittedAt.toDate().toISOString(),
-      wasDuplicate,
+      submittedAt: receipt.submittedAt,
+      wasDuplicate: false,
+      caseNumber: receipt.caseNumber,
+      accessToken: receipt.accessToken,
+      acknowledgementAt: receipt.acknowledgementAt,
     };
   }
 );

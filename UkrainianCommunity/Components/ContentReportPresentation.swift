@@ -38,8 +38,8 @@ final class ContentReportCoordinator: ObservableObject {
     func submit(
         target: ContentReportTarget,
         reason: ContentReportReason,
-        details: String?
+        submission: ContentReportSubmission
     ) async throws -> ContentReportReceipt {
-        try await repository.submitReport(target: target, reason: reason, details: details)
+        try await repository.submitReport(target: target, reason: reason, submission: submission)
     }
 }

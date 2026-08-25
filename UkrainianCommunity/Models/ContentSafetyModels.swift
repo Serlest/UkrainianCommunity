@@ -142,8 +142,18 @@ struct ContentReportTarget: Identifiable, Equatable {
 
 struct ContentReportReceipt: Equatable {
     let reportId: String
+    let caseNumber: String
+    let accessToken: String
     let submittedAt: Date
+    let acknowledgementAt: Date
     let wasDuplicate: Bool
+}
+
+struct ContentReportSubmission: Equatable {
+    let illegalExplanation: String
+    let legalBasis: String?
+    let evidence: String?
+    let goodFaithConfirmed: Bool
 }
 
 enum ContentReportSubmissionError: Error, Equatable {

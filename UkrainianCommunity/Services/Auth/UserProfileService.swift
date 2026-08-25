@@ -36,6 +36,8 @@ struct RegisteredUserDocumentData: Equatable {
     let acceptedPrivacyVersion: String
     let termsVersion: String
     let privacyVersion: String
+    let minimumAgeConfirmedAt: Date
+    let minimumAgeVersion: String
 
     var firestoreData: [String: Any] {
         [
@@ -53,12 +55,14 @@ struct RegisteredUserDocumentData: Equatable {
             "accountStatus": accountStatus,
             "warningCount": warningCount,
             "communityMemberships": communityMemberships,
-            "acceptedTermsAt": Timestamp(date: acceptedTermsAt),
-            "acceptedPrivacyAt": Timestamp(date: acceptedPrivacyAt),
+            "acceptedTermsAt": FieldValue.serverTimestamp(),
+            "acceptedPrivacyAt": FieldValue.serverTimestamp(),
             "acceptedTermsVersion": acceptedTermsVersion,
             "acceptedPrivacyVersion": acceptedPrivacyVersion,
             "termsVersion": termsVersion,
             "privacyVersion": privacyVersion,
+            "minimumAgeConfirmedAt": FieldValue.serverTimestamp(),
+            "minimumAgeVersion": minimumAgeVersion,
             "createdAt": FieldValue.serverTimestamp(),
             "updatedAt": FieldValue.serverTimestamp()
         ]
@@ -263,7 +267,9 @@ extension UserProfileService {
             acceptedTermsVersion: draft.termsVersion,
             acceptedPrivacyVersion: draft.privacyVersion,
             termsVersion: draft.termsVersion,
-            privacyVersion: draft.privacyVersion
+            privacyVersion: draft.privacyVersion,
+            minimumAgeConfirmedAt: draft.minimumAgeConfirmedAt,
+            minimumAgeVersion: draft.minimumAgeVersion
         )
     }
 }
@@ -529,6 +535,18 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         _ = try await CloudFunctionsClient.shared.clearFeedbackInbox()
     }
 
+    func decideDsaCase(_ request: DsaDecisionFunctionRequest) async throws {
+        _ = try await CloudFunctionsClient.shared.decideDsaCase(request)
+    }
+
+    func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest) async throws {
+        _ = try await CloudFunctionsClient.shared.decideDsaAppeal(request)
+    }
+
+    func submitDsaAppeal(_ request: DsaAppealSubmissionFunctionRequest) async throws {
+        _ = try await CloudFunctionsClient.shared.submitDsaAppeal(request)
+    }
+
     private func makeFeedbackItem(from document: QueryDocumentSnapshot) -> FeedbackItem {
         let data = document.data()
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
@@ -554,7 +572,68 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             unreadForOwner: data["unreadForOwner"] as? Bool ?? false,
             unreadForUser: data["unreadForUser"] as? Bool ?? false,
             reportContext: makeContentReportContext(from: data["reportContext"]),
-            occurrenceCount: max(1, (data["occurrenceCount"] as? NSNumber)?.intValue ?? 1)
+            occurrenceCount: max(1, (data["occurrenceCount"] as? NSNumber)?.intValue ?? 1),
+            dsaCase: makeDsaCaseSummary(from: data["dsaCase"])
+        )
+    }
+
+    private func makeDsaCaseSummary(from value: Any?) -> DsaCaseSummary? {
+        guard let data = value as? [String: Any],
+              let caseNumber = data["caseNumber"] as? String,
+              let status = data["status"] as? String,
+              let category = data["category"] as? String,
+              let exactLocation = data["exactLocation"] as? String,
+              let illegalExplanation = data["illegalExplanation"] as? String,
+              let acknowledgementAt = (data["acknowledgementAt"] as? Timestamp)?.dateValue() else {
+            return nil
+        }
+        let decisionData = data["decision"] as? [String: Any]
+        let decision: DsaDecisionSummary? = {
+            guard let decisionData,
+                  let outcome = decisionData["outcome"] as? String,
+                  let facts = decisionData["factsAndCircumstances"] as? String,
+                  let territorialScope = decisionData["territorialScope"] as? String,
+                  let duration = decisionData["duration"] as? String,
+                  let redress = decisionData["redressInformation"] as? String,
+                  let decidedAt = (decisionData["decidedAt"] as? Timestamp)?.dateValue(),
+                  let appealDeadline = (decisionData["appealDeadline"] as? Timestamp)?.dateValue() else { return nil }
+            return DsaDecisionSummary(
+                outcome: outcome,
+                factsAndCircumstances: facts,
+                legalBasis: decisionData["legalBasis"] as? String,
+                termsBasis: decisionData["termsBasis"] as? String,
+                territorialScope: territorialScope,
+                duration: duration,
+                redressInformation: redress,
+                automationUsed: decisionData["automationUsed"] as? Bool ?? false,
+                decidedAt: decidedAt,
+                appealDeadline: appealDeadline
+            )
+        }()
+        return DsaCaseSummary(
+            caseNumber: caseNumber,
+            status: status,
+            category: category,
+            exactLocation: exactLocation,
+            illegalExplanation: illegalExplanation,
+            legalBasis: data["legalBasis"] as? String,
+            evidence: data["evidence"] as? String,
+            goodFaithConfirmed: data["goodFaithConfirmed"] as? Bool ?? false,
+            acknowledgementAt: acknowledgementAt,
+            preferredLanguage: data["preferredLanguage"] as? String ?? "de",
+            decision: decision,
+            appeal: makeDsaAppealSummary(from: data["appeal"])
+        )
+    }
+
+    private func makeDsaAppealSummary(from value: Any?) -> DsaAppealSummary? {
+        guard let data = value as? [String: Any],
+              let status = data["status"] as? String,
+              let reason = data["reason"] as? String else { return nil }
+        return DsaAppealSummary(
+            status: status,
+            reason: reason,
+            outcome: data["outcome"] as? String
         )
     }
 

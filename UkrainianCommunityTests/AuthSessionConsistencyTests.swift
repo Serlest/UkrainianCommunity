@@ -606,7 +606,9 @@ struct AuthSessionConsistencyTests {
             acceptedTermsAt: .now,
             acceptedPrivacyAt: .now,
             termsVersion: AuthService.currentTermsVersion,
-            privacyVersion: AuthService.currentPrivacyVersion
+            privacyVersion: AuthService.currentPrivacyVersion,
+            minimumAgeConfirmedAt: .now,
+            minimumAgeVersion: AuthService.currentMinimumAgeVersion
         )
     }
 }

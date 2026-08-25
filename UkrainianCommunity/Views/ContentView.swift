@@ -688,6 +688,8 @@ struct ContentView: View {
             routeToNews(notification)
         case .openFeedback:
             routeToFeedback(notification)
+        case .openDsaStatement:
+            routeToDsaStatement(statementID: notificationTargetID(notification))
         case .openOrganization:
             routeToOrganization(notification)
         case .openOrganizationRequest:
@@ -720,6 +722,15 @@ struct ContentView: View {
         } else {
             profileNavigationPath = [.feedbackInbox]
         }
+    }
+
+    private func routeToDsaStatement(statementID: String?) {
+        guard let statementID, !statementID.isEmpty else {
+            showNotificationRouteUnavailable()
+            return
+        }
+        selectTabIfNeeded(.profile)
+        profileNavigationPath = [.dsaStatement(statementID: statementID)]
     }
 
     private func routeToNews(_ notification: AppNotification) {
@@ -822,6 +833,8 @@ struct ContentView: View {
             }
         case .openFeedback(let feedbackId):
             routeToFeedback(feedbackID: feedbackId)
+        case .openDsaStatement(let statementId):
+            routeToDsaStatement(statementID: statementId)
         case .openLegalDocuments:
             selectTabIfNeeded(.profile)
             profileNavigationPath = [.legal(.terms)]

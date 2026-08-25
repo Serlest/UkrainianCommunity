@@ -4,7 +4,7 @@ Use this checklist for the first release after the security and privacy hardenin
 
 ## Repository gate
 
-Run `python3 scripts/validate_release_configuration.py` on the exact release commit. This automated preflight checks build-number consistency, export-compliance metadata, privacy-manifest semantics, absence of the Google/Firebase Analytics product and the App Check client configuration. It does not replace the signed archive or its privacy report.
+Run `python3 scripts/validate_release_configuration.py` and `python3 scripts/validate_legal_documents.py --release` on the exact release commit. The first automated preflight checks build-number consistency, export-compliance metadata, privacy-manifest semantics, absence of the Google/Firebase Analytics product and the App Check client configuration. The second blocks publication while legal identity, bilingual document synchronization, DSA pages or retention decisions remain unresolved. Neither replaces the signed archive or its privacy report.
 
 - [ ] All required GitHub checks pass on the exact release commit.
 - [ ] iOS Debug build, Swift unit tests and UI tests pass on a supported simulator.
@@ -28,7 +28,7 @@ Run `python3 scripts/validate_release_configuration.py` on the exact release com
 - [ ] Verify callable account deletion and scheduled retention jobs in production logs with non-destructive test accounts/data.
 - [ ] Confirm scheduled retention policy, region, time zone, runtime identity, permissions, monitoring and alerting.
 - [ ] Confirm the agreed retention period remains six months after content completion, subject to legally required exceptions.
-- [ ] Define and legally review an explicit `auditLogs` retention period; no automatic `auditLogs` cleanup exists yet.
+- [ ] Deploy and verify the 1,095-day `auditLogs` cleanup and six-month cleanup of closed feedback/report conversations, including the required feedback index.
 - [ ] Before deploying Rules that reject `canManageGuide`, confirm no supported older build still sends the field during registration or stage a temporary `false`-only compatibility rule.
 
 ## App Check rollout gate
@@ -44,6 +44,9 @@ Run `python3 scripts/validate_release_configuration.py` on the exact release com
 
 - [ ] Identify the legal controller/operator, postal address and working privacy contact for Austria/EU disclosure.
 - [ ] Have qualified Austrian/EU counsel review the privacy policy, terms, retention rules and lawful bases. Repository text is not legal advice.
+- [ ] Complete the operator imprint and Media Act disclosure, and verify the user and authority contact points required by the Digital Services Act.
+- [ ] Verify the public notice-and-action mechanism, statement of reasons and internal appeal workflow against `Legal/notice-and-action.*.md`.
+- [ ] Reconcile every affected surface in `Docs/LegalChangeMatrix.md`; retain the resulting version, hash, deployment and approval evidence.
 - [ ] Record the approved lawful basis for optional owner analytics. The technical consent path now persists a versioned server-owned receipt (purpose/policy version, grant/withdrawal timestamps and disclosed copy) and enforces the exact current grant in the callable; legal/controller approval remains required.
 - [x] Obtain explicit data-flow approval and complete `Docs/AnalyticsActionProofPlan.md`. One-time immutable proofs now preserve an opted-in positive action even when the operational feature is undone before delayed analytics delivery.
 - [ ] Update the public privacy policy to distinguish account-linked operational feature records created when a feature is used (including lifetime view deduplication/public counters, likes, bookmarks, follows and registrations) from optional first-party daily aggregate signals controlled by analytics consent. Also cover Firebase services, Firebase Installation IDs and legacy push registration tokens during migration, device name, App Check/App Attest, user uploads/interactions, moderation/security logs, deletion and retention.

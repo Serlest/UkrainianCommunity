@@ -1,5 +1,169 @@
 import SwiftUI
 
+struct DsaStatementView: View {
+    @EnvironmentObject private var authState: AuthState
+    let statementID: String
+    @State private var statement: DsaStatement?
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+
+    var body: some View {
+        PushedScreenShell(
+            title: AppStrings.Safety.dsaStatementTitle,
+            subtitle: AppStrings.Safety.dsaStatementSubtitle
+        ) { EmptyView() } content: {
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppTheme.sectionSpacing)
+            } else if let errorMessage {
+                ContentUnavailableView(
+                    AppStrings.Safety.dsaStatementUnavailable,
+                    systemImage: "exclamationmark.shield",
+                    description: Text(errorMessage)
+                )
+            } else if let statement {
+                statementContent(statement)
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .task(id: statementID) { await loadStatement() }
+    }
+
+    @ViewBuilder
+    private func statementContent(_ statement: DsaStatement) -> some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                LabeledContent(AppStrings.Safety.caseNumberTitle, value: statement.caseNumber)
+                LabeledContent(AppStrings.Common.status, value: statement.status)
+                if !statement.sourceType.isEmpty {
+                    LabeledContent(AppStrings.Safety.contentTypeTitle, value: statement.sourceType)
+                }
+                if !statement.sourceID.isEmpty {
+                    LabeledContent(AppStrings.Safety.contentIdentifierTitle, value: statement.sourceID)
+                }
+            }
+        }
+
+        if let decision = statement.decision {
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                    statementField(AppStrings.Safety.dsaOutcomeTitle, decision.outcome)
+                    statementField(AppStrings.Safety.dsaFactsTitle, decision.factsAndCircumstances)
+                    statementField(AppStrings.Safety.legalBasisTitle, decision.legalBasis)
+                    statementField(AppStrings.Safety.dsaTermsBasisTitle, decision.termsBasis)
+                    statementField(AppStrings.Safety.dsaTerritoryTitle, decision.territorialScope)
+                    statementField(AppStrings.Safety.dsaDurationTitle, decision.duration)
+                    statementField(AppStrings.Safety.dsaRedressTitle, decision.redressInformation)
+                    LabeledContent(AppStrings.Safety.automationTitle, value: decision.automationUsed ? AppStrings.Safety.automationYes : AppStrings.Safety.automationNo)
+                }
+            }
+        }
+
+        if let appeal = statement.appealDecision {
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                    Text(AppStrings.Safety.dsaAppealTitle)
+                        .font(AppTheme.sectionTitleFont)
+                        .foregroundStyle(AppTheme.textPrimary)
+                    statementField(AppStrings.Safety.dsaAppealOutcomeTitle, appeal.outcome)
+                    statementField(AppStrings.Safety.dsaAppealReasonTitle, appeal.reason)
+                }
+            }
+        }
+
+        Text(AppStrings.Safety.dsaStatementPrivacyNote)
+            .font(AppTheme.metadataFont)
+            .foregroundStyle(AppTheme.textSecondary)
+    }
+
+    @ViewBuilder
+    private func statementField(_ title: String, _ value: String?) -> some View {
+        if let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(AppTheme.metadataFont)
+                    .foregroundStyle(AppTheme.textSecondary)
+                Text(value)
+                    .font(AppTheme.bodyFont)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    @MainActor
+    private func loadStatement() async {
+        guard let userID = authState.user?.id else {
+            isLoading = false
+            errorMessage = AppStrings.Safety.dsaStatementSignInRequired
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+        do {
+            _ = userID
+            let response = try await CloudFunctionsClient().getMyDsaStatement(reportID: statementID)
+            statement = DsaStatement(response: response)
+        } catch {
+            errorMessage = AppStrings.Safety.dsaStatementLoadError
+        }
+        isLoading = false
+    }
+}
+
+private struct DsaStatement {
+    struct Decision {
+        let outcome: String
+        let factsAndCircumstances: String
+        let legalBasis: String?
+        let termsBasis: String?
+        let territorialScope: String
+        let duration: String
+        let redressInformation: String
+        let automationUsed: Bool
+
+        init(_ value: DsaStatementFunctionResponse.Decision) {
+            outcome = value.outcome
+            factsAndCircumstances = value.factsAndCircumstances
+            legalBasis = value.legalBasis
+            termsBasis = value.termsBasis
+            territorialScope = value.territorialScope
+            duration = value.duration
+            redressInformation = value.redressInformation
+            automationUsed = value.automationUsed
+        }
+    }
+
+    struct AppealDecision {
+        let outcome: String
+        let reason: String
+
+        init(_ value: DsaStatementFunctionResponse.AppealDecision) {
+            outcome = value.outcome
+            reason = value.reason
+        }
+    }
+
+    let id: String
+    let caseNumber: String
+    let status: String
+    let sourceType: String
+    let sourceID: String
+    let decision: Decision?
+    let appealDecision: AppealDecision?
+
+    init(response: DsaStatementFunctionResponse) {
+        id = response.id
+        caseNumber = response.caseNumber
+        status = response.status
+        sourceType = response.sourceType
+        sourceID = response.sourceId
+        decision = response.decision.map(Decision.init)
+        appealDecision = response.appealDecision.map(AppealDecision.init)
+    }
+}
+
 private enum MyFeedbackFilter: String, CaseIterable, Identifiable {
     case all
     case open
@@ -92,7 +256,10 @@ struct MyFeedbackView: View {
                     viewModel.stopListeningMessages(for: currentItem.id)
                     viewModel.clearActionError()
                 },
-                onClose: nil
+                onClose: nil,
+                onAppeal: { reason in
+                    await viewModel.submitDsaAppeal(reason: reason, feedback: currentFeedbackItem(for: currentItem), userID: currentUserID)
+                }
             )
             .presentationDetents([.medium, .large])
         }
@@ -326,6 +493,7 @@ struct FeedbackInboxView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: FeedbackInboxViewModel
     @State private var selectedFeedback: FeedbackItem?
+    @State private var dsaDecisionItem: FeedbackItem?
     @State private var selectedFilter: FeedbackInboxFilter = .open
     @State private var sortOption: AppListSortOption = .newest
     @State private var searchText = ""
@@ -452,13 +620,36 @@ struct FeedbackInboxView: View {
                     viewModel.stopListeningMessages(for: currentItem.id)
                 },
                 onClose: {
-                    Task {
-                        let closed = await viewModel.close(currentFeedbackItem(for: currentItem))
-                        if closed { selectedFeedback = nil }
+                    let latest = currentFeedbackItem(for: currentItem)
+                    if latest.dsaCase != nil {
+                        selectedFeedback = nil
+                        dsaDecisionItem = latest
+                    } else {
+                        Task {
+                            let closed = await viewModel.close(latest)
+                            if closed { selectedFeedback = nil }
+                        }
                     }
                 }
             )
             .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $dsaDecisionItem) { item in
+            if item.dsaCase?.status == "appealed" {
+                DsaAppealDecisionSheet(item: item) { request in
+                    let succeeded = await viewModel.decideDsaAppeal(request, item: item)
+                    if succeeded { dsaDecisionItem = nil }
+                    return succeeded
+                }
+                .presentationDetents([.large])
+            } else {
+                DsaDecisionSheet(item: item) { request in
+                    let succeeded = await viewModel.decideDsaCase(request, item: item)
+                    if succeeded { dsaDecisionItem = nil }
+                    return succeeded
+                }
+                .presentationDetents([.large])
+            }
         }
     }
 
@@ -727,7 +918,8 @@ private struct FeedbackDetailSheet: View {
             onLoad: onLoad,
             onSend: onSendReply,
             onStop: onStop,
-            onClose: onClose
+            onClose: onClose,
+            onAppeal: nil
         )
     }
 }
@@ -743,12 +935,15 @@ private struct FeedbackConversationSheet: View {
     let onSend: (String) async -> Bool
     let onStop: () -> Void
     let onClose: (() -> Void)?
+    let onAppeal: ((String) async -> Bool)?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var replyText = ""
     @State private var validationMessage: String?
     @State private var isShowingCloseConfirmation = false
+    @State private var appealText = ""
+    @State private var appealValidationMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -776,6 +971,10 @@ private struct FeedbackConversationSheet: View {
                                     context: reportContext,
                                     occurrenceCount: item.occurrenceCount
                                 )
+                            }
+
+                            if let dsaCase = item.dsaCase {
+                                DsaCaseContextCard(dsaCase: dsaCase)
                             }
 
                             if isLoadingMessages && messages.isEmpty {
@@ -818,6 +1017,9 @@ private struct FeedbackConversationSheet: View {
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(AppTheme.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                        if canAppeal {
+                            appealEditor
+                        }
                     } else {
                         ZStack(alignment: .topLeading) {
                             if replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -896,6 +1098,57 @@ private struct FeedbackConversationSheet: View {
         }
     }
 
+    private var canAppeal: Bool {
+        guard let dsaCase = item.dsaCase,
+              dsaCase.status == "decided",
+              dsaCase.appeal == nil,
+              let deadline = dsaCase.decision?.appealDeadline else { return false }
+        return deadline > Date() && onAppeal != nil
+    }
+
+    private var appealEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(AppStrings.Safety.dsaAppealReasonTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+            TextField(AppStrings.Safety.dsaAppealReasonTitle, text: $appealText, axis: .vertical)
+                .lineLimit(3...8)
+                .padding(12)
+                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(AppTheme.borderSubtle))
+            if let appealValidationMessage {
+                Text(appealValidationMessage).font(.caption).foregroundStyle(AppTheme.accentDestructiveForeground)
+            }
+            PrimaryActionButton(
+                title: AppStrings.Safety.dsaAppealSubmit,
+                isEnabled: appealText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20 && !isSending,
+                isLoading: isSending,
+                systemImage: "arrow.uturn.backward.circle"
+            ) {
+                submitAppeal()
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private func submitAppeal() {
+        let normalized = appealText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalized.count >= 20, let onAppeal else {
+            appealValidationMessage = AppStrings.Safety.explanationRequired
+            return
+        }
+        Task {
+            let succeeded = await onAppeal(normalized)
+            if succeeded {
+                appealText = ""
+                appealValidationMessage = nil
+                dismiss()
+            } else {
+                appealValidationMessage = AppStrings.Feedback.actionFailed
+            }
+        }
+    }
+
     private func submitReply() {
         let trimmedReply = replyText.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedReply.isEmpty {
@@ -935,7 +1188,7 @@ private struct FeedbackConversationSheet: View {
             Button {
                 isShowingCloseConfirmation = true
             } label: {
-                Label(AppStrings.Feedback.closeFeedback, systemImage: "checkmark.seal")
+                Label(item.dsaCase == nil ? AppStrings.Feedback.closeFeedback : AppStrings.Safety.dsaDecisionAction, systemImage: "checkmark.seal")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accentDestructiveForeground)
                     .multilineTextAlignment(.center)
@@ -961,6 +1214,261 @@ private struct FeedbackConversationSheet: View {
         } else {
             action()
         }
+    }
+}
+
+private struct DsaCaseContextCard: View {
+    let dsaCase: DsaCaseSummary
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("DSA · \(dsaCase.caseNumber)", systemImage: "building.columns")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                FeedbackMetadataRow(systemImage: "link", title: dsaCase.exactLocation)
+                Text(dsaCase.illegalExplanation)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let legalBasis = dsaCase.legalBasis, !legalBasis.isEmpty {
+                    FeedbackMetadataRow(systemImage: "text.book.closed", title: legalBasis)
+                }
+                if let evidence = dsaCase.evidence, !evidence.isEmpty {
+                    FeedbackMetadataRow(systemImage: "doc.text.magnifyingglass", title: evidence)
+                }
+                if let appeal = dsaCase.appeal {
+                    Divider()
+                    Label(AppStrings.Safety.dsaAppealTitle, systemImage: "arrow.uturn.backward.circle")
+                        .font(.subheadline.weight(.semibold))
+                    Text(appeal.reason)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Label(AppStrings.Safety.goodFaithConfirmed, systemImage: "checkmark.shield")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+        }
+    }
+}
+
+private struct DsaAppealDecisionSheet: View {
+    let item: FeedbackItem
+    let onSubmit: (DsaAppealDecisionFunctionRequest) async -> Bool
+    @Environment(\.dismiss) private var dismiss
+    @State private var outcome = "upheld"
+    @State private var reason = ""
+    @State private var humanReviewConfirmed = false
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+
+    private var canSubmit: Bool {
+        !isSubmitting && reason.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20 && humanReviewConfirmed
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    if let dsaCase = item.dsaCase { DsaCaseContextCard(dsaCase: dsaCase) }
+                    AppEditorSectionCard {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Picker(AppStrings.Safety.dsaAppealOutcomeTitle, selection: $outcome) {
+                                Text(AppStrings.Safety.dsaAppealUpheld).tag("upheld")
+                                Text(AppStrings.Safety.dsaAppealChanged).tag("changed")
+                            }
+                            .pickerStyle(.segmented)
+                            TextField(AppStrings.Safety.dsaAppealReasonTitle, text: $reason, axis: .vertical)
+                                .lineLimit(4...10)
+                                .padding(12)
+                                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(AppTheme.borderSubtle))
+                            Button { humanReviewConfirmed.toggle() } label: {
+                                Label(AppStrings.Safety.dsaHumanReview, systemImage: humanReviewConfirmed ? "checkmark.square.fill" : "square")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    if let errorMessage { InlineMessageCard(style: .error, message: errorMessage) }
+                }
+                .padding(AppTheme.pageHorizontal)
+                .padding(.bottom, AppTheme.sectionSpacing)
+                .appCenteredContent()
+            }
+            .background(AppTheme.pageBackground)
+            .navigationTitle(AppStrings.Safety.dsaAppealTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(AppStrings.Common.cancel) { dismiss() }.disabled(isSubmitting) } }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    PrimaryActionButton(title: AppStrings.Safety.dsaDecisionSubmit, isEnabled: canSubmit, isLoading: isSubmitting, systemImage: "checkmark.seal") { submit() }
+                        .padding(.horizontal, AppTheme.pageHorizontal)
+                        .padding(.vertical, 12)
+                        .appCenteredContent()
+                }
+                .background(AppTheme.pageBackground)
+            }
+        }
+        .interactiveDismissDisabled(isSubmitting)
+    }
+
+    private func submit() {
+        guard canSubmit else { return }
+        isSubmitting = true
+        errorMessage = nil
+        Task {
+            let succeeded = await onSubmit(DsaAppealDecisionFunctionRequest(
+                reportId: item.id,
+                outcome: outcome,
+                reason: reason.trimmingCharacters(in: .whitespacesAndNewlines),
+                humanReviewConfirmed: true
+            ))
+            if !succeeded {
+                errorMessage = AppStrings.Feedback.actionFailed
+                isSubmitting = false
+            }
+        }
+    }
+}
+
+private struct DsaDecisionSheet: View {
+    let item: FeedbackItem
+    let onSubmit: (DsaDecisionFunctionRequest) async -> Bool
+    @Environment(\.dismiss) private var dismiss
+    @State private var outcome = "noAction"
+    @State private var facts = ""
+    @State private var legalBasis = ""
+    @State private var termsBasis = ""
+    @State private var territorialScope = AppStrings.Safety.dsaTerritoryDefault
+    @State private var duration = AppStrings.Safety.dsaDurationDefault
+    @State private var redress = AppStrings.Safety.dsaRedressDefault
+    @State private var humanReviewConfirmed = false
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+
+    private var canSubmit: Bool {
+        !isSubmitting
+            && facts.trimmingCharacters(in: .whitespacesAndNewlines).count >= 20
+            && (!legalBasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !termsBasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            && !territorialScope.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !duration.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !redress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && humanReviewConfirmed
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    if let dsaCase = item.dsaCase { DsaCaseContextCard(dsaCase: dsaCase) }
+                    fieldCard
+                    if let errorMessage { InlineMessageCard(style: .error, message: errorMessage) }
+                }
+                .padding(AppTheme.pageHorizontal)
+                .padding(.bottom, AppTheme.sectionSpacing)
+                .appCenteredContent()
+            }
+            .background(AppTheme.pageBackground)
+            .navigationTitle(AppStrings.Safety.dsaDecisionTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { Button(AppStrings.Common.cancel) { dismiss() }.disabled(isSubmitting) }
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    PrimaryActionButton(
+                        title: AppStrings.Safety.dsaDecisionSubmit,
+                        isEnabled: canSubmit,
+                        isLoading: isSubmitting,
+                        systemImage: "checkmark.seal"
+                    ) { submit() }
+                    .padding(.horizontal, AppTheme.pageHorizontal)
+                    .padding(.vertical, 12)
+                    .appCenteredContent()
+                }
+                .background(AppTheme.pageBackground)
+            }
+        }
+        .interactiveDismissDisabled(isSubmitting)
+    }
+
+    private var fieldCard: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 16) {
+                Picker(AppStrings.Safety.dsaOutcomeTitle, selection: $outcome) {
+                    Text(AppStrings.Safety.dsaOutcomeNoAction).tag("noAction")
+                    Text(AppStrings.Safety.dsaOutcomeRestricted).tag("restricted")
+                    Text(AppStrings.Safety.dsaOutcomeRemoved).tag("removed")
+                }
+                .pickerStyle(.menu)
+                dsaTextField(AppStrings.Safety.dsaFactsTitle, text: $facts, axis: .vertical)
+                dsaTextField(AppStrings.Safety.legalBasisTitle, text: $legalBasis, axis: .vertical)
+                dsaTextField(AppStrings.Safety.dsaTermsBasisTitle, text: $termsBasis, axis: .vertical)
+                dsaTextField(AppStrings.Safety.dsaTerritoryTitle, text: $territorialScope)
+                dsaTextField(AppStrings.Safety.dsaDurationTitle, text: $duration)
+                dsaTextField(AppStrings.Safety.dsaRedressTitle, text: $redress, axis: .vertical)
+                Button { humanReviewConfirmed.toggle() } label: {
+                    Label(
+                        AppStrings.Safety.dsaHumanReview,
+                        systemImage: humanReviewConfirmed ? "checkmark.square.fill" : "square"
+                    )
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func dsaTextField(_ title: String, text: Binding<String>, axis: Axis = .horizontal) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
+            TextField(title, text: text, axis: axis)
+                .lineLimit(axis == .vertical ? 3...8 : 1...1)
+                .padding(12)
+                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(AppTheme.borderSubtle))
+        }
+    }
+
+    private func submit() {
+        guard canSubmit else { return }
+        isSubmitting = true
+        errorMessage = nil
+        let request = DsaDecisionFunctionRequest(
+            reportId: item.id,
+            outcome: outcome,
+            factsAndCircumstances: facts,
+            legalBasis: normalized(legalBasis),
+            termsBasis: normalized(termsBasis),
+            territorialScope: territorialScope,
+            duration: duration,
+            redressInformation: redress,
+            humanReviewConfirmed: true
+        )
+        Task {
+            let succeeded = await onSubmit(request)
+            if !succeeded {
+                errorMessage = AppStrings.Feedback.actionFailed
+                isSubmitting = false
+            }
+        }
+    }
+
+    private func normalized(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

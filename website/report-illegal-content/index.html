@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Hinweise zum Melden rechtswidriger Inhalte und zur Überprüfung.">
+  <meta name="theme-color" content="#0a66c2">
+  <title>Rechtswidrige Inhalte melden – UkrainianCommunity</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/site.js" defer></script>
+  <script src="/assets/dsa-portal.js" defer></script>
+</head>
+<body data-title-de="Rechtswidrige Inhalte melden – UkrainianCommunity" data-title-uk="Повідомити про незаконний вміст – UkrainianCommunity">
+  <a class="skip-link" href="#main"><span data-lang="de">Zum Inhalt</span><span data-lang="uk">До вмісту</span></a>
+  <header class="site-header">
+    <nav class="nav" aria-label="Hauptnavigation">
+      <a class="brand" href="/">UkrainianCommunity</a>
+      <div class="nav-links">
+        <a href="/support">Support</a>
+        <a href="/privacy"><span data-lang="de">Datenschutz</span><span data-lang="uk">Конфіденційність</span></a>
+        <a href="/terms"><span data-lang="de">Bedingungen</span><span data-lang="uk">Умови</span></a>
+        <a href="/organization-rules"><span data-lang="de">Organisationen</span><span data-lang="uk">Організації</span></a>
+        <a href="/imprint"><span data-lang="de">Impressum</span><span data-lang="uk">Вихідні дані</span></a>
+      </div>
+      <div class="language-switch" role="group" aria-label="Sprache / Мова">
+        <button type="button" data-language-button="de" aria-pressed="true" lang="de">DE</button>
+        <button type="button" data-language-button="uk" aria-pressed="false" lang="uk">UA</button>
+      </div>
+    </nav>
+  </header>
+  <main id="main">
+    <header class="page-header"><div class="page-header-inner">
+      <p class="eyebrow">UkrainianCommunity</p>
+      <h1><span data-lang="de">Verfahren zur Meldung rechtswidriger Inhalte</span><span data-lang="uk">Процедура повідомлення про незаконний вміст</span></h1>
+      <p><span data-lang="de">Hinweise zum Melden rechtswidriger Inhalte und zur Überprüfung.</span><span data-lang="uk">Як повідомити про незаконний вміст і подати запит на перегляд.</span></p>
+    </div></header>
+    <article class="document">
+      <div class="meta"><span data-lang="de">Version 2026.10 · Entwurf – technische Umsetzung noch offen</span><span data-lang="uk">Версія 2026.10 · Чернетка — технічна реалізація ще не завершена</span></div>
+      <section class="dsa-portal" aria-labelledby="dsa-form-title">
+  <div class="dsa-tabs" role="tablist">
+    <button type="button" class="dsa-tab is-active" data-dsa-tab="notice"><span data-lang="de">Neue Meldung</span><span data-lang="uk">Нова скарга</span></button>
+    <button type="button" class="dsa-tab" data-dsa-tab="status"><span data-lang="de">Fall prüfen / Einspruch</span><span data-lang="uk">Перевірити справу / оскаржити</span></button>
+  </div>
+
+  <form id="dsa-notice-form" class="dsa-form" novalidate>
+    <h2 id="dsa-form-title"><span data-lang="de">Strukturierte Meldung nach dem DSA</span><span data-lang="uk">Структурована скарга за DSA</span></h2>
+    <p><span data-lang="de">Nach dem Absenden erhalten Sie sofort eine Vorgangsnummer und einen vertraulichen Zugangscode.</span><span data-lang="uk">Після надсилання ви одразу отримаєте номер справи та конфіденційний код доступу.</span></p>
+    <div class="form-grid">
+      <label><span data-lang="de">Kategorie</span><span data-lang="uk">Категорія</span>
+        <select name="category" required>
+          <option value="">—</option><option value="hate" data-de="Hassrede" data-uk="Мова ненависті">Hassrede</option><option value="terrorism" data-de="Gewalt oder Terrorismus" data-uk="Насильство або тероризм">Gewalt oder Terrorismus</option><option value="childSafety" data-de="Kinderschutz" data-uk="Захист дітей">Kinderschutz</option><option value="privacy" data-de="Privatsphäre / personenbezogene Daten" data-uk="Приватність / персональні дані">Privatsphäre / personenbezogene Daten</option><option value="defamation" data-de="Beleidigung / Rufschädigung" data-uk="Образа / наклеп">Beleidigung / Rufschädigung</option><option value="fraud" data-de="Betrug" data-uk="Шахрайство">Betrug</option><option value="intellectualProperty" data-de="Geistiges Eigentum" data-uk="Інтелектуальна власність">Geistiges Eigentum</option><option value="consumerProtection" data-de="Verbraucherschutz" data-uk="Захист споживачів">Verbraucherschutz</option><option value="other" data-de="Sonstiges" data-uk="Інше">Sonstiges</option>
+        </select>
+      </label>
+      <label><span data-lang="de">Genaue Fundstelle (Link oder Inhalts-ID)</span><span data-lang="uk">Точне місце (посилання або ID)</span><input name="exactLocation" maxlength="2048" required></label>
+    </div>
+    <label><span data-lang="de">Welcher Inhalt ist betroffen?</span><span data-lang="uk">Який вміст стосується скарги?</span><textarea name="contentDescription" maxlength="500" required></textarea></label>
+    <label><span data-lang="de">Warum ist der Inhalt rechtswidrig?</span><span data-lang="uk">Чому цей вміст є незаконним?</span><textarea name="illegalExplanation" maxlength="5000" required></textarea></label>
+    <div class="form-grid">
+      <label><span data-lang="de">Rechtsgrundlage (falls bekannt)</span><span data-lang="uk">Правова підстава (якщо відома)</span><textarea name="legalBasis" maxlength="1000"></textarea></label>
+      <label><span data-lang="de">Belege oder weitere Fundstellen</span><span data-lang="uk">Докази або додаткові посилання</span><textarea name="evidence" maxlength="5000"></textarea></label>
+    </div>
+    <div class="form-grid" data-contact-fields>
+      <label><span data-lang="de">Vollständiger Name</span><span data-lang="uk">Повне ім’я</span><input name="reporterName" maxlength="160" required autocomplete="name"></label>
+      <label><span data-lang="de">E-Mail-Adresse</span><span data-lang="uk">Електронна адреса</span><input name="reporterEmail" maxlength="254" required type="email" autocomplete="email"></label>
+    </div>
+    <label class="check-row"><input type="checkbox" name="contactException"><span><span data-lang="de">Ausnahme beim Kinderschutz: Ich möchte keine Kontaktdaten angeben.</span><span data-lang="uk">Виняток для захисту дітей: я не хочу вказувати контактні дані.</span></span></label>
+    <label class="check-row"><input type="checkbox" name="goodFaithConfirmed" required><span><span data-lang="de">Ich bestätige nach bestem Wissen, dass diese Angaben richtig und vollständig sind.</span><span data-lang="uk">Наскільки мені відомо, ці відомості правильні й повні.</span></span></label>
+    <label class="honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+    <div class="dsa-message" data-dsa-notice-message hidden></div>
+    <button class="button button-primary" type="submit"><span data-lang="de">Meldung verbindlich absenden</span><span data-lang="uk">Надіслати скаргу</span></button>
+  </form>
+
+  <form id="dsa-status-form" class="dsa-form" hidden novalidate>
+    <h2><span data-lang="de">Fallstatus und Einspruch</span><span data-lang="uk">Статус справи та оскарження</span></h2>
+    <div class="form-grid">
+      <label><span data-lang="de">Vorgangsnummer</span><span data-lang="uk">Номер справи</span><input name="caseNumber" required autocomplete="off"></label>
+      <label><span data-lang="de">Vertraulicher Zugangscode</span><span data-lang="uk">Конфіденційний код доступу</span><input name="accessToken" required autocomplete="off"></label>
+    </div>
+    <div class="dsa-message" data-dsa-status-message hidden></div>
+    <button class="button button-primary" type="submit"><span data-lang="de">Status anzeigen</span><span data-lang="uk">Показати статус</span></button>
+    <div data-dsa-case-result hidden></div>
+  </form>
+</section>
+
+      <div data-lang="de"><section><h2>Erforderliche Angaben</h2>
+<p>1. Link, Inhalts-ID oder möglichst genaue Fundstelle. 2. Bezeichnung des Inhalts und der betroffenen Person oder Organisation. 3. Konkrete und nachvollziehbare Erklärung, warum der Inhalt rechtswidrig sein soll; wenn möglich mit Rechtsgrundlage oder Nachweis. 4. Name und E-Mail-Adresse der meldenden Person, außer in den gesetzlich vorgesehenen Ausnahmefällen. 5. Erklärung: „Ich bestätige nach bestem Wissen, dass die Angaben richtig und vollständig sind.“ 6. Optional: Belege und Hinweis auf besondere Dringlichkeit.</p>
+</section>
+<section><h2>Ablauf</h2>
+<ul><li>Automatische oder manuelle Eingangsbestätigung mit Vorgangsnummer.</li><li>Triage nach Dringlichkeit; unmittelbare Gefahren werden priorisiert.</li><li>Objektive und verhältnismäßige Prüfung von Fundstelle, Begründung, Kontext und Rechten aller Beteiligten.</li><li>Bei hinreichender Kenntnis rechtswidriger Inhalte unverzügliche Entfernung oder Sperrung; andernfalls begründete Ablehnung.</li><li>Mitteilung der Entscheidung an meldende und betroffene Person, soweit rechtlich zulässig, einschließlich Tatsachen, Regel/Rechtsgrundlage, Maßnahme, Dauer, Automatisierung und Rechtsbehelf.</li><li>Interner Einspruch innerhalb von sechs Monaten; menschliche erneute Prüfung.</li><li>Aufbewahrung des geschlossenen Meldungsvorgangs grundsätzlich für sechs Monate; ein minimierter Nachweis der Moderationsentscheidung kann bei Streit-, Sicherheits- oder Rechtsverteidigungsbedarf bis zu 1.095 Tage gespeichert werden.</li></ul>
+<p>Die heutige In-App-Meldung deckt diesen Ablauf noch nicht vollständig ab. Vor Veröffentlichung der neuen Bedingungen müssen anonyme/öffentliche Meldung, vollständige Begründung, Gutgläubigkeitserklärung, Entscheidungsbegründung und Einspruch technisch verifiziert sein.</p>
+</section></div>
+      <div data-lang="uk"><section><h2>Обов’язкові дані</h2>
+<p>1. Посилання, ID або максимально точне місце матеріалу. 2. Назва матеріалу й особа чи організація, якої він стосується. 3. Конкретне пояснення, чому матеріал незаконний, за можливості з нормою або доказом. 4. Ім’я та електронна адреса заявника, крім передбачених законом винятків. 5. Підтвердження: «Наскільки мені відомо, надані дані правильні й повні». 6. Необов’язково: докази та пояснення терміновості.</p>
+</section>
+<section><h2>Процес</h2>
+<ul><li>Підтвердження отримання з номером справи.</li><li>Визначення терміновості; безпосередня небезпека має пріоритет.</li><li>Об’єктивна й пропорційна перевірка місця, пояснення, контексту та прав усіх сторін.</li><li>Після достатнього знання про незаконність — видалення або блокування без невиправданої затримки; інакше обґрунтована відмова.</li><li>Повідомлення заявнику й автору, якщо закон дозволяє: факти, правило/правова підстава, захід, строк, автоматизація та спосіб оскарження.</li><li>Внутрішнє оскарження протягом шести місяців і нова людська перевірка.</li><li>Закрита справа зазвичай зберігається шість місяців; мінімізований доказ модераційного рішення може зберігатися до 1 095 днів у разі спору, безпекової потреби або правового захисту.</li></ul>
+<p>Сьогоднішня функція в застосунку ще не охоплює весь процес. До публікації нових Умов потрібно технічно перевірити публічне повідомлення без входу, повне пояснення, підтвердження добросовісності, мотивоване рішення та оскарження.</p>
+</section></div>
+    </article>
+  </main>
+  <footer class="site-footer"><div class="footer-inner">
+    <span>© <span data-current-year></span> Timofeev Philipp · UkrainianCommunity</span>
+    <div class="footer-links">
+      <a href="/support">Support</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/organization-rules">Organization rules</a>
+      <a href="/imprint">Impressum</a><a href="/report-illegal-content"><span data-lang="de">Inhalt melden</span><span data-lang="uk">Повідомити</span></a>
+    </div>
+  </div></footer>
+</body>
+</html>

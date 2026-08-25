@@ -19,6 +19,8 @@ struct RegistrationProfileDraft {
     let acceptedPrivacyAt: Date
     let termsVersion: String
     let privacyVersion: String
+    let minimumAgeConfirmedAt: Date
+    let minimumAgeVersion: String
 }
 
 enum RegistrationError: Error {
@@ -128,8 +130,10 @@ final class AuthService {
         backend: FirebaseAuthBackend(),
         profileProvider: UserProfileService.shared
     )
-    nonisolated static let currentTermsVersion = "2026.1"
-    nonisolated static let currentPrivacyVersion = "2026.1"
+    nonisolated static let currentTermsVersion = "2026.10"
+    nonisolated static let currentPrivacyVersion = "2026.10"
+    nonisolated static let currentOrganizationRulesVersion = "2026.10"
+    nonisolated static let currentMinimumAgeVersion = "14+"
 
     let authState: AuthState
 

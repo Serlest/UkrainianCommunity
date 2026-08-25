@@ -508,7 +508,7 @@ service cloud.firestore {
     }
 
     function isLegalDocumentType(documentType) {
-      return documentType in ['terms', 'privacy'];
+      return documentType in ['terms', 'privacy', 'organizationRules'];
     }
 
     function legalDocumentPointerFields() {
@@ -759,6 +759,7 @@ service cloud.firestore {
 
     function safeFeedbackOwnerUpdate() {
       return canManageFeedback()
+        && (!('dsaCase' in resource.data) || request.resource.data.status != 'closed')
         && feedbackChangedKeys().hasOnly(feedbackOwnerUpdateFields())
         && request.resource.data.status in ['open', 'answered', 'closed', 'reviewed', 'archived']
         && request.resource.data.updatedAt is timestamp
@@ -1154,6 +1155,8 @@ service cloud.firestore {
           'acceptedPrivacyVersion',
           'termsVersion',
           'privacyVersion',
+          'minimumAgeConfirmedAt',
+          'minimumAgeVersion',
           'createdAt',
           'updatedAt'
         ])
@@ -1172,12 +1175,14 @@ service cloud.firestore {
         && request.resource.data.selectedFederalState is string
         && request.resource.data.accountStatus == 'active'
         && request.resource.data.warningCount == 0
-        && request.resource.data.acceptedTermsAt is timestamp
-        && request.resource.data.acceptedPrivacyAt is timestamp
+        && request.resource.data.acceptedTermsAt == request.time
+        && request.resource.data.acceptedPrivacyAt == request.time
         && request.resource.data.acceptedTermsVersion is string
         && request.resource.data.acceptedPrivacyVersion is string
         && request.resource.data.termsVersion is string
         && request.resource.data.privacyVersion is string
+        && request.resource.data.minimumAgeConfirmedAt == request.time
+        && request.resource.data.minimumAgeVersion == '14+'
         && request.resource.data.createdAt is timestamp
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt is timestamp
@@ -1677,7 +1682,8 @@ service cloud.firestore {
     }
 
     function safeOrganizationRequestCreate(organizationId) {
-      return organizationDocumentStructurallyValid(request.resource.data, organizationId)
+      return hasValidOrganizationCreationProof(organizationId, request.resource.data.name)
+        && organizationDocumentStructurallyValid(request.resource.data, organizationId)
         && request.resource.data.moderationStatus == 'pendingReview'
         && request.resource.data.submittedByUserId == request.auth.uid
         && request.resource.data.submittedAt is timestamp
@@ -1688,9 +1694,36 @@ service cloud.firestore {
 
     function safeOwnerOrganizationCreate(organizationId) {
       return isOwner()
+        && hasValidOrganizationCreationProof(organizationId, request.resource.data.name)
         && organizationDocumentStructurallyValid(request.resource.data, organizationId)
         && request.resource.data.moderationStatus == 'approved'
         && aggregateCountersAreZeroOnCreate(request.resource.data);
+    }
+
+    function hasValidOrganizationCreationProof(organizationId, organizationName) {
+      let rulesPath = /databases/$(database)/documents/legalDocuments/organizationRules;
+      let proofPath = /databases/$(database)/documents/organizationCreationProofs/$(organizationId);
+      return !exists(rulesPath)
+        || get(rulesPath).data.requiresAcceptance != true
+        || (exists(proofPath) && organizationCreationProofMatches(
+          proofPath,
+          rulesPath,
+          organizationId,
+          organizationName
+        ));
+    }
+
+    function organizationCreationProofMatches(proofPath, rulesPath, organizationId, organizationName) {
+      let proof = get(proofPath).data;
+      let rules = get(rulesPath).data;
+      return proof.userId == request.auth.uid
+        && proof.documentType == 'organizationRules'
+        && proof.organizationId == organizationId
+        && proof.organizationName == organizationName
+        && proof.version == rules.activeVersion
+        && proof.acceptedAt is timestamp
+        && proof.expiresAt is timestamp
+        && proof.expiresAt > request.time;
     }
 
     function safeOrganizationRequestUpdate() {
@@ -2129,6 +2162,10 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /organizationCreationProofs/{organizationId} {
+      allow read, create, update, delete: if false;
+    }
+
     match /users/{uid} {
       allow read: if isSelf(uid) || canManageUsers();
 
@@ -2160,6 +2197,13 @@ service cloud.firestore {
         allow update: if validNotificationUserUpdate(uid);
 
         allow delete: if false;
+      }
+
+      // Sanitized DSA statements are written only by trusted backend code.
+      // They intentionally exclude the reporter's identity, contact data and evidence.
+      match /dsaStatements/{statementId} {
+        allow read: if isSelf(uid);
+        allow create, update, delete: if false;
       }
 
       match /notificationPushTokens/{tokenId} {
@@ -2443,6 +2487,16 @@ service cloud.firestore {
 
         allow update, delete: if false;
       }
+    }
+
+    // DSA case files contain reporter contact details, access-token hashes and
+    // legal evidence. They are available only through audited server endpoints.
+    match /dsaCases/{caseId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /dsaPortalRateLimits/{rateLimitId} {
+      allow read, create, update, delete: if false;
     }
 
     match /systemLogs/{systemLogId} {

@@ -1,4 +1,4 @@
-import { FieldPath } from "firebase-admin/firestore";
+import {FieldPath, FieldValue} from "firebase-admin/firestore";
 import {
   onDocumentCreated,
   onDocumentUpdated,
@@ -135,6 +135,7 @@ const actionTypes = new Set<NotificationActionType>([
   "openNews",
   "openEvent",
   "openFeedback",
+  "openDsaStatement",
   "openLegalDocuments",
   "openOrganization",
   "openOrganizationRequest",
@@ -362,7 +363,22 @@ export const notifyReportReviewedOnUpdate = onDocumentUpdated(
     const before = event.data?.before.data();
     const after = event.data?.after.data();
     const userId = stringValue(after?.userId);
-    if (!after || after.type !== "report" || after.status !== "closed" || before?.status === "closed" || !userId) {
+    if (!after) return;
+    if (after.dsaCase) {
+      if (after.status === "closed" && before?.status !== "closed") {
+        const canonical = await db.collection("dsaCases").doc(event.params.feedbackId).get();
+        const canonicalStatus = stringValue(canonical.data()?.status);
+        if (!canonical.exists || !["decided", "appealDecided"].includes(canonicalStatus ?? "")) {
+          await event.data?.after.ref.update({
+            status: "open",
+            updatedAt: FieldValue.serverTimestamp(),
+            unreadForOwner: true,
+          });
+        }
+      }
+      return;
+    }
+    if (after.type !== "report" || after.status !== "closed" || before?.status === "closed" || !userId) {
       return;
     }
 

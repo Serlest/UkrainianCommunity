@@ -6,18 +6,25 @@ struct ContentReportSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedReason: ContentReportReason?
     @State private var details = ""
+    @State private var legalBasis = ""
+    @State private var evidence = ""
+    @State private var goodFaithConfirmed = false
     @State private var isSubmitting = false
     @State private var receipt: ContentReportReceipt?
     @State private var errorMessage: String?
 
-    private var normalizedDetails: String? {
+    private var normalizedDetails: String {
         let value = details.trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
+        return value
     }
 
     private var canSubmit: Bool {
-        guard let selectedReason, !isSubmitting, receipt == nil else { return false }
-        return details.count <= 1_000 && (selectedReason != .other || normalizedDetails != nil)
+        guard selectedReason != nil, !isSubmitting, receipt == nil else { return false }
+        return normalizedDetails.count >= 20
+            && details.count <= 5_000
+            && legalBasis.count <= 1_000
+            && evidence.count <= 5_000
+            && goodFaithConfirmed
     }
 
     var body: some View {
@@ -115,7 +122,7 @@ struct ContentReportSheet: View {
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(AppTheme.textPrimary)
                         Spacer(minLength: 0)
-                        Text("\(details.count)/1000")
+                        Text("\(details.count)/5000")
                             .font(.caption)
                             .foregroundStyle(details.count > 1_000 ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
                     }
@@ -143,12 +150,51 @@ struct ContentReportSheet: View {
                             .stroke(AppTheme.borderSubtle)
                     )
 
-                    if selectedReason == .other && normalizedDetails == nil {
-                        Text(AppStrings.Safety.otherDetailsRequired)
+                    if normalizedDetails.count < 20 {
+                        Text(AppStrings.Safety.explanationRequired)
                             .font(.caption)
                             .foregroundStyle(AppTheme.accentDestructiveForeground)
                     }
                 }
+            }
+
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    reportTextArea(
+                        title: AppStrings.Safety.legalBasisTitle,
+                        placeholder: AppStrings.Safety.legalBasisPlaceholder,
+                        text: $legalBasis,
+                        limit: 1_000
+                    )
+                    Divider()
+                    reportTextArea(
+                        title: AppStrings.Safety.evidenceTitle,
+                        placeholder: AppStrings.Safety.evidencePlaceholder,
+                        text: $evidence,
+                        limit: 5_000
+                    )
+                }
+            }
+
+            AppEditorSectionCard {
+                Button {
+                    goodFaithConfirmed.toggle()
+                } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: goodFaithConfirmed ? "checkmark.square.fill" : "square")
+                            .font(.title3)
+                            .foregroundStyle(goodFaithConfirmed ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
+                        Text(AppStrings.Safety.goodFaithDeclaration)
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(goodFaithConfirmed ? AppStrings.Safety.goodFaithConfirmed : AppStrings.Safety.goodFaithNotConfirmed)
             }
 
             AppEditorSectionCard {
@@ -184,9 +230,7 @@ struct ContentReportSheet: View {
         UnifiedEmptyStateCard(
             systemImage: "checkmark.shield.fill",
             title: AppStrings.Safety.submittedTitle,
-            message: receipt.wasDuplicate
-                ? AppStrings.Safety.submittedDuplicate
-                : AppStrings.Safety.submittedMessage
+            message: AppStrings.Safety.submittedCase(receipt.caseNumber)
         )
     }
 
@@ -231,7 +275,12 @@ struct ContentReportSheet: View {
                 receipt = try await coordinator.submit(
                     target: target,
                     reason: selectedReason,
-                    details: normalizedDetails
+                    submission: ContentReportSubmission(
+                        illegalExplanation: normalizedDetails,
+                        legalBasis: normalizedValue(legalBasis),
+                        evidence: normalizedValue(evidence),
+                        goodFaithConfirmed: goodFaithConfirmed
+                    )
                 )
             } catch let error as ContentReportSubmissionError {
                 errorMessage = message(for: error)
@@ -262,5 +311,42 @@ struct ContentReportSheet: View {
     private func dismissReport() {
         coordinator.dismiss()
         dismiss()
+    }
+
+    private func normalizedValue(_ value: String) -> String? {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalized.isEmpty ? nil : normalized
+    }
+
+    private func reportTextArea(
+        title: String,
+        placeholder: String,
+        text: Binding<String>,
+        limit: Int
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.headline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
+                Spacer(minLength: 0)
+                Text("\(text.wrappedValue.count)/\(limit)")
+                    .font(.caption)
+                    .foregroundStyle(text.wrappedValue.count > limit ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
+            }
+            ZStack(alignment: .topLeading) {
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .font(.body)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 14)
+                }
+                TextEditor(text: text)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 96)
+                    .padding(8)
+            }
+            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(AppTheme.borderSubtle))
+        }
     }
 }

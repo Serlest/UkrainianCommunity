@@ -242,6 +242,7 @@ struct RegisterView: View {
     @State private var selectedFederalState: AustrianFederalState = .tirol
     @State private var acceptedTerms = false
     @State private var acceptedPrivacy = false
+    @State private var confirmedMinimumAge = false
     @State private var errorMessage: String?
     @State private var isSubmitting = false
     private let validationService = AuthValidationService()
@@ -280,7 +281,11 @@ struct RegisterView: View {
             }
 
             AppEditorSectionCard {
-                TermsPrivacyConsentView(acceptedTerms: $acceptedTerms, acceptedPrivacy: $acceptedPrivacy)
+                TermsPrivacyConsentView(
+                    acceptedTerms: $acceptedTerms,
+                    acceptedPrivacy: $acceptedPrivacy,
+                    confirmedMinimumAge: $confirmedMinimumAge
+                )
             }
 
             AppEditorSectionCard {
@@ -334,7 +339,9 @@ struct RegisterView: View {
             acceptedTermsAt: now,
             acceptedPrivacyAt: now,
             termsVersion: AuthService.currentTermsVersion,
-            privacyVersion: AuthService.currentPrivacyVersion
+            privacyVersion: AuthService.currentPrivacyVersion,
+            minimumAgeConfirmedAt: now,
+            minimumAgeVersion: AuthService.currentMinimumAgeVersion
         )
 
         Task {
@@ -355,7 +362,8 @@ struct RegisterView: View {
             repeatedPassword: repeatedPassword,
             displayName: displayName,
             acceptedTerms: acceptedTerms,
-            acceptedPrivacy: acceptedPrivacy
+            acceptedPrivacy: acceptedPrivacy,
+            confirmedMinimumAge: confirmedMinimumAge
         )
     }
 
@@ -376,6 +384,7 @@ struct RegisterView: View {
             || !telegramUsername.isEmpty
             || acceptedTerms
             || acceptedPrivacy
+            || confirmedMinimumAge
     }
 }
 
@@ -713,6 +722,7 @@ struct PasswordResetView: View {
 struct TermsPrivacyConsentView: View {
     @Binding var acceptedTerms: Bool
     @Binding var acceptedPrivacy: Bool
+    @Binding var confirmedMinimumAge: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -730,6 +740,9 @@ struct TermsPrivacyConsentView: View {
 
             Toggle(AppStrings.Auth.acceptPrivacy, isOn: $acceptedPrivacy)
                 .accessibilityLabel(AppStrings.Auth.acceptPrivacy)
+
+            Toggle(AppStrings.Auth.confirmMinimumAge, isOn: $confirmedMinimumAge)
+                .accessibilityLabel(AppStrings.Auth.confirmMinimumAge)
 
             VStack(alignment: .leading, spacing: 8) {
                 NavigationLink {

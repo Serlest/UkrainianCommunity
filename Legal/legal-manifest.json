@@ -1,0 +1,44 @@
+{
+  "version": "2026.10",
+  "effectiveDate": "2026-08-25",
+  "canonicalLocale": "de",
+  "supportedLocales": ["de", "uk"],
+  "operator": {
+    "displayName": "Timofeev Philipp",
+    "legalNameOrEntity": "Timofeev Philipp",
+    "legalForm": "Private individual; non-commercial hobby project",
+    "postalAddress": "Egger-Lienz-Straße 47, 6020 Innsbruck",
+    "country": "Austria",
+    "email": "ukrainian.community@outlook.com",
+    "register": "not applicable",
+    "registerNumber": "not applicable",
+    "tradeAuthority": "not applicable",
+    "vatId": "not applicable"
+  },
+  "publicUrls": {
+    "support": "https://ukrainiancommunity-dbd5f.web.app/support",
+    "privacy": "https://ukrainiancommunity-dbd5f.web.app/privacy",
+    "terms": "https://ukrainiancommunity-dbd5f.web.app/terms",
+    "organizationRules": "https://ukrainiancommunity-dbd5f.web.app/organization-rules",
+    "imprint": "https://ukrainiancommunity-dbd5f.web.app/imprint",
+    "illegalContentNotice": "https://ukrainiancommunity-dbd5f.web.app/report-illegal-content"
+  },
+  "documents": {
+    "terms": {
+      "requiresAcceptance": true,
+      "files": {"de": "Legal/terms.de.md", "uk": "Legal/terms.uk.md"}
+    },
+    "privacy": {
+      "requiresAcceptance": false,
+      "files": {"de": "Legal/privacy.de.md", "uk": "Legal/privacy.uk.md"}
+    },
+    "organizationRules": {
+      "requiresAcceptance": true,
+      "files": {"de": "Legal/organization-rules.de.md", "uk": "Legal/organization-rules.uk.md"}
+    }
+  },
+  "unresolvedReleaseBlocks": [
+    "qualified Austrian legal review",
+    "public DSA notice-and-action workflow and appeal workflow"
+  ]
+}

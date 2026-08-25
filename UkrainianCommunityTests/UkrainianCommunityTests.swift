@@ -795,7 +795,8 @@ struct UkrainianCommunityTests {
             repeatedPassword: "different",
             displayName: " ",
             acceptedTerms: false,
-            acceptedPrivacy: false
+            acceptedPrivacy: false,
+            confirmedMinimumAge: false
         )
 
         #expect(registrationErrors.contains(AppStrings.Validation.authEmailInvalid))
@@ -804,6 +805,7 @@ struct UkrainianCommunityTests {
         #expect(registrationErrors.contains(AppStrings.Validation.authDisplayNameRequired))
         #expect(registrationErrors.contains(AppStrings.Validation.authTermsRequired))
         #expect(registrationErrors.contains(AppStrings.Validation.authPrivacyRequired))
+        #expect(registrationErrors.contains(AppStrings.Validation.authMinimumAgeRequired))
 
         let resetErrors = service.validatePasswordReset(email: "nope")
         #expect(resetErrors == [AppStrings.Validation.authEmailInvalid])
@@ -812,8 +814,9 @@ struct UkrainianCommunityTests {
     @Test func authLegalVersionsAreStableAndNonEmpty() {
         #expect(AuthService.currentTermsVersion.isEmpty == false)
         #expect(AuthService.currentPrivacyVersion.isEmpty == false)
-        #expect(AuthService.currentTermsVersion == "2026.1")
-        #expect(AuthService.currentPrivacyVersion == "2026.1")
+        #expect(AuthService.currentTermsVersion == "2026.10")
+        #expect(AuthService.currentPrivacyVersion == "2026.10")
+        #expect(AuthService.currentMinimumAgeVersion == "14+")
     }
 
     @Test func legalDraftVersionGenerationUsesReadableVersionAndInternalNumber() {
@@ -846,7 +849,9 @@ struct UkrainianCommunityTests {
             acceptedTermsAt: acceptedAt,
             acceptedPrivacyAt: acceptedAt,
             termsVersion: AuthService.currentTermsVersion,
-            privacyVersion: AuthService.currentPrivacyVersion
+            privacyVersion: AuthService.currentPrivacyVersion,
+            minimumAgeConfirmedAt: acceptedAt,
+            minimumAgeVersion: AuthService.currentMinimumAgeVersion
         )
 
         let payload = UserProfileService.makeRegisteredUserDocumentData(uid: "user-123", draft: draft)
@@ -866,6 +871,8 @@ struct UkrainianCommunityTests {
         #expect(payload.acceptedPrivacyAt == acceptedAt)
         #expect(payload.termsVersion == AuthService.currentTermsVersion)
         #expect(payload.privacyVersion == AuthService.currentPrivacyVersion)
+        #expect(payload.minimumAgeConfirmedAt == acceptedAt)
+        #expect(payload.minimumAgeVersion == AuthService.currentMinimumAgeVersion)
         #expect(payload.isBlocked == false)
     }
 

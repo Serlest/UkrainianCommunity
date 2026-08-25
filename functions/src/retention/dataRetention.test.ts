@@ -12,6 +12,8 @@ import {
 } from "../analytics/analyticsEventGuard";
 import {
   analyticsCleanupPageSize,
+  auditLogRetentionDays,
+  closedFeedbackRetentionMonths,
   contentRetentionMonths,
   isExpiredAnalyticsMarker,
   maxAnalyticsCleanupPagesPerRun,
@@ -22,6 +24,7 @@ import {
 
 test("content retention is six calendar months", () => {
   assert.equal(contentRetentionMonths, 6);
+  assert.equal(closedFeedbackRetentionMonths, 6);
   assert.equal(
     subtractUtcMonths(new Date("2026-08-31T12:30:00.000Z"), 6).toISOString(),
     "2026-02-28T12:30:00.000Z",
@@ -57,6 +60,7 @@ test("analytics guard retention remains short-lived", () => {
 });
 
 test("system log retention matrix remains explicit", () => {
+  assert.equal(auditLogRetentionDays, 1_095);
   assert.deepEqual(systemLogRetentionDays, {
     technicalError: 90,
     normalAudit: 365,

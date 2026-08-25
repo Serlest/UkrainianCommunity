@@ -21,7 +21,8 @@ final class LegalDocumentManagementViewModel: ObservableObject {
         do {
             async let termsState = repository.fetchManagementState(type: .terms)
             async let privacyState = repository.fetchManagementState(type: .privacy)
-            let loadedStates = try await [termsState, privacyState]
+            async let organizationRulesState = repository.fetchManagementState(type: .organizationRules)
+            let loadedStates = try await [termsState, privacyState, organizationRulesState]
             states = Dictionary(uniqueKeysWithValues: loadedStates.map { ($0.type, $0) })
         } catch {
             errorMessage = AppStrings.LegalManagement.loadFailed
@@ -100,7 +101,7 @@ private struct LegalDocumentManagementCard: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: type == .terms ? "doc.text.fill" : "lock.shield.fill")
+                    Image(systemName: type.systemImage)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 40, height: 40)
@@ -166,6 +167,8 @@ private struct LegalDocumentManagementCard: View {
             return AppStrings.LegalManagement.termsSubtitle
         case .privacy:
             return AppStrings.LegalManagement.privacySubtitle
+        case .organizationRules:
+            return AppStrings.LegalManagement.organizationRulesSubtitle
         }
     }
 }
@@ -546,6 +549,16 @@ private extension LegalDocumentType {
             return AppStrings.Settings.terms
         case .privacy:
             return AppStrings.Settings.privacyPolicy
+        case .organizationRules:
+            return AppStrings.OrganizationRules.title
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .terms: "doc.text.fill"
+        case .privacy: "lock.shield.fill"
+        case .organizationRules: "building.2.crop.circle.fill"
         }
     }
 }

@@ -1002,13 +1002,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ich akzeptiere die Datenschutzerklärung"
+            "value" : "Ich habe die Datenschutzerklärung gelesen"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Я приймаю Політику конфіденційності"
+            "value" : "Я прочитав(-ла) Політику конфіденційності"
           }
         }
       }
@@ -1026,6 +1026,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Я приймаю Умови користування"
+          }
+        }
+      }
+    },
+    "auth.consent.minimum_age" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich bestätige, dass ich mindestens 14 Jahre alt bin"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Я підтверджую, що мені виповнилося 14 років"
           }
         }
       }
@@ -1104,13 +1121,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bestätigen Sie bitte, dass Sie die Nutzungsbedingungen und die Datenschutzerklärung akzeptieren, um ein Konto zu erstellen."
+            "value" : "Akzeptieren Sie die Nutzungsbedingungen, bestätigen Sie die Kenntnisnahme der Datenschutzerklärung und ein Mindestalter von 14 Jahren."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Щоб створити обліковий запис, підтвердьте, що ви приймаєте Умови користування та Політику конфіденційності."
+            "value" : "Прийміть Умови користування, підтвердьте ознайомлення з Політикою конфіденційності та вік від 14 років."
           }
         }
       }
@@ -10891,6 +10908,35 @@
         }
       }
     },
+    "legal_evidence.empty.message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Serverseitig erfasste Bestätigungen erscheinen hier."}},"uk":{"stringUnit":{"state":"translated","value":"Підтвердження, зафіксовані сервером, з’являться тут."}}}},
+    "legal_evidence.empty.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch keine Nachweise"}},"uk":{"stringUnit":{"state":"translated","value":"Підтверджень ще немає"}}}},
+    "legal_evidence.error.message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Rechtliche Nachweise konnten nicht geladen werden. Verbindung prüfen und erneut versuchen."}},"uk":{"stringUnit":{"state":"translated","value":"Не вдалося завантажити юридичні підтвердження. Перевірте з’єднання та повторіть спробу."}}}},
+    "legal_evidence.error.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Nachweise nicht verfügbar"}},"uk":{"stringUnit":{"state":"translated","value":"Підтвердження недоступні"}}}},
+    "legal_evidence.event.analytics_granted" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Analyse-Einwilligung erteilt"}},"uk":{"stringUnit":{"state":"translated","value":"Згоду на аналітику надано"}}}},
+    "legal_evidence.event.analytics_withdrawn" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Analyse-Einwilligung widerrufen"}},"uk":{"stringUnit":{"state":"translated","value":"Згоду на аналітику відкликано"}}}},
+    "legal_evidence.event.minimum_age_confirmed" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Alter 14+ bestätigt"}},"uk":{"stringUnit":{"state":"translated","value":"Вік 14+ підтверджено"}}}},
+    "legal_evidence.event.organization_rules_accepted" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Organisationsregeln akzeptiert"}},"uk":{"stringUnit":{"state":"translated","value":"Правила для організацій прийнято"}}}},
+    "legal_evidence.event.privacy_acknowledged" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Datenschutzerklärung zur Kenntnis genommen"}},"uk":{"stringUnit":{"state":"translated","value":"Ознайомлення з політикою конфіденційності підтверджено"}}}},
+    "legal_evidence.event.terms_accepted" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Nutzungsbedingungen akzeptiert"}},"uk":{"stringUnit":{"state":"translated","value":"Умови використання прийнято"}}}},
+    "legal_evidence.filter.age" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Alter 14+"}},"uk":{"stringUnit":{"state":"translated","value":"Вік 14+"}}}},
+    "legal_evidence.filter.all" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Alle"}},"uk":{"stringUnit":{"state":"translated","value":"Усі"}}}},
+    "legal_evidence.filter.analytics" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Analyse"}},"uk":{"stringUnit":{"state":"translated","value":"Аналітика"}}}},
+    "legal_evidence.filter.organizations" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Organisationen"}},"uk":{"stringUnit":{"state":"translated","value":"Організації"}}}},
+    "legal_evidence.filter.privacy" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Datenschutz"}},"uk":{"stringUnit":{"state":"translated","value":"Конфіденційність"}}}},
+    "legal_evidence.filter.terms" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Bedingungen"}},"uk":{"stringUnit":{"state":"translated","value":"Умови"}}}},
+    "legal_evidence.filter.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Nachweisart"}},"uk":{"stringUnit":{"state":"translated","value":"Тип підтвердження"}}}},
+    "legal_evidence.immutable_notice" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Nachweise werden serverseitig verwaltet und können in der App weder bearbeitet noch gelöscht werden. Ein fehlender Nachweis gilt nicht als Ablehnung."}},"uk":{"stringUnit":{"state":"translated","value":"Підтвердження керуються сервером, їх неможливо редагувати або видаляти в застосунку. Відсутність запису не вважається відмовою."}}}},
+    "legal_evidence.loading" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Rechtliche Nachweise werden geladen …"}},"uk":{"stringUnit":{"state":"translated","value":"Юридичні підтвердження завантажуються…"}}}},
+    "legal_evidence.organization" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Organisation"}},"uk":{"stringUnit":{"state":"translated","value":"Організація"}}}},
+    "legal_evidence.permission.message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Nur der App-Inhaber kann rechtliche Nachweise einsehen."}},"uk":{"stringUnit":{"state":"translated","value":"Лише власник застосунку може переглядати юридичні підтвердження."}}}},
+    "legal_evidence.permission.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Inhaberzugriff erforderlich"}},"uk":{"stringUnit":{"state":"translated","value":"Потрібен доступ власника"}}}},
+    "legal_evidence.profile_subtitle" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Wer was, in welcher Version und wann bestätigt hat."}},"uk":{"stringUnit":{"state":"translated","value":"Хто, що, яку версію і коли підтвердив."}}}},
+    "legal_evidence.search.empty.message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Suchtext oder Nachweisfilter ändern."}},"uk":{"stringUnit":{"state":"translated","value":"Змініть пошуковий запит або фільтр."}}}},
+    "legal_evidence.search.empty.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Keine passenden Nachweise"}},"uk":{"stringUnit":{"state":"translated","value":"Відповідних підтверджень немає"}}}},
+    "legal_evidence.search.placeholder" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Name, E-Mail, UID oder Version"}},"uk":{"stringUnit":{"state":"translated","value":"Ім’я, електронна пошта, UID або версія"}}}},
+    "legal_evidence.subtitle" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Unveränderbare, nur für den Inhaber sichtbare Historie zu Bedingungen, Datenschutz, Alter, Organisationsregeln und Analyse-Einwilligung."}},"uk":{"stringUnit":{"state":"translated","value":"Незмінна історія прийняття умов, політики, підтвердження віку, правил для організацій і згоди на аналітику, доступна лише власнику."}}}},
+    "legal_evidence.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Einwilligungen und rechtliche Nachweise"}},"uk":{"stringUnit":{"state":"translated","value":"Згоди та юридичні підтвердження"}}}},
+    "legal_management.organization_rules.subtitle" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Regeln, die vor dem Erstellen einer Organisation akzeptiert werden müssen."}},"uk":{"stringUnit":{"state":"translated","value":"Правила, які потрібно прийняти перед створенням організації."}}}},
     "legal_management.acceptance_not_required" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16543,6 +16589,24 @@
         }
       }
     },
+    "organization_rules.editor.acceptance_failed" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Zustimmung zu den Regeln konnte nicht gespeichert werden. Verbindung prüfen und erneut versuchen."}},"uk":{"stringUnit":{"state":"translated","value":"Не вдалося зберегти прийняття правил. Перевірте з’єднання та повторіть спробу."}}}},
+    "organization_rules.editor.close" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Schließen"}},"uk":{"stringUnit":{"state":"translated","value":"Закрити"}}}},
+    "organization_rules.editor.confirm" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Ich bin zur Vertretung dieser Organisation berechtigt und akzeptiere diese Regeln."}},"uk":{"stringUnit":{"state":"translated","value":"Я маю право представляти цю організацію та приймаю ці правила."}}}},
+    "organization_rules.editor.load_failed" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Die aktuellen Organisationsregeln konnten nicht geladen werden. Versuchen Sie es vor dem Absenden erneut."}},"uk":{"stringUnit":{"state":"translated","value":"Не вдалося завантажити чинні правила для організацій. Повторіть спробу перед надсиланням."}}}},
+    "organization_rules.editor.loading" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktuelle Regeln werden geladen …"}},"uk":{"stringUnit":{"state":"translated","value":"Завантаження чинних правил…"}}}},
+    "organization_rules.editor.read" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Organisationsregeln lesen"}},"uk":{"stringUnit":{"state":"translated","value":"Прочитати правила для організацій"}}}},
+    "organization_rules.editor.retry" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Regeln erneut laden"}},"uk":{"stringUnit":{"state":"translated","value":"Завантажити правила знову"}}}},
+    "organization_rules.editor.section_message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Lesen und akzeptieren Sie die aktuellen Regeln, bevor Sie diese Organisation absenden."}},"uk":{"stringUnit":{"state":"translated","value":"Прочитайте й прийміть чинні правила перед надсиланням цієї організації."}}}},
+    "organization_rules.editor.section_title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Regeln und Verantwortung"}},"uk":{"stringUnit":{"state":"translated","value":"Правила та відповідальність"}}}},
+    "organization_rules.fallback.authority.body" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie müssen berechtigt sein, das Organisationsprofil zu erstellen und zu verwalten."}},"uk":{"stringUnit":{"state":"translated","value":"Ви повинні мати право створювати та адмініструвати профіль організації."}}}},
+    "organization_rules.fallback.authority.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Berechtigung"}},"uk":{"stringUnit":{"state":"translated","value":"Повноваження"}}}},
+    "organization_rules.fallback.content.body" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Für alle hochgeladenen Inhalte und personenbezogenen Daten benötigen Sie die erforderlichen Rechte und Rechtsgrundlagen."}},"uk":{"stringUnit":{"state":"translated","value":"Для всього завантаженого вмісту й персональних даних потрібні необхідні права та правові підстави."}}}},
+    "organization_rules.fallback.content.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Inhalte und Daten"}},"uk":{"stringUnit":{"state":"translated","value":"Вміст і дані"}}}},
+    "organization_rules.fallback.moderation.body" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Plattform darf nach Recht und Nutzungsbedingungen Nachweise oder Änderungen verlangen sowie Einträge ablehnen, beschränken oder entfernen."}},"uk":{"stringUnit":{"state":"translated","value":"Платформа може відповідно до закону й Умов вимагати докази або зміни, відхиляти, обмежувати чи видаляти профілі."}}}},
+    "organization_rules.fallback.moderation.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Moderation"}},"uk":{"stringUnit":{"state":"translated","value":"Модерація"}}}},
+    "organization_rules.fallback.responsibility.body" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Organisationsangaben und Angebote müssen rechtmäßig, wahr, vollständig und aktuell sein."}},"uk":{"stringUnit":{"state":"translated","value":"Відомості про організацію та її пропозиції мають бути законними, правдивими, повними й актуальними."}}}},
+    "organization_rules.fallback.responsibility.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Verantwortung"}},"uk":{"stringUnit":{"state":"translated","value":"Відповідальність"}}}},
+    "organization_rules.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Regeln für Organisationen"}},"uk":{"stringUnit":{"state":"translated","value":"Правила для організацій"}}}},
     "organizations.about_section" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19742,6 +19806,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Самовивіз"
+          }
+        }
+      }
+    },
+    "organizations.editor.services.helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geben Sie bis zu 8 Leistungen durch Kommas getrennt an"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкажіть до 8 послуг через кому"
           }
         }
       }
@@ -32608,6 +32689,40 @@
         }
       }
     },
+    "safety.dsa.appeal.changed" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Aufheben und neue Entscheidung verlangen" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Скасувати й вимагати нового рішення" } } } },
+    "safety.dsa.appeal.outcome" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Ergebnis des Einspruchs" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Результат оскарження" } } } },
+    "safety.dsa.appeal.reason" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Begründete Einspruchsentscheidung" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Мотивоване рішення щодо оскарження" } } } },
+    "safety.dsa.appeal.submit" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Kostenlosen Einspruch senden" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Подати безкоштовне оскарження" } } } },
+    "safety.dsa.appeal.title" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "DSA-Einspruch prüfen" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Розгляд оскарження за DSA" } } } },
+    "safety.dsa.appeal.upheld" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Ursprüngliche Entscheidung bestätigt" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Початкове рішення залишено чинним" } } } },
+    "safety.dsa.decision.action" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Begründete Entscheidung erlassen" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Ухвалити мотивоване рішення" } } } },
+    "safety.dsa.decision.submit" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Speichern und benachrichtigen" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Зберегти й повідомити" } } } },
+    "safety.dsa.decision.title" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "DSA-Entscheidung" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Рішення за DSA" } } } },
+    "safety.dsa.duration" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Dauer" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Строк" } } } },
+    "safety.dsa.duration.default" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Dauerhaft, sofern im Einspruch nicht geändert" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Безстроково, якщо рішення не змінено після оскарження" } } } },
+    "safety.dsa.facts" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Tatsachen und konkrete Gründe" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Факти та конкретні причини" } } } },
+    "safety.dsa.human_review" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Ich bestätige, dass ein Mensch die Tatsachen geprüft und diese Entscheidung getroffen hat." } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Я підтверджую, що людина перевірила факти та ухвалила це рішення." } } } },
+    "safety.dsa.outcome.no_action" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Kein Verstoß / keine Maßnahme" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Порушення немає / без заходів" } } } },
+    "safety.dsa.outcome.removed" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhalt entfernen" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Видалити вміст" } } } },
+    "safety.dsa.outcome.restricted" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Sichtbarkeit beschränken" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Обмежити видимість" } } } },
+    "safety.dsa.outcome.title" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Entscheidung und Maßnahme" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Рішення та захід" } } } },
+    "safety.dsa.redress" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Einspruch und weitere Rechtsbehelfe" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Оскарження та інші засоби захисту" } } } },
+    "safety.dsa.redress.default" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Kostenloser interner Einspruch innerhalb von sechs Monaten; zertifizierte außergerichtliche Streitbeilegung und Gerichte bleiben verfügbar." } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Безкоштовне внутрішнє оскарження протягом шести місяців; сертифіковане позасудове врегулювання та суд залишаються доступними." } } } },
+    "safety.dsa.terms_basis" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Grundlage in Bedingungen oder Gemeinschaftsregeln" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Підстава в умовах або правилах спільноти" } } } },
+    "safety.dsa.territory" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Räumlicher Geltungsbereich" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Територіальна дія" } } } },
+    "safety.dsa.territory.default" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Österreich / Europäische Union" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Австрія / Європейський Союз" } } } },
+    "safety.dsa.automation" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Automatisierte Entscheidung" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Автоматизоване рішення" } } } },
+    "safety.dsa.automation.no" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Nein" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Ні" } } } },
+    "safety.dsa.automation.yes" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Ja" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Так" } } } },
+    "safety.dsa.case_number" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktenzeichen" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Номер справи" } } } },
+    "safety.dsa.content_id" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhaltskennung" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Ідентифікатор вмісту" } } } },
+    "safety.dsa.content_type" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhaltstyp" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Тип вмісту" } } } },
+    "safety.dsa.statement.load_error" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Die geschützte Entscheidung konnte nicht geladen werden." } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося завантажити захищене рішення." } } } },
+    "safety.dsa.statement.privacy" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Identität und Kontaktdaten der meldenden Person sowie eingereichte Nachweise werden hier nicht offengelegt." } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Особа й контактні дані заявника та подані докази тут не розкриваються." } } } },
+    "safety.dsa.statement.sign_in" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Melde dich an, um diese geschützte Entscheidung zu sehen." } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Увійдіть, щоб переглянути це захищене рішення." } } } },
+    "safety.dsa.statement.subtitle" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Entscheidung zu einem deinem Konto zugeordneten Inhalt." } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Рішення щодо вмісту, пов’язаного з вашим обліковим записом." } } } },
+    "safety.dsa.statement.title" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Begründete Moderationsentscheidung" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Мотивоване рішення модерації" } } } },
+    "safety.dsa.statement.unavailable" : { "extractionState" : "manual", "localizations" : { "de" : { "stringUnit" : { "state" : "translated", "value" : "Entscheidung nicht verfügbar" } }, "uk" : { "stringUnit" : { "state" : "translated", "value" : "Рішення недоступне" } } } },
     "safety.report.action" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32665,15 +32780,71 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Details (optional)"
+            "value" : "Warum ist dieser Inhalt rechtswidrig?"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Деталі (необов’язково)"
+            "value" : "Чому цей вміст є незаконним?"
           }
         }
+      }
+    },
+    "safety.report.evidence.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Füge Belege oder weitere Fundstellen hinzu." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Додайте докази або додаткові посилання." } }
+      }
+    },
+    "safety.report.evidence.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Belege oder weitere Fundstellen (optional)" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Докази або додаткові посилання (необов’язково)" } }
+      }
+    },
+    "safety.report.explanation.required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Füge eine konkrete Erklärung mit mindestens 20 Zeichen hinzu." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Додайте конкретне пояснення щонайменше з 20 символів." } }
+      }
+    },
+    "safety.report.good_faith" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ich bestätige nach bestem Wissen, dass die Angaben richtig und vollständig sind." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Наскільки мені відомо, надані відомості правильні й повні." } }
+      }
+    },
+    "safety.report.good_faith.confirmed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bestätigt" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Підтверджено" } }
+      }
+    },
+    "safety.report.good_faith.not_confirmed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nicht bestätigt" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не підтверджено" } }
+      }
+    },
+    "safety.report.legal_basis.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zum Beispiel das betroffene Gesetz oder Schutzrecht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Наприклад, відповідний закон або захищене право." } }
+      }
+    },
+    "safety.report.legal_basis.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Rechtsgrundlage (falls bekannt)" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Правова підстава (якщо відома)" } }
       }
     },
     "safety.report.emergency" : {
@@ -33065,6 +33236,13 @@
             "value" : "Дякуємо. Команда модерації перевірить цей контент."
           }
         }
+      }
+    },
+    "safety.report.submitted.case" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Eingang bestätigt. Deine Vorgangsnummer ist %@. Du kannst den Fall unter „Meine Anfragen“ verfolgen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Отримання підтверджено. Номер вашої справи: %@. Стежити за нею можна в розділі «Мої звернення»." } }
       }
     },
     "safety.report.submitted.title" : {
@@ -40629,19 +40807,36 @@
         }
       }
     },
+    "validation.auth.minimum_age_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie müssen bestätigen, dass Sie mindestens 14 Jahre alt sind."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібно підтвердити, що вам виповнилося 14 років."
+          }
+        }
+      }
+    },
     "validation.auth.privacy_required" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sie müssen die Datenschutzerklärung akzeptieren."
+            "value" : "Sie müssen bestätigen, dass Sie die Datenschutzerklärung gelesen haben."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Потрібно прийняти Політику конфіденційності."
+            "value" : "Потрібно підтвердити, що ви прочитали Політику конфіденційності."
           }
         }
       }

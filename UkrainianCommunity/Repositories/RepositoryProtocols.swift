@@ -90,6 +90,9 @@ protocol FeedbackRepository {
     func closeFeedback(id: String) async throws
     func deleteFeedback(id: String) async throws
     func clearFeedbackInbox() async throws
+    func decideDsaCase(_ request: DsaDecisionFunctionRequest) async throws
+    func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest) async throws
+    func submitDsaAppeal(_ request: DsaAppealSubmissionFunctionRequest) async throws
 }
 
 extension FeedbackRepository {
@@ -118,6 +121,9 @@ extension FeedbackRepository {
 
     func deleteFeedback(id: String) async throws {}
     func clearFeedbackInbox() async throws {}
+    func decideDsaCase(_ request: DsaDecisionFunctionRequest) async throws {}
+    func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest) async throws {}
+    func submitDsaAppeal(_ request: DsaAppealSubmissionFunctionRequest) async throws {}
 }
 
 extension FeedbackItem {

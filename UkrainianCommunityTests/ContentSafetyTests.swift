@@ -57,7 +57,10 @@ struct ContentSafetyTests {
             parentType: nil,
             parentId: nil,
             reason: "spam",
-            details: nil
+            illegalExplanation: "This listing uses a fraudulent payment link.",
+            legalBasis: nil,
+            evidence: nil,
+            goodFaithConfirmed: true
         )
         let object = try #require(
             JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
@@ -68,6 +71,9 @@ struct ContentSafetyTests {
         #expect(object["reason"] as? String == "spam")
         #expect(object["parentType"] == nil)
         #expect(object["parentId"] == nil)
-        #expect(object["details"] == nil)
+        #expect(object["illegalExplanation"] as? String == "This listing uses a fraudulent payment link.")
+        #expect(object["legalBasis"] == nil)
+        #expect(object["evidence"] == nil)
+        #expect(object["goodFaithConfirmed"] as? Bool == true)
     }
 }

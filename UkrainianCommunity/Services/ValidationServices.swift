@@ -26,7 +26,8 @@ struct AuthValidationService {
         repeatedPassword: String,
         displayName: String,
         acceptedTerms: Bool,
-        acceptedPrivacy: Bool
+        acceptedPrivacy: Bool,
+        confirmedMinimumAge: Bool
     ) -> [String] {
         var errors = validateLogin(email: email, password: password)
 
@@ -44,6 +45,10 @@ struct AuthValidationService {
 
         if !acceptedPrivacy {
             errors.append(AppStrings.Validation.authPrivacyRequired)
+        }
+
+        if !confirmedMinimumAge {
+            errors.append(AppStrings.Validation.authMinimumAgeRequired)
         }
 
         return errors

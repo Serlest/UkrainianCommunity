@@ -148,6 +148,40 @@ final class FeedbackInboxViewModel: ObservableObject {
         }
     }
 
+    func decideDsaCase(_ request: DsaDecisionFunctionRequest, item: FeedbackItem) async -> Bool {
+        guard !updatingFeedbackIDs.contains(item.id) else { return false }
+        updatingFeedbackIDs.insert(item.id)
+        actionError = nil
+        defer { updatingFeedbackIDs.remove(item.id) }
+        do {
+            try await repository.decideDsaCase(request)
+            await refresh()
+            return true
+        } catch let appError as AppError {
+            actionError = appError
+        } catch {
+            actionError = .unknown
+        }
+        return false
+    }
+
+    func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest, item: FeedbackItem) async -> Bool {
+        guard !updatingFeedbackIDs.contains(item.id) else { return false }
+        updatingFeedbackIDs.insert(item.id)
+        actionError = nil
+        defer { updatingFeedbackIDs.remove(item.id) }
+        do {
+            try await repository.decideDsaAppeal(request)
+            await refresh()
+            return true
+        } catch let appError as AppError {
+            actionError = appError
+        } catch {
+            actionError = .unknown
+        }
+        return false
+    }
+
     @discardableResult
     func close(_ item: FeedbackItem) async -> Bool {
         guard !updatingFeedbackIDs.contains(item.id) else { return false }
@@ -285,7 +319,8 @@ private extension FeedbackItem {
             lastMessageByUserId: lastMessageByUserId,
             lastMessageByRole: lastMessageByRole,
             unreadForOwner: unreadForOwner,
-            unreadForUser: unreadForUser
+            unreadForUser: unreadForUser,
+            dsaCase: dsaCase
         )
     }
 }

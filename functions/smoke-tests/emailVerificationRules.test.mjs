@@ -137,10 +137,12 @@ function user(uid, overrides = {}) {
     accountStatus: "active",
     warningCount: 0,
     selectedFederalState: "Vienna",
-    acceptedTermsAt: new Date("2026-06-01T09:00:00Z"),
-    acceptedPrivacyAt: new Date("2026-06-01T09:00:00Z"),
+    acceptedTermsAt: serverTimestamp(),
+    acceptedPrivacyAt: serverTimestamp(),
     acceptedTermsVersion: "1",
     acceptedPrivacyVersion: "1",
+    minimumAgeConfirmedAt: serverTimestamp(),
+    minimumAgeVersion: "14+",
     termsVersion: "1",
     privacyVersion: "1",
     communityMemberships: [],
@@ -162,6 +164,14 @@ describe("email verification enforcement", () => {
     await assertFails(setDoc(
       doc(forgedDb, "users", "forged-profile"),
       user("forged-profile", {createdAt: new Date("2020-01-01T00:00:00Z")})
+    ));
+
+    const forgedEvidenceDb = auth("forged-evidence-profile", false);
+    await assertFails(setDoc(
+      doc(forgedEvidenceDb, "users", "forged-evidence-profile"),
+      user("forged-evidence-profile", {
+        minimumAgeConfirmedAt: new Date("2020-01-01T00:00:00Z"),
+      })
     ));
 
     const extraFieldDb = auth("extra-field-profile", false);

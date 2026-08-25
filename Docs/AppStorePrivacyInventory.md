@@ -24,6 +24,7 @@ This inventory is a release aid, not a substitute for the answers entered in App
 | Usage Data — Product Interaction | Operational account-feature records: per-account news/event view deduplication, public view counters, news likes, bookmarks, organization follows and event registrations | Yes for per-account records; public counters are aggregate | App Functionality | Created when a signed-in user uses the relevant feature, independently of optional analytics consent; preserves requested state, prevents duplicate lifetime view counts and maintains feature/public counters |
 | Usage Data — Product Interaction | Optional daily first-party signals for views, likes, bookmarks, follows and registrations | Yes while deduplicating; owner reports are aggregate | Analytics | Sent to the first-party aggregation callable only after explicit opt-in; owner reports do not expose participant lists |
 | Diagnostics — Other Diagnostic Data | Security, moderation, audit and operational logs | Yes when an actor is known | App Functionality | Restricted system logs used for safety and support |
+| Other Data — legal acceptance evidence | Organization-rules version, server time, account ID, app locale/version, intended organization ID/name | Yes | App Functionality | Owner-restricted immutable evidence; short-lived creation proof expires after 30 days |
 
 ## Location distinction
 

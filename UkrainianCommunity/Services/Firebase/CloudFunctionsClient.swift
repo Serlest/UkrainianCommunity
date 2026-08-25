@@ -25,6 +25,8 @@ enum CloudFunctionName: String, CaseIterable {
     case searchManagedUsers
     case getManagedUserSecurityMetadata
     case acceptLegalDocument
+    case acceptOrganizationRules
+    case listLegalEvidence
     case deleteOwnAccount
     case deleteFeedback
     case clearFeedbackInbox
@@ -32,11 +34,92 @@ enum CloudFunctionName: String, CaseIterable {
     case setFeaturedBannerActive
     case deleteFeaturedBanner
     case submitContentReport
+    case decideDsaCase
+    case submitDsaAppeal
+    case decideDsaAppeal
+    case getMyDsaStatement
     case setUserBlocked
     case createOrganizationPhotoMetadata
     case deleteOrganizationPhotoMetadata
     case deleteNotificationPushRegistration
     case sendTestPushNotification
+}
+
+nonisolated struct DsaDecisionFunctionRequest: Codable, Equatable {
+    let reportId: String
+    let outcome: String
+    let factsAndCircumstances: String
+    let legalBasis: String?
+    let termsBasis: String?
+    let territorialScope: String
+    let duration: String
+    let redressInformation: String
+    let humanReviewConfirmed: Bool
+}
+
+nonisolated struct DsaDecisionFunctionResponse: Codable, Equatable {
+    let reportId: String
+    let caseNumber: String
+    let status: String
+    let decidedAt: String
+    let appealDeadline: String
+}
+
+nonisolated struct DsaAppealDecisionFunctionRequest: Codable, Equatable {
+    let reportId: String
+    let outcome: String
+    let reason: String
+    let humanReviewConfirmed: Bool
+}
+
+nonisolated struct DsaAppealSubmissionFunctionRequest: Codable, Equatable {
+    let reportId: String
+    let reason: String
+}
+
+nonisolated struct DsaAppealSubmissionFunctionResponse: Codable, Equatable {
+    let reportId: String
+    let caseNumber: String
+    let status: String
+    let submittedAt: String
+}
+
+nonisolated struct DsaAppealDecisionFunctionResponse: Codable, Equatable {
+    let reportId: String
+    let caseNumber: String
+    let status: String
+    let decidedAt: String
+}
+
+nonisolated struct DsaStatementFunctionRequest: Codable, Equatable {
+    let reportId: String
+}
+
+nonisolated struct DsaStatementFunctionResponse: Codable, Equatable {
+    nonisolated struct Decision: Codable, Equatable {
+        let outcome: String
+        let factsAndCircumstances: String
+        let legalBasis: String?
+        let termsBasis: String?
+        let territorialScope: String
+        let duration: String
+        let redressInformation: String
+        let automationUsed: Bool
+    }
+
+    nonisolated struct AppealDecision: Codable, Equatable {
+        let outcome: String
+        let reason: String
+        let automationUsed: Bool
+    }
+
+    let id: String
+    let caseNumber: String
+    let status: String
+    let sourceType: String
+    let sourceId: String
+    let decision: Decision?
+    let appealDecision: AppealDecision?
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -169,6 +252,46 @@ struct LegalAcceptanceFunctionResponse: Codable, Equatable {
     let documentType: LegalDocumentType
     let version: String
     let acceptedAt: String
+}
+
+struct OrganizationRulesAcceptanceFunctionRequest: Codable, Equatable {
+    let organizationId: String
+    let organizationName: String
+    let version: String
+    let appVersion: String?
+    let locale: String?
+    let acceptedFromPlatform: String
+}
+
+struct OrganizationRulesAcceptanceFunctionResponse: Codable, Equatable {
+    let organizationId: String
+    let version: String
+    let acceptedAt: String
+}
+
+struct LegalEvidenceListFunctionRequest: Codable, Equatable {
+    let limit: Int
+}
+
+struct LegalEvidenceListFunctionResponse: Codable, Equatable {
+    let events: [LegalEvidenceFunctionEvent]
+    let generatedAt: String
+}
+
+struct LegalEvidenceFunctionEvent: Codable, Equatable {
+    let id: String
+    let userId: String
+    let displayName: String?
+    let email: String?
+    let eventType: String
+    let occurredAt: String
+    let version: String?
+    let locale: String?
+    let appVersion: String?
+    let source: String
+    let contentHash: String?
+    let organizationId: String?
+    let organizationName: String?
 }
 
 struct OrganizationReviewFunctionRequest: Codable, Equatable {
@@ -416,6 +539,33 @@ final class CloudFunctionsClient {
         )
     }
 
+    func listLegalEvidence(limit: Int = 200) async throws -> LegalEvidenceListFunctionResponse {
+        try await call(
+            .listLegalEvidence,
+            request: LegalEvidenceListFunctionRequest(limit: min(max(limit, 1), 200))
+        )
+    }
+
+    func acceptOrganizationRules(
+        organizationId: String,
+        organizationName: String,
+        version: String,
+        appVersion: String?,
+        locale: String?
+    ) async throws -> OrganizationRulesAcceptanceFunctionResponse {
+        try await call(
+            .acceptOrganizationRules,
+            request: OrganizationRulesAcceptanceFunctionRequest(
+                organizationId: organizationId,
+                organizationName: organizationName,
+                version: version,
+                appVersion: appVersion?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                locale: locale?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                acceptedFromPlatform: "ios"
+            )
+        )
+    }
+
     func approveOrganization(
         _ request: OrganizationReviewFunctionRequest
     ) async throws -> OrganizationReviewFunctionResponse {
@@ -509,6 +659,22 @@ final class CloudFunctionsClient {
 
     func sendTestPushNotification() async throws -> TestPushNotificationFunctionResponse {
         try await call(.sendTestPushNotification, request: TestPushNotificationFunctionRequest())
+    }
+
+    func decideDsaCase(_ request: DsaDecisionFunctionRequest) async throws -> DsaDecisionFunctionResponse {
+        try await call(.decideDsaCase, request: request)
+    }
+
+    func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest) async throws -> DsaAppealDecisionFunctionResponse {
+        try await call(.decideDsaAppeal, request: request)
+    }
+
+    func submitDsaAppeal(_ request: DsaAppealSubmissionFunctionRequest) async throws -> DsaAppealSubmissionFunctionResponse {
+        try await call(.submitDsaAppeal, request: request)
+    }
+
+    func getMyDsaStatement(reportID: String) async throws -> DsaStatementFunctionResponse {
+        try await call(.getMyDsaStatement, request: DsaStatementFunctionRequest(reportId: reportID))
     }
 
     private func eventRegistrationMutation(
@@ -624,13 +790,19 @@ final class CloudFunctionsClient {
              .deleteNotificationPushRegistration,
              .sendTestPushNotification:
             return .userProfile
-        case .acceptLegalDocument:
+        case .acceptLegalDocument,
+             .acceptOrganizationRules,
+             .listLegalEvidence:
             return .legalDocument
         case .saveFeaturedBanner,
              .setFeaturedBannerActive,
              .deleteFeaturedBanner:
             return .systemConfiguration
-        case .submitContentReport:
+        case .submitContentReport,
+             .decideDsaCase,
+             .submitDsaAppeal,
+             .decideDsaAppeal,
+             .getMyDsaStatement:
             return .report
         case .setUserBlocked:
             return .userProfile
@@ -654,6 +826,7 @@ final class CloudFunctionsClient {
              .banUser,
              .deactivateUser,
              .restoreUser,
+             .listLegalEvidence,
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
@@ -663,6 +836,7 @@ final class CloudFunctionsClient {
         case .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
+             .acceptOrganizationRules,
              .acceptLegalDocument,
              .deleteOwnAccount,
              .deleteFeedback,
@@ -674,7 +848,11 @@ final class CloudFunctionsClient {
              .searchManagedUsers,
              .getManagedUserSecurityMetadata,
              .deleteNotificationPushRegistration,
-             .sendTestPushNotification:
+             .sendTestPushNotification,
+             .decideDsaCase,
+             .submitDsaAppeal,
+             .decideDsaAppeal,
+             .getMyDsaStatement:
             return false
         }
     }
@@ -721,6 +899,8 @@ final class CloudFunctionsClient {
              .deleteNews,
              .deleteOrganization,
              .acceptLegalDocument,
+             .acceptOrganizationRules,
+             .listLegalEvidence,
              .deleteOwnAccount,
              .deleteFeedback,
              .clearFeedbackInbox,
@@ -728,6 +908,10 @@ final class CloudFunctionsClient {
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
              .submitContentReport,
+             .decideDsaCase,
+             .submitDsaAppeal,
+             .decideDsaAppeal,
+             .getMyDsaStatement,
              .setUserBlocked,
              .searchManagedUsers,
              .getManagedUserSecurityMetadata,
@@ -910,6 +1094,9 @@ final class CloudFunctionsClient {
             metadata["newsId"] = request.newsId
         } else if let request = request as? OrganizationDeletionFunctionRequest {
             metadata["organizationId"] = request.organizationId
+        } else if let request = request as? OrganizationRulesAcceptanceFunctionRequest {
+            metadata["organizationId"] = request.organizationId
+            metadata["rulesVersion"] = request.version
         } else if let request = request as? OrganizationPhotoCreateFunctionRequest {
             metadata["organizationId"] = request.organizationId
             metadata["photoId"] = request.photoId
@@ -964,6 +1151,9 @@ final class CloudFunctionsClient {
             return request.newsId
         }
         if let request = request as? OrganizationDeletionFunctionRequest {
+            return request.organizationId
+        }
+        if let request = request as? OrganizationRulesAcceptanceFunctionRequest {
             return request.organizationId
         }
         if let request = request as? ContentReportFunctionRequest {

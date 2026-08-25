@@ -16,6 +16,13 @@ struct OrganizationEditorView: View {
     @State var isShowingDraftRecoveryDialog = false
     @State var isShowingDraftCloseConfirmation = false
     @State private var currentStep = OrganizationEditorStep.basics
+    @State var organizationRulesDocument: LegalDocument?
+    @State var presentedOrganizationRules: LegalDocument?
+    @State var hasConfirmedOrganizationRules = false
+    @State var hasViewedOrganizationRules = false
+    @State var isLoadingOrganizationRules = false
+    @State var organizationRulesLoadError: String?
+    let legalDocumentRepository: LegalDocumentRepository
     let onSaved: @MainActor () async -> Void
     let editorSectionSpacing: CGFloat = 8
     let editorCardSpacing: CGFloat = 8
@@ -28,9 +35,11 @@ struct OrganizationEditorView: View {
 
     init(
         organizationsViewModel: OrganizationsViewModel,
+        legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         onSaved: @escaping @MainActor () async -> Void = {}
     ) {
         self.organizationsViewModel = organizationsViewModel
+        self.legalDocumentRepository = legalDocumentRepository
         _viewModel = StateObject(wrappedValue: OrganizationEditorViewModel(mode: .create))
         self.onSaved = onSaved
     }
@@ -38,9 +47,11 @@ struct OrganizationEditorView: View {
     init(
         organizationsViewModel: OrganizationsViewModel,
         organization: Organization,
+        legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         onSaved: @escaping @MainActor () async -> Void = {}
     ) {
         self.organizationsViewModel = organizationsViewModel
+        self.legalDocumentRepository = legalDocumentRepository
         _viewModel = StateObject(wrappedValue: OrganizationEditorViewModel(mode: .edit(existing: organization)))
         self.onSaved = onSaved
     }
@@ -69,6 +80,9 @@ struct OrganizationEditorView: View {
                     onApply: applyCroppedLogoImage(_:)
                 )
             }
+        }
+        .sheet(item: $presentedOrganizationRules) { document in
+            OrganizationRulesReaderSheet(document: document)
         }
         .confirmationDialog(
             AppStrings.DraftRecovery.recoveryTitle,
@@ -124,6 +138,7 @@ struct OrganizationEditorView: View {
         }
         .task {
             await loadRecoverableDraftIfNeeded()
+            await loadOrganizationRulesIfNeeded()
         }
     }
 
@@ -160,6 +175,9 @@ struct OrganizationEditorView: View {
         case .preview:
             organizationPreviewCard
             moderationNoticeCard
+            if !viewModel.isEditing {
+                organizationRulesCard
+            }
         }
     }
 
@@ -293,6 +311,87 @@ struct OrganizationEditorView: View {
         isShowingDraftRecoveryDialog = viewModel.hasPendingRecoveryDraft
     }
 
+    @MainActor
+    func loadOrganizationRulesIfNeeded(force: Bool = false) async {
+        guard !viewModel.isEditing else { return }
+        guard force || organizationRulesDocument == nil else { return }
+        isLoadingOrganizationRules = true
+        organizationRulesLoadError = nil
+        defer { isLoadingOrganizationRules = false }
+        do {
+            organizationRulesDocument = try await legalDocumentRepository
+                .fetchActiveDocumentForReader(type: .organizationRules)
+            hasConfirmedOrganizationRules = false
+            hasViewedOrganizationRules = false
+        } catch {
+            organizationRulesDocument = nil
+            hasConfirmedOrganizationRules = false
+            hasViewedOrganizationRules = false
+            organizationRulesLoadError = AppStrings.OrganizationRules.loadFailed
+        }
+    }
+
+    var organizationRulesCard: some View {
+        editorCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(AppStrings.OrganizationRules.sectionTitle, systemImage: "building.2.crop.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                Text(AppStrings.OrganizationRules.sectionMessage)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if isLoadingOrganizationRules {
+                    ProgressView(AppStrings.OrganizationRules.loading)
+                        .font(.footnote)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let organizationRulesLoadError {
+                    InlineMessageCard(style: .error, message: organizationRulesLoadError)
+                    Button {
+                        Task { await loadOrganizationRulesIfNeeded(force: true) }
+                    } label: {
+                        Label(AppStrings.OrganizationRules.retry, systemImage: "arrow.clockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                } else if let document = organizationRulesDocument {
+                    Button {
+                        hasViewedOrganizationRules = true
+                        presentedOrganizationRules = document
+                    } label: {
+                        HStack {
+                            Label(AppStrings.OrganizationRules.readAction, systemImage: "doc.text.magnifyingglass")
+                            Spacer(minLength: 8)
+                            Text(AppStrings.legalVersionLabel(document.version))
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(12)
+                    .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    Toggle(isOn: $hasConfirmedOrganizationRules) {
+                        Text(AppStrings.OrganizationRules.confirm)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .tint(AppTheme.accentPrimary)
+                    .disabled(!hasViewedOrganizationRules)
+                    .accessibilityIdentifier("organizationEditor.rules.confirm")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     var moderationNoticeCard: some View {
         editorCard {
             HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
@@ -347,6 +446,40 @@ struct OrganizationEditorView: View {
 
     func editorSectionTitle(_ title: String) -> some View {
         AppEditorSectionTitle(title: title)
+    }
+}
+
+private struct OrganizationRulesReaderSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let document: LegalDocument
+
+    private var content: LegalDocumentLocaleContent {
+        document.content(preferredLocale: AppLanguage.stored.rawValue)
+            ?? LegalDocument.hardcodedFallback(type: .organizationRules)
+                .content(preferredLocale: AppLanguage.stored.rawValue)!
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                AppEditorSectionCard {
+                    LegalMarkdownRenderer(
+                        markdown: content.contentMarkdown,
+                        fallbackText: content.contentText
+                    )
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.vertical, AppTheme.sectionSpacing)
+            }
+            .background(AppTheme.groupedBackground.ignoresSafeArea())
+            .navigationTitle(content.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(AppStrings.OrganizationRules.close) { dismiss() }
+                }
+            }
+        }
     }
 }
 

@@ -100,7 +100,7 @@ private struct LegalComplianceDocumentRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: document.type == .terms ? "doc.text.fill" : "lock.shield.fill")
+            Image(systemName: document.type.systemImage)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: 28, height: 28)
@@ -178,6 +178,16 @@ private extension LegalDocumentType {
             AppStrings.Settings.terms
         case .privacy:
             AppStrings.Settings.privacyPolicy
+        case .organizationRules:
+            AppStrings.OrganizationRules.title
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .terms: "doc.text.fill"
+        case .privacy: "lock.shield.fill"
+        case .organizationRules: "building.2.crop.circle.fill"
         }
     }
 }

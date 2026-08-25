@@ -1775,9 +1775,51 @@ enum AppStrings {
         static var reasonMisinformation: String { text("safety.report.reason.misinformation", "False or misleading information") }
         static var reasonPrivacy: String { text("safety.report.reason.privacy", "Privacy violation") }
         static var reasonOther: String { text("safety.report.reason.other", "Other") }
-        static var detailsTitle: String { text("safety.report.details.title", "Details (optional)") }
-        static var detailsPlaceholder: String { text("safety.report.details.placeholder", "Describe what happened. Do not include passwords or sensitive personal data.") }
+        static var detailsTitle: String { text("safety.report.details.title", "Why is this content illegal?") }
+        static var detailsPlaceholder: String { text("safety.report.details.placeholder", "Explain the facts and why the content is illegal. Do not include passwords or unnecessary sensitive data.") }
         static var otherDetailsRequired: String { text("safety.report.details.other_required", "Add a short explanation for ‘Other’.") }
+        static var explanationRequired: String { text("safety.report.explanation.required", "Add a specific explanation of at least 20 characters.") }
+        static var legalBasisTitle: String { text("safety.report.legal_basis.title", "Legal basis (if known)") }
+        static var legalBasisPlaceholder: String { text("safety.report.legal_basis.placeholder", "For example, the relevant law or protected right.") }
+        static var evidenceTitle: String { text("safety.report.evidence.title", "Evidence or additional locations (optional)") }
+        static var evidencePlaceholder: String { text("safety.report.evidence.placeholder", "Add supporting references or describe available evidence.") }
+        static var goodFaithDeclaration: String { text("safety.report.good_faith", "I confirm, in good faith, that the information provided is accurate and complete.") }
+        static var goodFaithConfirmed: String { text("safety.report.good_faith.confirmed", "Confirmed") }
+        static var goodFaithNotConfirmed: String { text("safety.report.good_faith.not_confirmed", "Not confirmed") }
+        static var dsaDecisionAction: String { text("safety.dsa.decision.action", "Issue reasoned decision") }
+        static var dsaDecisionTitle: String { text("safety.dsa.decision.title", "DSA decision") }
+        static var dsaDecisionSubmit: String { text("safety.dsa.decision.submit", "Record and notify") }
+        static var dsaOutcomeTitle: String { text("safety.dsa.outcome.title", "Decision and measure") }
+        static var dsaOutcomeNoAction: String { text("safety.dsa.outcome.no_action", "No violation / no action") }
+        static var dsaOutcomeRestricted: String { text("safety.dsa.outcome.restricted", "Restrict visibility") }
+        static var dsaOutcomeRemoved: String { text("safety.dsa.outcome.removed", "Remove content") }
+        static var dsaFactsTitle: String { text("safety.dsa.facts", "Facts and specific reasons") }
+        static var dsaTermsBasisTitle: String { text("safety.dsa.terms_basis", "Terms or community-rule basis") }
+        static var dsaTerritoryTitle: String { text("safety.dsa.territory", "Territorial scope") }
+        static var dsaDurationTitle: String { text("safety.dsa.duration", "Duration") }
+        static var dsaRedressTitle: String { text("safety.dsa.redress", "Appeal and redress information") }
+        static var dsaHumanReview: String { text("safety.dsa.human_review", "I confirm that a human reviewed the facts and made this decision.") }
+        static var dsaTerritoryDefault: String { text("safety.dsa.territory.default", "Austria / European Union") }
+        static var dsaDurationDefault: String { text("safety.dsa.duration.default", "Permanent unless changed on appeal") }
+        static var dsaRedressDefault: String { text("safety.dsa.redress.default", "Free internal appeal within six months; certified out-of-court dispute settlement and courts remain available.") }
+        static var dsaAppealTitle: String { text("safety.dsa.appeal.title", "DSA appeal review") }
+        static var dsaAppealOutcomeTitle: String { text("safety.dsa.appeal.outcome", "Appeal outcome") }
+        static var dsaAppealUpheld: String { text("safety.dsa.appeal.upheld", "Original decision upheld") }
+        static var dsaAppealChanged: String { text("safety.dsa.appeal.changed", "Overturn and require a new decision") }
+        static var dsaAppealReasonTitle: String { text("safety.dsa.appeal.reason", "Reasoned appeal decision") }
+        static var dsaAppealSubmit: String { text("safety.dsa.appeal.submit", "Submit free appeal") }
+        static var dsaStatementTitle: String { text("safety.dsa.statement.title", "Reasoned moderation decision") }
+        static var dsaStatementSubtitle: String { text("safety.dsa.statement.subtitle", "Decision concerning content attributed to your account.") }
+        static var dsaStatementUnavailable: String { text("safety.dsa.statement.unavailable", "Decision unavailable") }
+        static var dsaStatementLoadError: String { text("safety.dsa.statement.load_error", "The protected decision could not be loaded.") }
+        static var dsaStatementSignInRequired: String { text("safety.dsa.statement.sign_in", "Sign in to view this protected decision.") }
+        static var dsaStatementPrivacyNote: String { text("safety.dsa.statement.privacy", "Reporter identity, contact details and submitted evidence are not disclosed here.") }
+        static var caseNumberTitle: String { text("safety.dsa.case_number", "Case number") }
+        static var contentTypeTitle: String { text("safety.dsa.content_type", "Content type") }
+        static var contentIdentifierTitle: String { text("safety.dsa.content_id", "Content identifier") }
+        static var automationTitle: String { text("safety.dsa.automation", "Automated decision") }
+        static var automationYes: String { text("safety.dsa.automation.yes", "Yes") }
+        static var automationNo: String { text("safety.dsa.automation.no", "No") }
         static var reviewTitle: String { text("safety.report.review.title", "What happens next") }
         static var reviewUrgent: String { text("safety.report.review.urgent", "The moderation team aims to review this category within 24 hours.") }
         static var reviewStandard: String { text("safety.report.review.standard", "The moderation team aims to review this report within 72 hours.") }
@@ -1786,6 +1828,13 @@ enum AppStrings {
         static var submitting: String { text("safety.report.submitting", "Submitting...") }
         static var submittedTitle: String { text("safety.report.submitted.title", "Report sent") }
         static var submittedMessage: String { text("safety.report.submitted.message", "Thank you. The moderation team will review the content.") }
+        static func submittedCase(_ caseNumber: String) -> String {
+            LocalizationStore.localizedFormat(
+                "safety.report.submitted.case",
+                defaultValue: "Receipt confirmed. Your case number is %@. You can follow the case in My Requests.",
+                arguments: [caseNumber]
+            )
+        }
         static var submittedDuplicate: String { text("safety.report.submitted.duplicate", "Your earlier report is still in the moderation queue. We updated it with the latest information.") }
         static var errorAuthentication: String { text("safety.report.error.authentication", "Sign in to submit a report.") }
         static var errorPermission: String { text("safety.report.error.permission", "Your account cannot submit reports right now.") }
@@ -2122,6 +2171,7 @@ enum AppStrings {
         static var loadFailed: String { text("legal_management.error.load_failed", "Unable to load legal documents.") }
         static var termsSubtitle: String { text("legal_management.terms.subtitle", "Terms of Service shown to registered users.") }
         static var privacySubtitle: String { text("legal_management.privacy.subtitle", "Privacy Policy shown to registered users.") }
+        static var organizationRulesSubtitle: String { text("legal_management.organization_rules.subtitle", "Rules that must be accepted before creating an organization.") }
         static var requiresAcceptance: String { text("legal_management.requires_acceptance", "Requires acceptance") }
         static var acceptanceNotRequired: String { text("legal_management.acceptance_not_required", "Acceptance not required") }
         static var draftExists: String { text("legal_management.draft_exists", "Draft exists") }
@@ -2157,6 +2207,58 @@ enum AppStrings {
         static var missingUkrainianContent: String { text("legal_management.validation.missing_ukrainian_content", "Missing Ukrainian content") }
         static var publishConfirmTitle: String { text("legal_management.publish.confirm.title", "Publish new legal version?") }
         static var publishConfirmMessage: String { text("legal_management.publish.confirm.message", "This version becomes immutable and replaces the active document. If acceptance is required, users with older accepted versions will need to accept again.") }
+    }
+
+    enum LegalEvidence {
+        static var title: String { text("legal_evidence.title", "Consents and legal evidence") }
+        static var subtitle: String { text("legal_evidence.subtitle", "Owner-only immutable history of Terms, Privacy, age, organization rules, and analytics consent.") }
+        static var profileSubtitle: String { text("legal_evidence.profile_subtitle", "Who confirmed what, which version, and when.") }
+        static var permissionTitle: String { text("legal_evidence.permission.title", "Owner access required") }
+        static var permissionMessage: String { text("legal_evidence.permission.message", "Only the App Owner can view legal evidence.") }
+        static var loading: String { text("legal_evidence.loading", "Loading legal evidence…") }
+        static var loadFailedTitle: String { text("legal_evidence.error.title", "Evidence unavailable") }
+        static var loadFailed: String { text("legal_evidence.error.message", "Unable to load legal evidence. Check the connection and try again.") }
+        static var searchPlaceholder: String { text("legal_evidence.search.placeholder", "Name, email, UID, or version") }
+        static var searchEmptyTitle: String { text("legal_evidence.search.empty.title", "No matching evidence") }
+        static var searchEmptyMessage: String { text("legal_evidence.search.empty.message", "Change the search text or evidence filter.") }
+        static var emptyTitle: String { text("legal_evidence.empty.title", "No evidence yet") }
+        static var emptyMessage: String { text("legal_evidence.empty.message", "Server-recorded confirmations will appear here.") }
+        static var filterTitle: String { text("legal_evidence.filter.title", "Evidence type") }
+        static var filterAll: String { text("legal_evidence.filter.all", "All") }
+        static var filterTerms: String { text("legal_evidence.filter.terms", "Terms") }
+        static var filterPrivacy: String { text("legal_evidence.filter.privacy", "Privacy") }
+        static var filterAge: String { text("legal_evidence.filter.age", "Age 14+") }
+        static var filterAnalytics: String { text("legal_evidence.filter.analytics", "Analytics") }
+        static var filterOrganizations: String { text("legal_evidence.filter.organizations", "Organizations") }
+        static var immutableNotice: String { text("legal_evidence.immutable_notice", "Evidence is server-managed and cannot be edited or deleted from the app. A missing record is not treated as a refusal.") }
+        static var termsAccepted: String { text("legal_evidence.event.terms_accepted", "Terms accepted") }
+        static var privacyAcknowledged: String { text("legal_evidence.event.privacy_acknowledged", "Privacy Policy acknowledged") }
+        static var minimumAgeConfirmed: String { text("legal_evidence.event.minimum_age_confirmed", "Age 14+ confirmed") }
+        static var analyticsGranted: String { text("legal_evidence.event.analytics_granted", "Analytics consent granted") }
+        static var analyticsWithdrawn: String { text("legal_evidence.event.analytics_withdrawn", "Analytics consent withdrawn") }
+        static var organizationRulesAccepted: String { text("legal_evidence.event.organization_rules_accepted", "Organization rules accepted") }
+        static var organizationLabel: String { text("legal_evidence.organization", "Organization") }
+    }
+
+    enum OrganizationRules {
+        static var title: String { text("organization_rules.title", "Rules for organizations") }
+        static var sectionTitle: String { text("organization_rules.editor.section_title", "Rules and responsibility") }
+        static var sectionMessage: String { text("organization_rules.editor.section_message", "Read and accept the current rules before submitting this organization.") }
+        static var readAction: String { text("organization_rules.editor.read", "Read organization rules") }
+        static var confirm: String { text("organization_rules.editor.confirm", "I am authorized to represent this organization and accept these rules.") }
+        static var loading: String { text("organization_rules.editor.loading", "Loading current rules…") }
+        static var loadFailed: String { text("organization_rules.editor.load_failed", "The current organization rules could not be loaded. Try again before submitting.") }
+        static var retry: String { text("organization_rules.editor.retry", "Reload rules") }
+        static var acceptanceFailed: String { text("organization_rules.editor.acceptance_failed", "The rules acceptance could not be recorded. Check the connection and try again.") }
+        static var close: String { text("organization_rules.editor.close", "Close") }
+        static var fallbackAuthorityTitle: String { text("organization_rules.fallback.authority.title", "Authority") }
+        static var fallbackAuthorityBody: String { text("organization_rules.fallback.authority.body", "You must be authorized to create and manage the organization profile.") }
+        static var fallbackResponsibilityTitle: String { text("organization_rules.fallback.responsibility.title", "Responsibility") }
+        static var fallbackResponsibilityBody: String { text("organization_rules.fallback.responsibility.body", "Organization information and offers must be lawful, truthful, complete, and current.") }
+        static var fallbackContentTitle: String { text("organization_rules.fallback.content.title", "Content and data") }
+        static var fallbackContentBody: String { text("organization_rules.fallback.content.body", "You need the necessary rights and legal basis for all uploaded content and personal data.") }
+        static var fallbackModerationTitle: String { text("organization_rules.fallback.moderation.title", "Moderation") }
+        static var fallbackModerationBody: String { text("organization_rules.fallback.moderation.body", "The platform may request evidence, require changes, reject, restrict, or remove entries according to law and the Terms.") }
     }
 
     enum Roles {
@@ -2239,7 +2341,8 @@ enum AppStrings {
         static var authPasswordMismatch: String { text("validation.auth.password_mismatch", "Passwords do not match.") }
         static var authDisplayNameRequired: String { text("validation.auth.display_name_required", "Display name is required.") }
         static var authTermsRequired: String { text("validation.auth.terms_required", "You need to accept the Terms of Use.") }
-        static var authPrivacyRequired: String { text("validation.auth.privacy_required", "You need to accept the Privacy Policy.") }
+        static var authPrivacyRequired: String { text("validation.auth.privacy_required", "You need to confirm that you read the Privacy Policy.") }
+        static var authMinimumAgeRequired: String { text("validation.auth.minimum_age_required", "You must confirm that you are at least 14 years old.") }
         static var newsTitleRequired: String { text("validation.news.title_required", "News title is required.") }
         static var newsSubtitleRequired: String { text("validation.news.subtitle_required", "News subtitle is required.") }
         static var newsBodyTooShort: String { text("validation.news.body_too_short", "News body is too short.") }
@@ -2304,9 +2407,10 @@ enum AppStrings {
         static var registerSubtitle: String { text("auth.register.subtitle", "Create an account with the essentials. You can complete your profile later.") }
         static var continueAsGuest: String { text("auth.continue_as_guest", "Continue as Guest") }
         static var consentTitle: String { text("auth.consent.title", "Terms & Privacy") }
-        static var consentSubtitle: String { text("auth.consent.subtitle", "To create an account, please confirm that you accept the Terms of Use and the Privacy Policy.") }
+        static var consentSubtitle: String { text("auth.consent.subtitle", "To create an account, accept the Terms, confirm that you read the Privacy Policy, and confirm that you are at least 14.") }
         static var acceptTerms: String { text("auth.consent.accept_terms", "I accept the Terms of Use") }
-        static var acceptPrivacy: String { text("auth.consent.accept_privacy", "I accept the Privacy Policy") }
+        static var acceptPrivacy: String { text("auth.consent.accept_privacy", "I have read the Privacy Policy") }
+        static var confirmMinimumAge: String { text("auth.consent.minimum_age", "I confirm that I am at least 14 years old") }
         static var reviewTerms: String { text("auth.consent.review_terms", "Read Terms of Use") }
         static var reviewPrivacy: String { text("auth.consent.review_privacy", "Read Privacy Policy") }
         static var currentTermsVersion: String { text("auth.consent.current_terms_version", "Terms version %@") }

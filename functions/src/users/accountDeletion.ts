@@ -73,7 +73,18 @@ async function deleteFeedback(uid: string): Promise<void> {
       return;
     }
 
-    await Promise.all(snapshot.docs.map((document) => db.recursiveDelete(document.ref)));
+    await Promise.all(snapshot.docs.map(async (document) => {
+      if (document.get("dsaCase")) {
+        await document.ref.update({
+          userId: deletedUserID,
+          userDisplayName: deletedUserDisplayName,
+          unreadForUser: false,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      } else {
+        await db.recursiveDelete(document.ref);
+      }
+    }));
 
     if (snapshot.size < feedbackDeletionBatchSize) {
       return;
@@ -191,6 +202,16 @@ function referenceAnonymizationUpdate(
         senderId: deletedUserID,
         senderDisplayName: deletedUserDisplayName,
       };
+    case "dsaReporter":
+      return retainedLogUpdate(data, personalReferences, {
+        reporterUserId: deletedUserID,
+        reporterName: deletedUserDisplayName,
+        reporterEmail: FieldValue.delete(),
+      });
+    case "dsaTargetAuthor":
+      return retainedLogUpdate(data, personalReferences, {
+        targetAuthorId: deletedUserID,
+      });
     case "legalAcceptance":
       return {
         userId: deletedUserID,

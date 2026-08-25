@@ -14,8 +14,8 @@ import {db} from "../firebase/admin";
 export const analyticsConsentStateCollection = "analyticsConsentStates";
 export const analyticsConsentReceiptCollection = "analyticsConsentReceipts";
 export const analyticsConsentPurposeVersion = "owner-aggregate-analytics-v1";
-export const analyticsConsentPrivacyVersion = "2026.1";
-export const analyticsConsentDisclosureVersion = "2026-08-24.1";
+export const analyticsConsentPrivacyVersion = "2026.10";
+export const analyticsConsentDisclosureVersion = "2026-08-25.1";
 
 export interface AnalyticsConsentMutationInput {
   enabled: boolean;

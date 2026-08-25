@@ -7,7 +7,10 @@ nonisolated struct ContentReportFunctionRequest: Codable, Equatable {
     let parentType: String?
     let parentId: String?
     let reason: String
-    let details: String?
+    let illegalExplanation: String
+    let legalBasis: String?
+    let evidence: String?
+    let goodFaithConfirmed: Bool
 }
 
 private nonisolated struct ContentReportFunctionResponse: Codable, Equatable {
@@ -15,6 +18,9 @@ private nonisolated struct ContentReportFunctionResponse: Codable, Equatable {
     let status: String
     let submittedAt: String
     let wasDuplicate: Bool
+    let caseNumber: String
+    let accessToken: String
+    let acknowledgementAt: String
 }
 
 struct CloudContentSafetyRepository: ContentSafetyRepository {
@@ -27,7 +33,7 @@ struct CloudContentSafetyRepository: ContentSafetyRepository {
     func submitReport(
         target: ContentReportTarget,
         reason: ContentReportReason,
-        details: String?
+        submission: ContentReportSubmission
     ) async throws -> ContentReportReceipt {
         do {
             let response: ContentReportFunctionResponse = try await client.call(
@@ -38,16 +44,25 @@ struct CloudContentSafetyRepository: ContentSafetyRepository {
                     parentType: target.parentType?.rawValue,
                     parentId: target.parentId,
                     reason: reason.rawValue,
-                    details: Self.normalizedDetails(details)
+                    illegalExplanation: submission.illegalExplanation.trimmingCharacters(in: .whitespacesAndNewlines),
+                    legalBasis: Self.normalizedDetails(submission.legalBasis),
+                    evidence: Self.normalizedDetails(submission.evidence),
+                    goodFaithConfirmed: submission.goodFaithConfirmed
                 )
             )
             guard response.status == "open",
-                  let submittedAt = Self.dateFormatter.date(from: response.submittedAt) else {
+                  let submittedAt = Self.dateFormatter.date(from: response.submittedAt),
+                  let acknowledgementAt = Self.dateFormatter.date(from: response.acknowledgementAt),
+                  !response.caseNumber.isEmpty,
+                  !response.accessToken.isEmpty else {
                 throw ContentReportSubmissionError.unknown
             }
             return ContentReportReceipt(
                 reportId: response.reportId,
+                caseNumber: response.caseNumber,
+                accessToken: response.accessToken,
                 submittedAt: submittedAt,
+                acknowledgementAt: acknowledgementAt,
                 wasDuplicate: response.wasDuplicate
             )
         } catch let error as ContentReportSubmissionError {

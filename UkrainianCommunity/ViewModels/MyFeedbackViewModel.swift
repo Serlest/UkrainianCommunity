@@ -176,4 +176,25 @@ final class MyFeedbackViewModel: ObservableObject {
         actionError = nil
     }
 
+    func submitDsaAppeal(reason: String, feedback: FeedbackItem, userID: String) async -> Bool {
+        let normalized = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalized.count >= 20, normalized.count <= 5_000 else {
+            actionError = .validationFailed
+            return false
+        }
+        guard !sendingMessageFeedbackIDs.contains(feedback.id) else { return false }
+        sendingMessageFeedbackIDs.insert(feedback.id)
+        defer { sendingMessageFeedbackIDs.remove(feedback.id) }
+        do {
+            try await repository.submitDsaAppeal(.init(reportId: feedback.id, reason: normalized))
+            await refresh(userID: userID)
+            return true
+        } catch let appError as AppError {
+            actionError = appError
+        } catch {
+            actionError = .unknown
+        }
+        return false
+    }
+
 }

@@ -19,12 +19,14 @@ enum ProfileNavigationRoute: Hashable {
     case userManagement
     case featuredBannerManagement
     case legalDocumentManagement
+    case legalEvidence
     case ownerAnalytics
     case donationSettings
     case feedbackInbox
     case systemLogs(SystemLogsAccessMode)
     case notifications
     case myFeedback(userID: String)
+    case dsaStatement(statementID: String)
     case legal(LegalDocumentKind)
 }
 
@@ -641,6 +643,10 @@ struct ProfileView: View {
             )
         case .legalDocumentManagement:
             LegalDocumentManagementView(repository: legalDocumentRepository)
+        case .legalEvidence:
+            if PermissionService.isAppOwner(user: permissionUser) {
+                LegalEvidenceView()
+            }
         case .ownerAnalytics:
             if PermissionService.isAppOwner(user: permissionUser) {
                 OwnerAnalyticsView(repository: ownerAnalyticsRepository)
@@ -670,6 +676,8 @@ struct ProfileView: View {
             )
         case let .myFeedback(userID):
             MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: userID)
+        case let .dsaStatement(statementID):
+            DsaStatementView(statementID: statementID)
         case let .legal(document):
             LegalDocumentView(document: document, repository: legalDocumentRepository)
         }
@@ -1264,6 +1272,16 @@ struct ProfileView: View {
             )
         }
         .buttonStyle(.plain)
+
+        NavigationLink(value: ProfileNavigationRoute.legalEvidence) {
+            ProfileModuleRow(
+                title: AppStrings.LegalEvidence.title,
+                subtitle: AppStrings.LegalEvidence.profileSubtitle,
+                systemImage: "signature"
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("profile.owner.legalEvidence")
 
         NavigationLink(value: ProfileNavigationRoute.systemLogs(.owner)) {
             ProfileModuleRow(

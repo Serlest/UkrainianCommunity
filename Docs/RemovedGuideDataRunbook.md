@@ -63,8 +63,8 @@ Do not delete data until all of the following are complete:
 6. Re-run the inventory and verify that removable counts are zero.
 
 Historical `systemLogs` and `auditLogs` must not be deleted by the feature cleanup.
-`systemLogs` follow the scheduled retention matrix. The repository currently has no
-automatic retention job for `auditLogs`; define and legally review that separate policy
-before any audit-log deletion is implemented.
+`systemLogs` follow the scheduled retention matrix. Separate `auditLogs` are removed
+after 1,095 days by the scheduled retention job; keep that policy legally reviewed
+and verify the deployed cleanup independently of any guide-data operation.
 
 After the Functions deployment, verify that the removed `assignGuideEditor` and `removeGuideEditor` callables no longer exist in the deployed project; removing exports from source code alone may not remove already deployed functions.

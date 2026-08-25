@@ -262,6 +262,8 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     private let mode: Mode
     private let draftRecoveryService: LocalDraftRecoveryService
+    private let functionsClient: CloudFunctionsClient
+    private let createOrganizationID = UUID().uuidString
     private let validationService = OrganizationValidationService()
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
@@ -269,9 +271,14 @@ final class OrganizationEditorViewModel: ObservableObject {
     private var isSubmittingCreate = false
     private var hasMeaningfulCreateDraftMetadata = false
 
-    init(mode: Mode = .create, draftRecoveryService: LocalDraftRecoveryService? = nil) {
+    init(
+        mode: Mode = .create,
+        draftRecoveryService: LocalDraftRecoveryService? = nil,
+        functionsClient: CloudFunctionsClient = .shared
+    ) {
         self.mode = mode
         self.draftRecoveryService = draftRecoveryService ?? .shared
+        self.functionsClient = functionsClient
 
         if case let .edit(existingOrganization) = mode {
             name = existingOrganization.name
@@ -463,7 +470,8 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     func submit(
         with organizationsViewModel: OrganizationsViewModel,
-        user: AppUser?
+        user: AppUser?,
+        organizationRulesVersion: String? = nil
     ) async -> Bool {
         successMessage = nil
         errorMessage = nil
@@ -479,7 +487,7 @@ final class OrganizationEditorViewModel: ObservableObject {
             let legacyImageURL: String? = nil
             let isOwnerCreate = isPlatformOwner(user)
             organization = Organization(
-                id: UUID().uuidString,
+                id: createOrganizationID,
                 name: trimmedName,
                 description: trimmedShortDescription,
                 shortDescription: trimmedShortDescription,
@@ -586,6 +594,22 @@ final class OrganizationEditorViewModel: ObservableObject {
             case .create:
                 isSubmittingCreate = true
                 defer { isSubmittingCreate = false }
+                guard let organizationRulesVersion else {
+                    errorMessage = AppStrings.OrganizationRules.loadFailed
+                    return false
+                }
+                do {
+                    _ = try await functionsClient.acceptOrganizationRules(
+                        organizationId: organization.id,
+                        organizationName: organization.name,
+                        version: organizationRulesVersion,
+                        appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                        locale: AppLanguage.stored.rawValue
+                    )
+                } catch {
+                    errorMessage = AppStrings.OrganizationRules.acceptanceFailed
+                    return false
+                }
                 try await organizationsViewModel.createOrganization(
                     organization,
                     imageData: selectedImageData,

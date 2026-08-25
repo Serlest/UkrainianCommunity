@@ -3,6 +3,7 @@ import Foundation
 enum LegalDocumentType: String, CaseIterable, Codable, Identifiable {
     case terms
     case privacy
+    case organizationRules
 
     var id: String { rawValue }
 
@@ -12,6 +13,8 @@ enum LegalDocumentType: String, CaseIterable, Codable, Identifiable {
             AuthService.currentTermsVersion
         case .privacy:
             AuthService.currentPrivacyVersion
+        case .organizationRules:
+            AuthService.currentOrganizationRulesVersion
         }
     }
 }
@@ -76,6 +79,14 @@ struct LegalDocument: Identifiable, Codable, Equatable {
                 (AppStrings.Legal.privacyStorageTitle, AppStrings.Legal.privacyStorageBody),
                 (AppStrings.Legal.privacySharingTitle, AppStrings.Legal.privacySharingBody),
                 (AppStrings.Legal.privacyRightsTitle, AppStrings.Legal.privacyRightsBody)
+            ]
+        case .organizationRules:
+            title = AppStrings.OrganizationRules.title
+            sections = [
+                (AppStrings.OrganizationRules.fallbackAuthorityTitle, AppStrings.OrganizationRules.fallbackAuthorityBody),
+                (AppStrings.OrganizationRules.fallbackResponsibilityTitle, AppStrings.OrganizationRules.fallbackResponsibilityBody),
+                (AppStrings.OrganizationRules.fallbackContentTitle, AppStrings.OrganizationRules.fallbackContentBody),
+                (AppStrings.OrganizationRules.fallbackModerationTitle, AppStrings.OrganizationRules.fallbackModerationBody)
             ]
         }
 

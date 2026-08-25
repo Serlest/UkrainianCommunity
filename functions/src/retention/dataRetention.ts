@@ -18,15 +18,20 @@ import {
   analyticsUserRegistrationEventCollection,
 } from "../analytics/analyticsUserActivity";
 import {deleteEventContent, deleteNewsContent} from "../content/contentDeletion";
+import {deleteFeedbackRecords} from "../feedback/feedbackManagement";
 import { db } from "../firebase/admin";
 
 const maxContentDocumentsPerRun = 200;
 const maxLogDocumentsPerPolicy = 400;
+const maxFeedbackDocumentsPerRun = 200;
+const maxAuditLogDocumentsPerRun = 400;
 export const analyticsCleanupPageSize = 500;
 export const maxAnalyticsCleanupPagesPerRun = 20;
 const mutableCleanupConcurrency = 40;
 
 export const contentRetentionMonths = 6;
+export const closedFeedbackRetentionMonths = 6;
+export const auditLogRetentionDays = 1_095;
 
 export const systemLogRetentionDays = {
   technicalError: 90,
@@ -41,11 +46,16 @@ type CleanupSummary = {
   news: number;
   events: number;
   systemLogs: number;
+  closedFeedback: number;
+  auditLogs: number;
   analyticsEventReceipts: number;
   analyticsRateLimits: number;
   analyticsUserActivity: number;
   analyticsUserRegistrationEvents: number;
   analyticsDeletedUserEvents: number;
+  organizationCreationProofs: number;
+  dsaCases: number;
+  dsaPortalRateLimits: number;
 };
 
 export const cleanupExpiredData = onSchedule(
@@ -63,6 +73,8 @@ export const cleanupExpiredData = onSchedule(
       news: await cleanupExpiredContent("news", "publishedAt", contentCutoff),
       events: await cleanupExpiredContent("events", "endDate", contentCutoff),
       systemLogs: await cleanupExpiredSystemLogs(now),
+      closedFeedback: await cleanupExpiredClosedFeedback(now),
+      auditLogs: await cleanupExpiredAuditLogs(now),
       analyticsEventReceipts: await cleanupExpiredAnalyticsGuards(
         analyticsEventReceiptCollection,
         now,
@@ -83,11 +95,19 @@ export const cleanupExpiredData = onSchedule(
         analyticsDeletedUserEventCollection,
         now,
       ),
+      organizationCreationProofs: await cleanupExpiredOrganizationCreationProofs(now),
+      dsaCases: await cleanupExpiredDsaCases(now),
+      dsaPortalRateLimits: await deleteLimitedQuery(
+        db.collection("dsaPortalRateLimits").where("expiresAt", "<=", Timestamp.fromDate(now)),
+        maxLogDocumentsPerPolicy,
+      ),
     };
 
     logger.info("Scheduled data retention cleanup completed.", {
       ...summary,
       contentRetentionMonths,
+      closedFeedbackRetentionMonths,
+      auditLogRetentionDays,
       contentCutoff: contentCutoff.toISOString(),
     });
   },
@@ -105,6 +125,28 @@ export function subtractUtcMonths(date: Date, months: number): Date {
   )).getUTCDate();
   result.setUTCDate(Math.min(originalDay, lastDayOfTargetMonth));
   return result;
+}
+
+async function cleanupExpiredOrganizationCreationProofs(now: Date): Promise<number> {
+  const query = db.collection("organizationCreationProofs")
+    .where("expiresAt", "<=", Timestamp.fromDate(now));
+  return deleteLimitedQuery(query, maxLogDocumentsPerPolicy);
+}
+
+async function cleanupExpiredDsaCases(now: Date): Promise<number> {
+  const snapshot = await db.collection("dsaCases")
+    .where("expiresAt", "<=", Timestamp.fromDate(now))
+    .limit(maxFeedbackDocumentsPerRun)
+    .get();
+  for (const document of snapshot.docs) {
+    await deleteFeedbackRecords([db.collection("feedback").doc(document.id)]);
+    const targetAuthorId = document.get("targetAuthorId");
+    if (typeof targetAuthorId === "string" && targetAuthorId.length > 0) {
+      await db.collection("users").doc(targetAuthorId)
+        .collection("dsaStatements").doc(document.id).delete();
+    }
+  }
+  return deleteSnapshots(snapshot.docs);
 }
 
 export function subtractUtcDays(date: Date, days: number): Date {
@@ -155,6 +197,24 @@ async function cleanupExpiredSystemLogs(now: Date): Promise<number> {
   }
 
   return deleted;
+}
+
+async function cleanupExpiredClosedFeedback(now: Date): Promise<number> {
+  const cutoff = subtractUtcMonths(now, closedFeedbackRetentionMonths);
+  const snapshot = await db.collection("feedback")
+    .where("status", "==", "closed")
+    .where("updatedAt", "<=", Timestamp.fromDate(cutoff))
+    .limit(maxFeedbackDocumentsPerRun)
+    .get();
+  await deleteFeedbackRecords(snapshot.docs.map((document) => document.ref));
+  return snapshot.size;
+}
+
+async function cleanupExpiredAuditLogs(now: Date): Promise<number> {
+  const cutoff = subtractUtcDays(now, auditLogRetentionDays);
+  const query = db.collection("auditLogs")
+    .where("createdAt", "<=", Timestamp.fromDate(cutoff));
+  return deleteLimitedQuery(query, maxAuditLogDocumentsPerRun);
 }
 
 async function cleanupExpiredAnalyticsGuards(

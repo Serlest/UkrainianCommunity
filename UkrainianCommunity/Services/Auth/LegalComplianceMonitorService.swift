@@ -82,6 +82,8 @@ final class LegalComplianceMonitorService: ObservableObject {
                     return user.acceptedTermsVersion != document.version
                 case .privacy:
                     return user.acceptedPrivacyVersion != document.version
+                case .organizationRules:
+                    return false
                 }
             }
 

@@ -12,7 +12,8 @@ test("parses direct content reports and normalizes optional details", () => {
     targetType: "news",
     targetId: "news-1",
     reason: "spam",
-    details: "  repeated promotion  ",
+    illegalExplanation: "  repeated fraudulent promotion  ",
+    goodFaithConfirmed: true,
   });
 
   assert.deepEqual(report, {
@@ -21,7 +22,10 @@ test("parses direct content reports and normalizes optional details", () => {
     parentType: undefined,
     parentId: undefined,
     reason: "spam",
-    details: "repeated promotion",
+    illegalExplanation: "repeated fraudulent promotion",
+    legalBasis: undefined,
+    evidence: undefined,
+    goodFaithConfirmed: true,
   });
 });
 
@@ -30,6 +34,8 @@ test("requires a complete and matching comment parent", () => {
     targetType: "comment",
     targetId: "comment-1",
     reason: "harassment",
+    illegalExplanation: "A specific unlawful threat.",
+    goodFaithConfirmed: true,
   }));
   assert.throws(() => parseContentReportRequest({
     targetType: "event",
@@ -37,6 +43,8 @@ test("requires a complete and matching comment parent", () => {
     parentType: "event",
     parentId: "event-1",
     reason: "spam",
+    illegalExplanation: "A specific unlawful promotion.",
+    goodFaithConfirmed: true,
   }));
 });
 
@@ -45,17 +53,22 @@ test("rejects unsupported values, slash-containing ids, and oversized details", 
     targetType: "profile",
     targetId: "user-1",
     reason: "spam",
+    illegalExplanation: "A specific unlawful promotion.",
+    goodFaithConfirmed: true,
   }));
   assert.throws(() => parseContentReportRequest({
     targetType: "news",
     targetId: "news/one",
     reason: "spam",
+    illegalExplanation: "A specific unlawful promotion.",
+    goodFaithConfirmed: true,
   }));
   assert.throws(() => parseContentReportRequest({
     targetType: "news",
     targetId: "news-1",
     reason: "spam",
-    details: "x".repeat(1_001),
+    illegalExplanation: "x".repeat(5_001),
+    goodFaithConfirmed: true,
   }));
 });
 

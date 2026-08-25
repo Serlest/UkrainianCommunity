@@ -67,6 +67,20 @@ jobs:
       - name: Validate release configuration
         run: python3 scripts/validate_release_configuration.py
 
+      - name: Validate bilingual legal document structure
+        run: python3 scripts/validate_legal_documents.py
+
+      - name: Show legal and App Store impact of this change
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            python3 scripts/advise_legal_changes.py --base "$PR_BASE_SHA" --head "$GITHUB_SHA"
+          else
+            python3 scripts/advise_legal_changes.py --base "$GITHUB_SHA^" --head "$GITHUB_SHA"
+          fi
+
   firebase_affected:
     name: Firebase affected checks
     needs: changes

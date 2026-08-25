@@ -20,6 +20,8 @@ test("account deletion policy covers every cross-document user reference", () =>
       "organization submitters",
       "organization reviewers",
       "organization photo uploaders",
+      "DSA case reporters",
+      "DSA case affected authors",
       "feedback messages written as a manager",
       "notifications in other users' inboxes",
       "legal acceptance records",

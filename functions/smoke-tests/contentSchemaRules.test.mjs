@@ -5,7 +5,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {deleteDoc, doc, setDoc, updateDoc} from "firebase/firestore";
+import {deleteDoc, doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
 import {readFileSync} from "node:fs";
 
 const PROJECT_ID = "ukrainian-community-content-schema-rules";
@@ -56,6 +56,21 @@ beforeEach(async () => {
         id: "feedback-1",
         userId: "regular-user",
         status: "closed",
+      }),
+      setDoc(doc(db, "feedback", "dsa-feedback-1"), {
+        id: "dsa-feedback-1",
+        userId: "regular-user",
+        status: "open",
+        dsaCase: {caseNumber: "UC-20260825-TEST", status: "submitted"},
+      }),
+      setDoc(doc(db, "dsaCases", "dsa-feedback-1"), {
+        caseNumber: "UC-20260825-TEST",
+        accessTokenHash: "server-only",
+      }),
+      setDoc(doc(db, "users", "org-owner", "dsaStatements", "dsa-feedback-1"), {
+        id: "dsa-feedback-1",
+        caseNumber: "UC-20260825-TEST",
+        status: "decided",
       }),
     ]);
   });
@@ -229,6 +244,27 @@ describe("platform moderation and server-owned deletion", () => {
   test("feedback documents cannot be deleted directly by owner or submitter", async () => {
     await assertFails(deleteDoc(doc(db("owner"), "feedback", "feedback-1")));
     await assertFails(deleteDoc(doc(db("regular-user"), "feedback", "feedback-1")));
+  });
+
+  test("DSA cases are server-only and cannot be closed without the decision function", async () => {
+    await assertFails(updateDoc(doc(db("owner"), "feedback", "dsa-feedback-1"), {
+      status: "closed",
+      updatedAt: new Date("2026-08-25T12:05:00Z"),
+    }));
+    await assertFails(setDoc(doc(db("owner"), "dsaCases", "owner-forged"), {caseNumber: "forged"}));
+    await assertFails(updateDoc(doc(db("owner"), "dsaCases", "dsa-feedback-1"), {status: "decided"}));
+  });
+
+  test("only the affected user can read their sanitized DSA statement and nobody can forge it", async () => {
+    const statement = doc(db("org-owner"), "users", "org-owner", "dsaStatements", "dsa-feedback-1");
+    await assertSucceeds(getDoc(statement));
+    await assertFails(getDoc(doc(db("regular-user"), "users", "org-owner", "dsaStatements", "dsa-feedback-1")));
+    await assertFails(getDoc(doc(db("owner"), "users", "org-owner", "dsaStatements", "dsa-feedback-1")));
+    await assertFails(updateDoc(statement, {status: "noAction"}));
+    await assertFails(setDoc(doc(db("org-owner"), "users", "org-owner", "dsaStatements", "forged"), {
+      id: "forged",
+      status: "decided",
+    }));
   });
 
   test("comment authors cannot delete their own comments, but moderators can", async () => {

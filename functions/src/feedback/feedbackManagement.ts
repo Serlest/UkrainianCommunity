@@ -42,8 +42,7 @@ export const deleteFeedback = onCall(
       throw new HttpsError("not-found", "Feedback record was not found.");
     }
 
-    await deleteFeedbackDocuments([feedbackDocument]);
-    await deleteFeedbackNotifications([feedbackId]);
+    await deleteFeedbackRecords([feedbackDocument]);
     await recordOwnerDeletionAudit("feedbackDeleted", actor.uid, {feedbackId});
     return {deletedCount: 1};
   }
@@ -75,7 +74,7 @@ export const clearFeedbackInbox = onCall(
     while (deletedFeedbackIds.length < maximumDeletedFeedback) {
       const snapshot = await db.collection("feedback").limit(feedbackBatchSize).get();
       if (snapshot.empty) break;
-      await deleteFeedbackDocuments(snapshot.docs.map((document) => document.ref));
+      await deleteFeedbackRecords(snapshot.docs.map((document) => document.ref));
       deletedFeedbackIds.push(...snapshot.docs.map((document) => document.id));
     }
 
@@ -86,7 +85,6 @@ export const clearFeedbackInbox = onCall(
       }
     }
 
-    await deleteFeedbackNotifications(deletedFeedbackIds);
     await recordOwnerDeletionAudit("feedbackInboxCleared", actor.uid, {
       deletedCount: deletedFeedbackIds.length,
     });
@@ -106,6 +104,16 @@ async function deleteFeedbackDocuments(
     writer.delete(feedbackDocument);
   }
   await writer.close();
+}
+
+export async function deleteFeedbackRecords(
+  feedbackDocuments: FirebaseFirestore.DocumentReference[]
+): Promise<void> {
+  if (feedbackDocuments.length === 0) return;
+  await deleteFeedbackDocuments(feedbackDocuments);
+  await deleteFeedbackNotifications(
+    feedbackDocuments.map((document) => document.id)
+  );
 }
 
 async function deleteFeedbackNotifications(feedbackIds: string[]): Promise<void> {

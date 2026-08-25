@@ -25,7 +25,9 @@ extension OrganizationEditorView {
     }
 
     var canTapSubmit: Bool {
-        viewModel.canSubmit && !isSaving
+        viewModel.canSubmit
+            && !isSaving
+            && (viewModel.isEditing || (organizationRulesDocument != nil && hasConfirmedOrganizationRules))
     }
 
     func submit() {
@@ -33,9 +35,18 @@ extension OrganizationEditorView {
         Task {
             let didSave = await viewModel.submit(
                 with: organizationsViewModel,
-                user: authState.user
+                user: authState.user,
+                organizationRulesVersion: organizationRulesDocument?.version
             )
-            guard didSave else { return }
+            guard didSave else {
+                if viewModel.errorMessage == AppStrings.OrganizationRules.acceptanceFailed {
+                    await loadOrganizationRulesIfNeeded(force: true)
+                    if organizationRulesDocument != nil {
+                        viewModel.errorMessage = nil
+                    }
+                }
+                return
+            }
             await onSaved()
             dismiss()
         }

@@ -534,6 +534,40 @@ struct ContentReportContext: Codable, Equatable {
     let slaDueAt: Date
 }
 
+struct DsaDecisionSummary: Codable, Equatable {
+    let outcome: String
+    let factsAndCircumstances: String
+    let legalBasis: String?
+    let termsBasis: String?
+    let territorialScope: String
+    let duration: String
+    let redressInformation: String
+    let automationUsed: Bool
+    let decidedAt: Date
+    let appealDeadline: Date
+}
+
+struct DsaCaseSummary: Codable, Equatable {
+    let caseNumber: String
+    let status: String
+    let category: String
+    let exactLocation: String
+    let illegalExplanation: String
+    let legalBasis: String?
+    let evidence: String?
+    let goodFaithConfirmed: Bool
+    let acknowledgementAt: Date
+    let preferredLanguage: String
+    let decision: DsaDecisionSummary?
+    let appeal: DsaAppealSummary?
+}
+
+struct DsaAppealSummary: Codable, Equatable {
+    let status: String
+    let reason: String
+    let outcome: String?
+}
+
 struct FeedbackItem: Identifiable, Codable {
     let id: String
     let type: FeedbackType
@@ -555,6 +589,7 @@ struct FeedbackItem: Identifiable, Codable {
     let unreadForUser: Bool
     let reportContext: ContentReportContext?
     let occurrenceCount: Int
+    let dsaCase: DsaCaseSummary?
 
     nonisolated init(
         id: String,
@@ -576,7 +611,8 @@ struct FeedbackItem: Identifiable, Codable {
         unreadForOwner: Bool,
         unreadForUser: Bool,
         reportContext: ContentReportContext? = nil,
-        occurrenceCount: Int = 1
+        occurrenceCount: Int = 1,
+        dsaCase: DsaCaseSummary? = nil
     ) {
         self.id = id
         self.type = type
@@ -598,6 +634,7 @@ struct FeedbackItem: Identifiable, Codable {
         self.unreadForUser = unreadForUser
         self.reportContext = reportContext
         self.occurrenceCount = max(1, occurrenceCount)
+        self.dsaCase = dsaCase
     }
 }
 

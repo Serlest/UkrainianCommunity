@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="UkrainianCommunity">
+  <defs>
+    <clipPath id="rounded"><rect width="64" height="64" rx="15"/></clipPath>
+  </defs>
+  <g clip-path="url(#rounded)">
+    <path fill="#1675d1" d="M0 0h64v32H0z"/>
+    <path fill="#ffd43b" d="M0 32h64v32H0z"/>
+  </g>
+  <path fill="#fff" d="M20 17v19c0 9 5 14 12 14s12-5 12-14V17h-7v19c0 5-2 7-5 7s-5-2-5-7V17z"/>
+</svg>

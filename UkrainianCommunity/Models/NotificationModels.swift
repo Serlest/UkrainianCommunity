@@ -77,6 +77,7 @@ enum AppNotificationActionType: String, Codable, CaseIterable, Sendable {
     case none
     case openNews
     case openFeedback
+    case openDsaStatement
     case openOrganization
     case openOrganizationRequest
     case openEvent
@@ -101,6 +102,7 @@ enum RemoteNotificationRouteDestination: Equatable, Sendable {
     case openOrganization(organizationId: String)
     case openOrganizationRequest(organizationId: String?)
     case openFeedback(feedbackId: String?)
+    case openDsaStatement(statementId: String)
     case openLegalDocuments
     case openProfile
     case openURL(urlString: String)
@@ -211,6 +213,8 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             return .openOrganizationRequest(organizationId: targetId)
         case "openFeedback", "feedback":
             return .openFeedback(feedbackId: targetId)
+        case "openDsaStatement", "dsaStatement":
+            return targetId.map { .openDsaStatement(statementId: $0) }
         case "openLegalDocuments", "legalDocuments", "legal":
             return .openLegalDocuments
         case "openProfile", "profile":
@@ -244,6 +248,8 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             return "openOrganizationRequest"
         case .openFeedback:
             return "openFeedback"
+        case .openDsaStatement:
+            return "openDsaStatement"
         case .openProfile:
             return "openProfile"
         case .openURL:

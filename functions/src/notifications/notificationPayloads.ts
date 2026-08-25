@@ -28,6 +28,7 @@ export type NotificationActionType =
   | "openNews"
   | "openEvent"
   | "openFeedback"
+  | "openDsaStatement"
   | "openLegalDocuments"
   | "openOrganization"
   | "openOrganizationRequest"
@@ -428,6 +429,8 @@ function defaultRoute(
       return "openEvent";
     case "openFeedback":
       return "openFeedback";
+    case "openDsaStatement":
+      return "openDsaStatement";
     case "openOrganization":
       return "openOrganization";
     case "openOrganizationRequest":
