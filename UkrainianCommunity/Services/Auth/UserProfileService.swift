@@ -521,6 +521,10 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         try await batch.commit()
     }
 
+    func clearMyFeedback() async throws {
+        _ = try await CloudFunctionsClient.shared.clearMyFeedback()
+    }
+
     private func makeFeedbackItem(from document: QueryDocumentSnapshot) -> FeedbackItem {
         let data = document.data()
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()

@@ -15,13 +15,14 @@ struct AppBackButton: View {
     }
 
     var body: some View {
-        AppGlassIconButton(systemImage: "chevron.left", accessibilityLabel: accessibilityLabel) {
+        AppGlassIconButton(systemImage: "chevron.backward", accessibilityLabel: accessibilityLabel) {
             if let action {
                 action()
             } else {
                 dismiss()
             }
         }
+        .accessibilityIdentifier("navigation.back")
     }
 }
 
@@ -209,23 +210,27 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
             AppBackgroundView()
                 .allowsHitTesting(false)
 
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: contentSpacing) {
-                    PushedScreenHeader(
-                        title: title,
-                        subtitle: subtitle,
-                        showsBackButton: showsBackButton,
-                        backAction: backAction
-                    ) {
-                        trailingContent
-                    }
-
-                    content
+            VStack(spacing: 0) {
+                PushedScreenHeader(
+                    title: title,
+                    subtitle: subtitle,
+                    showsBackButton: showsBackButton,
+                    backAction: backAction
+                ) {
+                    trailingContent
                 }
                 .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
                 .padding(.top, topPadding)
-                .padding(.bottom, bottomPadding)
+                .padding(.bottom, contentSpacing)
                 .appCenteredContent()
+
+                ScrollView(.vertical, showsIndicators: true) {
+                    content
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
+                        .padding(.bottom, bottomPadding)
+                        .appCenteredContent()
+                }
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -341,25 +346,29 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
             AppBackgroundView()
                 .allowsHitTesting(false)
 
-            ScrollViewReader { scrollProxy in
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: contentSpacing) {
-                        DetailActionHeader(
-                            title: title,
-                            subtitle: subtitle,
-                            backAction: backAction
-                        ) {
-                            headerActions
-                        }
-
-                        content(scrollProxy)
-                    }
-                    .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
-                    .padding(.top, topPadding)
-                    .padding(.bottom, bottomPadding)
-                    .appCenteredContent()
+            VStack(spacing: 0) {
+                DetailActionHeader(
+                    title: title,
+                    subtitle: subtitle,
+                    backAction: backAction
+                ) {
+                    headerActions
                 }
-                .detailRefreshable(refreshAction)
+                .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
+                .padding(.top, topPadding)
+                .padding(.bottom, contentSpacing)
+                .appCenteredContent()
+
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        content(scrollProxy)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
+                            .padding(.bottom, bottomPadding)
+                            .appCenteredContent()
+                    }
+                    .detailRefreshable(refreshAction)
+                }
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -614,7 +623,7 @@ enum EditorScreenCloseStyle {
     var systemImage: String {
         switch self {
         case .back:
-            "chevron.left"
+            "chevron.backward"
         case .cancel:
             "xmark"
         }
@@ -670,15 +679,20 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
             AppBackgroundView()
                 .allowsHitTesting(false)
 
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.editorScreenContentSpacing) {
-                    editorHeader
+            VStack(spacing: 0) {
+                editorHeader
+                    .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
+                    .padding(.top, AppTheme.editorScreenTopPadding)
+                    .padding(.bottom, AppTheme.editorScreenContentSpacing)
+                    .appCenteredContent()
+
+                ScrollView(.vertical, showsIndicators: true) {
                     content
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
+                        .padding(.bottom, AppTheme.editorScreenBottomPadding)
+                        .appCenteredContent()
                 }
-                .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
-                .padding(.top, AppTheme.editorScreenTopPadding)
-                .padding(.bottom, AppTheme.editorScreenBottomPadding)
-                .appCenteredContent()
             }
 
             bottomActionContent

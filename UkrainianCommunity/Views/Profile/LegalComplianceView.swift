@@ -146,20 +146,17 @@ private struct LegalMarkdownDocumentView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+        PushedScreenShell(
+            title: content.title,
+            subtitle: AppStrings.LegalCompliance.readDocumentSubtitle,
+            tabBarHidden: true
+        ) {
+            AppGroupedContentPlane(spacing: AppTheme.sectionSpacing) {
                 AppEditorSectionCard {
-                    VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                        SectionHeaderBlock(
-                            title: content.title,
-                            subtitle: AppStrings.LegalCompliance.readDocumentSubtitle
-                        )
-
-                        AppInfoChip(
-                            title: AppStrings.legalVersionLabel(document.version),
-                            systemImage: "doc.text"
-                        )
-                    }
+                    AppInfoChip(
+                        title: AppStrings.legalVersionLabel(document.version),
+                        systemImage: "doc.text"
+                    )
                 }
 
                 AppEditorSectionCard {
@@ -169,12 +166,7 @@ private struct LegalMarkdownDocumentView: View {
                     )
                 }
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.vertical, AppTheme.sectionSpacing)
         }
-        .background(AppTheme.groupedBackground.ignoresSafeArea())
-        .navigationTitle(content.title)
-        .navigationBarTitleDisplayMode(.inline)
     }
 
 }

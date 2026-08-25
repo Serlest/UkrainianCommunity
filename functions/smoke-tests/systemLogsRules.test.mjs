@@ -12,7 +12,9 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
   query,
+  serverTimestamp,
   setDoc,
   updateDoc,
   where,
@@ -94,6 +96,7 @@ function baseLog(overrides = {}) {
       fixture: "systemLogsRules",
     },
     retentionPolicy: "technicalError",
+    isAppAdminReadable: true,
     ...overrides,
   };
 }
@@ -147,6 +150,7 @@ function securityLog() {
     targetType: "account",
     outcome: "blocked",
     retentionPolicy: "security",
+    isAppAdminReadable: false,
   });
 }
 
@@ -156,6 +160,7 @@ function ownerActorLog() {
     category: "diagnostics",
     actorRole: "owner",
     retentionPolicy: "technicalError",
+    isAppAdminReadable: false,
   });
 }
 
@@ -170,6 +175,7 @@ function authorizationLog() {
     targetType: "organizationRequest",
     outcome: "blocked",
     retentionPolicy: "security",
+    isAppAdminReadable: false,
   });
 }
 
@@ -177,7 +183,7 @@ function diagnosticsCreate(id = "created-diagnostics-log") {
   return {
     ...diagnosticsLog(),
     id,
-    createdAt: new Date("2026-06-07T11:00:00Z"),
+    createdAt: serverTimestamp(),
     isReviewed: false,
   };
 }
@@ -185,7 +191,7 @@ function diagnosticsCreate(id = "created-diagnostics-log") {
 function auditCreate({id, actorUserId, actorRole}) {
   return {
     id,
-    createdAt: new Date("2026-06-07T11:05:00Z"),
+    createdAt: serverTimestamp(),
     category: "audit",
     severity: "info",
     severityRank: 1,
@@ -202,13 +208,14 @@ function auditCreate({id, actorUserId, actorRole}) {
     isReviewed: false,
     metadata: {},
     retentionPolicy: "normalAudit",
+    isAppAdminReadable: false,
   };
 }
 
 function moderationCreate({id, actorUserId, actorRole, eventType = "contentApproved", outcome = "approved"}) {
   return {
     id,
-    createdAt: new Date("2026-06-07T11:10:00Z"),
+    createdAt: serverTimestamp(),
     category: "moderation",
     severity: "notice",
     severityRank: 2,
@@ -227,6 +234,7 @@ function moderationCreate({id, actorUserId, actorRole, eventType = "contentAppro
       newStatus: "approved",
     },
     retentionPolicy: "moderationDispute",
+    isAppAdminReadable: actorRole !== "owner",
   };
 }
 
@@ -240,7 +248,7 @@ function securityCreate({
 }) {
   return {
     id,
-    createdAt: new Date("2026-06-07T11:15:00Z"),
+    createdAt: serverTimestamp(),
     category: "authorization",
     severity,
     severityRank: severity === "error" ? 4 : severity === "warning" ? 3 : 2,
@@ -259,6 +267,7 @@ function securityCreate({
       targetUserId: "target-user",
     },
     retentionPolicy: "security",
+    isAppAdminReadable: false,
   };
 }
 
@@ -449,6 +458,14 @@ describe("systemLogs client create restrictions", () => {
     })));
   });
 
+  test("client cannot forge the creation time", async () => {
+    const adminDb = auth("admin");
+    await assertFails(setDoc(doc(adminDb, "systemLogs", "forged-time"), {
+      ...diagnosticsCreate("forged-time"),
+      createdAt: new Date("2020-01-01T00:00:00Z"),
+    }));
+  });
+
   test("security create rejects users, removed moderator values, and spoofed actors", async () => {
     const normalDb = auth("normal-user");
     const moderatorDb = auth("moderator");
@@ -480,18 +497,30 @@ describe("systemLogs queries", () => {
     assert.ok(snapshot.size >= 6);
   });
 
-  test("admin constrained query for allowed diagnostics succeeds", async () => {
+  test("admin query matching the iOS visibility contract succeeds", async () => {
     const db = auth("admin");
-    const allowedDiagnostics = query(
+    const readableLogs = query(
       collection(db, "systemLogs"),
-      where("category", "==", "diagnostics"),
-      where("retentionPolicy", "==", "technicalError"),
-      where("eventType", "==", "dataValidationFailed"),
-      where("actorRole", "==", "system"),
+      where("isAppAdminReadable", "==", true),
+      orderBy("createdAt", "desc"),
     );
 
-    const snapshot = await assertSucceeds(getDocs(allowedDiagnostics));
+    const snapshot = await assertSucceeds(getDocs(readableLogs));
     assert.equal(snapshot.docs.some((item) => item.id === "diagnostics-log"), true);
+    assert.equal(snapshot.docs.some((item) => item.id === "security-log"), false);
+    assert.equal(snapshot.docs.some((item) => item.id === "owner-actor-log"), false);
+  });
+
+  test("client cannot mark a restricted log as app-admin readable", async () => {
+    const db = auth("admin");
+    await assertFails(setDoc(doc(db, "systemLogs", "spoofed-visibility"), {
+      ...securityCreate({
+        id: "spoofed-visibility",
+        actorUserId: "admin",
+        actorRole: "admin",
+      }),
+      isAppAdminReadable: true,
+    }));
   });
 
   test("admin broad query fails when mixed forbidden logs exist", async () => {

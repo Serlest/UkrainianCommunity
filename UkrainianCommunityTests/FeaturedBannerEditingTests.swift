@@ -122,6 +122,28 @@ struct FeaturedBannerEditingTests {
         #expect(viewModel.errorMessage == AppStrings.FeaturedEditor.savePermissionError)
     }
 
+    @Test func duplicatedBannerCreatesInactiveCopyWithoutDeletingSharedImage() async throws {
+        let imageURL = try #require(URL(string: "https://firebasestorage.googleapis.com/source.jpg"))
+        let repository = RecordingBannerRepository()
+        let images = RecordingBannerImageService(uploadedURL: imageURL)
+        let source = makeBanner(title: "Source", subtitle: "Reusable", imageURL: imageURL.absoluteString)
+        let viewModel = FeaturedBannerEditorViewModel(
+            repository: repository,
+            mode: .duplicate(source),
+            imageUploadService: images
+        )
+
+        let didSave = await viewModel.save(updatedBy: "owner-id")
+
+        #expect(didSave)
+        let copy = try #require(repository.updatedBanner)
+        #expect(copy.id != source.id)
+        #expect(copy.title == source.title)
+        #expect(copy.imageURL == source.imageURL)
+        #expect(copy.isActive == false)
+        #expect(images.deletedURLs.isEmpty)
+    }
+
     private func makeBanner(
         title: String,
         subtitle: String?,

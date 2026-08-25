@@ -386,8 +386,9 @@ function defaultRoute(
     case "openFeedback":
       return "openFeedback";
     case "openOrganization":
-    case "openOrganizationRequest":
       return "openOrganization";
+    case "openOrganizationRequest":
+      return "openOrganizationRequest";
     case "openProfile":
       return "openProfile";
     case "openURL":

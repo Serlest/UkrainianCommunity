@@ -128,7 +128,7 @@ struct MyRegistrationsView: View {
                     selectedSegment = segment
                 } label: {
                     AppFilterChip(
-                        title: segment.title,
+                        title: "\(segment.title): \(eventCount(for: segment))",
                         systemImage: segment.systemImage,
                         isSelected: selectedSegment == segment
                     )
@@ -145,8 +145,11 @@ struct MyRegistrationsView: View {
         } else if let error = viewModel.error, viewModel.events.isEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.myRegistrations,
-                message: readableRegistrationsErrorText(error)
-            )
+                message: readableRegistrationsErrorText(error),
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task { await viewModel.refresh() }
+            }
         } else if viewModel.events.isEmpty || filteredEvents.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: viewModel.events.isEmpty ? "calendar.badge.clock" : selectedSegment.systemImage,
@@ -154,7 +157,10 @@ struct MyRegistrationsView: View {
                 message: emptyStateMessage
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                if let error = viewModel.error {
+                    InlineMessageCard(style: .error, message: readableRegistrationsErrorText(error))
+                }
                 ForEach(filteredEvents) { event in
                     registrationRow(for: event)
                 }
@@ -194,6 +200,14 @@ struct MyRegistrationsView: View {
             AppStrings.Events.loadUnknownError
         }
     }
+
+    private func eventCount(for segment: MyEventsSegment) -> Int {
+        switch segment {
+        case .all: viewModel.events.count
+        case .upcoming: upcomingEvents.count
+        case .past: pastEvents.count
+        }
+    }
 }
 
 private struct RegisteredEventDetailContainer: View {
@@ -224,6 +238,7 @@ private struct RegisteredEventDetailContainer: View {
 private struct RegistrationEventRow: View {
     let event: Event
     let isUpdating: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         SoftContentCard(padding: AppTheme.eventsCardPadding) {
@@ -232,31 +247,32 @@ private struct RegistrationEventRow: View {
 
                 VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
                     AppInfoChip(
-                        title: AppStrings.Events.title.uppercased(),
+                        title: event.isCancelled ? AppStrings.Events.cancelledNoticeTitle : AppStrings.Events.title.uppercased(),
                         systemImage: "calendar",
-                        tint: AppTheme.accentPrimaryForeground,
-                        fill: AppTheme.badgeBlueFill,
+                        tint: event.isCancelled ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground,
+                        fill: event.isCancelled ? AppTheme.accentDestructive.opacity(0.10) : AppTheme.badgeBlueFill,
                         size: .small
                     )
 
                     Text(event.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                     if !event.summary.isEmpty {
                         Text(event.summary)
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(AppTheme.textSecondary.opacity(0.88))
-                            .lineLimit(1)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     }
 
-                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    VStack(alignment: .leading, spacing: 3) {
                         AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate), systemImage: "clock")
                         AppMetadataLine(title: event.city.isEmpty ? event.venue : event.city, systemImage: event.city.isEmpty ? "building.2" : "mappin.and.ellipse")
                     }
+                    .lineLimit(1)
                 }
-                .padding(.trailing, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer(minLength: 0)
 
@@ -279,7 +295,6 @@ private struct RegistrationEventRow: View {
                             .background(.regularMaterial, in: Circle())
                     }
                 }
-                .padding(.trailing, 26)
                 .frame(maxHeight: AppTheme.eventsThumbnailSize)
                 .layoutPriority(-1)
             }

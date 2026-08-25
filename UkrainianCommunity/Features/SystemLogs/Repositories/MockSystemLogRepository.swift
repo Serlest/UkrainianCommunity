@@ -78,6 +78,11 @@ struct MockSystemLogRepository: SystemLogRepositoryProtocol {
             return false
         }
 
+        if let isAppAdminReadable = filter.isAppAdminReadable,
+           FirestoreSystemLogDTO.appAdminReadable(entry) != isAppAdminReadable {
+            return false
+        }
+
         if let searchText = filter.searchText?.trimmingCharacters(in: .whitespacesAndNewlines), !searchText.isEmpty {
             return entry.summary.localizedCaseInsensitiveContains(searchText)
                 || entry.technicalMessage?.localizedCaseInsensitiveContains(searchText) == true

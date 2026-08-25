@@ -22,6 +22,33 @@ struct FirestoreEventRepository: EventRepository {
         try await fetchEventsPage(limit: 30, after: nil).items
     }
 
+    func fetchBookmarkedEvents() async throws -> [Event] {
+        let bookmarkedIDs = try await fetchBookmarkedEventIDs()
+        guard !bookmarkedIDs.isEmpty else { return [] }
+        let likedIDs = try await fetchLikedEventIDs()
+        let registeredIDs = try await fetchRegisteredEventIDs()
+        var events: [Event] = []
+
+        for chunk in Array(bookmarkedIDs).chunked(into: 10) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+                .getDocuments()
+            let resolved = try snapshot.documents.compactMap { document -> Event? in
+                let event = try Event(dto: makeEventDTO(
+                    from: document,
+                    likedEventIDs: likedIDs,
+                    registeredEventIDs: registeredIDs,
+                    bookmarkedEventIDs: bookmarkedIDs
+                ))
+                return event.moderationStatus == .approved && event.isOrganizationEvent ? event : nil
+            }
+            events.append(contentsOf: resolved)
+        }
+
+        return events.sorted { $0.startDate < $1.startDate }
+    }
+
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
         var query: Query = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)

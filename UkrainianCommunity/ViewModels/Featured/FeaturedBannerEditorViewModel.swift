@@ -25,10 +25,16 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
     enum Mode {
         case create
+        case duplicate(FeaturedBanner)
         case edit(FeaturedBanner)
 
         var isEditing: Bool {
             if case .edit = self { return true }
+            return false
+        }
+
+        var isDuplicating: Bool {
+            if case .duplicate = self { return true }
             return false
         }
     }
@@ -118,6 +124,35 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             originalImageURL = nil
             isMigratingLegacyBanner = false
             isRepairingMalformedBanner = false
+        case let .duplicate(existing):
+            let now = Date()
+            bannerID = UUID().uuidString
+            internalName = existing.internalName ?? ""
+            title = existing.title
+            subtitle = existing.subtitle ?? ""
+            imageURL = existing.imageURL ?? ""
+            regionScope = existing.regionScope
+            federalState = existing.federalState
+            let supportedSections = existing.supportedVisibleSections
+            visibleSections = supportedSections.isEmpty ? [.home] : supportedSections
+            actionType = existing.actionType.isSupported ? existing.actionType : .none
+            actionTargetID = existing.actionType.isSupported ? (existing.actionTargetID ?? "") : ""
+            externalURL = existing.externalURL ?? ""
+            displayDurationSeconds = existing.displayDurationSeconds
+            priority = existing.priority
+            // A copy must never become public before the owner reviews it.
+            isActive = false
+            hasStartDate = existing.startsAt != nil
+            startsAt = existing.startsAt ?? now
+            hasEndDate = existing.endsAt != nil
+            endsAt = existing.endsAt ?? Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
+            createdAt = now
+            createdBy = ""
+            // The copy reuses the published asset. It must not own or delete
+            // the source banner's image when another image is selected.
+            originalImageURL = nil
+            isMigratingLegacyBanner = false
+            isRepairingMalformedBanner = false
         case let .edit(existing):
             bannerID = existing.id
             internalName = existing.internalName ?? ""
@@ -156,7 +191,13 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     var navigationTitle: String {
-        mode.isEditing ? AppStrings.FeaturedEditor.editTitle : AppStrings.FeaturedEditor.createTitle
+        if mode.isEditing {
+            return AppStrings.FeaturedEditor.editTitle
+        }
+        if mode.isDuplicating {
+            return AppStrings.FeaturedManagement.duplicateBanner
+        }
+        return AppStrings.FeaturedEditor.createTitle
     }
 
     var saveButtonTitle: String {
@@ -435,7 +476,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             try validationService.validate(banner)
 
             switch mode {
-            case .create:
+            case .create, .duplicate:
                 try await repository.createBanner(banner)
             case .edit:
                 try await repository.updateBanner(banner)

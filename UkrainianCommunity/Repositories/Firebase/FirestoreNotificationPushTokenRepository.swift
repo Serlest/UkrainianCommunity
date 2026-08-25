@@ -1,5 +1,6 @@
 import CryptoKit
 import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 import UIKit
 
@@ -54,13 +55,27 @@ struct FirestoreNotificationPushTokenRepository: NotificationPushTokenRepository
             identifier: identifier,
             kind: registration.kind
         )
-        _ = try await functionsClient.deleteNotificationPushRegistration(
-            PushRegistrationDeletionFunctionRequest(
-                userId: userID,
-                identifier: normalizedRegistration.identifier,
-                registrationType: normalizedRegistration.kind.rawValue
+        do {
+            _ = try await functionsClient.deleteNotificationPushRegistration(
+                PushRegistrationDeletionFunctionRequest(
+                    userId: userID,
+                    identifier: normalizedRegistration.identifier,
+                    registrationType: normalizedRegistration.kind.rawValue
+                )
             )
-        )
+        } catch {
+            guard Self.isUnauthenticatedFunctionsError(error) else { throw error }
+
+            // App Check can reject a legitimate Debug/Simulator callable even
+            // while Firebase Auth and the user's Firestore session are valid.
+            // Removing the exact current-device document is allowed only to its
+            // authenticated owner and prevents that diagnostics configuration
+            // from trapping the user inside the account.
+            try await registrationDocument(
+                userID: userID,
+                registration: normalizedRegistration
+            ).delete()
+        }
     }
 
     private func registrationDocument(
@@ -85,5 +100,11 @@ struct FirestoreNotificationPushTokenRepository: NotificationPushTokenRepository
         }
         let digest = SHA256.hash(data: Data(identity.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func isUnauthenticatedFunctionsError(_ error: Error) -> Bool {
+        let error = error as NSError
+        return error.domain == FunctionsErrorDomain
+            && FunctionsErrorCode(rawValue: error.code) == .unauthenticated
     }
 }

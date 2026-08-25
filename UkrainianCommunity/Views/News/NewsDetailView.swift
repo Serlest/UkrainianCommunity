@@ -201,7 +201,7 @@ struct NewsDetailView: View {
         }
         .guestAccessAlert($guestAccessAction)
         .task {
-            await viewModel.loadIfNeeded()
+            await viewModel.loadPostIfNeeded(postID: postID)
             guard let post = viewModel.post(for: postID) else { return }
             await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
             await viewModel.loadComments(for: postID)

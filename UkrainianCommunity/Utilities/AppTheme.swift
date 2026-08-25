@@ -129,6 +129,14 @@ enum AppTheme {
     static let featuredBannerCarouselAnimation: Animation = .easeInOut(duration: 0.62)
     static let bodyFont: Font = .body
     static let secondaryBodyFont: Font = .subheadline
+    static let sectionHeaderTitleFont: Font = .title3.weight(.semibold)
+    static let sectionHeaderSubtitleFont = secondaryBodyFont
+    static let navigationRowTitleFont: Font = .body.weight(.semibold)
+    static let navigationRowSubtitleFont: Font = .footnote
+    static let emptyStateTitleFont: Font = .headline.weight(.semibold)
+    static let emptyStateMessageFont = secondaryBodyFont
+    static let authHeaderTitleFont = sectionHeaderTitleFont
+    static let authHeaderSubtitleFont = sectionHeaderSubtitleFont
     static let metadataFont: Font = .caption2.weight(.medium)
     static let metadataStrongFont: Font = .caption.weight(.semibold)
     static let badgeFont: Font = .caption2.weight(.bold)

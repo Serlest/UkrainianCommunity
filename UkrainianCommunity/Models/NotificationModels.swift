@@ -99,7 +99,9 @@ enum RemoteNotificationRouteDestination: Equatable, Sendable {
     case openNews(newsId: String)
     case openEvent(eventId: String)
     case openOrganization(organizationId: String)
+    case openOrganizationRequest(organizationId: String?)
     case openFeedback(feedbackId: String?)
+    case openLegalDocuments
     case openProfile
     case openURL(urlString: String)
     case systemAnnouncement
@@ -124,7 +126,7 @@ struct RemoteNotificationRoute: Equatable, Sendable {
         route: String?,
         routeTargetId: String?
     ) {
-        guard type != .reportReviewed, type != .unknown else {
+        guard type != .unknown else {
             return nil
         }
 
@@ -205,8 +207,12 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             return targetId.map { .openEvent(eventId: $0) }
         case "openOrganization", "organization":
             return targetId.map { .openOrganization(organizationId: $0) }
+        case "openOrganizationRequest", "organizationRequest":
+            return .openOrganizationRequest(organizationId: targetId)
         case "openFeedback", "feedback":
             return .openFeedback(feedbackId: targetId)
+        case "openLegalDocuments", "legalDocuments", "legal":
+            return .openLegalDocuments
         case "openProfile", "profile":
             return .openProfile
         case "openURL", "url":
@@ -232,8 +238,10 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             return "openNews"
         case .openEvent:
             return "openEvent"
-        case .openOrganization, .openOrganizationRequest:
+        case .openOrganization:
             return "openOrganization"
+        case .openOrganizationRequest:
+            return "openOrganizationRequest"
         case .openFeedback:
             return "openFeedback"
         case .openProfile:

@@ -56,6 +56,7 @@ struct RecentViewsView: View {
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var selectedSegment: RecentViewsSegment = .all
+    @State private var isShowingClearConfirmation = false
 
     init(
         recentViewsViewModel: RecentViewsViewModel? = nil,
@@ -86,7 +87,12 @@ struct RecentViewsView: View {
     var body: some View {
         ProfileDestinationLayout(
             title: AppStrings.Profile.recentlyViewed,
-            introSubtitle: AppStrings.Profile.recentlyViewedIntro
+            introSubtitle: AppStrings.Profile.recentlyViewedIntro,
+            clearAction: recentViewsViewModel.items.isEmpty ? nil : ProfileDestinationClearAction(
+                accessibilityLabel: AppStrings.Profile.recentlyViewedClear,
+                isLoading: recentViewsViewModel.isClearing,
+                action: { isShowingClearConfirmation = true }
+            )
         ) {
             AppHorizontalFilterRow {
                 ForEach(RecentViewsSegment.allCases) { segment in
@@ -94,7 +100,7 @@ struct RecentViewsView: View {
                         selectedSegment = segment
                     } label: {
                         AppFilterChip(
-                            title: segment.title,
+                            title: "\(segment.title): \(recentViewsViewModel.items.filter { segment.matches($0) }.count)",
                             systemImage: segment.systemImage,
                             isSelected: selectedSegment == segment
                         )
@@ -115,6 +121,17 @@ struct RecentViewsView: View {
         .refreshable {
             await refreshRecentViews()
         }
+        .confirmationDialog(
+            AppStrings.Profile.recentlyViewedClearConfirmationTitle,
+            isPresented: $isShowingClearConfirmation
+        ) {
+            Button(AppStrings.Profile.recentlyViewedClear, role: .destructive) {
+                Task { await recentViewsViewModel.clearHistory() }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.Profile.recentlyViewedClearConfirmationMessage)
+        }
     }
 
     @ViewBuilder
@@ -122,11 +139,13 @@ struct RecentViewsView: View {
         if isLoading {
             LoadingStateCard(title: AppStrings.Profile.recentlyViewed)
         } else if let error = recentViewsViewModel.error, recentViewsViewModel.items.isEmpty {
-            ProfileDestinationEmptyStateCard(
-                systemImage: "exclamationmark.triangle",
+            ErrorStateCard(
                 title: AppStrings.Profile.recentlyViewed,
-                message: recentViewsErrorMessage(error)
-            )
+                message: recentViewsErrorMessage(error),
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task { await recentViewsViewModel.refresh() }
+            }
         } else if filteredItems.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "clock.arrow.circlepath",
@@ -134,7 +153,10 @@ struct RecentViewsView: View {
                 message: AppStrings.Profile.recentlyViewedEmptyMessage
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                if let error = recentViewsViewModel.error {
+                    InlineMessageCard(style: .error, message: recentViewsErrorMessage(error))
+                }
                 ForEach(filteredItems) { item in
                     recentItemLink(item)
                 }

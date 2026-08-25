@@ -51,6 +51,11 @@ struct RecentViewItem: Identifiable, Equatable {
 protocol RecentViewsRepository {
     func fetchRecentViews(limit: Int) async throws -> [RecentViewItem]
     func recordRecentView(_ item: RecentViewItem) async throws
+    func clearRecentViews() async throws
+}
+
+extension RecentViewsRepository {
+    func clearRecentViews() async throws {}
 }
 
 struct FirestoreRecentViewsRepository: RecentViewsRepository {
@@ -83,6 +88,15 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
         ], merge: true)
 
         try await pruneRecentViews(in: collection)
+    }
+
+    func clearRecentViews() async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
+        let snapshot = try await recentViewsCollection(userID: uid).getDocuments()
+        guard !snapshot.documents.isEmpty else { return }
+        let batch = database.batch()
+        snapshot.documents.forEach { batch.deleteDocument($0.reference) }
+        try await batch.commit()
     }
 
     private func recentViewsCollection(userID: String) -> CollectionReference {
@@ -129,6 +143,7 @@ final class RecentViewsViewModel: ObservableObject {
     @Published private(set) var items: [RecentViewItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
+    @Published private(set) var isClearing = false
 
     private let repository: RecentViewsRepository
     private var hasLoaded = false
@@ -178,6 +193,24 @@ final class RecentViewsViewModel: ObservableObject {
             self.error = .unknown
             hasLoaded = true
         }
+    }
+
+    @discardableResult
+    func clearHistory() async -> Bool {
+        guard !isClearing else { return false }
+        isClearing = true
+        defer { isClearing = false }
+        do {
+            try await repository.clearRecentViews()
+            items = []
+            error = nil
+            return true
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+        return false
     }
 }
 

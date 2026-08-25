@@ -13,6 +13,7 @@ final class NotificationInboxViewModel: ObservableObject {
     @Published private(set) var notifications: [AppNotification] = []
     @Published private(set) var unreadCount = 0
     @Published private(set) var isLoading = false
+    @Published private(set) var isClearing = false
     @Published private(set) var error: AppError?
     @Published private(set) var snapshotVersion = 0
     @Published var selectedFilter: NotificationInboxFilter = .all
@@ -150,6 +151,24 @@ final class NotificationInboxViewModel: ObservableObject {
             if wasUnread {
                 unreadCount = max(0, unreadCount - 1)
             }
+            error = nil
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+    }
+
+    func clearAll() async {
+        guard let userID = currentUserID, !notifications.isEmpty, !isClearing else { return }
+        isClearing = true
+        defer { isClearing = false }
+
+        do {
+            try await repository.clearNotifications(userID: userID)
+            notifications = []
+            unreadCount = 0
+            snapshotVersion += 1
             error = nil
         } catch let appError as AppError {
             error = appError

@@ -1,14 +1,5 @@
 import SwiftUI
 
-struct ProfileStatItem: Identifiable {
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var id: String { "\(systemImage)-\(title)" }
-}
-
-
 struct ProfileQuickActionItem: Identifiable {
     let title: String
     let subtitle: String
@@ -47,7 +38,7 @@ struct ProfileQuickActionCard: View {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.textSecondary)
-                        .frame(width: 70, alignment: .trailing)
+                        .frame(width: 24, alignment: .trailing)
                 }
             }
 
@@ -67,8 +58,8 @@ struct ProfileQuickActionCard: View {
         .padding(AppTheme.eventsMetadataSpacing)
         .frame(
             maxWidth: .infinity,
-            minHeight: 116,
-            maxHeight: dynamicTypeSize.isAccessibilitySize ? nil : 116,
+            minHeight: 108,
+            maxHeight: dynamicTypeSize.isAccessibilitySize ? nil : 108,
             alignment: .topLeading
         )
         .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))

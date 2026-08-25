@@ -128,6 +128,14 @@ actor MockRepositoryStore {
         notificationsByUserID[userID] = notifications
     }
 
+    func clearNotifications(userID: String) {
+        let notifications = (notificationsByUserID[userID] ?? []).map { notification in
+            guard notification.isVisibleInInbox else { return notification }
+            return notification.updatingDeleteState(deletedAt: .now)
+        }
+        notificationsByUserID[userID] = notifications
+    }
+
     func feedback() -> [FeedbackItem] {
         feedbackItems.sorted { $0.createdAt > $1.createdAt }
     }
@@ -201,6 +209,11 @@ actor MockRepositoryStore {
             messages.append(legacyReply)
         }
         return messages.deduplicatedByID().sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func clearFeedback() {
+        feedbackItems = []
+        feedbackMessages = [:]
     }
 
     func addFeedbackMessage(feedback item: FeedbackItem, text: String, sender: AppUser, senderRole: FeedbackSenderRole) throws {

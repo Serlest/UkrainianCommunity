@@ -3,6 +3,7 @@ import SwiftUI
 struct SystemLogsDashboardView: View {
     @StateObject private var viewModel: SystemLogsViewModel
     @FocusState private var isSearchFocused: Bool
+    @State private var isConfirmingClear = false
     private let embedsInNavigationStack: Bool
 
     @MainActor
@@ -36,12 +37,31 @@ struct SystemLogsDashboardView: View {
         ) {
             searchBar
         } metrics: {
-            SystemLogsOverviewCards(metrics: viewModel.overviewMetrics)
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                SystemLogsOverviewCards(metrics: viewModel.overviewMetrics)
+                Text(AppStrings.SystemLogs.loadedMetricsNote)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         } trailingContent: {
-            if viewModel.isLoading {
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.top, 3)
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                if viewModel.isLoading || viewModel.isClearingLogs {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                if viewModel.accessMode == .owner, !viewModel.logs.isEmpty {
+                    AppGlassIconButton(
+                        systemImage: "trash",
+                        accessibilityLabel: AppStrings.SystemLogs.clearAll,
+                        role: .destructive
+                    ) {
+                        isConfirmingClear = true
+                    }
+                    .disabled(viewModel.isClearingLogs)
+                    .accessibilityIdentifier("systemLogs.clearAll")
+                }
             }
         } content: {
             filters
@@ -53,6 +73,18 @@ struct SystemLogsDashboardView: View {
         }
         .refreshable {
             await viewModel.refresh()
+        }
+        .confirmationDialog(
+            AppStrings.SystemLogs.clearConfirmationTitle,
+            isPresented: $isConfirmingClear,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.SystemLogs.clearAll, role: .destructive) {
+                Task { await viewModel.clearAllLogs() }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.SystemLogs.clearConfirmationMessage)
         }
     }
 
@@ -93,17 +125,20 @@ struct SystemLogsDashboardView: View {
             selectedFilters: viewModel.selectedFilters,
             onToggleFilter: { filter in
                 viewModel.toggleFilter(filter)
-            }
+            },
+            onClearFilters: { viewModel.clearQuickFilters() }
         )
     }
 
     @ViewBuilder
     private var content: some View {
-        if let errorMessage = viewModel.errorMessage {
-            SoftContentCard(padding: 16) {
-                Label(errorMessage, systemImage: "exclamationmark.triangle")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentDestructiveForeground)
+        if let errorMessage = viewModel.errorMessage, viewModel.logs.isEmpty {
+            ErrorStateCard(
+                title: viewModel.accessMode.title,
+                message: errorMessage,
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task { await viewModel.refresh() }
             }
         } else if viewModel.isLoading && viewModel.logs.isEmpty {
             SoftContentCard(padding: 16) {
@@ -120,6 +155,14 @@ struct SystemLogsDashboardView: View {
             emptyState
         } else {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                if let errorMessage = viewModel.errorMessage {
+                    InlineMessageCard(style: .error, message: errorMessage)
+                }
+
+                if let clearLogsErrorMessage = viewModel.clearLogsErrorMessage {
+                    InlineMessageCard(style: .error, message: clearLogsErrorMessage)
+                }
+
                 DashboardSectionHeader(
                     title: AppStrings.SystemLogs.records,
                     subtitle: "\(viewModel.visibleLogs.count) \(AppStrings.SystemLogs.recordsCountSuffix)"
@@ -135,6 +178,18 @@ struct SystemLogsDashboardView: View {
                         )
                     }
                 )
+
+                if viewModel.canLoadMore {
+                    PrimaryActionButton(
+                        title: AppStrings.SystemLogs.loadMore,
+                        loadingTitle: AppStrings.SystemLogs.loadingMore,
+                        isLoading: viewModel.isLoadingNextPage,
+                        systemImage: "arrow.down.circle"
+                    ) {
+                        Task { await viewModel.loadNextPage() }
+                    }
+                }
+
             }
         }
     }
@@ -149,6 +204,14 @@ struct SystemLogsDashboardView: View {
                 Text(viewModel.logs.isEmpty ? AppStrings.SystemLogs.emptyMessage : AppStrings.SystemLogs.filteredEmptyMessage)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
+
+                if !viewModel.logs.isEmpty {
+                    Button(AppStrings.SystemLogs.clearFilters) {
+                        viewModel.clearSearchAndFilters()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(AppTheme.accentPrimary)
+                }
             }
         }
     }

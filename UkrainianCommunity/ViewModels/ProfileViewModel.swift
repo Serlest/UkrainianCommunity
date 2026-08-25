@@ -14,6 +14,7 @@ final class ProfileViewModel: ObservableObject {
     @Published var notificationPreferences: NotificationPreferences = .default
     @Published private(set) var isLoadingNotificationPreferences = false
     @Published private(set) var isSavingNotificationPreferences = false
+    @Published private(set) var isSendingTestNotification = false
     @Published var notificationPreferencesMessage: String?
     @Published var profileMessage: String?
     @Published var feedbackMessage: String?
@@ -21,6 +22,8 @@ final class ProfileViewModel: ObservableObject {
     private let feedbackRepository: FeedbackRepository
     private let notificationPreferencesRepository: NotificationPreferencesRepository
     private let notificationPermissionService: NotificationPermissionServiceProtocol
+    private let localEventReminderService: LocalEventReminderServiceProtocol
+    private let eventRepository: EventRepository?
     private var loadTask: Task<Void, Never>?
     private var feedbackSuccessDismissTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -32,12 +35,15 @@ final class ProfileViewModel: ObservableObject {
         feedbackRepository: FeedbackRepository,
         notificationPreferencesRepository: NotificationPreferencesRepository,
         notificationPermissionService: NotificationPermissionServiceProtocol,
-        localEventReminderService: LocalEventReminderServiceProtocol
+        localEventReminderService: LocalEventReminderServiceProtocol,
+        eventRepository: EventRepository? = nil
     ) {
         self.repository = repository
         self.feedbackRepository = feedbackRepository
         self.notificationPreferencesRepository = notificationPreferencesRepository
         self.notificationPermissionService = notificationPermissionService
+        self.localEventReminderService = localEventReminderService
+        self.eventRepository = eventRepository
         user = .placeholder
         settings = .stored
     }
@@ -70,6 +76,7 @@ final class ProfileViewModel: ObservableObject {
         notificationPreferences = .default
         isLoadingNotificationPreferences = false
         isSavingNotificationPreferences = false
+        isSendingTestNotification = false
         notificationPreferencesMessage = nil
         loadedNotificationPreferencesUserID = nil
         profileMessage = nil
@@ -98,6 +105,37 @@ final class ProfileViewModel: ObservableObject {
         var updatedPreferences = notificationPreferences
         updatedPreferences.notificationsEnabled = isEnabled
         await saveNotificationPreferences(updatedPreferences, userID: userID)
+    }
+
+    func setEventRemindersEnabled(_ isEnabled: Bool, userID: String) async {
+        guard !isSavingNotificationPreferences else { return }
+        var updatedPreferences = notificationPreferences
+        updatedPreferences.eventRemindersEnabled = isEnabled
+        await saveNotificationPreferences(updatedPreferences, userID: userID)
+    }
+
+    func setReminderLeadMinutes(_ minutes: Int, userID: String) async {
+        guard !isSavingNotificationPreferences else { return }
+        var updatedPreferences = notificationPreferences
+        updatedPreferences.reminderLeadMinutes = max(0, min(minutes, 10_080))
+        await saveNotificationPreferences(updatedPreferences, userID: userID)
+    }
+
+    func sendTestNotification(userID: String) async {
+        guard !isSendingTestNotification else { return }
+        isSendingTestNotification = true
+        notificationPreferencesMessage = nil
+        defer { isSendingTestNotification = false }
+
+        do {
+            let response = try await CloudFunctionsClient.shared.sendTestPushNotification()
+            guard response.successCount > 0 else {
+                throw AppError.unknown
+            }
+            notificationPreferencesMessage = AppStrings.Profile.notificationTestSent
+        } catch {
+            notificationPreferencesMessage = AppStrings.Profile.notificationTestFailed
+        }
     }
 
     private func loadNotificationPreferences(userID: String) async {
@@ -135,6 +173,14 @@ final class ProfileViewModel: ObservableObject {
             }
 
             try await notificationPreferencesRepository.saveNotificationPreferences(updatedPreferences, userID: userID)
+            if let eventRepository {
+                let registeredEvents = try await eventRepository.fetchRegisteredEvents()
+                try await localEventReminderService.reconcileEventReminders(
+                    events: registeredEvents,
+                    userID: userID,
+                    preferences: updatedPreferences
+                )
+            }
             if !updatedPreferences.notificationsEnabled {
                 await RemoteNotificationRegistrationService.shared.removeCurrentRegistration()
             }
@@ -212,6 +258,10 @@ final class ProfileViewModel: ObservableObject {
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else {
             feedbackMessage = AppStrings.Feedback.messageRequired
+            return false
+        }
+        guard trimmedMessage.count <= 2000 else {
+            feedbackMessage = AppStrings.Feedback.messageTooLong
             return false
         }
 

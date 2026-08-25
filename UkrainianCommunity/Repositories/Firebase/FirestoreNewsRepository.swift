@@ -15,6 +15,47 @@ struct FirestoreNewsRepository: NewsRepository {
         try await fetchNewsPage(limit: 30, after: nil).items
     }
 
+    func fetchNews(id: String) async throws -> NewsPost {
+        let document = try await collection.document(id).getDocument()
+        guard document.exists else { throw AppError.notFound }
+        let likedIDs = try await fetchLikedNewsIDs()
+        let bookmarkedIDs = try await fetchBookmarkedNewsIDs()
+        let post = try NewsPost(dto: makeNewsPostDTO(
+            from: document,
+            likedNewsIDs: likedIDs,
+            bookmarkedNewsIDs: bookmarkedIDs
+        ))
+        guard post.moderationStatus == .approved, post.isOrganizationNews else {
+            throw AppError.notFound
+        }
+        return post
+    }
+
+    func fetchBookmarkedNews() async throws -> [NewsPost] {
+        let bookmarkedIDs = try await fetchBookmarkedNewsIDs()
+        guard !bookmarkedIDs.isEmpty else { return [] }
+        let likedIDs = try await fetchLikedNewsIDs()
+        var posts: [NewsPost] = []
+
+        for chunk in Array(bookmarkedIDs).chunked(into: 10) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+                .getDocuments()
+            let resolved = try snapshot.documents.compactMap { document -> NewsPost? in
+                let post = try NewsPost(dto: makeNewsPostDTO(
+                    from: document,
+                    likedNewsIDs: likedIDs,
+                    bookmarkedNewsIDs: bookmarkedIDs
+                ))
+                return post.moderationStatus == .approved && post.isOrganizationNews ? post : nil
+            }
+            posts.append(contentsOf: resolved)
+        }
+
+        return posts.sorted { $0.publishedAt > $1.publishedAt }
+    }
+
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
         var query: Query = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
@@ -623,10 +664,9 @@ struct FirestoreNewsRepository: NewsRepository {
         return ids
     }
 
-    private func makeNewsPostDTO(from document: QueryDocumentSnapshot, likedNewsIDs: Set<String>, bookmarkedNewsIDs: Set<String>) throws -> NewsPostDTO {
-        let data = document.data()
-
+    private func makeNewsPostDTO(from document: DocumentSnapshot, likedNewsIDs: Set<String>, bookmarkedNewsIDs: Set<String>) throws -> NewsPostDTO {
         guard
+            let data = document.data(),
             let title = data["title"] as? String,
             let body = data["body"] as? String,
             let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),

@@ -5,6 +5,7 @@ protocol LocalEventReminderServiceProtocol {
     func scheduleEventReminder(event: Event, userID: String, leadMinutes: Int) async throws
     func scheduleTestNotification(userID: String) async throws
     func cancelEventReminder(eventID: String, userID: String)
+    func reconcileEventReminders(events: [Event], userID: String, preferences: NotificationPreferences) async throws
 }
 
 struct LocalEventReminderService: LocalEventReminderServiceProtocol {
@@ -67,6 +68,30 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
         )
     }
 
+    func reconcileEventReminders(
+        events: [Event],
+        userID: String,
+        preferences: NotificationPreferences
+    ) async throws {
+        let pendingRequests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+        let userSuffix = ":\(userID)"
+        let reminderIdentifiers = pendingRequests
+            .map(\.identifier)
+            .filter { $0.hasPrefix("eventReminder:") && $0.hasSuffix(userSuffix) }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: reminderIdentifiers
+        )
+
+        guard preferences.notificationsEnabled, preferences.eventRemindersEnabled else { return }
+        for event in events where event.startDate > Date() {
+            try await scheduleEventReminder(
+                event: event,
+                userID: userID,
+                leadMinutes: preferences.reminderLeadMinutes
+            )
+        }
+    }
+
     private func notificationIdentifier(eventID: String, userID: String) -> String {
         "eventReminder:\(eventID):\(userID)"
     }
@@ -107,4 +132,5 @@ struct MockLocalEventReminderService: LocalEventReminderServiceProtocol {
     func scheduleEventReminder(event: Event, userID: String, leadMinutes: Int) async throws {}
     func scheduleTestNotification(userID: String) async throws {}
     func cancelEventReminder(eventID: String, userID: String) {}
+    func reconcileEventReminders(events: [Event], userID: String, preferences: NotificationPreferences) async throws {}
 }

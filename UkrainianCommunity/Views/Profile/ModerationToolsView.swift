@@ -5,6 +5,11 @@ extension Notification.Name {
     static let moderationStatusDidChange = Notification.Name("moderationStatusDidChange")
 }
 
+enum ModerationToolsScope: Hashable {
+    case all
+    case organizationRequests
+}
+
 private enum ModeratedContentType: String {
     case news
     case event
@@ -41,12 +46,12 @@ private final class ModerationQueueViewModel: ObservableObject {
     @Published private(set) var items: [ModerationQueueItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
+    @Published private(set) var actionError: AppError?
     @Published private(set) var processingItemIDs = Set<String>()
 
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
-    private let notificationInboxRepository: NotificationInboxRepository?
     private let listenerBag = RealtimeListenerBag()
     private let organizationID: String?
     private var loadTask: Task<Void, Never>?
@@ -57,13 +62,11 @@ private final class ModerationQueueViewModel: ObservableObject {
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository,
-        notificationInboxRepository: NotificationInboxRepository?,
         organizationID: String? = nil
     ) {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
-        self.notificationInboxRepository = notificationInboxRepository
         self.organizationID = organizationID
     }
 
@@ -93,8 +96,11 @@ private final class ModerationQueueViewModel: ObservableObject {
         }
     }
 
-    func updateStatus(for item: ModerationQueueItem, to newStatus: ModerationStatus, reviewerID: String?) async {
+    @discardableResult
+    func updateStatus(for item: ModerationQueueItem, to newStatus: ModerationStatus, reviewerID: String?) async -> Bool {
+        guard !processingItemIDs.contains(item.id) else { return false }
         processingItemIDs.insert(item.id)
+        actionError = nil
         defer { processingItemIDs.remove(item.id) }
 
         do {
@@ -110,49 +116,67 @@ private final class ModerationQueueViewModel: ObservableObject {
             }
 
             items.removeAll { $0.id == item.id }
-            error = nil
+            actionError = nil
             NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
+            return true
         } catch let appError as AppError {
-            error = appError
+            actionError = appError
         } catch {
-            self.error = .unknown
+            actionError = .unknown
         }
+        return false
     }
 
-    func requestRevision(for item: ModerationQueueItem, message: String, reviewerID: String?) async {
-        guard item.type == .organization, let reviewerID else { return }
+    @discardableResult
+    func requestRevision(for item: ModerationQueueItem, message: String, reviewerID: String?) async -> Bool {
+        guard item.type == .organization, let reviewerID else {
+            actionError = .permissionDenied
+            return false
+        }
+        guard !processingItemIDs.contains(item.id) else { return false }
         processingItemIDs.insert(item.id)
+        actionError = nil
         defer { processingItemIDs.remove(item.id) }
 
         do {
             try await organizationRepository.requestOrganizationRevision(id: item.contentID, message: message, reviewerID: reviewerID)
             items.removeAll { $0.id == item.id }
-            error = nil
+            actionError = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
+            return true
         } catch let appError as AppError {
-            error = appError
+            actionError = appError
         } catch {
-            self.error = .unknown
+            actionError = .unknown
         }
+        return false
     }
 
-    func rejectOrganizationRequest(for item: ModerationQueueItem, reason: String, reviewerID: String?) async {
-        guard item.type == .organization, let reviewerID else { return }
+    @discardableResult
+    func rejectOrganizationRequest(for item: ModerationQueueItem, reason: String, reviewerID: String?) async -> Bool {
+        guard item.type == .organization, let reviewerID else {
+            actionError = .permissionDenied
+            return false
+        }
+        guard !processingItemIDs.contains(item.id) else { return false }
         processingItemIDs.insert(item.id)
+        actionError = nil
         defer { processingItemIDs.remove(item.id) }
 
         do {
             try await organizationRepository.rejectOrganizationRequest(id: item.contentID, reason: reason, reviewerID: reviewerID)
             items.removeAll { $0.id == item.id }
-            error = nil
+            actionError = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             NotificationCenter.default.post(name: .moderationStatusDidChange, object: nil)
+            return true
         } catch let appError as AppError {
-            error = appError
+            actionError = appError
         } catch {
-            self.error = .unknown
+            actionError = .unknown
         }
+        return false
     }
 
     private func startLoad(force: Bool) async {
@@ -285,23 +309,26 @@ struct ModerationToolsView: View {
     @State private var pendingRejectedItem: ModerationQueueItem?
     @State private var isShowingRejectConfirmation = false
     @State private var permissionOrganization: Organization?
+    @State private var searchText = ""
+    @State private var selectedContentType: ModeratedContentType?
     private let organizationID: String?
+    private let scope: ModerationToolsScope
     private let organizationRepository: OrganizationRepository
 
     init(
         organizationID: String? = nil,
+        scope: ModerationToolsScope = .all,
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
-        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        notificationInboxRepository: NotificationInboxRepository? = nil
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
         self.organizationID = organizationID
+        self.scope = scope
         self.organizationRepository = organizationRepository
         _viewModel = StateObject(wrappedValue: ModerationQueueViewModel(
             newsRepository: newsRepository,
             eventRepository: eventRepository,
             organizationRepository: organizationRepository,
-            notificationInboxRepository: notificationInboxRepository,
             organizationID: organizationID
         ))
     }
@@ -312,9 +339,11 @@ struct ModerationToolsView: View {
             guard let permissionOrganization else { return false }
             return PermissionService.canModerateOrganizationContent(permissionOrganization, user: user)
         }
+        if scope == .organizationRequests {
+            return PermissionService.canManageOrganizationRequests(user: user)
+        }
         return PermissionService.canModerate(section: .news, user: user)
             || PermissionService.canModerate(section: .events, user: user)
-            || PermissionService.canManageOrganizationRequests(user: user)
     }
 
     private var allowedSections: Set<AppSection> {
@@ -326,26 +355,48 @@ struct ModerationToolsView: View {
             }
             return [.news, .events]
         }
-        var sections = PermissionService.moderatedSections(for: user)
+        let sections = PermissionService.moderatedSections(for: user)
             .intersection([.news, .events])
-        if PermissionService.canManageOrganizationRequests(user: user) {
-            sections.insert(.organizations)
+        if scope == .organizationRequests {
+            return PermissionService.canManageOrganizationRequests(user: user) ? [.organizations] : []
         }
         return sections
     }
 
     private var screenTitle: String {
-        organizationID == nil ? AppStrings.Moderation.title : AppStrings.Moderation.organizationTitle
+        if organizationID != nil { return AppStrings.Moderation.organizationTitle }
+        if scope == .organizationRequests { return AppStrings.Profile.ownerOrganizationRequests }
+        return AppStrings.Moderation.title
     }
 
     private var emptyMessage: String {
-        organizationID == nil ? AppStrings.Moderation.empty : AppStrings.Moderation.organizationEmpty
+        if organizationID != nil { return AppStrings.Moderation.organizationEmpty }
+        if scope == .organizationRequests { return AppStrings.Moderation.organizationRequestsEmpty }
+        return AppStrings.Moderation.empty
+    }
+
+    private var screenSubtitle: String {
+        scope == .organizationRequests
+            ? AppStrings.Profile.organizationRequestsReviewSubtitle
+            : AppStrings.Moderation.subtitle
+    }
+
+    private var visibleItems: [ModerationQueueItem] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return viewModel.items.filter { item in
+            let matchesType = selectedContentType == nil || item.type == selectedContentType
+            let matchesSearch = query.isEmpty
+                || item.title.localizedCaseInsensitiveContains(query)
+                || item.summary.localizedCaseInsensitiveContains(query)
+                || item.submittedBy?.localizedCaseInsensitiveContains(query) == true
+            return matchesType && matchesSearch
+        }
     }
 
     var body: some View {
         AdminScreenShell(
             title: screenTitle,
-            subtitle: AppStrings.Moderation.subtitle,
+            subtitle: screenSubtitle,
             tabBarHidden: false
         ) {
             moderationContent
@@ -383,17 +434,18 @@ struct ModerationToolsView: View {
             ModerationOrganizationRequestSheet(
                 item: item,
                 isProcessing: viewModel.processingItemIDs.contains(item.id),
+                actionErrorMessage: viewModel.actionError.map(actionErrorMessage(for:)),
                 approveAction: {
-                    await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
-                    selectedOrganizationRequest = nil
+                    let succeeded = await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
+                    if succeeded { selectedOrganizationRequest = nil }
                 },
                 revisionAction: { message in
-                    await viewModel.requestRevision(for: item, message: message, reviewerID: authState.user?.id)
-                    selectedOrganizationRequest = nil
+                    let succeeded = await viewModel.requestRevision(for: item, message: message, reviewerID: authState.user?.id)
+                    if succeeded { selectedOrganizationRequest = nil }
                 },
                 rejectAction: { reason in
-                    await viewModel.rejectOrganizationRequest(for: item, reason: reason, reviewerID: authState.user?.id)
-                    selectedOrganizationRequest = nil
+                    let succeeded = await viewModel.rejectOrganizationRequest(for: item, reason: reason, reviewerID: authState.user?.id)
+                    if succeeded { selectedOrganizationRequest = nil }
                 }
             )
         }
@@ -435,27 +487,98 @@ struct ModerationToolsView: View {
                 if let error = viewModel.error {
                     InlineMessageCard(style: .error, message: errorMessage(for: error))
                 }
+                if let actionError = viewModel.actionError {
+                    InlineMessageCard(style: .error, message: actionErrorMessage(for: actionError))
+                }
 
-                VStack(spacing: AppTheme.feedRowSpacing) {
-                    ForEach(viewModel.items) { item in
-                        ModerationItemRow(
-                            item: item,
-                            isProcessing: viewModel.processingItemIDs.contains(item.id),
-                            approveAction: {
-                                await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
-                            },
-                            rejectAction: {
-                                if item.type == .organization {
+                if scope == .all {
+                    moderationFilters
+                }
+
+                if visibleItems.isEmpty {
+                    UnifiedEmptyStateCard(
+                        systemImage: "line.3.horizontal.decrease.circle",
+                        title: AppStrings.Moderation.filteredEmptyTitle,
+                        message: AppStrings.Moderation.filteredEmptyMessage
+                    ) {
+                        Button(AppStrings.Moderation.clearFilters) {
+                            searchText = ""
+                            selectedContentType = nil
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(AppTheme.accentPrimary)
+                    }
+                } else {
+                    LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                        ForEach(visibleItems) { item in
+                            ModerationItemRow(
+                                item: item,
+                                isProcessing: viewModel.processingItemIDs.contains(item.id),
+                                approveAction: {
+                                    await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
+                                },
+                                rejectAction: {
+                                    if item.type == .organization {
+                                        selectedOrganizationRequest = item
+                                    } else {
+                                        pendingRejectedItem = item
+                                        isShowingRejectConfirmation = true
+                                    }
+                                },
+                                detailsAction: item.type == .organization ? {
                                     selectedOrganizationRequest = item
-                                } else {
-                                    pendingRejectedItem = item
-                                    isShowingRejectConfirmation = true
-                                }
-                            },
-                            detailsAction: item.type == .organization ? {
-                                selectedOrganizationRequest = item
-                            } : nil
+                                } : nil
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var moderationFilters: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(AppTheme.textSecondary)
+                    TextField(AppStrings.Moderation.searchPlaceholder, text: $searchText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.subheadline)
+                    if !searchText.isEmpty {
+                        AppSearchClearButton { searchText = "" }
+                    }
+                }
+                .padding(.horizontal, AppTheme.inputHorizontalPadding)
+                .frame(minHeight: AppTheme.searchControlHeight)
+                .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                        .strokeBorder(AppTheme.borderSubtle)
+                }
+
+                AppHorizontalFilterRow {
+                    Button {
+                        selectedContentType = nil
+                    } label: {
+                        AppFilterChip(
+                            title: "\(AppStrings.Moderation.filterAll): \(viewModel.items.count)",
+                            isSelected: selectedContentType == nil
                         )
+                    }
+                    .buttonStyle(.plain)
+
+                    ForEach([ModeratedContentType.news, .event], id: \.rawValue) { type in
+                        Button {
+                            selectedContentType = type
+                        } label: {
+                            AppFilterChip(
+                                title: "\(type.title): \(viewModel.items.filter { $0.type == type }.count)",
+                                isSelected: selectedContentType == type
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -472,6 +595,19 @@ struct ModerationToolsView: View {
             AppStrings.Moderation.loadValidationError
         case .unknown:
             AppStrings.Moderation.loadUnknownError
+        }
+    }
+
+    private func actionErrorMessage(for error: AppError) -> String {
+        switch error {
+        case .network:
+            AppStrings.Moderation.actionNetworkError
+        case .permissionDenied:
+            AppStrings.Moderation.actionPermissionError
+        case .validationFailed, .notFound:
+            AppStrings.Moderation.actionValidationError
+        case .unknown:
+            AppStrings.Moderation.actionUnknownError
         }
     }
 }
@@ -578,6 +714,7 @@ private struct ModerationOrganizationRequestSheet: View {
     @Environment(\.dismiss) private var dismiss
     let item: ModerationQueueItem
     let isProcessing: Bool
+    let actionErrorMessage: String?
     let approveAction: () async -> Void
     let revisionAction: (String) async -> Void
     let rejectAction: (String) async -> Void
@@ -599,7 +736,6 @@ private struct ModerationOrganizationRequestSheet: View {
                         requestFallbackCard
                     }
 
-                    Color.clear.frame(height: 140)
                 }
                 .padding(AppTheme.pageHorizontal)
                 .appCenteredContent()
@@ -645,6 +781,10 @@ private struct ModerationOrganizationRequestSheet: View {
     private var reviewActionsBar: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: 10) {
+                if let actionErrorMessage {
+                    InlineMessageCard(style: .error, message: actionErrorMessage)
+                }
+
                 PrimaryActionButton(
                     title: AppStrings.Moderation.approveOrganization,
                     isEnabled: !isProcessing,
@@ -725,8 +865,6 @@ private struct OrganizationRequestPreviewContent: View {
     private var requestDataCard: some View {
         previewSection(title: AppStrings.Moderation.requestData, systemImage: "doc.text.magnifyingglass") {
             previewRow(AppStrings.Common.status, organization.moderationStatus.title, systemImage: "clock")
-            previewRow(AppStrings.Moderation.submittedBy, organization.submittedByDisplayName ?? item.submittedBy, systemImage: "person")
-            previewRow(AppStrings.Moderation.submittedAt, organization.submittedAt.map { LocalizationStore.dateString(from: $0) }, systemImage: "calendar")
             if let reviewMessage = trimmed(organization.reviewMessage) {
                 InlineMessageCard(style: .info, message: reviewMessage)
             }
@@ -797,8 +935,7 @@ private struct OrganizationRequestPreviewContent: View {
         ModerationToolsView(
             newsRepository: MockNewsRepository(),
             eventRepository: MockEventRepository(),
-            organizationRepository: MockOrganizationRepository(),
-            notificationInboxRepository: MockNotificationInboxRepository()
+            organizationRepository: MockOrganizationRepository()
         )
     }
     .environmentObject(AuthState())

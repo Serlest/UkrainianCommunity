@@ -8,6 +8,9 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
     case warned
     case suspended
     case banned
+    case organizationOwners
+    case organizationAdmins
+    case organizationModerators
 
     var id: String { title }
 
@@ -23,6 +26,12 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
             AppStrings.UserManagement.filterSuspended
         case .banned:
             AppStrings.UserManagement.filterBanned
+        case .organizationOwners:
+            AppStrings.UserManagement.filterOrganizationOwners
+        case .organizationAdmins:
+            AppStrings.UserManagement.filterOrganizationAdmins
+        case .organizationModerators:
+            AppStrings.UserManagement.filterOrganizationModerators
         }
     }
 
@@ -38,10 +47,16 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
             "clock.badge.exclamationmark"
         case .banned:
             "lock"
+        case .organizationOwners:
+            "crown"
+        case .organizationAdmins:
+            "person.badge.key"
+        case .organizationModerators:
+            "shield"
         }
     }
 
-    func matches(_ user: AppUser) -> Bool {
+    func matches(_ user: AppUser, organizationRoles: [UserOrganizationRole]) -> Bool {
         switch self {
         case .all:
             true
@@ -53,16 +68,24 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
             user.blockState == .suspendedUntil || user.blockState == .blocked || user.accountStatus == .suspendedUntil || user.accountStatus == .temporarilyBanned
         case .banned:
             user.blockState == .bannedPermanent || user.blockState == .deactivated || user.accountStatus == .bannedPermanent || user.accountStatus == .permanentlyBanned || user.accountStatus == .deactivated
+        case .organizationOwners:
+            organizationRoles.contains { $0.role == .communityOwner }
+        case .organizationAdmins:
+            organizationRoles.contains { $0.role == .communityAdmin }
+        case .organizationModerators:
+            organizationRoles.contains { $0.role == .communityModerator }
         }
     }
 }
 
-private enum UserAdminAction: String {
+enum UserAdminAction: String, Identifiable, CaseIterable {
     case warningIssued
     case suspended
     case banned
     case unblocked
     case deactivated
+
+    var id: String { rawValue }
 
     var title: String {
         switch self {
@@ -93,9 +116,24 @@ private enum UserAdminAction: String {
             "person.crop.circle.badge.xmark"
         }
     }
+
+    var effectDescription: String {
+        switch self {
+        case .warningIssued:
+            AppStrings.UserManagement.actionEffectWarning
+        case .suspended:
+            AppStrings.UserManagement.actionEffectSuspension
+        case .banned:
+            AppStrings.UserManagement.actionEffectBan
+        case .unblocked:
+            AppStrings.UserManagement.actionEffectRestore
+        case .deactivated:
+            AppStrings.UserManagement.actionEffectDeactivate
+        }
+    }
 }
 
-private enum PlatformRoleAction: Identifiable {
+enum PlatformRoleAction: Identifiable {
     case assignAppAdmin
     case removeAppAdmin
 
@@ -126,17 +164,15 @@ private enum PlatformRoleAction: Identifiable {
         }
     }
 
-    var defaultReason: String {
-        switch self {
-        case .assignAppAdmin:
-            "App admin assigned"
-        case .removeAppAdmin:
-            "App admin removed"
-        }
+    var effectDescription: String {
+        isRemoval
+            ? AppStrings.UserManagement.platformRoleRemoveEffect
+            : AppStrings.UserManagement.platformRoleAssignEffect
     }
+
 }
 
-private struct ManagedOrganization: Identifiable, Hashable {
+struct ManagedOrganization: Identifiable, Hashable {
     let id: String
     let name: String
     let city: String
@@ -172,25 +208,43 @@ private struct ManagedOrganization: Identifiable, Hashable {
     }
 }
 
-private struct UserOrganizationRole: Identifiable, Hashable {
+struct UserOrganizationRole: Identifiable, Hashable {
     let organization: ManagedOrganization
     let role: CommunityRole
 
     var id: String { organization.id }
 }
 
+struct ManagedUserSecurityMetadata: Equatable {
+    let emailVerified: Bool
+    let authDisabled: Bool
+    let creationTime: Date?
+    let lastSignInTime: Date?
+    let providerIDs: [String]
+}
+
 @MainActor
-private final class UserManagementViewModel: ObservableObject {
+final class UserManagementViewModel: ObservableObject {
     @Published private(set) var users: [AppUser] = []
     @Published private(set) var organizations: [ManagedOrganization] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingMore = false
+    @Published private(set) var isSearching = false
+    @Published private(set) var searchResults: [AppUser] = []
+    @Published private(set) var searchTotalMatches = 0
+    @Published private(set) var securityMetadataByUserID: [String: ManagedUserSecurityMetadata] = [:]
+    @Published private(set) var canLoadMore = false
     @Published private(set) var error: AppError?
     @Published var statusMessage: String?
     @Published private(set) var updatingUserIDs = Set<String>()
+    @Published private(set) var mutationRevision = 0
 
     private let db = Firestore.firestore()
     private let roleManagementService: OrganizationRoleManagementService
-    private var hasLoaded = false
+    private let pageSize = 40
+    private var loadedActorKey: String?
+    private var lastUserDocument: QueryDocumentSnapshot?
+    private var searchGeneration = 0
 
     private var usersCollection: CollectionReference { db.collection("users") }
     private var organizationsCollection: CollectionReference { db.collection("organizations") }
@@ -199,16 +253,17 @@ private final class UserManagementViewModel: ObservableObject {
         self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
     }
 
-    func loadIfNeeded(actor: AppUser?) async {
-        guard !hasLoaded else { return }
+    func load(actor: AppUser?) async {
+        let actorKey = managementActorKey(for: actor)
+        guard loadedActorKey != actorKey || users.isEmpty else { return }
         await refresh(actor: actor)
     }
 
     func refresh(actor: AppUser?) async {
+        let actorKey = managementActorKey(for: actor)
+        reset(for: actorKey)
+
         guard PermissionService.canManageUsers(user: actor) else {
-            users = []
-            organizations = []
-            hasLoaded = true
             return
         }
 
@@ -216,17 +271,28 @@ private final class UserManagementViewModel: ObservableObject {
         error = nil
         defer {
             isLoading = false
-            hasLoaded = true
         }
 
         do {
-            async let usersSnapshotTask = usersCollection
+            let usersSnapshot = try await usersCollection
                 .order(by: "createdAt", descending: true)
+                .limit(to: pageSize)
                 .getDocuments()
-            async let approvedOrganizationsSnapshotTask = organizationsCollection
+            guard loadedActorKey == actorKey, !Task.isCancelled else { return }
+            users = usersSnapshot.documents.map(makeUser(from:))
+            lastUserDocument = usersSnapshot.documents.last
+            canLoadMore = usersSnapshot.documents.count == pageSize
+        } catch {
+            guard !Task.isCancelled, loadedActorKey == actorKey else { return }
+            self.error = .network
+            return
+        }
+
+        do {
+            async let approvedOrganizationsTask = organizationsCollection
                 .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
                 .getDocuments()
-            async let reviewableOrganizationsSnapshotTask = organizationsCollection
+            async let reviewableOrganizationsTask = organizationsCollection
                 .whereField(
                     "moderationStatus",
                     in: [
@@ -236,50 +302,170 @@ private final class UserManagementViewModel: ObservableObject {
                     ]
                 )
                 .getDocuments()
-            let (usersSnapshot, approvedOrganizationsSnapshot, reviewableOrganizationsSnapshot) = try await (
-                usersSnapshotTask,
-                approvedOrganizationsSnapshotTask,
-                reviewableOrganizationsSnapshotTask
+            let (approvedOrganizations, reviewableOrganizations) = try await (
+                approvedOrganizationsTask,
+                reviewableOrganizationsTask
             )
-            users = usersSnapshot.documents.map(makeUser(from:))
+            guard loadedActorKey == actorKey, !Task.isCancelled else { return }
             organizations = uniqueOrganizationDocuments(
-                approvedOrganizationsSnapshot.documents + reviewableOrganizationsSnapshot.documents
+                approvedOrganizations.documents + reviewableOrganizations.documents
             )
-                .map(makeManagedOrganization(from:))
-                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .map(makeManagedOrganization(from:))
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         } catch {
-            self.error = .network
+            guard !Task.isCancelled, loadedActorKey == actorKey else { return }
+            organizations = []
         }
     }
 
-    func perform(_ action: UserAdminAction, target: AppUser, actor: AppUser, reason: String) async {
+    func loadMore(actor: AppUser?) async {
+        guard PermissionService.canManageUsers(user: actor),
+              managementActorKey(for: actor) == loadedActorKey,
+              canLoadMore,
+              !isLoading,
+              !isLoadingMore,
+              let lastUserDocument else { return }
+
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        do {
+            let snapshot = try await usersCollection
+                .order(by: "createdAt", descending: true)
+                .start(afterDocument: lastUserDocument)
+                .limit(to: pageSize)
+                .getDocuments()
+            guard managementActorKey(for: actor) == loadedActorKey, !Task.isCancelled else { return }
+
+            let existingIDs = Set(users.map(\.id))
+            users.append(contentsOf: snapshot.documents.map(makeUser(from:)).filter { !existingIDs.contains($0.id) })
+            self.lastUserDocument = snapshot.documents.last
+            canLoadMore = snapshot.documents.count == pageSize
+        } catch {
+            guard !Task.isCancelled else { return }
+            statusMessage = AppStrings.UserManagement.loadMoreFailed
+        }
+    }
+
+    func search(query: String, actor: AppUser?) async {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedQuery.count >= 2 else {
+            clearSearch()
+            return
+        }
+        guard let actor, PermissionService.canManageUsers(user: actor) else {
+            clearSearch()
+            return
+        }
+
+        searchGeneration &+= 1
+        let generation = searchGeneration
+        isSearching = true
+        defer {
+            if generation == searchGeneration {
+                isSearching = false
+            }
+        }
+
+        do {
+            let response = try await CloudFunctionsClient.shared.searchManagedUsers(query: trimmedQuery)
+            guard generation == searchGeneration, !Task.isCancelled else { return }
+
+            var usersByID: [String: AppUser] = [:]
+            for userIDs in response.userIds.chunked(into: 30) where !userIDs.isEmpty {
+                let snapshot = try await usersCollection
+                    .whereField(FieldPath.documentID(), in: Array(userIDs))
+                    .getDocuments()
+                guard generation == searchGeneration, !Task.isCancelled else { return }
+                for document in snapshot.documents {
+                    usersByID[document.documentID] = makeUser(from: document)
+                }
+            }
+
+            searchResults = response.userIds.compactMap { usersByID[$0] }
+            searchTotalMatches = response.totalMatches
+        } catch {
+            guard generation == searchGeneration, !Task.isCancelled else { return }
+            searchResults = []
+            searchTotalMatches = 0
+            statusMessage = AppStrings.UserManagement.searchFailed
+        }
+    }
+
+    func clearSearch() {
+        searchGeneration &+= 1
+        isSearching = false
+        searchResults = []
+        searchTotalMatches = 0
+    }
+
+    func loadSecurityMetadata(userID: String, actor: AppUser?) async {
+        guard let actor, PermissionService.canManageUsers(user: actor) else { return }
+
+        do {
+            let response = try await CloudFunctionsClient.shared.getManagedUserSecurityMetadata(userId: userID)
+            guard response.targetUserId == userID, !Task.isCancelled else { return }
+            securityMetadataByUserID[userID] = ManagedUserSecurityMetadata(
+                emailVerified: response.emailVerified,
+                authDisabled: response.authDisabled,
+                creationTime: response.creationTime.flatMap(Self.parseAuthDate),
+                lastSignInTime: response.lastSignInTime.flatMap(Self.parseAuthDate),
+                providerIDs: response.providerIds
+            )
+        } catch {
+            guard !Task.isCancelled else { return }
+            securityMetadataByUserID[userID] = nil
+        }
+    }
+
+    func securityMetadata(for userID: String) -> ManagedUserSecurityMetadata? {
+        securityMetadataByUserID[userID]
+    }
+
+    func refreshDetail(userID: String, actor: AppUser?) async {
+        await refresh(actor: actor)
+        guard let actor, PermissionService.canManageUsers(user: actor) else { return }
+        await reloadUser(id: userID, actor: actor)
+    }
+
+    func perform(
+        _ action: UserAdminAction,
+        target: AppUser,
+        actor: AppUser,
+        reason: String,
+        suspensionDays: Int = 7
+    ) async {
         guard canManage(target: target, actor: actor) else {
             statusMessage = AppStrings.UserManagement.statusPermissionDenied
             return
         }
 
         let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
-        let finalReason = trimmedReason.isEmpty ? "Owner action" : trimmedReason
+        guard !trimmedReason.isEmpty else {
+            statusMessage = AppStrings.UserManagement.reasonRequired
+            return
+        }
 
         await updateUser(target, actor: actor, failureMessage: accountStatusFailureMessage(from:)) {
             switch action {
             case .warningIssued:
-                _ = try await CloudFunctionsClient.shared.warnUser(userId: target.id, reason: finalReason)
+                _ = try await CloudFunctionsClient.shared.warnUser(userId: target.id, reason: trimmedReason)
             case .suspended:
-                let suspendedUntil = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date().addingTimeInterval(7 * 24 * 60 * 60)
-                _ = try await CloudFunctionsClient.shared.suspendUser(userId: target.id, until: suspendedUntil, reason: finalReason)
+                let safeDays = min(max(suspensionDays, 1), 365)
+                let suspendedUntil = Calendar.current.date(byAdding: .day, value: safeDays, to: Date()) ?? Date().addingTimeInterval(TimeInterval(safeDays * 24 * 60 * 60))
+                _ = try await CloudFunctionsClient.shared.suspendUser(userId: target.id, until: suspendedUntil, reason: trimmedReason)
             case .banned:
-                _ = try await CloudFunctionsClient.shared.banUser(userId: target.id, reason: finalReason)
+                _ = try await CloudFunctionsClient.shared.banUser(userId: target.id, reason: trimmedReason)
             case .unblocked:
-                _ = try await CloudFunctionsClient.shared.restoreUser(userId: target.id, reason: finalReason)
+                _ = try await CloudFunctionsClient.shared.restoreUser(userId: target.id, reason: trimmedReason)
             case .deactivated:
-                _ = try await CloudFunctionsClient.shared.deactivateUser(userId: target.id, reason: finalReason)
+                _ = try await CloudFunctionsClient.shared.deactivateUser(userId: target.id, reason: trimmedReason)
             }
         }
     }
 
     func assignRole(_ role: CommunityRole, in organization: ManagedOrganization, to target: AppUser, actor: AppUser, reason: String) async {
-        guard canManageOrganizationRoles(target: target, actor: actor) else {
+        guard canManageOrganizationRoles(in: organization, actor: actor) else {
             statusMessage = AppStrings.UserManagement.rolePermissionDenied
             return
         }
@@ -290,8 +476,12 @@ private final class UserManagementViewModel: ObservableObject {
         }
 
         guard role != .member else { return }
+        guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            statusMessage = AppStrings.UserManagement.reasonRequired
+            return
+        }
 
-        await updateUser(target, actor: actor) {
+        await updateUser(target, actor: actor, failureMessage: organizationRoleFailureMessage(from:)) {
             try await updateOrganizationRole(
                 role: role,
                 organization: organization,
@@ -301,11 +491,17 @@ private final class UserManagementViewModel: ObservableObject {
                 isRemoval: false
             )
         }
+        await reloadOrganizationAfterSuccessfulMutation(id: organization.id)
     }
 
     func changeOwner(in organization: ManagedOrganization, to target: AppUser, actor: AppUser, reason: String) async {
-        guard canManage(target: target, actor: actor), PermissionService.canInitiateOwnershipTransferWorkflow(user: actor) else {
+        guard PermissionService.canInitiateOwnershipTransferWorkflow(user: actor) else {
             statusMessage = AppStrings.UserManagement.ownerChangePermissionDenied
+            return
+        }
+
+        guard PermissionService.isUsableAccount(user: target) else {
+            statusMessage = AppStrings.UserManagement.platformRoleTargetAccountNotUsable
             return
         }
 
@@ -313,8 +509,12 @@ private final class UserManagementViewModel: ObservableObject {
             statusMessage = AppStrings.UserManagement.ownerChangeSelectNewOwner
             return
         }
+        guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            statusMessage = AppStrings.UserManagement.reasonRequired
+            return
+        }
 
-        await updateUser(target, actor: actor) {
+        await updateUser(target, actor: actor, failureMessage: organizationRoleFailureMessage(from:)) {
             try await updateOrganizationOwner(
                 organization: organization,
                 newOwner: target,
@@ -322,15 +522,21 @@ private final class UserManagementViewModel: ObservableObject {
                 reason: reason
             )
         }
+        await reloadOrganizationAfterSuccessfulMutation(id: organization.id)
     }
 
     func removeRole(in organization: ManagedOrganization, from target: AppUser, actor: AppUser, reason: String) async {
-        guard canManageOrganizationRoles(target: target, actor: actor) else {
+        guard canManageOrganizationRoles(in: organization, actor: actor) else {
             statusMessage = AppStrings.UserManagement.removeRolePermissionDenied
             return
         }
 
-        await updateUser(target, actor: actor) {
+        guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            statusMessage = AppStrings.UserManagement.reasonRequired
+            return
+        }
+
+        await updateUser(target, actor: actor, failureMessage: organizationRoleFailureMessage(from:)) {
             try await updateOrganizationRole(
                 role: .member,
                 organization: organization,
@@ -340,6 +546,7 @@ private final class UserManagementViewModel: ObservableObject {
                 isRemoval: true
             )
         }
+        await reloadOrganizationAfterSuccessfulMutation(id: organization.id)
     }
 
     func performPlatformRoleAction(_ action: PlatformRoleAction, target: AppUser, actor: AppUser, reason: String) async {
@@ -359,14 +566,17 @@ private final class UserManagementViewModel: ObservableObject {
         }
 
         let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
-        let finalReason = trimmedReason.isEmpty ? action.defaultReason : trimmedReason
+        guard !trimmedReason.isEmpty else {
+            statusMessage = AppStrings.UserManagement.reasonRequired
+            return
+        }
 
         await updateUser(target, actor: actor, failureMessage: platformRoleFailureMessage(from:)) {
             switch action {
             case .assignAppAdmin:
-                _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: finalReason)
+                _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: trimmedReason)
             case .removeAppAdmin:
-                _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: finalReason)
+                _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: trimmedReason)
             }
         }
     }
@@ -380,9 +590,9 @@ private final class UserManagementViewModel: ObservableObject {
             && PermissionService.canAssignGlobalRoles(user: actor)
     }
 
-    func canManageOrganizationRoles(target: AppUser, actor: AppUser) -> Bool {
-        PermissionService.canManageUserTarget(actor: actor, target: target)
-            && PermissionService.canInitiateOrganizationRoleWorkflow(user: actor)
+    func canManageOrganizationRoles(in organization: ManagedOrganization, actor: AppUser) -> Bool {
+        PermissionService.canInitiateOrganizationRoleWorkflow(user: actor)
+            || (PermissionService.isUsableAccount(user: actor) && organization.ownerId == actor.id)
     }
 
     func user(withID id: String) -> AppUser? {
@@ -414,10 +624,49 @@ private final class UserManagementViewModel: ObservableObject {
         do {
             try await operation()
             statusMessage = AppStrings.UserManagement.changesSaved
-            await refresh(actor: actor)
+            mutationRevision &+= 1
+            await reloadUser(id: target.id, actor: actor)
         } catch {
             self.error = .permissionDenied
             statusMessage = failureMessage?(error) ?? AppStrings.UserManagement.changesFailed
+        }
+    }
+
+    private func reloadUser(id: String, actor: AppUser) async {
+        guard managementActorKey(for: actor) == loadedActorKey else { return }
+
+        do {
+            let document = try await usersCollection.document(id).getDocument()
+            guard document.exists, let data = document.data() else { return }
+            let refreshedUser = makeUser(id: document.documentID, data: data)
+            if let index = users.firstIndex(where: { $0.id == id }) {
+                users[index] = refreshedUser
+            } else {
+                users.append(refreshedUser)
+            }
+        } catch {
+            statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed
+        }
+    }
+
+    private func reloadOrganizationAfterSuccessfulMutation(id: String) async {
+        guard statusMessage == AppStrings.UserManagement.changesSaved else { return }
+
+        do {
+            let document = try await organizationsCollection.document(id).getDocument()
+            guard document.exists, let data = document.data() else {
+                statusMessage = AppStrings.UserManagement.organizationMissing
+                return
+            }
+            let refreshedOrganization = makeManagedOrganization(id: document.documentID, data: data)
+            if let index = organizations.firstIndex(where: { $0.id == id }) {
+                organizations[index] = refreshedOrganization
+            } else {
+                organizations.append(refreshedOrganization)
+                organizations.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            }
+        } catch {
+            statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed
         }
     }
 
@@ -465,6 +714,28 @@ private final class UserManagementViewModel: ObservableObject {
         return nil
     }
 
+    private func organizationRoleFailureMessage(from error: Error) -> String? {
+        let message = (error as NSError).localizedDescription.lowercased()
+
+        if message.contains("organization role permissions") || message.contains("owner permissions") {
+            return AppStrings.UserManagement.rolePermissionDenied
+        }
+        if message.contains("verify their email") {
+            return AppStrings.UserManagement.organizationRoleTargetEmailUnverified
+        }
+        if message.contains("active account") || message.contains("account is disabled") {
+            return AppStrings.UserManagement.platformRoleTargetAccountNotUsable
+        }
+        if message.contains("owner role cannot be changed") {
+            return AppStrings.UserManagement.ownerTransferOnly
+        }
+        if message.contains("organization does not exist") {
+            return AppStrings.UserManagement.organizationMissing
+        }
+
+        return nil
+    }
+
     private func updateOrganizationRole(
         role: CommunityRole,
         organization: ManagedOrganization,
@@ -504,13 +775,16 @@ private final class UserManagementViewModel: ObservableObject {
     }
 
     private func makeUser(from document: QueryDocumentSnapshot) -> AppUser {
-        let data = document.data()
+        makeUser(id: document.documentID, data: document.data())
+    }
+
+    private func makeUser(id: String, data: [String: Any]) -> AppUser {
         let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
         let globalRole = (data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user
         let isBlocked = data["isBlocked"] as? Bool ?? false
         let blockState = UserBlockState(rawValue: data["blockState"] as? String ?? "") ?? (isBlocked ? .suspendedUntil : .active)
         return AppUser(
-            id: data["id"] as? String ?? document.documentID,
+            id: data["id"] as? String ?? id,
             fullName: data["fullName"] as? String ?? "",
             displayName: data["displayName"] as? String ?? data["fullName"] as? String ?? "",
             city: data["city"] as? String ?? "",
@@ -541,24 +815,45 @@ private final class UserManagementViewModel: ObservableObject {
         )
     }
 
-    private func uniqueOrganizationDocuments(_ documents: [QueryDocumentSnapshot]) -> [QueryDocumentSnapshot] {
-        var seenIDs = Set<String>()
-        return documents.filter { document in
-            seenIDs.insert(document.documentID).inserted
-        }
+    private func makeManagedOrganization(from document: QueryDocumentSnapshot) -> ManagedOrganization {
+        makeManagedOrganization(id: document.documentID, data: document.data())
     }
 
-    private func makeManagedOrganization(from document: QueryDocumentSnapshot) -> ManagedOrganization {
-        let data = document.data()
+    private func makeManagedOrganization(id: String, data: [String: Any]) -> ManagedOrganization {
         return ManagedOrganization(
-            id: document.documentID,
-            name: data["name"] as? String ?? document.documentID,
+            id: id,
+            name: data["name"] as? String ?? id,
             city: data["city"] as? String ?? "",
             logoURL: data["logoURL"] as? String ?? data["imageURL"] as? String,
             ownerId: data["ownerId"] as? String,
             adminIds: data["adminIds"] as? [String] ?? [],
             moderatorIds: data["moderatorIds"] as? [String] ?? []
         )
+    }
+
+    private func uniqueOrganizationDocuments(_ documents: [QueryDocumentSnapshot]) -> [QueryDocumentSnapshot] {
+        var seenIDs = Set<String>()
+        return documents.filter { seenIDs.insert($0.documentID).inserted }
+    }
+
+    private func managementActorKey(for actor: AppUser?) -> String? {
+        guard let actor, PermissionService.canManageUsers(user: actor) else { return nil }
+        return "\(actor.id)|\(actor.globalRole.authorizationRole.rawValue)"
+    }
+
+    private func reset(for actorKey: String?) {
+        loadedActorKey = actorKey
+        users = []
+        organizations = []
+        error = nil
+        canLoadMore = false
+        lastUserDocument = nil
+        clearSearch()
+        securityMetadataByUserID = [:]
+    }
+
+    nonisolated private static func parseAuthDate(_ value: String) -> Date? {
+        ISO8601DateFormatter().date(from: value)
     }
 
 
@@ -569,6 +864,7 @@ struct UserManagementView: View {
     @StateObject private var viewModel = UserManagementViewModel()
     @State private var searchText = ""
     @State private var selectedFilter: UserManagementFilter = .all
+    @State private var isShowingRoleGuide = false
     @FocusState private var isSearchFocused: Bool
 
     private var actor: AppUser? { authState.user }
@@ -576,10 +872,23 @@ struct UserManagementView: View {
         PermissionService.canManageUsers(user: actor)
     }
 
+    private var actorLoadKey: String {
+        guard let actor else { return "signed-out" }
+        return "\(actor.id)|\(actor.globalRole.authorizationRole.rawValue)"
+    }
+
     private var filteredUsers: [AppUser] {
-        viewModel.users.filter { user in
-            selectedFilter.matches(user) && matchesSearch(user)
+        candidateUsers.filter { user in
+            selectedFilter.matches(user, organizationRoles: viewModel.organizationRoles(for: user))
         }
+    }
+
+    private var normalizedSearch: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var candidateUsers: [AppUser] {
+        normalizedSearch.isEmpty ? viewModel.users : viewModel.searchResults
     }
 
     var body: some View {
@@ -590,8 +899,17 @@ struct UserManagementView: View {
         ) {
             userManagementContent
         }
-        .task {
-            await viewModel.loadIfNeeded(actor: actor)
+        .task(id: actorLoadKey) {
+            await viewModel.load(actor: actor)
+        }
+        .task(id: normalizedSearch) {
+            guard normalizedSearch.count >= 2 else {
+                viewModel.clearSearch()
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            await viewModel.search(query: normalizedSearch, actor: actor)
         }
         .refreshable {
             await viewModel.refresh(actor: actor)
@@ -603,6 +921,9 @@ struct UserManagementView: View {
             Button(AppStrings.Common.ok, role: .cancel) {}
         } message: {
             Text(viewModel.statusMessage ?? "")
+        }
+        .sheet(isPresented: $isShowingRoleGuide) {
+            UserRolePermissionsSheet()
         }
     }
 
@@ -626,19 +947,40 @@ struct UserManagementView: View {
 
     private var summaryCard: some View {
         AppEditorSectionCard {
-            HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                Label("\(viewModel.users.count)", systemImage: "person.3")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    Label("\(viewModel.users.count)", systemImage: "person.3")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
 
-                Text(AppStrings.UserManagement.registeredUsers)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    Text(viewModel.canLoadMore ? AppStrings.UserManagement.loadedUsers : AppStrings.UserManagement.registeredUsers)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                if viewModel.isLoading {
-                    ProgressView()
+                    if viewModel.isLoading {
+                        ProgressView()
+                    }
+                }
+
+                Button {
+                    isShowingRoleGuide = true
+                } label: {
+                    Label(AppStrings.UserManagement.roleGuideButton, systemImage: "questionmark.circle")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
+
+                AppHorizontalFilterRow {
+                    ForEach(UserManagementFilter.allCases.prefix(5)) { filter in
+                        UserManagementStatusBadge(
+                            title: "\(filter.title): \(count(for: filter))",
+                            tint: selectedFilter == filter ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary
+                        )
+                    }
                 }
             }
         }
@@ -662,6 +1004,12 @@ struct UserManagementView: View {
                     searchText = ""
                 }
             }
+
+
+            if viewModel.isSearching {
+                ProgressView()
+                    .controlSize(.small)
+            }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
         .frame(minHeight: AppTheme.searchControlHeight)
@@ -679,7 +1027,7 @@ struct UserManagementView: View {
                     selectedFilter = filter
                 } label: {
                     AppFilterChip(
-                        title: filter.title,
+                        title: "\(filter.title) · \(count(for: filter))",
                         systemImage: filter.systemImage,
                         isSelected: selectedFilter == filter
                     )
@@ -691,7 +1039,9 @@ struct UserManagementView: View {
 
     @ViewBuilder
     private var contentList: some View {
-        if viewModel.isLoading && viewModel.users.isEmpty {
+        if viewModel.isSearching {
+            LoadingStateCard(title: AppStrings.UserManagement.searching)
+        } else if viewModel.isLoading && viewModel.users.isEmpty {
             LoadingStateCard(title: AppStrings.UserManagement.title)
         } else if viewModel.users.isEmpty, viewModel.error != nil {
             UnifiedEmptyStateCard(
@@ -704,11 +1054,14 @@ struct UserManagementView: View {
                 }
             }
         } else if filteredUsers.isEmpty {
-            UnifiedEmptyStateCard(
-                systemImage: "person.crop.circle.badge.questionmark",
-                title: AppStrings.UserManagement.noResultsTitle,
-                message: AppStrings.UserManagement.noResultsMessage
-            )
+            VStack(spacing: AppTheme.dashboardSpacing) {
+                UnifiedEmptyStateCard(
+                    systemImage: "person.crop.circle.badge.questionmark",
+                    title: AppStrings.UserManagement.noResultsTitle,
+                    message: AppStrings.UserManagement.noResultsMessage
+                )
+                if normalizedSearch.isEmpty { loadMoreButton }
+            }
         } else {
             VStack(spacing: AppTheme.feedRowSpacing) {
                 ForEach(filteredUsers) { user in
@@ -724,25 +1077,38 @@ struct UserManagementView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                if normalizedSearch.isEmpty {
+                    loadMoreButton
+                } else {
+                    Text(AppStrings.UserManagement.searchResultCount(viewModel.searchTotalMatches))
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
         }
     }
 
-    private func matchesSearch(_ user: AppUser) -> Bool {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return true }
-
-        return [
-            user.displayName,
-            user.fullName,
-            user.email,
-            user.telegramUsername ?? "",
-            user.id,
-            user.city,
-            user.selectedFederalState?.rawValue ?? ""
-        ]
-        .contains { $0.lowercased().contains(query) }
+    @ViewBuilder
+    private var loadMoreButton: some View {
+        if viewModel.canLoadMore {
+            PrimaryActionButton(
+                title: AppStrings.UserManagement.loadMore,
+                isEnabled: !viewModel.isLoadingMore,
+                isLoading: viewModel.isLoadingMore,
+                systemImage: "arrow.down.circle"
+            ) {
+                Task { await viewModel.loadMore(actor: actor) }
+            }
+        }
     }
+
+    private func count(for filter: UserManagementFilter) -> Int {
+        viewModel.users.filter {
+            filter.matches($0, organizationRoles: viewModel.organizationRoles(for: $0))
+        }.count
+    }
+
 }
 
 private struct ManagedUserRow: View {
@@ -751,45 +1117,75 @@ private struct ManagedUserRow: View {
 
     var body: some View {
         AppEditorSectionCard {
-            HStack(alignment: .center, spacing: 12) {
-                UserAvatarView(user: user, size: 46)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(user.preferredDisplayName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(1)
-
-                    Text(secondaryLine)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-
-                    HStack(spacing: 6) {
-                        UserStatusBadge(title: user.blockState.title, tint: statusTint)
-
-                        if !user.city.isEmpty {
-                            UserStatusBadge(title: user.city, tint: AppTheme.textSecondary)
-                        }
-
-                        if let primaryOrganizationRole {
-                            UserStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimaryForeground)
-                        }
-
-                        if organizationRoles.count > 1 {
-                            UserStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimaryForeground)
-                        }
-                    }
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 12) {
+                    UserManagementAvatar(user: user, size: 46)
+                    identityContent
+                    Spacer(minLength: 12)
+                    registrationDate
                 }
 
-                Spacer(minLength: 0)
-
-                Text(LocalizationStore.dateString(from: user.createdAt, dateStyle: .short, timeStyle: .none))
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .multilineTextAlignment(.trailing)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .top, spacing: 12) {
+                        UserManagementAvatar(user: user, size: 46)
+                        identityText
+                    }
+                    badges
+                    registrationDate
+                }
             }
         }
+    }
+
+    private var identityContent: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            identityText
+            badges
+        }
+    }
+
+    private var identityText: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(user.preferredDisplayName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(secondaryLine)
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var badges: some View {
+        UserManagementBadgeFlowLayout(spacing: 6) {
+            UserManagementStatusBadge(title: user.blockState.title, tint: statusTint)
+
+            if !user.city.isEmpty {
+                UserManagementStatusBadge(title: user.city, tint: AppTheme.textSecondary)
+            }
+
+            if let primaryOrganizationRole {
+                UserManagementStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimaryForeground)
+            }
+
+            if organizationRoles.count > 1 {
+                UserManagementStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count - 1), tint: AppTheme.accentPrimaryForeground)
+            }
+        }
+    }
+
+    private var registrationDate: some View {
+        Label(
+            LocalizationStore.dateString(from: user.createdAt, dateStyle: .short, timeStyle: .none),
+            systemImage: "calendar"
+        )
+        .font(.caption2)
+        .foregroundStyle(AppTheme.textSecondary)
+        .multilineTextAlignment(.trailing)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var secondaryLine: String {
@@ -819,7 +1215,15 @@ private struct ManagedUserRow: View {
 
 private enum UserDetailFocusField {
     case organizationSearch
-    case reason
+    case roleReason
+}
+
+private struct PendingOwnershipTransfer: Identifiable {
+    let organization: ManagedOrganization
+    let target: AppUser
+    let reason: String
+
+    var id: String { "\(organization.id)|\(target.id)" }
 }
 
 private struct UserDetailView: View {
@@ -831,18 +1235,23 @@ private struct UserDetailView: View {
     @State private var selectedOrganizationID: String?
     @State private var selectedRole: CommunityRole = .communityModerator
     @State private var organizationSearchText = ""
-    @State private var reason = ""
+    @State private var roleReason = ""
     @State private var pendingAction: UserAdminAction?
     @State private var pendingRoleRemoval: ManagedOrganization?
     @State private var pendingPlatformRoleAction: PlatformRoleAction?
+    @State private var pendingOwnershipTransfer: PendingOwnershipTransfer?
     @FocusState private var focusedField: UserDetailFocusField?
 
     private var selectedOrganization: ManagedOrganization? {
-        organizations.first { $0.id == selectedOrganizationID }
+        assignmentOrganizations.first { $0.id == selectedOrganizationID }
     }
 
     private var user: AppUser {
         viewModel.user(withID: userID) ?? fallbackUser
+    }
+
+    private var securityMetadata: ManagedUserSecurityMetadata? {
+        viewModel.securityMetadata(for: userID)
     }
 
     private var organizations: [ManagedOrganization] {
@@ -853,11 +1262,16 @@ private struct UserDetailView: View {
         viewModel.organizationRoles(for: user)
     }
 
+    private var assignmentOrganizations: [ManagedOrganization] {
+        guard let actor else { return [] }
+        return organizations.filter { viewModel.canManageOrganizationRoles(in: $0, actor: actor) }
+    }
+
     private var filteredOrganizations: [ManagedOrganization] {
         let query = organizationSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return organizations }
+        guard !query.isEmpty else { return assignmentOrganizations }
 
-        return organizations.filter { organization in
+        return assignmentOrganizations.filter { organization in
             [organization.name, organization.city, organization.id]
                 .contains { $0.lowercased().contains(query) }
         }
@@ -865,21 +1279,23 @@ private struct UserDetailView: View {
 
     private var canAssignSelectedOrganizationRole: Bool {
         guard let selectedOrganization else { return false }
+        guard PermissionService.isUsableAccount(user: user) else { return false }
         let query = organizationSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard query.isEmpty || filteredOrganizations.contains(where: { $0.id == selectedOrganization.id }) else {
             return false
         }
-        if selectedRole == .communityOwner {
-            return selectedOrganization.ownerId != user.id
-        }
-        return true
+        guard selectedOrganization.role(for: user.id) != selectedRole else { return false }
+        guard selectedOrganization.ownerId != user.id else { return false }
+        return selectedRole != .communityOwner || canTransferOwnership
     }
 
     private var assignableRoles: [CommunityRole] {
         guard selectedOrganization?.ownerId != user.id else {
             return [.communityOwner]
         }
-        return [.communityOwner, .communityAdmin, .communityModerator]
+        return canTransferOwnership
+            ? [.communityOwner, .communityAdmin, .communityModerator]
+            : [.communityAdmin, .communityModerator]
     }
 
     private var isUpdating: Bool {
@@ -890,12 +1306,109 @@ private struct UserDetailView: View {
         actor.map { viewModel.canManage(target: user, actor: $0) } ?? false
     }
 
-    private var canManageOrganizationRoles: Bool {
-        actor.map { viewModel.canManageOrganizationRoles(target: user, actor: $0) } ?? false
+    private var canManageSelectedOrganizationRoles: Bool {
+        guard let actor, let selectedOrganization else { return false }
+        return viewModel.canManageOrganizationRoles(in: selectedOrganization, actor: actor)
+    }
+
+    private var canTransferOwnership: Bool {
+        PermissionService.canInitiateOwnershipTransferWorkflow(user: actor)
+    }
+
+    private var roleAssignmentBlockingMessage: String? {
+        guard !organizations.isEmpty else {
+            return AppStrings.UserManagement.organizationsNotLoaded
+        }
+        guard !assignmentOrganizations.isEmpty else {
+            return AppStrings.UserManagement.roleAssignmentUnavailable
+        }
+        guard PermissionService.isUsableAccount(user: user) else {
+            return AppStrings.UserManagement.platformRoleTargetAccountNotUsable
+        }
+        if securityMetadata?.emailVerified == false {
+            return AppStrings.UserManagement.organizationRoleTargetEmailUnverified
+        }
+        guard let selectedOrganization else {
+            return AppStrings.UserManagement.organizationsNotLoaded
+        }
+        if selectedOrganization.ownerId == user.id {
+            return AppStrings.UserManagement.ownerTransferOnly
+        }
+        if selectedOrganization.role(for: user.id) == selectedRole {
+            return AppStrings.UserManagement.organizationRoleAlreadyAssigned
+        }
+        if selectedRole == .communityOwner && !canTransferOwnership {
+            return AppStrings.UserManagement.ownerChangePermissionDenied
+        }
+        if roleReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return AppStrings.UserManagement.reasonRequired
+        }
+        return nil
+    }
+
+    private var availableAccountActions: [UserAdminAction] {
+        switch user.blockState {
+        case .active:
+            [.warningIssued, .suspended, .banned, .deactivated]
+        case .warned:
+            [.suspended, .banned, .deactivated]
+        case .suspendedUntil, .blocked:
+            [.unblocked, .banned, .deactivated]
+        case .bannedPermanent, .deactivated:
+            [.unblocked]
+        }
     }
 
     var body: some View {
-        platformRoleConfirmationScreen
+        lifecycleScreen
+            .sheet(item: $pendingAction) { action in
+                AccountActionConfirmationSheet(
+                    action: action,
+                    target: user,
+                    actor: actor,
+                    viewModel: viewModel
+                )
+            }
+            .sheet(item: $pendingPlatformRoleAction) { action in
+                PlatformRoleConfirmationSheet(
+                    action: action,
+                    target: user,
+                    actor: actor,
+                    viewModel: viewModel
+                )
+            }
+            .sheet(item: $pendingRoleRemoval) { organization in
+                OrganizationRoleRemovalSheet(
+                    organization: organization,
+                    target: user,
+                    actor: actor,
+                    viewModel: viewModel
+                )
+            }
+            .confirmationDialog(
+                AppStrings.UserManagement.ownerTransferConfirmationTitle,
+                isPresented: Binding(
+                    get: { pendingOwnershipTransfer != nil },
+                    set: { if !$0 { pendingOwnershipTransfer = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let pendingOwnershipTransfer {
+                    Button(AppStrings.UserManagement.changeOwnerButton, role: .destructive) {
+                        performOwnershipTransfer(pendingOwnershipTransfer)
+                    }
+                }
+                Button(AppStrings.Common.cancel, role: .cancel) {}
+            } message: {
+                if let pendingOwnershipTransfer {
+                    Text(
+                        AppStrings.UserManagement.ownerTransferConfirmationMessage(
+                            pendingOwnershipTransfer.target.preferredDisplayName,
+                            pendingOwnershipTransfer.organization.name
+                        )
+                    )
+                }
+            }
     }
 
     private var baseScreen: some View {
@@ -907,11 +1420,9 @@ private struct UserDetailView: View {
                     profileCard
                     platformRolesCard
                     organizationRolesCard
-                    if canManageOrganizationRoles && !organizations.isEmpty {
-                        roleAssignmentCard
-                    }
+                    roleAssignmentCard
                     accountActionsCard
-                    UserAuditHistoryCard(userId: user.id)
+                    UserAuditHistoryCard(userId: user.id, refreshToken: viewModel.mutationRevision)
                 }
             }
         }
@@ -921,13 +1432,14 @@ private struct UserDetailView: View {
         baseScreen
             .contentShape(Rectangle())
             .refreshable {
-                await viewModel.refresh(actor: actor)
+                await viewModel.refreshDetail(userID: userID, actor: actor)
                 ensureSelectedOrganization()
                 ensureSelectedRole()
             }
             .task {
                 ensureSelectedOrganization()
                 ensureSelectedRole()
+                await viewModel.loadSecurityMetadata(userID: userID, actor: actor)
             }
             .onChange(of: viewModel.organizations.count) { _, _ in
                 ensureSelectedOrganization()
@@ -945,107 +1457,11 @@ private struct UserDetailView: View {
             }
     }
 
-    private var accountActionConfirmationScreen: some View {
-        lifecycleScreen
-            .confirmationDialog(
-                pendingAction?.title ?? AppStrings.UserManagement.actionFallbackTitle,
-                isPresented: Binding(
-                    get: { pendingAction != nil },
-                    set: { if !$0 { pendingAction = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let pendingAction {
-                    Button(pendingAction.title, role: pendingAction == .unblocked ? nil : .destructive) {
-                        guard let actor else { return }
-                        let currentUser = user
-                        Task {
-                            await viewModel.perform(
-                                pendingAction,
-                                target: currentUser,
-                                actor: actor,
-                                reason: reason
-                            )
-                        }
-                        reason = ""
-                    }
-                }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.UserManagement.actionAuditNotice)
-            }
-    }
-
-    private var roleRemovalConfirmationScreen: some View {
-        accountActionConfirmationScreen
-            .confirmationDialog(
-                AppStrings.UserManagement.removeOrganizationRoleTitle,
-                isPresented: Binding(
-                    get: { pendingRoleRemoval != nil },
-                    set: { if !$0 { pendingRoleRemoval = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let pendingRoleRemoval {
-                    Button(AppStrings.UserManagement.removeOrganizationRoleButton, role: .destructive) {
-                        guard let actor else { return }
-                        let currentUser = user
-                        Task {
-                            await viewModel.removeRole(
-                                in: pendingRoleRemoval,
-                                from: currentUser,
-                                actor: actor,
-                                reason: reason
-                            )
-                        }
-                        reason = ""
-                    }
-                }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.UserManagement.removeOwnerRoleWarning)
-            }
-    }
-
-    private var platformRoleConfirmationScreen: some View {
-        roleRemovalConfirmationScreen
-            .confirmationDialog(
-                pendingPlatformRoleAction?.title ?? AppStrings.UserManagement.platformRoleActionFallbackTitle,
-                isPresented: Binding(
-                    get: { pendingPlatformRoleAction != nil },
-                    set: { if !$0 { pendingPlatformRoleAction = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let pendingPlatformRoleAction {
-                    Button(
-                        pendingPlatformRoleAction.title,
-                        role: pendingPlatformRoleAction.isRemoval ? .destructive : nil
-                    ) {
-                        guard let actor else { return }
-                        let currentUser = user
-                        Task {
-                            await viewModel.performPlatformRoleAction(
-                                pendingPlatformRoleAction,
-                                target: currentUser,
-                                actor: actor,
-                                reason: reason
-                            )
-                        }
-                        reason = ""
-                    }
-                }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.UserManagement.platformRoleAuditNotice)
-            }
-    }
-
     private var profileCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 HStack(spacing: 12) {
-                    UserAvatarView(user: user, size: 64)
+                    UserManagementAvatar(user: user, size: 64)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(user.preferredDisplayName)
@@ -1055,17 +1471,24 @@ private struct UserDetailView: View {
                         Text(user.email.isEmpty ? user.id : user.email)
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
-                            .lineLimit(1)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                        HStack(spacing: 6) {
-                            UserStatusBadge(title: user.blockState.title, tint: statusTint)
-                            UserStatusBadge(title: user.globalRole.title, tint: PermissionService.hasOwnerRoleForDisplay(user: user) ? AppTheme.accentSupport : AppTheme.textSecondary)
+                        UserManagementBadgeFlowLayout(spacing: 6) {
+                            UserManagementStatusBadge(title: user.blockState.title, tint: statusTint)
+                            UserManagementStatusBadge(title: user.globalRole.title, tint: PermissionService.hasOwnerRoleForDisplay(user: user) ? AppTheme.accentSupport : AppTheme.textSecondary)
                         }
 
                         if !organizationRoles.isEmpty {
-                            HStack(spacing: 6) {
+                            UserManagementBadgeFlowLayout(spacing: 6) {
                                 ForEach(organizationRoles.prefix(3)) { item in
-                                    UserStatusBadge(title: roleTitle(item.role), tint: AppTheme.accentPrimaryForeground)
+                                    UserManagementStatusBadge(title: roleTitle(item.role), tint: AppTheme.accentPrimaryForeground)
+                                }
+                                if organizationRoles.count > 3 {
+                                    UserManagementStatusBadge(
+                                        title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count - 3),
+                                        tint: AppTheme.accentPrimaryForeground
+                                    )
                                 }
                             }
                         }
@@ -1078,6 +1501,29 @@ private struct UserDetailView: View {
                 UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: user.telegramUsername ?? AppStrings.Common.notAvailable)
                 UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
                 UserManagementMetadataRow(systemImage: "calendar", title: AppStrings.UserManagement.joined, value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
+                if let securityMetadata {
+                    UserManagementMetadataRow(
+                        systemImage: securityMetadata.emailVerified ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
+                        title: AppStrings.UserManagement.emailVerification,
+                        value: securityMetadata.emailVerified
+                            ? AppStrings.UserManagement.emailVerified
+                            : AppStrings.UserManagement.emailNotVerified
+                    )
+                    UserManagementMetadataRow(
+                        systemImage: "clock.arrow.circlepath",
+                        title: AppStrings.UserManagement.lastSignIn,
+                        value: securityMetadata.lastSignInTime.map {
+                            LocalizationStore.dateString(from: $0, dateStyle: .medium, timeStyle: .short)
+                        } ?? AppStrings.UserManagement.neverSignedIn
+                    )
+                    UserManagementMetadataRow(
+                        systemImage: "key.horizontal",
+                        title: AppStrings.UserManagement.signInProvider,
+                        value: securityMetadata.providerIDs.isEmpty
+                            ? AppStrings.Common.notAvailable
+                            : securityMetadata.providerIDs.joined(separator: ", ")
+                    )
+                }
                 if let banExpiresAt = user.banExpiresAt {
                     UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.blockedUntil, value: LocalizationStore.dateString(from: banExpiresAt, dateStyle: .medium, timeStyle: .short))
                 }
@@ -1126,7 +1572,11 @@ private struct UserDetailView: View {
                                     )
                             }
                             .accessibilityLabel(AppStrings.UserManagement.removeOrganizationRoleButton)
-                            .disabled(!canManageOrganizationRoles || item.role == .communityOwner || isUpdating)
+                            .disabled(
+                                actor.map { !viewModel.canManageOrganizationRoles(in: organization, actor: $0) } ?? true
+                                    || item.role == .communityOwner
+                                    || isUpdating
+                            )
                         }
                     }
                 }
@@ -1170,6 +1620,14 @@ private struct UserDetailView: View {
                         roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
                     }
                 }
+
+                if securityMetadata?.emailVerified == false,
+                   user.globalRole.authorizationRole != .admin {
+                    Label(AppStrings.UserManagement.organizationRoleTargetEmailUnverified, systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
@@ -1207,10 +1665,10 @@ private struct UserDetailView: View {
                     RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
                         .strokeBorder(AppTheme.borderSubtle)
                 )
-                .disabled(organizations.isEmpty || !canManageOrganizationRoles)
+                .disabled(assignmentOrganizations.isEmpty)
 
                 Picker(AppStrings.UserManagement.organizationPicker, selection: Binding(
-                    get: { selectedOrganizationID ?? organizations.first?.id ?? "" },
+                    get: { selectedOrganizationID ?? assignmentOrganizations.first?.id ?? "" },
                     set: { selectedOrganizationID = $0 }
                 )) {
                     ForEach(filteredOrganizations) { organization in
@@ -1218,10 +1676,10 @@ private struct UserDetailView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .disabled(filteredOrganizations.isEmpty || !canManageOrganizationRoles)
+                .disabled(filteredOrganizations.isEmpty)
 
-                if organizations.isEmpty {
-                    Text(AppStrings.UserManagement.organizationsNotLoaded)
+                if assignmentOrganizations.isEmpty {
+                    Text(AppStrings.UserManagement.roleAssignmentUnavailable)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                 } else if filteredOrganizations.isEmpty {
@@ -1236,7 +1694,7 @@ private struct UserDetailView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-                .disabled(!canManageOrganizationRoles)
+                .disabled(!canManageSelectedOrganizationRoles || selectedOrganization?.ownerId == user.id)
 
                 if selectedOrganization?.ownerId == user.id {
                     Text(AppStrings.UserManagement.ownerTransferOnly)
@@ -1244,30 +1702,48 @@ private struct UserDetailView: View {
                         .foregroundStyle(AppTheme.textSecondary)
                 }
 
-                TextField(AppStrings.UserManagement.reasonPlaceholder, text: $reason, axis: .vertical)
+                TextField(AppStrings.UserManagement.requiredReasonPlaceholder, text: $roleReason, axis: .vertical)
                     .lineLimit(2...4)
                     .font(.subheadline)
                     .padding(AppTheme.inputHorizontalPadding)
                     .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                    .focused($focusedField, equals: .reason)
+                    .focused($focusedField, equals: .roleReason)
                     .submitLabel(.done)
                     .onSubmit { focusedField = nil }
+                    .disabled(!canManageSelectedOrganizationRoles || selectedOrganization?.ownerId == user.id)
+
+                if let roleAssignmentBlockingMessage {
+                    Label(roleAssignmentBlockingMessage, systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 PrimaryActionButton(
                     title: selectedRole == .communityOwner ? AppStrings.UserManagement.changeOwnerButton : AppStrings.UserManagement.assignRoleButton,
-                    isEnabled: canManageOrganizationRoles && canAssignSelectedOrganizationRole,
+                    isEnabled: canManageSelectedOrganizationRoles && canAssignSelectedOrganizationRole && roleAssignmentBlockingMessage == nil,
                     isLoading: isUpdating,
                     systemImage: selectedRole == .communityOwner ? "person.crop.circle.badge.checkmark" : "person.badge.key"
                 ) {
                     guard let selectedOrganization else { return }
                     guard let actor else { return }
                     let currentUser = user
-                    if selectedRole == .communityOwner {
-                        Task { await viewModel.changeOwner(in: selectedOrganization, to: currentUser, actor: actor, reason: reason) }
+                    let submittedReason = roleReason
+                    let submittedRole = selectedRole
+                    if submittedRole == .communityOwner {
+                        pendingOwnershipTransfer = PendingOwnershipTransfer(
+                            organization: selectedOrganization,
+                            target: currentUser,
+                            reason: submittedReason
+                        )
                     } else {
-                        Task { await viewModel.assignRole(selectedRole, in: selectedOrganization, to: currentUser, actor: actor, reason: reason) }
+                        Task {
+                            await viewModel.assignRole(submittedRole, in: selectedOrganization, to: currentUser, actor: actor, reason: submittedReason)
+                            if viewModel.statusMessage == AppStrings.UserManagement.changesSaved {
+                                roleReason = ""
+                            }
+                        }
                     }
-                    reason = ""
                 }
             }
         }
@@ -1281,30 +1757,12 @@ private struct UserDetailView: View {
                     subtitle: AppStrings.UserManagement.accountActionsSubtitle
                 )
 
-                Button { pendingAction = .warningIssued } label: {
-                    actionLabel(.warningIssued, tint: AppTheme.accentSupport)
+                ForEach(availableAccountActions) { action in
+                    Button { pendingAction = action } label: {
+                        actionLabel(action, tint: accountActionTint(action))
+                    }
+                    .disabled(!canManage || isUpdating)
                 }
-                .disabled(!canManage || isUpdating)
-
-                Button { pendingAction = .suspended } label: {
-                    actionLabel(.suspended, tint: AppTheme.accentDestructiveForeground)
-                }
-                .disabled(!canManage || isUpdating)
-
-                Button { pendingAction = .banned } label: {
-                    actionLabel(.banned, tint: AppTheme.accentDestructiveForeground)
-                }
-                .disabled(!canManage || isUpdating)
-
-                Button { pendingAction = .unblocked } label: {
-                    actionLabel(.unblocked, tint: AppTheme.accentPrimaryForeground)
-                }
-                .disabled(!canManage || isUpdating)
-
-                Button { pendingAction = .deactivated } label: {
-                    actionLabel(.deactivated, tint: AppTheme.accentDestructiveForeground)
-                }
-                .disabled(!canManage || isUpdating)
             }
             .buttonStyle(.plain)
         }
@@ -1369,6 +1827,7 @@ private struct UserDetailView: View {
         guard let actor else { return false }
         return canChangePlatformRoles
             && PermissionService.canAssignAppAdmin(user: actor)
+            && securityMetadata?.emailVerified != false
             && user.globalRole.authorizationRole != .admin
     }
 
@@ -1388,6 +1847,17 @@ private struct UserDetailView: View {
             .frame(maxWidth: .infinity)
             .frame(minHeight: AppTheme.iconButtonSize)
             .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+    }
+
+    private func accountActionTint(_ action: UserAdminAction) -> Color {
+        switch action {
+        case .warningIssued:
+            AppTheme.accentSupport
+        case .unblocked:
+            AppTheme.accentPrimaryForeground
+        case .suspended, .banned, .deactivated:
+            AppTheme.accentDestructiveForeground
+        }
     }
 
     private func roleActionButton(_ action: PlatformRoleAction, isEnabled: Bool) -> some View {
@@ -1434,21 +1904,36 @@ private struct UserDetailView: View {
 
             Spacer(minLength: 8)
 
-            UserStatusBadge(title: value, tint: tint)
+            UserManagementStatusBadge(title: value, tint: tint)
         }
     }
 
     private func ensureSelectedOrganization(allowFilteredMatch: Bool = false) {
-        let candidates = allowFilteredMatch ? filteredOrganizations : organizations
+        let candidates = allowFilteredMatch ? filteredOrganizations : assignmentOrganizations
         if let selectedOrganizationID, candidates.contains(where: { $0.id == selectedOrganizationID }) {
             return
         }
-        selectedOrganizationID = candidates.first?.id ?? organizations.first?.id
+        selectedOrganizationID = candidates.first?.id ?? assignmentOrganizations.first?.id
     }
 
     private func ensureSelectedRole() {
         guard !assignableRoles.contains(selectedRole) else { return }
         selectedRole = assignableRoles.first ?? .communityModerator
+    }
+
+    private func performOwnershipTransfer(_ transfer: PendingOwnershipTransfer) {
+        guard let actor else { return }
+        Task {
+            await viewModel.changeOwner(
+                in: transfer.organization,
+                to: transfer.target,
+                actor: actor,
+                reason: transfer.reason
+            )
+            if viewModel.statusMessage == AppStrings.UserManagement.changesSaved {
+                roleReason = ""
+            }
+        }
     }
 
     private func roleTitle(_ role: CommunityRole) -> String {
@@ -1480,8 +1965,12 @@ private struct UserDetailView: View {
 
 private struct UserAuditHistoryCard: View {
     let userId: String
+    let refreshToken: Int
     @State private var items: [UserAuditHistoryItem] = []
     @State private var isLoading = false
+    @State private var loadError = false
+    @State private var canLoadMore = false
+    @State private var lastDocument: QueryDocumentSnapshot?
 
     var body: some View {
         AppEditorSectionCard {
@@ -1491,9 +1980,18 @@ private struct UserAuditHistoryCard: View {
                     subtitle: AppStrings.UserManagement.auditHistorySubtitle
                 )
 
-                if isLoading {
+                if isLoading && items.isEmpty {
                     ProgressView()
                         .frame(maxWidth: .infinity, alignment: .center)
+                } else if loadError && items.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(AppStrings.UserManagement.auditHistoryLoadError)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        Button(AppStrings.UserManagement.retry) {
+                            Task { await load(reset: true) }
+                        }
+                    }
                 } else if items.isEmpty {
                     Text(AppStrings.UserManagement.auditHistoryEmpty)
                         .font(.subheadline)
@@ -1502,7 +2000,7 @@ private struct UserAuditHistoryCard: View {
                     ForEach(items) { item in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
-                                Text(item.actionType)
+                                Text(item.title)
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(AppTheme.textPrimary)
 
@@ -1517,40 +2015,77 @@ private struct UserAuditHistoryCard: View {
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
                                 .lineLimit(2)
+
+                            if !item.performedBy.isEmpty {
+                                Text(AppStrings.UserManagement.auditPerformedBy(item.performedBy))
+                                    .font(.caption2)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .textSelection(.enabled)
+                            }
+
+                            if let changeSummary = item.changeSummary {
+                                Text(changeSummary)
+                                    .font(.caption2)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
                         .padding(.vertical, 4)
+                    }
+
+                    if canLoadMore {
+                        Button(AppStrings.UserManagement.loadMore) {
+                            Task { await load(reset: false) }
+                        }
+                        .disabled(isLoading)
                     }
                 }
             }
         }
-        .task(id: userId) {
-            await load()
+        .task(id: "\(userId)|\(refreshToken)") {
+            await load(reset: true)
         }
     }
 
-    private func load() async {
+    private func load(reset: Bool) async {
+        guard !isLoading else { return }
         isLoading = true
+        loadError = false
         defer { isLoading = false }
 
         do {
-            let snapshot = try await Firestore.firestore()
+            var query: Query = Firestore.firestore()
                 .collection("auditLogs")
                 .whereField("targetUserId", isEqualTo: userId)
                 .order(by: "createdAt", descending: true)
                 .limit(to: 20)
-                .getDocuments()
+            if !reset, let lastDocument {
+                query = query.start(afterDocument: lastDocument)
+            }
+            let snapshot = try await query.getDocuments()
 
-            items = snapshot.documents.map { document in
+            let newItems = snapshot.documents.map { document in
                 let data = document.data()
                 return UserAuditHistoryItem(
                     id: document.documentID,
                     actionType: data["actionType"] as? String ?? "unknown",
                     reason: data["reason"] as? String ?? "",
+                    performedBy: data["performedBy"] as? String ?? "",
+                    previousValue: data["previousValue"] as? [String: Any] ?? [:],
+                    newValue: data["newValue"] as? [String: Any] ?? [:],
                     createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast
                 )
             }
+            items = reset ? newItems : items + newItems
+            lastDocument = snapshot.documents.last
+            canLoadMore = snapshot.documents.count == 20
         } catch {
-            items = []
+            loadError = true
+            if reset {
+                items = []
+                lastDocument = nil
+                canLoadMore = false
+            }
         }
     }
 }
@@ -1559,65 +2094,44 @@ private struct UserAuditHistoryItem: Identifiable {
     let id: String
     let actionType: String
     let reason: String
+    let performedBy: String
+    let previousValue: [String: Any]
+    let newValue: [String: Any]
     let createdAt: Date
-}
 
-private struct UserAvatarView: View {
-    let user: AppUser
-    let size: CGFloat
-
-    var body: some View {
-        AvatarArtworkView(
-            avatarURL: user.avatarURL,
-            initials: user.initials,
-            size: size,
-            showsBorder: false,
-            shadowOpacity: 0,
-            shadowRadius: 0,
-            shadowY: 0,
-            initialsFont: .subheadline.weight(.semibold),
-            placeholderFill: AppTheme.accentPrimary.opacity(0.12)
-        )
+    var title: String {
+        switch actionType {
+        case "userWarned": AppStrings.UserManagement.actionWarn
+        case "userSuspended": AppStrings.UserManagement.actionSuspend
+        case "userBanned": AppStrings.UserManagement.actionBan
+        case "userDeactivated": AppStrings.UserManagement.actionDeactivate
+        case "userRestored": AppStrings.UserManagement.actionUnblock
+        case "appAdminAssigned": AppStrings.UserManagement.assignAppAdmin
+        case "appAdminRemoved": AppStrings.UserManagement.removeAppAdmin
+        case "organizationRoleAssigned": AppStrings.UserManagement.assignRoleButton
+        case "organizationRoleRemoved": AppStrings.UserManagement.removeOrganizationRoleButton
+        case "organizationOwnerChanged": AppStrings.UserManagement.changeOwnerButton
+        default: actionType
+        }
     }
-}
 
-private struct UserStatusBadge: View {
-    let title: String
-    let tint: Color
-
-    var body: some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(tint.opacity(0.10), in: Capsule())
-            .lineLimit(1)
+    var changeSummary: String? {
+        let keys = ["accountStatus", "blockState", "globalRole", "role", "organizationId"]
+        let changes = keys.compactMap { key -> String? in
+            let previous = displayValue(previousValue[key])
+            let next = displayValue(newValue[key])
+            guard previous != next, previous != nil || next != nil else { return nil }
+            return "\(key): \(previous ?? "—") → \(next ?? "—")"
+        }
+        return changes.isEmpty ? nil : changes.joined(separator: " · ")
     }
-}
 
-private struct UserManagementMetadataRow: View {
-    let systemImage: String
-    let title: String
-    let value: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: systemImage)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: 18)
-
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-
-            Spacer(minLength: 8)
-
-            Text(value)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppTheme.textPrimary)
-                .multilineTextAlignment(.trailing)
+    private func displayValue(_ value: Any?) -> String? {
+        switch value {
+        case let string as String: string
+        case let number as NSNumber: number.stringValue
+        case nil: nil
+        default: String(describing: value!)
         }
     }
 }

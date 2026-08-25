@@ -69,21 +69,35 @@ struct FeaturedBannerManagementControls: View {
                         .strokeBorder(AppTheme.borderSubtle)
                 }
 
-                HStack {
-                    Picker(AppStrings.FeaturedManagement.filterLabel, selection: $filter) {
-                        ForEach(FeaturedBannerManagementFilter.allCases) { filter in
-                            Text(filter.title).tag(filter)
-                        }
+                ViewThatFits(in: .horizontal) {
+                    HStack {
+                        filterPicker
+                        Spacer()
+                        resultsLabel
                     }
-                    .pickerStyle(.menu)
 
-                    Spacer()
-
-                    Text(AppStrings.FeaturedManagement.resultsCount(visibleCount, total: totalCount))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(AppTheme.textSecondary)
+                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                        filterPicker
+                        resultsLabel
+                    }
                 }
             }
         }
+    }
+
+    private var filterPicker: some View {
+        Picker(AppStrings.FeaturedManagement.filterLabel, selection: $filter) {
+            ForEach(FeaturedBannerManagementFilter.allCases) { filter in
+                Text(filter.title).tag(filter)
+            }
+        }
+        .pickerStyle(.menu)
+    }
+
+    private var resultsLabel: some View {
+        Text(AppStrings.FeaturedManagement.resultsCount(visibleCount, total: totalCount))
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(AppTheme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

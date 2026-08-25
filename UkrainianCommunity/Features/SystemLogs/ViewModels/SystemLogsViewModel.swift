@@ -6,12 +6,16 @@ import Foundation
 final class SystemLogsViewModel: ObservableObject {
     @Published private(set) var logs: [SystemLogEntry] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingNextPage = false
+    @Published private(set) var canLoadMore = false
     @Published private(set) var errorMessage: String?
     @Published var searchText = ""
     @Published var selectedSection: SystemLogDashboardSection = .all
     @Published private(set) var selectedFilters: Set<SystemLogQuickFilter> = []
     @Published private(set) var reviewingLogIDs: Set<String> = []
     @Published private(set) var reviewErrorMessages: [String: String] = [:]
+    @Published private(set) var isClearingLogs = false
+    @Published private(set) var clearLogsErrorMessage: String?
 
     private let repository: SystemLogRepositoryProtocol
     let accessMode: SystemLogsAccessMode
@@ -45,12 +49,30 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     func refresh() async {
+        guard !isLoadingNextPage else { return }
         isLoading = true
         defer { isLoading = false }
 
         do {
             logs = try await fetchLogsForAccessMode()
+            canLoadMore = logs.count >= fetchLimit
             hasLoadedInitialPage = true
+            errorMessage = nil
+        } catch {
+            errorMessage = readableErrorMessage(for: error)
+        }
+    }
+
+    func loadNextPage() async {
+        guard canLoadMore, !isLoading, !isLoadingNextPage else { return }
+        isLoadingNextPage = true
+        defer { isLoadingNextPage = false }
+
+        do {
+            let nextPage = try await repository.fetchNextPage()
+            let existingIDs = Set(logs.map(\.id))
+            logs.append(contentsOf: nextPage.filter { !existingIDs.contains($0.id) })
+            canLoadMore = nextPage.count >= fetchLimit
             errorMessage = nil
         } catch {
             errorMessage = readableErrorMessage(for: error)
@@ -67,34 +89,12 @@ final class SystemLogsViewModel: ObservableObject {
         case .owner:
             try await repository.fetchLogs(filter: .empty, sortOption: .newestFirst, limit: fetchLimit)
         case .appAdmin:
-            try await fetchAppAdminLogs()
-        }
-    }
-
-    private func fetchAppAdminLogs() async throws -> [SystemLogEntry] {
-        let safeActorRoles = Set(SystemLogActorRole.allCases.filter { $0 != .owner })
-        let diagnostics = try await repository.fetchLogs(
-            filter: SystemLogFilter(categories: [.diagnostics], actorRoles: safeActorRoles),
-            sortOption: .newestFirst,
-            limit: fetchLimit
-        )
-
-        let scopedCategories: [SystemLogCategory] = [.moderation, .organization, .userAccount]
-        var scopedLogs: [SystemLogEntry] = diagnostics
-
-        for category in scopedCategories {
-            let categoryLogs = try await repository.fetchLogs(
-                filter: SystemLogFilter(categories: [category], actorRoles: safeActorRoles),
+            try await repository.fetchLogs(
+                filter: SystemLogFilter(isAppAdminReadable: true),
                 sortOption: .newestFirst,
                 limit: fetchLimit
             )
-            scopedLogs.append(contentsOf: categoryLogs)
         }
-
-        return Array(Dictionary(grouping: scopedLogs, by: \.id).compactMap { $0.value.first })
-            .sorted(by: defaultSort)
-            .prefix(fetchLimit)
-            .map { $0 }
     }
 
     private func readableErrorMessage(for error: Error) -> String {
@@ -183,5 +183,44 @@ final class SystemLogsViewModel: ObservableObject {
 
     func isSelected(_ filter: SystemLogQuickFilter) -> Bool {
         selectedFilters.contains(filter)
+    }
+
+    func clearSearchAndFilters() {
+        searchText = ""
+        selectedFilters = []
+        selectedSection = .all
+    }
+
+    func clearQuickFilters() {
+        selectedFilters = []
+    }
+
+    func clearAllLogs() async {
+        guard accessMode == .owner, !isClearingLogs else { return }
+        isClearingLogs = true
+        clearLogsErrorMessage = nil
+        defer { isClearingLogs = false }
+
+        do {
+            _ = try await repository.clearAllLogs()
+            logs = []
+            canLoadMore = false
+            errorMessage = nil
+            clearSearchAndFilters()
+        } catch {
+            clearLogsErrorMessage = readableClearLogsErrorMessage(for: error)
+        }
+    }
+
+    private func readableClearLogsErrorMessage(for error: Error) -> String {
+        let nsError = error as NSError
+        let details = [nsError.domain, nsError.localizedDescription].joined(separator: " ").lowercased()
+        if details.contains("permission") || details.contains("denied") {
+            return AppStrings.SystemLogs.clearPermissionError
+        }
+        if details.contains("unavailable") || details.contains("network") {
+            return AppStrings.SystemLogs.clearNetworkError
+        }
+        return AppStrings.SystemLogs.clearGenericError
     }
 }

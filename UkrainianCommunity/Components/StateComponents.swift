@@ -40,13 +40,13 @@ struct UnifiedEmptyStateCard<ActionContent: View>: View {
 
                 VStack(spacing: UnifiedEmptyStateMetrics.textSpacing) {
                     Text(title)
-                        .font(.headline.weight(.semibold))
+                        .font(AppTheme.emptyStateTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                     Text(message)
-                        .font(.subheadline)
+                        .font(AppTheme.emptyStateMessageFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
@@ -136,10 +136,10 @@ struct ErrorStateCard: View {
                     .foregroundStyle(AppTheme.textSecondary)
 
                 Text(title)
-                    .font(.title3.weight(.semibold))
+                    .font(AppTheme.emptyStateTitleFont)
 
                 Text(message)
-                    .font(.subheadline)
+                    .font(AppTheme.emptyStateMessageFont)
                     .foregroundStyle(AppTheme.textSecondary)
                     .multilineTextAlignment(.center)
 

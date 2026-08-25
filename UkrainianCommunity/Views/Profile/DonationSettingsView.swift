@@ -21,6 +21,20 @@ struct DonationSettingsView: View {
             } else if viewModel.isLoading {
                 LoadingStateCard(title: nil)
                     .frame(maxWidth: .infinity, minHeight: 120)
+            } else if !viewModel.hasLoadedData {
+                ErrorStateCard(
+                    systemImage: "heart.slash",
+                    title: DonationLocalization.settingsTitle(for: language),
+                    message: DonationLocalization.loadFailed(for: language),
+                    retryTitle: AppStrings.Action.retry
+                ) {
+                    Task {
+                        await viewModel.load()
+                        if viewModel.hasLoadedData {
+                            draft = viewModel.config
+                        }
+                    }
+                }
             } else {
                 content
             }
@@ -50,6 +64,17 @@ struct DonationSettingsView: View {
 
             if let statusMessage = viewModel.statusMessage {
                 InlineMessageCard(style: viewModel.statusStyle, message: statusMessage)
+            }
+
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    SectionHeaderBlock(
+                        title: DonationLocalization.previewTitle(for: language),
+                        subtitle: DonationLocalization.previewSubtitle(for: language)
+                    )
+
+                    ProfileDonationSupportCard(config: draft, language: language)
+                }
             }
 
             AppEditorSectionCard {
@@ -88,12 +113,19 @@ struct DonationSettingsView: View {
             PrimaryActionButton(
                 title: DonationLocalization.saveButton(for: language),
                 loadingTitle: DonationLocalization.savingButton(for: language),
+                isEnabled: canSave,
                 isLoading: viewModel.isSaving,
                 systemImage: "checkmark"
             ) {
                 Task { await save() }
             }
         }
+    }
+
+    private var canSave: Bool {
+        draft.normalizedForSaving() != viewModel.config.normalizedForSaving()
+            && validationError(for: draft.normalizedForSaving()) == nil
+            && !viewModel.isSaving
     }
 
     private func localizedTextSection(
@@ -151,6 +183,14 @@ enum DonationLocalization {
 
     static func publicSectionTitle(for language: AppLanguage = LocalizationStore.language) -> String {
         localized(uk: "Підтримати проєкт", de: "Projekt unterstützen", language: language)
+    }
+
+    static func publicSectionSubtitle(for language: AppLanguage = LocalizationStore.language) -> String {
+        localized(
+            uk: "Добровільний внесок у розвиток і підтримку застосунку.",
+            de: "Freiwilliger Beitrag zur Weiterentwicklung und zum Betrieb der App.",
+            language: language
+        )
     }
 
     static func platformEntrySubtitle(for language: AppLanguage = LocalizationStore.language) -> String {
@@ -217,6 +257,26 @@ enum DonationLocalization {
         localized(
             uk: "Текст відображається в Profile відповідно до мови застосунку.",
             de: "Der Text wird im Profil entsprechend der App-Sprache angezeigt.",
+            language: language
+        )
+    }
+
+    static func previewTitle(for language: AppLanguage = LocalizationStore.language) -> String {
+        localized(uk: "Попередній перегляд", de: "Vorschau", language: language)
+    }
+
+    static func previewSubtitle(for language: AppLanguage = LocalizationStore.language) -> String {
+        localized(
+            uk: "Так картка виглядатиме в профілі користувача.",
+            de: "So wird die Karte im Benutzerprofil angezeigt.",
+            language: language
+        )
+    }
+
+    static func externalSiteNotice(host: String, language: AppLanguage = LocalizationStore.language) -> String {
+        localized(
+            uk: "Внесок відкриється на захищеному зовнішньому сайті: \(host)",
+            de: "Die Unterstützung wird auf einer sicheren externen Website geöffnet: \(host)",
             language: language
         )
     }

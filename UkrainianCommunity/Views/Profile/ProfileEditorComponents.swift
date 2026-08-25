@@ -66,6 +66,19 @@ struct ProfileEditorTextArea: View {
     let title: String
     @Binding var text: String
     let counterText: String
+    let maxLength: Int?
+
+    init(
+        title: String,
+        text: Binding<String>,
+        counterText: String,
+        maxLength: Int? = nil
+    ) {
+        self.title = title
+        _text = text
+        self.counterText = counterText
+        self.maxLength = maxLength
+    }
 
     var body: some View {
         AppEditorField(title: title, counterText: counterText) {
@@ -80,48 +93,11 @@ struct ProfileEditorTextArea: View {
                         .strokeBorder(AppTheme.borderSubtle)
                 )
                 .accessibilityLabel(title)
+                .onChange(of: text) { _, newValue in
+                    guard let maxLength, newValue.count > maxLength else { return }
+                    text = String(newValue.prefix(maxLength))
+                }
         }
-    }
-}
-
-
-struct ProfileReadOnlyField: View {
-    let title: String
-    let value: String
-    let systemImage: String
-    let helperText: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-            HStack(spacing: 10) {
-                Image(systemName: systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .frame(width: AppTheme.metadataIconSize)
-
-                Text(value)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, AppTheme.inputHorizontalPadding)
-            .padding(.vertical, 10)
-            .frame(minHeight: AppTheme.newsEditorInputHeight)
-            .background(AppTheme.surfaceSecondary.opacity(0.68), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                    .strokeBorder(AppTheme.borderSubtle)
-            )
-
-            Text(helperText)
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title), \(value)")
     }
 }
 

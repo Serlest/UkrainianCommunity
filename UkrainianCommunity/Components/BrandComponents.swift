@@ -188,12 +188,12 @@ struct AuthHeaderView: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.pushedScreenHeaderTextSpacing) {
                 Text(title)
-                    .font(.title3.weight(.semibold))
+                    .font(AppTheme.authHeaderTitleFont)
                     .foregroundStyle(AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(AppTheme.authHeaderSubtitleFont)
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

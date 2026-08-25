@@ -76,59 +76,52 @@ struct LegalDocumentView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackgroundView()
-                .allowsHitTesting(false)
+        PushedScreenShell(
+            title: displayedContent.title,
+            subtitle: AppStrings.Legal.screenIntro,
+            tabBarHidden: true
+        ) {
+            AppGroupedContentPlane {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    if viewModel.isLoading, viewModel.document == nil {
+                        LoadingStateCard(title: nil)
+                    }
 
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    AppGroupedContentPlane {
-                        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                            if viewModel.isLoading, viewModel.document == nil {
-                                LoadingStateCard(title: nil)
+                    if let errorMessage = viewModel.errorMessage {
+                        InlineMessageCard(style: .error, message: errorMessage)
+                        Button {
+                            Task { await viewModel.load() }
+                        } label: {
+                            Label(AppStrings.Action.retry, systemImage: "arrow.clockwise")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(viewModel.isLoading)
+                    }
+
+                    AppEditorSectionCard {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 8) {
+                                versionChip
+                                lastUpdatedChip
                             }
 
-                            if let errorMessage = viewModel.errorMessage {
-                                InlineMessageCard(style: .error, message: errorMessage)
-                            }
-
-                            AppEditorSectionCard {
-                                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                                    SectionHeaderBlock(
-                                        title: displayedContent.title,
-                                        subtitle: AppStrings.Legal.screenIntro
-                                    )
-
-                                    ViewThatFits(in: .horizontal) {
-                                        HStack(spacing: 8) {
-                                            versionChip
-                                            lastUpdatedChip
-                                        }
-
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            versionChip
-                                            lastUpdatedChip
-                                        }
-                                    }
-                                }
-                            }
-
-                            AppEditorSectionCard {
-                                LegalMarkdownRenderer(
-                                    markdown: displayedContent.contentMarkdown,
-                                    fallbackText: displayedContent.contentText
-                                )
+                            VStack(alignment: .leading, spacing: 8) {
+                                versionChip
+                                lastUpdatedChip
                             }
                         }
                     }
+
+                    AppEditorSectionCard {
+                        LegalMarkdownRenderer(
+                            markdown: displayedContent.contentMarkdown,
+                            fallbackText: displayedContent.contentText
+                        )
+                    }
                 }
-                .padding(.horizontal, AppTheme.pageHorizontal)
-                .padding(.top, AppTheme.sectionSpacing)
-                .padding(.bottom, AppTheme.homeBottomContentPadding)
             }
         }
-        .navigationTitle(displayedContent.title)
-        .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier(document.accessibilityIdentifier)
         .task {
             await viewModel.load()
@@ -172,10 +165,10 @@ private final class LegalDocumentReaderViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            document = try await repository.fetchActiveDocument(type: kind.documentType)
+            document = try await repository.fetchActiveDocumentForReader(type: kind.documentType)
         } catch {
             document = LegalDocument.hardcodedFallback(type: kind.documentType)
-            errorMessage = AppStrings.LegalManagement.loadFailed
+            errorMessage = AppStrings.Legal.offlineFallbackNotice
         }
 
         isLoading = false

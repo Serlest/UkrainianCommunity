@@ -107,6 +107,25 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         ])
     }
 
+    func clearNotifications(userID: String) async throws {
+        let snapshot = try await inboxCollection(userID: userID).getDocuments()
+        let visibleDocuments = snapshot.documents.filter {
+            makeNotification(from: $0).isVisibleInInbox
+        }
+
+        for chunkStart in stride(from: 0, to: visibleDocuments.count, by: 450) {
+            let chunkEnd = min(chunkStart + 450, visibleDocuments.count)
+            let batch = database.batch()
+            for document in visibleDocuments[chunkStart..<chunkEnd] {
+                batch.updateData(
+                    ["deletedAt": FieldValue.serverTimestamp()],
+                    forDocument: document.reference
+                )
+            }
+            try await batch.commit()
+        }
+    }
+
     func createNotification(userID: String, notification: AppNotification) async throws {
         try await inboxCollection(userID: userID)
             .document(notification.id)

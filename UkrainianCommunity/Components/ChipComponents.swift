@@ -179,8 +179,14 @@ struct AppHorizontalFilterRow<Content: View>: View {
     }
 
     var body: some View {
-        AppHorizontalChipRow {
-            content
+        ScrollView(.horizontal, showsIndicators: false) {
+            AppGlassEffectGroup(spacing: AppTheme.eventsMetadataSpacing) {
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    content
+                }
+            }
+            .padding(.vertical, 1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

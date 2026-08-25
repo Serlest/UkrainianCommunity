@@ -17,6 +17,63 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         try await fetchOrganizationsPage(limit: 30, after: nil).items
     }
 
+    func fetchBookmarkedOrganizations() async throws -> [Organization] {
+        let bookmarkedIDs = try await fetchBookmarkedOrganizationIDs()
+        guard !bookmarkedIDs.isEmpty else { return [] }
+        let likedIDs = try await fetchLikedOrganizationIDs()
+        let subscribedIDs = try await fetchSubscribedOrganizationIDs()
+        var organizations: [Organization] = []
+
+        for chunk in Array(bookmarkedIDs).chunked(into: 10) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+                .getDocuments()
+            let resolved = try snapshot.documents.compactMap { document -> Organization? in
+                let organization = try Organization(dto: makeOrganizationDTO(
+                    from: document,
+                    likedOrganizationIDs: likedIDs,
+                    subscribedOrganizationIDs: subscribedIDs,
+                    bookmarkedOrganizationIDs: bookmarkedIDs
+                ))
+                return organization.moderationStatus == .approved ? organization : nil
+            }
+            organizations.append(contentsOf: resolved)
+        }
+
+        return organizations.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    func fetchSubscribedOrganizations() async throws -> [Organization] {
+        let subscribedIDs = try await fetchSubscribedOrganizationIDs()
+        guard !subscribedIDs.isEmpty else { return [] }
+        let likedIDs = try await fetchLikedOrganizationIDs()
+        let bookmarkedIDs = try await fetchBookmarkedOrganizationIDs()
+        var organizations: [Organization] = []
+
+        for chunk in Array(subscribedIDs).chunked(into: 10) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+                .getDocuments()
+            let resolved = try snapshot.documents.map { document in
+                try Organization(dto: makeOrganizationDTO(
+                    from: document,
+                    likedOrganizationIDs: likedIDs,
+                    subscribedOrganizationIDs: subscribedIDs,
+                    bookmarkedOrganizationIDs: bookmarkedIDs
+                ))
+            }
+            organizations.append(contentsOf: resolved)
+        }
+
+        return organizations.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage {
         var query: Query = collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)

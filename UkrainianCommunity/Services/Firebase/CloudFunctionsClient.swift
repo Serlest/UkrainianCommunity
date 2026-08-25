@@ -22,8 +22,11 @@ enum CloudFunctionName: String, CaseIterable {
     case banUser
     case deactivateUser
     case restoreUser
+    case searchManagedUsers
+    case getManagedUserSecurityMetadata
     case acceptLegalDocument
     case deleteOwnAccount
+    case clearMyFeedback
     case saveFeaturedBanner
     case setFeaturedBannerActive
     case deleteFeaturedBanner
@@ -32,6 +35,7 @@ enum CloudFunctionName: String, CaseIterable {
     case createOrganizationPhotoMetadata
     case deleteOrganizationPhotoMetadata
     case deleteNotificationPushRegistration
+    case sendTestPushNotification
 }
 
 enum CloudOrganizationRole: String, Codable, Equatable {
@@ -127,6 +131,29 @@ struct AccountStatusChangeFunctionResponse: Codable, Equatable {
     let warningCount: Int
     let banExpiresAt: String?
     let updatedAt: String
+}
+
+struct ManagedUserSearchFunctionRequest: Codable, Equatable {
+    let query: String
+    let limit: Int
+}
+
+struct ManagedUserSearchFunctionResponse: Codable, Equatable {
+    let userIds: [String]
+    let totalMatches: Int
+}
+
+struct ManagedUserSecurityMetadataFunctionRequest: Codable, Equatable {
+    let targetUserId: String
+}
+
+struct ManagedUserSecurityMetadataFunctionResponse: Codable, Equatable {
+    let targetUserId: String
+    let emailVerified: Bool
+    let authDisabled: Bool
+    let creationTime: String?
+    let lastSignInTime: String?
+    let providerIds: [String]
 }
 
 struct LegalAcceptanceFunctionRequest: Codable, Equatable {
@@ -229,6 +256,12 @@ struct ContentDeletionFunctionResponse: Codable, Equatable {
 
 struct AccountDeletionFunctionRequest: Codable, Equatable {}
 
+struct ClearMyFeedbackFunctionRequest: Codable, Equatable {}
+
+struct ClearMyFeedbackFunctionResponse: Codable, Equatable {
+    let deletedCount: Int
+}
+
 struct AccountDeletionFunctionResponse: Codable, Equatable {
     let status: String
     let completedAt: String
@@ -242,6 +275,14 @@ nonisolated struct PushRegistrationDeletionFunctionRequest: Codable, Equatable {
 
 nonisolated struct PushRegistrationDeletionFunctionResponse: Codable, Equatable {
     let deletedRegistrationCount: Int
+}
+
+struct TestPushNotificationFunctionRequest: Codable, Equatable {}
+
+struct TestPushNotificationFunctionResponse: Codable, Equatable {
+    let targetCount: Int
+    let successCount: Int
+    let failureCount: Int
 }
 
 final class CloudFunctionsClient {
@@ -329,6 +370,22 @@ final class CloudFunctionsClient {
         try await call(
             .restoreUser,
             request: accountStatusChangeRequest(userId: userId, reason: reason)
+        )
+    }
+
+    func searchManagedUsers(query: String, limit: Int = 100) async throws -> ManagedUserSearchFunctionResponse {
+        try await call(
+            .searchManagedUsers,
+            request: ManagedUserSearchFunctionRequest(query: query, limit: limit)
+        )
+    }
+
+    func getManagedUserSecurityMetadata(
+        userId: String
+    ) async throws -> ManagedUserSecurityMetadataFunctionResponse {
+        try await call(
+            .getManagedUserSecurityMetadata,
+            request: ManagedUserSecurityMetadataFunctionRequest(targetUserId: userId)
         )
     }
 
@@ -431,10 +488,18 @@ final class CloudFunctionsClient {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
     }
 
+    func clearMyFeedback() async throws -> ClearMyFeedbackFunctionResponse {
+        try await call(.clearMyFeedback, request: ClearMyFeedbackFunctionRequest())
+    }
+
     func deleteNotificationPushRegistration(
         _ request: PushRegistrationDeletionFunctionRequest
     ) async throws -> PushRegistrationDeletionFunctionResponse {
         try await call(.deleteNotificationPushRegistration, request: request)
+    }
+
+    func sendTestPushNotification() async throws -> TestPushNotificationFunctionResponse {
+        try await call(.sendTestPushNotification, request: TestPushNotificationFunctionRequest())
     }
 
     private func eventRegistrationMutation(
@@ -542,8 +607,12 @@ final class CloudFunctionsClient {
              .banUser,
              .deactivateUser,
              .restoreUser,
+             .searchManagedUsers,
+             .getManagedUserSecurityMetadata,
              .deleteOwnAccount,
-             .deleteNotificationPushRegistration:
+             .clearMyFeedback,
+             .deleteNotificationPushRegistration,
+             .sendTestPushNotification:
             return .userProfile
         case .acceptLegalDocument:
             return .legalDocument
@@ -586,11 +655,15 @@ final class CloudFunctionsClient {
              .requestOrganizationRevision,
              .acceptLegalDocument,
              .deleteOwnAccount,
+             .clearMyFeedback,
              .registerForEvent,
              .unregisterFromEvent,
              .submitContentReport,
              .setUserBlocked,
-             .deleteNotificationPushRegistration:
+             .searchManagedUsers,
+             .getManagedUserSecurityMetadata,
+             .deleteNotificationPushRegistration,
+             .sendTestPushNotification:
             return false
         }
     }
@@ -638,14 +711,18 @@ final class CloudFunctionsClient {
              .deleteOrganization,
              .acceptLegalDocument,
              .deleteOwnAccount,
+             .clearMyFeedback,
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
              .submitContentReport,
              .setUserBlocked,
+             .searchManagedUsers,
+             .getManagedUserSecurityMetadata,
              .createOrganizationPhotoMetadata,
              .deleteOrganizationPhotoMetadata,
-             .deleteNotificationPushRegistration:
+             .deleteNotificationPushRegistration,
+             .sendTestPushNotification:
             return nil
         }
     }
@@ -807,6 +884,8 @@ final class CloudFunctionsClient {
         } else if let request = request as? AccountStatusChangeFunctionRequest {
             metadata["targetUserId"] = request.targetUserId
             metadata["hasUntil"] = String(request.until != nil)
+        } else if let request = request as? ManagedUserSecurityMetadataFunctionRequest {
+            metadata["targetUserId"] = request.targetUserId
         } else if let request = request as? FeaturedBannerSaveFunctionRequest {
             metadata["bannerId"] = request.banner.id
             metadata["mode"] = request.mode.rawValue
@@ -855,6 +934,9 @@ final class CloudFunctionsClient {
             return request.targetUserId
         }
         if let request = request as? AccountStatusChangeFunctionRequest {
+            return request.targetUserId
+        }
+        if let request = request as? ManagedUserSecurityMetadataFunctionRequest {
             return request.targetUserId
         }
         if let request = request as? FeaturedBannerSaveFunctionRequest {

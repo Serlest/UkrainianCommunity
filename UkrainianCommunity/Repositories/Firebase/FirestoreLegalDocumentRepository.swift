@@ -15,35 +15,41 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
     }
 
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
-        let pointerReference = database.collection("legalDocuments").document(type.rawValue)
-
         do {
-            let pointerSnapshot = try await pointerReference.getDocument()
-            guard
-                let pointerData = pointerSnapshot.data(),
-                let activeVersion = pointerData["activeVersion"] as? String,
-                !activeVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            else {
-                return LegalDocument.hardcodedFallback(type: type)
-            }
-
-            let versionSnapshot = try await pointerReference
-                .collection("versions")
-                .document(activeVersion)
-                .getDocument()
-
-            guard let versionData = versionSnapshot.data() else {
-                return LegalDocument.hardcodedFallback(type: type)
-            }
-
-            return decodeDocument(type: type, version: activeVersion, data: versionData)
+            return try await fetchActiveDocumentFromFirestore(type: type)
         } catch {
+            // Public legal pages must remain readable offline. Management uses
+            // the strict loader below so a network failure cannot be mistaken
+            // for the current production version.
             return LegalDocument.hardcodedFallback(type: type)
         }
     }
 
+    func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument {
+        try await fetchActiveDocumentFromFirestore(type: type)
+    }
+
+    private func fetchActiveDocumentFromFirestore(type: LegalDocumentType) async throws -> LegalDocument {
+        let pointerReference = database.collection("legalDocuments").document(type.rawValue)
+        let pointerSnapshot = try await pointerReference.getDocument()
+        guard
+            let pointerData = pointerSnapshot.data(),
+            let activeVersion = pointerData["activeVersion"] as? String,
+            !activeVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { throw AppError.notFound }
+
+        let versionSnapshot = try await pointerReference
+            .collection("versions")
+            .document(activeVersion)
+            .getDocument()
+
+        guard let versionData = versionSnapshot.data() else { throw AppError.notFound }
+
+        return decodeDocument(type: type, version: activeVersion, data: versionData)
+    }
+
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState {
-        let activeDocument = try await fetchActiveDocument(type: type)
+        let activeDocument = try await fetchActiveDocumentFromFirestore(type: type)
         let draftSnapshot = try await database
             .collection("legalDocuments")
             .document(type.rawValue)

@@ -4,7 +4,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
 import { requireVerifiedActiveUser } from "../auth/context";
-import { db } from "../firebase/admin";
+import { adminAuth, db } from "../firebase/admin";
 import {
   type NotificationSeverity,
   resolveNotificationRecipients,
@@ -334,6 +334,22 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
         },
       }));
     });
+
+    if (isBlockedStatus(newAccountStatus)) {
+      try {
+        await adminAuth.revokeRefreshTokens(statusRequest.targetUserId);
+      } catch (error) {
+        console.error("Failed to revoke target user sessions after account restriction", {
+          targetUserId: statusRequest.targetUserId,
+          newAccountStatus,
+          error,
+        });
+        throw new HttpsError(
+          "unavailable",
+          "Account status changed, but active sessions could not be revoked. Retry this action."
+        );
+      }
+    }
 
     await writeAccountStatusNotification({
       notificationId: [

@@ -6,6 +6,7 @@ final class DonationConfigViewModel: ObservableObject {
     @Published private(set) var config: DonationConfig = .defaults
     @Published private(set) var isLoading = false
     @Published private(set) var isSaving = false
+    @Published private(set) var hasLoadedData = false
     @Published var statusMessage: String?
     @Published var statusStyle: InlineMessageStyle = .info
 
@@ -29,6 +30,7 @@ final class DonationConfigViewModel: ObservableObject {
         do {
             config = try await repository.fetchDonationConfig() ?? .defaults
             hasLoaded = true
+            hasLoadedData = true
         } catch {
             statusStyle = .error
             statusMessage = DonationLocalization.loadFailed()
@@ -46,6 +48,7 @@ final class DonationConfigViewModel: ObservableObject {
             try await repository.saveDonationConfig(config, updatedBy: userID)
             self.config = try await repository.fetchDonationConfig() ?? config
             hasLoaded = true
+            hasLoadedData = true
             statusStyle = .success
             statusMessage = DonationLocalization.saveSucceeded()
             return true

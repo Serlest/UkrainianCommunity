@@ -143,7 +143,7 @@ struct OrganizationRequestCard: View {
     }
 
     var body: some View {
-        AppEditorSectionCard {
+        SoftContentCard(padding: AppTheme.sectionSpacing) {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 HStack(alignment: .top, spacing: 12) {
                     AppFeedThumbnail(
@@ -259,7 +259,7 @@ struct ManagedOrganizationCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        AppEditorSectionCard {
+        SoftContentCard(padding: AppTheme.sectionSpacing) {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 HStack(alignment: .top, spacing: 12) {
                     AppFeedThumbnail(
@@ -272,13 +272,15 @@ struct ManagedOrganizationCard: View {
                     )
 
                     VStack(alignment: .leading, spacing: 7) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(organization.name)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(AppTheme.textPrimary)
-                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
-
-                            roleBadge
+                        ViewThatFits(in: .horizontal) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                organizationName
+                                roleBadge
+                            }
+                            VStack(alignment: .leading, spacing: 6) {
+                                organizationName
+                                roleBadge
+                            }
                         }
 
                         Text(organization.shortDescription)
@@ -343,6 +345,13 @@ struct ManagedOrganizationCard: View {
                 Capsule()
                     .strokeBorder(role.tint.opacity(0.22))
             )
+    }
+
+    private var organizationName: some View {
+        Text(organization.name)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
     }
 
     private var metadataChips: some View {

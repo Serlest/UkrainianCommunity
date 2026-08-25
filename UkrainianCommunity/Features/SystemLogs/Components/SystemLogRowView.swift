@@ -25,7 +25,7 @@ struct SystemLogRowView: View {
                 metadataLine
                 contextLine
 
-                HStack(spacing: 6) {
+                AppHorizontalChipRow(spacing: 6) {
                     AppInfoChip(
                         title: SystemLogDisplayFormatting.severityTitle(log.severity),
                         tint: SystemLogDisplayFormatting.severityTint(log.severity),

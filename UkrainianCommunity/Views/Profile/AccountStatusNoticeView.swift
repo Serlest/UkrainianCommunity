@@ -20,7 +20,9 @@ struct AccountStatusNoticeView: View {
                         }
 
                         PrimaryActionButton(
-                            title: AppStrings.AccountStatusAlert.acknowledgementButton,
+                            title: notice.requiresSignOut
+                                ? AppStrings.AccountStatusAlert.restrictedSignOutButton
+                                : AppStrings.AccountStatusAlert.acknowledgementButton,
                             loadingTitle: AppStrings.AccountStatusAlert.acknowledgementLoading,
                             isLoading: isAcknowledging,
                             systemImage: "checkmark.circle.fill",

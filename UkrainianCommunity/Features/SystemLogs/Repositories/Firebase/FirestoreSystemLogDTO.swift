@@ -32,6 +32,7 @@ struct FirestoreSystemLogDTO: Codable, Equatable {
     let metadata: [String: String]
     let retentionPolicy: String?
     let correlationId: String?
+    let isAppAdminReadable: Bool
 
     nonisolated init(entry: SystemLogEntry) {
         id = entry.id
@@ -64,6 +65,7 @@ struct FirestoreSystemLogDTO: Codable, Equatable {
         metadata = entry.metadata
         retentionPolicy = entry.retentionPolicy?.rawValue
         correlationId = entry.correlationId
+        isAppAdminReadable = Self.appAdminReadable(entry)
     }
 
     nonisolated init(
@@ -119,5 +121,20 @@ struct FirestoreSystemLogDTO: Codable, Equatable {
         case .error: 4
         case .critical: 5
         }
+    }
+
+    nonisolated static func appAdminReadable(_ entry: SystemLogEntry) -> Bool {
+        let readableCategory: Bool = switch entry.category {
+        case .userAccount, .organization, .moderation, .diagnostics: true
+        default: false
+        }
+        let isSecuritySensitive = entry.retentionPolicy == .security
+            || entry.category == .authorization
+            || entry.eventType == .permissionDenied
+            || entry.eventType == .accountBlocked
+
+        return readableCategory
+            && !isSecuritySensitive
+            && entry.actorRole != .owner
     }
 }

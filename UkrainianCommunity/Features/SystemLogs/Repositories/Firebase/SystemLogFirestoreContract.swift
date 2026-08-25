@@ -34,6 +34,7 @@ enum SystemLogFirestoreContract {
         case metadata
         case retentionPolicy
         case correlationId
+        case isAppAdminReadable
     }
 }
 

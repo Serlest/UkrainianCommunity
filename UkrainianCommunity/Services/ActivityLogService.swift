@@ -123,6 +123,11 @@ struct ActivityLogItem: Identifiable, Equatable {
 protocol ActivityLogRepository {
     func fetchActivityLog(limit: Int) async throws -> [ActivityLogItem]
     func recordActivity(_ item: ActivityLogItem) async throws
+    func clearActivityLog() async throws
+}
+
+extension ActivityLogRepository {
+    func clearActivityLog() async throws {}
 }
 
 struct FirestoreActivityLogRepository: ActivityLogRepository {
@@ -157,6 +162,15 @@ struct FirestoreActivityLogRepository: ActivityLogRepository {
         ])
 
         try await pruneActivityLog(in: collection)
+    }
+
+    func clearActivityLog() async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
+        let snapshot = try await activityLogCollection(userID: uid).getDocuments()
+        guard !snapshot.documents.isEmpty else { return }
+        let batch = database.batch()
+        snapshot.documents.forEach { batch.deleteDocument($0.reference) }
+        try await batch.commit()
     }
 
     private func activityLogCollection(userID: String) -> CollectionReference {
@@ -208,6 +222,7 @@ final class ActivityLogViewModel: ObservableObject {
     @Published private(set) var items: [ActivityLogItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
+    @Published private(set) var isClearing = false
 
     private let repository: ActivityLogRepository
     private var hasLoaded = false
@@ -257,6 +272,24 @@ final class ActivityLogViewModel: ObservableObject {
             self.error = .unknown
             hasLoaded = true
         }
+    }
+
+    @discardableResult
+    func clearHistory() async -> Bool {
+        guard !isClearing else { return false }
+        isClearing = true
+        defer { isClearing = false }
+        do {
+            try await repository.clearActivityLog()
+            items = []
+            error = nil
+            return true
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+        return false
     }
 }
 

@@ -1,4 +1,5 @@
 import Combine
+import FirebaseAuth
 import Foundation
 
 struct EventRegistrationPresentationError: Equatable {
@@ -23,6 +24,8 @@ final class EventsViewModel: ObservableObject {
     private let repository: EventRepository
     private let registrationMutator: EventRegistrationMutating
     private let analyticsService: AnalyticsTracking
+    private let notificationPreferencesRepository: NotificationPreferencesRepository?
+    private let localEventReminderService: LocalEventReminderServiceProtocol?
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
@@ -46,6 +49,8 @@ final class EventsViewModel: ObservableObject {
     ) {
         self.repository = repository
         self.analyticsService = analyticsService
+        self.notificationPreferencesRepository = notificationPreferencesRepository
+        self.localEventReminderService = localEventReminderService
         if let registrationMutator {
             self.registrationMutator = registrationMutator
         } else {
@@ -249,6 +254,10 @@ final class EventsViewModel: ObservableObject {
             } else {
                 analyticsService.track(.eventCancelRegistration(event: eventBeforeMutation))
             }
+            await updateLocalReminder(
+                for: eventBeforeMutation,
+                isRegistered: result.registrationState == .registered
+            )
         } catch is CancellationError {
         } catch let mutationError as EventRegistrationMutationError {
             guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }
@@ -262,6 +271,31 @@ final class EventsViewModel: ObservableObject {
         } catch {
             guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }
             registrationError = EventRegistrationPresentationError(eventID: eventID, reason: .unavailable)
+        }
+    }
+
+    private func updateLocalReminder(for event: Event, isRegistered: Bool) async {
+        guard let userID = AuthService.shared.currentUser?.uid,
+              let localEventReminderService else { return }
+
+        guard isRegistered else {
+            localEventReminderService.cancelEventReminder(eventID: event.id, userID: userID)
+            return
+        }
+
+        guard let notificationPreferencesRepository else { return }
+        do {
+            let preferences = try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            guard preferences.notificationsEnabled, preferences.eventRemindersEnabled else { return }
+            try await localEventReminderService.scheduleEventReminder(
+                event: event,
+                userID: userID,
+                leadMinutes: preferences.reminderLeadMinutes
+            )
+        } catch {
+            #if DEBUG
+            print("[Notifications] Failed to schedule event reminder: \(error)")
+            #endif
         }
     }
 

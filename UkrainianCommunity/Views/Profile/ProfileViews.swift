@@ -10,7 +10,11 @@ enum ProfileNavigationRoute: Hashable {
     case followedOrganizations
     case recentViews
     case activityHistory
+    case profileSettings
+    case feedbackComposer
+    case supportProject
     case blockedUsers
+    case organizationRequests
     case moderationTools
     case userManagement
     case featuredBannerManagement
@@ -327,34 +331,6 @@ struct ProfileView: View {
         !displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var registrationsSectionSubtitle: String {
-        if registrationsViewModel.isLoading && registrationsViewModel.events.isEmpty {
-            return AppStrings.Profile.registrationsLoading
-        }
-
-        if registrationsViewModel.registrationsCount == 0 {
-            return AppStrings.Profile.registrationsEmptySummary
-        }
-
-        return AppStrings.profileRegistrationsCount(registrationsViewModel.registrationsCount)
-    }
-
-    private var upcomingRegistrationPreviews: [Event] {
-        let startOfToday = Calendar.current.startOfDay(for: Date())
-        return Array(registrationsViewModel.events
-            .filter { $0.endDate >= startOfToday }
-            .sorted { $0.startDate < $1.startDate }
-            .prefix(2))
-    }
-
-    private var recentRegistrationPreviews: [Event] {
-        let startOfToday = Calendar.current.startOfDay(for: Date())
-        return Array(registrationsViewModel.events
-            .filter { $0.endDate < startOfToday }
-            .sorted { $0.endDate > $1.endDate }
-            .prefix(2))
-    }
-
     var body: some View {
         ZStack {
             AppBackgroundView()
@@ -370,13 +346,11 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                             profileHeader
 
-                            AppGroupedContentPlane {
-                                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                                    if let user = displayUser {
-                                        userProfileContent(for: user)
-                                    } else {
-                                        guestProfileContent
-                                    }
+                            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                                if let user = displayUser {
+                                    userProfileContent(for: user)
+                                } else {
+                                    guestProfileContent
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -563,7 +537,7 @@ struct ProfileView: View {
                 AppNotificationBellButton()
 
                 if displayUser != nil {
-                    AppGlassIconButton(systemImage: "slider.horizontal.3", accessibilityLabel: AppStrings.Profile.editProfile) {
+                    AppGlassIconButton(systemImage: "pencil", accessibilityLabel: AppStrings.Profile.editProfile) {
                         beginEditingProfile()
                     }
                 }
@@ -620,12 +594,40 @@ struct ProfileView: View {
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel
             )
+        case .profileSettings:
+            ProfilePreferencesView(
+                viewModel: viewModel,
+                userBlockingCoordinator: userBlockingCoordinator,
+                analyticsService: analyticsService,
+                isAnalyticsCollectionEnabled: $isAnalyticsCollectionEnabled,
+                currentUser: displayUser,
+                onDeleteAccount: { isShowingDeleteAccountConfirmation = true }
+            )
+        case .feedbackComposer:
+            if let user = displayUser {
+                ProfileFeedbackComposerView(
+                    selectedFeedbackType: $selectedFeedbackType,
+                    feedbackMessage: $feedbackMessage,
+                    statusMessage: viewModel.feedbackMessage,
+                    isSubmitting: viewModel.isSubmittingFeedback,
+                    onSubmit: { submitFeedback(for: user) }
+                )
+            }
+        case .supportProject:
+            ProfileProjectSupportView(
+                config: donationConfigViewModel.config,
+                language: appLanguage
+            )
         case .blockedUsers:
             BlockedUsersView(coordinator: userBlockingCoordinator)
+        case .organizationRequests:
+            ModerationToolsView(
+                scope: .organizationRequests,
+                organizationRepository: organizationRepository
+            )
         case .moderationTools:
             ModerationToolsView(
-                organizationRepository: organizationRepository,
-                notificationInboxRepository: notificationInboxRepository
+                organizationRepository: organizationRepository
             )
         case .userManagement:
             UserManagementView()
@@ -751,9 +753,9 @@ struct ProfileView: View {
                 isSavingAvatar: viewModel.isSavingProfile && selectedAvatarImageData != nil
             )
 
-            editProfileMainInfoSection
-            editProfileAppSettingsSection
-            notificationsSection
+            editProfileIdentitySection
+            editProfileLocationSection
+            editProfileContactSection
 
             if let profileStatusMessage {
                 InlineMessageCard(style: profileStatusStyle, message: profileStatusMessage)
@@ -812,11 +814,27 @@ struct ProfileView: View {
         }
     }
 
-    private var editProfileMainInfoSection: some View {
+    private var editProfileIdentitySection: some View {
         ProfileSectionCard(title: AppStrings.Profile.mainInformation) {
             VStack(spacing: AppTheme.dashboardSpacing) {
                 EditorTextField(AppStrings.Profile.displayName, text: $displayNameDraft, systemImage: "person", autocapitalization: .words)
                 EditorTextField(AppStrings.Profile.fullName, text: $fullNameDraft, systemImage: "person.text.rectangle", autocapitalization: .words)
+                ProfileEditorTextArea(
+                    title: AppStrings.Profile.bio,
+                    text: $bioDraft,
+                    counterText: AppStrings.profileBioCounter(bioDraft.count, 240),
+                    maxLength: 240
+                )
+            }
+        }
+    }
+
+    private var editProfileLocationSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.personalRegion,
+            subtitle: AppStrings.Profile.personalRegionSubtitle
+        ) {
+            VStack(spacing: AppTheme.dashboardSpacing) {
                 EditorTextField(AppStrings.Common.city, text: $cityDraft, systemImage: "mappin.and.ellipse", autocapitalization: .words)
                 ProfileEditorPickerRow(title: AppStrings.Auth.federalState, systemImage: "globe.europe.africa") {
                     Picker(AppStrings.Auth.federalState, selection: $selectedFederalStateDraft) {
@@ -826,6 +844,13 @@ struct ProfileView: View {
                     }
                     .labelsHidden()
                 }
+            }
+        }
+    }
+
+    private var editProfileContactSection: some View {
+        ProfileSectionCard(title: AppStrings.Profile.contactsSection) {
+            VStack(spacing: AppTheme.dashboardSpacing) {
                 EditorTextField(
                     AppStrings.Profile.telegramUsername,
                     text: $telegramUsernameDraft,
@@ -833,62 +858,6 @@ struct ProfileView: View {
                     autocapitalization: .never,
                     autocorrectionDisabled: true
                 )
-                ProfileEditorTextArea(title: AppStrings.Profile.bio, text: $bioDraft, counterText: AppStrings.profileBioCounter(bioDraft.count, 240))
-
-                ProfileReadOnlyField(
-                    title: AppStrings.Auth.email,
-                    value: displayUser?.email ?? "",
-                    systemImage: "envelope",
-                    helperText: AppStrings.Profile.emailReadOnlyHint
-                )
-            }
-        }
-    }
-
-    private var editProfileAppSettingsSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.appSettings,
-            subtitle: AppStrings.Profile.appSettingsSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink(value: ProfileNavigationRoute.notifications) {
-                    ProfileModuleRow(
-                        title: AppStrings.NotificationInbox.title,
-                        subtitle: AppStrings.NotificationInbox.subtitle,
-                        systemImage: "bell",
-                        status: .available,
-                        countBadge: notificationInboxViewModel.unreadCount
-                    )
-                }
-                .buttonStyle(.plain)
-
-                ProfileSettingsPickerRow(
-                    title: AppStrings.Profile.appLanguage,
-                    subtitle: AppStrings.Profile.languageSettingsSubtitle,
-                    systemImage: "globe"
-                ) {
-                    Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
-                        ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                ProfileSettingsPickerRow(
-                    title: AppStrings.Profile.appAppearance,
-                    subtitle: AppStrings.Profile.appearanceSettingsSubtitle,
-                    systemImage: "circle.lefthalf.filled"
-                ) {
-                    Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
-                        ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                analyticsConsentRow
             }
         }
     }
@@ -901,18 +870,6 @@ struct ProfileView: View {
         )
 
         ProfileSectionCard(
-            title: AppStrings.Profile.afterRegistrationTitle,
-            subtitle: AppStrings.Profile.afterRegistrationSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileModuleRow(title: AppStrings.Profile.myEvents, subtitle: AppStrings.Profile.afterRegistrationEventsSubtitle, systemImage: "calendar", status: .accountRequired, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.savedContent, subtitle: AppStrings.Profile.afterRegistrationSavedSubtitle, systemImage: "bookmark", status: .accountRequired, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.organizationSubscriptions, subtitle: AppStrings.Profile.organizationSubscriptionsSubtitle, systemImage: "person.2", status: .accountRequired, accessory: .none)
-                ProfileModuleRow(title: AppStrings.Profile.personalRegion, subtitle: AppStrings.Profile.personalRegionSubtitle, systemImage: "mappin.and.ellipse", status: .accountRequired, accessory: .none)
-            }
-        }
-
-        ProfileSectionCard(
             title: AppStrings.Profile.guestAvailableTitle,
             subtitle: AppStrings.Profile.guestAvailableSubtitle
         ) {
@@ -923,8 +880,7 @@ struct ProfileView: View {
             }
         }
 
-        donationSupportSection
-        guestSettingsSupportSection
+        guestSupportAndSettingsSection
     }
 
     @ViewBuilder
@@ -934,91 +890,214 @@ struct ProfileView: View {
         } else {
             ProfileHeroCard(
                 user: user,
-                readableFederalState: readableFederalState,
-                onEditProfile: beginEditingProfile
+                readableFederalState: readableFederalState
             )
 
             quickActionsSection(for: user)
-            donationSupportSection
-            supportSection(for: user)
-            settingsSection
-            accountDeletionSection
-            logoutSection
+            activityNavigationSection
+            supportNavigationSection(for: user)
+            preferencesNavigationSection
+            sessionActionSection
         }
     }
 
     @ViewBuilder
     private func platformProfileContent(for user: AppUser, mode: ProfileDashboardMode) -> some View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: mode)
-        platformManagementSection
+        platformOperationsSection
+        platformAdministrationSection
         quickActionsSection(for: user)
-        donationSupportSection
-        supportSection(for: user)
-        settingsSection
-        accountDeletionSection
-        logoutSection
+        activityNavigationSection
+        supportNavigationSection(for: user)
+        preferencesNavigationSection
+        sessionActionSection
     }
 
     private func quickActionsSection(for user: AppUser, includeMyOrganizations: Bool = true) -> some View {
-        AppAdaptiveGrid(
-            minimumWidth: 150,
-            maximumWidth: 260,
-            spacing: AppTheme.eventsMetadataSpacing
+        ProfileSectionCard(
+            title: AppStrings.Profile.personalContentTitle,
+            subtitle: AppStrings.Profile.personalContentSubtitle
         ) {
-            if includeMyOrganizations {
-                myOrganizationsQuickAction
-            }
+            AppAdaptiveGrid(
+                minimumWidth: 145,
+                maximumWidth: 260,
+                spacing: AppTheme.eventsMetadataSpacing
+            ) {
+                if includeMyOrganizations {
+                    myOrganizationsQuickAction
+                }
 
-            NavigationLink(value: ProfileNavigationRoute.registrations) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(
-                    title: AppStrings.Profile.myEvents,
-                    subtitle: AppStrings.Profile.quickActionRegisteredEventsSubtitle,
-                    systemImage: "calendar",
-                    status: .available
-                ))
-            }
-            .buttonStyle(.plain)
+                NavigationLink(value: ProfileNavigationRoute.registrations) {
+                    ProfileQuickActionCard(item: ProfileQuickActionItem(
+                        title: AppStrings.Profile.myEvents,
+                        subtitle: AppStrings.Profile.quickActionRegisteredEventsSubtitle,
+                        systemImage: "calendar",
+                        status: .available
+                    ))
+                }
+                .buttonStyle(.plain)
 
-            NavigationLink(value: ProfileNavigationRoute.savedContent) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(
-                    title: AppStrings.Profile.savedContent,
-                    subtitle: AppStrings.Profile.quickActionSavedContentSubtitle,
-                    systemImage: "bookmark",
-                    status: .available
-                ))
-            }
-            .buttonStyle(.plain)
+                NavigationLink(value: ProfileNavigationRoute.savedContent) {
+                    ProfileQuickActionCard(item: ProfileQuickActionItem(
+                        title: AppStrings.Profile.savedContent,
+                        subtitle: AppStrings.Profile.quickActionSavedContentSubtitle,
+                        systemImage: "bookmark",
+                        status: .available
+                    ))
+                }
+                .buttonStyle(.plain)
 
-            NavigationLink(value: ProfileNavigationRoute.followedOrganizations) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(
-                    title: AppStrings.Profile.organizationSubscriptions,
-                    subtitle: AppStrings.Profile.quickActionSubscriptionsSubtitle,
-                    systemImage: "person.2",
-                    status: .available
-                ))
+                NavigationLink(value: ProfileNavigationRoute.followedOrganizations) {
+                    ProfileQuickActionCard(item: ProfileQuickActionItem(
+                        title: AppStrings.Profile.organizationSubscriptions,
+                        subtitle: AppStrings.Profile.quickActionSubscriptionsSubtitle,
+                        systemImage: "person.2",
+                        status: .available
+                    ))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+        }
+    }
 
-            NavigationLink(value: ProfileNavigationRoute.recentViews) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(
-                    title: AppStrings.Profile.recentlyViewed,
-                    subtitle: AppStrings.Profile.recentlyViewedSubtitle,
-                    systemImage: "clock.arrow.circlepath",
-                    status: .available
-                ))
+    private var activityNavigationSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.myActivity,
+            subtitle: AppStrings.Profile.activitySectionSummary
+        ) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                NavigationLink(value: ProfileNavigationRoute.recentViews) {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.recentlyViewed,
+                        subtitle: AppStrings.Profile.recentlyViewedSubtitle,
+                        systemImage: "clock.arrow.circlepath"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink(value: ProfileNavigationRoute.activityHistory) {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.activityHistoryModule,
+                        subtitle: AppStrings.Profile.quickActionActivitySubtitle,
+                        systemImage: "list.bullet.rectangle"
+                    )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+        }
+    }
 
-            NavigationLink(value: ProfileNavigationRoute.activityHistory) {
-                ProfileQuickActionCard(item: ProfileQuickActionItem(
-                    title: AppStrings.Profile.activityHistoryModule,
-                    subtitle: AppStrings.Profile.quickActionActivitySubtitle,
-                    systemImage: "list.bullet.rectangle",
-                    status: .available
-                ))
+    private func supportNavigationSection(for user: AppUser) -> some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.feedbackSupport,
+            subtitle: AppStrings.Profile.supportSectionSubtitle
+        ) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                NavigationLink(value: ProfileNavigationRoute.myFeedback(userID: user.id)) {
+                    ProfileModuleRow(
+                        title: AppStrings.Feedback.myFeedbackTitle,
+                        subtitle: AppStrings.Feedback.myFeedbackSubtitle,
+                        systemImage: "tray.full"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink(value: ProfileNavigationRoute.feedbackComposer) {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.contactSupportTitle,
+                        subtitle: AppStrings.Profile.contactSupportSubtitle,
+                        systemImage: "square.and.pencil"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if isProjectSupportAvailable {
+                    NavigationLink(value: ProfileNavigationRoute.supportProject) {
+                        ProfileModuleRow(
+                            title: DonationLocalization.publicSectionTitle(for: appLanguage),
+                            subtitle: DonationLocalization.publicSectionSubtitle(for: appLanguage),
+                            systemImage: "heart.circle"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var preferencesNavigationSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.settingsSection,
+            subtitle: AppStrings.Settings.preferencesSubtitle
+        ) {
+            NavigationLink(value: ProfileNavigationRoute.profileSettings) {
+                ProfileModuleRow(
+                    title: AppStrings.Profile.settingsAndPrivacyTitle,
+                    subtitle: AppStrings.Profile.settingsAndPrivacySubtitle,
+                    systemImage: "gearshape",
+                    countBadge: notificationInboxViewModel.unreadCount
+                )
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var sessionActionSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Settings.sessionSection,
+            subtitle: AppStrings.Settings.sessionSubtitle
+        ) {
+            Button(role: .destructive) {
+                isShowingLogoutConfirmation = true
+            } label: {
+                ProfileModuleRow(
+                    title: AppStrings.Profile.signOut,
+                    subtitle: AppStrings.Settings.sessionSubtitle,
+                    systemImage: "rectangle.portrait.and.arrow.right",
+                    tint: AppTheme.accentDestructiveForeground,
+                    status: .available,
+                    accessory: .none
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("profile.logout.button")
+        }
+    }
+
+    private var guestSupportAndSettingsSection: some View {
+        ProfileSectionCard(
+            title: AppStrings.Profile.guestSettingsSupportTitle,
+            subtitle: AppStrings.Profile.guestSettingsSupportSubtitle
+        ) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                if isProjectSupportAvailable {
+                    NavigationLink(value: ProfileNavigationRoute.supportProject) {
+                        ProfileModuleRow(
+                            title: DonationLocalization.publicSectionTitle(for: appLanguage),
+                            subtitle: DonationLocalization.publicSectionSubtitle(for: appLanguage),
+                            systemImage: "heart.circle"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                NavigationLink(value: ProfileNavigationRoute.profileSettings) {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.settingsAndPrivacyTitle,
+                        subtitle: AppStrings.Profile.settingsAndPrivacySubtitle,
+                        systemImage: "gearshape"
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var isProjectSupportAvailable: Bool {
+        donationConfigViewModel.hasLoadedData
+            && donationConfigViewModel.config.isEnabled
+            && donationConfigViewModel.config.validDonationURL != nil
     }
 
     private var myOrganizationsQuickAction: some View {
@@ -1031,35 +1110,6 @@ struct ProfileView: View {
             ))
         }
         .buttonStyle(.plain)
-    }
-
-    private func profileStats(for user: AppUser) -> [ProfileStatItem] {
-        [
-            ProfileStatItem(title: AppStrings.Profile.statRegistrations, value: registrationsViewModel.registrationsCountText, systemImage: "calendar.badge.clock"),
-            ProfileStatItem(title: AppStrings.Profile.statLiked, value: "\(likedContentCount)", systemImage: "heart"),
-            ProfileStatItem(title: AppStrings.Profile.statOrganizations, value: "\(profileOrganizationCount(for: user))", systemImage: "building.2"),
-            ProfileStatItem(title: AppStrings.Profile.statSaved, value: "\(savedContentCount)", systemImage: "bookmark")
-        ]
-    }
-
-    private var likedContentCount: Int {
-        newsViewModel.posts.filter(\.likeState.isLiked).count
-            + eventsViewModel.events.filter(\.likeState.isLiked).count
-            + organizationsViewModel.organizations.filter(\.likeState.isLiked).count
-    }
-
-    private var savedContentCount: Int {
-        newsViewModel.posts.filter(\.isBookmarked).count
-            + eventsViewModel.events.filter(\.isBookmarked).count
-            + organizationsViewModel.organizations.filter(\.isBookmarked).count
-    }
-
-    private func profileOrganizationCount(for user: AppUser) -> Int {
-        let organizationCount = PermissionService.manageableOrganizations(
-            from: organizationsViewModel.organizations,
-            user: user
-        ).count
-        return organizationCount
     }
 
     private func guestBrowseButton(
@@ -1082,86 +1132,15 @@ struct ProfileView: View {
     }
 
     @ViewBuilder
-    private var platformManagementSection: some View {
-        if hasPlatformManagementItems {
-            ProfileSectionCard(title: platformManagementTitle, subtitle: platformManagementSubtitle) {
+    private var platformOperationsSection: some View {
+        if canShowOrganizationRequests || canShowModerationTools || canShowFeedbackReports {
+            ProfileSectionCard(
+                title: AppStrings.Profile.platformOperationsTitle,
+                subtitle: AppStrings.Profile.platformOperationsSubtitle
+            ) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    if canShowAdminTools {
-                        NavigationLink(value: ProfileNavigationRoute.userManagement) {
-                            ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.ownerUsersSubtitle, systemImage: "person.3", status: .active)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if canShowFeaturedBanners {
-                        NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
-                            ProfileModuleRow(
-                                title: AppStrings.FeaturedManagement.profileEntryTitle,
-                                subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
-                                systemImage: "sparkles.rectangle.stack",
-                                status: .active
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if PermissionService.isAppOwner(user: permissionUser) {
-                        NavigationLink(value: ProfileNavigationRoute.donationSettings) {
-                            ProfileModuleRow(
-                                title: DonationLocalization.publicSectionTitle(for: appLanguage),
-                                subtitle: DonationLocalization.platformEntrySubtitle(for: appLanguage),
-                                systemImage: "heart.circle",
-                                status: .available
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        NavigationLink(value: ProfileNavigationRoute.legalDocumentManagement) {
-                            ProfileModuleRow(
-                                title: AppStrings.Profile.ownerLegalDocuments,
-                                subtitle: AppStrings.Profile.ownerLegalDocumentsSubtitle,
-                                systemImage: "doc.text.magnifyingglass",
-                                status: .available
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        NavigationLink(value: ProfileNavigationRoute.ownerAnalytics) {
-                            ProfileModuleRow(
-                                title: AppStrings.OwnerAnalytics.title,
-                                subtitle: AppStrings.OwnerAnalytics.subtitle,
-                                systemImage: "chart.bar.xaxis",
-                                status: .available
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("profile.owner.analytics")
-
-                        NavigationLink(value: ProfileNavigationRoute.systemLogs(.owner)) {
-                            ProfileModuleRow(
-                                title: AppStrings.SystemLogs.ownerTitle,
-                                subtitle: AppStrings.SystemLogs.ownerProfileSubtitle,
-                                systemImage: "doc.text.magnifyingglass",
-                                status: .available
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if PermissionService.isAppAdmin(user: permissionUser) {
-                        NavigationLink(value: ProfileNavigationRoute.systemLogs(.appAdmin)) {
-                            ProfileModuleRow(
-                                title: AppStrings.SystemLogs.appAdminTitle,
-                                subtitle: AppStrings.SystemLogs.appAdminSubtitle,
-                                systemImage: "doc.text.magnifyingglass",
-                                status: .available
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
                     if canShowOrganizationRequests {
-                        NavigationLink(value: ProfileNavigationRoute.moderationTools) {
+                        NavigationLink(value: ProfileNavigationRoute.organizationRequests) {
                             ProfileModuleRow(
                                 title: AppStrings.Profile.ownerOrganizationRequests,
                                 subtitle: AppStrings.Profile.organizationRequestsReviewSubtitle,
@@ -1202,315 +1181,98 @@ struct ProfileView: View {
         }
     }
 
-    private var hasPlatformManagementItems: Bool {
+    @ViewBuilder
+    private var platformAdministrationSection: some View {
+        if hasPlatformAdministrationItems {
+            ProfileSectionCard(
+                title: AppStrings.Profile.platformAdministrationTitle,
+                subtitle: AppStrings.Profile.platformAdministrationSubtitle
+            ) {
+                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    if canShowAdminTools {
+                        NavigationLink(value: ProfileNavigationRoute.userManagement) {
+                            ProfileModuleRow(
+                                title: AppStrings.Profile.ownerUsers,
+                                subtitle: AppStrings.Profile.ownerUsersSubtitle,
+                                systemImage: "person.3"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if canShowFeaturedBanners {
+                        NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
+                            ProfileModuleRow(
+                                title: AppStrings.FeaturedManagement.profileEntryTitle,
+                                subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
+                                systemImage: "sparkles.rectangle.stack"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if PermissionService.isAppOwner(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.ownerAnalytics) {
+                            ProfileModuleRow(
+                                title: AppStrings.OwnerAnalytics.title,
+                                subtitle: AppStrings.OwnerAnalytics.subtitle,
+                                systemImage: "chart.bar.xaxis"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.owner.analytics")
+
+                        platformOwnerAdministrationRows
+                    } else if PermissionService.isAppAdmin(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.systemLogs(.appAdmin)) {
+                            ProfileModuleRow(
+                                title: AppStrings.SystemLogs.appAdminTitle,
+                                subtitle: AppStrings.SystemLogs.appAdminSubtitle,
+                                systemImage: "doc.text.magnifyingglass"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var hasPlatformAdministrationItems: Bool {
         canShowAdminTools
             || canShowFeaturedBanners
             || PermissionService.isAppOwner(user: permissionUser)
-            || canShowOrganizationRequests
-            || canShowModerationTools
-            || canShowFeedbackReports
+            || PermissionService.isAppAdmin(user: permissionUser)
     }
 
-    private var platformManagementTitle: String {
-        if PermissionService.isAppOwner(user: permissionUser) {
-            return AppStrings.Profile.ownerPlatformManagement
-        }
-        if PermissionService.isAppAdmin(user: permissionUser) {
-            return AppStrings.Profile.adminPlatformManagement
-        }
-        return AppStrings.Profile.appManagement
-    }
-
-    private var platformManagementSubtitle: String {
-        if PermissionService.isAppOwner(user: permissionUser) {
-            return AppStrings.Profile.ownerPlatformManagementSubtitle
-        }
-        if PermissionService.isAppAdmin(user: permissionUser) {
-            return AppStrings.Profile.appManagementSubtitle
-        }
-        return AppStrings.Profile.appManagementSubtitle
-    }
-
-    private var ownerPlatformManagementSection: some View {
-        ProfileSectionCard(title: AppStrings.Profile.ownerPlatformManagement, subtitle: AppStrings.Profile.ownerPlatformManagementSubtitle) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink(value: ProfileNavigationRoute.userManagement) {
-                    ProfileModuleRow(title: AppStrings.Profile.ownerUsers, subtitle: AppStrings.Profile.ownerUsersSubtitle, systemImage: "person.3", status: canShowAdminTools ? .active : .locked)
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
-                    ProfileModuleRow(
-                        title: AppStrings.FeaturedManagement.profileEntryTitle,
-                        subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
-                        systemImage: "sparkles.rectangle.stack",
-                        status: canShowAdminTools ? .active : .locked
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.moderationTools) {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.ownerOrganizationRequests,
-                        subtitle: AppStrings.Profile.organizationRequestsReviewSubtitle,
-                        systemImage: "clock.badge.exclamationmark",
-                        status: canShowOrganizationRequests ? .available : .locked,
-                        countBadge: canShowOrganizationRequests ? ownerVisibilityViewModel.pendingOrganizationRequestCount : nil
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.feedbackInbox) {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.ownerUserFeedback,
-                        subtitle: AppStrings.Feedback.inboxSubtitle,
-                        systemImage: "bubble.left.and.bubble.right",
-                        status: .available,
-                        countBadge: ownerVisibilityViewModel.unreadFeedbackCount
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var ownerPersonalSettingsSection: some View {
-        ProfileSectionCard(title: AppStrings.Profile.ownerPersonalSettings, subtitle: AppStrings.Profile.ownerPersonalSettingsSubtitle) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileSettingsPickerRow(title: AppStrings.Profile.appLanguage, subtitle: AppStrings.Profile.languageSettingsSubtitle, systemImage: "globe") {
-                    Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
-                        ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                ProfileSettingsPickerRow(title: AppStrings.Profile.appAppearance, subtitle: AppStrings.Profile.appearanceSettingsSubtitle, systemImage: "circle.lefthalf.filled") {
-                    Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
-                        ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                analyticsConsentRow
-
-            }
-        }
-    }
-
-    private var settingsSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.settingsSection,
-            subtitle: AppStrings.Settings.preferencesSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileSettingsPickerRow(
-                    title: AppStrings.Profile.appLanguage,
-                    subtitle: AppStrings.Profile.languageSettingsSubtitle,
-                    systemImage: "globe"
-                ) {
-                    Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
-                        ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                ProfileSettingsPickerRow(
-                    title: AppStrings.Profile.appAppearance,
-                    subtitle: AppStrings.Profile.appearanceSettingsSubtitle,
-                    systemImage: "circle.lefthalf.filled"
-                ) {
-                    Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
-                        ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                analyticsConsentRow
-
-                Button(action: beginEditingProfile) {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.regionSettings,
-                        subtitle: readableFederalState ?? AppStrings.Profile.regionSettingsSubtitle,
-                        systemImage: "mappin.and.ellipse",
-                        status: .available
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
-                    ProfileModuleRow(
-                        title: AppStrings.Safety.blockedUsersTitle,
-                        subtitle: AppStrings.Safety.blockedUsersSubtitle,
-                        systemImage: "person.slash",
-                        status: .available,
-                        countBadge: userBlockingCoordinator.blockedUsers.count
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
-                    ProfileModuleRow(title: AppStrings.Settings.terms, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("profile.legal.terms")
-
-                NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
-                    ProfileModuleRow(title: AppStrings.Settings.privacyPolicy, subtitle: AppStrings.Profile.privacySettingsSubtitle, systemImage: "lock.doc", status: .available)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("profile.legal.privacy")
-
-            }
-        }
-    }
-
-    private func supportSection(for user: AppUser) -> some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.feedbackSupport,
-            subtitle: AppStrings.Profile.supportSectionSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink(value: ProfileNavigationRoute.myFeedback(userID: user.id)) {
-                    ProfileModuleRow(
-                        title: AppStrings.Feedback.myFeedbackTitle,
-                        subtitle: AppStrings.Feedback.myFeedbackSubtitle,
-                        systemImage: "tray.full",
-                        status: .available
-                    )
-                }
-                .buttonStyle(.plain)
-
-                FeedbackComposerCard(
-                    selectedFeedbackType: $selectedFeedbackType,
-                    feedbackMessage: $feedbackMessage,
-                    statusMessage: viewModel.feedbackMessage,
-                    isSubmitting: viewModel.isSubmittingFeedback
-                ) {
-                    submitFeedback(for: user)
-                }
-            }
-        }
-    }
-
-    private var guestSettingsSupportSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.guestSettingsSupportTitle,
-            subtitle: AppStrings.Profile.guestSettingsSupportSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileSettingsPickerRow(
-                    title: AppStrings.Profile.appLanguage,
-                    subtitle: AppStrings.Profile.languageSettingsSubtitle,
-                    systemImage: "globe"
-                ) {
-                    Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
-                        ForEach(AppLanguage.allCases) { language in
-                            Text(language.title).tag(language)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                ProfileSettingsPickerRow(
-                    title: AppStrings.Profile.appAppearance,
-                    subtitle: AppStrings.Profile.appearanceSettingsSubtitle,
-                    systemImage: "circle.lefthalf.filled"
-                ) {
-                    Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {
-                        ForEach(AppAppearance.allCases) { appearance in
-                            Text(appearance.title).tag(appearance)
-                        }
-                    }
-                    .labelsHidden()
-                }
-
-                analyticsConsentRow
-
-                NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
-                    ProfileModuleRow(title: AppStrings.Profile.termsOfUse, subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion), systemImage: "doc.text", status: .available)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("profile.legal.terms")
-
-                NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
-                    ProfileModuleRow(title: AppStrings.Profile.privacyPolicy, subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion), systemImage: "lock.doc", status: .available)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("profile.legal.privacy")
-
-            }
-        }
-    }
-
-    private var donationSupportSection: some View {
-        ProfileSectionCard(title: DonationLocalization.publicSectionTitle(for: appLanguage)) {
-            ProfileDonationSupportCard(config: donationConfigViewModel.config, language: appLanguage)
-        }
-    }
-
-    private var analyticsConsentRow: some View {
-        ProfileSettingsToggleRow(
-            title: AppStrings.Profile.analyticsCollectionTitle,
-            subtitle: analyticsService.isCollectionAvailable
-                ? AppStrings.Profile.analyticsCollectionSubtitle
-                : AppStrings.Profile.analyticsCollectionUnavailableSubtitle,
-            systemImage: "chart.bar.xaxis",
-            isOn: Binding(
-                get: { isAnalyticsCollectionEnabled },
-                set: { isEnabled in
-                    isAnalyticsCollectionEnabled = isEnabled
-                    analyticsService.setCollectionEnabled(isEnabled)
-                }
+    @ViewBuilder
+    private var platformOwnerAdministrationRows: some View {
+        NavigationLink(value: ProfileNavigationRoute.donationSettings) {
+            ProfileModuleRow(
+                title: DonationLocalization.publicSectionTitle(for: appLanguage),
+                subtitle: DonationLocalization.platformEntrySubtitle(for: appLanguage),
+                systemImage: "heart.circle"
             )
-        )
-        .disabled(!analyticsService.isCollectionAvailable)
-        .accessibilityIdentifier("profile.settings.analyticsConsent")
-    }
-
-    private var logoutSection: some View {
-        ProfileSectionCard(title: AppStrings.Settings.sessionSection) {
-            Button(role: .destructive) {
-                isShowingLogoutConfirmation = true
-            } label: {
-                ProfileModuleRow(
-                    title: AppStrings.Profile.signOut,
-                    subtitle: AppStrings.Settings.sessionSubtitle,
-                    systemImage: "rectangle.portrait.and.arrow.right",
-                    tint: AppTheme.accentDestructiveForeground,
-                    status: .available,
-                    accessory: .none
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("profile.logout.button")
         }
-    }
+        .buttonStyle(.plain)
 
-    private var accountDeletionSection: some View {
-        ProfileSectionCard(title: AppStrings.Profile.deleteAccount) {
-            Button(role: .destructive) {
-                isShowingDeleteAccountConfirmation = true
-            } label: {
-                ProfileModuleRow(
-                    title: AppStrings.Profile.deleteAccount,
-                    subtitle: AppStrings.Profile.deleteAccountSubtitle,
-                    systemImage: "trash",
-                    tint: AppTheme.accentDestructiveForeground,
-                    status: .available,
-                    accessory: .none
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("profile.delete_account.button")
+        NavigationLink(value: ProfileNavigationRoute.legalDocumentManagement) {
+            ProfileModuleRow(
+                title: AppStrings.Profile.ownerLegalDocuments,
+                subtitle: AppStrings.Profile.ownerLegalDocumentsSubtitle,
+                systemImage: "doc.text.magnifyingglass"
+            )
         }
+        .buttonStyle(.plain)
+
+        NavigationLink(value: ProfileNavigationRoute.systemLogs(.owner)) {
+            ProfileModuleRow(
+                title: AppStrings.SystemLogs.ownerTitle,
+                subtitle: AppStrings.SystemLogs.ownerProfileSubtitle,
+                systemImage: "waveform.path.ecg.rectangle"
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func performAccountDeletion() async {
@@ -1653,7 +1415,7 @@ struct ProfileView: View {
 }
 
 
-private struct ProfileDonationSupportCard: View {
+struct ProfileDonationSupportCard: View {
     let config: DonationConfig
     let language: AppLanguage
     @Environment(\.openURL) private var openURL
@@ -1704,6 +1466,18 @@ private struct ProfileDonationSupportCard: View {
                 ) {
                     openURL(donationURL)
                 }
+
+                Label {
+                    Text(DonationLocalization.externalSiteNotice(
+                        host: donationURL.host ?? donationURL.absoluteString,
+                        language: language
+                    ))
+                } icon: {
+                    Image(systemName: "lock.shield")
+                }
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(AppTheme.dashboardCardPadding)

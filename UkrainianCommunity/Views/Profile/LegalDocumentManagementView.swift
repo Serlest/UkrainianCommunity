@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 
 @MainActor
-private final class LegalDocumentManagementViewModel: ObservableObject {
+final class LegalDocumentManagementViewModel: ObservableObject {
     @Published var states: [LegalDocumentType: LegalDocumentManagementState] = [:]
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -53,6 +53,15 @@ struct LegalDocumentManagementView: View {
             } else if viewModel.isLoading && viewModel.states.isEmpty {
                 LoadingStateCard(title: nil)
                     .frame(maxWidth: .infinity, minHeight: 120)
+            } else if let errorMessage = viewModel.errorMessage, viewModel.states.isEmpty {
+                ErrorStateCard(
+                    systemImage: "doc.badge.ellipsis",
+                    title: AppStrings.LegalManagement.title,
+                    message: errorMessage,
+                    retryTitle: AppStrings.Action.retry
+                ) {
+                    Task { await viewModel.load() }
+                }
             } else {
                 VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
                     if let errorMessage = viewModel.errorMessage {
@@ -170,6 +179,7 @@ private struct LegalDocumentEditorView: View {
     let onSaved: () async -> Void
 
     @State private var draft: LegalDocumentDraft
+    @State private var lastSavedDraft: LegalDocumentDraft
     @State private var selectedLocale = AppLanguage.german.rawValue
     @State private var isSaving = false
     @State private var isPublishing = false
@@ -191,7 +201,9 @@ private struct LegalDocumentEditorView: View {
         self.onSaved = onSaved
         let activeDocument = state?.activeDocument ?? LegalDocument.hardcodedFallback(type: type)
         let existingDraft = state?.draftDocument.map { LegalDocumentDraft(document: $0) }
-        _draft = State(initialValue: existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument))
+        let initialDraft = existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument)
+        _draft = State(initialValue: initialDraft)
+        _lastSavedDraft = State(initialValue: initialDraft)
     }
 
     var body: some View {
@@ -277,6 +289,7 @@ private struct LegalDocumentEditorView: View {
                     PrimaryActionButton(
                         title: AppStrings.LegalManagement.saveDraft,
                         loadingTitle: AppStrings.LegalManagement.saving,
+                        isEnabled: hasUnsavedChanges && !isPublishing,
                         isLoading: isSaving,
                         systemImage: "tray.and.arrow.down.fill"
                     ) {
@@ -298,7 +311,7 @@ private struct LegalDocumentEditorView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .appActionButtonStyle(.secondary)
-                    .disabled(isPublishing)
+                    .disabled(isPublishing || isSaving)
                 }
             }
         }
@@ -307,8 +320,12 @@ private struct LegalDocumentEditorView: View {
     private var changeSummaryBinding: Binding<String> {
         Binding(
             get: { draft.changeSummary ?? "" },
-            set: { draft.changeSummary = $0.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty }
+            set: { draft.changeSummary = $0.isEmpty ? nil : $0 }
         )
+    }
+
+    private var hasUnsavedChanges: Bool {
+        normalizedDraft != normalized(lastSavedDraft)
     }
 
     private var localizedTitleBinding: Binding<String> {
@@ -359,13 +376,17 @@ private struct LegalDocumentEditorView: View {
 
     private func saveDraft() async {
         guard let userID = authState.user?.id else { return }
+        guard !isSaving, !isPublishing, hasUnsavedChanges else { return }
         isSaving = true
         statusMessage = nil
         validationErrors = []
         defer { isSaving = false }
 
         do {
-            try await repository.saveDraft(normalizedDraft, updatedBy: userID)
+            let finalDraft = normalizedDraft
+            try await repository.saveDraft(finalDraft, updatedBy: userID)
+            draft = finalDraft
+            lastSavedDraft = finalDraft
             await onSaved()
             statusStyle = .success
             statusMessage = AppStrings.LegalManagement.draftSaved
@@ -377,6 +398,7 @@ private struct LegalDocumentEditorView: View {
 
     private func publish() async {
         guard let userID = authState.user?.id else { return }
+        guard !isSaving, !isPublishing else { return }
         guard publishValidationErrors(for: normalizedDraft).isEmpty else {
             validateAndConfirmPublish()
             return
@@ -430,9 +452,16 @@ private struct LegalDocumentEditorView: View {
     }
 
     private var normalizedDraft: LegalDocumentDraft {
-        var copy = draft
+        normalized(draft)
+    }
+
+    private func normalized(_ source: LegalDocumentDraft) -> LegalDocumentDraft {
+        var copy = source
         copy.defaultLocale = AppLanguage.german.rawValue
         copy.canonicalLocale = AppLanguage.german.rawValue
+        copy.changeSummary = copy.changeSummary?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfEmpty
         for language in AppLanguage.allCases {
             let key = language.rawValue
             if copy.locales[key] == nil {

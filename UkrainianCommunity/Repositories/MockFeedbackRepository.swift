@@ -38,4 +38,8 @@ struct MockFeedbackRepository: FeedbackRepository {
     func closeFeedback(id: String) async throws {
         try await store.updateFeedbackStatus(id: id, status: .closed)
     }
+
+    func clearMyFeedback() async throws {
+        await store.clearFeedback()
+    }
 }

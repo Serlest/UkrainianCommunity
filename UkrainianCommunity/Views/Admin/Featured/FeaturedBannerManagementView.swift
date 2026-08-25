@@ -95,7 +95,7 @@ struct FeaturedBannerManagementView: View {
                 createBannerLink
             }
         } else {
-            VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
                 if let error = viewModel.error {
                     InlineMessageCard(style: .error, message: errorText(error))
                 }
@@ -129,6 +129,18 @@ struct FeaturedBannerManagementView: View {
                         },
                         onDelete: {
                             deleteCandidate = banner
+                        },
+                        duplicateDestination: {
+                            FeaturedBannerEditorView(
+                                repository: repository,
+                                mode: .duplicate(banner),
+                                newsRepository: newsRepository,
+                                eventRepository: eventRepository,
+                                organizationRepository: organizationRepository
+                            ) {
+                                viewModel.invalidatePublicCache()
+                                await viewModel.refresh()
+                            }
                         }
                     ) {
                         FeaturedBannerEditorView(

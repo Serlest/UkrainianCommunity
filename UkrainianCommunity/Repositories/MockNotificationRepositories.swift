@@ -66,6 +66,10 @@ struct MockNotificationInboxRepository: NotificationInboxRepository {
         await store.deleteNotification(userID: userID, notificationID: notificationID)
     }
 
+    func clearNotifications(userID: String) async throws {
+        await store.clearNotifications(userID: userID)
+    }
+
     func createNotification(userID: String, notification: AppNotification) async throws {
         await store.createNotification(notification, userID: userID)
     }

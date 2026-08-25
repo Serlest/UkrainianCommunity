@@ -115,7 +115,8 @@ service cloud.firestore {
         'reviewedByUserId',
         'metadata',
         'retentionPolicy',
-        'correlationId'
+        'correlationId',
+        'isAppAdminReadable'
       ];
     }
 
@@ -140,7 +141,12 @@ service cloud.firestore {
 
     function canAppAdminReadSystemLog(data) {
       return isAppAdmin()
-        && ('category' in data)
+        && ('isAppAdminReadable' in data)
+        && data.isAppAdminReadable == true;
+    }
+
+    function expectedSystemLogAppAdminReadable(data) {
+      return ('category' in data)
         && data.category in appAdminReadableSystemLogCategories()
         && !isSystemLogSecuritySensitive(data)
         && !isSystemLogOwnerActor(data)
@@ -179,11 +185,14 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(systemLogAllowedFields())
         && request.resource.data.id == logId
         && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt == request.time
         && request.resource.data.severityRank is int
         && request.resource.data.targetType is string
         && request.resource.data.summary is string
         && request.resource.data.summary.size() > 0
         && request.resource.data.summary.size() <= 512
+        && request.resource.data.isAppAdminReadable is bool
+        && request.resource.data.isAppAdminReadable == expectedSystemLogAppAdminReadable(request.resource.data)
         && request.resource.data.isReviewed == false
         && !('reviewedAt' in request.resource.data)
         && !('reviewedByUserId' in request.resource.data)
@@ -256,11 +265,14 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(systemLogAllowedFields())
         && request.resource.data.id == logId
         && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt == request.time
         && request.resource.data.severityRank is int
         && request.resource.data.targetType is string
         && request.resource.data.summary is string
         && request.resource.data.summary.size() > 0
         && request.resource.data.summary.size() <= 512
+        && request.resource.data.isAppAdminReadable is bool
+        && request.resource.data.isAppAdminReadable == expectedSystemLogAppAdminReadable(request.resource.data)
         && request.resource.data.isReviewed == false
         && !('reviewedAt' in request.resource.data)
         && !('reviewedByUserId' in request.resource.data)

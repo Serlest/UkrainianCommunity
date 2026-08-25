@@ -65,6 +65,24 @@ final class AccountStatusMonitorService: ObservableObject {
         }
     }
 
+    func completeActiveNotice() async {
+        guard let notice = activeNotice else { return }
+        guard notice.requiresSignOut else {
+            await acknowledgeActiveNotice()
+            return
+        }
+
+        isAcknowledging = true
+        acknowledgementError = nil
+        let didSignOut = await AuthService.shared.completeRestrictedAccountSignOut()
+        isAcknowledging = false
+        if didSignOut {
+            activeNotice = nil
+        } else {
+            acknowledgementError = AppStrings.AccountStatusAlert.restrictedSignOutFailed
+        }
+    }
+
     deinit {
         listener?.remove()
     }
@@ -227,6 +245,15 @@ struct AccountStatusNotice: Identifiable, Equatable {
     let message: String?
     let banExpiresAt: Date?
     let statusUpdatedAt: Date
+
+    var requiresSignOut: Bool {
+        switch kind {
+        case .suspended, .banned, .deactivated:
+            true
+        case .warned, .restored:
+            false
+        }
+    }
 
     init?(user: AppUser) {
         guard let statusUpdatedAt = user.statusUpdatedAt else { return nil }

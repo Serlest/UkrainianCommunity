@@ -37,6 +37,7 @@ extension FirestoreSystemLogDTO {
         metadata = Self.stringDictionary(from: data[field.metadata.rawValue])
         retentionPolicy = data[field.retentionPolicy.rawValue] as? String
         correlationId = data[field.correlationId.rawValue] as? String
+        isAppAdminReadable = data[field.isAppAdminReadable.rawValue] as? Bool ?? false
     }
 
     nonisolated var data: [String: Any] {
@@ -52,7 +53,8 @@ extension FirestoreSystemLogDTO {
             field.targetType.rawValue: targetType,
             field.summary.rawValue: summary,
             field.isReviewed.rawValue: isReviewed,
-            field.metadata.rawValue: metadata
+            field.metadata.rawValue: metadata,
+            field.isAppAdminReadable.rawValue: isAppAdminReadable
         ]
 
         set(actorUserId, for: field.actorUserId, in: &data)

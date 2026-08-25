@@ -17,9 +17,11 @@ export * from "./content/legacyContentMediaMigration";
 export * from "./events/eventRegistration";
 export * from "./featured/featuredBannerCleanup";
 export * from "./featured/featuredBannerMutations";
+export * from "./feedback/feedbackManagement";
 export * from "./legal/legalDocuments";
 export * from "./notifications/backendWriters";
 export * from "./notifications/eventRegistrationNotifications";
+export * from "./notifications/inboxPushDelivery";
 export * from "./notifications/organizationFollowerNotifications";
 export * from "./notifications/pushRegistrationMutations";
 export * from "./organizations/approvalWorkflow";
@@ -28,9 +30,12 @@ export * from "./organizations/roleManagement";
 export * from "./retention/dataRetention";
 export * from "./safety/contentReports";
 export * from "./safety/userBlocks";
+export * from "./systemLogs/clientDiagnostics";
+export * from "./systemLogs/systemLogManagement";
 export * from "./users/accountStatusManagement";
 export * from "./users/accountDeletion";
 export * from "./users/platformRoleManagement";
+export * from "./users/userManagementQueries";
 
 type FeedbackData = {
   id?: string;

@@ -328,6 +328,29 @@ final class AuthService {
     }
 
     @MainActor
+    @discardableResult
+    func completeRestrictedAccountSignOut() async -> Bool {
+        let transition = beginTransition()
+        let notificationRegistration = resolvedNotificationRegistration
+
+        do {
+            try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try backend.signOut()
+            }
+            notificationRegistration.completeSignOut()
+            authState.setGuestSession()
+            authState.dismissAuthFlow()
+            return true
+        } catch {
+            guard isCurrentTransition(transition) else { return false }
+            notificationRegistration.completeSignOut()
+            reconcileAfterFailedSignOut(error, transition: transition)
+            print("Restricted account sign out error: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    @MainActor
     func signIn(email: String, password: String) async throws -> AppUser {
         let transition = beginTransition()
         try await prepareForInteractiveAuthentication(transition: transition)

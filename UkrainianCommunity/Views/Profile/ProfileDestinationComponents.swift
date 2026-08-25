@@ -1,20 +1,29 @@
 import SwiftUI
 
+struct ProfileDestinationClearAction {
+    let accessibilityLabel: String
+    let isLoading: Bool
+    let action: () -> Void
+}
+
 struct ProfileDestinationLayout<Content: View>: View {
     let title: String
     let introSubtitle: String
     let contentSpacing: CGFloat
+    let clearAction: ProfileDestinationClearAction?
     @ViewBuilder let content: Content
 
     init(
         title: String,
         introSubtitle: String,
-        contentSpacing: CGFloat = AppTheme.groupedContentSpacing,
+        contentSpacing: CGFloat = AppTheme.feedRowSpacing,
+        clearAction: ProfileDestinationClearAction? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.introSubtitle = introSubtitle
         self.contentSpacing = contentSpacing
+        self.clearAction = clearAction
         self.content = content()
     }
 
@@ -23,6 +32,22 @@ struct ProfileDestinationLayout<Content: View>: View {
             title: title,
             subtitle: introSubtitle
         ) {
+            if let clearAction {
+                if clearAction.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                        .accessibilityLabel(clearAction.accessibilityLabel)
+                } else {
+                    AppGlassIconButton(
+                        systemImage: "trash",
+                        accessibilityLabel: clearAction.accessibilityLabel,
+                        role: .destructive,
+                        action: clearAction.action
+                    )
+                }
+            }
+        } content: {
             AppGroupedContentPlane(spacing: contentSpacing) {
                 content
             }
@@ -46,14 +71,14 @@ struct ProfileDestinationEmptyStateCard: View {
 
                 VStack(spacing: 4) {
                     Text(title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(AppTheme.emptyStateTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(message)
-                        .font(.caption)
+                        .font(AppTheme.emptyStateMessageFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineLimit(3)

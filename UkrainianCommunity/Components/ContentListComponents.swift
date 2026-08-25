@@ -320,13 +320,13 @@ struct SectionHeaderBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.title3.weight(.semibold))
+                .font(AppTheme.sectionHeaderTitleFont)
                 .foregroundStyle(.primary)
                 .accessibilityAddTraits(.isHeader)
 
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(AppTheme.sectionHeaderSubtitleFont)
                     .foregroundStyle(AppTheme.textSecondary)
             }
         }
@@ -390,13 +390,13 @@ struct AppNavigationRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.body.weight(.semibold))
+                    .font(AppTheme.navigationRowTitleFont)
                     .foregroundStyle(tint == AppTheme.accentDestructiveForeground ? tint : AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.footnote)
+                        .font(AppTheme.navigationRowSubtitleFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

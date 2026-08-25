@@ -9,6 +9,7 @@ protocol UserRepository {
 
 protocol LegalDocumentRepository {
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument
+    func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws
     func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) async throws
@@ -19,6 +20,12 @@ protocol LegalDocumentRepository {
         locale: String?,
         acceptedFromPlatform: String
     ) async throws -> LegalAcceptanceReceipt
+}
+
+extension LegalDocumentRepository {
+    func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument {
+        try await fetchActiveDocument(type: type)
+    }
 }
 
 protocol DonationConfigRepository {
@@ -46,6 +53,7 @@ protocol NotificationInboxRepository {
     func markNotificationPopupPresented(userID: String, notificationID: String) async throws
     func archiveNotification(userID: String, notificationID: String) async throws
     func deleteNotification(userID: String, notificationID: String) async throws
+    func clearNotifications(userID: String) async throws
     func createNotification(userID: String, notification: AppNotification) async throws
 }
 
@@ -80,6 +88,7 @@ protocol FeedbackRepository {
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws
     func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws
     func closeFeedback(id: String) async throws
+    func clearMyFeedback() async throws
 }
 
 extension FeedbackRepository {
@@ -105,6 +114,8 @@ extension FeedbackRepository {
     func closeFeedback(id: String) async throws {
         try await updateFeedbackStatus(id: id, status: .closed)
     }
+
+    func clearMyFeedback() async throws {}
 }
 
 extension FeedbackItem {
@@ -218,6 +229,8 @@ struct OrganizationPage {
 
 protocol NewsRepository {
     func fetchNews() async throws -> [NewsPost]
+    func fetchNews(id: String) async throws -> NewsPost
+    func fetchBookmarkedNews() async throws -> [NewsPost]
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage
     func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost]
     func fetchPendingNews() async throws -> [NewsPost]
@@ -241,6 +254,7 @@ protocol NewsRepository {
 
 protocol EventRepository: EventRegistrationMutating {
     func fetchEvents() async throws -> [Event]
+    func fetchBookmarkedEvents() async throws -> [Event]
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage
     func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
@@ -267,6 +281,8 @@ protocol EventRepository: EventRegistrationMutating {
 
 protocol OrganizationRepository {
     func fetchOrganizations() async throws -> [Organization]
+    func fetchBookmarkedOrganizations() async throws -> [Organization]
+    func fetchSubscribedOrganizations() async throws -> [Organization]
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage
     func fetchOrganization(id: String) async throws -> Organization
     func fetchPendingOrganizations() async throws -> [Organization]
@@ -296,6 +312,17 @@ protocol OrganizationRepository {
 }
 
 extension NewsRepository {
+    func fetchNews(id: String) async throws -> NewsPost {
+        guard let post = try await fetchNews().first(where: { $0.id == id }) else {
+            throw AppError.notFound
+        }
+        return post
+    }
+
+    func fetchBookmarkedNews() async throws -> [NewsPost] {
+        try await fetchNews().filter(\.isBookmarked)
+    }
+
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
         let sortedItems = try await fetchNews()
         let startIndex: Int
@@ -323,6 +350,10 @@ extension NewsRepository {
 }
 
 extension EventRepository {
+    func fetchBookmarkedEvents() async throws -> [Event] {
+        try await fetchEvents().filter(\.isBookmarked)
+    }
+
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
         let sortedItems = try await fetchEvents()
         let startIndex: Int
@@ -402,6 +433,14 @@ extension Event {
 }
 
 extension OrganizationRepository {
+    func fetchBookmarkedOrganizations() async throws -> [Organization] {
+        try await fetchOrganizations().filter(\.isBookmarked)
+    }
+
+    func fetchSubscribedOrganizations() async throws -> [Organization] {
+        try await fetchOrganizations().filter(\.isSubscribed)
+    }
+
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage {
         let sortedItems = try await fetchOrganizations()
         let startIndex: Int

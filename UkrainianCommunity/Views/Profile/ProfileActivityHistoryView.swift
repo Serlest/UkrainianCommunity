@@ -56,6 +56,7 @@ struct ActivityHistoryView: View {
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var selectedSegment: ActivityHistorySegment = .all
+    @State private var isShowingClearConfirmation = false
 
     init(
         activityLogViewModel: ActivityLogViewModel? = nil,
@@ -86,7 +87,12 @@ struct ActivityHistoryView: View {
     var body: some View {
         ProfileDestinationLayout(
             title: AppStrings.Profile.activityHistoryModule,
-            introSubtitle: AppStrings.Profile.activityHistoryIntro
+            introSubtitle: AppStrings.Profile.activityHistoryIntro,
+            clearAction: activityLogViewModel.items.isEmpty ? nil : ProfileDestinationClearAction(
+                accessibilityLabel: AppStrings.Profile.activityHistoryClear,
+                isLoading: activityLogViewModel.isClearing,
+                action: { isShowingClearConfirmation = true }
+            )
         ) {
             AppHorizontalFilterRow {
                 ForEach(ActivityHistorySegment.allCases) { segment in
@@ -94,7 +100,7 @@ struct ActivityHistoryView: View {
                         selectedSegment = segment
                     } label: {
                         AppFilterChip(
-                            title: segment.title,
+                            title: "\(segment.title): \(activityLogViewModel.items.filter { segment.matches($0) }.count)",
                             systemImage: segment.systemImage,
                             isSelected: selectedSegment == segment
                         )
@@ -115,6 +121,17 @@ struct ActivityHistoryView: View {
         .refreshable {
             await refreshActivityHistory()
         }
+        .confirmationDialog(
+            AppStrings.Profile.activityHistoryClearConfirmationTitle,
+            isPresented: $isShowingClearConfirmation
+        ) {
+            Button(AppStrings.Profile.activityHistoryClear, role: .destructive) {
+                Task { await activityLogViewModel.clearHistory() }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.Profile.activityHistoryClearConfirmationMessage)
+        }
     }
 
     @ViewBuilder
@@ -122,11 +139,13 @@ struct ActivityHistoryView: View {
         if isLoading {
             LoadingStateCard(title: AppStrings.Profile.activityHistoryModule)
         } else if let error = activityLogViewModel.error, activityLogViewModel.items.isEmpty {
-            ProfileDestinationEmptyStateCard(
-                systemImage: "exclamationmark.triangle",
+            ErrorStateCard(
                 title: AppStrings.Profile.activityHistoryModule,
-                message: activityHistoryErrorMessage(error)
-            )
+                message: activityHistoryErrorMessage(error),
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task { await activityLogViewModel.refresh() }
+            }
         } else if filteredItems.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "list.bullet.rectangle",
@@ -134,7 +153,10 @@ struct ActivityHistoryView: View {
                 message: AppStrings.Profile.activityHistoryEmptyMessage
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                if let error = activityLogViewModel.error {
+                    InlineMessageCard(style: .error, message: activityHistoryErrorMessage(error))
+                }
                 ForEach(filteredItems) { item in
                     activityItemLink(item)
                 }
@@ -143,19 +165,11 @@ struct ActivityHistoryView: View {
     }
 
     private func loadActivityHistoryIfNeeded(userID: String) async {
-        async let activityLoad: Void = activityLogViewModel.loadIfNeeded(userID: userID)
-        async let newsLoad: Void = newsViewModel.loadIfNeeded()
-        async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
-        async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-        _ = await (activityLoad, newsLoad, eventsLoad, organizationsLoad)
+        await activityLogViewModel.loadIfNeeded(userID: userID)
     }
 
     private func refreshActivityHistory() async {
-        async let activityRefresh: Void = activityLogViewModel.refresh()
-        async let newsRefresh: Void = newsViewModel.refresh()
-        async let eventsRefresh: Void = eventsViewModel.refresh()
-        async let organizationsRefresh: Void = organizationsViewModel.refresh()
-        _ = await (activityRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
+        await activityLogViewModel.refresh()
     }
 
     private func activityHistoryErrorMessage(_ error: AppError) -> String {
@@ -175,48 +189,36 @@ struct ActivityHistoryView: View {
     private func activityItemLink(_ item: ActivityLogItem) -> some View {
         switch item.targetType {
         case .news:
-            if newsViewModel.post(for: item.targetId) != nil {
-                NavigationLink {
-                    NewsDetailView(
-                        viewModel: newsViewModel,
-                        postID: item.targetId,
-                        onNewsDeleted: { newsViewModel.reload() }
-                    )
-                } label: {
-                    ActivityHistoryRow(item: item, canOpenTarget: true)
-                }
-                .buttonStyle(.plain)
-            } else {
-                ActivityHistoryRow(item: item, canOpenTarget: false)
+            NavigationLink {
+                NewsDetailView(
+                    viewModel: newsViewModel,
+                    postID: item.targetId,
+                    onNewsDeleted: { newsViewModel.reload() }
+                )
+            } label: {
+                ActivityHistoryRow(item: item, canOpenTarget: true)
             }
+            .buttonStyle(.plain)
         case .event:
-            if eventsViewModel.event(for: item.targetId) != nil {
-                NavigationLink {
-                    EventDetailView(
-                        viewModel: eventsViewModel,
-                        eventID: item.targetId,
-                        onEventDeleted: { @MainActor @Sendable in
-                            eventsViewModel.reload()
-                        }
-                    )
-                } label: {
-                    ActivityHistoryRow(item: item, canOpenTarget: true)
-                }
-                .buttonStyle(.plain)
-            } else {
-                ActivityHistoryRow(item: item, canOpenTarget: false)
+            NavigationLink {
+                EventDetailView(
+                    viewModel: eventsViewModel,
+                    eventID: item.targetId,
+                    onEventDeleted: { @MainActor @Sendable in
+                        eventsViewModel.reload()
+                    }
+                )
+            } label: {
+                ActivityHistoryRow(item: item, canOpenTarget: true)
             }
+            .buttonStyle(.plain)
         case .organization:
-            if organizationsViewModel.organization(for: item.targetId) != nil {
-                NavigationLink {
-                    OrganizationDetailView(viewModel: organizationsViewModel, organizationID: item.targetId)
-                } label: {
-                    ActivityHistoryRow(item: item, canOpenTarget: true)
-                }
-                .buttonStyle(.plain)
-            } else {
-                ActivityHistoryRow(item: item, canOpenTarget: false)
+            NavigationLink {
+                OrganizationDetailView(viewModel: organizationsViewModel, organizationID: item.targetId)
+            } label: {
+                ActivityHistoryRow(item: item, canOpenTarget: true)
             }
+            .buttonStyle(.plain)
         }
     }
 }

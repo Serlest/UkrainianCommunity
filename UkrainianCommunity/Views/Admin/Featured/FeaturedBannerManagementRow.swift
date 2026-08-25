@@ -1,12 +1,13 @@
 import SwiftUI
 
-struct FeaturedBannerManagementRow<EditDestination: View>: View {
+struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: View>: View {
     let banner: FeaturedBanner
     let isUpdating: Bool
     let canDelete: Bool
     let onActiveChange: (Bool) -> Void
     let onDelete: () -> Void
     private let editDestination: () -> EditDestination
+    private let duplicateDestination: () -> DuplicateDestination
 
     init(
         banner: FeaturedBanner,
@@ -14,6 +15,7 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
         canDelete: Bool,
         onActiveChange: @escaping (Bool) -> Void,
         onDelete: @escaping () -> Void,
+        @ViewBuilder duplicateDestination: @escaping () -> DuplicateDestination,
         @ViewBuilder editDestination: @escaping () -> EditDestination
     ) {
         self.banner = banner
@@ -21,6 +23,7 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
         self.canDelete = canDelete
         self.onActiveChange = onActiveChange
         self.onDelete = onDelete
+        self.duplicateDestination = duplicateDestination
         self.editDestination = editDestination
     }
 
@@ -30,26 +33,17 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
                 FeaturedBannerCardView(banner: banner)
                     .aspectRatio(16.0 / 9.0, contentMode: .fit)
 
-                HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(managementTitle)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if let publicHeadline = publicHeadlineText {
-                            Text(publicHeadline)
-                                .font(.subheadline)
-                                .foregroundStyle(AppTheme.textSecondary)
-                                .lineLimit(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+                        titleBlock
+                        Spacer(minLength: 12)
+                        statusBadge
                     }
 
-                    Spacer(minLength: 12)
-
-                    statusBadge
+                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                        titleBlock
+                        statusBadge
+                    }
                 }
 
                 metadataGrid
@@ -86,6 +80,20 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
                     .controlSize(.large)
                     .disabled(isUpdating)
 
+                    if !banner.hasUnsupportedLegacyConfiguration {
+                        NavigationLink {
+                            duplicateDestination()
+                        } label: {
+                            Label(AppStrings.FeaturedManagement.duplicateBanner, systemImage: "plus.square.on.square")
+                                .labelStyle(.iconOnly)
+                                .frame(width: AppTheme.iconButtonSize, height: AppTheme.iconButtonSize)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(isUpdating)
+                        .accessibilityLabel(AppStrings.FeaturedManagement.duplicateBanner)
+                    }
+
                     if canDelete {
                         Button(role: .destructive, action: onDelete) {
                             Label(AppStrings.FeaturedManagement.deleteBanner, systemImage: "trash")
@@ -112,6 +120,24 @@ struct FeaturedBannerManagementRow<EditDestination: View>: View {
             }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(managementTitle)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let publicHeadline = publicHeadlineText {
+                Text(publicHeadline)
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var statusBadge: some View {

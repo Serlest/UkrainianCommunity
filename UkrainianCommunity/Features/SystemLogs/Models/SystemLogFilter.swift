@@ -14,6 +14,7 @@ struct SystemLogFilter: Codable, Equatable {
     var searchText: String?
     var startDate: Date?
     var endDate: Date?
+    var isAppAdminReadable: Bool?
 
     nonisolated init(
         categories: Set<SystemLogCategory> = [],
@@ -28,7 +29,8 @@ struct SystemLogFilter: Codable, Equatable {
         isReviewed: Bool? = nil,
         searchText: String? = nil,
         startDate: Date? = nil,
-        endDate: Date? = nil
+        endDate: Date? = nil,
+        isAppAdminReadable: Bool? = nil
     ) {
         self.categories = categories
         self.severities = severities
@@ -43,6 +45,7 @@ struct SystemLogFilter: Codable, Equatable {
         self.searchText = searchText
         self.startDate = startDate
         self.endDate = endDate
+        self.isAppAdminReadable = isAppAdminReadable
     }
 
     nonisolated static let empty = SystemLogFilter()

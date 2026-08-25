@@ -8,7 +8,9 @@ final class MyFeedbackViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var loadingMessageFeedbackIDs = Set<String>()
     @Published private(set) var sendingMessageFeedbackIDs = Set<String>()
+    @Published private(set) var isClearing = false
     @Published private(set) var error: AppError?
+    @Published private(set) var actionError: AppError?
 
     private let repository: FeedbackRepository
     private let listenerBag = RealtimeListenerBag()
@@ -59,8 +61,10 @@ final class MyFeedbackViewModel: ObservableObject {
         isLoading = false
         loadingMessageFeedbackIDs = []
         sendingMessageFeedbackIDs = []
+        isClearing = false
         listenerBag.removeAll()
         error = nil
+        actionError = nil
         loadedUserID = nil
     }
 
@@ -82,11 +86,11 @@ final class MyFeedbackViewModel: ObservableObject {
     private func fetchMessagesOnce(for item: FeedbackItem) async {
         do {
             messagesByFeedbackID[item.id] = try await repository.fetchFeedbackMessages(feedback: item)
-            error = nil
+            actionError = nil
         } catch let appError as AppError {
-            error = appError
+            actionError = appError
         } catch {
-            self.error = .unknown
+            actionError = .unknown
         }
     }
 
@@ -125,11 +129,11 @@ final class MyFeedbackViewModel: ObservableObject {
         listenerBag.set(realtimeRepository.listenFeedbackMessages(feedback: item) { [weak self] messages in
             self?.messagesByFeedbackID[item.id] = messages
             self?.loadingMessageFeedbackIDs.remove(item.id)
-            self?.error = nil
+            self?.actionError = nil
         } onError: { [weak self] appError in
             self?.listenerBag.remove(key)
             self?.loadingMessageFeedbackIDs.remove(item.id)
-            self?.error = appError
+            self?.actionError = appError
             Task { await self?.fetchMessagesOnce(for: item) }
             #if DEBUG
             print("Realtime listener failed: purpose=feedbackMessages key=\(key) error=\(appError)")
@@ -142,7 +146,7 @@ final class MyFeedbackViewModel: ObservableObject {
     func sendMessage(_ text: String, feedback: FeedbackItem, user: AppUser) async -> Bool {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty, trimmedText.count <= 2000, !feedback.status.isClosed else {
-            error = .validationFailed
+            actionError = .validationFailed
             return false
         }
 
@@ -159,14 +163,40 @@ final class MyFeedbackViewModel: ObservableObject {
             }
             let itemForMessages = items.first(where: { $0.id == feedback.id }) ?? feedback
             await loadMessages(for: itemForMessages)
+            actionError = nil
+            return true
+        } catch let appError as AppError {
+            actionError = appError
+            return false
+        } catch {
+            actionError = .unknown
+            return false
+        }
+    }
+
+    func clearActionError() {
+        actionError = nil
+    }
+
+    @discardableResult
+    func clearMyFeedback() async -> Bool {
+        guard !isClearing else { return false }
+        isClearing = true
+        actionError = nil
+        defer { isClearing = false }
+
+        do {
+            try await repository.clearMyFeedback()
+            items = []
+            messagesByFeedbackID = [:]
+            listenerBag.removeAll()
             error = nil
             return true
         } catch let appError as AppError {
-            error = appError
-            return false
+            actionError = appError
         } catch {
-            self.error = .unknown
-            return false
+            actionError = .unknown
         }
+        return false
     }
 }

@@ -416,6 +416,28 @@ final class NewsViewModel: ObservableObject {
         posts.first(where: { $0.id == postID })
     }
 
+    func loadPostIfNeeded(postID: String, force: Bool = false) async {
+        guard force || post(for: postID) == nil else { return }
+        let generation = authGeneration
+        do {
+            let post = try await repository.fetchNews(id: postID)
+            guard isCurrentAuthGeneration(generation) else { return }
+            if let index = posts.firstIndex(where: { $0.id == post.id }) {
+                posts[index] = post
+            } else {
+                posts.append(post)
+            }
+            contentVersion &+= 1
+            error = nil
+        } catch let appError as AppError {
+            guard isCurrentAuthGeneration(generation) else { return }
+            error = appError
+        } catch {
+            guard isCurrentAuthGeneration(generation) else { return }
+            self.error = .unknown
+        }
+    }
+
     var editorRepository: NewsRepository {
         repository
     }

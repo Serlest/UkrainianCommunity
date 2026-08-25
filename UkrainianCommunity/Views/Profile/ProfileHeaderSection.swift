@@ -42,7 +42,6 @@ struct GuestPlatformHeroCard: View {
 struct ProfileHeroCard: View {
     let user: AppUser
     let readableFederalState: String?
-    let onEditProfile: () -> Void
 
     var body: some View {
         AppEditorSectionCard {

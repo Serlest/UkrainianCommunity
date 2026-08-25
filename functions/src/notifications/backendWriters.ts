@@ -269,6 +269,7 @@ async function writeEventCancellationNotifications(
           cancelledAt: String(input.cancelledAt.toMillis()),
           route: "openEvent",
           routeTargetId: eventId,
+          pushManagedByWriter: true,
         },
         dedupeKey: `eventCancelled:${eventId}`,
       });

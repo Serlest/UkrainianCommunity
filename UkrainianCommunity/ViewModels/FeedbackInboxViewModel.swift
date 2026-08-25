@@ -8,6 +8,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var loadingMessageFeedbackIDs = Set<String>()
     @Published private(set) var error: AppError?
+    @Published private(set) var actionError: AppError?
     @Published private(set) var updatingFeedbackIDs = Set<String>()
 
     private let repository: FeedbackRepository
@@ -69,17 +70,18 @@ final class FeedbackInboxViewModel: ObservableObject {
     func sendReply(_ reply: String, to item: FeedbackItem, owner: AppUser) async -> Bool {
         let trimmedReply = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedReply.isEmpty else {
-            error = .validationFailed
+            actionError = .validationFailed
             return false
         }
 
         guard trimmedReply.count <= 2000 else {
-            error = .validationFailed
+            actionError = .validationFailed
             return false
         }
 
         guard !updatingFeedbackIDs.contains(item.id) else { return false }
         updatingFeedbackIDs.insert(item.id)
+        actionError = nil
         defer { updatingFeedbackIDs.remove(item.id) }
 
         do {
@@ -91,20 +93,22 @@ final class FeedbackInboxViewModel: ObservableObject {
             }
             let itemForMessages = items.first(where: { $0.id == item.id }) ?? item
             await loadMessages(for: itemForMessages)
-            error = nil
+            actionError = nil
             return true
         } catch let appError as AppError {
-            error = appError
+            actionError = appError
             return false
         } catch {
-            self.error = .unknown
+            actionError = .unknown
             return false
         }
     }
 
-    func close(_ item: FeedbackItem) async {
-        guard !updatingFeedbackIDs.contains(item.id) else { return }
+    @discardableResult
+    func close(_ item: FeedbackItem) async -> Bool {
+        guard !updatingFeedbackIDs.contains(item.id) else { return false }
         updatingFeedbackIDs.insert(item.id)
+        actionError = nil
         defer { updatingFeedbackIDs.remove(item.id) }
 
         do {
@@ -113,12 +117,14 @@ final class FeedbackInboxViewModel: ObservableObject {
                 guard current.id == item.id else { return current }
                 return current.updating(status: .closed)
             }
-            error = nil
+            actionError = nil
+            return true
         } catch let appError as AppError {
-            error = appError
+            actionError = appError
         } catch {
-            self.error = .unknown
+            actionError = .unknown
         }
+        return false
     }
 
     func messages(for item: FeedbackItem) -> [FeedbackMessage] {

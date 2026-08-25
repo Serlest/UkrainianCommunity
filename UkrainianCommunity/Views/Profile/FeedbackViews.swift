@@ -1,16 +1,77 @@
 import SwiftUI
 
+private enum MyFeedbackFilter: String, CaseIterable, Identifiable {
+    case all
+    case open
+    case answered
+    case closed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: AppStrings.Home.filterAll
+        case .open: AppStrings.Feedback.filterOpen
+        case .answered: AppStrings.Feedback.filterAnswered
+        case .closed: AppStrings.Feedback.filterClosed
+        }
+    }
+
+    func includes(_ item: FeedbackItem) -> Bool {
+        switch self {
+        case .all: true
+        case .open: item.status == .open
+        case .answered: item.status.isAnswered
+        case .closed: item.status.isClosed
+        }
+    }
+}
+
 struct MyFeedbackView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: MyFeedbackViewModel
     let currentUserID: String
     @State private var selectedFeedback: FeedbackItem?
+    @State private var selectedFilter: MyFeedbackFilter = .all
+    @State private var searchText = ""
+    @State private var isShowingClearConfirmation = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var filteredItems: [FeedbackItem] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return viewModel.items.filter { item in
+            selectedFilter.includes(item)
+                && (query.isEmpty
+                    || item.type.title.localizedCaseInsensitiveContains(query)
+                    || item.message.localizedCaseInsensitiveContains(query)
+                    || item.lastMessageText?.localizedCaseInsensitiveContains(query) == true)
+        }
+    }
 
     var body: some View {
         PushedScreenShell(
             title: AppStrings.Feedback.myFeedbackTitle,
             subtitle: AppStrings.Feedback.myFeedbackSubtitle
         ) {
+            if viewModel.isClearing {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                    .accessibilityLabel(AppStrings.Feedback.clearMyFeedback)
+            } else if !viewModel.items.isEmpty {
+                AppGlassIconButton(
+                    systemImage: "trash",
+                    accessibilityLabel: AppStrings.Feedback.clearMyFeedback,
+                    role: .destructive
+                ) {
+                    isShowingClearConfirmation = true
+                }
+                .accessibilityIdentifier("myFeedback.clearAll")
+            }
+        } content: {
+            if !viewModel.items.isEmpty {
+                myFeedbackControls
+            }
             feedbackContent
         }
         .tint(AppTheme.accentPrimary)
@@ -23,6 +84,18 @@ struct MyFeedbackView: View {
         .refreshable {
             await viewModel.refresh(userID: currentUserID)
         }
+        .confirmationDialog(
+            AppStrings.Feedback.clearMyFeedbackConfirmationTitle,
+            isPresented: $isShowingClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Feedback.clearMyFeedback, role: .destructive) {
+                Task { await viewModel.clearMyFeedback() }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.Feedback.clearMyFeedbackConfirmationMessage)
+        }
         .sheet(item: $selectedFeedback) { item in
             let currentItem = currentFeedbackItem(for: item)
             FeedbackConversationSheet(
@@ -30,6 +103,7 @@ struct MyFeedbackView: View {
                 messages: viewModel.messages(for: currentItem),
                 isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
                 isSending: viewModel.sendingMessageFeedbackIDs.contains(currentItem.id),
+                actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
                 allowsClose: false,
                 onLoad: {
                     Task { await viewModel.loadMessages(for: currentItem) }
@@ -45,11 +119,68 @@ struct MyFeedbackView: View {
                 },
                 onStop: {
                     viewModel.stopListeningMessages(for: currentItem.id)
+                    viewModel.clearActionError()
                 },
                 onClose: nil
             )
             .presentationDetents([.medium, .large])
         }
+    }
+
+    private var myFeedbackControls: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Menu {
+                            Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
+                                myFeedbackFilterOptions
+                            }
+                        } label: {
+                            Label(myFeedbackFilterTitle(selectedFilter), systemImage: "line.3.horizontal.decrease.circle")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity, minHeight: AppTheme.searchControlHeight, alignment: .leading)
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
+                            myFeedbackFilterOptions
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(AppTheme.textSecondary)
+                    TextField(AppStrings.Feedback.myFeedbackSearchPlaceholder, text: $searchText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.subheadline)
+                    if !searchText.isEmpty {
+                        AppSearchClearButton { searchText = "" }
+                    }
+                }
+                .padding(.horizontal, AppTheme.inputHorizontalPadding)
+                .frame(minHeight: AppTheme.searchControlHeight)
+                .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                        .strokeBorder(AppTheme.borderSubtle)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var myFeedbackFilterOptions: some View {
+        ForEach(MyFeedbackFilter.allCases) { filter in
+            Text(myFeedbackFilterTitle(filter)).tag(filter)
+        }
+    }
+
+    private func myFeedbackFilterTitle(_ filter: MyFeedbackFilter) -> String {
+        "\(filter.title) \(viewModel.items.filter { filter.includes($0) }.count)"
     }
 
     @ViewBuilder
@@ -72,9 +203,23 @@ struct MyFeedbackView: View {
                 title: AppStrings.Feedback.myFeedbackTitle,
                 message: AppStrings.Feedback.myFeedbackEmpty
             )
+        } else if filteredItems.isEmpty {
+            UnifiedEmptyStateCard(
+                systemImage: "line.3.horizontal.decrease.circle",
+                title: AppStrings.Search.noResultsTitle,
+                message: AppStrings.Search.noResultsMessage
+            )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
-                ForEach(viewModel.items) { item in
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                if let actionError = viewModel.actionError {
+                    InlineMessageCard(style: .error, message: feedbackActionErrorMessage(actionError))
+                }
+
+                if let error = viewModel.error {
+                    InlineMessageCard(style: .error, message: feedbackErrorMessage(error))
+                }
+
+                ForEach(filteredItems) { item in
                     Button {
                         selectedFeedback = item
                     } label: {
@@ -94,6 +239,17 @@ struct MyFeedbackView: View {
             return AppStrings.Moderation.loadNetworkError
         case .validationFailed, .notFound, .unknown:
             return AppStrings.Feedback.loadFailed
+        }
+    }
+
+    private func feedbackActionErrorMessage(_ error: AppError) -> String {
+        switch error {
+        case .permissionDenied:
+            AppStrings.Feedback.actionPermissionFailed
+        case .network:
+            AppStrings.Feedback.actionNetworkFailed
+        case .validationFailed, .notFound, .unknown:
+            AppStrings.Feedback.sendMessageFailed
         }
     }
 
@@ -185,9 +341,20 @@ struct FeedbackInboxView: View {
     @StateObject private var viewModel: FeedbackInboxViewModel
     @State private var selectedFeedback: FeedbackItem?
     @State private var selectedFilter: FeedbackInboxFilter = .open
+    @State private var searchText = ""
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var filteredItems: [FeedbackItem] {
-        viewModel.items.filter { selectedFilter.includes($0) }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return viewModel.items.filter { item in
+            selectedFilter.includes(item)
+                && (query.isEmpty
+                    || item.userDisplayName.localizedCaseInsensitiveContains(query)
+                    || item.userId.localizedCaseInsensitiveContains(query)
+                    || item.type.title.localizedCaseInsensitiveContains(query)
+                    || item.message.localizedCaseInsensitiveContains(query)
+                    || item.lastMessageText?.localizedCaseInsensitiveContains(query) == true)
+        }
     }
 
     init(
@@ -206,12 +373,10 @@ struct FeedbackInboxView: View {
             subtitle: AppStrings.Feedback.inboxSubtitle,
             tabBarHidden: false
         ) {
-            Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
-                ForEach(FeedbackInboxFilter.allCases) { filter in
-                    Text(filter.title).tag(filter)
-                }
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                inboxFilterPicker
+                inboxSearchField
             }
-            .pickerStyle(.segmented)
         } metrics: {
             EmptyView()
         } trailingContent: {
@@ -236,6 +401,7 @@ struct FeedbackInboxView: View {
                 messages: viewModel.messages(for: currentItem),
                 isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
                 isUpdating: viewModel.updatingFeedbackIDs.contains(currentItem.id),
+                actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
                 onLoad: {
                     Task { await viewModel.loadMessages(for: currentItem) }
                 },
@@ -253,8 +419,8 @@ struct FeedbackInboxView: View {
                 },
                 onClose: {
                     Task {
-                        await viewModel.close(currentFeedbackItem(for: currentItem))
-                        selectedFeedback = nil
+                        let closed = await viewModel.close(currentFeedbackItem(for: currentItem))
+                        if closed { selectedFeedback = nil }
                     }
                 }
             )
@@ -289,7 +455,7 @@ struct FeedbackInboxView: View {
                 message: AppStrings.Feedback.inboxFilterEmpty
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 if let error = viewModel.error {
                     InlineMessageCard(style: .error, message: feedbackErrorMessage(error))
                 }
@@ -314,6 +480,71 @@ struct FeedbackInboxView: View {
             return AppStrings.Moderation.loadNetworkError
         case .validationFailed, .notFound, .unknown:
             return AppStrings.Feedback.loadFailed
+        }
+    }
+
+    private func feedbackActionErrorMessage(_ error: AppError) -> String {
+        switch error {
+        case .permissionDenied:
+            AppStrings.Feedback.actionPermissionFailed
+        case .network:
+            AppStrings.Feedback.actionNetworkFailed
+        case .validationFailed, .notFound, .unknown:
+            AppStrings.Feedback.actionFailed
+        }
+    }
+
+    private var inboxFilterPicker: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                Menu {
+                    Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
+                        filterOptions
+                    }
+                } label: {
+                    Label(filterTitle(selectedFilter), systemImage: "line.3.horizontal.decrease.circle")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: AppTheme.searchControlHeight, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Picker(AppStrings.Feedback.inboxFilter, selection: $selectedFilter) {
+                    filterOptions
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var filterOptions: some View {
+        ForEach(FeedbackInboxFilter.allCases) { filter in
+            Text(filterTitle(filter)).tag(filter)
+        }
+    }
+
+    private func filterTitle(_ filter: FeedbackInboxFilter) -> String {
+        "\(filter.title) \(viewModel.items.filter { filter.includes($0) }.count)"
+    }
+
+    private var inboxSearchField: some View {
+        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(AppTheme.textSecondary)
+            TextField(AppStrings.Feedback.searchPlaceholder, text: $searchText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.subheadline)
+            if !searchText.isEmpty {
+                AppSearchClearButton { searchText = "" }
+            }
+        }
+        .padding(.horizontal, AppTheme.inputHorizontalPadding)
+        .frame(minHeight: AppTheme.searchControlHeight)
+        .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
+                .strokeBorder(AppTheme.borderSubtle)
         }
     }
 
@@ -359,6 +590,14 @@ private struct FeedbackInboxRow: View {
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 38, height: 38)
                     .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(alignment: .topTrailing) {
+                        if item.unreadForOwner {
+                            Circle()
+                                .fill(AppTheme.accentDestructive)
+                                .frame(width: 10, height: 10)
+                                .accessibilityLabel(AppStrings.Feedback.unread)
+                        }
+                    }
 
                 VStack(alignment: .leading, spacing: 7) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -407,6 +646,7 @@ private struct FeedbackDetailSheet: View {
     let messages: [FeedbackMessage]
     let isLoadingMessages: Bool
     let isUpdating: Bool
+    let actionErrorMessage: String?
     let onLoad: () -> Void
     let onSendReply: (String) async -> Bool
     let onStop: () -> Void
@@ -418,6 +658,7 @@ private struct FeedbackDetailSheet: View {
             messages: messages,
             isLoadingMessages: isLoadingMessages,
             isSending: isUpdating,
+            actionErrorMessage: actionErrorMessage,
             allowsClose: true,
             onLoad: onLoad,
             onSend: onSendReply,
@@ -432,6 +673,7 @@ private struct FeedbackConversationSheet: View {
     let messages: [FeedbackMessage]
     let isLoadingMessages: Bool
     let isSending: Bool
+    let actionErrorMessage: String?
     let allowsClose: Bool
     let onLoad: () -> Void
     let onSend: (String) async -> Bool
@@ -442,6 +684,7 @@ private struct FeedbackConversationSheet: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var replyText = ""
     @State private var validationMessage: String?
+    @State private var isShowingCloseConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -503,6 +746,9 @@ private struct FeedbackConversationSheet: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 10) {
+                    if let actionErrorMessage {
+                        InlineMessageCard(style: .error, message: actionErrorMessage)
+                    }
                     if item.status.isClosed {
                         Label(AppStrings.Feedback.closedMessage, systemImage: "lock")
                             .font(.footnote.weight(.medium))
@@ -572,6 +818,17 @@ private struct FeedbackConversationSheet: View {
             .onDisappear {
                 onStop()
             }
+            .confirmationDialog(
+                AppStrings.Feedback.closeConfirmationTitle,
+                isPresented: $isShowingCloseConfirmation
+            ) {
+                Button(AppStrings.Feedback.closeFeedback, role: .destructive) {
+                    onClose?()
+                }
+                Button(AppStrings.Common.cancel, role: .cancel) {}
+            } message: {
+                Text(AppStrings.Feedback.closeConfirmationMessage)
+            }
         }
     }
 
@@ -610,8 +867,10 @@ private struct FeedbackConversationSheet: View {
             submitReply()
         }
 
-        if allowsClose, let onClose {
-            Button(action: onClose) {
+        if allowsClose, onClose != nil {
+            Button {
+                isShowingCloseConfirmation = true
+            } label: {
                 Label(AppStrings.Feedback.closeFeedback, systemImage: "checkmark.seal")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accentDestructiveForeground)
@@ -792,6 +1051,15 @@ struct FeedbackComposerCard: View {
     let statusMessage: String?
     let isSubmitting: Bool
     let onSubmit: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var trimmedMessage: String {
+        feedbackMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isMessageValid: Bool {
+        !trimmedMessage.isEmpty && trimmedMessage.count <= 2000
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -800,13 +1068,19 @@ struct FeedbackComposerCard: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            LabeledContent(AppStrings.Feedback.fieldType) {
-                Picker(AppStrings.Feedback.fieldType, selection: $selectedFeedbackType) {
-                    ForEach(FeedbackType.allCases) { feedbackType in
-                        Text(feedbackType.title).tag(feedbackType)
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(AppStrings.Feedback.fieldType)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary)
+                        feedbackTypePicker
+                    }
+                } else {
+                    LabeledContent(AppStrings.Feedback.fieldType) {
+                        feedbackTypePicker
                     }
                 }
-                .pickerStyle(.menu)
             }
             .accessibilityLabel(AppStrings.Feedback.fieldType)
 
@@ -836,6 +1110,17 @@ struct FeedbackComposerCard: View {
                         .stroke(AppTheme.borderSubtle)
                 )
                 .accessibilityLabel(AppStrings.Feedback.fieldMessage)
+
+                HStack {
+                    if trimmedMessage.count > 2000 {
+                        Text(AppStrings.Feedback.messageTooLong)
+                            .foregroundStyle(AppTheme.accentDestructiveForeground)
+                    }
+                    Spacer(minLength: 0)
+                    Text("\(trimmedMessage.count)/2000")
+                        .foregroundStyle(trimmedMessage.count > 2000 ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
+                }
+                .font(.caption)
             }
 
             if let statusMessage {
@@ -847,7 +1132,7 @@ struct FeedbackComposerCard: View {
 
             PrimaryActionButton(
                 title: AppStrings.Feedback.submit,
-                isEnabled: !isSubmitting,
+                isEnabled: !isSubmitting && isMessageValid,
                 isLoading: isSubmitting,
                 systemImage: "paperplane"
             ) {
@@ -856,5 +1141,14 @@ struct FeedbackComposerCard: View {
             .accessibilityLabel(AppStrings.Feedback.submit)
         }
         .padding(.vertical, 2)
+    }
+
+    private var feedbackTypePicker: some View {
+        Picker(AppStrings.Feedback.fieldType, selection: $selectedFeedbackType) {
+            ForEach(FeedbackType.allCases) { feedbackType in
+                Text(feedbackType.title).tag(feedbackType)
+            }
+        }
+        .pickerStyle(.menu)
     }
 }

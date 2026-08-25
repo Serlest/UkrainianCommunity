@@ -3,6 +3,7 @@ import SwiftUI
 struct NotificationInboxView: View {
     @ObservedObject var viewModel: NotificationInboxViewModel
     let onNotificationTap: (AppNotification) -> Void
+    @State private var isShowingClearConfirmation = false
 
     init(
         viewModel: NotificationInboxViewModel,
@@ -18,6 +19,22 @@ struct NotificationInboxView: View {
             subtitle: AppStrings.NotificationInbox.subtitle,
             tabBarHidden: true
         ) {
+            if viewModel.isClearing {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                    .accessibilityLabel(AppStrings.NotificationInbox.clearAll)
+            } else if !viewModel.notifications.isEmpty {
+                AppGlassIconButton(
+                    systemImage: "trash",
+                    accessibilityLabel: AppStrings.NotificationInbox.clearAll,
+                    role: .destructive
+                ) {
+                    isShowingClearConfirmation = true
+                }
+                .accessibilityIdentifier("notificationInbox.clearAll")
+            }
+        } content: {
             headerControls
             inboxContent
         }
@@ -27,6 +44,18 @@ struct NotificationInboxView: View {
         .navigationTitle(AppStrings.NotificationInbox.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .confirmationDialog(
+            AppStrings.NotificationInbox.clearConfirmationTitle,
+            isPresented: $isShowingClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.NotificationInbox.clearAll, role: .destructive) {
+                Task { await viewModel.clearAll() }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.NotificationInbox.clearConfirmationMessage)
+        }
     }
 
     private var headerControls: some View {
@@ -75,6 +104,10 @@ struct NotificationInboxView: View {
             )
         } else {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                if let error = viewModel.error {
+                    InlineMessageCard(style: .error, message: error.localizedDescription)
+                }
+
                 ForEach(viewModel.filteredNotifications) { notification in
                     NotificationInboxRow(
                         notification: notification,
@@ -124,9 +157,10 @@ private struct NotificationInboxRow: View {
     let deleteAction: () -> Void
 
     var body: some View {
-        Button(action: tapAction) {
-            AppEditorSectionCard {
-                HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+        AppEditorSectionCard {
+            HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+                Button(action: tapAction) {
+                    HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
                     ZStack(alignment: .topTrailing) {
                         Circle()
                             .fill(iconTint.opacity(notification.isRead ? 0.10 : 0.16))
@@ -166,33 +200,44 @@ private struct NotificationInboxRow: View {
                             .foregroundStyle(AppTheme.textSecondary)
                     }
 
-                    Spacer(minLength: 0)
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
                 }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title). \(bodyText). \(dateText)")
-        .accessibilityValue(notification.isRead ? "" : AppStrings.NotificationInbox.filterUnread)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive, action: deleteAction) {
-                Label(AppStrings.NotificationInbox.delete, systemImage: "trash")
-            }
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(title). \(bodyText). \(dateText)")
+                .accessibilityValue(notification.isRead ? "" : AppStrings.NotificationInbox.filterUnread)
 
-            Button(action: archiveAction) {
-                Label(AppStrings.NotificationInbox.archive, systemImage: "archivebox")
+                Menu {
+                    Button(action: notification.isRead ? markUnreadAction : markReadAction) {
+                        Label(
+                            notification.isRead ? AppStrings.NotificationInbox.markUnread : AppStrings.NotificationInbox.markRead,
+                            systemImage: notification.isRead ? "envelope.badge" : "envelope.open"
+                        )
+                    }
+
+                    Button(action: archiveAction) {
+                        Label(AppStrings.NotificationInbox.archive, systemImage: "archivebox")
+                    }
+
+                    Button(role: .destructive, action: deleteAction) {
+                        Label(AppStrings.NotificationInbox.delete, systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .frame(
+                            width: AppTheme.minimumInteractiveTarget,
+                            height: AppTheme.minimumInteractiveTarget
+                        )
+                }
+                .accessibilityLabel(AppStrings.NotificationInbox.moreActions)
+                .accessibilityIdentifier("notificationInbox.actions.\(notification.id)")
             }
-            .tint(AppTheme.textSecondary)
         }
-        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-            Button(action: notification.isRead ? markUnreadAction : markReadAction) {
-                Label(
-                    notification.isRead ? AppStrings.NotificationInbox.markUnread : AppStrings.NotificationInbox.markRead,
-                    systemImage: notification.isRead ? "envelope.badge" : "envelope.open"
-                )
-            }
-            .tint(AppTheme.accentPrimary)
-        }
+        .accessibilityAction(named: AppStrings.NotificationInbox.delete, deleteAction)
     }
 
     @ViewBuilder

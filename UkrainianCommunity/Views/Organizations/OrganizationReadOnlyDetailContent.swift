@@ -70,7 +70,7 @@ struct OrganizationReadOnlyDetailContent: View {
                         }
 
                         Text(organization.name)
-                            .font(.system(size: 28, weight: .bold))
+                            .font(AppTheme.detailTitleFont)
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
                             .fixedSize(horizontal: false, vertical: true)
 
@@ -103,7 +103,7 @@ struct OrganizationReadOnlyDetailContent: View {
                     .fill(cardSurface)
                     .overlay(
                         Text(initials(for: organization.name))
-                            .font(.title.weight(.bold))
+                            .font(AppTheme.detailTitleFont)
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
                     )
             }

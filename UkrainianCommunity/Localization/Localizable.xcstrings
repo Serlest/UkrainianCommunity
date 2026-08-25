@@ -7376,6 +7376,23 @@
         }
       }
     },
+    "featured.management.duplicate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner duplizieren"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дублювати банер"
+          }
+        }
+      }
+    },
     "featured.management.delete.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8226,6 +8243,40 @@
         }
       }
     },
+    "feedback.action.close.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach dem Schließen kann die Person dieser Anfrage keine weiteren Nachrichten hinzufügen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Після закриття користувач більше не зможе додавати повідомлення до цього звернення."
+          }
+        }
+      }
+    },
+    "feedback.action.close.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfrage schließen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрити звернення?"
+          }
+        }
+      }
+    },
     "feedback.action.mark_reviewed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8307,6 +8358,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не вдалося завантажити відгуки."
+          }
+        }
+      }
+    },
+    "feedback.error.action_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aktion für diese Anfrage konnte nicht ausgeführt werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося виконати дію зі зверненням."
+          }
+        }
+      }
+    },
+    "feedback.error.action_network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aktion konnte nicht gespeichert werden. Prüfe die Verbindung und versuche es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося зберегти дію. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "feedback.error.action_permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du darfst diese Anfrage nicht ändern."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У вас немає дозволу змінювати це звернення."
           }
         }
       }
@@ -8481,6 +8583,40 @@
         }
       }
     },
+    "feedback.inbox.search.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Autor oder Nachricht suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук за автором або повідомленням"
+          }
+        }
+      }
+    },
+    "feedback.inbox.unread" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungelesene Anfrage"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Непрочитане звернення"
+          }
+        }
+      }
+    },
     "feedback.inbox.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8549,6 +8685,57 @@
         }
       }
     },
+    "feedback.my.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Anfragen löschen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити всі звернення"
+          }
+        }
+      }
+    },
+    "feedback.my.clear.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle deine Anfragen und die zugehörigen Nachrichten werden unwiderruflich gelöscht."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі ваші звернення та повідомлення в них буде видалено без можливості відновлення."
+          }
+        }
+      }
+    },
+    "feedback.my.clear.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Anfragen löschen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити всі звернення?"
+          }
+        }
+      }
+    },
     "feedback.my.empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8562,6 +8749,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "У вас поки немає звернень."
+          }
+        }
+      }
+    },
+    "feedback.my.search.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meine Anfragen durchsuchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук у моїх зверненнях"
           }
         }
       }
@@ -9062,6 +9266,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Пропозиція"
+          }
+        }
+      }
+    },
+    "feedback.validation.message_too_long" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nachricht darf höchstens 2000 Zeichen lang sein."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повідомлення має містити не більше 2000 символів."
           }
         }
       }
@@ -10664,19 +10885,36 @@
         }
       }
     },
+    "legal.offline_fallback_notice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die veröffentlichte Version konnte nicht geladen werden. Damit das Dokument offline verfügbar bleibt, wird eine integrierte Kopie angezeigt."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити опубліковану версію. Щоб документ залишався доступним офлайн, показано вбудовану копію."
+          }
+        }
+      }
+    },
     "legal.screen_intro" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diese Texte beschreiben die aktuelle Nutzung und den Datenschutz der App für interne und TestFlight-Tests."
+            "value" : "Dieses Dokument beschreibt die aktuellen Bedingungen und Datenpraktiken der Anwendung."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ці тексти описують поточні умови використання та обробку даних у застосунку для внутрішнього використання й тестування через TestFlight."
+            "value" : "Цей документ описує чинні умови та практики обробки даних у застосунку."
           }
         }
       }
@@ -11533,6 +11771,74 @@
         }
       }
     },
+    "moderation.filter.all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усі"
+          }
+        }
+      }
+    },
+    "moderation.filtered_empty.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ändere die Suche oder den Inhaltstypfilter."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Змініть пошук або фільтр типу контенту."
+          }
+        }
+      }
+    },
+    "moderation.filtered_empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts gefunden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нічого не знайдено"
+          }
+        }
+      }
+    },
+    "moderation.filters.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche und Filter zurücksetzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити пошук і фільтри"
+          }
+        }
+      }
+    },
     "moderation.error.action.network" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11774,6 +12080,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Немає матеріалів організації на перевірці"
+          }
+        }
+      }
+    },
+    "moderation.organization.requests.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Organisationsanträge warten auf Prüfung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Немає заявок на організації, які очікують перевірки"
           }
         }
       }
@@ -12590,6 +12913,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Спробувати ще раз"
+          }
+        }
+      }
+    },
+    "moderation.search.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warteschlange durchsuchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук у черзі"
           }
         }
       }
@@ -14056,6 +14396,27 @@
         }
       }
     },
+    "notifications.inbox.clear.confirmation.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Mitteilungen werden unwiderruflich gelöscht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Усі сповіщення буде видалено без можливості відновлення." } }
+      }
+    },
+    "notifications.inbox.clear.confirmation.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Mitteilungen löschen?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Видалити всі сповіщення?" } }
+      }
+    },
+    "notifications.inbox.clear_all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Mitteilungen löschen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Видалити всі сповіщення" } }
+      }
+    },
     "notifications.inbox.delete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14071,6 +14432,13 @@
             "value" : "Видалити"
           }
         }
+      }
+    },
+    "notifications.inbox.more_actions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktionen für die Mitteilung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Дії зі сповіщенням" } }
       }
     },
     "notifications.inbox.destination_unavailable.message" : {
@@ -21331,6 +21699,57 @@
         }
       }
     },
+    "profile.activity.recently_viewed.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlauf löschen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити історію"
+          }
+        }
+      }
+    },
+    "profile.activity.recently_viewed.clear.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Liste der kürzlich angesehenen Inhalte wird aus deinem Konto gelöscht."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Список нещодавно переглянутого буде видалено з вашого акаунта."
+          }
+        }
+      }
+    },
+    "profile.activity.recently_viewed.clear.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kürzlich angesehene Inhalte löschen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити нещодавно переглянуте?"
+          }
+        }
+      }
+    },
     "profile.activity.recently_viewed.empty_message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22499,6 +22918,57 @@
         }
       }
     },
+    "profile.activity.history.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlauf löschen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити історію"
+          }
+        }
+      }
+    },
+    "profile.activity.history.clear.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Verlauf gespeicherter Inhalte, Abonnements und Anmeldungen wird aus deinem Konto gelöscht."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Історію збережень, підписок і реєстрацій буде видалено з вашого акаунта."
+          }
+        }
+      }
+    },
+    "profile.activity.history.clear.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivitätsverlauf löschen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити історію активності?"
+          }
+        }
+      }
+    },
     "profile.future.activity_history" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23294,6 +23764,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Керовані новини"
+          }
+        }
+      }
+    },
+    "profile.managed_organizations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von dir verwaltete Organisationen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Організації під вашим керуванням"
           }
         }
       }
@@ -27327,6 +27814,34 @@
         }
       }
     },
+    "profile.platform.administration.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Benutzer, Analysen sowie System- und redaktionelle Einstellungen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Користувачі, аналітика, системні та редакторські налаштування." } }
+      }
+    },
+    "profile.platform.administration.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Plattformverwaltung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Керування платформою" } }
+      }
+    },
+    "profile.platform.operations.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anträge, Moderation und Anfragen, die Aufmerksamkeit benötigen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заявки, модерація та звернення, які потребують уваги." } }
+      }
+    },
+    "profile.platform.operations.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktuelle Aufgaben" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Поточна робота" } }
+      }
+    },
     "profile.platform_dashboard" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28486,6 +29001,13 @@
         }
       }
     },
+    "profile.settings.critical_actions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kritische Aktionen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Критичні дії" } }
+      }
+    },
     "profile.settings.delete_account" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28792,6 +29314,20 @@
         }
       }
     },
+    "profile.personal_content.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Veranstaltungen, Organisationen und Inhalte, zu denen du zurückkehrst." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Події, організації та матеріали, до яких ви повертаєтесь." } }
+      }
+    },
+    "profile.personal_content.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mein Bereich" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Мій простір" } }
+      }
+    },
     "profile.settings.section" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29079,6 +29615,34 @@
             "value" : "Коротке повідомлення команді застосунку."
           }
         }
+      }
+    },
+    "profile.settings_and_privacy.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sprache, Darstellung, Mitteilungen, Sicherheit und rechtliche Dokumente." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Мова, вигляд, сповіщення, безпека та правові документи." } }
+      }
+    },
+    "profile.settings_and_privacy.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen und Datenschutz" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Налаштування та конфіденційність" } }
+      }
+    },
+    "profile.support.contact.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Stelle eine Frage, melde ein Problem oder schlage eine Idee vor." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Поставити запитання, повідомити про проблему або запропонувати ідею." } }
+      }
+    },
+    "profile.support.contact.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue Anfrage" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Нове звернення" } }
       }
     },
     "profile.support.subtitle" : {
@@ -29659,6 +30223,23 @@
         }
       }
     },
+    "safety.blocked_users.search.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blockierte Benutzer suchen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук заблокованих користувачів"
+          }
+        }
+      }
+    },
     "safety.blocked_users.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29689,6 +30270,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Заблоковані користувачі"
+          }
+        }
+      }
+    },
+    "safety.blocked_users.unblock.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wird wieder in deinen Feeds und Kommentaren angezeigt."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ знову з’являтиметься у ваших стрічках і коментарях."
+          }
+        }
+      }
+    },
+    "safety.blocked_users.unblock.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Benutzer entsperren?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розблокувати цього користувача?"
           }
         }
       }
@@ -32705,6 +33320,112 @@
         }
       }
     },
+    "system_logs.actions.menu" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Journalaktionen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Journal actions" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Дії з журналом" } }
+      }
+    },
+    "system_logs.clear_all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Journal leeren" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear journal" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Очистити журнал" } }
+      }
+    },
+    "system_logs.clear_all.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Einträge des Systemjournals werden unwiderruflich gelöscht. Diese Aktion ist nur für den Eigentümer verfügbar." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "All system journal records will be permanently deleted. This action is available only to the owner." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Усі записи журналу системи буде видалено без можливості відновлення. Дія доступна лише власнику." } }
+      }
+    },
+    "system_logs.clear_all.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gesamtes Journal leeren?" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear the entire journal?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Очистити весь журнал?" } }
+      }
+    },
+    "system_logs.clear_all.error.generic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Systemjournal konnte nicht geleert werden." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The system journal could not be cleared." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося очистити журнал системи." } }
+      }
+    },
+    "system_logs.clear_all.error.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Journal konnte nicht geleert werden. Prüfen Sie die Verbindung und versuchen Sie es erneut." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The journal could not be cleared. Check your connection and try again." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося очистити журнал. Перевірте з’єднання та спробуйте ще раз." } }
+      }
+    },
+    "system_logs.clear_all.error.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nur der App-Eigentümer kann das Journal leeren." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Only the app owner can clear the journal." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Очистити журнал може лише власник застосунку." } }
+      }
+    },
+    "system_logs.filters.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche und Filter zurücksetzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистити пошук і фільтри"
+          }
+        }
+      }
+    },
+    "system_logs.filters.clear_quick" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filter zurücksetzen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reset filters" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Скинути фільтри" } }
+      }
+    },
+    "system_logs.filters.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filter" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Filters" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Фільтри" } }
+      }
+    },
+    "system_logs.load_more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere laden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантажити ще"
+          }
+        }
+      }
+    },
     "system_logs.loading" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32724,6 +33445,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Завантаження журналу"
+          }
+        }
+      }
+    },
+    "system_logs.loading_more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird geladen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження"
+          }
+        }
+      }
+    },
+    "system_logs.metrics.loaded_note" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kennzahlen und Suche beziehen sich auf geladene Einträge. Laden Sie weitere Seiten für ältere Ereignisse."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metrics and search cover loaded records. Load another page for older events."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показники та пошук охоплюють завантажені записи. Завантажте наступну сторінку для старіших подій."
           }
         }
       }
@@ -35076,13 +35837,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Platform Owner konnen Rollen nur in einer konkreten Organisation vergeben."
+            "value" : "Der App Owner verwaltet alle Organisationen; Organisationsinhaber können Admins und Moderatoren in ihrer Organisation ernennen."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Owner платформи може призначити роль тільки в конкретній організації."
+            "value" : "App Owner керує всіма організаціями; власник організації може призначати Admin і Moderator у своїй організації."
           }
         }
       }
@@ -35102,6 +35863,76 @@
             "value" : "Призначити роль"
           }
         }
+      }
+    },
+    "user_management.action.target" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nutzer: %@" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Користувач: %@" } }
+      }
+    },
+    "user_management.audit_history.load_error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Aktionsverlauf konnte nicht geladen werden." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося завантажити історію дій." } }
+      }
+    },
+    "user_management.audit_history.performed_by" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ausgeführt von: %@" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Виконав: %@" } }
+      }
+    },
+    "user_management.changes_saved_refresh_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Änderungen gespeichert, aber die Nutzerdaten konnten nicht aktualisiert werden." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Зміни збережено, але оновити дані користувача не вдалося." } }
+      }
+    },
+    "user_management.load_more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weitere laden" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Завантажити ще" } }
+      }
+    },
+    "user_management.load_more_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weitere Nutzer konnten nicht geladen werden." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося завантажити наступних користувачів." } }
+      }
+    },
+    "user_management.loaded_users" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nutzer geladen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "завантажено користувачів" } }
+      }
+    },
+    "user_management.reason.required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bitte einen Grund für die Aktion angeben." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Вкажіть причину дії." } }
+      }
+    },
+    "user_management.suspension.days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Tg." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "%lld дн." } }
+      }
+    },
+    "user_management.suspension.duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sperrdauer" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Термін блокування" } }
       }
     },
     "user_management.audit_history.empty" : {
@@ -35767,6 +36598,13 @@
         }
       }
     },
+    "user_management.organization_missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisation nicht gefunden. Bildschirm aktualisieren und erneut versuchen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Організацію не знайдено. Оновіть екран і спробуйте ще раз." } }
+      }
+    },
     "user_management.organizations.not_found" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35799,6 +36637,20 @@
             "value" : "Організації ще не завантажені."
           }
         }
+      }
+    },
+    "user_management.owner_change.confirmation_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ wird Inhaber der Organisation %@. Der bisherige Inhaber verliert diese Rolle." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "%@ стане власником організації %@. Попередній власник втратить цю роль." } }
+      }
+    },
+    "user_management.owner_change.confirmation_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Eigentum an der Organisation übertragen?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Передати володіння організацією?" } }
       }
     },
     "user_management.owner_change.permission_denied" : {
@@ -36141,6 +36993,13 @@
         }
       }
     },
+    "user_management.reason.required_placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Grund (erforderlich)" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Причина (обовʼязково)" } }
+      }
+    },
     "user_management.registered_users" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36190,6 +37049,27 @@
             "value" : "Роль"
           }
         }
+      }
+    },
+    "user_management.role.already_assigned" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Diese Rolle ist dem Nutzer in der ausgewählten Organisation bereits zugewiesen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Цю роль уже призначено користувачу в обраній організації." } }
+      }
+    },
+    "user_management.role.assignment_unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Rollen können vom App Owner oder vom Inhaber der jeweiligen Organisation verwaltet werden." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Керувати ролями може App Owner або власник відповідної організації." } }
+      }
+    },
+    "user_management.role.email_unverified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Nutzer muss zuerst seine E-Mail-Adresse bestätigen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Користувач має спочатку підтвердити email." } }
       }
     },
     "user_management.role.permission_denied" : {
@@ -36770,6 +37650,223 @@
             "value" : "Додати в закладки"
           }
         }
+      }
+    },
+    "account_status_alert.restricted_sign_out" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Vom Konto abmelden" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Вийти з акаунта" } }
+      }
+    },
+    "account_status_alert.restricted_sign_out_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Sitzung konnte nicht sicher beendet werden. Schließen Sie die App und versuchen Sie es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося безпечно завершити сесію. Закрийте застосунок і спробуйте ще раз." } }
+      }
+    },
+    "user_management.searching" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Nutzer werden durchsucht…" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Пошук у всіх користувачах…" } }
+      }
+    },
+    "user_management.search.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Suche in allen Nutzern ist fehlgeschlagen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося виконати пошук у всіх користувачах." } }
+      }
+    },
+    "user_management.search.result_count" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gefunden: %lld" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Знайдено: %lld" } }
+      }
+    },
+    "user_management.role_guide.button" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wer darf was?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Хто що може робити" } }
+      }
+    },
+    "user_management.role_guide.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Rollen und Berechtigungen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Ролі та дозволи" } }
+      }
+    },
+    "user_management.role_guide.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Plattform- und Organisationsrollen gelten unabhängig voneinander." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Роль платформи та роль в організації діють незалежно одна від одної." } }
+      }
+    },
+    "user_management.role_guide.app_owner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "App Owner" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "App Owner" } }
+      }
+    },
+    "user_management.role_guide.app_owner.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Vollzugriff: App Admins, alle Nutzer, Rollen aller Organisationen und Eigentumsübertragung." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Повний доступ: App Admin, усі користувачі, ролі всіх організацій і передача володіння." } }
+      }
+    },
+    "user_management.role_guide.app_admin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "App Admin" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "App Admin" } }
+      }
+    },
+    "user_management.role_guide.app_admin.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verwaltet Nutzerstatus und Moderation, ernennt aber keine App Admins und überträgt kein Eigentum." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Керує статусами користувачів і модерацією, але не призначає App Admin та не передає володіння." } }
+      }
+    },
+    "user_management.role_guide.organization_owner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisationsinhaber" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Власник організації" } }
+      }
+    },
+    "user_management.role_guide.organization_owner.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ernennt Admins und Moderatoren nur in der eigenen Organisation. Die Owner-Rolle kann nicht selbst übertragen werden." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Призначає Admin і Moderator лише у власній організації. Не може самостійно передати роль owner." } }
+      }
+    },
+    "user_management.role_guide.organization_admin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisations-Admin" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Admin організації" } }
+      }
+    },
+    "user_management.role_guide.organization_admin.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verwaltet Inhalte der eigenen Organisation ohne Zugriff auf Plattformrollen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Керує контентом своєї організації без доступу до ролей платформи." } }
+      }
+    },
+    "user_management.role_guide.organization_moderator" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisations-Moderator" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Moderator організації" } }
+      }
+    },
+    "user_management.role_guide.organization_moderator.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Moderiert freigegebene Inhalte der Organisation ohne administrative Befugnisse." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Модерує дозволені матеріали організації без адміністративних повноважень." } }
+      }
+    },
+    "user_management.action.effect.warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Nutzer behält den Zugriff und sieht eine Warnung mit dem angegebenen Grund." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Користувач збереже доступ і побачить попередження з указаною причиною." } }
+      }
+    },
+    "user_management.action.effect.suspension" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Zugriff wird vorübergehend gesperrt, aktive Sitzungen werden widerrufen und bestehende Inhalte bleiben erhalten." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Доступ буде тимчасово закрито, активні сесії відкликано, а старий контент збережено." } }
+      }
+    },
+    "user_management.action.effect.ban" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Zugriff wird unbefristet gesperrt, aktive Sitzungen werden widerrufen und bestehende Inhalte bleiben erhalten." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Доступ буде закрито безстроково, активні сесії відкликано, а старий контент збережено." } }
+      }
+    },
+    "user_management.action.effect.restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Zugriff wird wiederhergestellt. Der Nutzer kann sich erneut anmelden." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Доступ буде відновлено. Користувач зможе знову увійти в застосунок." } }
+      }
+    },
+    "user_management.action.effect.deactivate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Anmeldung wird gesperrt und aktive Sitzungen werden widerrufen. Profil und Urheberschaft bestehender Inhalte bleiben erhalten." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Вхід буде закрито, активні сесії відкликано. Профіль і авторство старого контенту збережуться." } }
+      }
+    },
+    "user_management.platform_roles.effect.assign" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Nutzer erhält Zugriff auf Nutzerverwaltung und Plattformmoderation." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Користувач отримає доступ до керування користувачами та модерації платформи." } }
+      }
+    },
+    "user_management.platform_roles.effect.remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Plattform-Adminzugriff wird entfernt; Organisationsrollen bleiben unverändert." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Доступ до адміністрування платформи буде забрано; ролі в організаціях не зміняться." } }
+      }
+    },
+    "user_management.security.email_verification" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "E-Mail-Bestätigung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Підтвердження email" } }
+      }
+    },
+    "user_management.security.email_verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "E-Mail bestätigt" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Email підтверджено" } }
+      }
+    },
+    "user_management.security.email_not_verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "E-Mail nicht bestätigt" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Email не підтверджено" } }
+      }
+    },
+    "user_management.security.last_sign_in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Letzte Anmeldung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Останній вхід" } }
+      }
+    },
+    "user_management.security.never_signed_in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine Anmeldung erfasst" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Вхід ще не зафіксовано" } }
+      }
+    },
+    "user_management.security.provider" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anmeldemethode" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Спосіб входу" } }
       }
     },
     "Прибрати із закладок" : {

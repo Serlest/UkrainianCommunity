@@ -1,3 +1,5 @@
+import FirebaseFunctions
+import Foundation
 import Testing
 @testable import UkrainianCommunity
 
@@ -136,6 +138,21 @@ private actor GatedDeleteNotificationPushTokenRepository: NotificationPushTokenR
 
 @MainActor
 struct NotificationPushTokenOwnershipTests {
+    @Test func onlyUnauthenticatedCallableErrorsUseTheFirestoreFallback() {
+        let unauthenticated = NSError(
+            domain: FunctionsErrorDomain,
+            code: FunctionsErrorCode.unauthenticated.rawValue
+        )
+        let permissionDenied = NSError(
+            domain: FunctionsErrorDomain,
+            code: FunctionsErrorCode.permissionDenied.rawValue
+        )
+
+        #expect(FirestoreNotificationPushTokenRepository.isUnauthenticatedFunctionsError(unauthenticated))
+        #expect(!FirestoreNotificationPushTokenRepository.isUnauthenticatedFunctionsError(permissionDenied))
+        #expect(!FirestoreNotificationPushTokenRepository.isUnauthenticatedFunctionsError(NSError(domain: NSURLErrorDomain, code: -1009)))
+    }
+
     private func fid(_ identifier: String) -> NotificationPushRegistration {
         NotificationPushRegistration(identifier: identifier, kind: .firebaseInstallationID)
     }

@@ -19,7 +19,7 @@ struct AppEditorSectionTitle: View {
 
     var body: some View {
         Text(title)
-            .font(.headline.weight(.semibold))
+            .font(AppTheme.cardTitleFont)
             .foregroundStyle(AppTheme.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityAddTraits(.isHeader)

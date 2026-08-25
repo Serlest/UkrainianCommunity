@@ -79,22 +79,8 @@ struct OrganizationManagementHubView: View {
         focusedOrganizationID == nil ? organizationsViewModel.organizationRequests : []
     }
 
-    private var subscribedOrganizations: [Organization] {
-        guard focusedOrganizationID == nil else { return [] }
-        let managedIDs = Set(manageableOrganizations.map(\.id))
-        let requestIDs = Set(organizationRequests.map(\.id))
-        return organizationsViewModel.organizations
-            .filter {
-                $0.isSubscribed
-                    && $0.moderationStatus == .approved
-                    && !managedIDs.contains($0.id)
-                    && !requestIDs.contains($0.id)
-            }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-    }
-
     private var allOrganizationSectionsAreEmpty: Bool {
-        manageableOrganizations.isEmpty && organizationRequests.isEmpty && subscribedOrganizations.isEmpty
+        manageableOrganizations.isEmpty && organizationRequests.isEmpty
     }
 
     private func organizationRole(for organization: Organization) -> ManagedOrganizationRole? {
@@ -199,7 +185,7 @@ struct OrganizationManagementHubView: View {
         Button {
             isShowingCreateOrganization = true
         } label: {
-            AppEditorSectionCard {
+            SoftContentCard(padding: AppTheme.rowCardPadding) {
                 AppNavigationRow(
                     title: AppStrings.Profile.ownerCreateOrganization,
                     subtitle: AppStrings.Profile.organizationManagementSubtitle,
@@ -217,6 +203,17 @@ struct OrganizationManagementHubView: View {
     private var managedOrganizationsContent: some View {
         if organizationsViewModel.isLoading && allOrganizationSectionsAreEmpty {
             LoadingStateCard(title: nil)
+        } else if let error = organizationsViewModel.error, allOrganizationSectionsAreEmpty {
+            ErrorStateCard(
+                title: AppStrings.Profile.myOrganizations,
+                message: organizationErrorMessage(error),
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task {
+                    await organizationsViewModel.refresh()
+                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                }
+            }
         } else if allOrganizationSectionsAreEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "building.2",
@@ -225,7 +222,10 @@ struct OrganizationManagementHubView: View {
             )
         } else {
             if !manageableOrganizations.isEmpty {
-                VStack(spacing: AppTheme.feedRowSpacing) {
+                AppEditorSectionTitle(title: AppStrings.Profile.managedOrganizations)
+                    .padding(.horizontal, 2)
+
+                LazyVStack(spacing: AppTheme.feedRowSpacing) {
                     ForEach(manageableOrganizations) { organization in
                         ManagedOrganizationCard(
                             organization: organization,
@@ -239,11 +239,10 @@ struct OrganizationManagementHubView: View {
             }
 
             if !organizationRequests.isEmpty {
-                AppEditorSectionCard {
-                    AppEditorSectionTitle(title: AppStrings.Profile.organizationRequests)
-                }
+                AppEditorSectionTitle(title: AppStrings.Profile.organizationRequests)
+                    .padding(.horizontal, 2)
 
-                VStack(spacing: AppTheme.feedRowSpacing) {
+                LazyVStack(spacing: AppTheme.feedRowSpacing) {
                     ForEach(organizationRequests) { organization in
                         OrganizationRequestCard(
                             organization: organization,
@@ -258,25 +257,22 @@ struct OrganizationManagementHubView: View {
                 }
             }
 
-            if !subscribedOrganizations.isEmpty {
-                AppEditorSectionCard {
-                    AppEditorSectionTitle(title: AppStrings.Profile.subscribedOrganizations)
-                }
-
-                VStack(spacing: AppTheme.feedRowSpacing) {
-                    ForEach(subscribedOrganizations) { organization in
-                        NavigationLink {
-                            OrganizationDetailView(
-                                viewModel: organizationsViewModel,
-                                organizationID: organization.id
-                            )
-                        } label: {
-                            ProfileOrganizationListCard(organization: organization)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+            if let error = organizationsViewModel.error {
+                InlineMessageCard(style: .error, message: organizationErrorMessage(error))
             }
+        }
+    }
+
+    private func organizationErrorMessage(_ error: AppError) -> String {
+        switch error {
+        case .network:
+            AppStrings.Organizations.loadNetworkError
+        case .permissionDenied:
+            AppStrings.Organizations.loadPermissionError
+        case .validationFailed, .notFound:
+            AppStrings.Organizations.loadValidationError
+        case .unknown:
+            AppStrings.Organizations.loadUnknownError
         }
     }
 

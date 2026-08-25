@@ -25,7 +25,7 @@ struct SystemLogDetailView: View {
             subtitle: SystemLogDisplayFormatting.dateTime(log.createdAt)
         ) {
             DetailHeaderCard(title: SystemLogDisplayFormatting.summaryTitle(log.summary), subtitle: log.technicalMessage) {
-                HStack(spacing: 8) {
+                AppHorizontalChipRow(spacing: 8) {
                     AppInfoChip(
                         title: SystemLogDisplayFormatting.severityTitle(log.severity),
                         tint: SystemLogDisplayFormatting.severityTint(log.severity),
@@ -196,19 +196,31 @@ private struct SystemLogDetailRow: View {
     let value: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-                .frame(width: 104, alignment: .leading)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 12) {
+                titleLabel.frame(width: 104, alignment: .leading)
+                valueLabel
+                Spacer(minLength: 0)
+            }
 
-            Text(value)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppTheme.textPrimary)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 4) {
+                titleLabel
+                valueLabel
+            }
         }
+    }
+
+    private var titleLabel: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.textSecondary)
+    }
+
+    private var valueLabel: some View {
+        Text(value)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(AppTheme.textPrimary)
+            .textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

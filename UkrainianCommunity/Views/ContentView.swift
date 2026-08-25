@@ -71,7 +71,8 @@ struct ContentView: View {
             feedbackRepository: container.feedbackRepository,
             notificationPreferencesRepository: container.notificationPreferencesRepository,
             notificationPermissionService: container.notificationPermissionService,
-            localEventReminderService: container.localEventReminderService
+            localEventReminderService: container.localEventReminderService,
+            eventRepository: container.eventRepository
         ))
         _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
             repository: container.notificationInboxRepository
@@ -225,7 +226,7 @@ struct ContentView: View {
                 errorMessage: accountStatusMonitor.acknowledgementError,
                 acknowledge: {
                     Task {
-                        await accountStatusMonitor.acknowledgeActiveNotice()
+                        await accountStatusMonitor.completeActiveNotice()
                     }
                 }
             )
@@ -610,10 +611,31 @@ struct ContentView: View {
                 userID,
                 notificationsEnabled: preferences.notificationsEnabled
             )
+            await reconcileEventReminders(for: userID, preferences: preferences)
         } catch is CancellationError {
         } catch {
             #if DEBUG
             print("[Notifications] Notification preferences fetch failed during remote registration setup: \(error)")
+            #endif
+        }
+    }
+
+    private func reconcileEventReminders(
+        for userID: String?,
+        preferences: NotificationPreferences
+    ) async {
+        guard let userID else { return }
+        do {
+            let registeredEvents = try await container.eventRepository.fetchRegisteredEvents()
+            guard authState.isAuthenticated, authState.user?.id == userID else { return }
+            try await container.localEventReminderService.reconcileEventReminders(
+                events: registeredEvents,
+                userID: userID,
+                preferences: preferences
+            )
+        } catch {
+            #if DEBUG
+            print("[Notifications] Failed to reconcile event reminders: \(error)")
             #endif
         }
     }
@@ -787,8 +809,17 @@ struct ContentView: View {
             routeToEvent(eventID: eventId)
         case .openOrganization(let organizationId):
             routeToOrganization(organizationID: organizationId)
+        case .openOrganizationRequest(let organizationId):
+            if route.type == .organizationRequestApproved, let organizationId {
+                routeToOrganization(organizationID: organizationId)
+            } else {
+                routeToOrganizationManagement()
+            }
         case .openFeedback(let feedbackId):
             routeToFeedback(feedbackID: feedbackId)
+        case .openLegalDocuments:
+            selectTabIfNeeded(.profile)
+            profileNavigationPath = [.legal(.terms)]
         case .openProfile:
             selectTabIfNeeded(.profile)
             if !profileNavigationPath.isEmpty {

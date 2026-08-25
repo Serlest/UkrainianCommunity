@@ -69,6 +69,14 @@ struct SavedContentView: View {
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var selectedSegment: SavedContentSegment = .all
+    @State private var savedNews: [NewsPost] = []
+    @State private var savedEvents: [Event] = []
+    @State private var savedOrganizations: [Organization] = []
+    @State private var isLoadingSavedContent = false
+    @State private var savedContentError: AppError?
+    private let newsRepository: NewsRepository
+    private let eventRepository: EventRepository
+    private let organizationRepository: OrganizationRepository
 
     init(
         newsViewModel: NewsViewModel? = nil,
@@ -78,22 +86,20 @@ struct SavedContentView: View {
         eventRepository: EventRepository = FirestoreEventRepository(),
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
+        self.newsRepository = newsRepository
+        self.eventRepository = eventRepository
+        self.organizationRepository = organizationRepository
         self.newsViewModel = newsViewModel ?? NewsViewModel(repository: newsRepository)
         self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
     }
 
     private var isLoading: Bool {
-        (newsViewModel.isLoading
-            || eventsViewModel.isLoading
-            || organizationsViewModel.isLoading)
-            && newsViewModel.bookmarkedPosts.isEmpty
-            && eventsViewModel.bookmarkedEvents.isEmpty
-            && bookmarkedOrganizations.isEmpty
+        isLoadingSavedContent && savedItems.isEmpty
     }
 
     private var loadError: AppError? {
-        newsViewModel.error ?? eventsViewModel.error ?? organizationsViewModel.error
+        savedContentError
     }
 
     var body: some View {
@@ -107,7 +113,7 @@ struct SavedContentView: View {
                         selectedSegment = segment
                     } label: {
                         AppFilterChip(
-                            title: segment.title,
+                            title: "\(segment.title): \(savedCount(for: segment))",
                             systemImage: segment.systemImage,
                             isSelected: selectedSegment == segment
                         )
@@ -125,13 +131,13 @@ struct SavedContentView: View {
             await refreshSavedContent()
         }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in
-            Task { await newsViewModel.refresh() }
+            Task { await refreshSavedContent() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .eventsChanged)) { _ in
-            Task { await eventsViewModel.refresh() }
+            Task { await refreshSavedContent() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
-            Task { await organizationsViewModel.refresh() }
+            Task { await refreshSavedContent() }
         }
     }
 
@@ -140,11 +146,13 @@ struct SavedContentView: View {
         if isLoading {
             LoadingStateCard(title: AppStrings.Profile.savedContent)
         } else if let loadError, currentItemsAreEmpty {
-            ProfileDestinationEmptyStateCard(
-                systemImage: "exclamationmark.triangle",
+            ErrorStateCard(
                 title: AppStrings.Profile.savedContent,
-                message: savedErrorMessage(loadError)
-            )
+                message: savedErrorMessage(loadError),
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task { await refreshSavedContent() }
+            }
         } else if currentItemsAreEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: emptyStateSystemImage,
@@ -152,22 +160,25 @@ struct SavedContentView: View {
                 message: emptyStateMessage
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                if let loadError {
+                    InlineMessageCard(style: .error, message: savedErrorMessage(loadError))
+                }
                 switch selectedSegment {
                 case .all:
                     ForEach(savedItems) { item in
                         savedItemLink(item)
                     }
                 case .news:
-                    ForEach(newsViewModel.bookmarkedPosts) { post in
+                    ForEach(savedNews) { post in
                         savedNewsLink(post)
                     }
                 case .events:
-                    ForEach(eventsViewModel.bookmarkedEvents) { event in
+                    ForEach(savedEvents) { event in
                         savedEventLink(event)
                     }
                 case .organizations:
-                    ForEach(bookmarkedOrganizations) { organization in
+                    ForEach(savedOrganizations) { organization in
                         savedOrganizationLink(organization)
                     }
                 }
@@ -177,15 +188,11 @@ struct SavedContentView: View {
 
     private var savedItems: [SavedContentItem] {
         (
-            newsViewModel.bookmarkedPosts.map(SavedContentItem.news)
-            + eventsViewModel.bookmarkedEvents.map(SavedContentItem.event)
-            + bookmarkedOrganizations.map(SavedContentItem.organization)
+            savedNews.map(SavedContentItem.news)
+            + savedEvents.map(SavedContentItem.event)
+            + savedOrganizations.map(SavedContentItem.organization)
         )
         .sorted { $0.savedSortDate > $1.savedSortDate }
-    }
-
-    private var bookmarkedOrganizations: [Organization] {
-        organizationsViewModel.organizations.filter(\.isBookmarked)
     }
 
     private var currentItemsAreEmpty: Bool {
@@ -193,11 +200,11 @@ struct SavedContentView: View {
         case .all:
             return savedItems.isEmpty
         case .news:
-            return newsViewModel.bookmarkedPosts.isEmpty
+            return savedNews.isEmpty
         case .events:
-            return eventsViewModel.bookmarkedEvents.isEmpty
+            return savedEvents.isEmpty
         case .organizations:
-            return bookmarkedOrganizations.isEmpty
+            return savedOrganizations.isEmpty
         }
     }
 
@@ -228,17 +235,88 @@ struct SavedContentView: View {
     }
 
     private func loadSavedContentIfNeeded() async {
-        async let newsLoad: Void = newsViewModel.loadIfNeeded()
-        async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
-        async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-        _ = await (newsLoad, eventsLoad, organizationsLoad)
+        guard savedNews.isEmpty, savedEvents.isEmpty, savedOrganizations.isEmpty else { return }
+        await refreshSavedContent()
     }
 
     private func refreshSavedContent() async {
-        async let newsRefresh: Void = newsViewModel.refresh()
-        async let eventsRefresh: Void = eventsViewModel.refresh()
-        async let organizationsRefresh: Void = organizationsViewModel.refresh()
-        _ = await (newsRefresh, eventsRefresh, organizationsRefresh)
+        guard !isLoadingSavedContent else { return }
+        isLoadingSavedContent = true
+        defer { isLoadingSavedContent = false }
+
+        async let newsLoad = newsRepository.fetchBookmarkedNews()
+        async let eventsLoad = eventRepository.fetchBookmarkedEvents()
+        async let organizationsLoad = organizationRepository.fetchBookmarkedOrganizations()
+        var firstError: AppError?
+
+        do {
+            savedNews = try await newsLoad
+            mergeSavedNewsIntoSharedViewModel()
+        } catch {
+            firstError = appError(from: error)
+        }
+        do {
+            savedEvents = try await eventsLoad
+            mergeSavedEventsIntoSharedViewModel()
+        } catch {
+            firstError = firstError ?? appError(from: error)
+        }
+        do {
+            savedOrganizations = try await organizationsLoad
+            mergeSavedOrganizationsIntoSharedViewModel()
+        } catch {
+            firstError = firstError ?? appError(from: error)
+        }
+        savedContentError = firstError
+    }
+
+    private func savedCount(for segment: SavedContentSegment) -> Int {
+        switch segment {
+        case .all: savedItems.count
+        case .news: savedNews.count
+        case .events: savedEvents.count
+        case .organizations: savedOrganizations.count
+        }
+    }
+
+    private func appError(from error: Error) -> AppError {
+        (error as? AppError) ?? .unknown
+    }
+
+    private func mergeSavedNewsIntoSharedViewModel() {
+        let savedIDs = Set(savedNews.map(\.id))
+        newsViewModel.posts.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
+        for post in savedNews {
+            if let index = newsViewModel.posts.firstIndex(where: { $0.id == post.id }) {
+                newsViewModel.posts[index] = post
+            } else {
+                newsViewModel.posts.append(post)
+            }
+        }
+    }
+
+    private func mergeSavedEventsIntoSharedViewModel() {
+        let savedIDs = Set(savedEvents.map(\.id))
+        eventsViewModel.events.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
+        for event in savedEvents {
+            if let index = eventsViewModel.events.firstIndex(where: { $0.id == event.id }) {
+                eventsViewModel.events[index] = event
+            } else {
+                eventsViewModel.events.append(event)
+            }
+        }
+    }
+
+    private func mergeSavedOrganizationsIntoSharedViewModel() {
+        let savedIDs = Set(savedOrganizations.map(\.id))
+        organizationsViewModel.organizations.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
+        for organization in savedOrganizations {
+            if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == organization.id }) {
+                organizationsViewModel.organizations[index] = organization
+            } else {
+                organizationsViewModel.organizations.append(organization)
+            }
+        }
     }
 
     private func savedErrorMessage(_ error: AppError) -> String {
@@ -304,24 +382,21 @@ struct SavedContentView: View {
 
 struct FollowedOrganizationsView: View {
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
+    @State private var followedOrganizations: [Organization] = []
+    @State private var isLoadingSubscriptions = false
+    @State private var subscriptionsError: AppError?
+    private let organizationRepository: OrganizationRepository
 
     init(
         organizationsViewModel: OrganizationsViewModel? = nil,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
+        self.organizationRepository = organizationRepository
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
     }
 
-    private var followedOrganizations: [Organization] {
-        organizationsViewModel.organizations
-            .filter { $0.isSubscribed }
-            .sorted { lhs, rhs in
-                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            }
-    }
-
     private var isLoading: Bool {
-        organizationsViewModel.isLoading && followedOrganizations.isEmpty
+        isLoadingSubscriptions && followedOrganizations.isEmpty
     }
 
     var body: some View {
@@ -332,13 +407,13 @@ struct FollowedOrganizationsView: View {
             followedOrganizationsContent
         }
         .task {
-            await organizationsViewModel.loadIfNeeded()
+            await refreshSubscriptions()
         }
         .refreshable {
-            await organizationsViewModel.refresh()
+            await refreshSubscriptions()
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
-            Task { await organizationsViewModel.refresh() }
+            Task { await refreshSubscriptions() }
         }
     }
 
@@ -346,12 +421,14 @@ struct FollowedOrganizationsView: View {
     private var followedOrganizationsContent: some View {
         if isLoading {
             LoadingStateCard(title: AppStrings.Profile.organizationSubscriptions)
-        } else if let error = organizationsViewModel.error, followedOrganizations.isEmpty {
-            ProfileDestinationEmptyStateCard(
-                systemImage: "exclamationmark.triangle",
+        } else if let error = subscriptionsError, followedOrganizations.isEmpty {
+            ErrorStateCard(
                 title: AppStrings.Profile.organizationSubscriptions,
-                message: followedOrganizationsErrorMessage(error)
-            )
+                message: followedOrganizationsErrorMessage(error),
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task { await refreshSubscriptions() }
+            }
         } else if followedOrganizations.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "person.2",
@@ -359,7 +436,10 @@ struct FollowedOrganizationsView: View {
                 message: AppStrings.Profile.subscriptionsEmpty
             )
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                if let error = subscriptionsError {
+                    InlineMessageCard(style: .error, message: followedOrganizationsErrorMessage(error))
+                }
                 ForEach(followedOrganizations) { organization in
                     NavigationLink {
                         OrganizationDetailView(
@@ -372,6 +452,28 @@ struct FollowedOrganizationsView: View {
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+
+    private func refreshSubscriptions() async {
+        guard !isLoadingSubscriptions else { return }
+        isLoadingSubscriptions = true
+        defer { isLoadingSubscriptions = false }
+
+        do {
+            followedOrganizations = try await organizationRepository.fetchSubscribedOrganizations()
+            for organization in followedOrganizations {
+                if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == organization.id }) {
+                    organizationsViewModel.organizations[index] = organization
+                } else {
+                    organizationsViewModel.organizations.append(organization)
+                }
+            }
+            subscriptionsError = nil
+        } catch let error as AppError {
+            subscriptionsError = error
+        } catch {
+            subscriptionsError = .unknown
         }
     }
 
@@ -395,7 +497,7 @@ private struct SavedNewsCard: View {
     let post: NewsPost
 
     var body: some View {
-        AppEditorSectionCard {
+        SoftContentCard(padding: AppTheme.rowCardPadding) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "newspaper")
                     .font(.subheadline.weight(.semibold))
@@ -434,7 +536,7 @@ private struct SavedEventCard: View {
     let event: Event
 
     var body: some View {
-        AppEditorSectionCard {
+        SoftContentCard(padding: AppTheme.rowCardPadding) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "calendar")
                     .font(.subheadline.weight(.semibold))
@@ -473,7 +575,7 @@ struct ProfileOrganizationListCard: View {
     let organization: Organization
 
     var body: some View {
-        AppEditorSectionCard {
+        SoftContentCard(padding: AppTheme.rowCardPadding) {
             HStack(alignment: .center, spacing: 12) {
                 AppFeedThumbnail(
                     imageURL: organization.imageURL,

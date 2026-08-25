@@ -1,4 +1,5 @@
 import Combine
+import FirebaseAuth
 import Foundation
 
 @MainActor
@@ -10,6 +11,7 @@ final class MyRegistrationsViewModel: ObservableObject {
 
     private let repository: EventRepository
     private let registrationMutator: EventRegistrationMutating
+    private let localEventReminderService: LocalEventReminderServiceProtocol?
     private var loadTask: Task<Void, Never>?
     private var cancellationTasks: [String: Task<EventRegistrationMutationResult, Error>] = [:]
     private var cancellationOperationIDs: [String: UUID] = [:]
@@ -23,6 +25,7 @@ final class MyRegistrationsViewModel: ObservableObject {
         registrationMutator: EventRegistrationMutating? = nil
     ) {
         self.repository = repository
+        self.localEventReminderService = localEventReminderService
         if let registrationMutator {
             self.registrationMutator = registrationMutator
         } else {
@@ -125,6 +128,9 @@ final class MyRegistrationsViewModel: ObservableObject {
             }
             if result.didChange {
                 ActivityLogRecorder.recordEvent(event, actionType: .canceledEventRegistration)
+                if let userID = AuthService.shared.currentUser?.uid {
+                    localEventReminderService?.cancelEventReminder(eventID: eventID, userID: userID)
+                }
             }
             error = nil
         } catch is CancellationError {

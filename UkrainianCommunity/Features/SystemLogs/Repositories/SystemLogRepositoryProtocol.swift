@@ -7,12 +7,20 @@ protocol SystemLogRepositoryProtocol {
         limit: Int
     ) async throws -> [SystemLogEntry]
 
+    func fetchNextPage() async throws -> [SystemLogEntry]
+
     func fetchLog(id: String) async throws -> SystemLogEntry?
 
     func markReviewed(logID: String, reviewedByUserId: String) async throws
+
+    func clearAllLogs() async throws -> Int
 }
 
 extension SystemLogRepositoryProtocol {
+    func fetchNextPage() async throws -> [SystemLogEntry] { [] }
+
+    func clearAllLogs() async throws -> Int { 0 }
+
     func fetchLogs(
         filter: SystemLogFilter = .empty,
         sortOption: SystemLogSortOption = .newestFirst,

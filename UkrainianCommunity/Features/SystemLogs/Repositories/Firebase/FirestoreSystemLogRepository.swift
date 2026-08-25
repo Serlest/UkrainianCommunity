@@ -1,9 +1,11 @@
 import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 
 final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLoggingServiceProtocol {
     private let collection: CollectionReference
     private let redactionPolicy: SystemLogRedactionPolicy
+    private let functions: Functions
 
     private var lastFilter: SystemLogFilter = .empty
     private var lastSortOption: SystemLogSortOption = .newestFirst
@@ -12,9 +14,11 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
 
     init(
         database: Firestore = Firestore.firestore(),
+        functions: Functions = Functions.functions(region: "europe-west3"),
         redactionPolicy: SystemLogRedactionPolicy = .default
     ) {
         collection = database.collection(SystemLogFirestoreContract.collectionPath)
+        self.functions = functions
         self.redactionPolicy = redactionPolicy
     }
 
@@ -54,13 +58,20 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
     }
 
     func createLog(from draft: SystemLogDraft) async throws -> SystemLogEntry {
+        let redactedDraft = redactionPolicy.redactedDraft(from: draft)
+
+        if redactedDraft.category == .diagnostics {
+            return try await createServerDiagnostic(from: redactedDraft)
+        }
+
         let id = UUID().uuidString
         let createdAt = Date()
-        let redactedDraft = redactionPolicy.redactedDraft(from: draft)
         let entry = SystemLogEntry(id: id, createdAt: createdAt, draft: redactedDraft)
         let dto = FirestoreSystemLogDTO(entry: entry)
+        var data = dto.data
+        data[SystemLogFirestoreContract.Field.createdAt.rawValue] = FieldValue.serverTimestamp()
 
-        try await collection.document(id).setData(dto.data)
+        try await collection.document(id).setData(data)
         return entry
     }
 
@@ -78,6 +89,12 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
 
     func log(_ draft: SystemLogDraft) async throws {
         _ = try await createLog(from: draft)
+    }
+
+    func clearAllLogs() async throws -> Int {
+        let callable: Callable<EmptySystemLogRequest, ClearSystemLogsFunctionResponse> =
+            functions.httpsCallable("clearSystemLogs")
+        return try await callable.call(EmptySystemLogRequest()).deletedCount
     }
 
     private func fetchPage(
@@ -109,7 +126,16 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
         query = apply(filter.severities.map(\.rawValue), field: field.severity, to: query)
         query = apply(filter.eventTypes.map(\.rawValue), field: field.eventType, to: query)
         query = apply(filter.actorRoles.map(\.rawValue), field: field.actorRole, to: query)
+        query = apply(filter.targetTypes.map(\.rawValue), field: field.targetType, to: query)
         query = apply(filter.outcomes.map(\.rawValue), field: field.outcome, to: query)
+
+        if let actorUserId = filter.actorUserId {
+            query = query.whereField(field.actorUserId.rawValue, isEqualTo: actorUserId)
+        }
+
+        if let targetId = filter.targetId {
+            query = query.whereField(field.targetId.rawValue, isEqualTo: targetId)
+        }
 
         if let organizationId = filter.organizationId {
             query = query.whereField(field.organizationId.rawValue, isEqualTo: organizationId)
@@ -125,6 +151,10 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
 
         if let endDate = filter.endDate {
             query = query.whereField(field.createdAt.rawValue, isLessThanOrEqualTo: Timestamp(date: endDate))
+        }
+
+        if let isAppAdminReadable = filter.isAppAdminReadable {
+            query = query.whereField(field.isAppAdminReadable.rawValue, isEqualTo: isAppAdminReadable)
         }
 
         // Intentionally not applying searchText in Firestore. Full-text search can be handled
@@ -165,4 +195,70 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
             return query.order(by: field.createdAt.rawValue, descending: true)
         }
     }
+
+    private func createServerDiagnostic(from draft: SystemLogDraft) async throws -> SystemLogEntry {
+        let request = SystemDiagnosticFunctionRequest(draft: draft)
+        let callable: Callable<SystemDiagnosticFunctionRequest, SystemDiagnosticFunctionResponse> =
+            functions.httpsCallable("writeClientDiagnostic")
+        let response = try await callable.call(request)
+        let createdAt = ISO8601DateFormatter().date(from: response.createdAt) ?? Date()
+        return SystemLogEntry(
+            id: response.id,
+            createdAt: createdAt,
+            draft: draft
+        )
+    }
+}
+
+private struct SystemDiagnosticFunctionRequest: Encodable {
+    let eventType: String
+    let severity: String
+    let targetType: String
+    let targetId: String?
+    let targetTitle: String?
+    let organizationId: String?
+    let organizationName: String?
+    let summary: String
+    let technicalMessage: String?
+    let errorCode: String?
+    let moduleName: String?
+    let screenName: String?
+    let operationName: String?
+    let appVersion: String?
+    let osVersion: String?
+    let deviceModel: String?
+    let metadata: [String: String]
+    let correlationId: String?
+
+    init(draft: SystemLogDraft) {
+        eventType = draft.eventType.rawValue
+        severity = draft.severity.rawValue
+        targetType = draft.targetType.rawValue
+        targetId = draft.targetId
+        targetTitle = draft.targetTitle
+        organizationId = draft.organizationId
+        organizationName = draft.organizationName
+        summary = draft.summary
+        technicalMessage = draft.technicalMessage
+        errorCode = draft.errorCode
+        moduleName = draft.moduleName
+        screenName = draft.screenName
+        operationName = draft.operationName
+        appVersion = draft.appVersion
+        osVersion = draft.osVersion
+        deviceModel = draft.deviceModel
+        metadata = draft.metadata
+        correlationId = draft.correlationId
+    }
+}
+
+private struct SystemDiagnosticFunctionResponse: Decodable {
+    let id: String
+    let createdAt: String
+}
+
+private struct EmptySystemLogRequest: Encodable {}
+
+private struct ClearSystemLogsFunctionResponse: Decodable {
+    let deletedCount: Int
 }
