@@ -1,6 +1,6 @@
 # Impressum und Offenlegung
 
-Version 2026.10 · Entwurf – noch nicht veröffentlicht
+Version 2026.10 · Veröffentlicht am 25. August 2026
 
 ## Anbieterinformation
 

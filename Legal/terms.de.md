@@ -1,6 +1,6 @@
 # Nutzungsbedingungen für UkrainianCommunity
 
-Version 2026.10 · Stand 25. August 2026 · Entwurf – noch nicht veröffentlicht
+Version 2026.10 · Veröffentlicht am 25. August 2026 · Gültig ab 25. August 2026
 
 ## 1. Anbieter und Geltungsbereich
 

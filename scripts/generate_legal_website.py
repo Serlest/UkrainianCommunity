@@ -156,7 +156,7 @@ def page_template(slug: str, de_source: str, uk_source: str) -> str:
     report_action = ""
     if slug == "report-illegal-content":
         report_action = (ROOT / "website/assets/dsa-portal.html").read_text(encoding="utf-8")
-    return f"""<!DOCTYPE html>
+    rendered = f"""<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="utf-8">
@@ -209,6 +209,7 @@ def page_template(slug: str, de_source: str, uk_source: str) -> str:
 </body>
 </html>
 """
+    return "\n".join(line.rstrip() for line in rendered.splitlines()) + "\n"
 
 
 def main() -> None:

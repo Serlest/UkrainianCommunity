@@ -1,18 +1,19 @@
 # UkrainianCommunity legal source of truth
 
-This directory contains the release-controlled legal drafts for the app and its
-public website. The German text is the canonical legal draft; the Ukrainian text
-is the user-facing translation. Neither language may be published independently.
+This directory contains the release-controlled legal documents for the app and
+its public website. The German text is the canonical legal text; the Ukrainian
+text is the user-facing translation. Neither language may be published
+independently.
 
-Current draft version: `2026.10`
+Current published version: `2026.10`, effective 25 August 2026.
 
-The operator identity, address and retention choices are filled. Publication is
-still blocked by the items in `legal-manifest.json`, especially qualified
-Austrian legal review and the public notice-and-action/appeal workflow. Any
-future `{{...}}` placeholder also blocks publication.
+The operator identity, address and retention choices are filled. The public
+notice-and-action and appeal workflow is implemented. Any future `{{...}}`
+placeholder or item in `unresolvedReleaseBlocks` blocks publication.
 
-The documents are engineering drafts based on the product's implemented data
-flows. They are not a substitute for review by an Austrian lawyer.
+The documents are operator-approved texts based on the product's implemented
+data flows. Qualified review by an Austrian lawyer remains recommended and is
+not represented as completed.
 
 Run before every release:
 

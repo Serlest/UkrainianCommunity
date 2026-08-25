@@ -83,6 +83,9 @@ def main() -> int:
         return 1
 
     expected_version = manifest.get("version")
+    publication_status = manifest.get("status", "draft")
+    if publication_status not in {"draft", "published"}:
+        failures.append("legal-manifest.json status must be draft or published")
     locales = manifest.get("supportedLocales")
     if locales != ["de", "uk"]:
         failures.append("legal-manifest.json must declare German and Ukrainian locales")
@@ -106,7 +109,13 @@ def main() -> int:
                 failures.append(
                     f"{relative} must declare manifest version {expected_version}"
                 )
-            if "noch nicht veröffentlicht" not in content and "ще не опублікована" not in content:
+            has_draft_marker = (
+                "noch nicht veröffentlicht" in content
+                or "ще не опублікована" in content
+            )
+            if publication_status == "published" and has_draft_marker:
+                failures.append(f"{relative} is published but still carries a draft marker")
+            elif publication_status == "draft" and not has_draft_marker:
                 warnings.append(f"{relative} no longer carries the draft marker")
 
     for marker, description in REQUIRED_PRIVACY_MARKERS.items():
@@ -190,7 +199,10 @@ def main() -> int:
 
     if failures:
         return 1
-    print(f"Legal document structure passed for draft {expected_version}.")
+    print(
+        "Legal document structure passed for "
+        f"{publication_status} version {expected_version}."
+    )
     if not args.release:
         print("Run with --release to enforce publication readiness.")
     return 0

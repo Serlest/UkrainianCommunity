@@ -1,5 +1,6 @@
 {
   "version": "2026.10",
+  "status": "published",
   "effectiveDate": "2026-08-25",
   "canonicalLocale": "de",
   "supportedLocales": ["de", "uk"],
@@ -37,8 +38,8 @@
       "files": {"de": "Legal/organization-rules.de.md", "uk": "Legal/organization-rules.uk.md"}
     }
   },
-  "unresolvedReleaseBlocks": [
-    "qualified Austrian legal review",
-    "public DSA notice-and-action workflow and appeal workflow"
+  "unresolvedReleaseBlocks": [],
+  "releaseRecommendations": [
+    "qualified Austrian legal review before launch and after material legal changes"
   ]
 }
