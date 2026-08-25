@@ -42,7 +42,8 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         }
 
         return organizations.sorted {
-            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            let result = LocalizationStore.compareForSorting($0.name, $1.name)
+            return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
         }
     }
 
@@ -70,7 +71,8 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         }
 
         return organizations.sorted {
-            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            let result = LocalizationStore.compareForSorting($0.name, $1.name)
+            return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
         }
     }
 
@@ -277,6 +279,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setUpdateValue(organization.latitude, forKey: "latitude", in: &data)
         setUpdateValue(organization.longitude, forKey: "longitude", in: &data)
         setUpdateValue(organization.organizationType, forKey: "organizationType", in: &data)
+        setUpdateValue(makeDirectoryProfileData(organization.directoryProfile), forKey: "directoryProfile", in: &data)
         setUpdateValue(organization.foundedYear, forKey: "foundedYear", in: &data)
         setUpdateValue(organization.foundedMonth, forKey: "foundedMonth", in: &data)
         setUpdateValue(organization.telegramURL, forKey: "telegramURL", in: &data)
@@ -887,6 +890,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             latitude: data["latitude"] as? Double,
             longitude: data["longitude"] as? Double,
             organizationType: data["organizationType"] as? String,
+            directoryProfile: makeDirectoryProfile(from: data["directoryProfile"]),
             foundedYear: data["foundedYear"] as? Int,
             foundedMonth: data["foundedMonth"] as? Int,
             languages: data["languages"] as? [String],
@@ -976,6 +980,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             latitude: organization.latitude,
             longitude: organization.longitude,
             organizationType: organization.organizationType,
+            directoryProfile: organization.directoryProfile,
             foundedYear: organization.foundedYear,
             foundedMonth: organization.foundedMonth,
             languages: organization.languages,
@@ -1053,6 +1058,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setCreateValue(organization.latitude, forKey: "latitude", in: &data)
         setCreateValue(organization.longitude, forKey: "longitude", in: &data)
         setCreateValue(organization.organizationType, forKey: "organizationType", in: &data)
+        setCreateValue(makeDirectoryProfileData(organization.directoryProfile), forKey: "directoryProfile", in: &data)
         setCreateValue(organization.foundedYear, forKey: "foundedYear", in: &data)
         setCreateValue(organization.foundedMonth, forKey: "foundedMonth", in: &data)
         setCreateValue(organization.telegramURL, forKey: "telegramURL", in: &data)
@@ -1099,6 +1105,53 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
     private func setUpdateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {
         data[key] = value ?? FieldValue.delete()
+    }
+
+    private func makeDirectoryProfile(from value: Any?) -> OrganizationDirectoryProfile? {
+        guard let data = value as? [String: Any],
+              let rawKind = data["profileKind"] as? String,
+              let profileKind = OrganizationProfileKind(rawValue: rawKind) else {
+            return nil
+        }
+
+        let regularHours = data["regularHours"] as? [String: String] ?? [:]
+        let serviceModes = (data["serviceModes"] as? [String] ?? [])
+            .compactMap(OrganizationServiceMode.init(rawValue:))
+        return OrganizationDirectoryProfile(
+            profileKind: profileKind,
+            secondaryCategories: data["secondaryCategories"] as? [String] ?? [],
+            serviceModes: serviceModes,
+            serviceArea: data["serviceArea"] as? String,
+            regularHours: regularHours,
+            specialHoursNote: data["specialHoursNote"] as? String,
+            services: data["services"] as? [String] ?? [],
+            orderURL: data["orderURL"] as? String,
+            bookingURL: data["bookingURL"] as? String,
+            currentOfferTitle: data["currentOfferTitle"] as? String,
+            currentOfferDetails: data["currentOfferDetails"] as? String,
+            currentOfferURL: data["currentOfferURL"] as? String,
+            currentOfferValidUntil: (data["currentOfferValidUntil"] as? Timestamp)?.dateValue()
+        )
+    }
+
+    private func makeDirectoryProfileData(_ profile: OrganizationDirectoryProfile?) -> [String: Any]? {
+        guard let profile else { return nil }
+        var data: [String: Any] = [
+            "profileKind": profile.profileKind.rawValue,
+            "secondaryCategories": profile.secondaryCategories,
+            "serviceModes": profile.serviceModes.map(\.rawValue),
+            "regularHours": profile.regularHours,
+            "services": profile.services
+        ]
+        setCreateValue(profile.serviceArea, forKey: "serviceArea", in: &data)
+        setCreateValue(profile.specialHoursNote, forKey: "specialHoursNote", in: &data)
+        setCreateValue(profile.orderURL, forKey: "orderURL", in: &data)
+        setCreateValue(profile.bookingURL, forKey: "bookingURL", in: &data)
+        setCreateValue(profile.currentOfferTitle, forKey: "currentOfferTitle", in: &data)
+        setCreateValue(profile.currentOfferDetails, forKey: "currentOfferDetails", in: &data)
+        setCreateValue(profile.currentOfferURL, forKey: "currentOfferURL", in: &data)
+        setCreateValue(profile.currentOfferValidUntil.map(Timestamp.init(date:)), forKey: "currentOfferValidUntil", in: &data)
+        return data
     }
 
     private func organizationBookmarkReference(organizationID: String, userID: String) -> DocumentReference {

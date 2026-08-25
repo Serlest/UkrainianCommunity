@@ -50,7 +50,10 @@ export function normalizeUserSearchQuery(value: unknown): string {
   const normalized = value
     .trim()
     .toLocaleLowerCase("uk-UA")
-    .normalize("NFKC");
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
   if (normalized.length < 2) {
     throw new HttpsError("invalid-argument", "query must contain at least 2 characters.");
   }
@@ -83,8 +86,15 @@ export function userDocumentMatchesSearch(
   normalizedQuery: string
 ): boolean {
   const values = [documentId, ...searchableFields.map((field) => data[field])];
-  return values.some((value) => typeof value === "string"
-    && value.toLocaleLowerCase("uk-UA").normalize("NFKC").includes(normalizedQuery));
+  const searchableText = values
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLocaleLowerCase("uk-UA")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ");
+  const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  return tokens.every((token) => searchableText.includes(token));
 }
 
 export const searchManagedUsers = onCall(

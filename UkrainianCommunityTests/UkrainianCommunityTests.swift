@@ -29,6 +29,63 @@ private actor RecordingFeedbackRepository: FeedbackRepository {
 
 @MainActor
 struct UkrainianCommunityTests {
+    @Test func localSearchMatchesMultipleWordsAcrossFieldsAndIgnoresDiacritics() {
+        #expect(LocalSearchMatcher.matches(
+            query: "Muller Wien",
+            values: ["Café Müller", "Wien Neubau"]
+        ))
+        #expect(LocalSearchMatcher.matches(
+            query: "українські продукти",
+            values: ["Українські товари", "Продукти з доставкою"]
+        ))
+        #expect(!LocalSearchMatcher.matches(
+            query: "Muller Salzburg",
+            values: ["Café Müller", "Wien Neubau"]
+        ))
+    }
+
+    @Test func emptyOrPunctuationOnlySearchDoesNotHideContent() {
+        #expect(LocalSearchMatcher.matches(query: "   —  ", values: ["Будь-який запис"]))
+        #expect(!LocalSearchMatcher.hasQuery("   —  "))
+    }
+
+    @Test func organizationDirectoryProfileNormalizesUserInputAndCapsLists() {
+        let profile = OrganizationDirectoryProfile(
+            profileKind: .business,
+            secondaryCategories: ["retail", "ukrainianProducts", "support"],
+            serviceModes: [.delivery, .pickup, .delivery],
+            serviceArea: "  Wien und Umgebung  ",
+            regularHours: ["monday": "09:00-18:00", "": "ignored"],
+            services: [
+                " Lebensmittel ", "Lebensmittel", "Geschenkkörbe", "Beratung",
+                "Lieferung", "Abholung", "Catering", "Bestellung", "Neunte Leistung"
+            ],
+            orderURL: "  https://example.com/order  "
+        )
+
+        #expect(profile.secondaryCategories == ["retail", "ukrainianProducts"])
+        #expect(profile.serviceModes == [.delivery, .pickup])
+        #expect(profile.serviceArea == "Wien und Umgebung")
+        #expect(profile.regularHours == ["monday": "09:00-18:00"])
+        #expect(profile.services.count == OrganizationDirectoryProfile.maximumServiceCount)
+        #expect(profile.services.first == "Lebensmittel")
+        #expect(profile.orderURL == "https://example.com/order")
+    }
+
+    @Test func organizationValidationRequiresARealCity() {
+        let errors = OrganizationValidationService().validate(
+            name: "Ukrainian Market",
+            shortDescription: "Ukrainian products and delivery in Vienna.",
+            region: .wien,
+            city: "   ",
+            email: "shop@example.com",
+            website: "https://example.com",
+            foundedYear: "2024"
+        )
+
+        #expect(errors.contains(AppStrings.Validation.organizationCityRequired))
+    }
+
     @Test func analyticsRequiresExplicitConsentAndPersistsTheChoice() {
         let suiteName = "AnalyticsConsentServiceTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -126,6 +183,8 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canManageReports(user: owner))
         #expect(PermissionService.canManageFeaturedBanners(user: owner))
         #expect(PermissionService.canUseOrganizationOverride(user: owner))
+        #expect(PermissionService.canAccessBlockedUsersSettings(user: owner))
+        #expect(PermissionService.canSendTestNotification(user: owner))
 
         #expect(PermissionService.canManageOrganizationRequests(user: admin))
         #expect(PermissionService.canAccessModerationTools(user: admin))
@@ -138,9 +197,13 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canPermanentlyBan(user: admin))
         #expect(PermissionService.canAssignAppAdmin(user: admin) == false)
         #expect(PermissionService.canUseOrganizationOverride(user: admin) == false)
+        #expect(PermissionService.canAccessBlockedUsersSettings(user: admin))
+        #expect(PermissionService.canSendTestNotification(user: admin) == false)
 
         #expect(PermissionService.canManageUsers(user: normalUser) == false)
         #expect(PermissionService.canAccessModerationTools(user: normalUser) == false)
+        #expect(PermissionService.canAccessBlockedUsersSettings(user: normalUser))
+        #expect(PermissionService.canSendTestNotification(user: normalUser) == false)
     }
 
     @Test func restrictedAndLegacyPlatformRolesDoNotGrantElevatedAccess() {
@@ -171,6 +234,19 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canAccessModerationTools(user: legacyTopAdmin) == false)
         #expect(GlobalRole(rawValue: "moderator") == nil)
         #expect(GlobalRole(rawValue: "appModerator") == nil)
+    }
+
+    @Test func userManagementTargetHierarchyProtectsOwnerAndAppAdmins() {
+        let owner = makeUser(id: "owner", globalRole: .owner)
+        let adminA = makeUser(id: "admin-a", globalRole: .admin)
+        let adminB = makeUser(id: "admin-b", globalRole: .admin)
+        let normalUser = makeUser(id: "normal-user", globalRole: .user)
+
+        #expect(PermissionService.canManageUserTarget(actor: owner, target: adminA))
+        #expect(PermissionService.canManageUserTarget(actor: adminA, target: normalUser))
+        #expect(PermissionService.canManageUserTarget(actor: adminA, target: adminB) == false)
+        #expect(PermissionService.canManageUserTarget(actor: adminA, target: owner) == false)
+        #expect(PermissionService.canManageUserTarget(actor: owner, target: owner) == false)
     }
 
     @Test func authStateSupportsRestoringGuestAndAuthenticatedSessions() async {
@@ -367,6 +443,104 @@ struct UkrainianCommunityTests {
 
         #expect(germanHome == repeatedGermanHome)
         #expect(germanHome != ukrainianHome)
+    }
+
+    @Test func languagePickerTitlesRemainCorrectDuringLocaleSwitch() {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+
+        AppLanguage.stored = .ukrainian
+        #expect(AppLanguage.german.title == "Deutsch")
+
+        AppLanguage.stored = .german
+        #expect(AppLanguage.ukrainian.title == "Українська")
+    }
+
+    @Test func profileStringsSwitchBetweenGermanAndUkrainian() {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+
+        AppLanguage.stored = .german
+        let germanSettings = AppStrings.Profile.settingsSection
+        let germanUsers = AppStrings.UserManagement.title
+        let germanNotifications = AppStrings.NotificationInbox.title
+        let germanSystemLogs = AppStrings.SystemLogs.ownerTitle
+
+        AppLanguage.stored = .ukrainian
+        #expect(AppStrings.Profile.settingsSection != germanSettings)
+        #expect(AppStrings.UserManagement.title != germanUsers)
+        #expect(AppStrings.NotificationInbox.title != germanNotifications)
+        #expect(AppStrings.SystemLogs.ownerTitle != germanSystemLogs)
+    }
+
+    @Test func sortingControlsSwitchBetweenGermanAndUkrainian() {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+
+        AppLanguage.stored = .german
+        #expect(AppStrings.Sorting.title == "Sortierung")
+        #expect(AppStrings.Sorting.newest == "Neueste zuerst")
+        #expect(AppStrings.SystemLogs.sortSeverityHigh == "Stufe: kritisch zuerst")
+
+        AppLanguage.stored = .ukrainian
+        #expect(AppStrings.Sorting.title == "Сортування")
+        #expect(AppStrings.Sorting.newest == "Спочатку нові")
+        #expect(AppStrings.SystemLogs.sortSeverityHigh == "Рівень: від критичного")
+    }
+
+    @Test func notificationSettingsSwitchBetweenGermanAndUkrainian() {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+
+        AppLanguage.stored = .german
+        #expect(AppStrings.Profile.notificationsEnabled == "Push-Benachrichtigungen")
+        #expect(AppStrings.Profile.eventRemindersEnabled == "Veranstaltungserinnerungen")
+        #expect(AppStrings.Profile.reminderLeadTime == "Zeitpunkt der Erinnerung")
+        #expect(AppStrings.profileNotificationReminderMinutes(30) == "30 Min.")
+
+        AppLanguage.stored = .ukrainian
+        #expect(AppStrings.Profile.notificationsEnabled == "Push-сповіщення")
+        #expect(AppStrings.Profile.eventRemindersEnabled == "Нагадування про події")
+        #expect(AppStrings.Profile.reminderLeadTime == "Час нагадування")
+        #expect(AppStrings.profileNotificationReminderMinutes(30) == "30 хв")
+    }
+
+    @Test func accountStatusInboxContentUsesSelectedLanguageAndReason() {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+        let notification = AppNotification(
+            id: "status-1",
+            recipientUserId: "user-1",
+            type: .accountStatusChanged,
+            sourceType: .account,
+            sourceId: "user-1",
+            severity: .warning,
+            actionType: .openProfile,
+            actionTargetId: "user-1",
+            requiresPopup: false,
+            popupPresentedAt: nil,
+            expiresAt: nil,
+            archivedAt: nil,
+            deletedAt: nil,
+            title: "Account temporarily suspended",
+            message: "Your account is temporarily suspended.",
+            metadata: ["newAccountStatus": "suspendedUntil", "reason": "Custom reason"],
+            payload: [:],
+            isRead: false,
+            readAt: nil,
+            createdAt: .now
+        )
+
+        AppLanguage.stored = .german
+        let germanContent = notification.localizedDisplayContent
+        #expect(germanContent.title == AppStrings.AccountStatusAlert.suspendedTitle)
+        #expect(germanContent.body.contains("Custom reason"))
+
+        AppLanguage.stored = .ukrainian
+        let ukrainianContent = notification.localizedDisplayContent
+        #expect(ukrainianContent.title == AppStrings.AccountStatusAlert.suspendedTitle)
+        #expect(ukrainianContent.title != germanContent.title)
+        #expect(ukrainianContent.body.contains("Custom reason"))
     }
 
     @Test func selectedLanguageAffectsCurrencyFormatting() {

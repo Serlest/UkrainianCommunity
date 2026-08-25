@@ -56,6 +56,7 @@ struct ActivityHistoryView: View {
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var selectedSegment: ActivityHistorySegment = .all
+    @State private var sortOption: AppListSortOption = .newest
     @State private var isShowingClearConfirmation = false
 
     init(
@@ -77,7 +78,7 @@ struct ActivityHistoryView: View {
     private var filteredItems: [ActivityLogItem] {
         activityLogViewModel.items
             .filter { selectedSegment.matches($0) }
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted(by: activitySort)
     }
 
     private var isLoading: Bool {
@@ -107,6 +108,11 @@ struct ActivityHistoryView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                AppSortMenu(
+                    selection: $sortOption,
+                    options: [.newest, .oldest, .nameAscending, .nameDescending]
+                )
             }
 
             activityHistoryContent
@@ -183,6 +189,33 @@ struct ActivityHistoryView: View {
         case .unknown:
             return AppStrings.News.loadUnknownError
         }
+    }
+
+    private func activitySort(_ lhs: ActivityLogItem, _ rhs: ActivityLogItem) -> Bool {
+        switch sortOption {
+        case .newest:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
+        case .oldest:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt < rhs.createdAt
+        case .nameAscending:
+            compareTitles(lhs.title, rhs.title, lhsID: lhs.id, rhsID: rhs.id, ascending: true)
+        case .nameDescending:
+            compareTitles(lhs.title, rhs.title, lhsID: lhs.id, rhsID: rhs.id, ascending: false)
+        case .popular:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
+        }
+    }
+
+    private func compareTitles(
+        _ lhs: String,
+        _ rhs: String,
+        lhsID: String,
+        rhsID: String,
+        ascending: Bool
+    ) -> Bool {
+        let result = LocalizationStore.compareForSorting(lhs, rhs)
+        guard result != .orderedSame else { return lhsID < rhsID }
+        return ascending ? result == .orderedAscending : result == .orderedDescending
     }
 
     @ViewBuilder

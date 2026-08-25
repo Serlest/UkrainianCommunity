@@ -446,6 +446,18 @@ struct EventMapPickerView: View {
                 .focused($isSearchFocused)
                 .submitLabel(.search)
                 .onSubmit { isSearchFocused = false }
+
+            if search.isSearching {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            if LocalSearchMatcher.hasQuery(query) {
+                AppSearchClearButton {
+                    query = ""
+                    search.clear()
+                }
+            }
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
         .frame(minHeight: AppTheme.searchControlHeight)

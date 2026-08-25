@@ -224,7 +224,8 @@ struct EventEditorView: View {
         let organizations = organizerOrganizationsViewModel.organizations
             .filter { $0.id != Organization.systemOrganizationID }
             .sorted { lhs, rhs in
-                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                let result = LocalizationStore.compareForSorting(lhs.name, rhs.name)
+                return result == .orderedSame ? lhs.id < rhs.id : result == .orderedAscending
             }
 
         return PermissionService.manageableOrganizations(from: organizations, user: user)

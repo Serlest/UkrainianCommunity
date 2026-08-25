@@ -15,6 +15,12 @@ struct ContentEditorValidationTests {
         #expect(newsValidator.firstIssue(in: newsInput(body: "")) == .bodyRequired)
         #expect(newsValidator.firstIssue(in: newsInput(hasOrganizer: false)) == .organizationRequired)
         #expect(newsValidator.firstIssue(in: newsInput(federalState: nil)) == .organizationRegionRequired)
+        #expect(newsValidator.firstIssue(in: newsInput(title: String(repeating: "a", count: 121))) == .titleTooLong)
+        #expect(newsValidator.firstIssue(in: newsInput(summary: String(repeating: "a", count: 201))) == .summaryTooLong)
+        #expect(newsValidator.firstIssue(in: newsInput(body: String(repeating: "a", count: 10_001))) == .bodyTooLong)
+        #expect(newsValidator.firstIssue(in: newsInput(sourceInput: "ftp://example.org")) == .invalidSource)
+        #expect(newsValidator.firstIssue(in: newsInput(tags: (1...9).map { "tag\($0)" })) == .tooManyTags)
+        #expect(newsValidator.firstIssue(in: newsInput(tags: [String(repeating: "a", count: 31)])) == .tagTooLong)
     }
 
     @Test func eventValidatorCoversEveryProductionRequirement() {
@@ -75,14 +81,18 @@ struct ContentEditorValidationTests {
         summary: String = "Short summary",
         body: String = "Body",
         hasOrganizer: Bool = true,
-        federalState: AustrianFederalState? = .tirol
+        federalState: AustrianFederalState? = .tirol,
+        sourceInput: String = "",
+        tags: [String] = []
     ) -> NewsValidationInput {
         NewsValidationInput(
             title: title,
             summary: summary,
             body: body,
             hasOrganizer: hasOrganizer,
-            federalState: federalState
+            federalState: federalState,
+            sourceInput: sourceInput,
+            tags: tags
         )
     }
 

@@ -1218,7 +1218,23 @@ service cloud.firestore {
     }
 
     function canEditOrganizationInfo(organizationId) {
-      return canUseOrganizationOverride() || isOrganizationOwner(organizationId) || isOrganizationAdmin(organizationId);
+      return isVerifiedActiveUser()
+        && organizationId is string
+        && (
+          (
+            ('globalRole' in currentUserData())
+            && currentUserData().globalRole == 'owner'
+          )
+          || (
+            ('ownerId' in resource.data)
+            && resource.data.ownerId == request.auth.uid
+          )
+          || (
+            ('adminIds' in resource.data)
+            && resource.data.adminIds is list
+            && resource.data.adminIds.hasAny([request.auth.uid])
+          )
+        );
     }
 
     function organizationSafeInfoFields() {
@@ -1241,6 +1257,7 @@ service cloud.firestore {
         'city',
         'federalState',
         'organizationType',
+        'directoryProfile',
         'foundedYear',
         'foundedMonth',
         'languages',
@@ -1264,10 +1281,49 @@ service cloud.firestore {
         || data.regionScope in ['austria', 'federalState', 'city'];
     }
 
+    function organizationHasValidDirectoryProfile(data) {
+      return !('directoryProfile' in data)
+        || (
+          data.directoryProfile is map
+          && data.directoryProfile.keys().hasOnly([
+            'profileKind',
+            'secondaryCategories',
+            'serviceModes',
+            'serviceArea',
+            'regularHours',
+            'specialHoursNote',
+            'services',
+            'orderURL',
+            'bookingURL',
+            'currentOfferTitle',
+            'currentOfferDetails',
+            'currentOfferURL',
+            'currentOfferValidUntil'
+          ])
+          && ('profileKind' in data.directoryProfile)
+          && data.directoryProfile.profileKind in ['community', 'business', 'restaurant', 'specialist', 'institution', 'mediaProject']
+          && (!('secondaryCategories' in data.directoryProfile)
+            || (data.directoryProfile.secondaryCategories is list
+              && data.directoryProfile.secondaryCategories.size() <= 2))
+          && (!('serviceModes' in data.directoryProfile)
+            || (data.directoryProfile.serviceModes is list
+              && data.directoryProfile.serviceModes.size() <= 5))
+          && (!('regularHours' in data.directoryProfile)
+            || (data.directoryProfile.regularHours is map
+              && data.directoryProfile.regularHours.keys().hasOnly(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])))
+          && (!('services' in data.directoryProfile)
+            || (data.directoryProfile.services is list
+              && data.directoryProfile.services.size() <= 8))
+          && (!('currentOfferValidUntil' in data.directoryProfile)
+            || data.directoryProfile.currentOfferValidUntil is timestamp)
+        );
+    }
+
     function safeOrganizationInfoUpdate(organizationId) {
       return canEditOrganizationInfo(organizationId)
-        && request.resource.data.moderationStatus == resource.data.moderationStatus
         && organizationHasValidRegionScope(request.resource.data)
+        && organizationHasValidDirectoryProfile(request.resource.data)
+        && request.resource.data.moderationStatus == resource.data.moderationStatus
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationSafeInfoFields());
     }
 
@@ -1291,6 +1347,7 @@ service cloud.firestore {
         'city',
         'federalState',
         'organizationType',
+        'directoryProfile',
         'foundedYear',
         'foundedMonth',
         'languages',
@@ -1343,6 +1400,7 @@ service cloud.firestore {
         'city',
         'federalState',
         'organizationType',
+        'directoryProfile',
         'foundedYear',
         'foundedMonth',
         'languages',
@@ -1424,7 +1482,8 @@ service cloud.firestore {
     }
 
     function safeOrganizationRequestCreate(organizationId) {
-      return isVerifiedActiveUser()
+      return organizationHasValidRegionScope(request.resource.data)
+        && organizationHasValidDirectoryProfile(request.resource.data)
         && request.resource.data.keys().hasOnly(organizationRequestCreateFields())
         && request.resource.data.id is string
         && request.resource.data.id == organizationId
@@ -1434,13 +1493,14 @@ service cloud.firestore {
         && request.resource.data.moderationStatus == 'pendingReview'
         && request.resource.data.submittedByUserId == request.auth.uid
         && request.resource.data.submittedAt is timestamp
-        && organizationHasValidRegionScope(request.resource.data)
         && requestCountersAreZero(request.resource.data)
-        && requestRolesAreEmpty(request.resource.data);
+        && requestRolesAreEmpty(request.resource.data)
+        && isVerifiedActiveUser();
     }
 
     function safeOrganizationRequestUpdate() {
-      return isVerifiedActiveUser()
+      return organizationHasValidRegionScope(request.resource.data)
+        && organizationHasValidDirectoryProfile(request.resource.data)
         && ('submittedByUserId' in resource.data)
         && resource.data.submittedByUserId == request.auth.uid
         && request.resource.data.submittedByUserId == resource.data.submittedByUserId
@@ -1451,8 +1511,8 @@ service cloud.firestore {
         && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         && request.resource.data.moderationStatus in ['pendingReview', resource.data.moderationStatus]
         && safeRequestReviewFieldsUpdate()
-        && organizationHasValidRegionScope(request.resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationRequestUpdateFields());
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationRequestUpdateFields())
+        && isVerifiedActiveUser();
     }
 
     function ownDocumentRead() {
@@ -2139,8 +2199,9 @@ service cloud.firestore {
       allow list: if canListOrganization();
       allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
       allow delete: if false;
-      allow update: if safeOrganizationInfoUpdate(organizationId)
-        || safeOrganizationRequestUpdate();
+      allow update: if resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
+        ? safeOrganizationRequestUpdate()
+        : safeOrganizationInfoUpdate(organizationId);
 
       match /photos/{photoId} {
         allow read: if canReadOrganizationByLookup(organizationId);

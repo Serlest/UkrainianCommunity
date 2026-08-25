@@ -563,18 +563,24 @@ private enum AppNotificationDisplayResolver {
                     ?? AppStrings.NotificationInbox.organizationRejectedBody(organizationName(for: notification))
             )
         case .accountStatusChanged:
-            return AppNotificationDisplayContent(
-                title: AppStrings.NotificationInbox.accountStatusChangedTitle,
-                body: AppStrings.NotificationInbox.genericBody
-            )
+            return accountStatusContent(for: notification)
         case .legalDocumentsUpdated:
             return genericContent(title: AppStrings.NotificationInbox.legalDocumentsUpdatedTitle)
         case .roleChanged:
-            return genericContent(title: AppStrings.NotificationInbox.roleChangedTitle)
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.roleChangedTitle,
+                body: roleChangeBody(for: notification)
+            )
         case .organizationRoleAssigned:
-            return genericContent(title: AppStrings.NotificationInbox.organizationRoleAssignedTitle)
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.organizationRoleAssignedTitle,
+                body: organizationRoleBody(for: notification, isRemoval: false)
+            )
         case .organizationRoleRemoved:
-            return genericContent(title: AppStrings.NotificationInbox.organizationRoleRemovedTitle)
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.organizationRoleRemovedTitle,
+                body: organizationRoleBody(for: notification, isRemoval: true)
+            )
         case .reportReviewed:
             return genericContent(title: AppStrings.NotificationInbox.reportReviewedTitle)
         case .eventUpdated:
@@ -598,6 +604,111 @@ private enum AppNotificationDisplayResolver {
 
     private static func genericContent(title: String) -> AppNotificationDisplayContent {
         AppNotificationDisplayContent(title: title, body: AppStrings.NotificationInbox.genericBody)
+    }
+
+    private static func accountStatusContent(for notification: AppNotification) -> AppNotificationDisplayContent {
+        let content: AppNotificationDisplayContent
+        switch notification.metadata["newAccountStatus"] {
+        case "warned":
+            content = .init(
+                title: AppStrings.AccountStatusAlert.warnedTitle,
+                body: AppStrings.AccountStatusAlert.warnedMessage
+            )
+        case "suspendedUntil":
+            content = .init(
+                title: AppStrings.AccountStatusAlert.suspendedTitle,
+                body: AppStrings.AccountStatusAlert.suspendedMessage
+            )
+        case "bannedPermanent":
+            content = .init(
+                title: AppStrings.AccountStatusAlert.bannedTitle,
+                body: AppStrings.AccountStatusAlert.bannedMessage
+            )
+        case "deactivated":
+            content = .init(
+                title: AppStrings.AccountStatusAlert.deactivatedTitle,
+                body: AppStrings.AccountStatusAlert.deactivatedMessage
+            )
+        case "active":
+            content = .init(
+                title: AppStrings.AccountStatusAlert.restoredTitle,
+                body: AppStrings.AccountStatusAlert.restoredMessage
+            )
+        default:
+            content = .init(
+                title: AppStrings.NotificationInbox.accountStatusChangedTitle,
+                body: firstNonEmpty(notification.message) ?? AppStrings.NotificationInbox.genericBody
+            )
+        }
+
+        guard let reason = displayReason(notification.metadata["reason"]) else {
+            return content
+        }
+        return .init(
+            title: content.title,
+            body: "\(content.body)\n\(AppStrings.AccountStatusAlert.reasonTitle): \(reason)"
+        )
+    }
+
+    private static func roleChangeBody(for notification: AppNotification) -> String {
+        let role = platformRoleName(notification.metadata["newGlobalRole"])
+        return detailsBody(
+            summary: "\(AppStrings.NotificationInbox.roleChangedTitle): \(role).",
+            reason: notification.metadata["reason"]
+        )
+    }
+
+    private static func organizationRoleBody(
+        for notification: AppNotification,
+        isRemoval: Bool
+    ) -> String {
+        let rawRole = isRemoval
+            ? notification.metadata["previousRole"]
+            : notification.metadata["newRole"]
+        let role = organizationRoleName(rawRole)
+        let title = isRemoval
+            ? AppStrings.NotificationInbox.organizationRoleRemovedTitle
+            : AppStrings.NotificationInbox.organizationRoleAssignedTitle
+        return detailsBody(summary: "\(title): \(role).", reason: notification.metadata["reason"])
+    }
+
+    private static func platformRoleName(_ rawValue: String?) -> String {
+        switch rawValue {
+        case "owner": AppStrings.UserManagement.roleGuideAppOwner
+        case "admin": AppStrings.UserManagement.roleGuideAppAdmin
+        default: AppStrings.Roles.user
+        }
+    }
+
+    private static func organizationRoleName(_ rawValue: String?) -> String {
+        switch rawValue {
+        case "communityOwner": AppStrings.Profile.communityOwner
+        case "communityAdmin": AppStrings.Profile.communityAdmin
+        case "communityModerator": AppStrings.Profile.communityModerator
+        default: AppStrings.Profile.communityMember
+        }
+    }
+
+    private static func detailsBody(summary: String, reason: String?) -> String {
+        guard let reason = displayReason(reason) else { return summary }
+        return "\(summary)\n\(AppStrings.AccountStatusAlert.reasonTitle): \(reason)"
+    }
+
+    private static func displayReason(_ reason: String?) -> String? {
+        guard let reason = firstNonEmpty(reason) else { return nil }
+        let serverDefaults: Set<String> = [
+            "Account warning issued",
+            "Account temporarily suspended",
+            "Account permanently blocked",
+            "Account deactivated",
+            "Account restored",
+            "Temporary suspension expired",
+            "App admin assigned",
+            "App admin removed",
+            "Organization role update",
+            "Organization owner changed"
+        ]
+        return serverDefaults.contains(reason) ? nil : reason
     }
 
     private static func organizationName(for notification: AppNotification) -> String {

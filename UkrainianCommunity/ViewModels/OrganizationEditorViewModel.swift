@@ -2,24 +2,44 @@ import Combine
 import Foundation
 
 enum OrganizationEditorCategory: String, CaseIterable, Identifiable {
+    case ukrainianProducts
+    case foodAndDrink
+    case retail
+    case beautyAndHealth
+    case legalAndFinance
+    case workAndBusiness
     case education
+    case childrenAndFamily
     case culture
     case support
     case integration
+    case homeAndTransport
+    case media
+    case publicInstitution
     case other
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .ukrainianProducts: AppStrings.Organizations.categoryUkrainianProducts
+        case .foodAndDrink: AppStrings.Organizations.categoryFoodAndDrink
+        case .retail: AppStrings.Organizations.categoryRetail
+        case .beautyAndHealth: AppStrings.Organizations.categoryBeautyAndHealth
+        case .legalAndFinance: AppStrings.Organizations.categoryLegalAndFinance
+        case .workAndBusiness: AppStrings.Organizations.categoryWorkAndBusiness
         case .education:
             AppStrings.Organizations.categoryEducation
+        case .childrenAndFamily: AppStrings.Organizations.categoryChildrenAndFamily
         case .culture:
             AppStrings.Organizations.categoryCulture
         case .support:
             AppStrings.Organizations.categorySupport
         case .integration:
             AppStrings.Organizations.categoryIntegration
+        case .homeAndTransport: AppStrings.Organizations.categoryHomeAndTransport
+        case .media: AppStrings.Organizations.categoryMedia
+        case .publicInstitution: AppStrings.Organizations.categoryPublicInstitution
         case .other:
             AppStrings.Organizations.categoryOther
         }
@@ -27,16 +47,72 @@ enum OrganizationEditorCategory: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .ukrainianProducts: "basket"
+        case .foodAndDrink: "fork.knife"
+        case .retail: "bag"
+        case .beautyAndHealth: "cross.case"
+        case .legalAndFinance: "briefcase"
+        case .workAndBusiness: "building.columns"
         case .education:
             "graduationcap"
+        case .childrenAndFamily: "figure.2.and.child.holdinghands"
         case .culture:
             "theatermasks"
         case .support:
             "hands.clap"
         case .integration:
             "person.2"
+        case .homeAndTransport: "car"
+        case .media: "newspaper"
+        case .publicInstitution: "building.2"
         case .other:
             "square.grid.2x2"
+        }
+    }
+}
+
+extension OrganizationProfileKind {
+    var title: String {
+        switch self {
+        case .community: AppStrings.Organizations.profileKindCommunity
+        case .business: AppStrings.Organizations.profileKindBusiness
+        case .restaurant: AppStrings.Organizations.profileKindRestaurant
+        case .specialist: AppStrings.Organizations.profileKindSpecialist
+        case .institution: AppStrings.Organizations.profileKindInstitution
+        case .mediaProject: AppStrings.Organizations.profileKindMediaProject
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .community: "person.3"
+        case .business: "storefront"
+        case .restaurant: "fork.knife"
+        case .specialist: "person.crop.circle.badge.checkmark"
+        case .institution: "building.columns"
+        case .mediaProject: "newspaper"
+        }
+    }
+}
+
+extension OrganizationServiceMode {
+    var title: String {
+        switch self {
+        case .inStore: AppStrings.Organizations.serviceModeInStore
+        case .pickup: AppStrings.Organizations.serviceModePickup
+        case .delivery: AppStrings.Organizations.serviceModeDelivery
+        case .online: AppStrings.Organizations.serviceModeOnline
+        case .onSite: AppStrings.Organizations.serviceModeOnSite
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .inStore: "storefront"
+        case .pickup: "takeoutbag.and.cup.and.straw"
+        case .delivery: "shippingbox"
+        case .online: "globe"
+        case .onSite: "car"
         }
     }
 }
@@ -119,6 +195,48 @@ final class OrganizationEditorViewModel: ObservableObject {
         didSet { scheduleCreateDraftAutosave() }
     }
     @Published var organizationType = OrganizationEditorCategory.support.rawValue {
+        didSet {
+            secondaryCategories.remove(organizationType)
+            markCreateDraftMetadataChanged()
+        }
+    }
+    @Published var profileKind = OrganizationProfileKind.community {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var secondaryCategories = Set<String>() {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var serviceModes = Set<OrganizationServiceMode>() {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var serviceArea = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var regularHours = [String: String]() {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var specialHoursNote = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var services = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var orderURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var bookingURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var currentOfferTitle = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var currentOfferDetails = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var currentOfferURL = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var currentOfferValidUntil: Date? {
         didSet { markCreateDraftMetadataChanged() }
     }
     @Published var foundedYear = "" {
@@ -175,6 +293,20 @@ final class OrganizationEditorViewModel: ObservableObject {
             missionStatement = existingOrganization.missionStatement ?? ""
             contactPerson = existingOrganization.contactPerson ?? ""
             organizationType = existingOrganization.organizationType ?? OrganizationEditorCategory.support.rawValue
+            let directoryProfile = existingOrganization.directoryProfile
+            profileKind = directoryProfile?.profileKind ?? .community
+            secondaryCategories = Set(directoryProfile?.secondaryCategories ?? [])
+            serviceModes = Set(directoryProfile?.serviceModes ?? [])
+            serviceArea = directoryProfile?.serviceArea ?? ""
+            regularHours = directoryProfile?.regularHours ?? [:]
+            specialHoursNote = directoryProfile?.specialHoursNote ?? ""
+            services = directoryProfile?.services.joined(separator: ", ") ?? ""
+            orderURL = directoryProfile?.orderURL ?? ""
+            bookingURL = directoryProfile?.bookingURL ?? ""
+            currentOfferTitle = directoryProfile?.currentOfferTitle ?? ""
+            currentOfferDetails = directoryProfile?.currentOfferDetails ?? ""
+            currentOfferURL = directoryProfile?.currentOfferURL ?? ""
+            currentOfferValidUntil = directoryProfile?.currentOfferValidUntil
             foundedYear = existingOrganization.foundedYear.map(String.init) ?? ""
             foundedMonth = existingOrganization.foundedYear == nil ? nil : existingOrganization.foundedMonth
             languages = existingOrganization.languages.joined(separator: ", ")
@@ -192,6 +324,11 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     var isEditing: Bool {
         mode.isEditing
+    }
+
+    var editingOrganizationID: String? {
+        guard case let .edit(existing) = mode else { return nil }
+        return existing.id
     }
 
     var hasPendingRecoveryDraft: Bool {
@@ -228,6 +365,43 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     var canSelectFoundedMonth: Bool {
         parsedFoundedYear != nil
+    }
+
+    var canAdvanceBasics: Bool {
+        !trimmedName.isEmpty
+            && trimmedShortDescription.count >= 20
+            && !trimmedOrganizationType.isEmpty
+    }
+
+    var canAdvanceLocation: Bool {
+        selectedFederalState != nil && !trimmedCity.isEmpty
+    }
+
+    func toggleSecondaryCategory(_ category: OrganizationEditorCategory) {
+        let value = category.rawValue
+        if secondaryCategories.contains(value) {
+            secondaryCategories.remove(value)
+        } else if value != organizationType,
+                  secondaryCategories.count < OrganizationDirectoryProfile.maximumSecondaryCategoryCount {
+            secondaryCategories.insert(value)
+        }
+    }
+
+    func toggleServiceMode(_ mode: OrganizationServiceMode) {
+        if serviceModes.contains(mode) {
+            serviceModes.remove(mode)
+        } else {
+            serviceModes.insert(mode)
+        }
+    }
+
+    func setHours(_ value: String, for weekday: String) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            regularHours.removeValue(forKey: weekday)
+        } else {
+            regularHours[weekday] = trimmed
+        }
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -322,6 +496,7 @@ final class OrganizationEditorViewModel: ObservableObject {
                 website: normalizedWebsite.nilIfEmpty,
                 address: trimmedAddress.nilIfEmpty,
                 organizationType: trimmedOrganizationType.nilIfEmpty,
+                directoryProfile: directoryProfileForWrite,
                 foundedYear: parsedFoundedYear,
                 foundedMonth: parsedFoundedMonth,
                 languages: parsedLanguages,
@@ -366,6 +541,7 @@ final class OrganizationEditorViewModel: ObservableObject {
                 latitude: existing.latitude,
                 longitude: existing.longitude,
                 organizationType: trimmedOrganizationType.nilIfEmpty,
+                directoryProfile: directoryProfileForWrite,
                 foundedYear: parsedFoundedYear,
                 foundedMonth: parsedFoundedMonth,
                 languages: parsedLanguages,
@@ -507,6 +683,24 @@ final class OrganizationEditorViewModel: ObservableObject {
         languages.commaSeparatedValues
     }
 
+    private var directoryProfileForWrite: OrganizationDirectoryProfile {
+        OrganizationDirectoryProfile(
+            profileKind: profileKind,
+            secondaryCategories: secondaryCategories.sorted(),
+            serviceModes: serviceModes.sorted { $0.rawValue < $1.rawValue },
+            serviceArea: serviceArea,
+            regularHours: regularHours,
+            specialHoursNote: specialHoursNote,
+            services: services.commaSeparatedValues,
+            orderURL: Self.normalizedWebURL(orderURL),
+            bookingURL: Self.normalizedWebURL(bookingURL),
+            currentOfferTitle: currentOfferTitle,
+            currentOfferDetails: currentOfferDetails,
+            currentOfferURL: Self.normalizedWebURL(currentOfferURL),
+            currentOfferValidUntil: currentOfferValidUntil
+        )
+    }
+
     private var parsedSocialLinks: [String: String] {
         legacySocialLinks.filter { key, _ in
             let lowercasedKey = key.lowercased()
@@ -584,6 +778,19 @@ final class OrganizationEditorViewModel: ObservableObject {
             missionStatement: missionStatement,
             contactPerson: contactPerson,
             organizationType: organizationType,
+            profileKind: profileKind.rawValue,
+            secondaryCategories: secondaryCategories.sorted(),
+            serviceModes: serviceModes.map(\.rawValue).sorted(),
+            serviceArea: serviceArea,
+            regularHours: regularHours,
+            specialHoursNote: specialHoursNote,
+            services: services,
+            orderURL: orderURL,
+            bookingURL: bookingURL,
+            currentOfferTitle: currentOfferTitle,
+            currentOfferDetails: currentOfferDetails,
+            currentOfferURL: currentOfferURL,
+            currentOfferValidUntil: currentOfferValidUntil,
             foundedYear: foundedYear,
             foundedMonth: foundedMonth,
             languages: languages,
@@ -613,6 +820,19 @@ final class OrganizationEditorViewModel: ObservableObject {
         missionStatement = draft.missionStatement
         contactPerson = draft.contactPerson
         organizationType = draft.organizationType
+        profileKind = draft.profileKind.flatMap(OrganizationProfileKind.init(rawValue:)) ?? .community
+        secondaryCategories = Set(draft.secondaryCategories ?? [])
+        serviceModes = Set((draft.serviceModes ?? []).compactMap(OrganizationServiceMode.init(rawValue:)))
+        serviceArea = draft.serviceArea ?? ""
+        regularHours = draft.regularHours ?? [:]
+        specialHoursNote = draft.specialHoursNote ?? ""
+        services = draft.services ?? ""
+        orderURL = draft.orderURL ?? ""
+        bookingURL = draft.bookingURL ?? ""
+        currentOfferTitle = draft.currentOfferTitle ?? ""
+        currentOfferDetails = draft.currentOfferDetails ?? ""
+        currentOfferURL = draft.currentOfferURL ?? ""
+        currentOfferValidUntil = draft.currentOfferValidUntil
         foundedYear = draft.foundedYear
         foundedMonth = draft.foundedMonth
         languages = draft.languages
@@ -681,6 +901,19 @@ final class OrganizationEditorViewModel: ObservableObject {
         missionStatement = ""
         contactPerson = ""
         organizationType = OrganizationEditorCategory.support.rawValue
+        profileKind = .community
+        secondaryCategories = []
+        serviceModes = []
+        serviceArea = ""
+        regularHours = [:]
+        specialHoursNote = ""
+        services = ""
+        orderURL = ""
+        bookingURL = ""
+        currentOfferTitle = ""
+        currentOfferDetails = ""
+        currentOfferURL = ""
+        currentOfferValidUntil = nil
         foundedYear = ""
         foundedMonth = nil
         languages = ""
@@ -852,7 +1085,10 @@ final class OrganizationEditorViewModel: ObservableObject {
             normalizedInstagramURL,
             normalizedWhatsAppURL,
             normalizedYouTubeURL,
-            normalizedLinkedInURL
+            normalizedLinkedInURL,
+            Self.normalizedWebURL(orderURL),
+            Self.normalizedWebURL(bookingURL),
+            Self.normalizedWebURL(currentOfferURL)
         ]
             .filter { !$0.isEmpty }
             .compactMap { value in

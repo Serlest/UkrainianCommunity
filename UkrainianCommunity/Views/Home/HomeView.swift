@@ -29,6 +29,7 @@ struct HomeView: View {
     @State private var isRegionPickerPresented = false
     @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var isLoadingSearchPages = false
     @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
     @State private var pendingContentRefreshTask: Task<Void, Never>?
     @State private var visibleFeedItems: [HomeFeedItem] = []
@@ -139,6 +140,23 @@ struct HomeView: View {
             guard isAuthBootstrapReady else { return }
             await loadFeaturedBannersIfNeeded()
         }
+        .task(id: searchText) {
+            let queryKey = LocalSearchMatcher.normalized(searchText)
+            isLoadingSearchPages = false
+            guard !queryKey.isEmpty else { return }
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            isLoadingSearchPages = true
+            defer {
+                if LocalSearchMatcher.normalized(searchText) == queryKey {
+                    isLoadingSearchPages = false
+                }
+            }
+            async let newsSearch: Void = newsViewModel.loadRemainingPagesForSearch()
+            async let eventsSearch: Void = eventsViewModel.loadRemainingPagesForSearch()
+            async let organizationsSearch: Void = organizationsViewModel.loadRemainingPagesForSearch()
+            _ = await (newsSearch, eventsSearch, organizationsSearch)
+        }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }
             selectedFederalState = newRegion
@@ -237,6 +255,9 @@ struct HomeView: View {
                 message: AppStrings.Common.noItems
             )
             .frame(maxWidth: .infinity, minHeight: 180)
+        } else if visibleFeedItems.isEmpty, isLoadingSearchPages {
+            LoadingStateCard(title: AppStrings.Search.searching)
+                .frame(maxWidth: .infinity, minHeight: 180)
         } else if visibleFeedItems.isEmpty {
             EmptyStateCard(
                 systemImage: emptyStateSystemImage,
@@ -259,7 +280,7 @@ struct HomeView: View {
     }
 
     private var hasActiveSearch: Bool {
-        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        LocalSearchMatcher.hasQuery(searchText)
     }
 
     private func rebuildVisibleFeedItems() {

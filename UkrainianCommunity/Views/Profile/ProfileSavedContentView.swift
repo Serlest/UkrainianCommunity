@@ -61,6 +61,14 @@ private enum SavedContentItem: Identifiable {
             return organization.updatedAt
         }
     }
+
+    var title: String {
+        switch self {
+        case let .news(post): post.title
+        case let .event(event): event.title
+        case let .organization(organization): organization.name
+        }
+    }
 }
 
 
@@ -69,6 +77,7 @@ struct SavedContentView: View {
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var selectedSegment: SavedContentSegment = .all
+    @State private var sortOption: AppListSortOption = .newest
     @State private var savedNews: [NewsPost] = []
     @State private var savedEvents: [Event] = []
     @State private var savedOrganizations: [Organization] = []
@@ -120,6 +129,11 @@ struct SavedContentView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                AppSortMenu(
+                    selection: $sortOption,
+                    options: [.newest, .oldest, .nameAscending, .nameDescending]
+                )
             }
 
             savedContent
@@ -164,48 +178,36 @@ struct SavedContentView: View {
                 if let loadError {
                     InlineMessageCard(style: .error, message: savedErrorMessage(loadError))
                 }
-                switch selectedSegment {
-                case .all:
-                    ForEach(savedItems) { item in
-                        savedItemLink(item)
-                    }
-                case .news:
-                    ForEach(savedNews) { post in
-                        savedNewsLink(post)
-                    }
-                case .events:
-                    ForEach(savedEvents) { event in
-                        savedEventLink(event)
-                    }
-                case .organizations:
-                    ForEach(savedOrganizations) { organization in
-                        savedOrganizationLink(organization)
-                    }
+                ForEach(currentItems) { item in
+                    savedItemLink(item)
                 }
             }
         }
     }
 
     private var savedItems: [SavedContentItem] {
-        (
+        sortSavedItems(
             savedNews.map(SavedContentItem.news)
             + savedEvents.map(SavedContentItem.event)
             + savedOrganizations.map(SavedContentItem.organization)
         )
-        .sorted { $0.savedSortDate > $1.savedSortDate }
+    }
+
+    private var currentItems: [SavedContentItem] {
+        switch selectedSegment {
+        case .all:
+            savedItems
+        case .news:
+            sortSavedItems(savedNews.map(SavedContentItem.news))
+        case .events:
+            sortSavedItems(savedEvents.map(SavedContentItem.event))
+        case .organizations:
+            sortSavedItems(savedOrganizations.map(SavedContentItem.organization))
+        }
     }
 
     private var currentItemsAreEmpty: Bool {
-        switch selectedSegment {
-        case .all:
-            return savedItems.isEmpty
-        case .news:
-            return savedNews.isEmpty
-        case .events:
-            return savedEvents.isEmpty
-        case .organizations:
-            return savedOrganizations.isEmpty
-        }
+        currentItems.isEmpty
     }
 
     private var emptyStateSystemImage: String {
@@ -332,6 +334,29 @@ struct SavedContentView: View {
         }
     }
 
+    private func sortSavedItems(_ items: [SavedContentItem]) -> [SavedContentItem] {
+        items.sorted { lhs, rhs in
+            switch sortOption {
+            case .newest:
+                lhs.savedSortDate == rhs.savedSortDate ? lhs.id < rhs.id : lhs.savedSortDate > rhs.savedSortDate
+            case .oldest:
+                lhs.savedSortDate == rhs.savedSortDate ? lhs.id < rhs.id : lhs.savedSortDate < rhs.savedSortDate
+            case .nameAscending:
+                compareTitles(lhs, rhs, ascending: true)
+            case .nameDescending:
+                compareTitles(lhs, rhs, ascending: false)
+            case .popular:
+                lhs.savedSortDate == rhs.savedSortDate ? lhs.id < rhs.id : lhs.savedSortDate > rhs.savedSortDate
+            }
+        }
+    }
+
+    private func compareTitles(_ lhs: SavedContentItem, _ rhs: SavedContentItem, ascending: Bool) -> Bool {
+        let result = LocalizationStore.compareForSorting(lhs.title, rhs.title)
+        guard result != .orderedSame else { return lhs.id < rhs.id }
+        return ascending ? result == .orderedAscending : result == .orderedDescending
+    }
+
     @ViewBuilder
     private func savedItemLink(_ item: SavedContentItem) -> some View {
         switch item {
@@ -385,6 +410,7 @@ struct FollowedOrganizationsView: View {
     @State private var followedOrganizations: [Organization] = []
     @State private var isLoadingSubscriptions = false
     @State private var subscriptionsError: AppError?
+    @State private var sortOption: AppListSortOption = .nameAscending
     private let organizationRepository: OrganizationRepository
 
     init(
@@ -404,6 +430,14 @@ struct FollowedOrganizationsView: View {
             title: AppStrings.Profile.organizationSubscriptions,
             introSubtitle: AppStrings.Profile.subscriptionsIntro
         ) {
+            if !followedOrganizations.isEmpty {
+                AppHorizontalFilterRow {
+                    AppSortMenu(
+                        selection: $sortOption,
+                        options: [.nameAscending, .nameDescending, .newest, .oldest]
+                    )
+                }
+            }
             followedOrganizationsContent
         }
         .task {
@@ -440,7 +474,7 @@ struct FollowedOrganizationsView: View {
                 if let error = subscriptionsError {
                     InlineMessageCard(style: .error, message: followedOrganizationsErrorMessage(error))
                 }
-                ForEach(followedOrganizations) { organization in
+                ForEach(sortedFollowedOrganizations) { organization in
                     NavigationLink {
                         OrganizationDetailView(
                             viewModel: organizationsViewModel,
@@ -453,6 +487,29 @@ struct FollowedOrganizationsView: View {
                 }
             }
         }
+    }
+
+    private var sortedFollowedOrganizations: [Organization] {
+        followedOrganizations.sorted { lhs, rhs in
+            switch sortOption {
+            case .newest:
+                lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
+            case .oldest:
+                lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt < rhs.createdAt
+            case .nameAscending:
+                compareOrganizations(lhs, rhs, ascending: true)
+            case .nameDescending:
+                compareOrganizations(lhs, rhs, ascending: false)
+            case .popular:
+                lhs.subscriberCount == rhs.subscriberCount ? lhs.id < rhs.id : lhs.subscriberCount > rhs.subscriberCount
+            }
+        }
+    }
+
+    private func compareOrganizations(_ lhs: Organization, _ rhs: Organization, ascending: Bool) -> Bool {
+        let result = LocalizationStore.compareForSorting(lhs.name, rhs.name)
+        guard result != .orderedSame else { return lhs.id < rhs.id }
+        return ascending ? result == .orderedAscending : result == .orderedDescending
     }
 
     private func refreshSubscriptions() async {

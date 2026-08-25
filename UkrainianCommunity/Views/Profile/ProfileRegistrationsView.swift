@@ -53,14 +53,18 @@ struct MyRegistrationsView: View {
         let startOfToday = calendar.startOfDay(for: Date())
         return viewModel.events
             .filter { $0.endDate >= startOfToday }
-            .sorted { $0.startDate < $1.startDate }
+            .sorted {
+                $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate < $1.startDate
+            }
     }
 
     private var pastEvents: [Event] {
         let startOfToday = calendar.startOfDay(for: Date())
         return viewModel.events
             .filter { $0.endDate < startOfToday }
-            .sorted { $0.endDate > $1.endDate }
+            .sorted {
+                $0.endDate == $1.endDate ? $0.id < $1.id : $0.endDate > $1.endDate
+            }
     }
 
     private var filteredEvents: [Event] {

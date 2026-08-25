@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProfilePreferencesView: View {
+    @Environment(\.locale) private var locale
     @ObservedObject var viewModel: ProfileViewModel
     @ObservedObject var userBlockingCoordinator: UserBlockingCoordinator
     let analyticsService: AnalyticsTracking
@@ -26,6 +27,7 @@ struct ProfilePreferencesView: View {
                             }
                         }
                         .labelsHidden()
+                        .id(locale.identifier)
                     }
 
                     ProfileSettingsPickerRow(
@@ -63,7 +65,8 @@ struct ProfilePreferencesView: View {
             if let currentUser {
                 NotificationSettingsSectionView(
                     viewModel: viewModel,
-                    userID: currentUser.id
+                    userID: currentUser.id,
+                    canSendTestNotification: PermissionService.canSendTestNotification(user: currentUser)
                 )
             }
 
@@ -81,26 +84,18 @@ struct ProfilePreferencesView: View {
                             .accessibilityElement(children: .combine)
                         }
 
-                        NavigationLink(value: ProfileNavigationRoute.notifications) {
-                            ProfileModuleRow(
-                                title: AppStrings.NotificationInbox.title,
-                                subtitle: AppStrings.NotificationInbox.subtitle,
-                                systemImage: "bell",
-                                status: .available
-                            )
+                        if PermissionService.canAccessBlockedUsersSettings(user: currentUser) {
+                            NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
+                                ProfileModuleRow(
+                                    title: AppStrings.Safety.blockedUsersTitle,
+                                    subtitle: AppStrings.Safety.blockedUsersSubtitle,
+                                    systemImage: "person.slash",
+                                    status: .available,
+                                    countBadge: userBlockingCoordinator.blockedUsers.count
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-
-                        NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
-                            ProfileModuleRow(
-                                title: AppStrings.Safety.blockedUsersTitle,
-                                subtitle: AppStrings.Safety.blockedUsersSubtitle,
-                                systemImage: "person.slash",
-                                status: .available,
-                                countBadge: userBlockingCoordinator.blockedUsers.count
-                            )
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
             }

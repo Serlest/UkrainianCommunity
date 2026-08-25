@@ -162,7 +162,12 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
     }
 
     const userId = event.params.userId;
-    const recipients = await resolveNotificationRecipients([userId]);
+    const recipients = await resolveNotificationRecipients([userId], {
+      // Account restrictions are already committed when this trigger runs.
+      // The affected user must still receive the one push that explains why
+      // access changed, provided they explicitly enabled notifications.
+      allowRestrictedPush: type === "accountStatusChanged",
+    });
     if (!recipients.pushRecipientIds.includes(userId)) {
       return;
     }
@@ -188,6 +193,7 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
     const routeTargetId = stringValue(metadata.routeTargetId);
     const title = stringValue(notification.title) ?? fallbackTitle(type);
     const body = stringValue(notification.message) ?? title;
+    const localizedAlert = localizedAlertKeys(type, metadata);
     const delivery = await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
       notification: { title, body },
       data: buildNotificationDataPayload({
@@ -203,6 +209,10 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
       apns: {
         payload: {
           aps: {
+            alert: {
+              titleLocKey: localizedAlert.titleLocKey,
+              locKey: localizedAlert.bodyLocKey,
+            },
             sound: "default",
           },
         },
@@ -217,6 +227,60 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
     });
   }
 );
+
+function localizedAlertKeys(
+  type: NotificationType,
+  metadata: Record<string, unknown>
+): {titleLocKey: string; bodyLocKey: string} {
+  if (type === "accountStatusChanged") {
+    switch (stringValue(metadata.newAccountStatus)) {
+      case "warned":
+        return {
+          titleLocKey: "account_status_alert.warned.title",
+          bodyLocKey: "account_status_alert.warned.message",
+        };
+      case "suspendedUntil":
+        return {
+          titleLocKey: "account_status_alert.suspended.title",
+          bodyLocKey: "account_status_alert.suspended.message",
+        };
+      case "bannedPermanent":
+        return {
+          titleLocKey: "account_status_alert.banned.title",
+          bodyLocKey: "account_status_alert.banned.message",
+        };
+      case "deactivated":
+        return {
+          titleLocKey: "account_status_alert.deactivated.title",
+          bodyLocKey: "account_status_alert.deactivated.message",
+        };
+      case "active":
+        return {
+          titleLocKey: "account_status_alert.restored.title",
+          bodyLocKey: "account_status_alert.restored.message",
+        };
+      default:
+        break;
+    }
+  }
+
+  const titleLocKeyByType: Partial<Record<NotificationType, string>> = {
+    legalDocumentsUpdated: "notifications.inbox.legal_documents_updated.title",
+    organizationRequestApproved: "notifications.inbox.organization_approved.title",
+    organizationRequestNeedsRevision: "notifications.inbox.organization_needs_revision.title",
+    organizationRequestRejected: "notifications.inbox.organization_rejected.title",
+    organizationRoleAssigned: "notifications.inbox.organization_role_assigned.title",
+    organizationRoleRemoved: "notifications.inbox.organization_role_removed.title",
+    reportReviewed: "notifications.inbox.report_reviewed.title",
+    roleChanged: "notifications.inbox.role_changed.title",
+    systemAnnouncement: "notifications.inbox.system_announcement.title",
+  };
+
+  return {
+    titleLocKey: titleLocKeyByType[type] ?? "notifications.inbox.title",
+    bodyLocKey: "notifications.inbox.generic.body",
+  };
+}
 
 export const notifyLegalDocumentsUpdatedOnPublish = onDocumentUpdated(
   {

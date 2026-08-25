@@ -84,13 +84,18 @@ struct MockSystemLogRepository: SystemLogRepositoryProtocol {
         }
 
         if let searchText = filter.searchText?.trimmingCharacters(in: .whitespacesAndNewlines), !searchText.isEmpty {
-            return entry.summary.localizedCaseInsensitiveContains(searchText)
-                || entry.technicalMessage?.localizedCaseInsensitiveContains(searchText) == true
-                || entry.errorCode?.localizedCaseInsensitiveContains(searchText) == true
-                || entry.actorDisplayName?.localizedCaseInsensitiveContains(searchText) == true
-                || entry.targetTitle?.localizedCaseInsensitiveContains(searchText) == true
-                || entry.organizationName?.localizedCaseInsensitiveContains(searchText) == true
-                || entry.metadata.values.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            return LocalSearchMatcher.matches(
+                query: searchText,
+                values: [
+                    entry.summary,
+                    entry.technicalMessage,
+                    entry.errorCode,
+                    entry.actorDisplayName,
+                    entry.targetTitle,
+                    entry.organizationName,
+                    entry.metadata.values.joined(separator: " ")
+                ]
+            )
         }
 
         return true
@@ -103,15 +108,21 @@ struct MockSystemLogRepository: SystemLogRepositoryProtocol {
     ) -> Bool {
         switch sortOption {
         case .newestFirst:
-            lhs.createdAt > rhs.createdAt
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
         case .oldestFirst:
-            lhs.createdAt < rhs.createdAt
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt < rhs.createdAt
         case .severityHighToLow:
-            lhs.severity > rhs.severity
+            lhs.severity == rhs.severity
+                ? (lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt)
+                : lhs.severity > rhs.severity
         case .severityLowToHigh:
-            lhs.severity < rhs.severity
+            lhs.severity == rhs.severity
+                ? (lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt)
+                : lhs.severity < rhs.severity
         case .category:
-            lhs.category.rawValue < rhs.category.rawValue
+            lhs.category == rhs.category
+                ? (lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt)
+                : lhs.category.rawValue < rhs.category.rawValue
         }
     }
 }

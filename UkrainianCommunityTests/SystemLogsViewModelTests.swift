@@ -8,6 +8,7 @@ private final class SystemLogRepositoryStub: SystemLogRepositoryProtocol {
     var fetchResults: [Result<[SystemLogEntry], Error>]
     var nextPage: [SystemLogEntry]
     private(set) var receivedFilters: [SystemLogFilter] = []
+    private(set) var receivedSortOptions: [SystemLogSortOption] = []
     private(set) var nextPageCallCount = 0
     private(set) var reviewed: [(logID: String, reviewerID: String)] = []
     private(set) var clearAllCallCount = 0
@@ -27,6 +28,7 @@ private final class SystemLogRepositoryStub: SystemLogRepositoryProtocol {
         limit: Int
     ) async throws -> [SystemLogEntry] {
         receivedFilters.append(filter)
+        receivedSortOptions.append(sortOption)
         guard !fetchResults.isEmpty else { return [] }
         return try fetchResults.removeFirst().get()
     }
@@ -102,6 +104,19 @@ struct SystemLogsViewModelTests {
         #expect(repository.nextPageCallCount == 1)
         #expect(viewModel.logs.last?.id == next.id)
         #expect(!viewModel.canLoadMore)
+    }
+
+    @Test func changingSortOptionIsUsedForTheNextServerRefresh() async throws {
+        let entries = Array(MockSystemLogRepository.sampleEntries.prefix(2))
+        let repository = SystemLogRepositoryStub(fetchResults: [.success(entries), .success(Array(entries.reversed()))])
+        let viewModel = SystemLogsViewModel(repository: repository)
+
+        await viewModel.refresh()
+        viewModel.sortOption = .oldestFirst
+        await viewModel.refresh()
+
+        #expect(repository.receivedSortOptions == [.newestFirst, .oldestFirst])
+        #expect(viewModel.visibleLogs.map(\.id) == entries.reversed().map(\.id))
     }
 
     @Test func markingReviewedPersistsThenUpdatesLocalState() async throws {

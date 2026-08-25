@@ -8,78 +8,27 @@ struct OrganizationNavigationRoute: Hashable {
 
 private let organizationsRootScrollTopID = "organizationsRootScrollTop"
 
-enum OrganizationCategoryFilter: CaseIterable, Identifiable {
-    case all
-    case support
-    case integration
-    case culture
-    case education
-    case other
+struct OrganizationCategoryFilter: Identifiable, Equatable {
+    let category: OrganizationEditorCategory?
 
-    var id: Self { self }
+    var id: String { category?.rawValue ?? "all" }
 
+    static let all = OrganizationCategoryFilter(category: nil)
+    static var allCases: [OrganizationCategoryFilter] {
+        [.all] + OrganizationEditorCategory.allCases.map(OrganizationCategoryFilter.init(category:))
+    }
     static var selectableCases: [OrganizationCategoryFilter] {
-        [.support, .integration, .culture, .education, .other]
+        OrganizationEditorCategory.allCases.map(OrganizationCategoryFilter.init(category:))
     }
 
-    var title: String {
-        switch self {
-        case .all:
-            AppStrings.Home.filterAll
-        case .support:
-            AppStrings.Organizations.categorySupport
-        case .integration:
-            AppStrings.Organizations.categoryIntegration
-        case .culture:
-            AppStrings.Organizations.categoryCulture
-        case .education:
-            AppStrings.Organizations.categoryEducation
-        case .other:
-            AppStrings.Organizations.categoryOther
-        }
-    }
-
-    var systemImage: String? {
-        switch self {
-        case .all:
-            "square.grid.2x2"
-        case .support:
-            "hands.sparkles"
-        case .integration:
-            "person.2"
-        case .culture:
-            "paintpalette"
-        case .education:
-            "graduationcap"
-        case .other:
-            "ellipsis"
-        }
-    }
+    var title: String { category?.title ?? AppStrings.Home.filterAll }
+    var systemImage: String? { category?.systemImage ?? "square.grid.2x2" }
 
     func matches(_ organization: Organization) -> Bool {
-        guard !organization.isSystemOrganization else {
-            return self == .all
-        }
-
-        guard self != .all else { return true }
-        return organization.organizationType == categoryRawValue
-    }
-
-    private var categoryRawValue: String? {
-        switch self {
-        case .all:
-            nil
-        case .support:
-            "support"
-        case .integration:
-            "integration"
-        case .culture:
-            "culture"
-        case .education:
-            "education"
-        case .other:
-            "other"
-        }
+        guard !organization.isSystemOrganization else { return category == nil }
+        guard let category else { return true }
+        return organization.organizationType == category.rawValue
+            || organization.directoryProfile?.secondaryCategories.contains(category.rawValue) == true
     }
 }
 
@@ -112,6 +61,8 @@ struct OrganizationsListView: View {
     @State private var isRegionPickerPresented = false
     @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var isLoadingSearchPages = false
+    @State private var isShowingCreateOrganization = false
 
     init(
         viewModel: OrganizationsViewModel,
@@ -229,6 +180,20 @@ struct OrganizationsListView: View {
             await viewModel.refreshIfStale()
             await refreshFeaturedBannersIfStale()
         }
+        .task(id: searchText) {
+            let queryKey = LocalSearchMatcher.normalized(searchText)
+            isLoadingSearchPages = false
+            guard !queryKey.isEmpty else { return }
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            isLoadingSearchPages = true
+            defer {
+                if LocalSearchMatcher.normalized(searchText) == queryKey {
+                    isLoadingSearchPages = false
+                }
+            }
+            await viewModel.loadRemainingPagesForSearch()
+        }
         .refreshable {
             await viewModel.refresh()
             await refreshFeaturedBanners()
@@ -299,6 +264,18 @@ struct OrganizationsListView: View {
             }
         ))
         .observesKeyboardDismissTaps()
+        .sheet(isPresented: $isShowingCreateOrganization) {
+            NavigationStack {
+                OrganizationEditorView(
+                    organizationsViewModel: viewModel,
+                    onSaved: {
+                        await viewModel.refresh()
+                        await onOrganizationSaved()
+                    }
+                )
+            }
+            .environmentObject(authState)
+        }
     }
 
     private func scrollToTop(with scrollProxy: ScrollViewProxy) {
@@ -310,12 +287,24 @@ struct OrganizationsListView: View {
     }
 
     private var organizationsHeader: some View {
-        AppSearchableBrandHeader(
-            isSearchPresented: $isSearchPresented,
-            searchText: $searchText,
-            placeholder: AppStrings.Search.organizationsPlaceholder,
-            collapseToken: searchResetToken
-        )
+        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+            AppSearchableBrandHeader(
+                isSearchPresented: $isSearchPresented,
+                searchText: $searchText,
+                placeholder: AppStrings.Search.organizationsPlaceholder,
+                collapseToken: searchResetToken
+            )
+
+            if PermissionService.canCreateOrganization(user: authState.user) {
+                AppGlassIconButton(
+                    systemImage: "plus",
+                    accessibilityLabel: AppStrings.Organizations.addOrganization
+                ) {
+                    isShowingCreateOrganization = true
+                }
+                .accessibilityIdentifier("organizations.add")
+            }
+        }
     }
 
     @ViewBuilder
@@ -371,6 +360,9 @@ struct OrganizationsListView: View {
                 message: AppStrings.Organizations.empty
             )
             .frame(maxWidth: .infinity, minHeight: 180)
+        } else if filteredOrganizations.isEmpty, isLoadingSearchPages {
+            LoadingStateCard(title: AppStrings.Search.searching)
+                .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredOrganizations.isEmpty {
             EmptyStateCard(
                 systemImage: hasActiveSearch ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
@@ -392,7 +384,7 @@ struct OrganizationsListView: View {
                     }
                 }
 
-                DashboardSectionHeader(title: AppStrings.Organizations.popularTitle)
+                DashboardSectionHeader(title: AppStrings.Organizations.title)
 
                 DashboardFeedContainer(
                     items: filteredOrganizations,
@@ -419,7 +411,7 @@ struct OrganizationsListView: View {
     }
 
     private var hasActiveSearch: Bool {
-        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        LocalSearchMatcher.hasQuery(searchText)
     }
 
     private var filteredEmptyMessage: String {
@@ -469,27 +461,17 @@ struct OrganizationsListView: View {
                 organization.organizationType,
                 selectedCategoryTitle(for: organization.organizationType),
                 organization.contactPerson,
-                organization.missionStatement
+                organization.missionStatement,
+                organization.directoryProfile?.serviceArea,
+                organization.directoryProfile?.services.joined(separator: " "),
+                organization.directoryProfile?.currentOfferTitle
             ]
         )
     }
 
     private func selectedCategoryTitle(for organizationType: String?) -> String? {
         guard let organizationType else { return nil }
-        switch organizationType {
-        case "support":
-            return AppStrings.Organizations.categorySupport
-        case "integration":
-            return AppStrings.Organizations.categoryIntegration
-        case "culture":
-            return AppStrings.Organizations.categoryCulture
-        case "education":
-            return AppStrings.Organizations.categoryEducation
-        case "other":
-            return AppStrings.Organizations.categoryOther
-        default:
-            return nil
-        }
+        return OrganizationEditorCategory(rawValue: organizationType)?.title
     }
 
     private func toggleSavedFilterMode(_ mode: OrganizationSavedFilterMode) {
@@ -598,17 +580,29 @@ private struct OrganizationCard: View {
     }
 
     private var organizationMetadataChips: some View {
-        AppHorizontalChipRow(spacing: AppTheme.compactCardInnerSpacingTight) {
-            ForEach(metadataItems, id: \.title) { item in
-                AppInfoChip(
-                    title: item.title,
-                    systemImage: item.systemImage,
-                    tint: AppTheme.textSecondary,
-                    fill: AppTheme.surfaceControl.opacity(0.62),
-                    size: .small
-                )
-                .fixedSize(horizontal: true, vertical: false)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: AppTheme.compactCardInnerSpacingTight) {
+                metadataChips
             }
+
+            VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingTight) {
+                metadataChips
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var metadataChips: some View {
+        ForEach(Array(metadataItems.enumerated()), id: \.offset) { _, item in
+            AppInfoChip(
+                title: item.title,
+                systemImage: item.systemImage,
+                tint: AppTheme.textSecondary,
+                fill: AppTheme.surfaceControl.opacity(0.62),
+                size: .small
+            )
+            .fixedSize(horizontal: true, vertical: false)
         }
     }
 
@@ -619,7 +613,7 @@ private struct OrganizationCard: View {
             items.append((region, "mappin.and.ellipse"))
         }
 
-        items.append((organizationCategoryText, "building.2"))
+        items.append((organizationCategoryText, organization.directoryProfile?.profileKind.systemImage ?? "building.2"))
         return items
     }
 

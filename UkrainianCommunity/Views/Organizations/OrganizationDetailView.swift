@@ -13,10 +13,6 @@ enum OrganizationDetailSection: CaseIterable, Identifiable {
 
     var id: Self { self }
 
-    static var selectableCases: [OrganizationCategoryFilter] {
-        [.support, .integration, .culture, .education, .other]
-    }
-
     var title: String {
         switch self {
         case .events:
@@ -160,7 +156,9 @@ final class OrganizationActivityViewModel: ObservableObject {
             .map(OrganizationActivityItem.init(event:))
         let profileItem = OrganizationActivityItem(profile: organization)
         let activityItems = (filteredNews + filteredEvents)
-            .sorted { $0.publishedAt > $1.publishedAt }
+            .sorted {
+                $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
+            }
 
         items = [profileItem] + activityItems
         self.isLoading = isLoading
@@ -261,7 +259,9 @@ final class OrganizationActivityViewModel: ObservableObject {
             item.itemType != .organizationProfile && !itemTypes.contains(item.itemType)
         }
         let activityItems = (existingUnchangedItems + loadedItems)
-                .sorted { $0.publishedAt > $1.publishedAt }
+                .sorted {
+                    $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
+                }
         items = [profileItem] + activityItems
     }
 

@@ -6,10 +6,14 @@ struct BlockedUsersView: View {
     @State private var userPendingUnblock: BlockedUser?
 
     private var filteredUsers: [BlockedUser] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return coordinator.blockedUsers }
-        return coordinator.blockedUsers.filter {
-            $0.displayName.localizedCaseInsensitiveContains(query)
+        coordinator.blockedUsers.filter { user in
+            LocalSearchMatcher.matches(
+                query: searchText,
+                values: [user.displayName, user.id]
+            )
+        }.sorted { lhs, rhs in
+            let result = LocalizationStore.compareForSorting(lhs.displayName, rhs.displayName)
+            return result == .orderedSame ? lhs.id < rhs.id : result == .orderedAscending
         }
     }
 

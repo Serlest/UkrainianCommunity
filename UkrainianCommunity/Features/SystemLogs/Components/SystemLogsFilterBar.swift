@@ -2,13 +2,14 @@ import SwiftUI
 
 struct SystemLogsFilterBar: View {
     @Binding var selectedSection: SystemLogDashboardSection
+    @Binding var sortOption: SystemLogSortOption
     let sections: [SystemLogDashboardSection]
     let selectedFilters: Set<SystemLogQuickFilter>
     let onToggleFilter: (SystemLogQuickFilter) -> Void
     let onClearFilters: () -> Void
 
     var body: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+        AppHorizontalFilterRow {
             Menu {
                 Picker(AppStrings.SystemLogs.sectionPickerLabel, selection: $selectedSection) {
                     ForEach(sections) { section in
@@ -16,21 +17,12 @@ struct SystemLogsFilterBar: View {
                     }
                 }
             } label: {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Label(selectedSection.title, systemImage: "rectangle.3.group")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.bold))
-                }
-                .foregroundStyle(AppTheme.textPrimary)
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(maxWidth: .infinity, minHeight: AppTheme.searchControlHeight)
-                .background(AppTheme.surfaceControl.opacity(0.55), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                        .strokeBorder(AppTheme.borderSubtle)
-                }
+                AppFilterChip(
+                    title: selectedSection.title,
+                    systemImage: "rectangle.3.group",
+                    isSelected: selectedSection != .all,
+                    trailingSystemImage: "chevron.down"
+                )
             }
             .accessibilityLabel(AppStrings.SystemLogs.sectionPickerLabel)
 
@@ -53,26 +45,21 @@ struct SystemLogsFilterBar: View {
                     }
                 }
             } label: {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Label(AppStrings.SystemLogs.filtersTitle, systemImage: "line.3.horizontal.decrease.circle")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer(minLength: 8)
-                    if !selectedFilters.isEmpty {
-                        Text("\(selectedFilters.count)")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(AppTheme.accentPrimary)
-                    }
-                }
-                .foregroundStyle(AppTheme.textPrimary)
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(maxWidth: .infinity, minHeight: AppTheme.searchControlHeight)
-                .background(AppTheme.surfaceControl.opacity(0.55), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                        .strokeBorder(AppTheme.borderSubtle)
-                }
+                AppFilterChip(
+                    title: selectedFilters.isEmpty ? AppStrings.SystemLogs.filtersTitle : "\(AppStrings.SystemLogs.filtersTitle) · \(selectedFilters.count)",
+                    systemImage: "line.3.horizontal.decrease.circle",
+                    isSelected: !selectedFilters.isEmpty,
+                    trailingSystemImage: "chevron.down"
+                )
             }
             .accessibilityLabel(AppStrings.SystemLogs.filtersTitle)
+
+            AppSortMenu(
+                selection: $sortOption,
+                options: SystemLogSortOption.allCases,
+                title: \.title,
+                systemImage: \.systemImage
+            )
         }
     }
 }

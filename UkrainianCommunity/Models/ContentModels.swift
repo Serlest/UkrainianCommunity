@@ -548,6 +548,88 @@ struct Event: Identifiable, Codable {
     }
 }
 
+enum OrganizationProfileKind: String, Codable, CaseIterable, Identifiable {
+    case community
+    case business
+    case restaurant
+    case specialist
+    case institution
+    case mediaProject
+
+    var id: String { rawValue }
+}
+
+enum OrganizationServiceMode: String, Codable, CaseIterable, Identifiable {
+    case inStore
+    case pickup
+    case delivery
+    case online
+    case onSite
+
+    var id: String { rawValue }
+}
+
+struct OrganizationDirectoryProfile: Codable, Equatable {
+    static let maximumSecondaryCategoryCount = 2
+    static let maximumServiceCount = 8
+
+    let profileKind: OrganizationProfileKind
+    let secondaryCategories: [String]
+    let serviceModes: [OrganizationServiceMode]
+    let serviceArea: String?
+    /// ISO weekday keys (`monday` ... `sunday`) with `HH:mm-HH:mm` or `closed` values.
+    let regularHours: [String: String]
+    let specialHoursNote: String?
+    let services: [String]
+    let orderURL: String?
+    let bookingURL: String?
+    let currentOfferTitle: String?
+    let currentOfferDetails: String?
+    let currentOfferURL: String?
+    let currentOfferValidUntil: Date?
+
+    init(
+        profileKind: OrganizationProfileKind = .community,
+        secondaryCategories: [String] = [],
+        serviceModes: [OrganizationServiceMode] = [],
+        serviceArea: String? = nil,
+        regularHours: [String: String] = [:],
+        specialHoursNote: String? = nil,
+        services: [String] = [],
+        orderURL: String? = nil,
+        bookingURL: String? = nil,
+        currentOfferTitle: String? = nil,
+        currentOfferDetails: String? = nil,
+        currentOfferURL: String? = nil,
+        currentOfferValidUntil: Date? = nil
+    ) {
+        self.profileKind = profileKind
+        self.secondaryCategories = Array(secondaryCategories.prefix(Self.maximumSecondaryCategoryCount))
+        self.serviceModes = Self.unique(serviceModes)
+        self.serviceArea = Self.normalized(serviceArea)
+        self.regularHours = regularHours.filter { !$0.key.isEmpty && !$0.value.isEmpty }
+        self.specialHoursNote = Self.normalized(specialHoursNote)
+        self.services = Array(Self.unique(services.compactMap(Self.normalized)).prefix(Self.maximumServiceCount))
+        self.orderURL = Self.normalized(orderURL)
+        self.bookingURL = Self.normalized(bookingURL)
+        self.currentOfferTitle = Self.normalized(currentOfferTitle)
+        self.currentOfferDetails = Self.normalized(currentOfferDetails)
+        self.currentOfferURL = Self.normalized(currentOfferURL)
+        self.currentOfferValidUntil = currentOfferValidUntil
+    }
+
+    nonisolated private static func normalized(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    nonisolated private static func unique<Value: Hashable>(_ values: [Value]) -> [Value] {
+        var seen = Set<Value>()
+        return values.filter { seen.insert($0).inserted }
+    }
+}
+
 struct Organization: Identifiable, Codable {
     let id: String
     let name: String
@@ -568,6 +650,7 @@ struct Organization: Identifiable, Codable {
     let latitude: Double?
     let longitude: Double?
     let organizationType: String?
+    let directoryProfile: OrganizationDirectoryProfile?
     let foundedYear: Int?
     let foundedMonth: Int?
     let languages: [String]
@@ -627,6 +710,7 @@ struct Organization: Identifiable, Codable {
         latitude: Double? = nil,
         longitude: Double? = nil,
         organizationType: String? = nil,
+        directoryProfile: OrganizationDirectoryProfile? = nil,
         foundedYear: Int? = nil,
         foundedMonth: Int? = nil,
         languages: [String] = [],
@@ -685,6 +769,7 @@ struct Organization: Identifiable, Codable {
         self.latitude = latitude
         self.longitude = longitude
         self.organizationType = Self.normalizedOptionalString(organizationType)
+        self.directoryProfile = directoryProfile
         self.foundedYear = foundedYear
         self.foundedMonth = foundedMonth.flatMap { (1...12).contains($0) ? $0 : nil }
         self.languages = languages

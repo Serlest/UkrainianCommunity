@@ -311,7 +311,10 @@ final class UserManagementViewModel: ObservableObject {
                 approvedOrganizations.documents + reviewableOrganizations.documents
             )
             .map(makeManagedOrganization(from:))
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .sorted {
+                let result = LocalizationStore.compareForSorting($0.name, $1.name)
+                return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+            }
         } catch {
             guard !Task.isCancelled, loadedActorKey == actorKey else { return }
             organizations = []
@@ -663,7 +666,10 @@ final class UserManagementViewModel: ObservableObject {
                 organizations[index] = refreshedOrganization
             } else {
                 organizations.append(refreshedOrganization)
-                organizations.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                organizations.sort {
+                    let result = LocalizationStore.compareForSorting($0.name, $1.name)
+                    return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+                }
             }
         } catch {
             statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed
@@ -698,8 +704,13 @@ final class UserManagementViewModel: ObservableObject {
     private func accountStatusFailureMessage(from error: Error) -> String? {
         let message = (error as NSError).localizedDescription.lowercased()
 
-        if message.contains("owner account status cannot be changed") || message.contains("owner role cannot be changed") {
+        if message.contains("owner account status cannot be changed")
+            || message.contains("app owner accounts cannot be changed")
+            || message.contains("owner role cannot be changed") {
             return AppStrings.UserManagement.platformRoleTargetOwnerProtected
+        }
+        if message.contains("only the app owner can change an app admin") {
+            return AppStrings.UserManagement.platformRolePermissionDenied
         }
         if message.contains("self account status") || message.contains("self-target") {
             return AppStrings.UserManagement.platformRoleSelfChangeRejected
@@ -864,6 +875,7 @@ struct UserManagementView: View {
     @StateObject private var viewModel = UserManagementViewModel()
     @State private var searchText = ""
     @State private var selectedFilter: UserManagementFilter = .all
+    @State private var sortOption: AppListSortOption = .newest
     @State private var isShowingRoleGuide = false
     @FocusState private var isSearchFocused: Bool
 
@@ -880,15 +892,26 @@ struct UserManagementView: View {
     private var filteredUsers: [AppUser] {
         candidateUsers.filter { user in
             selectedFilter.matches(user, organizationRoles: viewModel.organizationRoles(for: user))
-        }
+        }.sorted(by: userSort)
     }
 
     private var normalizedSearch: String {
-        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        LocalSearchMatcher.normalized(searchText)
     }
 
     private var candidateUsers: [AppUser] {
-        normalizedSearch.isEmpty ? viewModel.users : viewModel.searchResults
+        if normalizedSearch.isEmpty {
+            return viewModel.users
+        }
+        if normalizedSearch.count < 2 {
+            return viewModel.users.filter { user in
+                LocalSearchMatcher.matches(
+                    query: normalizedSearch,
+                    values: [user.displayName, user.fullName, user.email, user.id]
+                )
+            }
+        }
+        return viewModel.searchResults
     }
 
     var body: some View {
@@ -939,6 +962,11 @@ struct UserManagementView: View {
             } else {
                 summaryCard
                 searchField
+                if normalizedSearch.count == 1 {
+                    Label(AppStrings.UserManagement.searchMinimumCharacters, systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
                 filterRow
                 contentList
             }
@@ -1034,7 +1062,33 @@ struct UserManagementView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            AppSortMenu(
+                selection: $sortOption,
+                options: [.newest, .oldest, .nameAscending, .nameDescending]
+            )
         }
+    }
+
+    private func userSort(_ lhs: AppUser, _ rhs: AppUser) -> Bool {
+        switch sortOption {
+        case .newest:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
+        case .oldest:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt < rhs.createdAt
+        case .nameAscending:
+            compareUserNames(lhs, rhs, ascending: true)
+        case .nameDescending:
+            compareUserNames(lhs, rhs, ascending: false)
+        case .popular:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
+        }
+    }
+
+    private func compareUserNames(_ lhs: AppUser, _ rhs: AppUser, ascending: Bool) -> Bool {
+        let result = LocalizationStore.compareForSorting(lhs.preferredDisplayName, rhs.preferredDisplayName)
+        guard result != .orderedSame else { return lhs.id < rhs.id }
+        return ascending ? result == .orderedAscending : result == .orderedDescending
     }
 
     @ViewBuilder
@@ -1079,7 +1133,7 @@ struct UserManagementView: View {
                 }
                 if normalizedSearch.isEmpty {
                     loadMoreButton
-                } else {
+                } else if normalizedSearch.count >= 2 {
                     Text(AppStrings.UserManagement.searchResultCount(viewModel.searchTotalMatches))
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -1268,12 +1322,11 @@ private struct UserDetailView: View {
     }
 
     private var filteredOrganizations: [ManagedOrganization] {
-        let query = organizationSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return assignmentOrganizations }
-
         return assignmentOrganizations.filter { organization in
-            [organization.name, organization.city, organization.id]
-                .contains { $0.lowercased().contains(query) }
+            LocalSearchMatcher.matches(
+                query: organizationSearchText,
+                values: [organization.name, organization.city, organization.id]
+            )
         }
     }
 

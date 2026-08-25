@@ -5,9 +5,8 @@ import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/audit
 import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
-  resolveNotificationRecipients,
-  type WriteNotificationInput,
-  writeUserNotification,
+  buildUserNotificationDocument,
+  userNotificationRef,
 } from "../notifications/notificationPayloads";
 import {
   canAssignAppAdmin,
@@ -133,17 +132,6 @@ function assertChanged(current: UserRoleSnapshot, nextGlobalRole: ActiveGlobalRo
   }
 }
 
-async function writeNotificationIfRecipientEligible(
-  input: WriteNotificationInput
-): Promise<void> {
-  const recipients = await resolveNotificationRecipients([input.targetUserId]);
-  if (!recipients.inboxRecipientIds.includes(input.targetUserId)) {
-    return;
-  }
-
-  await writeUserNotification(input);
-}
-
 function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
   return onCall(callableOptions, async (request): Promise<PlatformRoleChangeResponse> => {
     const auth = await requireVerifiedActiveUser(request);
@@ -160,6 +148,7 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
       ? await getTargetAuthSnapshot(roleRequest.targetUserId)
       : undefined;
     const targetReference = db.collection("users").doc(roleRequest.targetUserId);
+    const notificationReference = userNotificationRef(roleRequest.targetUserId);
     const committedAt = new Date().toISOString();
     let previousGlobalRole: ActiveGlobalRole = "user";
     let newGlobalRole: ActiveGlobalRole = "user";
@@ -205,35 +194,26 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
           roleUpdatedBy: auth.uid,
         },
       }));
-    });
 
-    await writeNotificationIfRecipientEligible({
-      notificationId: [
-        "roleChanged",
-        roleRequest.targetUserId,
-        committedAt,
-        roleRequest.targetUserId,
-      ].join("_"),
-      targetUserId: roleRequest.targetUserId,
-      type: "roleChanged",
-      title: mutation.notificationTitle,
-      message: mutation.notificationMessage,
-      severity: "info",
-      actionType: "openProfile",
-      actionTargetId: roleRequest.targetUserId,
-      requiresPopup: false,
-      actorUserId: auth.uid,
-      metadata: {
-        previousGlobalRole,
-        newGlobalRole,
-        updatedAt: committedAt,
-      },
-      dedupeKey: [
-        "platformRole",
-        mutation.actionType,
-        roleRequest.targetUserId,
-        newGlobalRole,
-      ].join(":"),
+      transaction.set(notificationReference, buildUserNotificationDocument({
+        notificationId: notificationReference.id,
+        targetUserId: roleRequest.targetUserId,
+        type: "roleChanged",
+        title: mutation.notificationTitle,
+        message: mutation.notificationMessage,
+        severity: "info",
+        actionType: "openProfile",
+        actionTargetId: roleRequest.targetUserId,
+        requiresPopup: false,
+        actorUserId: auth.uid,
+        metadata: {
+          previousGlobalRole,
+          newGlobalRole,
+          reason: roleRequest.reason ?? mutation.defaultReason,
+          updatedAt: committedAt,
+        },
+        dedupeKey: `platformRole:${notificationReference.id}`,
+      }));
     });
 
     return {

@@ -23,6 +23,15 @@ enum LocalizationStore {
         return String(format: format, locale: locale, arguments: arguments)
     }
 
+    nonisolated static func compareForSorting(_ lhs: String, _ rhs: String) -> ComparisonResult {
+        lhs.compare(
+            rhs,
+            options: [.caseInsensitive, .diacriticInsensitive],
+            range: nil,
+            locale: locale
+        )
+    }
+
     nonisolated static func dateString(from date: Date, dateStyle: DateFormatter.Style = .medium, timeStyle: DateFormatter.Style = .none) -> String {
         dateFormatterCache.string(
             from: date,

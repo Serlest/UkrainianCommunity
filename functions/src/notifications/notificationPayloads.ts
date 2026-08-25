@@ -59,6 +59,18 @@ export interface NotificationRecipientResolution {
   pushRecipientIds: string[];
 }
 
+export interface NotificationRecipientOptions {
+  allowRestrictedPush?: boolean;
+}
+
+export interface NotificationRecipientStateInput {
+  userExists: boolean;
+  accountStatus: string;
+  blockState: string;
+  notificationsEnabled: boolean;
+  allowRestrictedPush?: boolean;
+}
+
 interface NotificationDocumentInput {
   id: string;
   targetUserId: string;
@@ -153,7 +165,8 @@ export function buildNotificationDataPayload(
 }
 
 export async function resolveNotificationRecipients(
-  candidateUserIds: string[]
+  candidateUserIds: string[],
+  options: NotificationRecipientOptions = {}
 ): Promise<NotificationRecipientResolution> {
   const uniqueUserIds = Array.from(new Set(candidateUserIds.filter((userId) => userId.length > 0)));
   const recipientStates = await Promise.all(uniqueUserIds.map(async (userId) => {
@@ -173,14 +186,18 @@ export async function resolveNotificationRecipients(
     const blockState = typeof userData?.blockState === "string"
       ? userData.blockState
       : accountStatus;
-    const canReceiveInbox = ["active", "warned"].includes(accountStatus)
-      && ["active", "warned"].includes(blockState);
+    const eligibility = notificationRecipientEligibility({
+      userExists: userSnapshot.exists,
+      accountStatus,
+      blockState,
+      notificationsEnabled: preferencesSnapshot.data()?.notificationsEnabled === true,
+      allowRestrictedPush: options.allowRestrictedPush,
+    });
 
     return {
       userId,
-      canReceiveInbox,
-      canReceivePush: canReceiveInbox
-        && preferencesSnapshot.data()?.notificationsEnabled === true,
+      canReceiveInbox: eligibility.canReceiveInbox,
+      canReceivePush: eligibility.canReceivePush,
     };
   }));
 
@@ -194,14 +211,28 @@ export async function resolveNotificationRecipients(
   };
 }
 
+export function notificationRecipientEligibility(input: NotificationRecipientStateInput): {
+  canReceiveInbox: boolean;
+  canReceivePush: boolean;
+} {
+  const canReceiveInbox = input.userExists
+    && ["active", "warned"].includes(input.accountStatus)
+    && ["active", "warned"].includes(input.blockState);
+  return {
+    canReceiveInbox,
+    canReceivePush: input.userExists
+      && input.notificationsEnabled
+      && (canReceiveInbox || input.allowRestrictedPush === true),
+  };
+}
+
 export async function writeUserNotification(
   input: WriteNotificationInput
 ): Promise<WriteNotificationResult> {
-  const notificationReference = db
-    .collection("users")
-    .doc(input.targetUserId)
-    .collection("notificationInbox")
-    .doc(input.notificationId);
+  const notificationReference = userNotificationRef(
+    input.targetUserId,
+    input.notificationId
+  );
 
   const didCreate = await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(notificationReference);
@@ -211,23 +242,7 @@ export async function writeUserNotification(
       };
     }
 
-    transaction.set(notificationReference, buildNotificationDocument({
-      id: input.notificationId,
-      targetUserId: input.targetUserId,
-      type: input.type,
-      title: input.title,
-      message: input.message,
-      severity: input.severity ?? defaultSeverity(input.type),
-      actionType: input.actionType ?? defaultActionType(input.type),
-      actionTargetId: input.actionTargetId,
-      requiresPopup: input.requiresPopup ?? false,
-      metadata: input.metadata,
-      dedupeKey: input.dedupeKey,
-      actorUserId: input.actorUserId,
-      actorDisplayName: input.actorDisplayName,
-      sourceType: input.sourceType ?? defaultSourceType(input.type),
-      sourceId: input.sourceId ?? input.actionTargetId,
-    }));
+    transaction.set(notificationReference, buildUserNotificationDocument(input));
 
     return {
       didCreate: true,
@@ -238,6 +253,34 @@ export async function writeUserNotification(
     notificationId: input.notificationId,
     didCreate: didCreate.didCreate,
   };
+}
+
+export function userNotificationRef(targetUserId: string, notificationId?: string) {
+  const collection = db
+    .collection("users")
+    .doc(targetUserId)
+    .collection("notificationInbox");
+  return notificationId ? collection.doc(notificationId) : collection.doc();
+}
+
+export function buildUserNotificationDocument(input: WriteNotificationInput) {
+  return buildNotificationDocument({
+    id: input.notificationId,
+    targetUserId: input.targetUserId,
+    type: input.type,
+    title: input.title,
+    message: input.message,
+    severity: input.severity ?? defaultSeverity(input.type),
+    actionType: input.actionType ?? defaultActionType(input.type),
+    actionTargetId: input.actionTargetId,
+    requiresPopup: input.requiresPopup ?? false,
+    metadata: input.metadata,
+    dedupeKey: input.dedupeKey,
+    actorUserId: input.actorUserId,
+    actorDisplayName: input.actorDisplayName,
+    sourceType: input.sourceType ?? defaultSourceType(input.type),
+    sourceId: input.sourceId ?? input.actionTargetId,
+  });
 }
 
 function buildNotificationDocument(input: NotificationDocumentInput) {

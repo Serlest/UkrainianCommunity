@@ -178,12 +178,14 @@ enum AppLanguage: String, CaseIterable, Codable, Identifiable {
     nonisolated var id: String { rawValue }
     nonisolated var localeIdentifier: String { rawValue }
 
-    var title: String {
+    /// Language pickers use autonyms so the selected value stays recognizable
+    /// while the surrounding interface changes language.
+    nonisolated var title: String {
         switch self {
         case .german:
-            AppStrings.Settings.german
+            "Deutsch"
         case .ukrainian:
-            AppStrings.Settings.ukrainian
+            "Українська"
         }
     }
 

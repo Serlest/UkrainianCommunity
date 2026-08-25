@@ -3,6 +3,12 @@ import Foundation
 
 @MainActor
 final class NewsEditorViewModel: ObservableObject {
+    static let titleLimit = 120
+    static let summaryLimit = 200
+    static let bodyLimit = 10_000
+    static let tagLimit = 8
+    static let tagCharacterLimit = 30
+
     struct CreateContext {
         let organizationId: String
         let organizationName: String?
@@ -59,6 +65,7 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var successMessage: String?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
+    @Published private(set) var removesExistingImage = false
     @Published private(set) var pendingRecoveryDraft: NewsCreateDraft?
     private var selectedProcessedImage: ProcessedImageSelection?
     @Published private var selectedCreateContext: CreateContext?
@@ -109,6 +116,27 @@ final class NewsEditorViewModel: ObservableObject {
             && !isPublishing
     }
 
+    var canAdvanceBasics: Bool {
+        !trimmedTitle.isEmpty
+            && !trimmedSummary.isEmpty
+            && trimmedTitle.count <= Self.titleLimit
+            && trimmedSummary.count <= Self.summaryLimit
+            && hasOrganizerForCreate
+            && resolvedFederalState != nil
+    }
+
+    var canAdvanceContent: Bool {
+        !trimmedBody.isEmpty && trimmedBody.count <= Self.bodyLimit
+    }
+
+    var previewTags: [String] { parsedTags }
+    var previewSource: String? {
+        let source = sourceInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        return source.isEmpty ? nil : source
+    }
+    var previewFederalState: AustrianFederalState? { resolvedFederalState }
+    var validationMessage: String? { validationIssue?.message }
+
     var isEditing: Bool {
         mode.isEditing
     }
@@ -132,6 +160,7 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     var existingImageURL: String? {
+        guard !removesExistingImage else { return nil }
         if case let .edit(existingNews) = mode {
             return existingNews.imageURL
         }
@@ -194,11 +223,23 @@ final class NewsEditorViewModel: ObservableObject {
         errorMessage = nil
         selectedImageData = data
         selectedProcessedImage = nil
+        removesExistingImage = false
     }
 
     func setSelectedImageSelection(_ selection: ProcessedImageSelection?) {
         selectedProcessedImage = selection
         selectedImageData = selection?.data
+        successMessage = nil
+        errorMessage = nil
+        if selection != nil {
+            removesExistingImage = false
+        }
+    }
+
+    func removeCoverImage() {
+        selectedImageData = nil
+        selectedProcessedImage = nil
+        removesExistingImage = isEditing
         successMessage = nil
         errorMessage = nil
     }
@@ -213,6 +254,7 @@ final class NewsEditorViewModel: ObservableObject {
 
     func selectOrganizer(_ organization: Organization) {
         guard case .create = mode else { return }
+        let previousDraftKey = createDraftStorageKey
         selectedCreateContext = CreateContext(
             organizationId: organization.id,
             organizationName: organization.name,
@@ -221,6 +263,12 @@ final class NewsEditorViewModel: ObservableObject {
         )
         if currentNewsCreateDraft().hasMeaningfulContent {
             scheduleCreateDraftAutosave()
+        }
+        let newDraftKey = createDraftStorageKey
+        if previousDraftKey != newDraftKey {
+            Task { [draftRecoveryService] in
+                try? await draftRecoveryService.deleteNewsCreateDraft(key: previousDraftKey)
+            }
         }
     }
 
@@ -396,7 +444,7 @@ final class NewsEditorViewModel: ObservableObject {
                 successMessage = AppStrings.NewsEditor.publishedSuccessfully
 
             case .edit:
-                var resolvedImageURL = existingImageURL
+                var resolvedImageURL = removesExistingImage ? nil : existingImageURL
                 if selectedImageData != nil {
                     isUploadingImage = true
                     let downloadURL: URL
@@ -426,6 +474,7 @@ final class NewsEditorViewModel: ObservableObject {
             tagsInput = ""
             selectedImageData = nil
             selectedProcessedImage = nil
+            removesExistingImage = false
             return true
         } catch {
             isUploadingImage = false
@@ -637,7 +686,9 @@ final class NewsEditorViewModel: ObservableObject {
                 summary: summary,
                 body: body,
                 hasOrganizer: hasOrganizerForCreate,
-                federalState: resolvedFederalState
+                federalState: resolvedFederalState,
+                sourceInput: sourceInput,
+                tags: parsedTags
             )
         )
     }

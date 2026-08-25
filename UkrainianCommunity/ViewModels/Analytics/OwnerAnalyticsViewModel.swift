@@ -349,40 +349,43 @@ final class OwnerAnalyticsViewModel: ObservableObject {
     }
 
     private var normalizedSearchText: String {
-        searchText.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
+        LocalSearchMatcher.normalized(searchText)
     }
 
     private func matchesSearch(_ item: AnalyticsTopContentItem) -> Bool {
         guard hasActiveSearch else { return true }
-        return [
-            item.analyticsDisplayTitle,
-            item.contentType.analyticsTitle,
-            item.category,
-            item.category.map {
+        return LocalSearchMatcher.matches(
+            query: searchText,
+            values: [
+                item.analyticsDisplayTitle,
+                item.contentType.analyticsTitle,
+                item.category,
+                item.category.map {
                 OwnerAnalyticsFormatting.categoryTitle(
                     rawValue: $0,
                     contentType: item.contentType
                 )
-            },
-            item.organizationName,
-            item.analyticsRegionTitle
-        ]
-        .compactMap { $0?.localizedLowercase }
-        .contains { $0.contains(normalizedSearchText) }
+                },
+                item.organizationName,
+                item.analyticsRegionTitle
+            ]
+        )
     }
 
     private func matchesSearch(_ row: OwnerAnalyticsFederalStateUserRowModel) -> Bool {
         guard hasActiveSearch else { return true }
-        return AppStrings.FederalStates.title(for: row.federalState)
-            .localizedLowercase
-            .contains(normalizedSearchText)
+        return LocalSearchMatcher.matches(
+            query: searchText,
+            values: [AppStrings.FederalStates.title(for: row.federalState)]
+        )
     }
 
     private func matchesSearch(_ row: OwnerAnalyticsRegionRowModel) -> Bool {
         guard hasActiveSearch else { return true }
-        return ([row.title] + row.breakdownLines)
-            .map { $0.localizedLowercase }
-            .contains { $0.contains(normalizedSearchText) }
+        return LocalSearchMatcher.matches(
+            query: searchText,
+            values: [row.title] + row.breakdownLines
+        )
     }
 
     private func matchesSearch(_ item: OwnerAnalyticsOverviewMetricItem) -> Bool {
@@ -395,7 +398,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
 
     private func matchesSearch(title: String) -> Bool {
         guard hasActiveSearch else { return true }
-        return title.localizedLowercase.contains(normalizedSearchText)
+        return LocalSearchMatcher.matches(query: searchText, values: [title])
     }
 
     func loadIfNeeded() async {

@@ -6,10 +6,9 @@ import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/audit
 import { requireVerifiedActiveUser } from "../auth/context";
 import { adminAuth, db } from "../firebase/admin";
 import {
+  buildUserNotificationDocument,
   type NotificationSeverity,
-  resolveNotificationRecipients,
-  type WriteNotificationInput,
-  writeUserNotification,
+  userNotificationRef,
 } from "../notifications/notificationPayloads";
 import {
   assertCanManageUsers,
@@ -37,7 +36,7 @@ interface AccountStatusChangeResponse {
   updatedAt: string;
 }
 
-interface AccountStatusSnapshot extends UserPermissionSnapshot {
+export interface AccountStatusSnapshot extends UserPermissionSnapshot {
   accountStatus: AccountStatus;
   blockState: BlockState;
   globalRole: ActiveGlobalRole;
@@ -201,9 +200,19 @@ function parseFutureTimestamp(value: string | undefined): Timestamp {
   return Timestamp.fromDate(date);
 }
 
-function assertMutableTarget(target: AccountStatusSnapshot): void {
+export function assertMutableAccountStatusTarget(
+  actor: UserPermissionSnapshot,
+  target: AccountStatusSnapshot
+): void {
   if (target.globalRole === "owner") {
     throw new HttpsError("permission-denied", "App Owner accounts cannot be changed here.");
+  }
+
+  if (target.globalRole === "admin" && actor.globalRole !== "owner") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only the App Owner can change an App Admin account status."
+    );
   }
 }
 
@@ -236,23 +245,6 @@ function accountStatusNotificationSeverity(status: AccountStatus): NotificationS
   return status === "active" ? "success" : "warning";
 }
 
-async function writeAccountStatusNotification(
-  input: WriteNotificationInput,
-  status: AccountStatus
-): Promise<void> {
-  if (["suspendedUntil", "bannedPermanent", "deactivated"].includes(status)) {
-    await writeUserNotification(input);
-    return;
-  }
-
-  const recipients = await resolveNotificationRecipients([input.targetUserId]);
-  if (!recipients.inboxRecipientIds.includes(input.targetUserId)) {
-    return;
-  }
-
-  await writeUserNotification(input);
-}
-
 function createAccountStatusCallable(mutation: AccountStatusMutation) {
   return onCall(callableOptions, async (request): Promise<AccountStatusChangeResponse> => {
     const auth = await requireVerifiedActiveUser(request);
@@ -265,6 +257,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
     assertCanManageUsers(auth.permissions);
 
     const targetReference = db.collection("users").doc(statusRequest.targetUserId);
+    const notificationReference = userNotificationRef(statusRequest.targetUserId);
     const committedAt = new Date().toISOString();
     let previousAccountStatus: AccountStatus = "active";
     let newAccountStatus: AccountStatus = "active";
@@ -285,7 +278,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
         statusRequest.targetUserId,
         targetSnapshot.data()
       );
-      assertMutableTarget(target);
+      assertMutableAccountStatusTarget(auth.permissions, target);
 
       const reason = notificationReason;
       const next = mutation.apply(target, statusRequest);
@@ -333,6 +326,32 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
           statusUpdatedBy: auth.uid,
         },
       }));
+
+      transaction.set(notificationReference, buildUserNotificationDocument({
+        notificationId: notificationReference.id,
+        targetUserId: statusRequest.targetUserId,
+        type: "accountStatusChanged",
+        title: accountStatusNotificationTitle(next.accountStatus),
+        message: mutation.statusMessage(reason),
+        severity: accountStatusNotificationSeverity(next.accountStatus),
+        actionType: "openProfile",
+        actionTargetId: statusRequest.targetUserId,
+        requiresPopup: false,
+        actorUserId: auth.uid,
+        sourceType: "account",
+        sourceId: statusRequest.targetUserId,
+        metadata: {
+          previousAccountStatus: target.accountStatus,
+          newAccountStatus: next.accountStatus,
+          previousBlockState: target.blockState,
+          newBlockState: next.blockState,
+          warningCount: nextWarningCount,
+          banExpiresAt: timestampToISO(nextBanTimestamp),
+          reason,
+          updatedAt: committedAt,
+        },
+        dedupeKey: `accountStatus:${notificationReference.id}`,
+      }));
     });
 
     if (isBlockedStatus(newAccountStatus)) {
@@ -344,51 +363,8 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
           newAccountStatus,
           error,
         });
-        throw new HttpsError(
-          "unavailable",
-          "Account status changed, but active sessions could not be revoked. Retry this action."
-        );
       }
     }
-
-    await writeAccountStatusNotification({
-      notificationId: [
-        "accountStatusChanged",
-        statusRequest.targetUserId,
-        newAccountStatus,
-        String(warningCount),
-        banExpiresAt ?? "none",
-        statusRequest.targetUserId,
-      ].join("_"),
-      targetUserId: statusRequest.targetUserId,
-      type: "accountStatusChanged",
-      title: accountStatusNotificationTitle(newAccountStatus),
-      message: mutation.statusMessage(notificationReason),
-      severity: accountStatusNotificationSeverity(newAccountStatus),
-      actionType: "openProfile",
-      actionTargetId: statusRequest.targetUserId,
-      requiresPopup: false,
-      actorUserId: auth.uid,
-      sourceType: "account",
-      sourceId: statusRequest.targetUserId,
-      metadata: {
-        previousAccountStatus,
-        newAccountStatus,
-        previousBlockState,
-        newBlockState,
-        warningCount,
-        banExpiresAt,
-        reason: notificationReason,
-        updatedAt: committedAt,
-      },
-      dedupeKey: [
-        "accountStatus",
-        statusRequest.targetUserId,
-        newAccountStatus,
-        String(warningCount),
-        banExpiresAt ?? "none",
-      ].join(":"),
-    }, newAccountStatus);
 
     return {
       targetUserId: statusRequest.targetUserId,
@@ -486,11 +462,6 @@ export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, a
 
   const batch = db.batch();
   let restoredCount = 0;
-  const restoredUsers: Array<{
-    userId: string;
-    warningCount: number;
-    expiredAt: string | null;
-  }> = [];
 
   for (const userSnapshot of expiredUsersSnapshot.docs) {
     const target = accountStatusSnapshotFromData(userSnapshot.id, userSnapshot.data());
@@ -540,26 +511,10 @@ export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, a
       },
     }));
 
-    restoredCount += 1;
-    restoredUsers.push({
-      userId: userSnapshot.id,
-      warningCount: target.warningCount,
-      expiredAt: timestampToISO(target.banExpiresAt),
-    });
-  }
-
-  if (restoredCount > 0) {
-    await batch.commit();
-    await Promise.all(restoredUsers.map((restoredUser) => writeAccountStatusNotification({
-      notificationId: [
-        "accountStatusChanged",
-        restoredUser.userId,
-        "active",
-        "expiredSuspension",
-        restoredUser.expiredAt ?? "none",
-        restoredUser.userId,
-      ].join("_"),
-      targetUserId: restoredUser.userId,
+    const notificationReference = userNotificationRef(userSnapshot.id);
+    batch.set(notificationReference, buildUserNotificationDocument({
+      notificationId: notificationReference.id,
+      targetUserId: userSnapshot.id,
       type: "accountStatusChanged",
       title: accountStatusNotificationTitle("active"),
       message: `Your account access has been restored. Reason: ${
@@ -567,28 +522,28 @@ export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, a
       }`,
       severity: "success",
       actionType: "openProfile",
-      actionTargetId: restoredUser.userId,
+      actionTargetId: userSnapshot.id,
       requiresPopup: false,
       actorUserId: systemActor,
       sourceType: "account",
-      sourceId: restoredUser.userId,
+      sourceId: userSnapshot.id,
       metadata: {
         previousAccountStatus: "suspendedUntil",
         newAccountStatus: "active",
         previousBlockState: "suspendedUntil",
         newBlockState: "active",
-        warningCount: restoredUser.warningCount,
+        warningCount: target.warningCount,
         banExpiresAt: null,
         reason: temporarySuspensionExpiredReason,
         updatedAt: committedAt,
       },
-      dedupeKey: [
-        "accountStatus",
-        restoredUser.userId,
-        "active",
-        "expiredSuspension",
-        restoredUser.expiredAt ?? "none",
-      ].join(":"),
-    }, "active")));
+      dedupeKey: `accountStatus:${notificationReference.id}`,
+    }));
+
+    restoredCount += 1;
+  }
+
+  if (restoredCount > 0) {
+    await batch.commit();
   }
 });

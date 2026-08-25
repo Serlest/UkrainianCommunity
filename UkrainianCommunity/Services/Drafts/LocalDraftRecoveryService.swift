@@ -108,6 +108,19 @@ struct OrganizationCreateDraft: Codable, Equatable {
     let missionStatement: String
     let contactPerson: String
     let organizationType: String
+    let profileKind: String?
+    let secondaryCategories: [String]?
+    let serviceModes: [String]?
+    let serviceArea: String?
+    let regularHours: [String: String]?
+    let specialHoursNote: String?
+    let services: String?
+    let orderURL: String?
+    let bookingURL: String?
+    let currentOfferTitle: String?
+    let currentOfferDetails: String?
+    let currentOfferURL: String?
+    let currentOfferValidUntil: Date?
     let foundedYear: String
     let foundedMonth: Int?
     let languages: String
@@ -132,6 +145,14 @@ struct OrganizationCreateDraft: Codable, Equatable {
             linkedinURL ?? "",
             missionStatement,
             contactPerson,
+            serviceArea ?? "",
+            specialHoursNote ?? "",
+            services ?? "",
+            orderURL ?? "",
+            bookingURL ?? "",
+            currentOfferTitle ?? "",
+            currentOfferDetails ?? "",
+            currentOfferURL ?? "",
             foundedYear,
             languages,
             socialLinks

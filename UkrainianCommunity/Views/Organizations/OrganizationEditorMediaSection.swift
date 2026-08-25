@@ -42,12 +42,16 @@ extension OrganizationEditorView {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(AppStrings.Organizations.logoUploadHelper)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineSpacing(2)
                     .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(editorCardPadding)
             .frame(maxWidth: .infinity)

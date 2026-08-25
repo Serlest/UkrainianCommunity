@@ -119,6 +119,58 @@ async function seed() {
 }
 
 describe("organization region scope updates", () => {
+  test("directory profile accepts the supported business schema", async () => {
+    const db = auth("request-submitter");
+    const id = "valid-business-directory-profile";
+    const request = organizationRequest(id, "federalState");
+    request.directoryProfile = {
+      profileKind: "business",
+      secondaryCategories: ["retail", "ukrainianProducts"],
+      serviceModes: ["inStore", "pickup", "delivery"],
+      serviceArea: "Wien und Umgebung",
+      regularHours: {
+        monday: "09:00-18:00",
+        saturday: "09:00-14:00",
+      },
+      services: ["Ukrainische Lebensmittel", "Geschenkkörbe"],
+      orderURL: "https://example.com/order",
+      currentOfferTitle: "Eröffnungsangebot",
+    };
+
+    await assertSucceeds(setDoc(doc(db, "organizations", id), request));
+  });
+
+  test("directory profile rejects unsupported kinds and oversized lists", async () => {
+    const db = auth("request-submitter");
+    const invalidKindId = "invalid-business-kind";
+    const invalidKindRequest = organizationRequest(invalidKindId, "federalState");
+    invalidKindRequest.directoryProfile = {
+      profileKind: "marketplace",
+      services: [],
+    };
+    await assertFails(setDoc(doc(db, "organizations", invalidKindId), invalidKindRequest));
+
+    const tooManyCategoriesId = "too-many-secondary-categories";
+    const tooManyCategoriesRequest = organizationRequest(tooManyCategoriesId, "federalState");
+    tooManyCategoriesRequest.directoryProfile = {
+      profileKind: "business",
+      secondaryCategories: ["retail", "support", "culture"],
+      services: [],
+    };
+    await assertFails(setDoc(
+      doc(db, "organizations", tooManyCategoriesId),
+      tooManyCategoriesRequest
+    ));
+
+    const tooManyServicesId = "too-many-services";
+    const tooManyServicesRequest = organizationRequest(tooManyServicesId, "federalState");
+    tooManyServicesRequest.directoryProfile = {
+      profileKind: "specialist",
+      services: Array.from({length: 9}, (_, index) => `Service ${index}`),
+    };
+    await assertFails(setDoc(doc(db, "organizations", tooManyServicesId), tooManyServicesRequest));
+  });
+
   test("request creation accepts only supported region scopes", async () => {
     const db = auth("request-submitter");
     const validId = "valid-region-request";

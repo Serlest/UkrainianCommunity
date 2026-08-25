@@ -64,19 +64,29 @@ extension OrganizationDetailView {
         let today = Calendar.current.startOfDay(for: Date())
         return organizationEventItems
             .filter { ($0.eventStartDate ?? $0.publishedAt) >= today }
-            .sorted { ($0.eventStartDate ?? $0.publishedAt) < ($1.eventStartDate ?? $1.publishedAt) }
+            .sorted {
+                let lhsDate = $0.eventStartDate ?? $0.publishedAt
+                let rhsDate = $1.eventStartDate ?? $1.publishedAt
+                return lhsDate == rhsDate ? $0.id < $1.id : lhsDate < rhsDate
+            }
     }
 
     var organizationEventItems: [OrganizationActivityItem] {
         activityViewModel.items
             .filter { $0.itemType == .event }
-            .sorted { ($0.eventStartDate ?? $0.publishedAt) < ($1.eventStartDate ?? $1.publishedAt) }
+            .sorted {
+                let lhsDate = $0.eventStartDate ?? $0.publishedAt
+                let rhsDate = $1.eventStartDate ?? $1.publishedAt
+                return lhsDate == rhsDate ? $0.id < $1.id : lhsDate < rhsDate
+            }
     }
 
     var organizationNewsItems: [OrganizationActivityItem] {
         activityViewModel.items
             .filter { $0.itemType == .news }
-            .sorted { $0.publishedAt > $1.publishedAt }
+            .sorted {
+                $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
+            }
     }
 
     func organizationActivityList(

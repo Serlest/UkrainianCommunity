@@ -370,6 +370,7 @@ struct ProfileView: View {
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: ProfileNavigationRoute.self) { route in
             profileDestination(for: route)
+                .id(locale.identifier)
         }
         .task {
             isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled

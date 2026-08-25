@@ -18,6 +18,26 @@ extension NewsEditorView {
                             imageProcessingOverlay
                         }
                     }
+
+                    if selectedPreviewImage != nil || viewModel.existingImageURL != nil {
+                        Button(role: .destructive) {
+                            selectedPhoto = nil
+                            selectedPreviewImage = nil
+                            viewModel.removeCoverImage()
+                        } label: {
+                            Label(AppStrings.NewsEditor.removePhoto, systemImage: "trash")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(viewModel.isProcessingImage || viewModel.isPublishing)
+                    }
+
+                    if !viewModel.isEditing {
+                        Label(AppStrings.NewsEditor.coverDraftNote, systemImage: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
                 }
             }
         }

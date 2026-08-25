@@ -10,6 +10,7 @@ struct OrganizationReadOnlyDetailContent: View {
         VStack(alignment: .leading, spacing: 13) {
             previewHero
             supportCard
+            OrganizationDirectoryReadOnlySection(profile: organization.directoryProfile)
             aboutSection
             missionSection
             factsSection

@@ -19,11 +19,13 @@ struct NewsEditorView: View {
     @State var isShowingOrganizerPicker = false
     @State var isShowingDraftRecoveryDialog = false
     @State var isShowingDraftCloseConfirmation = false
+    @State var currentStep = NewsEditorStep.basics
+    @FocusState var focusedField: NewsEditorFocusField?
     let onPublished: @MainActor () async -> Void
 
-    let titleLimit = 120
-    let summaryLimit = 200
-    let bodyLimit = 10000
+    let titleLimit = NewsEditorViewModel.titleLimit
+    let summaryLimit = NewsEditorViewModel.summaryLimit
+    let bodyLimit = NewsEditorViewModel.bodyLimit
     let editorSectionSpacing: CGFloat = 8
     let editorCardSpacing: CGFloat = 8
     let editorCardPadding: CGFloat = 10
@@ -31,7 +33,7 @@ struct NewsEditorView: View {
     let compactInputHeight: CGFloat = 40
     let summaryInputHeight: CGFloat = 78
     let summaryTextHeight: CGFloat = 60
-    let bodyInputHeight: CGFloat = 70
+    let bodyInputHeight: CGFloat = 190
     let detailRowHeight: CGFloat = 52
     let detailIconSize: CGFloat = 16
     let uploadMinHeight: CGFloat = 124
@@ -92,25 +94,9 @@ struct NewsEditorView: View {
             if showsNoOrganizerAccessState {
                 noOrganizerAccessCard
             } else {
-                mainInformationCard
-
-                coverImageCard
-
-                if !viewModel.isEditing {
-                    organizerCard
-                }
-
-                bodyContentCard
-
-                sourceCard
-
-                tagsCard
-
-                if viewModel.showsRegionPicker {
-                    settingsCard
-                }
-
-                bottomPublishButton
+                editorProgress
+                editorStepContent
+                editorNavigation
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -142,6 +128,7 @@ struct NewsEditorView: View {
         ) {
             Button(AppStrings.DraftRecovery.continueDraft) {
                 viewModel.continueRecoveredDraft()
+                currentStep = .basics
             }
             Button(AppStrings.DraftRecovery.createNew) {
                 Task {
@@ -214,7 +201,8 @@ struct NewsEditorView: View {
         let organizations = organizerOrganizationsViewModel.organizations
             .filter { $0.id != Organization.systemOrganizationID }
             .sorted { lhs, rhs in
-                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                let result = LocalizationStore.compareForSorting(lhs.name, rhs.name)
+                return result == .orderedSame ? lhs.id < rhs.id : result == .orderedAscending
             }
 
         switch user.globalRole.authorizationRole {
@@ -227,6 +215,12 @@ struct NewsEditorView: View {
 
     var canSelectOrganizer: Bool {
         !viewModel.isEditing && availableOrganizerOrganizations.count > 1
+    }
+
+    var hasAuthorizedOrganizerSelection: Bool {
+        guard !viewModel.isEditing else { return true }
+        guard let selectedID = viewModel.selectedOrganizationId else { return false }
+        return availableOrganizerOrganizations.contains(where: { $0.id == selectedID })
     }
 
     var showsNoOrganizerAccessState: Bool {
@@ -320,6 +314,33 @@ struct NewsEditorView: View {
     func counterText(_ count: Int, limit: Int) -> String {
         "\(count)/\(limit)"
     }
+}
+
+enum NewsEditorStep: Int, CaseIterable, Identifiable {
+    case basics
+    case content
+    case preview
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .basics: AppStrings.NewsEditor.editorStepBasics
+        case .content: AppStrings.NewsEditor.editorStepContent
+        case .preview: AppStrings.NewsEditor.editorStepPreview
+        }
+    }
+
+    var next: Self { Self(rawValue: min(rawValue + 1, Self.preview.rawValue)) ?? .preview }
+    var previous: Self { Self(rawValue: max(rawValue - 1, Self.basics.rawValue)) ?? .basics }
+}
+
+enum NewsEditorFocusField: Hashable {
+    case title
+    case summary
+    case body
+    case source
+    case tags
 }
 
 

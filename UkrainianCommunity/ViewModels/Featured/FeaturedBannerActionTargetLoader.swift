@@ -24,19 +24,26 @@ struct FeaturedBannerActionTargetLoader {
             guard let newsRepository else { throw AppError.validationFailed }
             return try await fetchAllNews(from: newsRepository)
                 .filter { $0.moderationStatus == .approved }
-                .sorted { $0.publishedAt > $1.publishedAt }
+                .sorted {
+                    $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
+                }
                 .map(FeaturedBannerActionTargetItem.init(news:))
         case .event:
             guard let eventRepository else { throw AppError.validationFailed }
             return try await fetchAllEvents(from: eventRepository)
                 .filter { $0.moderationStatus == .approved }
-                .sorted { $0.startDate > $1.startDate }
+                .sorted {
+                    $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate > $1.startDate
+                }
                 .map(FeaturedBannerActionTargetItem.init(event:))
         case .organization:
             guard let organizationRepository else { throw AppError.validationFailed }
             return try await fetchAllOrganizations(from: organizationRepository)
                 .filter { $0.moderationStatus == .approved }
-                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                .sorted {
+                    let result = LocalizationStore.compareForSorting($0.name, $1.name)
+                    return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+                }
                 .map(FeaturedBannerActionTargetItem.init(organization:))
         }
     }

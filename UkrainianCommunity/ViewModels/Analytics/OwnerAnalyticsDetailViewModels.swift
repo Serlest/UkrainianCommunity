@@ -420,47 +420,49 @@ final class AnalyticsOrganizationDetailViewModel: ObservableObject {
     }
 
     private var normalizedSearchText: String {
-        searchText.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
+        LocalSearchMatcher.normalized(searchText)
     }
 
     private func matchesSearch(_ item: AnalyticsOrganizationTopContentItem) -> Bool {
         guard hasActiveSearch else { return true }
-        return [
-            item.title,
-            item.contentType.analyticsTitle,
-            item.category,
-            item.category.map {
+        return LocalSearchMatcher.matches(
+            query: searchText,
+            values: [
+                item.title,
+                item.contentType.analyticsTitle,
+                item.category,
+                item.category.map {
                 OwnerAnalyticsFormatting.categoryTitle(
                     rawValue: $0,
                     contentType: item.contentType
                 )
-            },
-            item.federalState.map(AppStrings.FederalStates.title(for:)),
-            item.regionScope.map { regionScope in
-                switch regionScope {
-                case .austria:
-                    return AppStrings.OwnerAnalytics.regionAustria
-                case .federalState:
-                    return AppStrings.OwnerAnalytics.regionFederalState
-                case .city:
-                    return AppStrings.OwnerAnalytics.regionCity
+                },
+                item.federalState.map(AppStrings.FederalStates.title(for:)),
+                item.regionScope.map { regionScope in
+                    switch regionScope {
+                    case .austria:
+                        return AppStrings.OwnerAnalytics.regionAustria
+                    case .federalState:
+                        return AppStrings.OwnerAnalytics.regionFederalState
+                    case .city:
+                        return AppStrings.OwnerAnalytics.regionCity
+                    }
                 }
-            }
-        ]
-        .compactMap { $0?.localizedLowercase }
-        .contains { $0.contains(normalizedSearchText) }
+            ]
+        )
     }
 
     private func matchesSearch(_ item: OwnerAnalyticsDetailMetricItem) -> Bool {
         guard hasActiveSearch else { return true }
-        return item.title.localizedLowercase.contains(normalizedSearchText)
+        return LocalSearchMatcher.matches(query: searchText, values: [item.title])
     }
 
     private func matchesSearch(_ row: OwnerAnalyticsDetailRegionRowModel) -> Bool {
         guard hasActiveSearch else { return true }
-        return ([row.title] + row.breakdownLines)
-            .map(\.localizedLowercase)
-            .contains { $0.contains(normalizedSearchText) }
+        return LocalSearchMatcher.matches(
+            query: searchText,
+            values: [row.title] + row.breakdownLines
+        )
     }
 }
 

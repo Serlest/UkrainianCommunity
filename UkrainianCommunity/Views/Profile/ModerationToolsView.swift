@@ -219,7 +219,9 @@ private final class ModerationQueueViewModel: ObservableObject {
         if let organizationID {
             loadedItems.append(contentsOf: makeItems(from: try await newsRepository.fetchOrganizationModerationNews(organizationID: organizationID)))
             loadedItems.append(contentsOf: makeItems(from: try await eventRepository.fetchOrganizationModerationEvents(organizationID: organizationID)))
-            return loadedItems.sorted { $0.createdAt > $1.createdAt }
+            return loadedItems.sorted {
+                $0.createdAt == $1.createdAt ? $0.id < $1.id : $0.createdAt > $1.createdAt
+            }
         }
 
         if allowedSections.contains(.news) {
@@ -232,7 +234,9 @@ private final class ModerationQueueViewModel: ObservableObject {
             loadedItems.append(contentsOf: makeItems(from: try await organizationRepository.fetchPendingOrganizations()))
         }
 
-        return loadedItems.sorted { $0.createdAt > $1.createdAt }
+        return loadedItems.sorted {
+            $0.createdAt == $1.createdAt ? $0.id < $1.id : $0.createdAt > $1.createdAt
+        }
     }
 
     private func startListeningPendingOrganizationRequestsIfNeeded() {
@@ -311,6 +315,7 @@ struct ModerationToolsView: View {
     @State private var permissionOrganization: Organization?
     @State private var searchText = ""
     @State private var selectedContentType: ModeratedContentType?
+    @State private var sortOption: AppListSortOption = .newest
     private let organizationID: String?
     private let scope: ModerationToolsScope
     private let organizationRepository: OrganizationRepository
@@ -382,15 +387,14 @@ struct ModerationToolsView: View {
     }
 
     private var visibleItems: [ModerationQueueItem] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return viewModel.items.filter { item in
             let matchesType = selectedContentType == nil || item.type == selectedContentType
-            let matchesSearch = query.isEmpty
-                || item.title.localizedCaseInsensitiveContains(query)
-                || item.summary.localizedCaseInsensitiveContains(query)
-                || item.submittedBy?.localizedCaseInsensitiveContains(query) == true
+            let matchesSearch = LocalSearchMatcher.matches(
+                query: searchText,
+                values: [item.title, item.summary, item.submittedBy, item.id]
+            )
             return matchesType && matchesSearch
-        }
+        }.sorted(by: moderationSort)
     }
 
     var body: some View {
@@ -569,7 +573,7 @@ struct ModerationToolsView: View {
                     }
                     .buttonStyle(.plain)
 
-                    ForEach([ModeratedContentType.news, .event], id: \.rawValue) { type in
+                    ForEach(availableContentTypes, id: \.rawValue) { type in
                         Button {
                             selectedContentType = type
                         } label: {
@@ -580,9 +584,45 @@ struct ModerationToolsView: View {
                         }
                         .buttonStyle(.plain)
                     }
+
+                    AppSortMenu(
+                        selection: $sortOption,
+                        options: [.newest, .oldest, .nameAscending, .nameDescending]
+                    )
                 }
             }
         }
+    }
+
+    private var availableContentTypes: [ModeratedContentType] {
+        [.news, .event, .organization].filter { type in
+            viewModel.items.contains { $0.type == type }
+        }
+    }
+
+    private func moderationSort(_ lhs: ModerationQueueItem, _ rhs: ModerationQueueItem) -> Bool {
+        switch sortOption {
+        case .newest:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
+        case .oldest:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt < rhs.createdAt
+        case .nameAscending:
+            compareModerationTitles(lhs, rhs, ascending: true)
+        case .nameDescending:
+            compareModerationTitles(lhs, rhs, ascending: false)
+        case .popular:
+            lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
+        }
+    }
+
+    private func compareModerationTitles(
+        _ lhs: ModerationQueueItem,
+        _ rhs: ModerationQueueItem,
+        ascending: Bool
+    ) -> Bool {
+        let result = LocalizationStore.compareForSorting(lhs.title, rhs.title)
+        guard result != .orderedSame else { return lhs.id < rhs.id }
+        return ascending ? result == .orderedAscending : result == .orderedDescending
     }
 
     private func errorMessage(for error: AppError) -> String {

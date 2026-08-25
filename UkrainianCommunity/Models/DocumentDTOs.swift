@@ -205,6 +205,7 @@ struct OrganizationDTO: Codable, Identifiable {
     let latitude: Double?
     let longitude: Double?
     let organizationType: String?
+    let directoryProfile: OrganizationDirectoryProfile?
     let foundedYear: Int?
     let foundedMonth: Int?
     let languages: [String]?
@@ -615,6 +616,7 @@ extension Organization {
             latitude: dto.latitude,
             longitude: dto.longitude,
             organizationType: dto.organizationType,
+            directoryProfile: dto.directoryProfile,
             foundedYear: dto.foundedYear,
             foundedMonth: dto.foundedMonth,
             languages: dto.languages ?? [],
@@ -677,6 +679,7 @@ extension Organization {
             latitude: latitude,
             longitude: longitude,
             organizationType: organizationType,
+            directoryProfile: directoryProfile,
             foundedYear: foundedYear,
             foundedMonth: foundedMonth,
             languages: languages,

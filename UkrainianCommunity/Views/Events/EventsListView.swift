@@ -39,7 +39,7 @@ private enum EventCategoryFilter: CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .all:
-            AppStrings.Events.filterAll
+            AppStrings.Events.allCategories
         case .meetups:
             AppStrings.Events.categoryMeetups
         case .training:
@@ -152,6 +152,7 @@ struct EventsListView: View {
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var isLoadingSearchPages = false
 
     init(
         viewModel: EventsViewModel,
@@ -212,7 +213,9 @@ struct EventsListView: View {
         let events = filteredEvents
         let upcomingEvents = events
             .filter { $0.endDate >= now }
-            .sorted { $0.startDate < $1.startDate }
+            .sorted {
+                $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate < $1.startDate
+            }
         let filteredUpcomingEvents: [Event]
 
         switch selectedFilter {
@@ -233,12 +236,21 @@ struct EventsListView: View {
         }
 
         let upcomingSections = groupedEvents
-            .map { UpcomingEventDaySection(date: $0.key, events: $0.value.sorted { $0.startDate < $1.startDate }) }
+            .map { day, events in
+                UpcomingEventDaySection(
+                    date: day,
+                    events: events.sorted {
+                        $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate < $1.startDate
+                    }
+                )
+            }
             .sorted { $0.date < $1.date }
 
         let pastEvents = events
             .filter { $0.endDate < now }
-            .sorted { $0.startDate > $1.startDate }
+            .sorted {
+                $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate > $1.startDate
+            }
 
         return EventDiscoveryContent(upcomingSections: upcomingSections, pastEvents: pastEvents)
     }
@@ -253,7 +265,7 @@ struct EventsListView: View {
     }
 
     private var hasActiveSearch: Bool {
-        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        LocalSearchMatcher.hasQuery(searchText)
     }
 
     private func matchesSelectedRegion(_ event: Event) -> Bool {
@@ -282,7 +294,7 @@ struct EventsListView: View {
 
     var body: some View {
         ScrollViewReader { scrollProxy in
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 Color.clear
                     .frame(height: 0)
                     .id(eventsRootScrollTopID)
@@ -300,9 +312,11 @@ struct EventsListView: View {
                         )
 
                     EventFilterRow(
+                        selectedPeriod: selectedFilter,
                         selectedFederalState: selectedFederalState,
                         selectedCategory: selectedCategory,
                         selectedFeedScope: selectedFeedScope,
+                        onSelectPeriod: { selectedFilter = $0 },
                         onSelectCategory: { selectedCategory = $0 },
                         onSelectRegion: { isRegionPickerPresented = true },
                         onSelectSaved: { selectedFeedScope = selectedFeedScope == .saved ? .all : .saved },
@@ -341,6 +355,20 @@ struct EventsListView: View {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
             await refreshFeaturedBannersIfStale()
+        }
+        .task(id: searchText) {
+            let queryKey = LocalSearchMatcher.normalized(searchText)
+            isLoadingSearchPages = false
+            guard !queryKey.isEmpty else { return }
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            isLoadingSearchPages = true
+            defer {
+                if LocalSearchMatcher.normalized(searchText) == queryKey {
+                    isLoadingSearchPages = false
+                }
+            }
+            await viewModel.loadRemainingPagesForSearch()
         }
         .refreshable {
             await viewModel.refresh()
@@ -497,6 +525,9 @@ struct EventsListView: View {
                 message: AppStrings.Events.empty
             )
             .frame(maxWidth: .infinity, minHeight: 180)
+        } else if filteredEvents.isEmpty, isLoadingSearchPages {
+            LoadingStateCard(title: AppStrings.Search.searching)
+                .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredEvents.isEmpty {
             EmptyStateCard(
                 systemImage: hasActiveSearch ? "magnifyingglass" : filteredEventsEmptySystemImage,
@@ -566,7 +597,7 @@ struct EventsListView: View {
     private func upcomingContent(_ content: EventDiscoveryContent) -> some View {
         let upcomingEvents = content.upcomingSections.flatMap(\.events)
 
-        return VStack(alignment: .leading, spacing: AppTheme.eventsListRowSpacing) {
+        return VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
             if let firstDate = upcomingEvents.first?.startDate {
                 EventMonthHeader(title: eventMonthTitleText(for: firstDate))
             }
@@ -580,7 +611,7 @@ struct EventsListView: View {
             } else {
                 DashboardFeedContainer(
                     items: upcomingEvents,
-                    spacing: AppTheme.eventsListRowSpacing,
+                    spacing: AppTheme.feedRowSpacing,
                     onItemAppear: { event in
                         Task {
                             await viewModel.loadNextPageIfNeeded(currentItemID: event.id)
@@ -594,12 +625,12 @@ struct EventsListView: View {
     }
 
     private func pastContent(_ content: EventDiscoveryContent) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.eventsListRowSpacing) {
+        VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
             EventMonthHeader(title: AppStrings.Events.pastTitle)
 
             DashboardFeedContainer(
                 items: content.pastEvents,
-                spacing: AppTheme.eventsListRowSpacing,
+                spacing: AppTheme.feedRowSpacing,
                 onItemAppear: { event in
                     Task {
                         await viewModel.loadNextPageIfNeeded(currentItemID: event.id)
@@ -652,22 +683,14 @@ private extension EventDiscoveryFilter {
         }
     }
 
-    var next: EventDiscoveryFilter {
-        switch self {
-        case .all:
-            .today
-        case .today:
-            .thisWeek
-        case .thisWeek:
-            .all
-        }
-    }
 }
 
 private struct EventFilterRow: View {
+    let selectedPeriod: EventDiscoveryFilter
     let selectedFederalState: AustrianFederalState?
     let selectedCategory: EventCategoryFilter
     let selectedFeedScope: EventFeedScope
+    let onSelectPeriod: (EventDiscoveryFilter) -> Void
     let onSelectCategory: (EventCategoryFilter) -> Void
     let onSelectRegion: () -> Void
     let onSelectSaved: () -> Void
@@ -675,6 +698,24 @@ private struct EventFilterRow: View {
 
     var body: some View {
         AppHorizontalFilterRow {
+            Menu {
+                ForEach(EventDiscoveryFilter.allCases) { period in
+                    Button {
+                        onSelectPeriod(period)
+                    } label: {
+                        Label(period.title, systemImage: period.systemImage)
+                    }
+                }
+            } label: {
+                AppFilterChip(
+                    title: selectedPeriod.title,
+                    systemImage: selectedPeriod.systemImage,
+                    isSelected: selectedPeriod != .all,
+                    trailingSystemImage: "chevron.down"
+                )
+            }
+            .buttonStyle(.plain)
+
             Menu {
                 ForEach(EventCategoryFilter.allCases) { category in
                     Button {
@@ -801,7 +842,7 @@ private struct EventCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.compactCardInnerSpacingTight) {
+        SoftContentCard(padding: AppTheme.homeFeedCardPadding) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                     HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
@@ -822,7 +863,6 @@ private struct EventCard: View {
                     Spacer(minLength: 0)
 
                     eventThumbnail
-                        .padding(.trailing, 26)
                         .layoutPriority(-1)
                 }
             }

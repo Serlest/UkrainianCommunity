@@ -1017,11 +1017,7 @@ struct AppSearchableBrandHeader: View {
 
 enum LocalSearchMatcher {
     static func matches(query: String, values: [String?]) -> Bool {
-        let tokens = query
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-            .split(separator: " ")
-            .map(String.init)
+        let tokens = normalizedTokens(query)
 
         guard !tokens.isEmpty else { return true }
 
@@ -1031,8 +1027,27 @@ enum LocalSearchMatcher {
                 return trimmed.isEmpty ? nil : trimmed
             }
             .joined(separator: " ")
-            .lowercased()
 
-        return tokens.allSatisfy { searchableText.contains($0) }
+        let normalizedSearchableText = normalized(searchableText)
+        return tokens.allSatisfy { normalizedSearchableText.contains($0) }
+    }
+
+    static func hasQuery(_ query: String) -> Bool {
+        !normalizedTokens(query).isEmpty
+    }
+
+    static func normalizedTokens(_ value: String) -> [String] {
+        normalized(value).split(separator: " ").map(String.init)
+    }
+
+    static func normalized(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(
+                options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
+                locale: LocalizationStore.locale
+            )
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .joined(separator: " ")
     }
 }

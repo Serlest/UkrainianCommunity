@@ -701,6 +701,15 @@ final class EventsViewModel: ObservableObject {
         nextPageTask = nil
     }
 
+    func loadRemainingPagesForSearch() async {
+        await loadIfNeeded()
+        while hasMorePages, !Task.isCancelled {
+            let previousCount = events.count
+            await loadNextPageIfNeeded()
+            guard events.count > previousCount, error == nil else { return }
+        }
+    }
+
     private func performLoad(generation: Int) async {
         guard isCurrentSession(generation) else { return }
         isLoading = true

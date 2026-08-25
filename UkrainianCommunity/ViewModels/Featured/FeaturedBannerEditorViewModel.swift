@@ -382,15 +382,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     func actionTargetItems(matching query: String) -> [FeaturedBannerActionTargetItem] {
         guard let kind = actionTargetPickerKind else { return [] }
         let items = actionTargetItemsByKind[kind] ?? []
-        let searchTokens = query
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-            .split(separator: " ")
-            .map(String.init)
-
-        guard !searchTokens.isEmpty else { return items }
         return items.filter { item in
-            searchTokens.allSatisfy { item.searchText.contains($0) }
+            LocalSearchMatcher.matches(query: query, values: [item.searchText])
         }
     }
 

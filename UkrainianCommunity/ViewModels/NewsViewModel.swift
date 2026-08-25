@@ -491,6 +491,15 @@ final class NewsViewModel: ObservableObject {
         nextPageTask = nil
     }
 
+    func loadRemainingPagesForSearch() async {
+        await loadIfNeeded()
+        while hasMorePages, !Task.isCancelled {
+            let previousCount = posts.count
+            await loadNextPageIfNeeded()
+            guard posts.count > previousCount, error == nil else { return }
+        }
+    }
+
     private func startLoad(force: Bool) async {
         let generation = authGeneration
         guard force || !hasLoaded else { return }

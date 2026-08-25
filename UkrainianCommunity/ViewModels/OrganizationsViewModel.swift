@@ -682,6 +682,15 @@ final class OrganizationsViewModel: ObservableObject {
         nextPageTask = nil
     }
 
+    func loadRemainingPagesForSearch() async {
+        await loadIfNeeded()
+        while hasMorePages, !Task.isCancelled {
+            let previousCount = organizations.count
+            await loadNextPageIfNeeded()
+            guard organizations.count > previousCount, error == nil else { return }
+        }
+    }
+
     private func performLoad(generation: UInt) async {
         guard isCurrentAuthGeneration(generation) else { return }
         isLoading = true

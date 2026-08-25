@@ -135,7 +135,14 @@ struct PermissionService {
         guard let actor, let target else { return false }
         guard canManageUsers(user: actor) else { return false }
         guard actor.id != target.id else { return false }
-        return target.globalRole.authorizationRole != .owner
+        switch target.globalRole.authorizationRole {
+        case .owner:
+            return false
+        case .admin:
+            return isOwner(actor)
+        default:
+            return true
+        }
     }
 
     static func canManageFeedback(user: AppUser?) -> Bool {
@@ -621,6 +628,14 @@ struct PermissionService {
 
     static func canAccessAdminTools(user: AppUser?) -> Bool {
         Self.isOwner(user) || isAppAdmin(user: user)
+    }
+
+    static func canAccessBlockedUsersSettings(user: AppUser?) -> Bool {
+        isUsableAccount(user: user)
+    }
+
+    static func canSendTestNotification(user: AppUser?) -> Bool {
+        isAppOwner(user: user)
     }
 
     static func canAccessModerationTools(user: AppUser?) -> Bool {

@@ -28,7 +28,9 @@ final class HomeViewModel: ObservableObject {
                 + events.map(HomeFeedItem.init(event:))
                 + organizations.map(HomeFeedItem.init(organization:))
         )
-        .sorted { $0.publishedAt > $1.publishedAt }
+        .sorted {
+            $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
+        }
         self.isLoading = isLoading
         self.error = error
     }

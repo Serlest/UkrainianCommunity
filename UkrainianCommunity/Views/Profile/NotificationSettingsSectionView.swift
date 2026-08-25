@@ -3,6 +3,7 @@ import SwiftUI
 struct NotificationSettingsSectionView: View {
     @ObservedObject var viewModel: ProfileViewModel
     let userID: String?
+    let canSendTestNotification: Bool
 
     var body: some View {
         ProfileSectionCard(
@@ -76,7 +77,9 @@ struct NotificationSettingsSectionView: View {
                         || viewModel.isLoadingNotificationPreferences
                 )
 
-                if let userID, viewModel.notificationPreferences.notificationsEnabled {
+                if canSendTestNotification,
+                   let userID,
+                   viewModel.notificationPreferences.notificationsEnabled {
                     Button {
                         Task { await viewModel.sendTestNotification(userID: userID) }
                     } label: {

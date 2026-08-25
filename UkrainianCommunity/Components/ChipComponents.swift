@@ -190,3 +190,84 @@ struct AppHorizontalFilterRow<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+enum AppListSortOption: String, CaseIterable, Identifiable, Hashable {
+    case newest
+    case oldest
+    case nameAscending
+    case nameDescending
+    case popular
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .newest: AppStrings.Sorting.newest
+        case .oldest: AppStrings.Sorting.oldest
+        case .nameAscending: AppStrings.Sorting.nameAscending
+        case .nameDescending: AppStrings.Sorting.nameDescending
+        case .popular: AppStrings.Sorting.popular
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .newest: "clock.arrow.circlepath"
+        case .oldest: "clock"
+        case .nameAscending: "textformat.abc"
+        case .nameDescending: "textformat.abc.dottedunderline"
+        case .popular: "person.2.fill"
+        }
+    }
+}
+
+struct AppSortMenu<Option: Hashable & Identifiable>: View {
+    @Binding var selection: Option
+    let options: [Option]
+    let title: (Option) -> String
+    let systemImage: (Option) -> String
+
+    init(
+        selection: Binding<Option>,
+        options: [Option],
+        title: @escaping (Option) -> String,
+        systemImage: @escaping (Option) -> String = { _ in "arrow.up.arrow.down" }
+    ) {
+        _selection = selection
+        self.options = options
+        self.title = title
+        self.systemImage = systemImage
+    }
+
+    var body: some View {
+        Menu {
+            Picker(AppStrings.Sorting.title, selection: $selection) {
+                ForEach(options) { option in
+                    Label(title(option), systemImage: systemImage(option))
+                        .tag(option)
+                }
+            }
+        } label: {
+            AppFilterChip(
+                title: title(selection),
+                systemImage: "arrow.up.arrow.down",
+                isSelected: options.first.map { selection != $0 } ?? false,
+                trailingSystemImage: "chevron.down"
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.Sorting.title)
+        .accessibilityValue(title(selection))
+    }
+}
+
+extension AppSortMenu where Option == AppListSortOption {
+    init(selection: Binding<AppListSortOption>, options: [AppListSortOption]) {
+        self.init(
+            selection: selection,
+            options: options,
+            title: \.title,
+            systemImage: \.systemImage
+        )
+    }
+}

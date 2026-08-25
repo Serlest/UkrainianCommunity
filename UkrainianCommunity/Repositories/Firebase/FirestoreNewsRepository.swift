@@ -241,10 +241,14 @@ struct FirestoreNewsRepository: NewsRepository {
             "organizationName": news.source.organizationName as Any,
             "organizationImageURL": news.source.organizationImageURL as Any,
             "body": news.body,
-            "imageURL": news.imageURL as Any,
             "authorName": news.authorName,
             "updatedAt": Timestamp(date: news.updatedAt)
         ]
+        if let imageURL = news.imageURL {
+            data["imageURL"] = imageURL
+        } else {
+            data["imageURL"] = FieldValue.delete()
+        }
         data["sourceName"] = news.sourceName ?? FieldValue.delete()
         data["sourceURL"] = news.sourceURL ?? FieldValue.delete()
         do {
@@ -282,10 +286,13 @@ struct FirestoreNewsRepository: NewsRepository {
 
     func updateNewsImageURL(id: String, imageURL: String?) async throws {
         do {
-            try await collection.document(id).updateData([
-                "imageURL": imageURL as Any,
-                "updatedAt": Timestamp(date: Date())
-            ])
+            var data: [String: Any] = ["updatedAt": Timestamp(date: Date())]
+            if let imageURL {
+                data["imageURL"] = imageURL
+            } else {
+                data["imageURL"] = FieldValue.delete()
+            }
+            try await collection.document(id).updateData(data)
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,

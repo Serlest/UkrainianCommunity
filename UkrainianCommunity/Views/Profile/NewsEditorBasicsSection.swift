@@ -12,6 +12,8 @@ extension NewsEditorView {
                             .font(.subheadline)
                             .textInputAutocapitalization(.sentences)
                             .submitLabel(.next)
+                            .focused($focusedField, equals: .title)
+                            .onSubmit { focusedField = .summary }
                             .newsEditorCompactInputStyle(minHeight: compactInputHeight)
                     }
 
@@ -33,6 +35,7 @@ extension NewsEditorView {
                                 .scrollContentBackground(.hidden)
                                 .font(.subheadline)
                                 .foregroundStyle(AppTheme.textPrimary)
+                                .focused($focusedField, equals: .summary)
                                 .frame(minHeight: summaryTextHeight)
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
@@ -93,6 +96,9 @@ extension NewsEditorView {
                     }
                     .buttonStyle(.plain)
                     .disabled(!canSelectOrganizer)
+                    .frame(minHeight: 52)
+                    .contentShape(Rectangle())
+                    .accessibilityHint(canSelectOrganizer ? AppStrings.NewsEditor.organizerPickerHint : "")
                 }
             }
         }

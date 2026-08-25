@@ -33,19 +33,19 @@ struct MyFeedbackView: View {
     let currentUserID: String
     @State private var selectedFeedback: FeedbackItem?
     @State private var selectedFilter: MyFeedbackFilter = .all
+    @State private var sortOption: AppListSortOption = .newest
     @State private var searchText = ""
     @State private var isShowingClearConfirmation = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var filteredItems: [FeedbackItem] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return viewModel.items.filter { item in
             selectedFilter.includes(item)
-                && (query.isEmpty
-                    || item.type.title.localizedCaseInsensitiveContains(query)
-                    || item.message.localizedCaseInsensitiveContains(query)
-                    || item.lastMessageText?.localizedCaseInsensitiveContains(query) == true)
-        }
+                && LocalSearchMatcher.matches(
+                    query: searchText,
+                    values: [item.type.title, item.message, item.lastMessageText, item.id]
+                )
+        }.sorted(by: feedbackSort)
     }
 
     var body: some View {
@@ -150,6 +150,10 @@ struct MyFeedbackView: View {
                     }
                 }
 
+                AppHorizontalFilterRow {
+                    AppSortMenu(selection: $sortOption, options: [.newest, .oldest])
+                }
+
                 HStack(spacing: AppTheme.eventsMetadataSpacing) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(AppTheme.textSecondary)
@@ -181,6 +185,17 @@ struct MyFeedbackView: View {
 
     private func myFeedbackFilterTitle(_ filter: MyFeedbackFilter) -> String {
         "\(filter.title) \(viewModel.items.filter { filter.includes($0) }.count)"
+    }
+
+    private func feedbackSort(_ lhs: FeedbackItem, _ rhs: FeedbackItem) -> Bool {
+        let lhsDate = lhs.lastMessageAt ?? lhs.updatedAt
+        let rhsDate = rhs.lastMessageAt ?? rhs.updatedAt
+        switch sortOption {
+        case .oldest:
+            return lhsDate == rhsDate ? lhs.id < rhs.id : lhsDate < rhsDate
+        default:
+            return lhsDate == rhsDate ? lhs.id < rhs.id : lhsDate > rhsDate
+        }
     }
 
     @ViewBuilder
@@ -341,20 +356,18 @@ struct FeedbackInboxView: View {
     @StateObject private var viewModel: FeedbackInboxViewModel
     @State private var selectedFeedback: FeedbackItem?
     @State private var selectedFilter: FeedbackInboxFilter = .open
+    @State private var sortOption: AppListSortOption = .newest
     @State private var searchText = ""
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var filteredItems: [FeedbackItem] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return viewModel.items.filter { item in
             selectedFilter.includes(item)
-                && (query.isEmpty
-                    || item.userDisplayName.localizedCaseInsensitiveContains(query)
-                    || item.userId.localizedCaseInsensitiveContains(query)
-                    || item.type.title.localizedCaseInsensitiveContains(query)
-                    || item.message.localizedCaseInsensitiveContains(query)
-                    || item.lastMessageText?.localizedCaseInsensitiveContains(query) == true)
-        }
+                && LocalSearchMatcher.matches(
+                    query: searchText,
+                    values: [item.userDisplayName, item.userId, item.type.title, item.message, item.lastMessageText, item.id]
+                )
+        }.sorted(by: feedbackSort)
     }
 
     init(
@@ -375,6 +388,9 @@ struct FeedbackInboxView: View {
         ) {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 inboxFilterPicker
+                AppHorizontalFilterRow {
+                    AppSortMenu(selection: $sortOption, options: [.newest, .oldest])
+                }
                 inboxSearchField
             }
         } metrics: {
@@ -525,6 +541,17 @@ struct FeedbackInboxView: View {
 
     private func filterTitle(_ filter: FeedbackInboxFilter) -> String {
         "\(filter.title) \(viewModel.items.filter { filter.includes($0) }.count)"
+    }
+
+    private func feedbackSort(_ lhs: FeedbackItem, _ rhs: FeedbackItem) -> Bool {
+        let lhsDate = lhs.lastMessageAt ?? lhs.updatedAt
+        let rhsDate = rhs.lastMessageAt ?? rhs.updatedAt
+        switch sortOption {
+        case .oldest:
+            return lhsDate == rhsDate ? lhs.id < rhs.id : lhsDate < rhsDate
+        default:
+            return lhsDate == rhsDate ? lhs.id < rhs.id : lhsDate > rhsDate
+        }
     }
 
     private var inboxSearchField: some View {

@@ -75,6 +75,26 @@ struct NewsValidationInput {
     let body: String
     let hasOrganizer: Bool
     let federalState: AustrianFederalState?
+    let sourceInput: String
+    let tags: [String]
+
+    init(
+        title: String,
+        summary: String,
+        body: String,
+        hasOrganizer: Bool,
+        federalState: AustrianFederalState?,
+        sourceInput: String = "",
+        tags: [String] = []
+    ) {
+        self.title = title
+        self.summary = summary
+        self.body = body
+        self.hasOrganizer = hasOrganizer
+        self.federalState = federalState
+        self.sourceInput = sourceInput
+        self.tags = tags
+    }
 }
 
 enum NewsValidationIssue: Equatable {
@@ -83,6 +103,12 @@ enum NewsValidationIssue: Equatable {
     case bodyRequired
     case organizationRequired
     case organizationRegionRequired
+    case titleTooLong
+    case summaryTooLong
+    case bodyTooLong
+    case invalidSource
+    case tooManyTags
+    case tagTooLong
 
     var message: String {
         switch self {
@@ -96,6 +122,18 @@ enum NewsValidationIssue: Equatable {
             AppStrings.NewsEditor.organizationRequired
         case .organizationRegionRequired:
             AppStrings.NewsEditor.organizationRegionRequired
+        case .titleTooLong:
+            AppStrings.NewsEditor.titleTooLong
+        case .summaryTooLong:
+            AppStrings.NewsEditor.summaryTooLong
+        case .bodyTooLong:
+            AppStrings.NewsEditor.bodyTooLong
+        case .invalidSource:
+            AppStrings.NewsEditor.invalidSource
+        case .tooManyTags:
+            AppStrings.NewsEditor.tooManyTags
+        case .tagTooLong:
+            AppStrings.NewsEditor.tagTooLong
         }
     }
 }
@@ -105,11 +143,20 @@ struct NewsValidationService {
         if input.title.trimmedForValidation.isEmpty {
             return .titleRequired
         }
+        if input.title.count > NewsEditorViewModel.titleLimit {
+            return .titleTooLong
+        }
         if input.summary.trimmedForValidation.isEmpty {
             return .summaryRequired
         }
+        if input.summary.count > NewsEditorViewModel.summaryLimit {
+            return .summaryTooLong
+        }
         if input.body.trimmedForValidation.isEmpty {
             return .bodyRequired
+        }
+        if input.body.count > NewsEditorViewModel.bodyLimit {
+            return .bodyTooLong
         }
         if !input.hasOrganizer {
             return .organizationRequired
@@ -117,7 +164,28 @@ struct NewsValidationService {
         if input.federalState == nil {
             return .organizationRegionRequired
         }
+        let source = input.sourceInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if source.contains("://"), !Self.isValidWebURL(source) {
+            return .invalidSource
+        }
+        if input.tags.count > NewsEditorViewModel.tagLimit {
+            return .tooManyTags
+        }
+        if input.tags.contains(where: { $0.count > NewsEditorViewModel.tagCharacterLimit }) {
+            return .tagTooLong
+        }
         return nil
+    }
+
+    private static func isValidWebURL(_ value: String) -> Bool {
+        guard !value.contains(where: { $0.isWhitespace }),
+              let url = URL(string: value),
+              let scheme = url.scheme?.lowercased(),
+              ["http", "https"].contains(scheme),
+              url.host?.isEmpty == false else {
+            return false
+        }
+        return true
     }
 }
 
@@ -326,6 +394,9 @@ struct OrganizationValidationService {
         if region == nil {
             errors.append(AppStrings.Validation.organizationRegionRequired)
         }
+        if trimmedCity.isEmpty {
+            errors.append(AppStrings.Validation.organizationCityRequired)
+        }
         if !trimmedEmail.isEmpty, !trimmedEmail.contains("@") {
             errors.append(AppStrings.Validation.organizationEmailInvalid)
         }
@@ -339,8 +410,6 @@ struct OrganizationValidationService {
                 errors.append(AppStrings.Validation.organizationFoundedYearInvalid)
             }
         }
-        _ = trimmedCity
-
         return errors
     }
 }

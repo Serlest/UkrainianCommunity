@@ -182,29 +182,19 @@ struct FeaturedBannerManagementView: View {
     }
 
     private var visibleBanners: [FeaturedBanner] {
-        let tokens = searchText
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-            .split(separator: " ")
-            .map(String.init)
-
         return viewModel.banners.filter { banner in
             guard filter.includes(banner) else { return false }
-            guard !tokens.isEmpty else { return true }
-
-            let searchableText = [
-                banner.internalName,
-                banner.title,
-                banner.subtitle,
-                banner.id,
-                banner.federalState?.rawValue,
-                banner.actionTargetID
-            ]
-                .compactMap(\.self)
-                .joined(separator: " ")
-                .lowercased()
-
-            return tokens.allSatisfy { searchableText.contains($0) }
+            return LocalSearchMatcher.matches(
+                query: searchText,
+                values: [
+                    banner.internalName,
+                    banner.title,
+                    banner.subtitle,
+                    banner.id,
+                    banner.federalState?.rawValue,
+                    banner.actionTargetID
+                ]
+            )
         }
     }
 

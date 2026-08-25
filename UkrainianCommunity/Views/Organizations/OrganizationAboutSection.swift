@@ -7,6 +7,8 @@ extension OrganizationDetailView {
                 aboutTextBlock(for: organization)
             }
 
+            directoryProfileCards(for: organization)
+
             if let missionStatement = organization.missionStatement?.trimmingCharacters(in: .whitespacesAndNewlines), !missionStatement.isEmpty {
                 DetailCard {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {

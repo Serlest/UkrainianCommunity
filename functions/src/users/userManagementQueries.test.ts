@@ -8,6 +8,7 @@ import {
 
 test("normalizes management search input", () => {
   assert.equal(normalizeUserSearchQuery("  ІВАН  "), "іван");
+  assert.equal(normalizeUserSearchQuery("  Müller-Wien  "), "muller wien");
 });
 
 test("matches user fields and document id using substring search", () => {
@@ -22,6 +23,7 @@ test("matches user fields and document id using substring search", () => {
   assert.equal(userDocumentMatchesSearch("uid-123", user, "петр"), true);
   assert.equal(userDocumentMatchesSearch("uid-123", user, "example"), true);
   assert.equal(userDocumentMatchesSearch("uid-123", user, "123"), true);
+  assert.equal(userDocumentMatchesSearch("uid-123", user, "ivan wien"), true);
   assert.equal(userDocumentMatchesSearch("uid-123", user, "salzburg"), false);
 });
 

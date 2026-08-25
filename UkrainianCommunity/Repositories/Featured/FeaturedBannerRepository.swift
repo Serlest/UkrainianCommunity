@@ -33,7 +33,7 @@ extension Array where Element == FeaturedBanner {
             if lhs.priority != rhs.priority {
                 return lhs.priority > rhs.priority
             }
-            return lhs.updatedAt > rhs.updatedAt
+            return lhs.updatedAt == rhs.updatedAt ? lhs.id < rhs.id : lhs.updatedAt > rhs.updatedAt
         }
     }
 }

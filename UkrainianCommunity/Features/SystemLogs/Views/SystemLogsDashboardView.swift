@@ -71,6 +71,9 @@ struct SystemLogsDashboardView: View {
             viewModel.ensureSelectedSectionIsVisible()
             await viewModel.loadIfNeeded()
         }
+        .onChange(of: viewModel.sortOption) {
+            Task { await viewModel.refresh() }
+        }
         .refreshable {
             await viewModel.refresh()
         }
@@ -121,6 +124,7 @@ struct SystemLogsDashboardView: View {
     private var filters: some View {
         SystemLogsFilterBar(
             selectedSection: $viewModel.selectedSection,
+            sortOption: $viewModel.sortOption,
             sections: viewModel.accessMode.visibleSections,
             selectedFilters: viewModel.selectedFilters,
             onToggleFilter: { filter in

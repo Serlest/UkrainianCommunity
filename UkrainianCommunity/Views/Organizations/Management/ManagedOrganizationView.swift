@@ -410,10 +410,6 @@ struct ManagedOrganizationView: View {
     private var teamSearchSheet: some View {
         List {
             Section {
-                TextField(AppStrings.Profile.organizationTeamSearchPlaceholder, text: $teamSearchText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-
                 if isChangingOwner {
                     Text(AppStrings.Profile.organizationTeamOwnerRequiredExplanation)
                         .font(.footnote)
@@ -456,16 +452,21 @@ struct ManagedOrganizationView: View {
                 }
             }
         }
+        .searchable(
+            text: $teamSearchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: AppStrings.Profile.organizationTeamSearchPlaceholder
+        )
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
     }
 
     private var filteredTeamCandidateMembers: [OrganizationTeamMember] {
-        let query = teamSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return teamViewModel.candidateMembers }
-
         return teamViewModel.candidateMembers.filter { member in
-            member.displayName.lowercased().contains(query)
-                || member.userID.lowercased().contains(query)
-                || (member.locationText?.lowercased().contains(query) ?? false)
+            LocalSearchMatcher.matches(
+                query: teamSearchText,
+                values: [member.displayName, member.userID, member.locationText]
+            )
         }
     }
 

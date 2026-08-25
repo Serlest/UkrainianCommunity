@@ -11,6 +11,7 @@ final class SystemLogsViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published var searchText = ""
     @Published var selectedSection: SystemLogDashboardSection = .all
+    @Published var sortOption: SystemLogSortOption = .newestFirst
     @Published private(set) var selectedFilters: Set<SystemLogQuickFilter> = []
     @Published private(set) var reviewingLogIDs: Set<String> = []
     @Published private(set) var reviewErrorMessages: [String: String] = [:]
@@ -24,6 +25,7 @@ final class SystemLogsViewModel: ObservableObject {
     private let reviewerUserIdProvider: () -> String?
     private let fetchLimit = 100
     private var hasLoadedInitialPage = false
+    private var dataRequestRevision: UInt = 0
 
     init(
         repository: SystemLogRepositoryProtocol? = nil,
@@ -40,7 +42,7 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     var visibleLogs: [SystemLogEntry] {
-        filteredLogs.sorted(by: defaultSort)
+        filteredLogs
     }
 
     func loadIfNeeded() async {
@@ -49,32 +51,44 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     func refresh() async {
-        guard !isLoadingNextPage else { return }
+        dataRequestRevision &+= 1
+        let requestRevision = dataRequestRevision
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if requestRevision == dataRequestRevision {
+                isLoading = false
+            }
+        }
 
         do {
-            logs = try await fetchLogsForAccessMode()
+            let refreshedLogs = try await fetchLogsForAccessMode()
+            guard requestRevision == dataRequestRevision else { return }
+            logs = refreshedLogs
             canLoadMore = logs.count >= fetchLimit
             hasLoadedInitialPage = true
             errorMessage = nil
         } catch {
+            guard requestRevision == dataRequestRevision else { return }
             errorMessage = readableErrorMessage(for: error)
         }
     }
 
     func loadNextPage() async {
         guard canLoadMore, !isLoading, !isLoadingNextPage else { return }
+        let requestRevision = dataRequestRevision
+        let requestedSortOption = sortOption
         isLoadingNextPage = true
         defer { isLoadingNextPage = false }
 
         do {
             let nextPage = try await repository.fetchNextPage()
+            guard requestRevision == dataRequestRevision, requestedSortOption == sortOption else { return }
             let existingIDs = Set(logs.map(\.id))
             logs.append(contentsOf: nextPage.filter { !existingIDs.contains($0.id) })
             canLoadMore = nextPage.count >= fetchLimit
             errorMessage = nil
         } catch {
+            guard requestRevision == dataRequestRevision, requestedSortOption == sortOption else { return }
             errorMessage = readableErrorMessage(for: error)
         }
     }
@@ -87,11 +101,11 @@ final class SystemLogsViewModel: ObservableObject {
     private func fetchLogsForAccessMode() async throws -> [SystemLogEntry] {
         switch accessMode {
         case .owner:
-            try await repository.fetchLogs(filter: .empty, sortOption: .newestFirst, limit: fetchLimit)
+            try await repository.fetchLogs(filter: .empty, sortOption: sortOption, limit: fetchLimit)
         case .appAdmin:
             try await repository.fetchLogs(
                 filter: SystemLogFilter(isAppAdminReadable: true),
-                sortOption: .newestFirst,
+                sortOption: sortOption,
                 limit: fetchLimit
             )
         }

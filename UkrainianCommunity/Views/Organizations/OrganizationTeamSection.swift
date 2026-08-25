@@ -211,6 +211,10 @@ extension OrganizationDetailView {
         if lhs.role == .subscriber, lhs.followedAt != rhs.followedAt {
             return (lhs.followedAt ?? .distantPast) > (rhs.followedAt ?? .distantPast)
         }
-        return lhs.profile.preferredDisplayName.localizedCaseInsensitiveCompare(rhs.profile.preferredDisplayName) == .orderedAscending
+        let result = LocalizationStore.compareForSorting(
+            lhs.profile.preferredDisplayName,
+            rhs.profile.preferredDisplayName
+        )
+        return result == .orderedSame ? lhs.profile.id < rhs.profile.id : result == .orderedAscending
     }
 }

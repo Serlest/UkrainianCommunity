@@ -5,9 +5,8 @@ import { auditLogRef, buildAuditLog } from "../audit/auditLog";
 import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
-  resolveNotificationRecipients,
-  type WriteNotificationInput,
-  writeUserNotification,
+  buildUserNotificationDocument,
+  userNotificationRef,
 } from "../notifications/notificationPayloads";
 import {
   canManageOrganizationRoles,
@@ -159,17 +158,6 @@ function organizationRoleName(role: OrganizationRoleResult): string {
   }
 }
 
-async function writeNotificationIfRecipientEligible(
-  input: WriteNotificationInput
-): Promise<void> {
-  const recipients = await resolveNotificationRecipients([input.targetUserId]);
-  if (!recipients.inboxRecipientIds.includes(input.targetUserId)) {
-    return;
-  }
-
-  await writeUserNotification(input);
-}
-
 function createRoleCallable(mutation: RoleMutation) {
   return onCall(callableOptions, async (request): Promise<OrganizationRoleChangeResponse> => {
     const auth = await requireVerifiedActiveUser(request);
@@ -177,6 +165,7 @@ function createRoleCallable(mutation: RoleMutation) {
     const actorPermissions = auth.permissions;
     const organizationReference = db.collection("organizations").doc(roleRequest.organizationId);
     const targetReference = db.collection("users").doc(roleRequest.targetUserId);
+    const notificationReference = userNotificationRef(roleRequest.targetUserId);
     const targetAuth = mutation.isRemoval
       ? undefined
       : await getTargetAuthSnapshot(roleRequest.targetUserId);
@@ -191,8 +180,8 @@ function createRoleCallable(mutation: RoleMutation) {
         throw new HttpsError("not-found", "Organization does not exist.");
       }
 
+      const targetSnapshot = await transaction.get(targetReference);
       if (targetAuth) {
-        const targetSnapshot = await transaction.get(targetReference);
         if (!targetSnapshot.exists) {
           throw new HttpsError("not-found", "Target user profile does not exist.");
         }
@@ -247,48 +236,39 @@ function createRoleCallable(mutation: RoleMutation) {
           role: newRole,
         },
       }));
-    });
 
-    const notificationType = mutation.isRemoval
-      ? "organizationRoleRemoved"
-      : "organizationRoleAssigned";
-    const changedRole = mutation.isRemoval ? previousRole : newRole;
-
-    await writeNotificationIfRecipientEligible({
-      notificationId: [
-        notificationType,
-        roleRequest.organizationId,
-        roleRequest.targetUserId,
-        changedRole,
-        roleRequest.targetUserId,
-      ].join("_"),
-      targetUserId: roleRequest.targetUserId,
-      type: notificationType,
-      title: mutation.isRemoval
-        ? "Organization role removed"
-        : "Organization role assigned",
-      message: mutation.isRemoval
-        ? `Your ${organizationRoleName(changedRole)} role was removed.`
-        : `You were assigned as ${organizationRoleName(changedRole)}.`,
-      severity: "info",
-      actionType: "openOrganization",
-      actionTargetId: roleRequest.organizationId,
-      requiresPopup: false,
-      actorUserId: auth.uid,
-      sourceType: "organization",
-      sourceId: roleRequest.organizationId,
-      metadata: {
-        organizationId: roleRequest.organizationId,
-        previousRole,
-        newRole,
-        updatedAt: committedAt,
-      },
-      dedupeKey: [
-        "organizationRole",
-        roleRequest.organizationId,
-        roleRequest.targetUserId,
-        newRole,
-      ].join(":"),
+      if (targetSnapshot.exists) {
+        const notificationType = mutation.isRemoval
+          ? "organizationRoleRemoved"
+          : "organizationRoleAssigned";
+        const changedRole = mutation.isRemoval ? previousRole : newRole;
+        transaction.set(notificationReference, buildUserNotificationDocument({
+          notificationId: notificationReference.id,
+          targetUserId: roleRequest.targetUserId,
+          type: notificationType,
+          title: mutation.isRemoval
+            ? "Organization role removed"
+            : "Organization role assigned",
+          message: mutation.isRemoval
+            ? `Your ${organizationRoleName(changedRole)} role was removed.`
+            : `You were assigned as ${organizationRoleName(changedRole)}.`,
+          severity: "info",
+          actionType: "openOrganization",
+          actionTargetId: roleRequest.organizationId,
+          requiresPopup: false,
+          actorUserId: auth.uid,
+          sourceType: "organization",
+          sourceId: roleRequest.organizationId,
+          metadata: {
+            organizationId: roleRequest.organizationId,
+            previousRole,
+            newRole,
+            reason: roleRequest.reason ?? mutation.defaultReason,
+            updatedAt: committedAt,
+          },
+          dedupeKey: `organizationRole:${notificationReference.id}`,
+        }));
+      }
     });
 
     return {
@@ -335,6 +315,7 @@ export const transferOrganizationOwnership = onCall(
 
     const organizationReference = db.collection("organizations").doc(roleRequest.organizationId);
     const targetReference = db.collection("users").doc(roleRequest.targetUserId);
+    const newOwnerNotificationReference = userNotificationRef(roleRequest.targetUserId);
     const targetAuth = await getTargetAuthSnapshot(roleRequest.targetUserId);
     const committedAt = new Date().toISOString();
     let previousOwnerId: string | null = null;
@@ -392,53 +373,13 @@ export const transferOrganizationOwnership = onCall(
           ownerId: roleRequest.targetUserId,
         },
       }));
-    });
 
-    await writeNotificationIfRecipientEligible({
-      notificationId: [
-        "organizationRoleAssigned",
-        roleRequest.organizationId,
-        roleRequest.targetUserId,
-        "communityOwner",
-        roleRequest.targetUserId,
-      ].join("_"),
-      targetUserId: roleRequest.targetUserId,
-      type: "organizationRoleAssigned",
-      title: "Organization ownership transferred",
-      message: "You were assigned as organization owner.",
-      severity: "info",
-      actionType: "openOrganization",
-      actionTargetId: roleRequest.organizationId,
-      requiresPopup: false,
-      actorUserId: auth.uid,
-      sourceType: "organization",
-      sourceId: roleRequest.organizationId,
-      metadata: {
-        organizationId: roleRequest.organizationId,
-        previousOwnerId,
-        newOwnerId: roleRequest.targetUserId,
-        updatedAt: committedAt,
-      },
-      dedupeKey: [
-        "organizationOwnership",
-        roleRequest.organizationId,
-        roleRequest.targetUserId,
-      ].join(":"),
-    });
-
-    if (previousOwnerId) {
-      await writeNotificationIfRecipientEligible({
-        notificationId: [
-          "organizationRoleRemoved",
-          roleRequest.organizationId,
-          previousOwnerId,
-          "communityOwner",
-          previousOwnerId,
-        ].join("_"),
-        targetUserId: previousOwnerId,
-        type: "organizationRoleRemoved",
+      transaction.set(newOwnerNotificationReference, buildUserNotificationDocument({
+        notificationId: newOwnerNotificationReference.id,
+        targetUserId: roleRequest.targetUserId,
+        type: "organizationRoleAssigned",
         title: "Organization ownership transferred",
-        message: "Your organization owner role was transferred.",
+        message: "You were assigned as organization owner.",
         severity: "info",
         actionType: "openOrganization",
         actionTargetId: roleRequest.organizationId,
@@ -450,15 +391,42 @@ export const transferOrganizationOwnership = onCall(
           organizationId: roleRequest.organizationId,
           previousOwnerId,
           newOwnerId: roleRequest.targetUserId,
+          previousRole: roleForUser(roles, roleRequest.targetUserId),
+          newRole: "communityOwner",
+          reason: roleRequest.reason ?? "Organization owner changed",
           updatedAt: committedAt,
         },
-        dedupeKey: [
-          "organizationOwnershipRemoved",
-          roleRequest.organizationId,
-          previousOwnerId,
-        ].join(":"),
-      });
-    }
+        dedupeKey: `organizationOwnership:${newOwnerNotificationReference.id}`,
+      }));
+
+      if (previousOwnerId) {
+        const previousOwnerNotificationReference = userNotificationRef(previousOwnerId);
+        transaction.set(previousOwnerNotificationReference, buildUserNotificationDocument({
+          notificationId: previousOwnerNotificationReference.id,
+          targetUserId: previousOwnerId,
+          type: "organizationRoleRemoved",
+          title: "Organization ownership transferred",
+          message: "Your organization owner role was transferred.",
+          severity: "info",
+          actionType: "openOrganization",
+          actionTargetId: roleRequest.organizationId,
+          requiresPopup: false,
+          actorUserId: auth.uid,
+          sourceType: "organization",
+          sourceId: roleRequest.organizationId,
+          metadata: {
+            organizationId: roleRequest.organizationId,
+            previousOwnerId,
+            newOwnerId: roleRequest.targetUserId,
+            previousRole: "communityOwner",
+            newRole: "none",
+            reason: roleRequest.reason ?? "Organization owner changed",
+            updatedAt: committedAt,
+          },
+          dedupeKey: `organizationOwnershipRemoved:${previousOwnerNotificationReference.id}`,
+        }));
+      }
+    });
 
     return {
       organizationId: roleRequest.organizationId,
