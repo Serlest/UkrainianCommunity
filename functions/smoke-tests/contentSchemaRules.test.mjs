@@ -43,6 +43,15 @@ beforeEach(async () => {
         delete value.requiresRegistration;
         return value;
       })()),
+      setDoc(doc(db, "news", "seed-news", "comments", "news-comment"), {
+        authorId: "regular-user",
+      }),
+      setDoc(doc(db, "events", "seed-event", "comments", "event-comment"), {
+        authorId: "regular-user",
+      }),
+      setDoc(doc(db, "organizations", "org-1", "comments", "organization-comment"), {
+        authorId: "regular-user",
+      }),
       setDoc(doc(db, "feedback", "feedback-1"), {
         id: "feedback-1",
         userId: "regular-user",
@@ -220,5 +229,75 @@ describe("platform moderation and server-owned deletion", () => {
   test("feedback documents cannot be deleted directly by owner or submitter", async () => {
     await assertFails(deleteDoc(doc(db("owner"), "feedback", "feedback-1")));
     await assertFails(deleteDoc(doc(db("regular-user"), "feedback", "feedback-1")));
+  });
+
+  test("comment authors cannot delete their own comments, but moderators can", async () => {
+    await assertFails(deleteDoc(doc(
+      db("regular-user"),
+      "news",
+      "seed-news",
+      "comments",
+      "news-comment"
+    )));
+    await assertFails(deleteDoc(doc(
+      db("regular-user"),
+      "events",
+      "seed-event",
+      "comments",
+      "event-comment"
+    )));
+    await assertFails(deleteDoc(doc(
+      db("regular-user"),
+      "organizations",
+      "org-1",
+      "comments",
+      "organization-comment"
+    )));
+
+    await assertSucceeds(deleteDoc(doc(
+      db("app-admin"),
+      "news",
+      "seed-news",
+      "comments",
+      "news-comment"
+    )));
+    await assertSucceeds(deleteDoc(doc(
+      db("app-admin"),
+      "events",
+      "seed-event",
+      "comments",
+      "event-comment"
+    )));
+    await assertSucceeds(deleteDoc(doc(
+      db("org-owner"),
+      "organizations",
+      "org-1",
+      "comments",
+      "organization-comment"
+    )));
+  });
+
+  test("published comments are immutable", async () => {
+    await assertFails(updateDoc(doc(
+      db("regular-user"),
+      "news",
+      "seed-news",
+      "comments",
+      "news-comment"
+    ), { text: "Changed", body: "Changed", updatedAt: NOW }));
+    await assertFails(updateDoc(doc(
+      db("regular-user"),
+      "events",
+      "seed-event",
+      "comments",
+      "event-comment"
+    ), { text: "Changed", body: "Changed", updatedAt: NOW }));
+    await assertFails(updateDoc(doc(
+      db("regular-user"),
+      "organizations",
+      "org-1",
+      "comments",
+      "organization-comment"
+    ), { text: "Changed", body: "Changed", updatedAt: NOW }));
   });
 });

@@ -46,7 +46,6 @@ struct EventDetailView: View {
     @State var isAddingToCalendar = false
     @State var recordedViewKeys = Set<String>()
     @State var commentText = ""
-    @State var editingCommentID: String?
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var permissionOrganization: Organization?

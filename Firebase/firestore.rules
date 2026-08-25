@@ -1369,9 +1369,7 @@ service cloud.firestore {
     }
 
     function canModerateOrganizationContent(organizationId) {
-      return isOrganizationOwner(organizationId)
-        || isOrganizationAdmin(organizationId)
-        || isOrganizationModerator(organizationId);
+      return canEditOrganizationContent(organizationId);
     }
 
     function canEditOrganizationInfo(organizationId) {
@@ -1919,7 +1917,6 @@ service cloud.firestore {
 
     function canModerateNewsComment(newsId) {
       return canModerateAppContent('news')
-        || canModerateSection('comments')
         || (
           get(/databases/$(database)/documents/news/$(newsId)).data.sourceType == 'organization'
           && canModerateOrganizationContent(get(/databases/$(database)/documents/news/$(newsId)).data.organizationId)
@@ -1928,7 +1925,6 @@ service cloud.firestore {
 
     function canModerateEventComment(eventId) {
       return canModerateAppContent('events')
-        || canModerateSection('comments')
         || (
           get(/databases/$(database)/documents/events/$(eventId)).data.sourceType == 'organization'
           && canModerateOrganizationContent(get(/databases/$(database)/documents/events/$(eventId)).data.organizationId)
@@ -1951,8 +1947,7 @@ service cloud.firestore {
     }
 
     function canModerateOrganizationComment(organizationId) {
-      return canUseOrganizationOverride()
-        || canModerateSection('comments')
+      return canModerateSection('comments')
         || canModerateOrganizationContent(organizationId);
     }
 
@@ -2335,20 +2330,9 @@ service cloud.firestore {
           && validCommentCreate('news', newsId, commentId)
           && approvedNewsTargetExists(newsId);
 
-        allow update: if isVerifiedActiveUser()
-          && resource.data.authorId == request.auth.uid
-          && request.resource.data.authorId == resource.data.authorId
-          && request.resource.data.parentId == resource.data.parentId
-          && request.resource.data.parentType == resource.data.parentType
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000
-          && request.resource.data.body == request.resource.data.text
-          && request.resource.data.updatedAt is timestamp;
+        allow update: if false;
 
-        allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
-          || canModerateNewsComment(newsId);
+        allow delete: if canModerateNewsComment(newsId);
       }
     }
 
@@ -2380,20 +2364,9 @@ service cloud.firestore {
           && validCommentCreate('event', eventId, commentId)
           && approvedEventTargetExists(eventId);
 
-        allow update: if isVerifiedActiveUser()
-          && resource.data.authorId == request.auth.uid
-          && request.resource.data.authorId == resource.data.authorId
-          && request.resource.data.parentId == resource.data.parentId
-          && request.resource.data.parentType == resource.data.parentType
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000
-          && request.resource.data.body == request.resource.data.text
-          && request.resource.data.updatedAt is timestamp;
+        allow update: if false;
 
-        allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
-          || canModerateEventComment(eventId);
+        allow delete: if canModerateEventComment(eventId);
       }
     }
 
@@ -2421,20 +2394,9 @@ service cloud.firestore {
           && validCommentCreate('organization', organizationId, commentId)
           && canReadOrganizationByLookup(organizationId);
 
-        allow update: if isVerifiedActiveUser()
-          && resource.data.authorId == request.auth.uid
-          && request.resource.data.authorId == resource.data.authorId
-          && request.resource.data.parentId == resource.data.parentId
-          && request.resource.data.parentType == resource.data.parentType
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000
-          && request.resource.data.body == request.resource.data.text
-          && request.resource.data.updatedAt is timestamp;
+        allow update: if false;
 
-        allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
-          || canModerateOrganizationComment(organizationId);
+        allow delete: if canModerateOrganizationComment(organizationId);
       }
     }
 

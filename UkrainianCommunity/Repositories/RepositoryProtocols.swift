@@ -88,8 +88,6 @@ protocol FeedbackRepository {
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws
     func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws
     func closeFeedback(id: String) async throws
-    func clearMyFeedback() async throws
-    func deleteMyFeedback(id: String) async throws
     func deleteFeedback(id: String) async throws
     func clearFeedbackInbox() async throws
 }
@@ -118,8 +116,6 @@ extension FeedbackRepository {
         try await updateFeedbackStatus(id: id, status: .closed)
     }
 
-    func clearMyFeedback() async throws {}
-    func deleteMyFeedback(id: String) async throws {}
     func deleteFeedback(id: String) async throws {}
     func clearFeedbackInbox() async throws {}
 }

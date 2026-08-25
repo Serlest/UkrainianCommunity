@@ -35,8 +35,6 @@ struct MyFeedbackView: View {
     @State private var selectedFilter: MyFeedbackFilter = .all
     @State private var sortOption: AppListSortOption = .newest
     @State private var searchText = ""
-    @State private var isShowingClearConfirmation = false
-    @State private var feedbackPendingDeletion: FeedbackItem?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var filteredItems: [FeedbackItem] {
@@ -53,23 +51,7 @@ struct MyFeedbackView: View {
         PushedScreenShell(
             title: AppStrings.Feedback.myFeedbackTitle,
             subtitle: AppStrings.Feedback.myFeedbackSubtitle
-        ) {
-            if viewModel.isClearing {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
-                    .accessibilityLabel(AppStrings.Feedback.clearMyFeedback)
-            } else if !viewModel.items.isEmpty {
-                AppGlassIconButton(
-                    systemImage: "trash",
-                    accessibilityLabel: AppStrings.Feedback.clearMyFeedback,
-                    role: .destructive
-                ) {
-                    isShowingClearConfirmation = true
-                }
-                .accessibilityIdentifier("myFeedback.clearAll")
-            }
-        } content: {
+        ) { EmptyView() } content: {
             if !viewModel.items.isEmpty {
                 myFeedbackControls
             }
@@ -84,38 +66,6 @@ struct MyFeedbackView: View {
         }
         .refreshable {
             await viewModel.refresh(userID: currentUserID)
-        }
-        .confirmationDialog(
-            AppStrings.Feedback.clearMyFeedbackConfirmationTitle,
-            isPresented: $isShowingClearConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Feedback.clearMyFeedback, role: .destructive) {
-                Task { await viewModel.clearMyFeedback() }
-            }
-            Button(AppStrings.Common.cancel, role: .cancel) {}
-        } message: {
-            Text(AppStrings.Feedback.clearMyFeedbackConfirmationMessage)
-        }
-        .confirmationDialog(
-            AppStrings.Feedback.deleteOneConfirmationTitle,
-            isPresented: Binding(
-                get: { feedbackPendingDeletion != nil },
-                set: { if !$0 { feedbackPendingDeletion = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Feedback.deleteOne, role: .destructive) {
-                guard let item = feedbackPendingDeletion else { return }
-                feedbackPendingDeletion = nil
-                Task {
-                    let deleted = await viewModel.delete(item)
-                    if deleted, selectedFeedback?.id == item.id { selectedFeedback = nil }
-                }
-            }
-            Button(AppStrings.Common.cancel, role: .cancel) { feedbackPendingDeletion = nil }
-        } message: {
-            Text(AppStrings.Feedback.deleteOneConfirmationMessage)
         }
         .sheet(item: $selectedFeedback) { item in
             let currentItem = currentFeedbackItem(for: item)
@@ -256,29 +206,12 @@ struct MyFeedbackView: View {
                 }
 
                 ForEach(filteredItems) { item in
-                    HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
-                        Button {
-                            selectedFeedback = item
-                        } label: {
-                            FeedbackUserRequestCard(item: item)
-                        }
-                        .buttonStyle(.plain)
-
-                        if viewModel.deletingFeedbackIDs.contains(item.id) {
-                            ProgressView()
-                                .controlSize(.small)
-                                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
-                        } else {
-                            AppGlassIconButton(
-                                systemImage: "trash",
-                                accessibilityLabel: AppStrings.Feedback.deleteOne,
-                                role: .destructive
-                            ) {
-                                feedbackPendingDeletion = item
-                            }
-                            .accessibilityIdentifier("myFeedback.delete.\(item.id)")
-                        }
+                    Button {
+                        selectedFeedback = item
+                    } label: {
+                        FeedbackUserRequestCard(item: item)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }

@@ -326,7 +326,6 @@ struct OrganizationDetailView: View {
     @State var isLoadingCommunityPage = false
     @State var loadedCommunityOrganizationID: String?
     @State var commentText = ""
-    @State var editingCommentID: String?
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var pendingSubscriptionConfirmation: OrganizationSubscriptionConfirmation?

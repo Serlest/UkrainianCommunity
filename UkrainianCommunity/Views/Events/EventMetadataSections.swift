@@ -546,7 +546,7 @@ extension EventDetailView {
                         Button {
                             submitEventComment(eventID: eventID)
                         } label: {
-                            Image(systemName: editingCommentID == nil ? "paperplane.fill" : "checkmark")
+                            Image(systemName: "paperplane.fill")
                                 .font(AppTheme.sectionTitleFont)
                                 .foregroundStyle(.white)
                                 .frame(
@@ -557,7 +557,7 @@ extension EventDetailView {
                         }
                         .disabled(trimmedCommentText.isEmpty || viewModel.pendingEventCommentIDs.contains(eventID))
                         .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
-                        .accessibilityLabel(editingCommentID == nil ? AppStrings.Action.send : AppStrings.Action.saveChanges)
+                        .accessibilityLabel(AppStrings.Action.send)
                     }
 
                     Text("\(commentText.count)/1000")
@@ -594,7 +594,7 @@ extension EventDetailView {
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
 
-                        if canEditComment(comment) || canDeleteComment(comment) || canReportComment(comment) || canBlockComment(comment) {
+                        if canDeleteComment(comment) || canReportComment(comment) || canBlockComment(comment) {
                             eventCommentActionMenu(for: comment, parentTitle: parentTitle)
                         }
                     }
@@ -609,13 +609,6 @@ extension EventDetailView {
 
         func eventCommentActionMenu(for comment: Comment, parentTitle: String) -> some View {
             Menu {
-                if canEditComment(comment) {
-                    Button(AppStrings.Action.edit, systemImage: "pencil") {
-                        editingCommentID = comment.id
-                        commentText = comment.text
-                        isCommentFieldFocused = true
-                    }
-                }
                 if canDeleteComment(comment) {
                     Button(AppStrings.Action.delete, systemImage: "trash", role: .destructive) {
                         pendingCommentDeleteID = comment.id
@@ -703,31 +696,17 @@ extension EventDetailView {
             }
             let text = String(trimmedCommentText.prefix(1000))
             guard !text.isEmpty else { return }
-            let editingID = editingCommentID
             Task {
-                if let editingID {
-                    await viewModel.updateComment(eventID: eventID, commentID: editingID, text: text)
-                } else {
-                    await viewModel.addComment(to: eventID, text: text, author: user)
-                }
+                await viewModel.addComment(to: eventID, text: text, author: user)
                 await MainActor.run {
                     commentText = ""
-                    editingCommentID = nil
                     isCommentFieldFocused = false
                 }
             }
         }
 
-        func canEditComment(_ comment: Comment) -> Bool {
-            guard let user = authState.user else { return false }
-            return comment.authorId == user.id
-        }
-
         func canDeleteComment(_ comment: Comment) -> Bool {
             guard let user = authState.user else { return false }
-            if comment.authorId == user.id {
-                return true
-            }
             if PermissionService.canModerate(section: .comments, user: user) || PermissionService.canModerate(section: .events, user: user) {
                 return true
             }

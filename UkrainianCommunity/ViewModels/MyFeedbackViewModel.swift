@@ -8,8 +8,6 @@ final class MyFeedbackViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var loadingMessageFeedbackIDs = Set<String>()
     @Published private(set) var sendingMessageFeedbackIDs = Set<String>()
-    @Published private(set) var isClearing = false
-    @Published private(set) var deletingFeedbackIDs = Set<String>()
     @Published private(set) var error: AppError?
     @Published private(set) var actionError: AppError?
 
@@ -62,7 +60,6 @@ final class MyFeedbackViewModel: ObservableObject {
         isLoading = false
         loadingMessageFeedbackIDs = []
         sendingMessageFeedbackIDs = []
-        isClearing = false
         listenerBag.removeAll()
         error = nil
         actionError = nil
@@ -179,46 +176,4 @@ final class MyFeedbackViewModel: ObservableObject {
         actionError = nil
     }
 
-    @discardableResult
-    func delete(_ item: FeedbackItem) async -> Bool {
-        guard !deletingFeedbackIDs.contains(item.id) else { return false }
-        deletingFeedbackIDs.insert(item.id)
-        actionError = nil
-        defer { deletingFeedbackIDs.remove(item.id) }
-
-        do {
-            try await repository.deleteMyFeedback(id: item.id)
-            items.removeAll { $0.id == item.id }
-            messagesByFeedbackID[item.id] = nil
-            listenerBag.remove("feedbackMessages:\(item.id)")
-            return true
-        } catch let appError as AppError {
-            actionError = appError
-        } catch {
-            actionError = .unknown
-        }
-        return false
-    }
-
-    @discardableResult
-    func clearMyFeedback() async -> Bool {
-        guard !isClearing else { return false }
-        isClearing = true
-        actionError = nil
-        defer { isClearing = false }
-
-        do {
-            try await repository.clearMyFeedback()
-            items = []
-            messagesByFeedbackID = [:]
-            listenerBag.removeAll()
-            error = nil
-            return true
-        } catch let appError as AppError {
-            actionError = appError
-        } catch {
-            actionError = .unknown
-        }
-        return false
-    }
 }

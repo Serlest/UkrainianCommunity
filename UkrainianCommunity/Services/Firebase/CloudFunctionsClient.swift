@@ -26,8 +26,6 @@ enum CloudFunctionName: String, CaseIterable {
     case getManagedUserSecurityMetadata
     case acceptLegalDocument
     case deleteOwnAccount
-    case clearMyFeedback
-    case deleteMyFeedback
     case deleteFeedback
     case clearFeedbackInbox
     case saveFeaturedBanner
@@ -495,14 +493,6 @@ final class CloudFunctionsClient {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
     }
 
-    func clearMyFeedback() async throws -> ClearMyFeedbackFunctionResponse {
-        try await call(.clearMyFeedback, request: ClearMyFeedbackFunctionRequest())
-    }
-
-    func deleteMyFeedback(id: String) async throws -> ClearMyFeedbackFunctionResponse {
-        try await call(.deleteMyFeedback, request: DeleteFeedbackFunctionRequest(feedbackId: id))
-    }
-
     func deleteFeedback(id: String) async throws -> ClearMyFeedbackFunctionResponse {
         try await call(.deleteFeedback, request: DeleteFeedbackFunctionRequest(feedbackId: id))
     }
@@ -629,8 +619,6 @@ final class CloudFunctionsClient {
              .searchManagedUsers,
              .getManagedUserSecurityMetadata,
              .deleteOwnAccount,
-             .clearMyFeedback,
-             .deleteMyFeedback,
              .deleteFeedback,
              .clearFeedbackInbox,
              .deleteNotificationPushRegistration,
@@ -677,8 +665,6 @@ final class CloudFunctionsClient {
              .requestOrganizationRevision,
              .acceptLegalDocument,
              .deleteOwnAccount,
-             .clearMyFeedback,
-             .deleteMyFeedback,
              .deleteFeedback,
              .clearFeedbackInbox,
              .registerForEvent,
@@ -736,8 +722,6 @@ final class CloudFunctionsClient {
              .deleteOrganization,
              .acceptLegalDocument,
              .deleteOwnAccount,
-             .clearMyFeedback,
-             .deleteMyFeedback,
              .deleteFeedback,
              .clearFeedbackInbox,
              .saveFeaturedBanner,

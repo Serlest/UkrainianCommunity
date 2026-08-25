@@ -521,14 +521,6 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         try await batch.commit()
     }
 
-    func clearMyFeedback() async throws {
-        _ = try await CloudFunctionsClient.shared.clearMyFeedback()
-    }
-
-    func deleteMyFeedback(id: String) async throws {
-        _ = try await CloudFunctionsClient.shared.deleteMyFeedback(id: id)
-    }
-
     func deleteFeedback(id: String) async throws {
         _ = try await CloudFunctionsClient.shared.deleteFeedback(id: id)
     }

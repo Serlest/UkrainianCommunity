@@ -18,48 +18,14 @@ const maximumDeletedFeedback = 10_000;
 export const clearMyFeedback = onCall(
   callableOptions,
   async (request): Promise<{deletedCount: number}> => {
+    await requireVerifiedActiveUser(request);
     if (!isEmptyRequest(request.data)) {
       throw new HttpsError("invalid-argument", "Request payload must be empty.");
     }
-
-    const actor = await requireVerifiedActiveUser(request);
-    const deletedFeedbackIds: string[] = [];
-
-    while (deletedFeedbackIds.length < maximumDeletedFeedback) {
-      const feedbackSnapshot = await db.collection("feedback")
-        .where("userId", "==", actor.uid)
-        .limit(feedbackBatchSize)
-        .get();
-
-      if (feedbackSnapshot.empty) break;
-
-      const writer = db.bulkWriter();
-      for (const feedbackDocument of feedbackSnapshot.docs) {
-        const messagesSnapshot = await feedbackDocument.ref.collection("messages").get();
-        for (const messageDocument of messagesSnapshot.docs) {
-          writer.delete(messageDocument.ref);
-        }
-        writer.delete(feedbackDocument.ref);
-        deletedFeedbackIds.push(feedbackDocument.id);
-      }
-      await writer.close();
-    }
-
-    if (deletedFeedbackIds.length >= maximumDeletedFeedback) {
-      const remaining = await db.collection("feedback")
-        .where("userId", "==", actor.uid)
-        .limit(1)
-        .get();
-      if (!remaining.empty) {
-        throw new HttpsError(
-          "resource-exhausted",
-          "Too many feedback records. Run the operation again to continue."
-        );
-      }
-    }
-
-    await deleteFeedbackNotifications(deletedFeedbackIds);
-    return {deletedCount: deletedFeedbackIds.length};
+    throw new HttpsError(
+      "permission-denied",
+      "Users cannot delete their own feedback records."
+    );
   }
 );
 
@@ -86,20 +52,12 @@ export const deleteFeedback = onCall(
 export const deleteMyFeedback = onCall(
   callableOptions,
   async (request): Promise<{deletedCount: number}> => {
-    const feedbackId = requireFeedbackId(request.data);
-    const actor = await requireVerifiedActiveUser(request);
-    const feedbackDocument = db.collection("feedback").doc(feedbackId);
-    const snapshot = await feedbackDocument.get();
-    if (!snapshot.exists) {
-      throw new HttpsError("not-found", "Feedback record was not found.");
-    }
-    if (snapshot.get("userId") !== actor.uid) {
-      throw new HttpsError("permission-denied", "You can delete only your own feedback.");
-    }
-
-    await deleteFeedbackDocuments([feedbackDocument]);
-    await deleteFeedbackNotifications([feedbackId]);
-    return {deletedCount: 1};
+    await requireVerifiedActiveUser(request);
+    requireFeedbackId(request.data);
+    throw new HttpsError(
+      "permission-denied",
+      "Users cannot delete their own feedback records."
+    );
   }
 );
 
