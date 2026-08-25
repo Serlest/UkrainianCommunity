@@ -274,11 +274,11 @@ final class OrganizationEditorViewModel: ObservableObject {
     init(
         mode: Mode = .create,
         draftRecoveryService: LocalDraftRecoveryService? = nil,
-        functionsClient: CloudFunctionsClient = .shared
+        functionsClient: CloudFunctionsClient? = nil
     ) {
         self.mode = mode
         self.draftRecoveryService = draftRecoveryService ?? .shared
-        self.functionsClient = functionsClient
+        self.functionsClient = functionsClient ?? .shared
 
         if case let .edit(existingOrganization) = mode {
             name = existingOrganization.name

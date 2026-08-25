@@ -112,8 +112,8 @@ struct DsaStatementView: View {
     }
 }
 
-private struct DsaStatement {
-    struct Decision {
+private nonisolated struct DsaStatement {
+    nonisolated struct Decision {
         let outcome: String
         let factsAndCircumstances: String
         let legalBasis: String?
@@ -135,7 +135,7 @@ private struct DsaStatement {
         }
     }
 
-    struct AppealDecision {
+    nonisolated struct AppealDecision {
         let outcome: String
         let reason: String
 
