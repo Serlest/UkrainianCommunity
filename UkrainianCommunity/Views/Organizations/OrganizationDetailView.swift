@@ -68,6 +68,22 @@ enum OrganizationCommunityRole: Int {
     }
 }
 
+enum OrganizationEventAgeFilter: String, CaseIterable, Identifiable {
+    case any, child, teen, adult
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .any: AppStrings.Events.ageFilterAny
+        case .child: AppStrings.Events.ageFilterChildren
+        case .teen: AppStrings.Events.ageFilterTeens
+        case .adult: AppStrings.Events.ageFilterAdults
+        }
+    }
+    var ageRange: ClosedRange<Int>? {
+        switch self { case .any: nil; case .child: 0...12; case .teen: 13...17; case .adult: 18...120 }
+    }
+}
+
 enum OrganizationSubscriptionConfirmation: Equatable {
     case subscribe(String)
     case unsubscribe(String)
@@ -297,6 +313,9 @@ struct OrganizationDetailView: View {
     @State var guestAccessAction: GuestAccessAction?
     @State var isAboutExpanded = false
     @State var selectedSection: OrganizationDetailSection = .about
+    @State var selectedOrganizationEventCategory: EventCategory?
+    @State var selectedOrganizationEventAudience: EventAudience?
+    @State var selectedOrganizationEventAge: OrganizationEventAgeFilter = .any
     @State var recordedRecentViewKeys = Set<String>()
     @State var previewPhotos: [OrganizationPhoto] = []
     @State var loadedPreviewPhotoOrganizationID: String?
@@ -494,6 +513,14 @@ struct OrganizationDetailView: View {
         .appErrorDialog(deleteErrorDialog)
         .appErrorDialog(commentDeleteErrorDialog)
         .guestAccessAlert($guestAccessAction)
+        .appErrorDialog(Binding(
+            get: {
+                viewModel.interactionError.map {
+                    AppErrorDialog(message: readableOrganizationErrorText($0))
+                }
+            },
+            set: { if $0 == nil { viewModel.dismissInteractionError() } }
+        ))
         .onChange(of: authState.user?.id) { _, _ in
             guard let organization = viewModel.organization(for: organizationID) else { return }
             viewModel.trackViewIfNeeded(for: organization)

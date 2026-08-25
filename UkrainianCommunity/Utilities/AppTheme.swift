@@ -26,6 +26,61 @@ enum AppTheme {
     // Yellow is a support/highlight accent and should stay restrained.
     static let accentSupport = Color(red: 0.93, green: 0.76, blue: 0.23)
 
+    // Status colors used as foregrounds are kept separate from decorative
+    // fills. System yellow/green/orange can lose contrast on light surfaces,
+    // so these variants adapt to appearance and Increased Contrast.
+    static let accentSupportForeground = Color(uiColor: UIColor { traits in
+        switch (traits.userInterfaceStyle, traits.accessibilityContrast) {
+        case (.dark, .high):
+            UIColor(red: 1.00, green: 0.86, blue: 0.42, alpha: 1.00)
+        case (.dark, _):
+            UIColor(red: 0.96, green: 0.78, blue: 0.31, alpha: 1.00)
+        case (_, .high):
+            UIColor(red: 0.38, green: 0.23, blue: 0.00, alpha: 1.00)
+        default:
+            UIColor(red: 0.49, green: 0.31, blue: 0.01, alpha: 1.00)
+        }
+    })
+
+    static let accentSuccessForeground = Color(uiColor: UIColor { traits in
+        switch (traits.userInterfaceStyle, traits.accessibilityContrast) {
+        case (.dark, .high):
+            UIColor(red: 0.45, green: 0.94, blue: 0.59, alpha: 1.00)
+        case (.dark, _):
+            UIColor(red: 0.34, green: 0.82, blue: 0.49, alpha: 1.00)
+        case (_, .high):
+            UIColor(red: 0.00, green: 0.31, blue: 0.12, alpha: 1.00)
+        default:
+            UIColor(red: 0.02, green: 0.40, blue: 0.17, alpha: 1.00)
+        }
+    })
+
+    static let accentWarningForeground = Color(uiColor: UIColor { traits in
+        switch (traits.userInterfaceStyle, traits.accessibilityContrast) {
+        case (.dark, .high):
+            UIColor(red: 1.00, green: 0.75, blue: 0.36, alpha: 1.00)
+        case (.dark, _):
+            UIColor(red: 1.00, green: 0.64, blue: 0.23, alpha: 1.00)
+        case (_, .high):
+            UIColor(red: 0.43, green: 0.20, blue: 0.00, alpha: 1.00)
+        default:
+            UIColor(red: 0.57, green: 0.28, blue: 0.00, alpha: 1.00)
+        }
+    })
+
+    static let accentIndigoForeground = Color(uiColor: UIColor { traits in
+        switch (traits.userInterfaceStyle, traits.accessibilityContrast) {
+        case (.dark, .high):
+            UIColor(red: 0.72, green: 0.68, blue: 1.00, alpha: 1.00)
+        case (.dark, _):
+            UIColor(red: 0.60, green: 0.56, blue: 0.96, alpha: 1.00)
+        case (_, .high):
+            UIColor(red: 0.22, green: 0.16, blue: 0.53, alpha: 1.00)
+        default:
+            UIColor(red: 0.31, green: 0.25, blue: 0.65, alpha: 1.00)
+        }
+    })
+
     // Red is reserved for destructive actions and like-state emphasis.
     static let accentDestructive = Color(red: 0.72, green: 0.14, blue: 0.18)
 
@@ -70,6 +125,8 @@ enum AppTheme {
     static let adaptiveCardMinimumWidth: CGFloat = 320
     static let adaptiveCardMaximumWidth: CGFloat = 500
     static let accessibilityHeroMinHeight: CGFloat = 280
+    static let featuredBannerMaximumHeight: CGFloat = 360
+    static let featuredBannerLandscapeHeight: CGFloat = 168
     static let dashboardSpacing: CGFloat = 12
     static let cardPadding: CGFloat = 18
     static let detailCardPadding: CGFloat = 20

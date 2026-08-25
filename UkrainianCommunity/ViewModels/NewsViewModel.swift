@@ -6,6 +6,7 @@ final class NewsViewModel: ObservableObject {
     @Published var posts: [NewsPost]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var interactionError: AppError?
     @Published private(set) var isLoadingNextPage = false
     @Published private(set) var hasMorePages = false
     @Published private(set) var contentVersion = 0
@@ -78,6 +79,7 @@ final class NewsViewModel: ObservableObject {
         isLoadingNextPage = false
         hasMorePages = false
         error = nil
+        interactionError = nil
         contentVersion &+= 1
         pendingNewsLikeIDs = []
         pendingNewsBookmarkIDs = []
@@ -105,14 +107,21 @@ final class NewsViewModel: ObservableObject {
         guard !pendingNewsLikeIDs.contains(postID) else { return }
         let shouldLike = posts[index].likeState == .notLiked
         let previousLikeState = posts[index].likeState
+        let previousLikeCount = posts[index].likeCount
         let targetLikeState: LikeState = shouldLike ? .liked : .notLiked
+        let targetLikeCount = max(0, previousLikeCount + (shouldLike ? 1 : -1))
         let post = posts[index]
         let actionEvent = AppAnalyticsEvent.newsLike(post: post)
         let actionCapture = shouldLike ? analyticsService.actionCapture(for: actionEvent) : nil
         let generation = authGeneration
+        let requestFeedRevision = feedRevision
         let taskKey = "like:\(postID)"
 
         pendingNewsLikeIDs.insert(postID)
+        interactionError = nil
+        posts[index].likeState = targetLikeState
+        posts[index].likeCount = targetLikeCount
+        contentVersion &+= 1
         let task = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -139,13 +148,29 @@ final class NewsViewModel: ObservableObject {
                 if shouldLike {
                     analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
-                error = nil
+                interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentAuthGeneration(generation) else { return }
-                error = appError
+                rollbackLike(
+                    postID: postID,
+                    optimisticState: targetLikeState,
+                    optimisticCount: targetLikeCount,
+                    previousState: previousLikeState,
+                    previousCount: previousLikeCount,
+                    requestFeedRevision: requestFeedRevision
+                )
+                interactionError = appError
             } catch {
                 guard isCurrentAuthGeneration(generation) else { return }
-                self.error = .unknown
+                rollbackLike(
+                    postID: postID,
+                    optimisticState: targetLikeState,
+                    optimisticCount: targetLikeCount,
+                    previousState: previousLikeState,
+                    previousCount: previousLikeCount,
+                    requestFeedRevision: requestFeedRevision
+                )
+                self.interactionError = .unknown
             }
         }
         interactionTasks[taskKey] = task
@@ -222,6 +247,7 @@ final class NewsViewModel: ObservableObject {
         let taskKey = "bookmark:\(postID)"
 
         pendingNewsBookmarkIDs.insert(postID)
+        interactionError = nil
         posts[index].isBookmarked = shouldBookmark
         contentVersion &+= 1
 
@@ -250,7 +276,7 @@ final class NewsViewModel: ObservableObject {
                 if shouldBookmark {
                     analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
-                error = nil
+                interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackBookmark(
@@ -259,7 +285,7 @@ final class NewsViewModel: ObservableObject {
                     previousState: previousBookmarkState,
                     requestFeedRevision: requestFeedRevision
                 )
-                error = appError
+                interactionError = appError
             } catch {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackBookmark(
@@ -268,10 +294,14 @@ final class NewsViewModel: ObservableObject {
                     previousState: previousBookmarkState,
                     requestFeedRevision: requestFeedRevision
                 )
-                self.error = .unknown
+                self.interactionError = .unknown
             }
         }
         interactionTasks[taskKey] = task
+    }
+
+    func dismissInteractionError() {
+        interactionError = nil
     }
 
     func loadComments(for postID: String, forceRefresh: Bool = false) async {
@@ -598,6 +628,23 @@ final class NewsViewModel: ObservableObject {
               let currentIndex = posts.firstIndex(where: { $0.id == postID }),
               posts[currentIndex].isBookmarked == optimisticState else { return }
         posts[currentIndex].isBookmarked = previousState
+        contentVersion &+= 1
+    }
+
+    private func rollbackLike(
+        postID: String,
+        optimisticState: LikeState,
+        optimisticCount: Int,
+        previousState: LikeState,
+        previousCount: Int,
+        requestFeedRevision: UInt
+    ) {
+        guard feedRevision == requestFeedRevision,
+              let currentIndex = posts.firstIndex(where: { $0.id == postID }),
+              posts[currentIndex].likeState == optimisticState,
+              posts[currentIndex].likeCount == optimisticCount else { return }
+        posts[currentIndex].likeState = previousState
+        posts[currentIndex].likeCount = max(0, previousCount)
         contentVersion &+= 1
     }
 

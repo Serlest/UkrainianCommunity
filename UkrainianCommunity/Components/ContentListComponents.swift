@@ -78,6 +78,7 @@ struct AppAdaptiveGrid<Content: View>: View {
     let spacing: CGFloat
     @ViewBuilder let content: Content
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     init(
         minimumWidth: CGFloat = AppTheme.adaptiveCardMinimumWidth,
@@ -92,7 +93,7 @@ struct AppAdaptiveGrid<Content: View>: View {
     }
 
     private var columns: [GridItem] {
-        guard !dynamicTypeSize.isAccessibilitySize else {
+        guard !dynamicTypeSize.isAccessibilitySize, verticalSizeClass != .compact else {
             return [GridItem(.flexible())]
         }
 
@@ -157,7 +158,7 @@ struct AppEventDateBlock: View {
 
                     Text(weekdayText.uppercased())
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
                 }
                 .frame(width: AppTheme.eventsDateRailWidth)
@@ -412,6 +413,8 @@ struct AppNavigationRow: View {
             }
         }
         .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }

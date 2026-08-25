@@ -13,7 +13,9 @@ extension OrganizationDetailView {
         OrganizationDetailHeaderActions(
             isBookmarked: organization.isBookmarked,
             isBookmarkPending: viewModel.pendingOrganizationBookmarkIDs.contains(organization.id),
-            shareText: organizationShareText(for: organization),
+            shareTitle: organization.name,
+            shareMessage: organizationShareText(for: organization),
+            shareURL: organizationWebsiteURL(for: organization),
             onBookmark: {
                 toggleBookmark(for: organization)
             },
@@ -43,12 +45,12 @@ extension OrganizationDetailView {
     }
 
     func organizationShareText(for organization: Organization) -> String {
-        var parts = [organization.name]
+        var parts: [String] = []
         if let description = heroDescription(for: organization) {
             parts.append(description)
         }
-        if let website = organizationWebsiteDisplayText(for: organization) {
-            parts.append(website)
+        if let location = detailedLocationText(for: organization) {
+            parts.append(location)
         }
         return parts.joined(separator: "\n")
     }
@@ -166,7 +168,7 @@ extension OrganizationDetailView {
     @MainActor
     func heroMetadataItems(for organization: Organization) -> [(String, String)] {
         var items: [(String, String)] = [
-            ("hand.thumbsup", "\(organization.likeCount)"),
+            ("heart", "\(organization.likeCount)"),
             ("person.2", subscriberCountText(for: organization.subscriberCount))
         ]
 
@@ -229,7 +231,9 @@ extension OrganizationDetailView {
 private struct OrganizationDetailHeaderActions: View {
     let isBookmarked: Bool
     let isBookmarkPending: Bool
-    let shareText: String
+    let shareTitle: String
+    let shareMessage: String
+    let shareURL: URL?
     let onBookmark: () -> Void
     let onReport: (() -> Void)?
     let onBlock: (() -> Void)?
@@ -245,15 +249,11 @@ private struct OrganizationDetailHeaderActions: View {
                 onBookmark()
             }
 
-            ShareLink(item: shareText) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(AppTheme.glassIconButtonIconFont)
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
-                    .glassIconButtonBackground()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(AppStrings.Action.share)
+            DetailHeaderShareButton(
+                title: shareTitle,
+                message: shareMessage,
+                url: shareURL
+            )
 
             if let onReport {
                 DetailHeaderActionButton(
@@ -273,17 +273,5 @@ private struct OrganizationDetailHeaderActions: View {
                 }
             }
         }
-    }
-}
-
-private extension View {
-    func glassIconButtonBackground() -> some View {
-        appGlassSurface(
-            cornerRadius: AppTheme.glassIconButtonCornerRadius,
-            isInteractive: true,
-            fallbackRole: .control,
-            shadowRadius: AppTheme.glassIconButtonShadowRadius,
-            shadowY: AppTheme.glassIconButtonShadowY
-        )
     }
 }

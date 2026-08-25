@@ -164,13 +164,13 @@ enum SystemLogDisplayFormatting {
     static func severityTint(_ severity: SystemLogSeverity) -> Color {
         switch severity {
         case .critical, .error:
-            AppTheme.accentDestructive
+            AppTheme.accentDestructiveForeground
         case .warning:
-            Color.orange
+            AppTheme.accentWarningForeground
         case .notice:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .info:
-            Color.green
+            AppTheme.accentSuccessForeground
         case .debug:
             AppTheme.textSecondary
         }
@@ -183,13 +183,13 @@ enum SystemLogDisplayFormatting {
     static func toneTint(_ tone: SystemLogMetricTone) -> Color {
         switch tone {
         case .primary:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .warning:
-            Color.orange
+            AppTheme.accentWarningForeground
         case .critical:
-            AppTheme.accentDestructive
+            AppTheme.accentDestructiveForeground
         case .success:
-            Color.green
+            AppTheme.accentSuccessForeground
         case .neutral:
             AppTheme.textSecondary
         }

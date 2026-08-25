@@ -72,6 +72,7 @@ async function seedFirestore() {
 
     await Promise.all([
       setDoc(doc(db, "users", "owner"), user("owner", {globalRole: "owner"})),
+      setDoc(doc(db, "users", "app-admin"), user("app-admin", {globalRole: "admin"})),
       setDoc(doc(db, "users", "blocked-owner"), user("blocked-owner", {
         globalRole: "owner",
         accountStatus: "suspended",
@@ -102,11 +103,25 @@ async function seedFirestore() {
         id: "org-news",
         sourceType: "organization",
         organizationId: "approved-org",
+        moderationStatus: "approved",
       }),
       setDoc(doc(db, "events", "org-event"), {
         id: "org-event",
         sourceType: "organization",
         organizationId: "approved-org",
+        moderationStatus: "approved",
+      }),
+      setDoc(doc(db, "news", "pending-news"), {
+        id: "pending-news",
+        sourceType: "organization",
+        organizationId: "approved-org",
+        moderationStatus: "pendingReview",
+      }),
+      setDoc(doc(db, "events", "pending-event"), {
+        id: "pending-event",
+        sourceType: "organization",
+        organizationId: "approved-org",
+        moderationStatus: "pendingReview",
       }),
     ]);
   });
@@ -255,6 +270,10 @@ describe("profile and public read boundaries", () => {
       await imageUpload(context.storage(), "organizations/pending-org/logo.jpg");
       await imageUpload(context.storage(), "featuredBanners/banner-1/hero-version-1.jpg");
       await imageUpload(context.storage(), "featuredBanners/banner-1/private.jpg");
+      await imageUpload(context.storage(), "news/org-news/cover.jpg");
+      await imageUpload(context.storage(), "events/org-event/cover.jpg");
+      await imageUpload(context.storage(), "news/pending-news/cover.jpg");
+      await imageUpload(context.storage(), "events/pending-event/cover.jpg");
     });
 
     const guest = guestStorage();
@@ -263,6 +282,14 @@ describe("profile and public read boundaries", () => {
     await assertSucceeds(getBytes(ref(guest, "featuredBanners/banner-1/hero-version-1.jpg")));
     await assertFails(getBytes(ref(guest, "featuredBanners/banner-1/private.jpg")));
     await assertFails(getBytes(ref(guest, "organizations/pending-org/logo.jpg")));
+    await assertSucceeds(getBytes(ref(guest, "news/org-news/cover.jpg")));
+    await assertSucceeds(getBytes(ref(guest, "events/org-event/cover.jpg")));
+    await assertFails(getBytes(ref(guest, "news/pending-news/cover.jpg")));
+    await assertFails(getBytes(ref(guest, "events/pending-event/cover.jpg")));
+    await assertSucceeds(getBytes(ref(storage("app-admin"), "news/pending-news/cover.jpg")));
+    await assertSucceeds(getBytes(ref(storage("app-admin"), "events/pending-event/cover.jpg")));
+    await assertSucceeds(getBytes(ref(storage("org-owner"), "news/pending-news/cover.jpg")));
+    await assertSucceeds(getBytes(ref(storage("org-admin"), "events/pending-event/cover.jpg")));
   });
 
   test("denies unknown paths to every client", async () => {

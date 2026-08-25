@@ -303,9 +303,9 @@ private struct NotificationInboxRow: View {
         case .info:
             return notification.isRead ? AppTheme.textSecondary : AppTheme.accentPrimaryForeground
         case .success:
-            return .green
+            return AppTheme.accentSuccessForeground
         case .warning:
-            return AppTheme.accentSupport
+            return AppTheme.accentSupportForeground
         case .critical:
             return AppTheme.accentDestructiveForeground
         }

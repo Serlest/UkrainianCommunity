@@ -23,7 +23,7 @@ struct NewsCreateDraft: Codable, Equatable {
 }
 
 struct EventCreateDraft: Codable, Equatable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     let version: Int
     let hasMeaningfulMetadata: Bool?
@@ -51,6 +51,9 @@ struct EventCreateDraft: Codable, Equatable {
     let endDate: Date
     let isAllDay: Bool
     let selectedCategory: EventCategory
+    let selectedAudience: EventAudience?
+    let minimumAgeText: String?
+    let maximumAgeText: String?
     let tags: [String]
     let tagInput: String
     let requiresRegistration: Bool

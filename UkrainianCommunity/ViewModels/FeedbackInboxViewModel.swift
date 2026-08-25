@@ -10,6 +10,8 @@ final class FeedbackInboxViewModel: ObservableObject {
     @Published private(set) var error: AppError?
     @Published private(set) var actionError: AppError?
     @Published private(set) var updatingFeedbackIDs = Set<String>()
+    @Published private(set) var deletingFeedbackIDs = Set<String>()
+    @Published private(set) var isClearingInbox = false
 
     private let repository: FeedbackRepository
     private let notificationInboxRepository: NotificationInboxRepository?
@@ -65,6 +67,48 @@ final class FeedbackInboxViewModel: ObservableObject {
 
     func archive(_ item: FeedbackItem) async {
         await close(item)
+    }
+
+    @discardableResult
+    func delete(_ item: FeedbackItem) async -> Bool {
+        guard !deletingFeedbackIDs.contains(item.id) else { return false }
+        deletingFeedbackIDs.insert(item.id)
+        actionError = nil
+        defer { deletingFeedbackIDs.remove(item.id) }
+
+        do {
+            try await repository.deleteFeedback(id: item.id)
+            items.removeAll { $0.id == item.id }
+            messagesByFeedbackID[item.id] = nil
+            listenerBag.remove("feedbackMessages:\(item.id)")
+            return true
+        } catch let appError as AppError {
+            actionError = appError
+        } catch {
+            actionError = .unknown
+        }
+        return false
+    }
+
+    @discardableResult
+    func clearInbox() async -> Bool {
+        guard !isClearingInbox else { return false }
+        isClearingInbox = true
+        actionError = nil
+        defer { isClearingInbox = false }
+
+        do {
+            try await repository.clearFeedbackInbox()
+            items = []
+            messagesByFeedbackID = [:]
+            listenerBag.removeAll()
+            return true
+        } catch let appError as AppError {
+            actionError = appError
+        } catch {
+            actionError = .unknown
+        }
+        return false
     }
 
     func sendReply(_ reply: String, to item: FeedbackItem, owner: AppUser) async -> Bool {

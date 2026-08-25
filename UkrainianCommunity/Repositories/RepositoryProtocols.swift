@@ -89,6 +89,9 @@ protocol FeedbackRepository {
     func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws
     func closeFeedback(id: String) async throws
     func clearMyFeedback() async throws
+    func deleteMyFeedback(id: String) async throws
+    func deleteFeedback(id: String) async throws
+    func clearFeedbackInbox() async throws
 }
 
 extension FeedbackRepository {
@@ -116,6 +119,9 @@ extension FeedbackRepository {
     }
 
     func clearMyFeedback() async throws {}
+    func deleteMyFeedback(id: String) async throws {}
+    func deleteFeedback(id: String) async throws {}
+    func clearFeedbackInbox() async throws {}
 }
 
 extension FeedbackItem {
@@ -421,6 +427,9 @@ extension Event {
             likeState: likeState,
             viewCount: viewCount,
             category: category,
+            audience: audience,
+            minimumAge: minimumAge,
+            maximumAge: maximumAge,
             tags: tags,
             isAllDay: isAllDay,
             isBookmarked: isBookmarked,

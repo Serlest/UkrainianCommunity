@@ -96,6 +96,8 @@ extension EventDetailView {
                                 .background(AppTheme.accentPrimarySoft, in: Capsule())
                         }
 
+                        registrationCapacitySummary(for: event)
+
                         if isLoadingEventRegistrationAttendees && eventRegistrationAttendees.isEmpty {
                             HStack(spacing: 10) {
                                 ProgressView()
@@ -117,15 +119,43 @@ extension EventDetailView {
                                 .foregroundStyle(AppTheme.textSecondary)
                         } else {
                             VStack(alignment: .leading, spacing: 10) {
-                                ForEach(eventRegistrationAttendees) { attendee in
+                                ForEach(eventRegistrationAttendees.prefix(3)) { attendee in
                                     eventRegistrationAttendeeRow(attendee)
                                 }
+
+                                Button {
+                                    isShowingRegistrationManagement = true
+                                } label: {
+                                    Label(AppStrings.Common.viewAll, systemImage: "person.3")
+                                        .font(.subheadline.weight(.semibold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.large)
                             }
                         }
                     }
                 }
                 .task(id: event.id) {
                     await loadEventRegistrationAttendeesIfNeeded(for: event)
+                }
+            }
+        }
+
+        @ViewBuilder
+        func registrationCapacitySummary(for event: Event) -> some View {
+            if let capacity = event.capacity {
+                let registeredCount = resolvedRegistrationAttendeeCount(for: event)
+                VStack(alignment: .leading, spacing: 6) {
+                    ProgressView(value: Double(min(registeredCount, capacity)), total: Double(max(capacity, 1)))
+                        .tint(registeredCount >= capacity ? AppTheme.accentDestructive : AppTheme.accentPrimary)
+
+                    Text(AppStrings.Events.registrationCapacity(registeredCount, capacity))
+                        .font(AppTheme.metadataFont)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .monospacedDigit()
                 }
             }
         }
@@ -188,7 +218,7 @@ extension EventDetailView {
                     .frame(minHeight: AppTheme.minimumInteractiveTarget)
                     .appGlassActionSurface(.regular)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(AppPressFeedbackButtonStyle())
             .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())
             .disabled(isDisabled)
@@ -200,7 +230,7 @@ extension EventDetailView {
                 DetailActionRow {
                     HStack(spacing: 12) {
                         eventMetricButton(
-                            systemImage: event.likeState.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup",
+                            systemImage: event.likeState.isLiked ? "heart.fill" : "heart",
                             count: event.likeCount,
                             accessibilityLabel: event.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like,
                             isSelected: event.likeState.isLiked
@@ -265,7 +295,7 @@ extension EventDetailView {
                 .frame(minWidth: 74, minHeight: AppTheme.minimumInteractiveTarget)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(AppPressFeedbackButtonStyle())
             .accessibilityLabel(accessibilityLabel)
             .accessibilityValue("\(count)")
             .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -274,7 +304,7 @@ extension EventDetailView {
         func publisherLine(for event: Event) -> some View {
             Label(eventPublisherText(for: event), systemImage: "person.crop.circle")
                 .font(.caption2.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: 190, alignment: .trailing)
@@ -329,4 +359,171 @@ extension EventDetailView {
 
             viewModel.toggleLike(for: event.id)
         }
+}
+
+struct EventRegistrationManagementView: View {
+    @Environment(\.dismiss) private var dismiss
+    let event: Event
+    let attendees: [EventRegistrationAttendee]
+    let isLoading: Bool
+    let errorMessage: String?
+    let onRefresh: @MainActor () async -> Void
+
+    @State private var searchText = ""
+    @State private var sortOption = AppListSortOption.oldest
+
+    private var visibleAttendees: [EventRegistrationAttendee] {
+        attendees
+            .filter { attendee in
+                LocalSearchMatcher.matches(
+                    query: searchText,
+                    values: [attendee.displayTitle, attendee.displaySubtitle]
+                )
+            }
+            .sorted { lhs, rhs in
+                switch sortOption {
+                case .newest:
+                    (lhs.registeredAt ?? .distantPast) > (rhs.registeredAt ?? .distantPast)
+                case .oldest:
+                    (lhs.registeredAt ?? .distantFuture) < (rhs.registeredAt ?? .distantFuture)
+                case .nameAscending:
+                    LocalizationStore.compareForSorting(lhs.displayTitle, rhs.displayTitle) == .orderedAscending
+                case .nameDescending:
+                    LocalizationStore.compareForSorting(lhs.displayTitle, rhs.displayTitle) == .orderedDescending
+                case .popular:
+                    lhs.userID < rhs.userID
+                }
+            }
+    }
+
+    var body: some View {
+        NavigationStack {
+            EditorScreenShell(
+                title: AppStrings.Events.registrationManagementTitle,
+                subtitle: event.title,
+                closeStyle: .cancel,
+                closeAction: { dismiss() }
+            ) {
+                summaryCard
+                searchAndSortCard
+                attendeesContent
+            }
+            .refreshable {
+                await onRefresh()
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .task {
+            if attendees.isEmpty {
+                await onRefresh()
+            }
+        }
+    }
+
+    private var summaryCard: some View {
+        AppEditorSectionCard {
+            HStack(spacing: AppTheme.dashboardSpacing) {
+                Label("\(attendees.count)", systemImage: "person.3.fill")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    .monospacedDigit()
+
+                Spacer(minLength: 8)
+
+                if let capacity = event.capacity {
+                    Text(AppStrings.Events.registrationCapacity(attendees.count, capacity))
+                        .font(AppTheme.metadataFont)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private var searchAndSortCard: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(AppTheme.textSecondary)
+
+                    TextField(AppStrings.Events.registrationSearchPlaceholder, text: $searchText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    if !searchText.isEmpty {
+                        AppSearchClearButton { searchText = "" }
+                    }
+                }
+                .padding(.horizontal, AppTheme.inputHorizontalPadding)
+                .frame(minHeight: AppTheme.searchControlHeight)
+                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous).strokeBorder(AppTheme.borderSubtle))
+
+                AppSortMenu(
+                    selection: $sortOption,
+                    options: [.oldest, .newest, .nameAscending, .nameDescending]
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var attendeesContent: some View {
+        if isLoading && attendees.isEmpty {
+            LoadingStateCard(title: AppStrings.Events.registrationManagementLoading)
+        } else if let errorMessage, attendees.isEmpty {
+            InlineMessageCard(style: .error, message: errorMessage)
+        } else if visibleAttendees.isEmpty {
+            EmptyStateCard(
+                systemImage: searchText.isEmpty ? "person.3" : "magnifyingglass",
+                title: searchText.isEmpty ? AppStrings.Events.registrationManagementEmpty : AppStrings.Search.noResultsTitle,
+                message: searchText.isEmpty ? "" : AppStrings.Search.noResultsMessage
+            )
+        } else {
+            LazyVStack(spacing: AppTheme.eventsMetadataSpacing) {
+                ForEach(visibleAttendees) { attendee in
+                    AppEditorSectionCard {
+                        attendeeRow(attendee)
+                    }
+                }
+            }
+        }
+    }
+
+    private func attendeeRow(_ attendee: EventRegistrationAttendee) -> some View {
+        HStack(spacing: AppTheme.dashboardSpacing) {
+            AvatarArtworkView(
+                avatarURL: attendee.avatarURL,
+                initials: attendee.initials,
+                size: 40,
+                showsBorder: false,
+                shadowOpacity: 0,
+                shadowRadius: 0,
+                shadowY: 0,
+                initialsFont: AppTheme.badgeFont,
+                placeholderFill: AppTheme.accentPrimarySoft
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(attendee.displayTitle)
+                    .font(AppTheme.cardSubtitleFont)
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                Text(attendee.registeredAt.map {
+                    LocalizationStore.dateString(from: $0, dateStyle: .medium, timeStyle: .short)
+                } ?? attendee.displaySubtitle)
+                    .font(AppTheme.metadataFont)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "checkmark.seal.fill")
+                .foregroundStyle(AppTheme.accentSuccessForeground)
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
 }

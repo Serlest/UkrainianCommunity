@@ -5,7 +5,50 @@ enum FeaturedBannerCarouselSizing {
     case aspectRatio(CGFloat, maxHeight: CGFloat? = nil)
 
     static let compactHero = FeaturedBannerCarouselSizing.fixedHeight(AppTheme.heroBannerHeight)
-    static let responsiveHero = FeaturedBannerCarouselSizing.aspectRatio(16.0 / 9.0)
+    static let responsiveHero = FeaturedBannerCarouselSizing.aspectRatio(
+        16.0 / 9.0,
+        maxHeight: AppTheme.featuredBannerMaximumHeight
+    )
+}
+
+private struct FeaturedBannerAspectLayout: Layout {
+    let aspectRatio: CGFloat
+    let minimumHeight: CGFloat?
+    let maximumHeight: CGFloat?
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+
+        let fallbackSize = subview.sizeThatFits(proposal)
+        let width = proposal.width ?? fallbackSize.width
+        var height = width / max(aspectRatio, 0.01)
+
+        if let minimumHeight {
+            height = max(height, minimumHeight)
+        }
+        if let maximumHeight {
+            height = min(height, maximumHeight)
+        }
+
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        subviews.first?.place(
+            at: bounds.origin,
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: bounds.width, height: bounds.height)
+        )
+    }
 }
 
 struct FeaturedBannerCarouselView: View {
@@ -21,6 +64,7 @@ struct FeaturedBannerCarouselView: View {
     private let actionResolver = FeaturedBannerActionResolver()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var selectedBannerID: FeaturedBanner.ID?
     @State private var isUserInteracting = false
     @State private var isRestartingCarousel = false
@@ -66,17 +110,20 @@ struct FeaturedBannerCarouselView: View {
             carouselContent
                 .frame(height: resolvedMinimumHeight(for: height))
         case let .aspectRatio(aspectRatio, maxHeight):
-            Color.clear
-                .aspectRatio(aspectRatio, contentMode: .fit)
-                .frame(
-                    maxWidth: maxHeight.map { $0 * aspectRatio },
-                    minHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
-                    maxHeight: dynamicTypeSize.isAccessibilitySize ? nil : maxHeight
-                )
-                .overlay {
-                    carouselContent
-                }
+            FeaturedBannerAspectLayout(
+                aspectRatio: aspectRatio,
+                minimumHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
+                maximumHeight: resolvedMaximumHeight(maxHeight)
+            ) {
+                carouselContent
+            }
         }
+    }
+
+    private func resolvedMaximumHeight(_ configuredMaximum: CGFloat?) -> CGFloat? {
+        guard !dynamicTypeSize.isAccessibilitySize else { return nil }
+        guard verticalSizeClass == .compact else { return configuredMaximum }
+        return min(configuredMaximum ?? .greatestFiniteMagnitude, AppTheme.featuredBannerLandscapeHeight)
     }
 
     private func resolvedMinimumHeight(for height: CGFloat) -> CGFloat {

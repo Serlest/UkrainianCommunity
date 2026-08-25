@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct NewsDetailView: View {
     @Environment(\.dismiss) var dismiss
@@ -20,7 +19,6 @@ struct NewsDetailView: View {
     @State var pendingRemovalPostID: String?
     @State var guestAccessAction: GuestAccessAction?
     @State var recordedViewKeys = Set<String>()
-    @State var sharePayload: NewsSharePayload?
     @State var commentText = ""
     @State var editingCommentID: String?
     @State var pendingCommentDeleteID: String?
@@ -196,10 +194,15 @@ struct NewsDetailView: View {
         .sheet(isPresented: $isShowingEditSheet) {
             editSheetContent
         }
-        .sheet(item: $sharePayload) { payload in
-            ShareSheet(activityItems: payload.items)
-        }
         .guestAccessAlert($guestAccessAction)
+        .appErrorDialog(Binding(
+            get: {
+                viewModel.interactionError.map {
+                    AppErrorDialog(message: readableNewsErrorText($0))
+                }
+            },
+            set: { if $0 == nil { viewModel.dismissInteractionError() } }
+        ))
         .task {
             await viewModel.loadPostIfNeeded(postID: postID)
             guard let post = viewModel.post(for: postID) else { return }
@@ -343,27 +346,4 @@ struct NewsDetailView: View {
 
         viewModel.toggleBookmark(for: postID)
     }
-}
-
-struct NewsSharePayload: Identifiable {
-    let id = UUID()
-    let items: [Any]
-
-    init(post: NewsPost) {
-        var text = post.title
-        if !post.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            text += "\n\n\(post.subtitle)"
-        }
-        items = [text]
-    }
-}
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

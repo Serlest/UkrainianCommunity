@@ -398,7 +398,7 @@ struct EventMapPickerView: View {
                 } label: {
                     Text(AppStrings.Events.selectLocation)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(selection == nil ? AppTheme.textSecondary : AppTheme.textOnHero)
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
@@ -408,6 +408,7 @@ struct EventMapPickerView: View {
                                 .fill(selection == nil ? AppTheme.accentPrimary.opacity(0.28) : AppTheme.accentPrimary)
                         )
                 }
+                .disabled(selection == nil)
                 .buttonStyle(.plain)
                 .disabled(selection == nil)
             }

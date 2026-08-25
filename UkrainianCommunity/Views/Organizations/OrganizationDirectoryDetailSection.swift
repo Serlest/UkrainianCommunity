@@ -98,7 +98,7 @@ extension OrganizationDetailView {
                         if let isOpen = isOpenNow(profile) {
                             Text(isOpen ? AppStrings.Organizations.openNow : AppStrings.Organizations.closedNow)
                                 .font(AppTheme.metadataStrongFont)
-                                .foregroundStyle(isOpen ? Color.green : AppTheme.textSecondary)
+                                .foregroundStyle(isOpen ? AppTheme.accentSuccessForeground : AppTheme.textSecondary)
                         }
                     }
 

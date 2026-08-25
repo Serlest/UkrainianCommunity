@@ -123,11 +123,13 @@ struct ActivityLogItem: Identifiable, Equatable {
 protocol ActivityLogRepository {
     func fetchActivityLog(limit: Int) async throws -> [ActivityLogItem]
     func recordActivity(_ item: ActivityLogItem) async throws
+    func deleteActivity(id: String) async throws
     func clearActivityLog() async throws
 }
 
 extension ActivityLogRepository {
     func clearActivityLog() async throws {}
+    func deleteActivity(id: String) async throws {}
 }
 
 struct FirestoreActivityLogRepository: ActivityLogRepository {
@@ -171,6 +173,11 @@ struct FirestoreActivityLogRepository: ActivityLogRepository {
         let batch = database.batch()
         snapshot.documents.forEach { batch.deleteDocument($0.reference) }
         try await batch.commit()
+    }
+
+    func deleteActivity(id: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
+        try await activityLogCollection(userID: uid).document(id).delete()
     }
 
     private func activityLogCollection(userID: String) -> CollectionReference {
@@ -223,6 +230,7 @@ final class ActivityLogViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
     @Published private(set) var isClearing = false
+    @Published private(set) var deletingIDs = Set<String>()
 
     private let repository: ActivityLogRepository
     private var hasLoaded = false
@@ -282,6 +290,24 @@ final class ActivityLogViewModel: ObservableObject {
         do {
             try await repository.clearActivityLog()
             items = []
+            error = nil
+            return true
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+        return false
+    }
+
+    @discardableResult
+    func delete(_ item: ActivityLogItem) async -> Bool {
+        guard !deletingIDs.contains(item.id) else { return false }
+        deletingIDs.insert(item.id)
+        defer { deletingIDs.remove(item.id) }
+        do {
+            try await repository.deleteActivity(id: item.id)
+            items.removeAll { $0.id == item.id }
             error = nil
             return true
         } catch let appError as AppError {

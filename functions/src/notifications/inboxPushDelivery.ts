@@ -7,6 +7,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
+import {assertOwner} from "../permissions/userPermissions";
 import {
   buildNotificationDataPayload,
   type NotificationActionType,
@@ -37,6 +38,7 @@ export const sendTestPushNotification = onCall(
   callableOptions,
   async (request): Promise<TestPushResponse> => {
     const auth = await requireVerifiedActiveUser(request);
+    assertCanSendTestPush(auth.permissions);
     const recipients = await resolveNotificationRecipients([auth.uid]);
     if (!recipients.pushRecipientIds.includes(auth.uid)) {
       throw new HttpsError(
@@ -86,6 +88,12 @@ export const sendTestPushNotification = onCall(
     return delivery;
   }
 );
+
+export function assertCanSendTestPush(
+  permissions: Parameters<typeof assertOwner>[0]
+): void {
+  assertOwner(permissions);
+}
 
 const centrallyDeliveredTypes = new Set<NotificationType>([
   "accountStatusChanged",
@@ -152,14 +160,11 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
   async (event) => {
     const notification = event.data?.data();
     const type = enumString(notification?.type, notificationTypes);
-    if (!notification || !type || !centrallyDeliveredTypes.has(type)) {
+    if (!notification || !type || !shouldDeliverInboxNotificationPush(type, notification.metadata)) {
       return;
     }
 
     const metadata = recordValue(notification.metadata);
-    if (metadata.pushManagedByWriter === true) {
-      return;
-    }
 
     const userId = event.params.userId;
     const recipients = await resolveNotificationRecipients([userId], {
@@ -228,7 +233,15 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
   }
 );
 
-function localizedAlertKeys(
+export function shouldDeliverInboxNotificationPush(
+  type: NotificationType,
+  metadataValue: unknown
+): boolean {
+  return centrallyDeliveredTypes.has(type)
+    && recordValue(metadataValue).pushManagedByWriter !== true;
+}
+
+export function localizedAlertKeys(
   type: NotificationType,
   metadata: Record<string, unknown>
 ): {titleLocKey: string; bodyLocKey: string} {

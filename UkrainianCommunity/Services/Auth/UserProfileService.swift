@@ -525,6 +525,18 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         _ = try await CloudFunctionsClient.shared.clearMyFeedback()
     }
 
+    func deleteMyFeedback(id: String) async throws {
+        _ = try await CloudFunctionsClient.shared.deleteMyFeedback(id: id)
+    }
+
+    func deleteFeedback(id: String) async throws {
+        _ = try await CloudFunctionsClient.shared.deleteFeedback(id: id)
+    }
+
+    func clearFeedbackInbox() async throws {
+        _ = try await CloudFunctionsClient.shared.clearFeedbackInbox()
+    }
+
     private func makeFeedbackItem(from document: QueryDocumentSnapshot) -> FeedbackItem {
         let data = document.data()
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()

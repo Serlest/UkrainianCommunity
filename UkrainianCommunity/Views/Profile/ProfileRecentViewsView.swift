@@ -58,6 +58,7 @@ struct RecentViewsView: View {
     @State private var selectedSegment: RecentViewsSegment = .all
     @State private var sortOption: AppListSortOption = .newest
     @State private var isShowingClearConfirmation = false
+    @State private var itemPendingDeletion: RecentViewItem?
 
     init(
         recentViewsViewModel: RecentViewsViewModel? = nil,
@@ -138,6 +139,20 @@ struct RecentViewsView: View {
         } message: {
             Text(AppStrings.Profile.recentlyViewedClearConfirmationMessage)
         }
+        .confirmationDialog(
+            AppStrings.Profile.recentlyViewedDeleteConfirmationTitle,
+            isPresented: Binding(
+                get: { itemPendingDeletion != nil },
+                set: { if !$0 { itemPendingDeletion = nil } }
+            )
+        ) {
+            Button(AppStrings.Action.delete, role: .destructive) {
+                guard let item = itemPendingDeletion else { return }
+                itemPendingDeletion = nil
+                Task { await recentViewsViewModel.delete(item) }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { itemPendingDeletion = nil }
+        }
     }
 
     @ViewBuilder
@@ -164,7 +179,20 @@ struct RecentViewsView: View {
                     InlineMessageCard(style: .error, message: recentViewsErrorMessage(error))
                 }
                 ForEach(filteredItems) { item in
-                    recentItemLink(item)
+                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        recentItemLink(item)
+                        if recentViewsViewModel.deletingIDs.contains(item.id) {
+                            ProgressView().controlSize(.small)
+                                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                        } else {
+                            AppGlassIconButton(
+                                systemImage: "trash",
+                                accessibilityLabel: AppStrings.Action.delete,
+                                role: .destructive
+                            ) { itemPendingDeletion = item }
+                            .accessibilityIdentifier("recentViews.delete.\(item.id)")
+                        }
+                    }
                 }
             }
         }

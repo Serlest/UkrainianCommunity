@@ -23,7 +23,10 @@ export type AuditActionType =
   | "organizationRequestNeedsRevision"
   | "organizationRequestRejected"
   | "systemLogsClearRequested"
-  | "systemLogsCleared";
+  | "systemLogsCleared"
+  | "systemLogDeleted"
+  | "feedbackDeleted"
+  | "feedbackInboxCleared";
 
 export interface AuditLogInput {
   actionType: AuditActionType;

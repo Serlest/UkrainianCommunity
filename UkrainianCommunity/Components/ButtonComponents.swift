@@ -25,12 +25,12 @@ extension View {
                 )
                 .opacity(isEnabled ? 1 : 0.58)
         case .prominent:
-            foregroundStyle(.white)
+            foregroundStyle(isEnabled ? AppTheme.textOnHero : AppTheme.textSecondary)
                 .appGlassSurface(
                     cornerRadius: AppTheme.iconButtonRadius,
-                    tint: isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.36),
+                    tint: isEnabled ? AppTheme.accentPrimary : AppTheme.surfaceControl,
                     isInteractive: isInteractive && isEnabled,
-                    fallbackSurface: isEnabled ? AppTheme.accentPrimary : AppTheme.accentPrimary.opacity(0.36),
+                    fallbackSurface: isEnabled ? AppTheme.accentPrimary : AppTheme.surfaceControl,
                     fallbackUsesMaterial: false,
                     borderOpacity: 0.42,
                     shadowRadius: AppTheme.glassIconButtonShadowRadius,
@@ -165,8 +165,11 @@ struct PrimaryActionButton: View {
                 isEnabled: isEnabled,
                 isInteractive: !isLoading
             )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
         .disabled(!isEnabled || isLoading)
         .accessibilityLabel(title)
     }
@@ -189,10 +192,24 @@ struct LikeButton: View {
                         .fill(isLiked ? AppTheme.badgeRedFill : AppTheme.badgeBlueFill)
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AppPressFeedbackButtonStyle())
         .frame(minHeight: AppTheme.minimumInteractiveTarget)
         .contentShape(Rectangle())
         .accessibilityAddTraits(isLiked ? .isSelected : [])
+    }
+}
+
+struct AppPressFeedbackButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
+            .opacity(configuration.isPressed ? 0.78 : 1)
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.12),
+                value: configuration.isPressed
+            )
     }
 }
 

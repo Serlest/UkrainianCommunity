@@ -190,7 +190,7 @@ struct ManagedOrganizationView: View {
 
                             ManagementPill(
                                 title: currentOrganization.moderationStatus.title,
-                                tint: currentOrganization.moderationStatus == .approved ? AppTheme.accentPrimary : AppTheme.textSecondary
+                                tint: currentOrganization.moderationStatus == .approved ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary
                             )
                         }
 

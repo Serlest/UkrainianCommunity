@@ -42,6 +42,9 @@ struct ContentEditorValidationTests {
         #expect(eventValidator.firstIssue(in: eventInput(hasOrganizer: false)) == .organizationRequired)
         #expect(eventValidator.firstIssue(in: eventInput(capacityText: "0")) == .invalidCapacity)
         #expect(eventValidator.firstIssue(in: eventInput(priceText: "free")) == .invalidPrice)
+        #expect(eventValidator.firstIssue(in: eventInput(minimumAgeText: "child")) == .invalidAgeValue)
+        #expect(eventValidator.firstIssue(in: eventInput(maximumAgeText: "121")) == .invalidAgeValue)
+        #expect(eventValidator.firstIssue(in: eventInput(minimumAgeText: "18", maximumAgeText: "12")) == .invalidAgeRange)
         #expect(eventValidator.firstIssue(in: eventInput(federalState: nil)) == .organizationRegionRequired)
     }
 
@@ -74,6 +77,41 @@ struct ContentEditorValidationTests {
                 )
             ) == nil
         )
+    }
+
+    @Test func eventEditorStepsUnlockOnlyWhenTheirRequiredFieldsAreValid() {
+        let viewModel = EventEditorViewModel(
+            repository: MockEventRepository(),
+            mode: .create(context: .init(
+                organizationId: "organization-1",
+                organizationName: "Community Center",
+                organizationImageURL: nil,
+                organizationFederalState: .tirol
+            ))
+        )
+
+        #expect(!viewModel.canAdvanceBasics)
+        viewModel.title = "Community event"
+        viewModel.summary = "Short summary"
+        viewModel.details = "Full event description"
+        #expect(viewModel.canAdvanceBasics)
+
+        #expect(!viewModel.canAdvanceSchedule)
+        viewModel.city = "Innsbruck"
+        viewModel.venue = "Community Center"
+        viewModel.startDate = Date().addingTimeInterval(3_600)
+        viewModel.endDate = Date().addingTimeInterval(7_200)
+        #expect(viewModel.canAdvanceSchedule)
+
+        viewModel.capacityText = "0"
+        #expect(!viewModel.canAdvanceAudience)
+        viewModel.capacityText = "50"
+        viewModel.minimumAgeText = "18"
+        viewModel.maximumAgeText = "12"
+        #expect(!viewModel.canAdvanceAudience)
+        viewModel.maximumAgeText = "99"
+        #expect(viewModel.canAdvanceAudience)
+        #expect(viewModel.validationMessage == nil)
     }
 
     private func newsInput(
@@ -111,6 +149,8 @@ struct ContentEditorValidationTests {
         requiresRegistration: Bool = true,
         capacityText: String = "20",
         priceText: String = "10,50",
+        minimumAgeText: String = "",
+        maximumAgeText: String = "",
         federalState: AustrianFederalState? = .tirol
     ) -> EventValidationInput {
         EventValidationInput(
@@ -128,6 +168,8 @@ struct ContentEditorValidationTests {
             requiresRegistration: requiresRegistration,
             capacityText: capacityText,
             priceText: priceText,
+            minimumAgeText: minimumAgeText,
+            maximumAgeText: maximumAgeText,
             federalState: federalState,
             now: referenceDate
         )

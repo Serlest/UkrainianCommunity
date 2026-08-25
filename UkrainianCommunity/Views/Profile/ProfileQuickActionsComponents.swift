@@ -67,6 +67,7 @@ struct ProfileQuickActionCard: View {
             RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
                 .strokeBorder(AppTheme.borderSubtle)
         )
+        .contentShape(RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
         .opacity(item.status.isDisabled ? 0.72 : 1)
         .accessibilityElement(children: .combine)
     }

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import UkrainianCommunity
@@ -62,6 +63,31 @@ private final class RecordingBannerRepository: FeaturedBannerRepository {
 
 @MainActor
 struct FeaturedBannerEditingTests {
+    @Test func adaptiveBannerProcessingPreservesPortraitAspectRatio() async throws {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = try #require(CGContext(
+            data: nil,
+            width: 600,
+            height: 1200,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.setFillColor(CGColor(red: 0.15, green: 0.35, blue: 0.75, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 600, height: 1200))
+        let sourceImage = try #require(context.makeImage())
+
+        let processed = try await ImageProcessingService.process(
+            cgImage: sourceImage,
+            profile: .adaptiveBanner
+        )
+
+        #expect(processed.renderedWidth == 600)
+        #expect(processed.renderedHeight == 1200)
+        #expect(processed.renderedWidth / processed.renderedHeight == 0.5)
+    }
+
     @Test func mutationPayloadOmitsClearedTextAndUsesNewImage() throws {
         let banner = makeBanner(
             title: "   ",

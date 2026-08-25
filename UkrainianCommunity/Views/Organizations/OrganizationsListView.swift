@@ -207,6 +207,14 @@ struct OrganizationsListView: View {
                 await viewModel.refresh()
             }
         }
+        .appErrorDialog(Binding(
+            get: {
+                viewModel.interactionError.map {
+                    AppErrorDialog(message: readableOrganizationErrorText($0))
+                }
+            },
+            set: { if $0 == nil { viewModel.dismissInteractionError() } }
+        ))
         .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
             Button(AppStrings.Home.regionAllAustria) {
                 selectRegion(nil)
@@ -566,7 +574,7 @@ private struct OrganizationCard: View {
 
             Text(organization.shortDescription)
                 .font(AppTheme.cardSubtitleFont)
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 .fixedSize(horizontal: false, vertical: true)
 

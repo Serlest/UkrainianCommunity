@@ -25,13 +25,16 @@ extension OrganizationDetailView {
     func selectedSectionContent(for organization: Organization) -> some View {
         switch selectedSection {
         case .events:
-            organizationActivityList(
-                title: AppStrings.Organizations.tabEvents,
-                items: upcomingOrganizationEvents,
-                emptySystemImage: "calendar",
-                emptyMessage: AppStrings.Organizations.emptyOrganizationEvents,
-                sortAscending: true
-            )
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                organizationEventFilters
+                organizationActivityList(
+                    title: AppStrings.Organizations.tabEvents,
+                    items: upcomingOrganizationEvents,
+                    emptySystemImage: "calendar",
+                    emptyMessage: AppStrings.Organizations.emptyOrganizationEvents,
+                    sortAscending: true
+                )
+            }
         case .news:
             organizationActivityList(
                 title: AppStrings.Organizations.tabNews,
@@ -64,6 +67,18 @@ extension OrganizationDetailView {
         let today = Calendar.current.startOfDay(for: Date())
         return organizationEventItems
             .filter { ($0.eventStartDate ?? $0.publishedAt) >= today }
+            .filter { item in
+                selectedOrganizationEventCategory == nil || item.eventCategory == selectedOrganizationEventCategory
+            }
+            .filter { item in
+                guard let audience = selectedOrganizationEventAudience else { return true }
+                return item.eventAudience == .everyone || item.eventAudience == audience
+            }
+            .filter { item in
+                guard let range = selectedOrganizationEventAge.ageRange else { return true }
+                let eventRange = (item.eventMinimumAge ?? 0)...(item.eventMaximumAge ?? 120)
+                return eventRange.overlaps(range)
+            }
             .sorted {
                 let lhsDate = $0.eventStartDate ?? $0.publishedAt
                 let rhsDate = $1.eventStartDate ?? $1.publishedAt
@@ -87,6 +102,62 @@ extension OrganizationDetailView {
             .sorted {
                 $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
             }
+    }
+
+    var organizationEventFilters: some View {
+        AppHorizontalFilterRow {
+            Menu {
+                Button(AppStrings.Events.allCategories) { selectedOrganizationEventCategory = nil }
+                ForEach(EventCategory.allCases) { category in
+                    Button { selectedOrganizationEventCategory = category } label: {
+                        Label(category.title, systemImage: category.systemImage)
+                    }
+                }
+            } label: {
+                AppFilterChip(
+                    title: selectedOrganizationEventCategory?.title ?? AppStrings.Events.allCategories,
+                    systemImage: selectedOrganizationEventCategory?.systemImage ?? "tag",
+                    isSelected: selectedOrganizationEventCategory != nil,
+                    trailingSystemImage: "chevron.down"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                Button(AppStrings.Events.audienceAll) { selectedOrganizationEventAudience = nil }
+                ForEach(EventAudience.allCases.filter { $0 != .everyone }) { audience in
+                    Button { selectedOrganizationEventAudience = audience } label: {
+                        Label(audience.title, systemImage: audience.systemImage)
+                    }
+                }
+            } label: {
+                AppFilterChip(
+                    title: selectedOrganizationEventAudience?.title ?? AppStrings.Events.audienceAll,
+                    systemImage: selectedOrganizationEventAudience?.systemImage ?? "person.3",
+                    isSelected: selectedOrganizationEventAudience != nil,
+                    trailingSystemImage: "chevron.down"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                ForEach(OrganizationEventAgeFilter.allCases) { ageFilter in
+                    Button { selectedOrganizationEventAge = ageFilter } label: {
+                        Label(ageFilter.title, systemImage: "birthday.cake")
+                    }
+                }
+            } label: {
+                AppFilterChip(
+                    title: selectedOrganizationEventAge.title,
+                    systemImage: "birthday.cake",
+                    isSelected: selectedOrganizationEventAge != .any,
+                    trailingSystemImage: "chevron.down"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(AppStrings.Events.organizationEventFilters)
     }
 
     func organizationActivityList(

@@ -212,7 +212,7 @@ struct EventRegistrationRaceTests {
 
         #expect(await eventually { viewModel.pendingEventBookmarkIDs.isEmpty })
         #expect(viewModel.event(for: eventID)?.isBookmarked == true)
-        #expect(viewModel.error == .network)
+        #expect(viewModel.interactionError == .network)
     }
 
     @Test func commentLoadUpdateAndDeleteResolveCurrentEventAndCommentIDs() async {

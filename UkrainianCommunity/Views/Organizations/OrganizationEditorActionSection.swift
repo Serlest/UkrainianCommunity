@@ -74,7 +74,7 @@ extension OrganizationEditorView {
             editorCard {
                 Label(successMessage, systemImage: "checkmark.circle.fill")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(AppTheme.accentSuccessForeground)
             }
         }
     }

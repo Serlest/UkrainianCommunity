@@ -12,6 +12,7 @@ final class EventsViewModel: ObservableObject {
     @Published var events: [Event]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var interactionError: AppError?
     @Published private(set) var isLoadingNextPage = false
     @Published private(set) var hasMorePages = false
     @Published private(set) var contentVersion = 0
@@ -107,6 +108,7 @@ final class EventsViewModel: ObservableObject {
         isLoadingNextPage = false
         hasMorePages = false
         error = nil
+        interactionError = nil
         contentVersion &+= 1
         pendingEventLikeIDs = []
         pendingEventRegistrationIDs = []
@@ -136,11 +138,19 @@ final class EventsViewModel: ObservableObject {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingEventLikeIDs.contains(eventID) else { return }
         let shouldLike = events[index].likeState == .notLiked
+        let previousState = events[index].likeState
+        let previousCount = events[index].likeCount
         let desiredState: LikeState = shouldLike ? .liked : .notLiked
+        let desiredCount = max(0, previousCount + (shouldLike ? 1 : -1))
         let generation = sessionGeneration
+        let requestFeedRevision = feedRevision
         let taskKey = "like:\(eventID)"
 
         pendingEventLikeIDs.insert(eventID)
+        interactionError = nil
+        events[index].likeState = desiredState
+        events[index].likeCount = desiredCount
+        contentVersion &+= 1
         let task = Task { [weak self] in
             guard let self else { return }
             defer {
@@ -159,7 +169,7 @@ final class EventsViewModel: ObservableObject {
 
                 guard isCurrentSession(generation),
                       let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
-                if events[currentIndex].likeState != desiredState {
+                if events[currentIndex].likeState == previousState {
                     events[currentIndex].likeState = desiredState
                     events[currentIndex].likeCount = max(
                         0,
@@ -167,13 +177,29 @@ final class EventsViewModel: ObservableObject {
                     )
                 }
                 contentVersion &+= 1
-                error = nil
+                interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentSession(generation) else { return }
-                error = appError
+                rollbackLike(
+                    eventID: eventID,
+                    optimisticState: desiredState,
+                    optimisticCount: desiredCount,
+                    previousState: previousState,
+                    previousCount: previousCount,
+                    requestFeedRevision: requestFeedRevision
+                )
+                interactionError = appError
             } catch {
                 guard isCurrentSession(generation) else { return }
-                self.error = .unknown
+                rollbackLike(
+                    eventID: eventID,
+                    optimisticState: desiredState,
+                    optimisticCount: desiredCount,
+                    previousState: previousState,
+                    previousCount: previousCount,
+                    requestFeedRevision: requestFeedRevision
+                )
+                self.interactionError = .unknown
             }
         }
         interactionTasks[taskKey] = task
@@ -210,6 +236,10 @@ final class EventsViewModel: ObservableObject {
     func dismissRegistrationError(for eventID: String) {
         guard registrationError?.eventID == eventID else { return }
         registrationError = nil
+    }
+
+    func waitForRegistrationMutation(for eventID: String) async {
+        await registrationTasks[eventID]?.value
     }
 
     private func performRegistrationMutation(
@@ -337,6 +367,7 @@ final class EventsViewModel: ObservableObject {
         let taskKey = "bookmark:\(eventID)"
 
         pendingEventBookmarkIDs.insert(eventID)
+        interactionError = nil
         events[index].isBookmarked = shouldBookmark
         contentVersion &+= 1
 
@@ -365,7 +396,7 @@ final class EventsViewModel: ObservableObject {
                 if shouldBookmark {
                     analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
-                error = nil
+                interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentSession(generation) else { return }
                 rollbackBookmark(
@@ -374,7 +405,7 @@ final class EventsViewModel: ObservableObject {
                     previousState: previousBookmarkState,
                     requestFeedRevision: requestFeedRevision
                 )
-                error = appError
+                interactionError = appError
             } catch {
                 guard isCurrentSession(generation) else { return }
                 rollbackBookmark(
@@ -383,10 +414,14 @@ final class EventsViewModel: ObservableObject {
                     previousState: previousBookmarkState,
                     requestFeedRevision: requestFeedRevision
                 )
-                self.error = .unknown
+                self.interactionError = .unknown
             }
         }
         interactionTasks[taskKey] = task
+    }
+
+    func dismissInteractionError() {
+        interactionError = nil
     }
 
     func recordView(for eventID: String) {
@@ -785,6 +820,23 @@ final class EventsViewModel: ObservableObject {
               let currentIndex = events.firstIndex(where: { $0.id == eventID }),
               events[currentIndex].isBookmarked == optimisticState else { return }
         events[currentIndex].isBookmarked = previousState
+        contentVersion &+= 1
+    }
+
+    private func rollbackLike(
+        eventID: String,
+        optimisticState: LikeState,
+        optimisticCount: Int,
+        previousState: LikeState,
+        previousCount: Int,
+        requestFeedRevision: UInt
+    ) {
+        guard feedRevision == requestFeedRevision,
+              let currentIndex = events.firstIndex(where: { $0.id == eventID }),
+              events[currentIndex].likeState == optimisticState,
+              events[currentIndex].likeCount == optimisticCount else { return }
+        events[currentIndex].likeState = previousState
+        events[currentIndex].likeCount = max(0, previousCount)
         contentVersion &+= 1
     }
 

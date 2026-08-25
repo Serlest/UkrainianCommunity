@@ -6,6 +6,7 @@ final class OrganizationsViewModel: ObservableObject {
     @Published var organizations: [Organization]
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
+    @Published private(set) var interactionError: AppError?
     @Published private(set) var isLoadingNextPage = false
     @Published private(set) var hasMorePages = false
     @Published private(set) var contentVersion = 0
@@ -90,6 +91,7 @@ final class OrganizationsViewModel: ObservableObject {
         isLoadingNextPage = false
         hasMorePages = false
         error = nil
+        interactionError = nil
         contentVersion &+= 1
         pendingOrganizationLikeIDs = []
         pendingOrganizationSubscriptionIDs = []
@@ -121,6 +123,7 @@ final class OrganizationsViewModel: ObservableObject {
         let taskKey = "like:\(organizationID)"
 
         pendingOrganizationLikeIDs.insert(organizationID)
+        interactionError = nil
         organizations[index].likeState = optimisticLikeState
         organizations[index].likeCount = optimisticLikeCount
         contentVersion &+= 1
@@ -151,7 +154,7 @@ final class OrganizationsViewModel: ObservableObject {
                     )
                     contentVersion &+= 1
                 }
-                error = nil
+                interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackLike(
@@ -162,7 +165,7 @@ final class OrganizationsViewModel: ObservableObject {
                     previousCount: previousLikeCount,
                     requestFeedRevision: requestFeedRevision
                 )
-                error = appError
+                interactionError = appError
             } catch {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackLike(
@@ -173,7 +176,7 @@ final class OrganizationsViewModel: ObservableObject {
                     previousCount: previousLikeCount,
                     requestFeedRevision: requestFeedRevision
                 )
-                self.error = .unknown
+                self.interactionError = .unknown
             }
         }
         interactionTasks[taskKey] = task
@@ -194,6 +197,7 @@ final class OrganizationsViewModel: ObservableObject {
         let taskKey = "subscription:\(organizationID)"
 
         pendingOrganizationSubscriptionIDs.insert(organizationID)
+        interactionError = nil
         organizations[index].isSubscribed = shouldSubscribe
         organizations[index].subscriberCount = optimisticSubscriberCount
         contentVersion &+= 1
@@ -231,7 +235,7 @@ final class OrganizationsViewModel: ObservableObject {
                 } else {
                     analyticsService.track(.organizationUnfollow(organization: currentOrganization))
                 }
-                error = nil
+                interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackSubscription(
@@ -242,7 +246,7 @@ final class OrganizationsViewModel: ObservableObject {
                     previousCount: previousSubscriberCount,
                     requestFeedRevision: requestFeedRevision
                 )
-                error = appError
+                interactionError = appError
             } catch {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackSubscription(
@@ -253,7 +257,7 @@ final class OrganizationsViewModel: ObservableObject {
                     previousCount: previousSubscriberCount,
                     requestFeedRevision: requestFeedRevision
                 )
-                self.error = .unknown
+                self.interactionError = .unknown
             }
         }
         interactionTasks[taskKey] = task
@@ -272,6 +276,7 @@ final class OrganizationsViewModel: ObservableObject {
         let taskKey = "bookmark:\(organizationID)"
 
         pendingOrganizationBookmarkIDs.insert(organizationID)
+        interactionError = nil
         organizations[index].isBookmarked = shouldBookmark
         contentVersion &+= 1
 
@@ -302,7 +307,7 @@ final class OrganizationsViewModel: ObservableObject {
                 if shouldBookmark {
                     analyticsService.track(actionEvent, actionCapture: actionCapture)
                 }
-                error = nil
+                interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackBookmark(
@@ -311,7 +316,7 @@ final class OrganizationsViewModel: ObservableObject {
                     previousState: previousBookmarkState,
                     requestFeedRevision: requestFeedRevision
                 )
-                error = appError
+                interactionError = appError
             } catch {
                 guard isCurrentAuthGeneration(generation) else { return }
                 rollbackBookmark(
@@ -320,10 +325,14 @@ final class OrganizationsViewModel: ObservableObject {
                     previousState: previousBookmarkState,
                     requestFeedRevision: requestFeedRevision
                 )
-                self.error = .unknown
+                self.interactionError = .unknown
             }
         }
         interactionTasks[taskKey] = task
+    }
+
+    func dismissInteractionError() {
+        interactionError = nil
     }
 
     func organization(for organizationID: String) -> Organization? {

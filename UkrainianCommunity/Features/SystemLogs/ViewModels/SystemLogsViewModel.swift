@@ -16,6 +16,7 @@ final class SystemLogsViewModel: ObservableObject {
     @Published private(set) var reviewingLogIDs: Set<String> = []
     @Published private(set) var reviewErrorMessages: [String: String] = [:]
     @Published private(set) var isClearingLogs = false
+    @Published private(set) var deletingLogIDs = Set<String>()
     @Published private(set) var clearLogsErrorMessage: String?
 
     private let repository: SystemLogRepositoryProtocol
@@ -221,6 +222,22 @@ final class SystemLogsViewModel: ObservableObject {
             canLoadMore = false
             errorMessage = nil
             clearSearchAndFilters()
+        } catch {
+            clearLogsErrorMessage = readableClearLogsErrorMessage(for: error)
+        }
+    }
+
+    func deleteLog(id: String) async {
+        guard accessMode == .owner, !deletingLogIDs.contains(id) else { return }
+        deletingLogIDs.insert(id)
+        clearLogsErrorMessage = nil
+        defer { deletingLogIDs.remove(id) }
+
+        do {
+            try await repository.deleteLog(id: id)
+            logs.removeAll { $0.id == id }
+            reviewErrorMessages[id] = nil
+            errorMessage = nil
         } catch {
             clearLogsErrorMessage = readableClearLogsErrorMessage(for: error)
         }

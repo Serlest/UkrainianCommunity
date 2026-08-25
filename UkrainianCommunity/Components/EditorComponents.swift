@@ -168,7 +168,7 @@ struct EditorTextArea: View {
                 if text.isEmpty {
                     Text(title)
                         .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                        .foregroundStyle(AppTheme.textSecondary)
                         .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
                         .padding(.vertical, AppTheme.eventsMetadataSpacing)
                         .allowsHitTesting(false)

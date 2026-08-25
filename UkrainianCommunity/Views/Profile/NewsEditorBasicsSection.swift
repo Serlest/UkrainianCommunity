@@ -25,7 +25,7 @@ extension NewsEditorView {
                             if viewModel.summary.isEmpty {
                                 Text(AppStrings.NewsEditor.summaryPlaceholder)
                                     .font(.subheadline)
-                                    .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                                    .foregroundStyle(AppTheme.textSecondary)
                                     .lineSpacing(2)
                                     .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
                                     .padding(.vertical, AppTheme.eventsMetadataSpacing)
@@ -140,7 +140,7 @@ extension NewsEditorView {
             } else {
                 Label(AppStrings.Common.notAvailable, systemImage: "lock.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.7))
+                    .foregroundStyle(AppTheme.textSecondary)
                     .labelStyle(.iconOnly)
                     .frame(width: 32, height: 32)
                     .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())

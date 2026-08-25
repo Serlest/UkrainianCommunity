@@ -174,7 +174,7 @@ extension EventDetailView {
                 if row.url != nil {
                     Image(systemName: "arrow.up.right")
                         .font(AppTheme.metadataStrongFont)
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.7))
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
             .padding(.vertical, 2)
@@ -356,7 +356,7 @@ extension EventDetailView {
                 if let city = locationLines.city {
                     Text(city)
                         .font(AppTheme.detailMetadataFont)
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
                 }
 
@@ -799,7 +799,7 @@ extension EventDetailView {
 
                     Image(systemName: "chevron.right")
                         .font(AppTheme.metadataStrongFont)
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.7))
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
         }

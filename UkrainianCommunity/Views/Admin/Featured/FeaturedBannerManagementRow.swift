@@ -199,11 +199,11 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
     private var statusColor: Color {
         switch lifecycleState {
         case .migrationRequired, .expired:
-            return .orange
+            return AppTheme.accentWarningForeground
         case .inactive:
             return AppTheme.textSecondary
         case .scheduled:
-            return .blue
+            return AppTheme.accentPrimaryForeground
         case .live:
             return AppTheme.accentPrimaryForeground
         }

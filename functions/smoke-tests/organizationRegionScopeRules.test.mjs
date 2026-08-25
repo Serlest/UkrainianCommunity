@@ -107,6 +107,12 @@ async function seed() {
       adminIds: ["organization-admin"],
       moderatorIds: ["organization-moderator"],
       moderationStatus: "approved",
+      subscriberCount: 0,
+      eventsHeldCount: 0,
+      volunteersCount: 0,
+      helpedPeopleCount: 0,
+      likeCount: 0,
+      likeState: "notLiked",
       createdAt: new Date("2026-08-01T10:00:00Z"),
       updatedAt: new Date("2026-08-01T10:00:00Z"),
     });

@@ -272,14 +272,14 @@ struct NewsEditorView: View {
 
             Text(value)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(isPlaceholder ? AppTheme.textSecondary.opacity(0.68) : AppTheme.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.76)
 
             if showsChevron {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
         .padding(.horizontal, 12)
@@ -289,7 +289,7 @@ struct NewsEditorView: View {
     func rowIcon(_ systemImage: String) -> some View {
         Image(systemName: systemImage)
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(AppTheme.textSecondary.opacity(0.92))
+            .foregroundStyle(AppTheme.textSecondary)
             .frame(width: detailIconSize, height: detailIconSize)
     }
 

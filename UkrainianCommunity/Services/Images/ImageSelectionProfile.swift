@@ -56,6 +56,21 @@ struct ImageSelectionProfile: Identifiable, Sendable {
 }
 
 extension ImageSelectionProfile {
+    /// Preserves the complete source image. Featured banners render it with an
+    /// adaptive, blurred backdrop instead of discarding content to match the
+    /// current card aspect ratio.
+    static let adaptiveBanner = ImageSelectionProfile(
+        id: "adaptiveBanner",
+        name: "Adaptive banner",
+        targetAspectRatio: nil,
+        allowedAspectRatioRange: nil,
+        maxBytes: 3_000_000,
+        maxPixelDimension: 1600,
+        jpegQuality: 0.82,
+        cropCornerRadius: AppTheme.heroRadius,
+        imageTooLargeErrorKey: "image.validation.too_large"
+    )
+
     static let hero16x9 = ImageSelectionProfile(
         id: "hero16x9",
         name: "Hero 16:9",

@@ -64,7 +64,7 @@ struct FirestoreNotificationPushTokenRepository: NotificationPushTokenRepository
                 )
             )
         } catch {
-            guard Self.isUnauthenticatedFunctionsError(error) else { throw error }
+            guard Self.shouldUseFirestoreFallback(error) else { throw error }
 
             // App Check can reject a legitimate Debug/Simulator callable even
             // while Firebase Auth and the user's Firestore session are valid.
@@ -106,5 +106,21 @@ struct FirestoreNotificationPushTokenRepository: NotificationPushTokenRepository
         let error = error as NSError
         return error.domain == FunctionsErrorDomain
             && FunctionsErrorCode(rawValue: error.code) == .unauthenticated
+    }
+
+    static func shouldUseFirestoreFallback(_ error: Error) -> Bool {
+        if isUnauthenticatedFunctionsError(error) {
+            return true
+        }
+
+        let error = error as NSError
+        if error.domain == NSURLErrorDomain {
+            return true
+        }
+        guard error.domain == FunctionsErrorDomain,
+              let code = FunctionsErrorCode(rawValue: error.code) else {
+            return false
+        }
+        return code == .unavailable || code == .deadlineExceeded
     }
 }

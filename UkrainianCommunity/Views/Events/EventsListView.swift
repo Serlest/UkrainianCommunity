@@ -26,64 +26,45 @@ private enum EventDiscoveryFilter: CaseIterable, Identifiable {
     }
 }
 
-private enum EventCategoryFilter: CaseIterable, Identifiable {
-    case all
-    case meetups
-    case training
-    case culture
-    case education
-    case other
+private struct EventCategoryFilter: Identifiable, Hashable {
+    let category: EventCategory?
+    var id: String { category?.rawValue ?? "all" }
+    var title: String { category?.title ?? AppStrings.Events.allCategories }
+    var systemImage: String { category?.systemImage ?? "tag" }
+    static let all = EventCategoryFilter(category: nil)
+    static var allCases: [EventCategoryFilter] {
+        [.all] + EventCategory.allCases.map { EventCategoryFilter(category: $0) }
+    }
+}
 
+private struct EventAudienceFilter: Identifiable, Hashable {
+    let audience: EventAudience?
+    var id: String { audience?.rawValue ?? "all" }
+    var title: String { audience?.title ?? AppStrings.Events.audienceAll }
+    var systemImage: String { audience?.systemImage ?? "person.3" }
+    static let all = EventAudienceFilter(audience: nil)
+    static var allCases: [EventAudienceFilter] {
+        [.all] + EventAudience.allCases.filter { $0 != .everyone }.map { EventAudienceFilter(audience: $0) }
+    }
+}
+
+private enum EventAgeFilter: CaseIterable, Identifiable {
+    case any, child, teen, adult
     var id: Self { self }
-
     var title: String {
         switch self {
-        case .all:
-            AppStrings.Events.allCategories
-        case .meetups:
-            AppStrings.Events.categoryMeetups
-        case .training:
-            AppStrings.Events.categoryTraining
-        case .culture:
-            AppStrings.Events.categoryCulture
-        case .education:
-            AppStrings.Events.categoryEducation
-        case .other:
-            AppStrings.Events.categoryOther
+        case .any: AppStrings.Events.ageFilterAny
+        case .child: AppStrings.Events.ageFilterChildren
+        case .teen: AppStrings.Events.ageFilterTeens
+        case .adult: AppStrings.Events.ageFilterAdults
         }
     }
-
-    var systemImage: String {
+    var ageRange: ClosedRange<Int>? {
         switch self {
-        case .all:
-            "tag"
-        case .meetups:
-            "person.2"
-        case .training:
-            "graduationcap"
-        case .culture:
-            "theatermasks"
-        case .education:
-            "book"
-        case .other:
-            "square.grid.2x2"
-        }
-    }
-
-    var category: EventCategory? {
-        switch self {
-        case .all:
-            nil
-        case .meetups:
-            .meetups
-        case .training:
-            .training
-        case .culture:
-            .culture
-        case .education:
-            .education
-        case .other:
-            .other
+        case .any: nil
+        case .child: 0...12
+        case .teen: 13...17
+        case .adult: 18...120
         }
     }
 }
@@ -145,6 +126,8 @@ struct EventsListView: View {
     @State private var isShowingDeleteError = false
     @State private var selectedFilter: EventDiscoveryFilter = .all
     @State private var selectedCategory: EventCategoryFilter = .all
+    @State private var selectedAudience: EventAudienceFilter = .all
+    @State private var selectedAge: EventAgeFilter = .any
     @State private var selectedFederalState: AustrianFederalState?
     @State private var selectedFeedScope: EventFeedScope = .all
     @State private var didManuallyChangeRegion = false
@@ -258,6 +241,8 @@ struct EventsListView: View {
     private var filteredEvents: [Event] {
         viewModel.events.filter { event in
             matchesSelectedCategory(event)
+                && matchesSelectedAudience(event)
+                && matchesSelectedAge(event)
                 && matchesSelectedRegion(event)
                 && matchesSelectedFeedScope(event)
                 && matchesSearch(event)
@@ -279,6 +264,17 @@ struct EventsListView: View {
     private func matchesSelectedCategory(_ event: Event) -> Bool {
         guard let category = selectedCategory.category else { return true }
         return event.category == category
+    }
+
+    private func matchesSelectedAudience(_ event: Event) -> Bool {
+        guard let audience = selectedAudience.audience else { return true }
+        return event.audience == .everyone || event.audience == audience
+    }
+
+    private func matchesSelectedAge(_ event: Event) -> Bool {
+        guard let range = selectedAge.ageRange else { return true }
+        let eventRange = (event.minimumAge ?? 0)...(event.maximumAge ?? 120)
+        return eventRange.overlaps(range)
     }
 
     private func matchesSelectedFeedScope(_ event: Event) -> Bool {
@@ -315,9 +311,13 @@ struct EventsListView: View {
                         selectedPeriod: selectedFilter,
                         selectedFederalState: selectedFederalState,
                         selectedCategory: selectedCategory,
+                        selectedAudience: selectedAudience,
+                        selectedAge: selectedAge,
                         selectedFeedScope: selectedFeedScope,
                         onSelectPeriod: { selectedFilter = $0 },
                         onSelectCategory: { selectedCategory = $0 },
+                        onSelectAudience: { selectedAudience = $0 },
+                        onSelectAge: { selectedAge = $0 },
                         onSelectRegion: { isRegionPickerPresented = true },
                         onSelectSaved: { selectedFeedScope = selectedFeedScope == .saved ? .all : .saved },
                         onSelectRegistered: { selectedFeedScope = selectedFeedScope == .registered ? .all : .registered }
@@ -384,6 +384,14 @@ struct EventsListView: View {
             }
         }
         .guestAccessAlert($guestAccessAction)
+        .appErrorDialog(Binding(
+            get: {
+                viewModel.interactionError.map {
+                    AppErrorDialog(message: readableEventErrorText($0))
+                }
+            },
+            set: { if $0 == nil { viewModel.dismissInteractionError() } }
+        ))
         .observesKeyboardDismissTaps()
         .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
             Button(AppStrings.Home.regionAllAustria) {
@@ -589,8 +597,10 @@ struct EventsListView: View {
                 event.authorName,
                 event.source.displayOrganizationName,
                 event.category.title,
-                event.category.rawValue
-            ]
+                event.category.rawValue,
+                event.audience.title,
+                event.audience.rawValue
+            ] + event.tags.map(Optional.some)
         )
     }
 
@@ -689,9 +699,13 @@ private struct EventFilterRow: View {
     let selectedPeriod: EventDiscoveryFilter
     let selectedFederalState: AustrianFederalState?
     let selectedCategory: EventCategoryFilter
+    let selectedAudience: EventAudienceFilter
+    let selectedAge: EventAgeFilter
     let selectedFeedScope: EventFeedScope
     let onSelectPeriod: (EventDiscoveryFilter) -> Void
     let onSelectCategory: (EventCategoryFilter) -> Void
+    let onSelectAudience: (EventAudienceFilter) -> Void
+    let onSelectAge: (EventAgeFilter) -> Void
     let onSelectRegion: () -> Void
     let onSelectSaved: () -> Void
     let onSelectRegistered: () -> Void
@@ -729,6 +743,38 @@ private struct EventFilterRow: View {
                     title: selectedCategory.title,
                     systemImage: selectedCategory.systemImage,
                     isSelected: selectedCategory != .all,
+                    trailingSystemImage: "chevron.down"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                ForEach(EventAudienceFilter.allCases) { audience in
+                    Button { onSelectAudience(audience) } label: {
+                        Label(audience.title, systemImage: audience.systemImage)
+                    }
+                }
+            } label: {
+                AppFilterChip(
+                    title: selectedAudience.title,
+                    systemImage: selectedAudience.systemImage,
+                    isSelected: selectedAudience != .all,
+                    trailingSystemImage: "chevron.down"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                ForEach(EventAgeFilter.allCases) { age in
+                    Button { onSelectAge(age) } label: {
+                        Label(age.title, systemImage: "birthday.cake")
+                    }
+                }
+            } label: {
+                AppFilterChip(
+                    title: selectedAge.title,
+                    systemImage: "birthday.cake",
+                    isSelected: selectedAge != .any,
                     trailingSystemImage: "chevron.down"
                 )
             }
@@ -884,7 +930,7 @@ private struct EventCard: View {
             if !event.summary.isEmpty {
                 Text(event.summary)
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.88))
+                    .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .fixedSize(horizontal: false, vertical: true)
             }

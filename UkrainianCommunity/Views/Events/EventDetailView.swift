@@ -39,7 +39,6 @@ struct EventDetailView: View {
     @State var deleteErrorMessage: String?
     @State var isDeleting = false
     @State var isShowingEditSheet = false
-    @State var sharePayload: EventSharePayload?
     @State var pendingRemovalEventID: String?
     @State var guestAccessAction: GuestAccessAction?
     @State var calendarAlert: EventCalendarAlert?
@@ -56,6 +55,7 @@ struct EventDetailView: View {
     @State var isLoadingEventRegistrationAttendees = false
     @State var eventRegistrationAttendeesErrorMessage: String?
     @State var loadedEventRegistrationAttendeesEventID: String?
+    @State var isShowingRegistrationManagement = false
     @FocusState var isCommentFieldFocused: Bool
     let calendarWriter = EventCalendarWriter()
     let commentsSectionID = "eventCommentsSection"
@@ -99,6 +99,20 @@ struct EventDetailView: View {
                 EventEditorView(repository: viewModel.editorRepository, event: event) {
                     await viewModel.refresh()
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    var registrationManagementSheetContent: some View {
+        if let event = viewModel.event(for: eventID) {
+            EventRegistrationManagementView(
+                event: event,
+                attendees: eventRegistrationAttendees,
+                isLoading: isLoadingEventRegistrationAttendees,
+                errorMessage: eventRegistrationAttendeesErrorMessage
+            ) {
+                await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
             }
         }
     }
@@ -273,10 +287,18 @@ struct EventDetailView: View {
         .sheet(isPresented: $isShowingEditSheet) {
             editSheetContent
         }
-        .sheet(item: $sharePayload) { payload in
-            EventShareSheet(activityItems: payload.items)
+        .sheet(isPresented: $isShowingRegistrationManagement) {
+            registrationManagementSheetContent
         }
         .guestAccessAlert($guestAccessAction)
+        .appErrorDialog(Binding(
+            get: {
+                viewModel.interactionError.map {
+                    AppErrorDialog(message: readableEventErrorText($0))
+                }
+            },
+            set: { if $0 == nil { viewModel.dismissInteractionError() } }
+        ))
         .task {
             if viewModel.event(for: eventID) == nil {
                 await viewModel.loadEventIfNeeded(eventID: eventID)
@@ -362,7 +384,7 @@ struct EventDetailView: View {
         viewModel.toggleRegistration(for: pendingRegistrationConfirmation.eventID)
         loadedEventRegistrationAttendeesEventID = nil
         Task {
-            try? await Task.sleep(nanoseconds: 450_000_000)
+            await viewModel.waitForRegistrationMutation(for: pendingRegistrationConfirmation.eventID)
             guard let event = viewModel.event(for: pendingRegistrationConfirmation.eventID) else { return }
             await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
         }
@@ -508,7 +530,7 @@ struct EventDetailView: View {
 
     @MainActor
     func loadEventRegistrationAttendeesIfNeeded(for event: Event, force: Bool = false) async {
-        guard event.requiresRegistration else {
+        guard event.requiresRegistration || event.registeredCount > 0 else {
             eventRegistrationAttendees = []
             eventRegistrationAttendeesErrorMessage = nil
             loadedEventRegistrationAttendeesEventID = nil
@@ -649,30 +671,6 @@ func eventDestructiveActionConfirmationMessage(for event: Event) -> String {
 
 func eventDestructiveActionFailedTitle(for event: Event) -> String {
     eventUsesCancellationWording(event) ? AppStrings.Events.cancelEventFailed : AppStrings.Events.deleteFailed
-}
-
-struct EventSharePayload: Identifiable {
-    let id = UUID()
-    let items: [Any]
-
-    init(event: Event) {
-        items = [
-            event.title,
-            event.summary,
-            eventScheduleText(for: event),
-            [event.venue, event.city].filter { !$0.isEmpty }.joined(separator: ", ")
-        ].filter { !$0.isEmpty }
-    }
-}
-
-struct EventShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct EventCalendarAlert {

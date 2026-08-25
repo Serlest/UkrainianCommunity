@@ -24,6 +24,35 @@ enum RemoteImagePlaceholderStyle {
     case glassSkeleton
 }
 
+enum RemoteImagePresentationStyle {
+    case fill
+    case fit
+    case adaptiveBanner
+}
+
+struct AdaptiveBannerImage: View {
+    let image: UIImage
+
+    var body: some View {
+        ZStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .saturation(0.82)
+                .blur(radius: 22, opaque: true)
+                .scaleEffect(1.08)
+
+            Color.black.opacity(0.10)
+
+            Image(uiImage: image)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+        }
+        .clipped()
+    }
+}
+
 struct RemoteImageView: View {
     private static let fallbackHeight: CGFloat = 220
 
@@ -32,6 +61,7 @@ struct RemoteImageView: View {
     let cornerRadius: CGFloat
     let source: String
     let placeholderStyle: RemoteImagePlaceholderStyle
+    let presentationStyle: RemoteImagePresentationStyle
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var loadedImage: UIImage?
@@ -42,24 +72,21 @@ struct RemoteImageView: View {
         height: CGFloat,
         cornerRadius: CGFloat = 18,
         source: String = "unknown",
-        placeholderStyle: RemoteImagePlaceholderStyle = .icon
+        placeholderStyle: RemoteImagePlaceholderStyle = .icon,
+        presentationStyle: RemoteImagePresentationStyle = .fill
     ) {
         self.imageURL = imageURL
         self.height = height
         self.cornerRadius = cornerRadius
         self.source = source
         self.placeholderStyle = placeholderStyle
+        self.presentationStyle = presentationStyle
     }
 
     var body: some View {
         Group {
             if let loadedImage {
-                Image(uiImage: loadedImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: resolvedHeight)
-                    .clipped()
+                loadedImageContent(loadedImage)
             } else if loadFailed {
                 unavailablePlaceholder
                     .frame(maxWidth: .infinity)
@@ -84,6 +111,31 @@ struct RemoteImageView: View {
 
     static func normalizedHeight(for height: CGFloat) -> CGFloat {
         height > 0 ? height : fallbackHeight
+    }
+
+    @ViewBuilder
+    private func loadedImageContent(_ image: UIImage) -> some View {
+        switch presentationStyle {
+        case .fill:
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .frame(height: resolvedHeight)
+                .clipped()
+        case .fit:
+            Image(uiImage: image)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .frame(height: resolvedHeight)
+                .clipped()
+        case .adaptiveBanner:
+            AdaptiveBannerImage(image: image)
+                .frame(maxWidth: .infinity)
+                .frame(height: resolvedHeight)
+        }
     }
 
     private func placeholder(systemImage: String) -> some View {

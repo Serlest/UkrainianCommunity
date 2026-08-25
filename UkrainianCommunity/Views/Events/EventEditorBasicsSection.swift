@@ -105,6 +105,70 @@ extension EventEditorView {
             }
         }
 
+        var audienceCard: some View {
+            editorCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    editorSectionTitle(AppStrings.Events.audienceSectionTitle)
+
+                    AppHorizontalFilterRow {
+                        ForEach(EventAudience.allCases) { audience in
+                            EventEditorAudienceChip(
+                                audience: audience,
+                                isSelected: viewModel.selectedAudience == audience
+                            ) {
+                                viewModel.selectedAudience = audience
+                            }
+                        }
+                    }
+
+                    editorDivider
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(AppStrings.Events.ageRestrictionTitle)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: AppTheme.dashboardSpacing) {
+                                ageField(title: AppStrings.Events.minimumAge, text: $viewModel.minimumAgeText)
+                                ageField(title: AppStrings.Events.maximumAge, text: $viewModel.maximumAgeText)
+                            }
+
+                            VStack(spacing: AppTheme.dashboardSpacing) {
+                                ageField(title: AppStrings.Events.minimumAge, text: $viewModel.minimumAgeText)
+                                ageField(title: AppStrings.Events.maximumAge, text: $viewModel.maximumAgeText)
+                            }
+                        }
+
+                        Text(AppStrings.Events.noAgeRestriction)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+            }
+        }
+
+        func ageField(title: String, text: Binding<String>) -> some View {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                TextField("—", text: text)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                Text(AppStrings.Events.ageYearsShort)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+            .padding(.horizontal, 12)
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(AppTheme.borderSubtle))
+            .accessibilityElement(children: .combine)
+        }
+
         var organizerContactCard: some View {
             editorCard {
                 VStack(alignment: .leading, spacing: editorCardSpacing) {
@@ -185,6 +249,27 @@ extension EventEditorView {
             .buttonStyle(.plain)
             .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        }
+    }
+
+    struct EventEditorAudienceChip: View {
+        let audience: EventAudience
+        let isSelected: Bool
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                Label(audience.title, systemImage: audience.systemImage)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(isSelected ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(isSelected ? AppTheme.accentPrimarySoft : AppTheme.surfaceGlass, in: Capsule())
+                    .overlay(Capsule().strokeBorder(isSelected ? AppTheme.accentPrimary.opacity(0.12) : AppTheme.borderSubtle))
+            }
+            .buttonStyle(.plain)
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }

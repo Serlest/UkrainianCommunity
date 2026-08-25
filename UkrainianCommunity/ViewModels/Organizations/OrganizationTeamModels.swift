@@ -24,11 +24,11 @@ enum OrganizationTeamRole: String, CaseIterable, Identifiable {
     var tint: Color {
         switch self {
         case .owner:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .admin:
-            Color.blue
+            AppTheme.accentIndigoForeground
         case .moderator:
-            Color.orange
+            AppTheme.accentWarningForeground
         case .member:
             AppTheme.textSecondary
         }

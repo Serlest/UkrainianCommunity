@@ -24,11 +24,11 @@ enum ManagedOrganizationRole {
         case .owner:
             return AppTheme.accentPrimaryForeground
         case .platformOwner:
-            return .indigo
+            return AppTheme.accentIndigoForeground
         case .admin:
-            return .blue
+            return AppTheme.accentPrimaryForeground
         case .moderator:
-            return .orange
+            return AppTheme.accentWarningForeground
         }
     }
 }
@@ -238,11 +238,11 @@ struct OrganizationRequestCard: View {
     private var statusTint: Color {
         switch organization.moderationStatus {
         case .pendingReview:
-            .orange
+            AppTheme.accentWarningForeground
         case .needsRevision:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .rejected:
-            AppTheme.accentDestructive
+            AppTheme.accentDestructiveForeground
         default:
             AppTheme.textSecondary
         }

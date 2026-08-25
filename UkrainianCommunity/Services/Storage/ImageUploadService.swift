@@ -113,7 +113,7 @@ final class ImageUploadService {
     }
 
     func uploadFeaturedBannerImage(bannerId: String, imageData: Data) async throws -> URL {
-        let processedImage = try await ImageProcessingService.process(data: imageData, profile: .hero16x9)
+        let processedImage = try await ImageProcessingService.process(data: imageData, profile: .adaptiveBanner)
         return try await uploadFeaturedBannerImage(bannerId: bannerId, processedImage: processedImage)
     }
 

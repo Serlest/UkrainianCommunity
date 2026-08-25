@@ -204,6 +204,8 @@ struct EventValidationInput {
     let requiresRegistration: Bool
     let capacityText: String
     let priceText: String
+    let minimumAgeText: String
+    let maximumAgeText: String
     let federalState: AustrianFederalState?
     let now: Date
 
@@ -222,6 +224,8 @@ struct EventValidationInput {
         requiresRegistration: Bool,
         capacityText: String,
         priceText: String,
+        minimumAgeText: String = "",
+        maximumAgeText: String = "",
         federalState: AustrianFederalState?,
         now: Date = Date()
     ) {
@@ -239,6 +243,8 @@ struct EventValidationInput {
         self.requiresRegistration = requiresRegistration
         self.capacityText = capacityText
         self.priceText = priceText
+        self.minimumAgeText = minimumAgeText
+        self.maximumAgeText = maximumAgeText
         self.federalState = federalState
         self.now = now
     }
@@ -255,6 +261,8 @@ enum EventValidationIssue: Equatable {
     case organizationRequired
     case invalidCapacity
     case invalidPrice
+    case invalidAgeValue
+    case invalidAgeRange
     case organizationRegionRequired
 
     var message: String {
@@ -279,6 +287,10 @@ enum EventValidationIssue: Equatable {
             AppStrings.Events.invalidCapacity
         case .invalidPrice:
             AppStrings.Events.invalidPrice
+        case .invalidAgeValue:
+            AppStrings.Events.ageValueInvalid
+        case .invalidAgeRange:
+            AppStrings.Events.ageRangeInvalid
         case .organizationRegionRequired:
             AppStrings.Events.organizationRegionRequired
         }
@@ -339,6 +351,14 @@ struct EventValidationService {
         if !isValidPrice(input) {
             return .invalidPrice
         }
+        if !isValidAgeValue(input.minimumAgeText) || !isValidAgeValue(input.maximumAgeText) {
+            return .invalidAgeValue
+        }
+        if let minimumAge = parsedAge(input.minimumAgeText),
+           let maximumAge = parsedAge(input.maximumAgeText),
+           maximumAge < minimumAge {
+            return .invalidAgeRange
+        }
         if input.federalState == nil {
             return .organizationRegionRequired
         }
@@ -358,6 +378,16 @@ struct EventValidationService {
         guard !price.isEmpty else { return true }
         let normalizedPrice = price.replacingOccurrences(of: ",", with: ".")
         return Double(normalizedPrice).map { $0 >= 0 } == true
+    }
+
+    private func isValidAgeValue(_ value: String) -> Bool {
+        let trimmed = value.trimmedForValidation
+        guard !trimmed.isEmpty else { return true }
+        return Int(trimmed).map { (0...120).contains($0) } == true
+    }
+
+    private func parsedAge(_ value: String) -> Int? {
+        Int(value.trimmedForValidation)
     }
 }
 

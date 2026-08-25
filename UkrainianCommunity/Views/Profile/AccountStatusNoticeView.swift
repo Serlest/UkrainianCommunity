@@ -133,11 +133,11 @@ struct AccountStatusNoticeView: View {
     private var tint: Color {
         switch notice.kind {
         case .warned:
-            Color.orange
+            AppTheme.accentWarningForeground
         case .suspended, .banned, .deactivated:
-            AppTheme.accentDestructive
+            AppTheme.accentDestructiveForeground
         case .restored:
-            Color.green
+            AppTheme.accentSuccessForeground
         }
     }
 }

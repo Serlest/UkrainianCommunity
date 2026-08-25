@@ -35,9 +35,7 @@ struct FeaturedBannerCardView: View {
     private var background: some View {
         GeometryReader { proxy in
             if let previewImage {
-                Image(uiImage: previewImage)
-                    .resizable()
-                    .scaledToFill()
+                AdaptiveBannerImage(image: previewImage)
                     .frame(width: proxy.size.width, height: proxy.size.height)
                     .clipped()
             } else if let imageURL = banner.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty {
@@ -46,7 +44,8 @@ struct FeaturedBannerCardView: View {
                     height: proxy.size.height,
                     cornerRadius: AppTheme.heroRadius,
                     source: "FeaturedBannerCardView",
-                    placeholderStyle: .glassSkeleton
+                    placeholderStyle: .glassSkeleton,
+                    presentationStyle: .adaptiveBanner
                 )
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .clipped()

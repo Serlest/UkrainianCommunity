@@ -20,12 +20,11 @@ extension EventDetailView {
                     handleBookmark(for: event)
                 }
 
-                DetailHeaderActionButton(
-                    systemImage: "square.and.arrow.up",
-                    accessibilityLabel: AppStrings.Action.share
-                ) {
-                    sharePayload = EventSharePayload(event: event)
-                }
+                DetailHeaderShareButton(
+                    title: event.title,
+                    message: eventShareMessage(for: event),
+                    url: eventShareURL(for: event)
+                )
 
                 if event.authorId != authState.user?.id || !authState.isAuthenticated {
                     DetailHeaderActionButton(
@@ -57,6 +56,29 @@ extension EventDetailView {
             contentReportPresentation.present(target)
         }
 
+        func eventShareMessage(for event: Event) -> String {
+            [
+                event.summary,
+                eventScheduleText(for: event),
+                [event.venue, event.city].filter { !$0.isEmpty }.joined(separator: ", ")
+            ]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        }
+
+        func eventShareURL(for event: Event) -> URL? {
+            [event.contactURL, event.organizerURL].compactMap(safeEventShareURL).first
+        }
+
+        private func safeEventShareURL(_ value: String?) -> URL? {
+            guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  let url = URL(string: value),
+                  let scheme = url.scheme?.lowercased(),
+                  scheme == "https" || scheme == "http" else { return nil }
+            return url
+        }
+
         @ViewBuilder
         func heroImageSection(for event: Event) -> some View {
             if let imageURL = eventImageURL(for: event) {
@@ -75,10 +97,28 @@ extension EventDetailView {
         }
 
         func eventBadge(for event: Event) -> some View {
-            ContentMetadataPill(
-                systemImage: event.category.systemImage,
-                text: eventDetailCategoryTitle(for: event.category).uppercased()
-            )
+            AppHorizontalChipRow(spacing: 8) {
+                ContentMetadataPill(
+                    systemImage: event.category.systemImage,
+                    text: eventDetailCategoryTitle(for: event.category).uppercased()
+                )
+                ContentMetadataPill(
+                    systemImage: event.audience.systemImage,
+                    text: event.audience.title.uppercased()
+                )
+                if let ageText = eventAgeRestrictionText(for: event) {
+                    ContentMetadataPill(systemImage: "birthday.cake", text: ageText.uppercased())
+                }
+            }
+        }
+
+        func eventAgeRestrictionText(for event: Event) -> String? {
+            switch (event.minimumAge, event.maximumAge) {
+            case let (minimum?, maximum?): "\(minimum)–\(maximum) \(AppStrings.Events.ageYearsShort)"
+            case let (minimum?, nil): "\(minimum)+ \(AppStrings.Events.ageYearsShort)"
+            case let (nil, maximum?): "0–\(maximum) \(AppStrings.Events.ageYearsShort)"
+            case (nil, nil): nil
+            }
         }
 
         func metadataRow(for event: Event) -> some View {
@@ -133,14 +173,8 @@ extension EventDetailView {
                 AppStrings.Events.genericEventBadge
             case .meetups:
                 AppStrings.Events.categoryMeetupSingular
-            case .training:
-                AppStrings.Events.categoryTraining
-            case .culture:
-                AppStrings.Events.categoryCulture
-            case .education:
-                AppStrings.Events.categoryEducation
-            case .other:
-                AppStrings.Events.categoryOther
+            default:
+                category.title
             }
         }
 

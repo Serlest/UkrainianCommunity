@@ -199,7 +199,7 @@ struct FeaturedBannerActionTargetPickerRow: View {
                 if let metadata = item.metadata {
                     Text(metadata)
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
                 }
             }

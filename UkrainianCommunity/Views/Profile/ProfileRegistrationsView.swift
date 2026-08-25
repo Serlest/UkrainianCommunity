@@ -266,7 +266,7 @@ private struct RegistrationEventRow: View {
                     if !event.summary.isEmpty {
                         Text(event.summary)
                             .font(.caption2.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary.opacity(0.88))
+                            .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     }
 

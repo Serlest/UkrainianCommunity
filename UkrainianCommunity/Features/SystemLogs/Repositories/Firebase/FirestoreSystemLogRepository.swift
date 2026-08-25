@@ -97,6 +97,12 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
         return try await callable.call(EmptySystemLogRequest()).deletedCount
     }
 
+    func deleteLog(id: String) async throws {
+        let callable: Callable<DeleteSystemLogRequest, ClearSystemLogsFunctionResponse> =
+            functions.httpsCallable("deleteSystemLog")
+        _ = try await callable.call(DeleteSystemLogRequest(logId: id))
+    }
+
     private func fetchPage(
         filter: SystemLogFilter,
         sortOption: SystemLogSortOption,
@@ -258,6 +264,10 @@ private struct SystemDiagnosticFunctionResponse: Decodable {
 }
 
 private struct EmptySystemLogRequest: Encodable {}
+
+private struct DeleteSystemLogRequest: Encodable {
+    let logId: String
+}
 
 private struct ClearSystemLogsFunctionResponse: Decodable {
     let deletedCount: Int

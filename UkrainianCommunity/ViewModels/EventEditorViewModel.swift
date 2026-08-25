@@ -111,6 +111,15 @@ final class EventEditorViewModel: ObservableObject {
     @Published var selectedCategory: EventCategory = .meetups {
         didSet { markCreateDraftMetadataChanged() }
     }
+    @Published var selectedAudience: EventAudience = .everyone {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var minimumAgeText = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var maximumAgeText = "" {
+        didSet { scheduleCreateDraftAutosave() }
+    }
     @Published var tags: [String] = [] {
         didSet { scheduleCreateDraftAutosave() }
     }
@@ -181,6 +190,9 @@ final class EventEditorViewModel: ObservableObject {
             startDate = existingEvent.startDate
             endDate = existingEvent.endDate
             selectedCategory = existingEvent.category
+            selectedAudience = existingEvent.audience
+            minimumAgeText = existingEvent.minimumAge.map(String.init) ?? ""
+            maximumAgeText = existingEvent.maximumAge.map(String.init) ?? ""
             tags = existingEvent.tags
             isAllDay = existingEvent.isAllDay
             requiresRegistration = existingEvent.requiresRegistration
@@ -198,6 +210,43 @@ final class EventEditorViewModel: ObservableObject {
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
+    }
+
+    var validationMessage: String? {
+        validationIssue?.message
+    }
+
+    var canAdvanceBasics: Bool {
+        !trimmedTitle.isEmpty
+            && !trimmedSummary.isEmpty
+            && !trimmedDetails.isEmpty
+    }
+
+    var canAdvanceSchedule: Bool {
+        guard !trimmedCity.isEmpty,
+              !trimmedVenue.isEmpty || !trimmedAddress.isEmpty else {
+            return false
+        }
+
+        if isAllDay {
+            let start = Calendar.current.startOfDay(for: startDate)
+            let end = Calendar.current.startOfDay(for: endDate)
+            return end >= start && (isEditing || start >= Calendar.current.startOfDay(for: Date()))
+        }
+
+        return endDate > startDate && (isEditing || startDate >= Date().addingTimeInterval(-60))
+    }
+
+    var canAdvanceAudience: Bool {
+        guard !requiresOrganizationRegionBeforePublishing else { return false }
+        guard !requiresRegistration || Self.isValidPositiveIntegerOrBlank(capacityText) else { return false }
+        guard !requiresRegistration || Self.isValidNonNegativeDecimalOrBlank(priceText) else { return false }
+        guard Self.isValidAgeOrBlank(minimumAgeText), Self.isValidAgeOrBlank(maximumAgeText) else { return false }
+
+        if let minimumAge = resolvedMinimumAge, let maximumAge = resolvedMaximumAge {
+            return maximumAge >= minimumAge
+        }
+        return true
     }
 
     var navigationTitle: String {
@@ -561,6 +610,9 @@ final class EventEditorViewModel: ObservableObject {
             likeState: existingLikeState,
             viewCount: existingViewCount,
             category: selectedCategory,
+            audience: selectedAudience,
+            minimumAge: resolvedMinimumAge,
+            maximumAge: resolvedMaximumAge,
             tags: tags,
             isAllDay: isAllDay,
             isBookmarked: existingIsBookmarked,
@@ -646,6 +698,9 @@ final class EventEditorViewModel: ObservableObject {
             startDate = now
             endDate = now.addingTimeInterval(60 * 60)
             selectedCategory = .meetups
+            selectedAudience = .everyone
+            minimumAgeText = ""
+            maximumAgeText = ""
             tags = []
             tagInput = ""
             isAllDay = false
@@ -779,6 +834,14 @@ final class EventEditorViewModel: ObservableObject {
         return Int(trimmedCapacityText)
     }
 
+    private var resolvedMinimumAge: Int? {
+        Int(minimumAgeText.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private var resolvedMaximumAge: Int? {
+        Int(maximumAgeText.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
     private var normalizedStart: Date {
         isAllDay ? Calendar.current.startOfDay(for: startDate) : startDate
     }
@@ -809,6 +872,8 @@ final class EventEditorViewModel: ObservableObject {
                 requiresRegistration: requiresRegistration,
                 capacityText: capacityText,
                 priceText: priceText,
+                minimumAgeText: minimumAgeText,
+                maximumAgeText: maximumAgeText,
                 federalState: resolvedFederalState
             )
         )
@@ -909,6 +974,9 @@ final class EventEditorViewModel: ObservableObject {
             endDate: endDate,
             isAllDay: isAllDay,
             selectedCategory: selectedCategory,
+            selectedAudience: selectedAudience,
+            minimumAgeText: minimumAgeText,
+            maximumAgeText: maximumAgeText,
             tags: tags,
             tagInput: tagInput,
             requiresRegistration: requiresRegistration,
@@ -948,6 +1016,9 @@ final class EventEditorViewModel: ObservableObject {
         endDate = draft.endDate
         isAllDay = draft.isAllDay
         selectedCategory = draft.selectedCategory
+        selectedAudience = draft.selectedAudience ?? .everyone
+        minimumAgeText = draft.minimumAgeText ?? ""
+        maximumAgeText = draft.maximumAgeText ?? ""
         tags = draft.tags
         tagInput = draft.tagInput
         requiresRegistration = draft.requiresRegistration
@@ -1057,6 +1128,22 @@ final class EventEditorViewModel: ObservableObject {
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: price)) ?? "\(price)"
     }
+
+    private static func isValidPositiveIntegerOrBlank(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty || Int(trimmed).map { $0 > 0 } == true
+    }
+
+    private static func isValidNonNegativeDecimalOrBlank(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
+        return Double(trimmed.replacingOccurrences(of: ",", with: ".")).map { $0 >= 0 } == true
+    }
+
+    private static func isValidAgeOrBlank(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty || Int(trimmed).map { (0...120).contains($0) } == true
+    }
 }
 
 private extension Event {
@@ -1098,6 +1185,9 @@ private extension Event {
             likeState: likeState,
             viewCount: viewCount,
             category: category,
+            audience: audience,
+            minimumAge: minimumAge,
+            maximumAge: maximumAge,
             tags: tags,
             isAllDay: isAllDay,
             isBookmarked: isBookmarked,

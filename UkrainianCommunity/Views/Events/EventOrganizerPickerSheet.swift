@@ -62,7 +62,7 @@ struct OrganizerPickerSheet: View {
                     if !organization.shortDescription.isEmpty {
                         Text(organization.shortDescription)
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary.opacity(0.82))
+                            .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(2)
                     }
 

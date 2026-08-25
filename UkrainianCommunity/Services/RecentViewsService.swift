@@ -51,11 +51,13 @@ struct RecentViewItem: Identifiable, Equatable {
 protocol RecentViewsRepository {
     func fetchRecentViews(limit: Int) async throws -> [RecentViewItem]
     func recordRecentView(_ item: RecentViewItem) async throws
+    func deleteRecentView(id: String) async throws
     func clearRecentViews() async throws
 }
 
 extension RecentViewsRepository {
     func clearRecentViews() async throws {}
+    func deleteRecentView(id: String) async throws {}
 }
 
 struct FirestoreRecentViewsRepository: RecentViewsRepository {
@@ -97,6 +99,11 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
         let batch = database.batch()
         snapshot.documents.forEach { batch.deleteDocument($0.reference) }
         try await batch.commit()
+    }
+
+    func deleteRecentView(id: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
+        try await recentViewsCollection(userID: uid).document(id).delete()
     }
 
     private func recentViewsCollection(userID: String) -> CollectionReference {
@@ -144,6 +151,7 @@ final class RecentViewsViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
     @Published private(set) var isClearing = false
+    @Published private(set) var deletingIDs = Set<String>()
 
     private let repository: RecentViewsRepository
     private var hasLoaded = false
@@ -203,6 +211,24 @@ final class RecentViewsViewModel: ObservableObject {
         do {
             try await repository.clearRecentViews()
             items = []
+            error = nil
+            return true
+        } catch let appError as AppError {
+            error = appError
+        } catch {
+            self.error = .unknown
+        }
+        return false
+    }
+
+    @discardableResult
+    func delete(_ item: RecentViewItem) async -> Bool {
+        guard !deletingIDs.contains(item.id) else { return false }
+        deletingIDs.insert(item.id)
+        defer { deletingIDs.remove(item.id) }
+        do {
+            try await repository.deleteRecentView(id: item.id)
+            items.removeAll { $0.id == item.id }
             error = nil
             return true
         } catch let appError as AppError {

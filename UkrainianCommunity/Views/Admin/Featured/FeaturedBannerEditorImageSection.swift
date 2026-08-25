@@ -40,9 +40,7 @@ struct FeaturedBannerEditorImageSection: View {
                 .frame(maxWidth: .infinity)
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 .overlay {
-                    Image(uiImage: previewImage)
-                        .resizable()
-                        .scaledToFill()
+                    AdaptiveBannerImage(image: previewImage)
                 }
                 .clipped()
                 .clipShape(cardShape)
@@ -53,7 +51,8 @@ struct FeaturedBannerEditorImageSection: View {
                 height: AppTheme.heroBannerHeight,
                 cornerRadius: AppTheme.heroRadius,
                 source: "FeaturedBannerEditorView",
-                placeholderStyle: .glassSkeleton
+                placeholderStyle: .glassSkeleton,
+                presentationStyle: .adaptiveBanner
             )
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .clipped()

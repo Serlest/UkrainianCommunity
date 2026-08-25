@@ -12,6 +12,8 @@ struct ContentInteractionRaceTests {
 
         viewModel.toggleLike(for: post.id)
         #expect(viewModel.pendingNewsLikeIDs == [post.id])
+        #expect(viewModel.post(for: post.id)?.likeState == .liked)
+        #expect(viewModel.post(for: post.id)?.likeCount == 1)
         viewModel.toggleLike(for: post.id)
 
         #expect(await eventually { repository.likeRequestCount == 1 })
@@ -127,7 +129,7 @@ struct ContentInteractionRaceTests {
 
         #expect(await eventually { viewModel.pendingNewsBookmarkIDs.isEmpty })
         #expect(viewModel.post(for: contentID)?.isBookmarked == true)
-        #expect(viewModel.error == .network)
+        #expect(viewModel.interactionError == .network)
     }
 
     @Test func oldNewsTaskCannotMutateOrClearPendingForSameIDInNewSession() async {
@@ -148,8 +150,8 @@ struct ContentInteractionRaceTests {
         repository.completeLikeRequest(1)
         #expect(await eventually { repository.completedLikeRequestCount == 1 })
         #expect(viewModel.pendingNewsLikeIDs == [contentID])
-        #expect(viewModel.post(for: contentID)?.likeState == .notLiked)
-        #expect(viewModel.post(for: contentID)?.likeCount == 40)
+        #expect(viewModel.post(for: contentID)?.likeState == .liked)
+        #expect(viewModel.post(for: contentID)?.likeCount == 41)
 
         repository.completeLikeRequest(2)
         #expect(await eventually { viewModel.pendingNewsLikeIDs.isEmpty })
@@ -226,7 +228,7 @@ struct ContentInteractionRaceTests {
         #expect(viewModel.organization(for: target.id)?.likeCount == 0)
         #expect(viewModel.organization(for: other.id)?.likeState == .notLiked)
         #expect(viewModel.organization(for: other.id)?.likeCount == 8)
-        #expect(viewModel.error == .network)
+        #expect(viewModel.interactionError == .network)
     }
 
     @Test func organizationLikeFailureDoesNotOverwriteStateLoadedByRefresh() async {
@@ -245,7 +247,7 @@ struct ContentInteractionRaceTests {
         #expect(await eventually { viewModel.pendingOrganizationLikeIDs.isEmpty })
         #expect(viewModel.organization(for: contentID)?.likeState == .liked)
         #expect(viewModel.organization(for: contentID)?.likeCount == 1)
-        #expect(viewModel.error == .network)
+        #expect(viewModel.interactionError == .network)
     }
 
     @Test func oldOrganizationTaskCannotClearPendingForSameIDInNewSession() async {

@@ -4,6 +4,7 @@ struct SystemLogsDashboardView: View {
     @StateObject private var viewModel: SystemLogsViewModel
     @FocusState private var isSearchFocused: Bool
     @State private var isConfirmingClear = false
+    @State private var logPendingDeletion: SystemLogEntry?
     private let embedsInNavigationStack: Bool
 
     @MainActor
@@ -88,6 +89,23 @@ struct SystemLogsDashboardView: View {
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
             Text(AppStrings.SystemLogs.clearConfirmationMessage)
+        }
+        .confirmationDialog(
+            AppStrings.SystemLogs.deleteConfirmationTitle,
+            isPresented: Binding(
+                get: { logPendingDeletion != nil },
+                set: { if !$0 { logPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Action.delete, role: .destructive) {
+                guard let log = logPendingDeletion else { return }
+                logPendingDeletion = nil
+                Task { await viewModel.deleteLog(id: log.id) }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { logPendingDeletion = nil }
+        } message: {
+            Text(AppStrings.SystemLogs.deleteConfirmationMessage)
         }
     }
 
@@ -174,6 +192,8 @@ struct SystemLogsDashboardView: View {
 
                 SystemLogsListView(
                     logs: viewModel.visibleLogs,
+                    deletingIDs: viewModel.deletingLogIDs,
+                    deleteAction: viewModel.accessMode == .owner ? { logPendingDeletion = $0 } : nil,
                     destination: { log in
                         SystemLogDetailRoute(
                             viewModel: viewModel,

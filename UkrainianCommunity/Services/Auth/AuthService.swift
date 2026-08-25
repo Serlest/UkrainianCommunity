@@ -279,14 +279,32 @@ final class AuthService {
         let transition = beginTransition()
         let notificationRegistration = resolvedNotificationRegistration
 
+        // Push cleanup is a privacy safeguard, but it must never trap a user in
+        // an authenticated session when the device is offline. The local push
+        // identity is invalidated by `completeSignOut`; server cleanup remains
+        // best-effort while the original Firebase session is still available.
         do {
             _ = try await synchronizedCurrentSessionUser(transition: transition)
-            try await notificationRegistration.prepareForSignOut()
-            guard isCurrentTransition(transition) else {
-                await notificationRegistration.resumeAfterFailedSignOut()
-                return false
-            }
+        } catch {
+            guard isCurrentTransition(transition) else { return false }
+            reconcileAfterFailedSignOut(error, transition: transition)
+            print("Sign out session check error: \(error.localizedDescription)")
+            return false
+        }
 
+        do {
+            try await notificationRegistration.prepareForSignOut()
+        } catch {
+            guard isCurrentTransition(transition) else { return false }
+            print("Push registration cleanup before sign out was deferred: \(error.localizedDescription)")
+        }
+
+        guard isCurrentTransition(transition) else {
+            await notificationRegistration.resumeAfterFailedSignOut()
+            return false
+        }
+
+        do {
             try await performSynchronizedBackendSessionOperation(transition: transition) {
                 try backend.signOut()
             }

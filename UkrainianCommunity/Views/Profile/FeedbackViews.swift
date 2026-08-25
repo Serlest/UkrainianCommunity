@@ -36,6 +36,7 @@ struct MyFeedbackView: View {
     @State private var sortOption: AppListSortOption = .newest
     @State private var searchText = ""
     @State private var isShowingClearConfirmation = false
+    @State private var feedbackPendingDeletion: FeedbackItem?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var filteredItems: [FeedbackItem] {
@@ -95,6 +96,26 @@ struct MyFeedbackView: View {
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
             Text(AppStrings.Feedback.clearMyFeedbackConfirmationMessage)
+        }
+        .confirmationDialog(
+            AppStrings.Feedback.deleteOneConfirmationTitle,
+            isPresented: Binding(
+                get: { feedbackPendingDeletion != nil },
+                set: { if !$0 { feedbackPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Feedback.deleteOne, role: .destructive) {
+                guard let item = feedbackPendingDeletion else { return }
+                feedbackPendingDeletion = nil
+                Task {
+                    let deleted = await viewModel.delete(item)
+                    if deleted, selectedFeedback?.id == item.id { selectedFeedback = nil }
+                }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { feedbackPendingDeletion = nil }
+        } message: {
+            Text(AppStrings.Feedback.deleteOneConfirmationMessage)
         }
         .sheet(item: $selectedFeedback) { item in
             let currentItem = currentFeedbackItem(for: item)
@@ -235,12 +256,29 @@ struct MyFeedbackView: View {
                 }
 
                 ForEach(filteredItems) { item in
-                    Button {
-                        selectedFeedback = item
-                    } label: {
-                        FeedbackUserRequestCard(item: item)
+                    HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
+                        Button {
+                            selectedFeedback = item
+                        } label: {
+                            FeedbackUserRequestCard(item: item)
+                        }
+                        .buttonStyle(.plain)
+
+                        if viewModel.deletingFeedbackIDs.contains(item.id) {
+                            ProgressView()
+                                .controlSize(.small)
+                                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                        } else {
+                            AppGlassIconButton(
+                                systemImage: "trash",
+                                accessibilityLabel: AppStrings.Feedback.deleteOne,
+                                role: .destructive
+                            ) {
+                                feedbackPendingDeletion = item
+                            }
+                            .accessibilityIdentifier("myFeedback.delete.\(item.id)")
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -358,6 +396,8 @@ struct FeedbackInboxView: View {
     @State private var selectedFilter: FeedbackInboxFilter = .open
     @State private var sortOption: AppListSortOption = .newest
     @State private var searchText = ""
+    @State private var feedbackPendingDeletion: FeedbackItem?
+    @State private var isShowingClearConfirmation = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var filteredItems: [FeedbackItem] {
@@ -396,7 +436,20 @@ struct FeedbackInboxView: View {
         } metrics: {
             EmptyView()
         } trailingContent: {
-            EmptyView()
+            if PermissionService.isAppOwner(user: authState.user), !viewModel.items.isEmpty {
+                if viewModel.isClearingInbox {
+                    ProgressView().controlSize(.small)
+                } else {
+                    AppGlassIconButton(
+                        systemImage: "trash",
+                        accessibilityLabel: AppStrings.Feedback.clearInbox,
+                        role: .destructive
+                    ) {
+                        isShowingClearConfirmation = true
+                    }
+                    .accessibilityIdentifier("feedbackInbox.clearAll")
+                }
+            }
         } content: {
             inboxContent
         }
@@ -409,6 +462,38 @@ struct FeedbackInboxView: View {
         }
         .refreshable {
             await viewModel.refresh()
+        }
+        .confirmationDialog(
+            AppStrings.Feedback.clearInboxConfirmationTitle,
+            isPresented: $isShowingClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Feedback.clearInbox, role: .destructive) {
+                Task { await viewModel.clearInbox() }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(AppStrings.Feedback.clearInboxConfirmationMessage)
+        }
+        .confirmationDialog(
+            AppStrings.Feedback.deleteOneConfirmationTitle,
+            isPresented: Binding(
+                get: { feedbackPendingDeletion != nil },
+                set: { if !$0 { feedbackPendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.Feedback.deleteOne, role: .destructive) {
+                guard let item = feedbackPendingDeletion else { return }
+                feedbackPendingDeletion = nil
+                Task {
+                    let deleted = await viewModel.delete(item)
+                    if deleted, selectedFeedback?.id == item.id { selectedFeedback = nil }
+                }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { feedbackPendingDeletion = nil }
+        } message: {
+            Text(AppStrings.Feedback.deleteOneConfirmationMessage)
         }
         .sheet(item: $selectedFeedback) { item in
             let currentItem = currentFeedbackItem(for: item)
@@ -477,12 +562,31 @@ struct FeedbackInboxView: View {
                 }
 
                 ForEach(filteredItems) { item in
-                    Button {
-                        selectedFeedback = item
-                    } label: {
-                        FeedbackInboxRow(item: item)
+                    HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
+                        Button {
+                            selectedFeedback = item
+                        } label: {
+                            FeedbackInboxRow(item: item)
+                        }
+                        .buttonStyle(.plain)
+
+                        if PermissionService.isAppOwner(user: authState.user) {
+                            if viewModel.deletingFeedbackIDs.contains(item.id) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                            } else {
+                                AppGlassIconButton(
+                                    systemImage: "trash",
+                                    accessibilityLabel: AppStrings.Feedback.deleteOne,
+                                    role: .destructive
+                                ) {
+                                    feedbackPendingDeletion = item
+                                }
+                                .accessibilityIdentifier("feedbackInbox.delete.\(item.id)")
+                            }
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

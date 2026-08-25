@@ -176,6 +176,9 @@ struct EventDTO: Codable, Identifiable {
     let likeState: String
     let viewCount: Int
     let category: String?
+    let audience: String?
+    let minimumAge: Int?
+    let maximumAge: Int?
     let tags: [String]?
     let visibility: String?
     let isAllDay: Bool?
@@ -531,6 +534,9 @@ extension Event {
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
             viewCount: dto.viewCount,
             category: dto.category.flatMap(EventCategory.init(rawValue:)) ?? .unspecified,
+            audience: dto.audience.flatMap(EventAudience.init(rawValue:)) ?? .everyone,
+            minimumAge: dto.minimumAge,
+            maximumAge: dto.maximumAge,
             tags: dto.tags ?? [],
             isAllDay: dto.isAllDay ?? false,
             isBookmarked: dto.isBookmarked,
@@ -583,6 +589,9 @@ extension Event {
             likeState: likeState.rawValue,
             viewCount: viewCount,
             category: category.rawValue,
+            audience: audience.rawValue,
+            minimumAge: minimumAge,
+            maximumAge: maximumAge,
             tags: tags,
             visibility: "public",
             isAllDay: isAllDay,

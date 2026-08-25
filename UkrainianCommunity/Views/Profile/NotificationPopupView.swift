@@ -97,13 +97,13 @@ struct NotificationPopupView: View {
     private var tint: Color {
         switch notification.severity {
         case .info:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .success:
-            Color.green
+            AppTheme.accentSuccessForeground
         case .warning:
-            AppTheme.accentSupport
+            AppTheme.accentSupportForeground
         case .critical:
-            AppTheme.accentDestructive
+            AppTheme.accentDestructiveForeground
         }
     }
 }

@@ -14,6 +14,7 @@ export * from "./analytics/analyticsConsent";
 export * from "./analytics/trackAnalyticsEvent";
 export * from "./content/contentDeletion";
 export * from "./content/legacyContentMediaMigration";
+export * from "./content/storageOrphanCleanup";
 export * from "./events/eventRegistration";
 export * from "./featured/featuredBannerCleanup";
 export * from "./featured/featuredBannerMutations";

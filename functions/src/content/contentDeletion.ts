@@ -10,6 +10,7 @@ import {
   type ContentKind,
   contentReferencePoliciesFor,
   contentStoragePrefixes,
+  canDiscardOrganizationRequest,
   eventBlocksOrganizationDeletion,
   normalizedResourceId,
   organizationStoragePrefix,
@@ -63,18 +64,25 @@ export const deleteOrganization = onCall(
   async (request): Promise<DeletionResponse> => {
     const auth = await requireVerifiedActiveUser(request);
     const actor = auth.permissions;
-    if (!isOwner(actor)) {
-      throw new HttpsError("permission-denied", "Owner permissions are required.");
-    }
-
     const organizationId = requestResourceId(request.data, "organizationId");
     if (organizationId === systemOrganizationId) {
       throw new HttpsError("failed-precondition", "The system organization cannot be deleted.");
     }
 
     const organizationReference = db.collection("organizations").doc(organizationId);
-    const organizationSnapshot = await organizationReference.get();
-    await deleteOrganizationContent(organizationId, organizationSnapshot.exists);
+    let organizationExisted: boolean;
+    if (isOwner(actor)) {
+      const organizationSnapshot = await organizationReference.get();
+      organizationExisted = organizationSnapshot.exists;
+      await deleteOrganizationContent(organizationId, organizationExisted);
+    } else {
+      organizationExisted = await discardUnpublishedOrganizationRequest(
+        organizationId,
+        auth.uid
+      );
+      await deleteStoragePrefix(organizationStoragePrefix(organizationId));
+      await db.recursiveDelete(organizationReference);
+    }
     const deletedAt = new Date().toISOString();
     logger.info("Organization deletion completed.", {
       organizationId,
@@ -82,11 +90,33 @@ export const deleteOrganization = onCall(
     });
 
     return {
-      status: organizationSnapshot.exists ? "deleted" : "alreadyDeleted",
+      status: organizationExisted ? "deleted" : "alreadyDeleted",
       deletedAt,
     };
   }
 );
+
+export async function discardUnpublishedOrganizationRequest(
+  organizationId: string,
+  actorUserId: string
+): Promise<boolean> {
+  const organizationReference = db.collection("organizations").doc(organizationId);
+  return db.runTransaction(async (transaction) => {
+    const organizationSnapshot = await transaction.get(organizationReference);
+    if (!organizationSnapshot.exists) {
+      return false;
+    }
+    if (!canDiscardOrganizationRequest(actorUserId, organizationSnapshot.data())) {
+      throw new HttpsError(
+        "permission-denied",
+        "Only the submitter of an unpublished request may discard it."
+      );
+    }
+
+    transaction.delete(organizationReference);
+    return true;
+  });
+}
 
 export async function deleteNewsContent(
   newsId: string,

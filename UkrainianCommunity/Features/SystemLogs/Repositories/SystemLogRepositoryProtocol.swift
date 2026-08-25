@@ -14,12 +14,14 @@ protocol SystemLogRepositoryProtocol {
     func markReviewed(logID: String, reviewedByUserId: String) async throws
 
     func clearAllLogs() async throws -> Int
+    func deleteLog(id: String) async throws
 }
 
 extension SystemLogRepositoryProtocol {
     func fetchNextPage() async throws -> [SystemLogEntry] { [] }
 
     func clearAllLogs() async throws -> Int { 0 }
+    func deleteLog(id: String) async throws {}
 
     func fetchLogs(
         filter: SystemLogFilter = .empty,

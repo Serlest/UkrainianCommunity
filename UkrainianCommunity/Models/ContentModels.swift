@@ -348,10 +348,24 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
     case training
     case culture
     case education
+    case childrenAndFamily
+    case sportsAndWellness
+    case music
+    case foodAndMarket
+    case businessAndNetworking
+    case volunteering
+    case supportAndIntegration
+    case celebration
+    case saleAndPromotion
     case other
 
     static var allCases: [EventCategory] {
-        [.meetups, .training, .culture, .education, .other]
+        [
+            .meetups, .childrenAndFamily, .culture, .music, .education,
+            .training, .sportsAndWellness, .foodAndMarket,
+            .businessAndNetworking, .volunteering, .supportAndIntegration,
+            .celebration, .saleAndPromotion, .other
+        ]
     }
 
     var id: String { rawValue }
@@ -368,6 +382,24 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
             AppStrings.Events.categoryCulture
         case .education:
             AppStrings.Events.categoryEducation
+        case .childrenAndFamily:
+            AppStrings.Events.categoryChildrenAndFamily
+        case .sportsAndWellness:
+            AppStrings.Events.categorySportsAndWellness
+        case .music:
+            AppStrings.Events.categoryMusic
+        case .foodAndMarket:
+            AppStrings.Events.categoryFoodAndMarket
+        case .businessAndNetworking:
+            AppStrings.Events.categoryBusinessAndNetworking
+        case .volunteering:
+            AppStrings.Events.categoryVolunteering
+        case .supportAndIntegration:
+            AppStrings.Events.categorySupportAndIntegration
+        case .celebration:
+            AppStrings.Events.categoryCelebration
+        case .saleAndPromotion:
+            AppStrings.Events.categorySaleAndPromotion
         case .other:
             AppStrings.Events.categoryOther
         }
@@ -385,8 +417,59 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
             "theatermasks"
         case .education:
             "book"
+        case .childrenAndFamily:
+            "figure.2.and.child.holdinghands"
+        case .sportsAndWellness:
+            "figure.run"
+        case .music:
+            "music.note"
+        case .foodAndMarket:
+            "fork.knife"
+        case .businessAndNetworking:
+            "briefcase"
+        case .volunteering:
+            "heart.hand"
+        case .supportAndIntegration:
+            "person.2.wave.2"
+        case .celebration:
+            "party.popper"
+        case .saleAndPromotion:
+            "tag"
         case .other:
             "square.grid.2x2"
+        }
+    }
+}
+
+enum EventAudience: String, CaseIterable, Codable, Identifiable {
+    case everyone
+    case families
+    case children
+    case teens
+    case adults
+    case seniors
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .everyone: AppStrings.Events.audienceEveryone
+        case .families: AppStrings.Events.audienceFamilies
+        case .children: AppStrings.Events.audienceChildren
+        case .teens: AppStrings.Events.audienceTeens
+        case .adults: AppStrings.Events.audienceAdults
+        case .seniors: AppStrings.Events.audienceSeniors
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .everyone: "person.3"
+        case .families: "figure.2.and.child.holdinghands"
+        case .children: "figure.and.child.holdinghands"
+        case .teens: "person.2"
+        case .adults: "person.crop.circle"
+        case .seniors: "figure.walk"
         }
     }
 }
@@ -428,6 +511,9 @@ struct Event: Identifiable, Codable {
     var likeState: LikeState
     var viewCount: Int
     let category: EventCategory
+    let audience: EventAudience
+    let minimumAge: Int?
+    let maximumAge: Int?
     let tags: [String]
     let isAllDay: Bool
     var isBookmarked: Bool
@@ -473,6 +559,9 @@ struct Event: Identifiable, Codable {
         likeState: LikeState,
         viewCount: Int = 0,
         category: EventCategory = .meetups,
+        audience: EventAudience = .everyone,
+        minimumAge: Int? = nil,
+        maximumAge: Int? = nil,
         tags: [String] = [],
         isAllDay: Bool = false,
         isBookmarked: Bool = false,
@@ -518,6 +607,16 @@ struct Event: Identifiable, Codable {
         self.likeState = likeState
         self.viewCount = viewCount
         self.category = category
+        self.audience = audience
+        let normalizedMinimumAge = minimumAge.map { min(max(0, $0), 120) }
+        let normalizedMaximumAge = maximumAge.map { min(max(0, $0), 120) }
+        if let normalizedMinimumAge, let normalizedMaximumAge, normalizedMaximumAge < normalizedMinimumAge {
+            self.minimumAge = nil
+            self.maximumAge = nil
+        } else {
+            self.minimumAge = normalizedMinimumAge
+            self.maximumAge = normalizedMaximumAge
+        }
         self.tags = Self.normalizedTags(tags)
         self.isAllDay = isAllDay
         self.isBookmarked = isBookmarked
@@ -529,6 +628,13 @@ struct Event: Identifiable, Codable {
 
     nonisolated var isCancelled: Bool {
         cancellationState == "cancelled"
+    }
+
+    nonisolated func accepts(age: Int) -> Bool {
+        guard age >= 0 else { return false }
+        if let minimumAge, age < minimumAge { return false }
+        if let maximumAge, age > maximumAge { return false }
+        return true
     }
 
     nonisolated private static func normalizedTags(_ tags: [String]) -> [String] {
@@ -1001,6 +1107,10 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     let eventStartDate: Date?
     let eventVenue: String?
     let eventRegistrationState: EventRegistrationState?
+    let eventCategory: EventCategory?
+    let eventAudience: EventAudience?
+    let eventMinimumAge: Int?
+    let eventMaximumAge: Int?
     let isBookmarked: Bool
     let organizationId: String
     let organizationName: String
@@ -1017,6 +1127,10 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         eventStartDate = nil
         eventVenue = nil
         eventRegistrationState = nil
+        eventCategory = nil
+        eventAudience = nil
+        eventMinimumAge = nil
+        eventMaximumAge = nil
         isBookmarked = false
         organizationId = organization.id
         organizationName = organization.name
@@ -1034,6 +1148,10 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         eventStartDate = nil
         eventVenue = nil
         eventRegistrationState = nil
+        eventCategory = nil
+        eventAudience = nil
+        eventMinimumAge = nil
+        eventMaximumAge = nil
         isBookmarked = post.isBookmarked
         organizationId = post.source.displayOrganizationId ?? ""
         organizationName = post.source.displayOrganizationName ?? ""
@@ -1051,6 +1169,10 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         eventStartDate = event.startDate
         eventVenue = event.venue
         eventRegistrationState = event.registrationState
+        eventCategory = event.category
+        eventAudience = event.audience
+        eventMinimumAge = event.minimumAge
+        eventMaximumAge = event.maximumAge
         isBookmarked = event.isBookmarked
         organizationId = event.source.displayOrganizationId ?? ""
         organizationName = event.source.displayOrganizationName ?? ""

@@ -58,6 +58,7 @@ struct ActivityHistoryView: View {
     @State private var selectedSegment: ActivityHistorySegment = .all
     @State private var sortOption: AppListSortOption = .newest
     @State private var isShowingClearConfirmation = false
+    @State private var itemPendingDeletion: ActivityLogItem?
 
     init(
         activityLogViewModel: ActivityLogViewModel? = nil,
@@ -138,6 +139,20 @@ struct ActivityHistoryView: View {
         } message: {
             Text(AppStrings.Profile.activityHistoryClearConfirmationMessage)
         }
+        .confirmationDialog(
+            AppStrings.Profile.activityHistoryDeleteConfirmationTitle,
+            isPresented: Binding(
+                get: { itemPendingDeletion != nil },
+                set: { if !$0 { itemPendingDeletion = nil } }
+            )
+        ) {
+            Button(AppStrings.Action.delete, role: .destructive) {
+                guard let item = itemPendingDeletion else { return }
+                itemPendingDeletion = nil
+                Task { await activityLogViewModel.delete(item) }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { itemPendingDeletion = nil }
+        }
     }
 
     @ViewBuilder
@@ -164,7 +179,20 @@ struct ActivityHistoryView: View {
                     InlineMessageCard(style: .error, message: activityHistoryErrorMessage(error))
                 }
                 ForEach(filteredItems) { item in
-                    activityItemLink(item)
+                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        activityItemLink(item)
+                        if activityLogViewModel.deletingIDs.contains(item.id) {
+                            ProgressView().controlSize(.small)
+                                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                        } else {
+                            AppGlassIconButton(
+                                systemImage: "trash",
+                                accessibilityLabel: AppStrings.Action.delete,
+                                role: .destructive
+                            ) { itemPendingDeletion = item }
+                            .accessibilityIdentifier("activityHistory.delete.\(item.id)")
+                        }
+                    }
                 }
             }
         }

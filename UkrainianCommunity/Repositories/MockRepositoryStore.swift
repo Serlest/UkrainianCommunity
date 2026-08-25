@@ -216,6 +216,11 @@ actor MockRepositoryStore {
         feedbackMessages = [:]
     }
 
+    func deleteFeedback(id: String) {
+        feedbackItems.removeAll { $0.id == id }
+        feedbackMessages[id] = nil
+    }
+
     func addFeedbackMessage(feedback item: FeedbackItem, text: String, sender: AppUser, senderRole: FeedbackSenderRole) throws {
         guard let index = feedbackItems.firstIndex(where: { $0.id == item.id }) else { throw AppError.notFound }
         let now = Date()
@@ -1016,6 +1021,9 @@ private extension Event {
             likeState: likeState,
             viewCount: viewCount,
             category: category,
+            audience: audience,
+            minimumAge: minimumAge,
+            maximumAge: maximumAge,
             tags: tags,
             isAllDay: isAllDay,
             isBookmarked: isBookmarked,

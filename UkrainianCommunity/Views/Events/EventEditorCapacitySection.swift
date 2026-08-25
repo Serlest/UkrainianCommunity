@@ -53,7 +53,7 @@ extension EventEditorView {
 
                         Text(AppStrings.Events.requiresRegistrationHelper)
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                 }
             }
@@ -85,7 +85,7 @@ extension EventEditorView {
 
                 Text(AppStrings.Events.priceHelper)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                    .foregroundStyle(AppTheme.textSecondary)
                     .padding(.leading, AppTheme.metadataIconSize + AppTheme.dashboardSpacing)
             }
         }

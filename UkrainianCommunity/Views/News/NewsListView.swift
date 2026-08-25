@@ -89,6 +89,14 @@ struct NewsListView: View {
             }
         }
         .guestAccessAlert($guestAccessAction)
+        .appErrorDialog(Binding(
+            get: {
+                viewModel.interactionError.map {
+                    AppErrorDialog(message: readableNewsErrorText($0))
+                }
+            },
+            set: { if $0 == nil { viewModel.dismissInteractionError() } }
+        ))
         .appDestructiveActionDialog(Binding(
             get: {
                 guard let postID = pendingDeletePostID else { return nil }

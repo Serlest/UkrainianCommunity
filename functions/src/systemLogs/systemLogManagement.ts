@@ -76,8 +76,44 @@ export const clearSystemLogs = onCall(
   }
 );
 
+export const deleteSystemLog = onCall(
+  callableOptions,
+  async (request): Promise<{deletedCount: number}> => {
+    const logId = requireLogId(request.data);
+    const actor = await requireVerifiedActiveUser(request);
+    assertOwner(actor.permissions);
+    const logReference = db.collection("systemLogs").doc(logId);
+    const snapshot = await logReference.get();
+    if (!snapshot.exists) {
+      throw new HttpsError("not-found", "System log record was not found.");
+    }
+
+    await logReference.delete();
+    await auditLogRef().set(buildAuditLog({
+      actionType: "systemLogDeleted",
+      targetUserId: actor.uid,
+      performedBy: actor.uid,
+      reason: "Owner deleted one system journal record.",
+      previousValue: {systemLogId: logId},
+      newValue: {status: "deleted"},
+    }));
+    return {deletedCount: 1};
+  }
+);
+
 export function isEmptyRequest(value: unknown): boolean {
   return value === undefined
     || value === null
     || (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0);
+}
+
+function requireLogId(value: unknown): string {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new HttpsError("invalid-argument", "logId is required.");
+  }
+  const logId = (value as {logId?: unknown}).logId;
+  if (typeof logId !== "string" || logId.trim().length === 0 || logId.length > 200) {
+    throw new HttpsError("invalid-argument", "logId is invalid.");
+  }
+  return logId.trim();
 }

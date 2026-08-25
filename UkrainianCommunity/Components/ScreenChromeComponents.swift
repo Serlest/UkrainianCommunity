@@ -531,6 +531,56 @@ struct DetailHeaderActionButton: View {
     }
 }
 
+struct DetailHeaderShareButton: View {
+    let title: String
+    let message: String
+    let url: URL?
+
+    private var fallbackText: String {
+        [title, message]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
+    var body: some View {
+        Group {
+            if let url {
+                ShareLink(
+                    item: url,
+                    subject: Text(title),
+                    message: message.isEmpty ? nil : Text(message)
+                ) {
+                    shareLabel
+                }
+            } else {
+                ShareLink(
+                    item: fallbackText,
+                    subject: Text(title)
+                ) {
+                    shareLabel
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(AppStrings.Action.share)
+    }
+
+    private var shareLabel: some View {
+        Image(systemName: "square.and.arrow.up")
+            .font(AppTheme.glassIconButtonIconFont)
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
+            .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
+            .appGlassSurface(
+                cornerRadius: AppTheme.glassIconButtonCornerRadius,
+                isInteractive: true,
+                fallbackRole: .control,
+                shadowRadius: AppTheme.glassIconButtonShadowRadius,
+                shadowY: AppTheme.glassIconButtonShadowY
+            )
+    }
+}
+
 /// Admin and management shell with optional filter/search/metrics areas.
 ///
 /// Admin screens should not show the app logo. The tab bar is hidden by

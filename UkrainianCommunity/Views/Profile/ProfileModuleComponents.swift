@@ -95,6 +95,7 @@ struct ProfileModuleRow: View {
         }
         .padding(.vertical, 3)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .center)
+        .contentShape(Rectangle())
         .opacity(status.isDisabled ? 0.72 : 1)
         .allowsHitTesting(!status.isDisabled)
         .accessibilityHint(status.isDisabled ? AppStrings.Action.comingSoon : "")

@@ -27,6 +27,9 @@ enum CloudFunctionName: String, CaseIterable {
     case acceptLegalDocument
     case deleteOwnAccount
     case clearMyFeedback
+    case deleteMyFeedback
+    case deleteFeedback
+    case clearFeedbackInbox
     case saveFeaturedBanner
     case setFeaturedBannerActive
     case deleteFeaturedBanner
@@ -262,6 +265,10 @@ struct ClearMyFeedbackFunctionResponse: Codable, Equatable {
     let deletedCount: Int
 }
 
+struct DeleteFeedbackFunctionRequest: Codable, Equatable {
+    let feedbackId: String
+}
+
 struct AccountDeletionFunctionResponse: Codable, Equatable {
     let status: String
     let completedAt: String
@@ -492,6 +499,18 @@ final class CloudFunctionsClient {
         try await call(.clearMyFeedback, request: ClearMyFeedbackFunctionRequest())
     }
 
+    func deleteMyFeedback(id: String) async throws -> ClearMyFeedbackFunctionResponse {
+        try await call(.deleteMyFeedback, request: DeleteFeedbackFunctionRequest(feedbackId: id))
+    }
+
+    func deleteFeedback(id: String) async throws -> ClearMyFeedbackFunctionResponse {
+        try await call(.deleteFeedback, request: DeleteFeedbackFunctionRequest(feedbackId: id))
+    }
+
+    func clearFeedbackInbox() async throws -> ClearMyFeedbackFunctionResponse {
+        try await call(.clearFeedbackInbox, request: ClearMyFeedbackFunctionRequest())
+    }
+
     func deleteNotificationPushRegistration(
         _ request: PushRegistrationDeletionFunctionRequest
     ) async throws -> PushRegistrationDeletionFunctionResponse {
@@ -611,6 +630,9 @@ final class CloudFunctionsClient {
              .getManagedUserSecurityMetadata,
              .deleteOwnAccount,
              .clearMyFeedback,
+             .deleteMyFeedback,
+             .deleteFeedback,
+             .clearFeedbackInbox,
              .deleteNotificationPushRegistration,
              .sendTestPushNotification:
             return .userProfile
@@ -656,6 +678,9 @@ final class CloudFunctionsClient {
              .acceptLegalDocument,
              .deleteOwnAccount,
              .clearMyFeedback,
+             .deleteMyFeedback,
+             .deleteFeedback,
+             .clearFeedbackInbox,
              .registerForEvent,
              .unregisterFromEvent,
              .submitContentReport,
@@ -712,6 +737,9 @@ final class CloudFunctionsClient {
              .acceptLegalDocument,
              .deleteOwnAccount,
              .clearMyFeedback,
+             .deleteMyFeedback,
+             .deleteFeedback,
+             .clearFeedbackInbox,
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,

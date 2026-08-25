@@ -54,12 +54,18 @@ service firebase.storage {
         && currentUserData().globalRole == 'owner';
     }
 
+    function isAppAdmin() {
+      return isVerifiedActiveUser()
+        && ('globalRole' in currentUserData())
+        && currentUserData().globalRole == 'admin';
+    }
+
     function canModerateSection(section) {
-      return section is string && isOwner();
+      return section is string && (isOwner() || isAppAdmin());
     }
 
     function canManageContentImages(section) {
-      return canModerateSection(section);
+      return section is string && isOwner();
     }
 
     function organizationExists(organizationId) {
@@ -141,6 +147,15 @@ service firebase.storage {
         );
     }
 
+    function canReadNewsCover(newsId) {
+      return firestore.exists(/databases/(default)/documents/news/$(newsId))
+        && (
+          firestore.get(/databases/(default)/documents/news/$(newsId)).data.moderationStatus == 'approved'
+          || canModerateSection('news')
+          || canManageNewsCover(newsId)
+        );
+    }
+
     function canManageEventCover(eventId) {
       return firestore.exists(/databases/(default)/documents/events/$(eventId))
         && firestore.get(/databases/(default)/documents/events/$(eventId)).data.sourceType == 'organization'
@@ -149,27 +164,36 @@ service firebase.storage {
         );
     }
 
+    function canReadEventCover(eventId) {
+      return firestore.exists(/databases/(default)/documents/events/$(eventId))
+        && (
+          firestore.get(/databases/(default)/documents/events/$(eventId)).data.moderationStatus == 'approved'
+          || canModerateSection('events')
+          || canManageEventCover(eventId)
+        );
+    }
+
     match /news/{newsId}/cover.jpg {
-      allow read: if true;
+      allow read: if canReadNewsCover(newsId);
       allow create, update: if (canManageContentImages('news') || canManageNewsCover(newsId))
         && isSafeImageUpload();
       allow delete: if false;
     }
 
     match /news/{filePath=**} {
-      allow read: if true;
+      allow read: if false;
       allow write: if false;
     }
 
     match /events/{eventId}/cover.jpg {
-      allow read: if true;
+      allow read: if canReadEventCover(eventId);
       allow create, update: if canManageEventCover(eventId)
         && isSafeImageUpload();
       allow delete: if false;
     }
 
     match /events/{filePath=**} {
-      allow read: if true;
+      allow read: if false;
       allow write: if false;
     }
 

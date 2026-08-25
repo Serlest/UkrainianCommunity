@@ -1251,11 +1251,11 @@ private struct ManagedUserRow: View {
     private var statusTint: Color {
         switch user.blockState {
         case .active:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .warned:
-            AppTheme.accentSupport
+            AppTheme.accentSupportForeground
         case .suspendedUntil, .blocked, .bannedPermanent, .deactivated:
-            AppTheme.accentDestructive
+            AppTheme.accentDestructiveForeground
         }
     }
 
@@ -1529,7 +1529,7 @@ private struct UserDetailView: View {
 
                         UserManagementBadgeFlowLayout(spacing: 6) {
                             UserManagementStatusBadge(title: user.blockState.title, tint: statusTint)
-                            UserManagementStatusBadge(title: user.globalRole.title, tint: PermissionService.hasOwnerRoleForDisplay(user: user) ? AppTheme.accentSupport : AppTheme.textSecondary)
+                            UserManagementStatusBadge(title: user.globalRole.title, tint: PermissionService.hasOwnerRoleForDisplay(user: user) ? AppTheme.accentSupportForeground : AppTheme.textSecondary)
                         }
 
                         if !organizationRoles.isEmpty {
@@ -1833,11 +1833,11 @@ private struct UserDetailView: View {
     private var statusTint: Color {
         switch user.blockState {
         case .active:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .warned:
-            AppTheme.accentSupport
+            AppTheme.accentSupportForeground
         case .suspendedUntil, .blocked, .bannedPermanent, .deactivated:
-            AppTheme.accentDestructive
+            AppTheme.accentDestructiveForeground
         }
     }
 
@@ -1855,9 +1855,9 @@ private struct UserDetailView: View {
     private var platformRoleTint: Color {
         switch user.globalRole.authorizationRole {
         case .owner:
-            AppTheme.accentSupport
+            AppTheme.accentSupportForeground
         case .admin:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .user, .topAdmin:
             AppTheme.textSecondary
         }
@@ -1905,7 +1905,7 @@ private struct UserDetailView: View {
     private func accountActionTint(_ action: UserAdminAction) -> Color {
         switch action {
         case .warningIssued:
-            AppTheme.accentSupport
+            AppTheme.accentSupportForeground
         case .unblocked:
             AppTheme.accentPrimaryForeground
         case .suspended, .banned, .deactivated:

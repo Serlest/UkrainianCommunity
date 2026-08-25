@@ -464,10 +464,9 @@ struct ProfileView: View {
             }
             .presentationDragIndicator(.visible)
         }
-        .confirmationDialog(
+        .alert(
             AppStrings.Profile.signOutConfirmTitle,
-            isPresented: $isShowingLogoutConfirmation,
-            titleVisibility: .visible
+            isPresented: $isShowingLogoutConfirmation
         ) {
             Button(AppStrings.Profile.signOut, role: .destructive) {
                 Task {
@@ -1443,7 +1442,7 @@ struct ProfileDonationSupportCard: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "heart.circle.fill")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentSupport)
+                    .foregroundStyle(AppTheme.accentSupportForeground)
                     .frame(width: 40, height: 40)
                     .background(AppTheme.accentSupport.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 

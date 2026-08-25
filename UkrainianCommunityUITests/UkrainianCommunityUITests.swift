@@ -386,6 +386,24 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testProfileLogoutRowRespondsAcrossItsFullWidth() throws {
+        let app = launchAuthenticatedApp()
+        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+
+        let logoutButton = element("profile.logout.button", in: app)
+        scrollToElement(logoutButton, in: app, maxSwipes: 14)
+        XCTAssertTrue(logoutButton.exists)
+        XCTAssertTrue(logoutButton.isHittable)
+
+        logoutButton.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5)).tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        app.alerts.firstMatch.buttons["Abbrechen"].tap()
+
+        logoutButton.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testOwnerAnalyticsSearchPeriodAndDetailJourney() throws {
         let app = launchOwnerApp()
         openOwnerAnalytics(in: app)

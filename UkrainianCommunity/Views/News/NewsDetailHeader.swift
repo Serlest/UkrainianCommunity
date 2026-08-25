@@ -14,17 +14,17 @@ extension NewsDetailView {
                 DetailHeaderActionButton(
                     systemImage: post.isBookmarked ? "bookmark.fill" : "bookmark",
                     accessibilityLabel: post.isBookmarked ? AppStrings.Action.unsave : AppStrings.Action.save,
+                    isDisabled: viewModel.pendingNewsBookmarkIDs.contains(post.id),
                     isSelected: post.isBookmarked
                 ) {
                     handleBookmark(for: post.id)
                 }
 
-                DetailHeaderActionButton(
-                    systemImage: "square.and.arrow.up",
-                    accessibilityLabel: AppStrings.Action.share
-                ) {
-                    sharePayload = NewsSharePayload(post: post)
-                }
+                DetailHeaderShareButton(
+                    title: post.title,
+                    message: newsShareMessage(for: post),
+                    url: safeShareURL(post.sourceURL)
+                )
 
                 if post.authorId != authState.user?.id || !authState.isAuthenticated {
                     DetailHeaderActionButton(
@@ -54,6 +54,21 @@ extension NewsDetailView {
                 return
             }
             contentReportPresentation.present(target)
+        }
+
+        func newsShareMessage(for post: NewsPost) -> String {
+            let subtitle = post.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let source = subtitle.isEmpty ? post.body.trimmingCharacters(in: .whitespacesAndNewlines) : subtitle
+            guard source.count > 400 else { return source }
+            return String(source.prefix(397)).trimmingCharacters(in: .whitespacesAndNewlines) + "…"
+        }
+
+        func safeShareURL(_ value: String?) -> URL? {
+            guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  let url = URL(string: value),
+                  let scheme = url.scheme?.lowercased(),
+                  scheme == "https" || scheme == "http" else { return nil }
+            return url
         }
 
         func articleHeader(for post: NewsPost) -> some View {
@@ -229,7 +244,7 @@ extension NewsDetailView {
                 DetailActionRow {
                     HStack(spacing: 12) {
                         detailMetricButton(
-                            systemImage: post.likeState.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup",
+                            systemImage: post.likeState.isLiked ? "heart.fill" : "heart",
                             count: post.likeCount,
                             accessibilityLabel: post.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like,
                             isSelected: post.likeState.isLiked
@@ -293,7 +308,7 @@ extension NewsDetailView {
                     .frame(minHeight: AppTheme.minimumInteractiveTarget)
                     .appGlassActionSurface(role == .destructive ? .destructive : .regular)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(AppPressFeedbackButtonStyle())
             .contentShape(Rectangle())
             .accessibilityLabel(title)
         }
@@ -320,7 +335,7 @@ extension NewsDetailView {
                 .frame(minWidth: 74, minHeight: AppTheme.minimumInteractiveTarget)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(AppPressFeedbackButtonStyle())
             .disabled(isPlaceholder)
             .opacity(isPlaceholder ? 0.72 : 1)
             .accessibilityLabel(accessibilityLabel)
@@ -332,7 +347,7 @@ extension NewsDetailView {
         func publisherLine(for post: NewsPost) -> some View {
             Label(newsPublisherText(for: post), systemImage: "person.crop.circle")
                 .font(AppTheme.metadataFont)
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: 190, alignment: .trailing)
@@ -401,7 +416,7 @@ extension NewsDetailView {
 
                     Image(systemName: "chevron.right")
                         .font(AppTheme.metadataStrongFont)
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
                 .contentShape(Rectangle())
             }

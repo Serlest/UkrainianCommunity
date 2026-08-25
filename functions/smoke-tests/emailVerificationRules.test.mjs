@@ -104,11 +104,19 @@ async function seed() {
 
     await setDoc(doc(db, "organizations", "org-1"), {
       id: "org-1",
+      name: "Organization One",
+      description: "Organization used by the security rules test suite",
+      city: "Vienna",
       ownerId: "owner-id",
       adminIds: [],
       moderatorIds: [],
       moderationStatus: "approved",
+      subscriberCount: 0,
+      eventsHeldCount: 0,
+      volunteersCount: 0,
+      helpedPeopleCount: 0,
       likeCount: 0,
+      likeState: "notLiked",
       createdAt: new Date("2026-06-01T10:00:00Z"),
       updatedAt: new Date("2026-06-01T10:00:00Z"),
     });
@@ -267,6 +275,7 @@ describe("email verification enforcement", () => {
       authorId: "verified-user",
       authorName: "Verified User",
       text: "Verified user comment",
+      body: "Verified user comment",
       createdAt: new Date("2026-06-09T11:00:00Z"),
       isDeleted: false,
     }));

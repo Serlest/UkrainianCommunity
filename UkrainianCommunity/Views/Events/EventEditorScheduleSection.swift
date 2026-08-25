@@ -154,7 +154,7 @@ extension EventEditorView {
 
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
                 .contentShape(Rectangle())
             }

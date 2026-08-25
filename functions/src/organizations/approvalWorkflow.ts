@@ -5,16 +5,17 @@ import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/audit
 import { requireVerifiedActiveUser } from "../auth/context";
 import { db } from "../firebase/admin";
 import {
+  buildUserNotificationDocument,
+  notificationRecipientEligibility,
   type NotificationType,
-  resolveNotificationRecipients,
-  writeUserNotification,
+  userNotificationRef,
 } from "../notifications/notificationPayloads";
 import { canManageOrganizationRequests } from "../permissions/userPermissions";
 import { type OrganizationModerationStatus } from "./types";
 
-type ReviewAction = "approve" | "requestRevision" | "reject";
+export type ReviewAction = "approve" | "requestRevision" | "reject";
 
-interface OrganizationReviewRequest {
+export interface OrganizationReviewRequest {
   organizationId: string;
   message?: string;
   reason?: string;
@@ -27,7 +28,7 @@ interface OrganizationReviewResponse {
   updatedAt: string;
 }
 
-interface ReviewWorkflow {
+export interface ReviewWorkflow {
   action: ReviewAction;
   moderationStatus: "approved" | "needsRevision" | "rejected";
   auditActionType: AuditActionType;
@@ -48,12 +49,17 @@ interface OrganizationReviewNotificationTarget {
   name: string;
 }
 
+interface OrganizationReviewCommitResult {
+  notificationTarget: OrganizationReviewNotificationTarget;
+  notificationId: string;
+}
+
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
 };
 
-function parseReviewRequest(data: unknown): OrganizationReviewRequest {
+export function parseReviewRequest(data: unknown): OrganizationReviewRequest {
   if (!isRecord(data)) {
     throw new HttpsError("invalid-argument", "Request payload must be an object.");
   }
@@ -119,13 +125,13 @@ function reviewSnapshotFromData(
   };
 }
 
-function assertReviewableStatus(status: OrganizationModerationStatus): void {
+export function assertReviewableStatus(status: OrganizationModerationStatus): void {
   if (!["pendingReview", "needsRevision", "rejected"].includes(status)) {
     throw new HttpsError("failed-precondition", "Organization request is not reviewable.");
   }
 }
 
-function requiredReviewText(
+export function requiredReviewText(
   request: OrganizationReviewRequest,
   field: "message" | "reason"
 ): string {
@@ -137,7 +143,7 @@ function requiredReviewText(
   return value;
 }
 
-function notificationPayload(
+export function notificationPayload(
   organization: OrganizationReviewNotificationTarget,
   workflow: ReviewWorkflow,
   text?: string
@@ -158,7 +164,7 @@ function notificationPayload(
   return payload;
 }
 
-function notificationTitle(workflow: ReviewWorkflow): string {
+export function notificationTitle(workflow: ReviewWorkflow): string {
   switch (workflow.action) {
     case "approve":
       return "Organization request approved";
@@ -169,7 +175,7 @@ function notificationTitle(workflow: ReviewWorkflow): string {
   }
 }
 
-function notificationMessage(
+export function notificationMessage(
   organization: OrganizationReviewNotificationTarget,
   workflow: ReviewWorkflow,
   text?: string
@@ -190,7 +196,7 @@ function notificationMessage(
   }
 }
 
-function organizationUpdate(
+export function organizationUpdate(
   workflow: ReviewWorkflow,
   actorUid: string,
   submittedByUserId: string,
@@ -222,6 +228,102 @@ function organizationUpdate(
   return update;
 }
 
+export async function commitOrganizationReview(
+  actorUid: string,
+  reviewRequest: OrganizationReviewRequest,
+  workflow: ReviewWorkflow,
+  text?: string
+): Promise<OrganizationReviewCommitResult> {
+  const organizationReference = db.collection("organizations").doc(reviewRequest.organizationId);
+
+  return db.runTransaction(async (transaction): Promise<OrganizationReviewCommitResult> => {
+    const organizationDocument = await transaction.get(organizationReference);
+    if (!organizationDocument.exists) {
+      throw new HttpsError("not-found", "Organization does not exist.");
+    }
+
+    const organization = reviewSnapshotFromData(
+      reviewRequest.organizationId,
+      organizationDocument.data()
+    );
+    assertReviewableStatus(organization.previousStatus);
+
+    const submitterReference = db.collection("users").doc(organization.submittedByUserId);
+    const submitterDocument = await transaction.get(submitterReference);
+    const submitterData = submitterDocument.data();
+    const accountStatus = typeof submitterData?.accountStatus === "string"
+      ? submitterData.accountStatus
+      : "active";
+    const blockState = typeof submitterData?.blockState === "string"
+      ? submitterData.blockState
+      : accountStatus;
+    const canReceiveInbox = notificationRecipientEligibility({
+      userExists: submitterDocument.exists,
+      accountStatus,
+      blockState,
+      notificationsEnabled: false,
+    }).canReceiveInbox;
+    const notificationTarget = {
+      organizationId: organization.organizationId,
+      submittedByUserId: organization.submittedByUserId,
+      name: organization.name,
+    };
+    const notificationId = [
+      workflow.notificationType,
+      organization.organizationId,
+      organization.submittedByUserId,
+    ].join("_");
+
+    transaction.update(
+      organizationReference,
+      organizationUpdate(workflow, actorUid, organization.submittedByUserId, text)
+    );
+
+    transaction.set(auditLogRef(), buildAuditLog({
+      actionType: workflow.auditActionType,
+      targetUserId: organization.submittedByUserId,
+      performedBy: actorUid,
+      reason: text ?? "Organization request review",
+      previousValue: {
+        organizationId: organization.organizationId,
+        moderationStatus: organization.previousStatus,
+      },
+      newValue: {
+        organizationId: organization.organizationId,
+        moderationStatus: workflow.moderationStatus,
+      },
+    }));
+
+    if (canReceiveInbox) {
+      transaction.set(
+        userNotificationRef(organization.submittedByUserId, notificationId),
+        buildUserNotificationDocument({
+          notificationId,
+          targetUserId: organization.submittedByUserId,
+          type: workflow.notificationType,
+          title: notificationTitle(workflow),
+          message: notificationMessage(notificationTarget, workflow, text),
+          severity: workflow.action === "approve" ? "success" : "warning",
+          actionType: "openOrganizationRequest",
+          actionTargetId: organization.organizationId,
+          requiresPopup: false,
+          actorUserId: actorUid,
+          sourceType: "organization",
+          sourceId: organization.organizationId,
+          metadata: notificationPayload(notificationTarget, workflow, text),
+          dedupeKey: [
+            "organizationRequest",
+            organization.organizationId,
+            workflow.moderationStatus,
+          ].join(":"),
+        })
+      );
+    }
+
+    return {notificationTarget, notificationId};
+  });
+}
+
 function createReviewCallable(workflow: ReviewWorkflow) {
   return onCall(callableOptions, async (request): Promise<OrganizationReviewResponse> => {
     const auth = await requireVerifiedActiveUser(request);
@@ -235,109 +337,43 @@ function createReviewCallable(workflow: ReviewWorkflow) {
     const text = workflow.requiredTextField
       ? requiredReviewText(reviewRequest, workflow.requiredTextField)
       : undefined;
-    const organizationReference = db.collection("organizations").doc(reviewRequest.organizationId);
     const committedAt = new Date().toISOString();
-
-    const reviewedOrganization = await db.runTransaction(async (
-      transaction
-    ): Promise<OrganizationReviewNotificationTarget> => {
-      const organizationDocument = await transaction.get(organizationReference);
-      if (!organizationDocument.exists) {
-        throw new HttpsError("not-found", "Organization does not exist.");
-      }
-
-      const organization = reviewSnapshotFromData(
-        reviewRequest.organizationId,
-        organizationDocument.data()
-      );
-      assertReviewableStatus(organization.previousStatus);
-
-      transaction.update(
-        organizationReference,
-        organizationUpdate(workflow, auth.uid, organization.submittedByUserId, text)
-      );
-
-      transaction.set(auditLogRef(), buildAuditLog({
-        actionType: workflow.auditActionType,
-        targetUserId: auth.uid,
-        performedBy: auth.uid,
-        reason: text ?? "Organization request review",
-        previousValue: {
-          organizationId: organization.organizationId,
-          moderationStatus: organization.previousStatus,
-        },
-        newValue: {
-          organizationId: organization.organizationId,
-          moderationStatus: workflow.moderationStatus,
-        },
-      }));
-
-      return {
-        organizationId: organization.organizationId,
-        submittedByUserId: organization.submittedByUserId,
-        name: organization.name,
-      };
-    });
-
-    const notificationId = [
-      workflow.notificationType,
-      reviewedOrganization.organizationId,
-      reviewedOrganization.submittedByUserId,
-    ].join("_");
-    const recipients = await resolveNotificationRecipients([
-      reviewedOrganization.submittedByUserId,
-    ]);
-    if (recipients.inboxRecipientIds.includes(reviewedOrganization.submittedByUserId)) {
-      await writeUserNotification({
-        notificationId,
-        targetUserId: reviewedOrganization.submittedByUserId,
-        type: workflow.notificationType,
-        title: notificationTitle(workflow),
-        message: notificationMessage(reviewedOrganization, workflow, text),
-        severity: workflow.action === "approve" ? "success" : "warning",
-        actionType: "openOrganizationRequest",
-        actionTargetId: reviewedOrganization.organizationId,
-        requiresPopup: false,
-        actorUserId: auth.uid,
-        sourceType: "organization",
-        sourceId: reviewedOrganization.organizationId,
-        metadata: notificationPayload(reviewedOrganization, workflow, text),
-        dedupeKey: [
-          "organizationRequest",
-          reviewedOrganization.organizationId,
-          workflow.moderationStatus,
-        ].join(":"),
-      });
-    }
+    const committed = await commitOrganizationReview(auth.uid, reviewRequest, workflow, text);
 
     return {
       organizationId: reviewRequest.organizationId,
       moderationStatus: workflow.moderationStatus,
-      notificationId,
+      notificationId: committed.notificationId,
       updatedAt: committedAt,
     };
   });
 }
 
-export const approveOrganization = createReviewCallable({
+export const approveOrganizationWorkflow: ReviewWorkflow = {
   action: "approve",
   moderationStatus: "approved",
   auditActionType: "organizationRequestApproved",
   notificationType: "organizationRequestApproved",
-});
+};
 
-export const requestOrganizationRevision = createReviewCallable({
+export const requestOrganizationRevisionWorkflow: ReviewWorkflow = {
   action: "requestRevision",
   moderationStatus: "needsRevision",
   auditActionType: "organizationRequestNeedsRevision",
   notificationType: "organizationRequestNeedsRevision",
   requiredTextField: "message",
-});
+};
 
-export const rejectOrganization = createReviewCallable({
+export const rejectOrganizationWorkflow: ReviewWorkflow = {
   action: "reject",
   moderationStatus: "rejected",
   auditActionType: "organizationRequestRejected",
   notificationType: "organizationRequestRejected",
   requiredTextField: "reason",
-});
+};
+
+export const approveOrganization = createReviewCallable(approveOrganizationWorkflow);
+export const requestOrganizationRevision = createReviewCallable(
+  requestOrganizationRevisionWorkflow
+);
+export const rejectOrganization = createReviewCallable(rejectOrganizationWorkflow);

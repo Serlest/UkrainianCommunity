@@ -835,7 +835,7 @@ private struct HomeFeedCard: View {
             if shouldShowPreview, !item.summary.isEmpty {
                 Text(item.summary)
                     .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.78))
+                    .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -916,7 +916,7 @@ private struct HomeFeedCard: View {
     private func publisherLine(title: String) -> some View {
         Label(title, systemImage: "person.crop.circle")
             .font(.caption2.weight(.medium))
-            .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
+            .foregroundStyle(AppTheme.textSecondary)
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -928,7 +928,7 @@ private struct HomeFeedCard: View {
     private var organizationMetadataLine: some View {
         Text(organizationMetadataText)
             .font(.caption2.weight(.medium))
-            .foregroundStyle(AppTheme.textSecondary.opacity(0.86))
+            .foregroundStyle(AppTheme.textSecondary)
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
             .truncationMode(.tail)
             .fixedSize(horizontal: false, vertical: true)
@@ -959,11 +959,11 @@ private struct HomeFeedCard: View {
     private var itemTypeTint: Color {
         switch item.itemType {
         case .news:
-            Color.green
+            AppTheme.accentSuccessForeground
         case .event:
-            AppTheme.accentPrimary
+            AppTheme.accentPrimaryForeground
         case .organization:
-            Color.purple
+            AppTheme.accentIndigoForeground
         }
     }
 
@@ -1173,7 +1173,7 @@ private struct HomeEventDateBadge: View {
 
                     Text(weekdayText.uppercased())
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(AppTheme.textSecondary.opacity(0.62))
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
                 }
                 .frame(width: AppTheme.homeFeedDateBadgeSize)

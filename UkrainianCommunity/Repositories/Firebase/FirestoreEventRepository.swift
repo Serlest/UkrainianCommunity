@@ -321,6 +321,9 @@ struct FirestoreEventRepository: EventRepository {
             likeState: event.likeState,
             viewCount: event.viewCount,
             category: event.category,
+            audience: event.audience,
+            minimumAge: event.minimumAge,
+            maximumAge: event.maximumAge,
             tags: event.tags,
             isAllDay: event.isAllDay
         )
@@ -353,6 +356,7 @@ struct FirestoreEventRepository: EventRepository {
             "viewCount": dto.viewCount,
             "commentCount": dto.commentCount ?? dto.comments.count,
             "category": dto.category as Any,
+            "audience": dto.audience as Any,
             "tags": dto.tags ?? [],
             "visibility": "public",
             "isAllDay": dto.isAllDay as Any
@@ -360,6 +364,12 @@ struct FirestoreEventRepository: EventRepository {
 
         if let capacity = dto.capacity {
             data["capacity"] = capacity
+        }
+        if let minimumAge = dto.minimumAge {
+            data["minimumAge"] = minimumAge
+        }
+        if let maximumAge = dto.maximumAge {
+            data["maximumAge"] = maximumAge
         }
         if let authorId = dto.authorId {
             data["authorId"] = authorId
@@ -452,6 +462,7 @@ struct FirestoreEventRepository: EventRepository {
             "requiresRegistration": event.requiresRegistration,
             "price": event.price,
             "category": event.category.rawValue,
+            "audience": event.audience.rawValue,
             "tags": event.tags,
             "visibility": "public",
             "isAllDay": event.isAllDay
@@ -461,6 +472,17 @@ struct FirestoreEventRepository: EventRepository {
             data["capacity"] = capacity
         } else {
             data["capacity"] = FieldValue.delete()
+        }
+
+        if let minimumAge = event.minimumAge {
+            data["minimumAge"] = minimumAge
+        } else {
+            data["minimumAge"] = FieldValue.delete()
+        }
+        if let maximumAge = event.maximumAge {
+            data["maximumAge"] = maximumAge
+        } else {
+            data["maximumAge"] = FieldValue.delete()
         }
 
         if let authorName = event.authorName {
@@ -1025,6 +1047,9 @@ struct FirestoreEventRepository: EventRepository {
             likeState: likedEventIDs.contains(document.documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue,
             viewCount: data["viewCount"] as? Int ?? 0,
             category: data["category"] as? String,
+            audience: data["audience"] as? String,
+            minimumAge: (data["minimumAge"] as? NSNumber)?.intValue,
+            maximumAge: (data["maximumAge"] as? NSNumber)?.intValue,
             tags: data["tags"] as? [String],
             visibility: data["visibility"] as? String,
             isAllDay: data["isAllDay"] as? Bool,

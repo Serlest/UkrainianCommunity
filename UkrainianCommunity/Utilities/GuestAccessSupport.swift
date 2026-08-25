@@ -8,6 +8,7 @@ enum GuestAccessAction: String, Identifiable {
     case management
     case bookmarks
     case comments
+    case subscriptions
 
     var id: String { rawValue }
 
@@ -27,6 +28,8 @@ enum GuestAccessAction: String, Identifiable {
             AppStrings.Action.save
         case .comments:
             AppStrings.Common.comments
+        case .subscriptions:
+            AppStrings.Profile.organizationSubscriptions
         }
     }
 }

@@ -168,7 +168,7 @@ struct AuthSessionConsistencyTests {
     }
 
     @Test
-    func logoutFailsClosedAndRetriesWhenRegistrationCleanupFails() async {
+    func logoutStillCompletesWhenRegistrationCleanupFailsOffline() async {
         let appUser = makeUser(id: "user-a")
         let state = AuthState()
         state.setAuthenticatedSession(user: appUser)
@@ -187,26 +187,15 @@ struct AuthSessionConsistencyTests {
             notifications: notifications
         )
 
-        let firstAttempt = await service.signOut()
+        let didSignOut = await service.signOut()
 
-        #expect(firstAttempt == false)
-        #expect(backend.currentSessionUser?.uid == appUser.id)
-        #expect(backend.signOutCallCount == 0)
-        #expect(state.sessionState == .authenticated)
-        #expect(notifications.prepareCallCount == 1)
-        #expect(notifications.completeCallCount == 0)
-        #expect(notifications.resumeCallCount == 1)
-
-        notifications.prepareError = nil
-        let retry = await service.signOut()
-
-        #expect(retry)
+        #expect(didSignOut)
         #expect(backend.currentSessionUser == nil)
         #expect(backend.signOutCallCount == 1)
         #expect(state.sessionState == .guest)
-        #expect(notifications.prepareCallCount == 2)
+        #expect(notifications.prepareCallCount == 1)
         #expect(notifications.completeCallCount == 1)
-        #expect(notifications.resumeCallCount == 1)
+        #expect(notifications.resumeCallCount == 0)
     }
 
     @Test

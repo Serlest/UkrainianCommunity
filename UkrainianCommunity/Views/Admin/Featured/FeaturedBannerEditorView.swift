@@ -8,9 +8,6 @@ struct FeaturedBannerEditorView: View {
     @StateObject private var viewModel: FeaturedBannerEditorViewModel
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedPreviewImage: UIImage?
-    @State private var cropSourceImage: UIImage?
-    @State private var isShowingImageCrop = false
-    @State private var ignoresNextPhotoClear = false
     @State private var imageProcessingTask: Task<Void, Never>?
     @State private var imageProcessingToken = UUID()
     @State private var isShowingActionTargetPicker = false
@@ -61,10 +58,6 @@ struct FeaturedBannerEditorView: View {
         }
         .tint(AppTheme.accentPrimary)
         .onChange(of: selectedPhoto) { _, newItem in
-            if newItem == nil, ignoresNextPhotoClear {
-                ignoresNextPhotoClear = false
-                return
-            }
             imageProcessingTask?.cancel()
             let token = UUID()
             imageProcessingToken = token
@@ -81,18 +74,6 @@ struct FeaturedBannerEditorView: View {
         }
         .onDisappear {
             imageProcessingTask?.cancel()
-        }
-        .sheet(isPresented: $isShowingImageCrop, onDismiss: resetCropSelection) {
-            if let cropSourceImage {
-                ImageCropView(
-                    sourceImage: cropSourceImage,
-                    profile: .hero16x9,
-                    title: AppStrings.Images.Crop.title,
-                    instructions: AppStrings.FeaturedEditor.cropInstructions,
-                    onCancel: {},
-                    onApply: applyCroppedImage(_:)
-                )
-            }
         }
         .sheet(isPresented: $isShowingActionTargetPicker) {
             FeaturedBannerActionTargetPickerSheet(
@@ -186,17 +167,13 @@ struct FeaturedBannerEditorView: View {
                 return
             }
 
-            guard let sourceImage = UIImage(data: originalData) else {
-                throw ImageProcessingError.invalidImageData
-            }
             guard !Task.isCancelled else { return }
-            await MainActor.run {
-                guard imageProcessingToken == token else { return }
-                cropSourceImage = sourceImage
-                isShowingImageCrop = true
-                viewModel.setImageProcessing(false)
-                viewModel.errorMessage = nil
-            }
+            let processedImage = try await ImageProcessingService.process(
+                data: originalData,
+                profile: .adaptiveBanner
+            )
+            guard !Task.isCancelled else { return }
+            applyProcessedImage(processedImage, token: token)
         } catch {
             guard !Task.isCancelled else { return }
             await MainActor.run {
@@ -208,22 +185,20 @@ struct FeaturedBannerEditorView: View {
         }
     }
 
-    private func applyCroppedImage(_ processedImage: ProcessedImageSelection) {
+    @MainActor
+    private func applyProcessedImage(_ processedImage: ProcessedImageSelection, token: UUID) {
+        guard imageProcessingToken == token else { return }
         guard let previewImage = UIImage(data: processedImage.data) else {
+            selectedPhoto = nil
+            viewModel.setImageProcessing(false)
             viewModel.errorMessage = AppStrings.FeaturedEditor.imageLoadFailed
             return
         }
 
         selectedPreviewImage = previewImage
         viewModel.setSelectedImageSelection(processedImage)
+        viewModel.setImageProcessing(false)
         viewModel.errorMessage = nil
-    }
-
-    private func resetCropSelection() {
-        cropSourceImage = nil
-        guard selectedPhoto != nil else { return }
-        ignoresNextPhotoClear = true
-        selectedPhoto = nil
     }
 
     private func requestDismiss() {

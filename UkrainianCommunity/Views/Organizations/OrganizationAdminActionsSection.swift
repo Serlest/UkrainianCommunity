@@ -64,7 +64,7 @@ extension OrganizationDetailView {
     func engagementMetrics(for organization: Organization) -> some View {
         HStack(spacing: 8) {
             detailMetricButton(
-                systemImage: organization.likeState.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup",
+                systemImage: organization.likeState.isLiked ? "heart.fill" : "heart",
                 count: organization.likeCount,
                 accessibilityLabel: organization.likeState.isLiked ? AppStrings.Action.unlike : AppStrings.Action.like,
                 isSelected: organization.likeState.isLiked
@@ -96,9 +96,11 @@ extension OrganizationDetailView {
                 return
             }
 
-            pendingSubscriptionConfirmation = organization.isSubscribed
-            ? .unsubscribe(organization.id)
-            : .subscribe(organization.id)
+            if organization.isSubscribed {
+                pendingSubscriptionConfirmation = .unsubscribe(organization.id)
+            } else {
+                toggleSubscription(for: organization)
+            }
         }
         .frame(maxWidth: 180)
         .accessibilityAddTraits(organization.isSubscribed ? .isSelected : [])
@@ -115,7 +117,7 @@ extension OrganizationDetailView {
 
     func toggleSubscription(for organization: Organization) {
         guard authState.isAuthenticated else {
-            guestAccessAction = .likes
+            guestAccessAction = .subscriptions
             return
         }
 
@@ -143,7 +145,7 @@ extension OrganizationDetailView {
             .frame(minWidth: 74, minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AppPressFeedbackButtonStyle())
         .accessibilityLabel(accessibilityLabel)
         .accessibilityValue("\(count)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])

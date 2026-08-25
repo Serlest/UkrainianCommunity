@@ -25,6 +25,7 @@ struct EventEditorView: View {
     @State var activeDatePicker: EventEditorDatePicker?
     @State var isShowingDraftRecoveryDialog = false
     @State var isShowingDraftCloseConfirmation = false
+    @State var currentStep = EventEditorStep.basics
 
     let onPublished: @MainActor () async -> Void
     let editorSectionSpacing: CGFloat = 8
@@ -79,17 +80,9 @@ struct EventEditorView: View {
             closeAction: requestClose
         ) {
             statusContent
-            mainCard
-            imageCard
-            dateTimeCard
-            locationCard
-            organizerCard
-            organizerContactCard
-            categoryCard
-            tagsCard
-            additionalSettingsCard
-            publishNoticeCard
-            bottomSubmitButton
+            editorProgress
+            editorStepContent
+            editorNavigation
         }
         .tint(AppTheme.accentPrimary)
         .sheet(isPresented: $isShowingMapPicker) {
@@ -235,6 +228,12 @@ struct EventEditorView: View {
         !viewModel.isEditing && availableOrganizerOrganizations.count > 1
     }
 
+    var hasAuthorizedOrganizerSelection: Bool {
+        guard !viewModel.isEditing else { return true }
+        guard let selectedID = viewModel.selectedOrganizationId else { return false }
+        return availableOrganizerOrganizations.contains(where: { $0.id == selectedID })
+    }
+
     func applyDefaultOrganizerIfNeeded() {
         guard !viewModel.isEditing else { return }
         guard viewModel.selectedOrganizationId == nil else { return }
@@ -330,7 +329,7 @@ struct EventEditorView: View {
         } else {
             Label(AppStrings.Common.notAvailable, systemImage: "lock.fill")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary.opacity(0.7))
+                .foregroundStyle(AppTheme.textSecondary)
                 .labelStyle(.iconOnly)
                 .frame(width: 32, height: 32)
                 .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
@@ -373,7 +372,7 @@ struct EventEditorView: View {
             if text.wrappedValue.isEmpty {
                 Text(placeholder)
                     .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                    .foregroundStyle(AppTheme.textSecondary)
                     .lineSpacing(2)
                     .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
                     .padding(.vertical, AppTheme.eventsMetadataSpacing)
@@ -437,7 +436,7 @@ struct EventEditorView: View {
 
             Text(value.isEmpty ? AppStrings.Events.regionPlaceholder : value)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(value.isEmpty ? AppTheme.textSecondary.opacity(0.68) : AppTheme.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .layoutPriority(1)
@@ -445,10 +444,31 @@ struct EventEditorView: View {
             if showsChevron {
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
     }
+}
+
+enum EventEditorStep: Int, CaseIterable, Identifiable {
+    case basics
+    case schedule
+    case audience
+    case preview
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .basics: AppStrings.Events.editorStepBasics
+        case .schedule: AppStrings.Events.editorStepSchedule
+        case .audience: AppStrings.Events.editorStepAudience
+        case .preview: AppStrings.Events.editorStepPreview
+        }
+    }
+
+    var next: Self { Self(rawValue: min(rawValue + 1, Self.preview.rawValue)) ?? .preview }
+    var previous: Self { Self(rawValue: max(rawValue - 1, Self.basics.rawValue)) ?? .basics }
 }
 
 extension View {

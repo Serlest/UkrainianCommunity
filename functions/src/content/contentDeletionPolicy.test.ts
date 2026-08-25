@@ -4,6 +4,7 @@ import {test} from "node:test";
 import {
   canonicalContentStoragePath,
   canonicalContentStoragePrefix,
+  canDiscardOrganizationRequest,
   contentReferencePoliciesFor,
   contentStoragePrefixes,
   eventBlocksOrganizationDeletion,
@@ -66,6 +67,32 @@ test("organization deletion blocks active events but accepts archived cancellati
   assert.equal(eventBlocksOrganizationDeletion({
     moderationStatus: "approved",
     cancellationState: "cancelled",
+  }), false);
+});
+
+test("request submitter may discard only their own unpublished organization request", () => {
+  assert.equal(canDiscardOrganizationRequest("submitter", {
+    submittedByUserId: "submitter",
+    moderationStatus: "pendingReview",
+  }), true);
+  assert.equal(canDiscardOrganizationRequest("submitter", {
+    submittedByUserId: "submitter",
+    moderationStatus: "needsRevision",
+  }), true);
+  assert.equal(canDiscardOrganizationRequest("submitter", {
+    submittedByUserId: "submitter",
+    moderationStatus: "rejected",
+  }), true);
+  assert.equal(canDiscardOrganizationRequest("another-user", {
+    submittedByUserId: "submitter",
+    moderationStatus: "pendingReview",
+  }), false);
+  assert.equal(canDiscardOrganizationRequest("submitter", {
+    submittedByUserId: "submitter",
+    moderationStatus: "approved",
+  }), false);
+  assert.equal(canDiscardOrganizationRequest("submitter", {
+    submittedByUserId: "submitter",
   }), false);
 });
 

@@ -120,6 +120,20 @@ export function eventBlocksOrganizationDeletion(data: Record<string, unknown>): 
   return data.cancellationState !== "cancelled" && data.moderationStatus !== "archived";
 }
 
+export function canDiscardOrganizationRequest(
+  actorUserId: string,
+  organization: Record<string, unknown> | undefined
+): boolean {
+  if (!organization || organization.submittedByUserId !== actorUserId) {
+    return false;
+  }
+
+  return typeof organization.moderationStatus === "string"
+    && ["pendingReview", "needsRevision", "rejected"].includes(
+      organization.moderationStatus
+    );
+}
+
 function decodedPath(value: string): string | undefined {
   try {
     const decoded = decodeURIComponent(value).replace(/^\/+/, "");

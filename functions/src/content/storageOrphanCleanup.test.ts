@@ -1,0 +1,30 @@
+import {strict as assert} from "node:assert";
+import {test} from "node:test";
+
+import {
+  featuredBannerIdFromObjectName,
+  isStaleOrphan,
+} from "./storageOrphanCleanup";
+
+test("featured banner orphan cleanup accepts only canonical image paths", () => {
+  assert.equal(
+    featuredBannerIdFromObjectName("featuredBanners/banner-1/hero.jpg"),
+    "banner-1"
+  );
+  assert.equal(
+    featuredBannerIdFromObjectName("featuredBanners/banner-1/hero-version-1.jpg"),
+    "banner-1"
+  );
+  assert.equal(
+    featuredBannerIdFromObjectName("featuredBanners/banner-1/private.jpg"),
+    undefined
+  );
+  assert.equal(featuredBannerIdFromObjectName("news/banner-1/cover.jpg"), undefined);
+});
+
+test("orphan cleanup preserves uploads during a 24 hour save grace period", () => {
+  const now = Date.UTC(2026, 7, 25, 12);
+  assert.equal(isStaleOrphan(now - 23 * 60 * 60 * 1000, now), false);
+  assert.equal(isStaleOrphan(now - 24 * 60 * 60 * 1000, now), true);
+  assert.equal(isStaleOrphan(Number.NaN, now), false);
+});

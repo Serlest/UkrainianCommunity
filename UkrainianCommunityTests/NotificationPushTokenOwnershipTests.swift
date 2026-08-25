@@ -138,7 +138,7 @@ private actor GatedDeleteNotificationPushTokenRepository: NotificationPushTokenR
 
 @MainActor
 struct NotificationPushTokenOwnershipTests {
-    @Test func onlyUnauthenticatedCallableErrorsUseTheFirestoreFallback() {
+    @Test func authenticationAndNetworkCallableErrorsUseTheFirestoreFallback() {
         let unauthenticated = NSError(
             domain: FunctionsErrorDomain,
             code: FunctionsErrorCode.unauthenticated.rawValue
@@ -150,7 +150,9 @@ struct NotificationPushTokenOwnershipTests {
 
         #expect(FirestoreNotificationPushTokenRepository.isUnauthenticatedFunctionsError(unauthenticated))
         #expect(!FirestoreNotificationPushTokenRepository.isUnauthenticatedFunctionsError(permissionDenied))
-        #expect(!FirestoreNotificationPushTokenRepository.isUnauthenticatedFunctionsError(NSError(domain: NSURLErrorDomain, code: -1009)))
+        #expect(FirestoreNotificationPushTokenRepository.shouldUseFirestoreFallback(unauthenticated))
+        #expect(!FirestoreNotificationPushTokenRepository.shouldUseFirestoreFallback(permissionDenied))
+        #expect(FirestoreNotificationPushTokenRepository.shouldUseFirestoreFallback(NSError(domain: NSURLErrorDomain, code: -1009)))
     }
 
     private func fid(_ identifier: String) -> NotificationPushRegistration {

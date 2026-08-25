@@ -131,6 +131,25 @@ final class RemoteNotificationRegistrationService: NSObject {
         userConfigurationGeneration &+= 1
         lastAuthorizationRequestUserID = nil
         registrationOwnership.completeSignOut()
+        invalidateLocalPushIdentity()
+    }
+
+    private func invalidateLocalPushIdentity() {
+        UIApplication.shared.unregisterForRemoteNotifications()
+        hasAPNSToken = false
+        hasRequestedRemoteRegistration = false
+
+        #if canImport(FirebaseMessaging)
+        Messaging.messaging().unregister { [weak self] error in
+            Task { @MainActor [weak self] in
+                if let error {
+                    self?.debugLog("FCM token invalidation after sign out failed: \(error)")
+                } else {
+                    self?.debugLog("FCM token invalidated after sign out.")
+                }
+            }
+        }
+        #endif
     }
 
     func resumeAfterFailedSignOut() async {

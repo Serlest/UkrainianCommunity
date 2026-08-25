@@ -9,6 +9,7 @@ final class MyFeedbackViewModel: ObservableObject {
     @Published private(set) var loadingMessageFeedbackIDs = Set<String>()
     @Published private(set) var sendingMessageFeedbackIDs = Set<String>()
     @Published private(set) var isClearing = false
+    @Published private(set) var deletingFeedbackIDs = Set<String>()
     @Published private(set) var error: AppError?
     @Published private(set) var actionError: AppError?
 
@@ -176,6 +177,27 @@ final class MyFeedbackViewModel: ObservableObject {
 
     func clearActionError() {
         actionError = nil
+    }
+
+    @discardableResult
+    func delete(_ item: FeedbackItem) async -> Bool {
+        guard !deletingFeedbackIDs.contains(item.id) else { return false }
+        deletingFeedbackIDs.insert(item.id)
+        actionError = nil
+        defer { deletingFeedbackIDs.remove(item.id) }
+
+        do {
+            try await repository.deleteMyFeedback(id: item.id)
+            items.removeAll { $0.id == item.id }
+            messagesByFeedbackID[item.id] = nil
+            listenerBag.remove("feedbackMessages:\(item.id)")
+            return true
+        } catch let appError as AppError {
+            actionError = appError
+        } catch {
+            actionError = .unknown
+        }
+        return false
     }
 
     @discardableResult

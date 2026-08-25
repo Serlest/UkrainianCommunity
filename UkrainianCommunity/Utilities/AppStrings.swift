@@ -280,7 +280,7 @@ enum AppStrings {
         static var internalNameField: String { text("featured.editor.field.internal_name", "Internal Name") }
         static var titleField: String { text("featured.editor.field.title", "Headline") }
         static var subtitleField: String { text("featured.editor.field.subtitle", "Subtitle") }
-        static var imageHelper: String { text("featured.editor.image.helper", "Use a wide 16:9 image. The public carousel crops safely inside the card bounds.") }
+        static var imageHelper: String { text("featured.editor.image.helper", "The complete image is preserved. Portrait and wide photos adapt to the banner with a blurred backdrop.") }
         static var replaceImage: String { text("featured.editor.image.replace", "Replace image") }
         static var uploadImage: String { text("featured.editor.image.upload", "Upload banner image") }
         static var uploadImageHelper: String { text("featured.editor.image.upload_helper", "A banner image is required before saving.") }
@@ -513,7 +513,37 @@ enum AppStrings {
         static var categoryMeetups: String { text("events.category.meetups", "Зустрічі") }
         static var categoryMeetupSingular: String { text("events.category.meetup_singular", "Зустріч") }
         static var categoryChildren: String { text("events.category.children", "Для дітей") }
+        static var categoryChildrenAndFamily: String { text("events.category.children_family", "Діти та сім’я") }
+        static var categorySportsAndWellness: String { text("events.category.sports_wellness", "Спорт і здоров’я") }
+        static var categoryMusic: String { text("events.category.music", "Музика") }
+        static var categoryFoodAndMarket: String { text("events.category.food_market", "Їжа та ярмарки") }
+        static var categoryBusinessAndNetworking: String { text("events.category.business_networking", "Бізнес і нетворкінг") }
+        static var categoryVolunteering: String { text("events.category.volunteering", "Волонтерство") }
+        static var categorySupportAndIntegration: String { text("events.category.support_integration", "Підтримка та інтеграція") }
+        static var categoryCelebration: String { text("events.category.celebration", "Свята") }
+        static var categorySaleAndPromotion: String { text("events.category.sale_promotion", "Акції та презентації") }
         static var categoryOther: String { text("events.category.other", "Інше") }
+        static var audienceAll: String { text("events.filter.audience_all", "Для всіх") }
+        static var audienceSectionTitle: String { text("events.editor.audience_section", "Для кого ця подія") }
+        static var audienceEveryone: String { text("events.audience.everyone", "Для всіх") }
+        static var audienceFamilies: String { text("events.audience.families", "Для сімей") }
+        static var audienceChildren: String { text("events.audience.children", "Для дітей") }
+        static var audienceTeens: String { text("events.audience.teens", "Для підлітків") }
+        static var audienceAdults: String { text("events.audience.adults", "Для дорослих") }
+        static var audienceSeniors: String { text("events.audience.seniors", "Для старших людей") }
+        static var ageRestrictionTitle: String { text("events.editor.age_restriction", "Вікові обмеження") }
+        static var minimumAge: String { text("events.editor.minimum_age", "Від") }
+        static var maximumAge: String { text("events.editor.maximum_age", "До") }
+        static var ageYearsShort: String { text("events.age.years_short", "р.") }
+        static var noAgeRestriction: String { text("events.age.no_restriction", "Без вікових обмежень") }
+        static var ageRangeInvalid: String { text("events.editor.validation.age_range", "Максимальний вік не може бути меншим за мінімальний.") }
+        static var ageValueInvalid: String { text("events.editor.validation.age_value", "Вік має бути числом від 0 до 120.") }
+        static var ageFilterTitle: String { text("events.filter.age", "Вік") }
+        static var ageFilterAny: String { text("events.filter.age_any", "Будь-який вік") }
+        static var ageFilterChildren: String { text("events.filter.age_children", "Дитина 0–12") }
+        static var ageFilterTeens: String { text("events.filter.age_teens", "Підліток 13–17") }
+        static var ageFilterAdults: String { text("events.filter.age_adults", "Дорослий 18+") }
+        static var organizationEventFilters: String { text("events.organization.filters", "Фільтри подій") }
         static var emptySaved: String { text("events.empty.saved", "У вас ще немає збережених подій") }
         static var emptyRegistered: String { text("events.empty.registered", "У вас ще немає зареєстрованих подій.\nЗареєструйтесь на події, щоб бачити їх тут.") }
         static var filteredUpcomingEmpty: String { text("events.empty.filtered_upcoming", "No upcoming events match this time range right now.") }
@@ -585,12 +615,27 @@ enum AppStrings {
         static var registrationManagementTitle: String { text("events.detail.registration_management.title", "Registered participants") }
         static var registrationManagementEmpty: String { text("events.detail.registration_management.empty", "Поки немає зареєстрованих учасників.") }
         static var registrationManagementLoading: String { text("events.detail.registration_management.loading", "Loading registered participants...") }
+        static var registrationSearchPlaceholder: String { text("events.detail.registration_management.search", "Search participants") }
+        static func registrationCapacity(_ registered: Int, _ capacity: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "events.detail.registration_management.capacity",
+                defaultValue: "%lld of %lld places",
+                arguments: [registered, capacity]
+            )
+        }
         static var registrationParticipantFallback: String { text("events.detail.registration_management.participant_fallback", "Registered user") }
         static var addedDate: String { text("events.detail.added_date", "Додано") }
         static var showOnMap: String { text("events.detail.show_on_map", "Показати на карті") }
         static var editorTitle: String { text("events.editor.title", "Створити подію") }
         static var editTitle: String { text("events.editor.edit_title", "Редагувати подію") }
         static var editorSubtitle: String { text("events.editor.subtitle", "Запросіть громаду на важливу подію.") }
+        static var editorStepBasics: String { text("events.editor.step.basics", "Основне") }
+        static var editorStepSchedule: String { text("events.editor.step.schedule", "Час і місце") }
+        static var editorStepAudience: String { text("events.editor.step.audience", "Учасники") }
+        static var editorStepPreview: String { text("events.editor.step.preview", "Перевірка") }
+        static var editorNext: String { text("events.editor.next", "Далі") }
+        static var editorBack: String { text("events.editor.back", "Назад") }
+        static var editorPreviewTitle: String { text("events.editor.preview.title", "Як виглядатиме подія") }
         static var dateSectionTitle: String { text("events.editor.date_section", "Дата і час *") }
         static var imageSectionTitle: String { text("events.editor.image_section", "Обкладинка події") }
         static var coverUploadTitle: String { text("events.editor.cover_upload_title", "Додайте фото обкладинки") }
@@ -1311,6 +1356,7 @@ enum AppStrings {
         static var recentlyViewedClear: String { text("profile.activity.recently_viewed.clear", "Очистити історію") }
         static var recentlyViewedClearConfirmationTitle: String { text("profile.activity.recently_viewed.clear.confirm.title", "Очистити нещодавно переглянуте?") }
         static var recentlyViewedClearConfirmationMessage: String { text("profile.activity.recently_viewed.clear.confirm.message", "Список нещодавно переглянутого буде видалено з вашого акаунта.") }
+        static var recentlyViewedDeleteConfirmationTitle: String { text("profile.activity.recently_viewed.delete.confirm.title", "Видалити цей запис?") }
         static var recentlyViewedSubtitle: String { text("profile.activity.recently_viewed.subtitle", "Останні відкриті новини, події та організації.") }
         static var recentlyViewedIntro: String { text("profile.activity.recently_viewed.intro", "Останні матеріали, які ви відкривали.") }
         static var recentlyViewedEmptyTitle: String { text("profile.activity.recently_viewed.empty_title", "Тут поки немає переглянутих матеріалів.") }
@@ -1557,6 +1603,7 @@ enum AppStrings {
         static var activityHistoryClear: String { text("profile.activity.history.clear", "Очистити історію") }
         static var activityHistoryClearConfirmationTitle: String { text("profile.activity.history.clear.confirm.title", "Очистити історію активності?") }
         static var activityHistoryClearConfirmationMessage: String { text("profile.activity.history.clear.confirm.message", "Історія збережень, підписок і реєстрацій буде видалена з вашого акаунта.") }
+        static var activityHistoryDeleteConfirmationTitle: String { text("profile.activity.history.delete.confirm.title", "Видалити цей запис з історії?") }
         static var analyticsModule: String { text("profile.future.analytics", "Analytics") }
         static var notificationsCenterModule: String { text("profile.future.notifications_center", "Notifications center") }
         static var reportsModule: String { text("profile.future.reports", "Reports") }
@@ -1620,6 +1667,12 @@ enum AppStrings {
         static var clearMyFeedback: String { text("feedback.my.clear", "Видалити всі звернення") }
         static var clearMyFeedbackConfirmationTitle: String { text("feedback.my.clear.confirm.title", "Видалити всі звернення?") }
         static var clearMyFeedbackConfirmationMessage: String { text("feedback.my.clear.confirm.message", "Усі ваші звернення та повідомлення в них буде видалено без можливості відновлення.") }
+        static var deleteOne: String { text("feedback.delete.one", "Видалити звернення") }
+        static var deleteOneConfirmationTitle: String { text("feedback.delete.one.confirm.title", "Видалити це звернення?") }
+        static var deleteOneConfirmationMessage: String { text("feedback.delete.one.confirm.message", "Звернення та вся переписка в ньому будуть видалені без можливості відновлення.") }
+        static var clearInbox: String { text("feedback.inbox.clear", "Видалити всі відгуки та скарги") }
+        static var clearInboxConfirmationTitle: String { text("feedback.inbox.clear.confirm.title", "Видалити всі відгуки та скарги?") }
+        static var clearInboxConfirmationMessage: String { text("feedback.inbox.clear.confirm.message", "Усі звернення та пов’язані повідомлення будуть видалені без можливості відновлення.") }
         static var yourFeedback: String { text("feedback.your_feedback", "Ваше звернення") }
         static var ownerReply: String { text("feedback.owner_reply", "Відповідь власника") }
         static var sendReply: String { text("feedback.action.send_reply", "Надіслати відповідь") }
@@ -2460,6 +2513,8 @@ enum AppStrings {
         static var actionsMenu: String { text("system_logs.actions.menu", "Дії з журналом") }
         static var clearAll: String { text("system_logs.clear_all", "Очистити журнал") }
         static var clearConfirmationTitle: String { text("system_logs.clear_all.confirm.title", "Очистити весь журнал?") }
+        static var deleteConfirmationTitle: String { text("system_logs.delete_one.confirm.title", "Видалити цей запис журналу?") }
+        static var deleteConfirmationMessage: String { text("system_logs.delete_one.confirm.message", "Запис буде видалено без можливості відновлення.") }
         static var clearConfirmationMessage: String { text("system_logs.clear_all.confirm.message", "Усі записи журналу системи буде видалено без можливості відновлення. Дія доступна лише власнику.") }
         static var clearPermissionError: String { text("system_logs.clear_all.error.permission", "Очистити журнал може лише власник застосунку.") }
         static var clearNetworkError: String { text("system_logs.clear_all.error.network", "Не вдалося очистити журнал. Перевірте з’єднання та спробуйте ще раз.") }

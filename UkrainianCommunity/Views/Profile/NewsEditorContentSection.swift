@@ -11,7 +11,7 @@ extension NewsEditorView {
                             if viewModel.body.isEmpty {
                                 Text(AppStrings.NewsEditor.bodyPlaceholder)
                                     .font(.subheadline)
-                                    .foregroundStyle(AppTheme.textSecondary.opacity(0.72))
+                                    .foregroundStyle(AppTheme.textSecondary)
                                     .lineSpacing(2)
                                     .padding(.horizontal, AppTheme.eventsControlGroupSpacing)
                                     .padding(.top, AppTheme.dashboardSpacing)

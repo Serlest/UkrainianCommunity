@@ -367,6 +367,142 @@ service cloud.firestore {
       return resource.data.moderationStatus == 'approved';
     }
 
+    function newsDocumentFields() {
+      return [
+        'id', 'title', 'subtitle', 'summary', 'regionScope', 'federalState',
+        'city', 'category', 'tags', 'sourceType', 'organizationId',
+        'organizationName', 'organizationImageURL', 'sourceName', 'sourceURL',
+        'imageURL', 'body', 'authorId', 'authorName', 'publishedAt', 'createdAt',
+        'updatedAt', 'moderationStatus', 'likeCount', 'likeState', 'viewCount',
+        'commentCount'
+      ];
+    }
+
+    function eventDocumentFields() {
+      return [
+        'id', 'title', 'summary', 'details', 'regionScope', 'federalState',
+        'sourceType', 'organizationId', 'organizationName',
+        'organizationImageURL', 'authorId', 'authorName', 'city', 'venue',
+        'address', 'locationNote', 'latitude', 'longitude', 'organizerName',
+        'organizerURL', 'contactPhone', 'contactEmail', 'contactURL', 'imageURL',
+        'startDate', 'endDate', 'createdAt', 'updatedAt', 'requiresRegistration',
+        'price', 'capacity', 'registeredCount', 'moderationStatus',
+        'registrationState', 'likeCount', 'likeState', 'viewCount',
+        'commentCount', 'category', 'audience', 'minimumAge', 'maximumAge',
+        'tags', 'visibility', 'isAllDay', 'cancellationState', 'cancelledAt',
+        'cancellationReason'
+      ];
+    }
+
+    function commentDocumentFields() {
+      return [
+        'id', 'parentType', 'parentId', 'authorId', 'authorName',
+        'authorPhotoURL', 'text', 'body', 'createdAt', 'updatedAt',
+        'moderationStatus', 'isDeleted'
+      ];
+    }
+
+    function validOptionalString(data, field, maximumLength) {
+      return !(field in data)
+        || data[field] == null
+        || (data[field] is string && data[field].size() <= maximumLength);
+    }
+
+    function validContentRegion(data) {
+      return (!('regionScope' in data) || data.regionScope in ['austria', 'federalState', 'city'])
+        && validOptionalString(data, 'federalState', 64)
+        && validOptionalString(data, 'city', 160);
+    }
+
+    function validNewsDocument(data, newsId) {
+      return data.keys().hasOnly(newsDocumentFields())
+        && data.keys().hasAll([
+          'id', 'title', 'subtitle', 'body', 'sourceType', 'organizationId',
+          'authorName', 'publishedAt', 'createdAt', 'updatedAt',
+          'moderationStatus', 'likeCount', 'likeState', 'viewCount', 'commentCount'
+        ])
+        && data.id == newsId
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 180
+        && data.subtitle is string && data.subtitle.size() <= 500
+        && data.body is string && data.body.size() > 0 && data.body.size() <= 50000
+        && data.sourceType == 'organization'
+        && data.organizationId is string && data.organizationId.size() > 0
+        && (!('authorId' in data)
+          || (data.authorId is string && data.authorId.size() > 0 && data.authorId.size() <= 128))
+        && data.authorName is string && data.authorName.size() <= 160
+        && data.publishedAt is timestamp
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.moderationStatus in ['pendingReview', 'approved', 'rejected', 'archived']
+        && data.likeCount is int && data.likeCount >= 0
+        && data.viewCount is int && data.viewCount >= 0
+        && data.commentCount is int && data.commentCount >= 0
+        && data.likeState is string
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 12))
+        && validOptionalString(data, 'imageURL', 2048)
+        && validOptionalString(data, 'sourceURL', 2048)
+        && validContentRegion(data);
+    }
+
+    function validEventDocument(data, eventId) {
+      return data.keys().hasOnly(eventDocumentFields())
+        && data.keys().hasAll([
+          'id', 'title', 'summary', 'details', 'sourceType', 'organizationId',
+          'city', 'venue', 'startDate', 'endDate', 'createdAt', 'updatedAt',
+          'price', 'registeredCount', 'moderationStatus',
+          'registrationState', 'likeCount', 'likeState', 'viewCount',
+          'commentCount', 'visibility', 'isAllDay'
+        ])
+        && data.id == eventId
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 180
+        && data.summary is string && data.summary.size() <= 500
+        && data.details is string && data.details.size() > 0 && data.details.size() <= 50000
+        && data.sourceType == 'organization'
+        && data.organizationId is string && data.organizationId.size() > 0
+        && data.city is string && data.city.size() <= 160
+        && data.venue is string && data.venue.size() <= 240
+        && data.startDate is timestamp && data.endDate is timestamp
+        && data.endDate >= data.startDate
+        && data.createdAt is timestamp && data.updatedAt is timestamp
+        && (!('requiresRegistration' in data) || data.requiresRegistration is bool)
+        && data.price is number && data.price >= 0
+        && data.registeredCount is int && data.registeredCount >= 0
+        && data.moderationStatus in ['pendingReview', 'approved', 'rejected', 'archived']
+        && data.registrationState is string
+        && data.likeCount is int && data.likeCount >= 0
+        && data.viewCount is int && data.viewCount >= 0
+        && data.commentCount is int && data.commentCount >= 0
+        && data.likeState is string
+        && data.visibility == 'public'
+        && data.isAllDay is bool
+        && (!('capacity' in data) || (data.capacity is int && data.capacity > 0))
+        && (!('minimumAge' in data) || (data.minimumAge is int && data.minimumAge >= 0 && data.minimumAge <= 120))
+        && (!('maximumAge' in data) || (data.maximumAge is int && data.maximumAge >= 0 && data.maximumAge <= 120))
+        && (!('minimumAge' in data) || !('maximumAge' in data) || data.minimumAge <= data.maximumAge)
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 12))
+        && validOptionalString(data, 'imageURL', 2048)
+        && validContentRegion(data);
+    }
+
+    function validCommentCreate(parentType, parentId, commentId) {
+      return request.resource.data.keys().hasOnly(commentDocumentFields())
+        && request.resource.data.id == commentId
+        && request.resource.data.parentType == parentType
+        && request.resource.data.parentId == parentId
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() <= 160
+        && validOptionalString(request.resource.data, 'authorPhotoURL', 2048)
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.body == request.resource.data.text
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.isDeleted == false
+        && (!('moderationStatus' in request.resource.data)
+          || request.resource.data.moderationStatus == 'approved');
+    }
+
     function userSelfEditableFields() {
       return ['fullName', 'displayName', 'telegramUsername', 'city', 'bio', 'email', 'selectedFederalState', 'avatarURL', 'updatedAt'];
     }
@@ -1059,7 +1195,22 @@ service cloud.firestore {
       return isSelf(uid)
         && isVerifiedActiveUser()
         && request.resource.data.id == resource.data.id
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfEditableFields());
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfEditableFields())
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() > 0
+        && request.resource.data.fullName.size() <= 160
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 160
+        && request.resource.data.city is string
+        && request.resource.data.city.size() <= 160
+        && request.resource.data.bio is string
+        && request.resource.data.bio.size() <= 2000
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.selectedFederalState is string
+        && request.resource.data.updatedAt is timestamp
+        && validOptionalString(request.resource.data, 'telegramUsername', 80)
+        && validOptionalString(request.resource.data, 'avatarURL', 2048);
     }
 
     function safeSelfStatusAcknowledgement(uid) {
@@ -1152,9 +1303,15 @@ service cloud.firestore {
     }
 
     function canEditOrganizationContent(organizationId) {
-      return isOrganizationOwner(organizationId)
-        || isOrganizationAdmin(organizationId)
-        || isOrganizationModerator(organizationId);
+      let organization = get(/databases/$(database)/documents/organizations/$(organizationId)).data;
+      return isVerifiedActiveUser()
+        && organizationId is string
+        && organizationId.size() > 0
+        && (
+          (('ownerId' in organization) && organization.ownerId == request.auth.uid)
+          || (('adminIds' in organization) && organization.adminIds.hasAny([request.auth.uid]))
+          || (('moderatorIds' in organization) && organization.moderatorIds.hasAny([request.auth.uid]))
+        );
     }
 
     function canReadOrganizationByLookup(organizationId) {
@@ -1321,6 +1478,7 @@ service cloud.firestore {
 
     function safeOrganizationInfoUpdate(organizationId) {
       return canEditOrganizationInfo(organizationId)
+        && organizationDocumentStructurallyValid(request.resource.data, organizationId)
         && organizationHasValidRegionScope(request.resource.data)
         && organizationHasValidDirectoryProfile(request.resource.data)
         && request.resource.data.moderationStatus == resource.data.moderationStatus
@@ -1376,7 +1534,15 @@ service cloud.firestore {
         'ownerId',
         'submittedByUserId',
         'submittedByDisplayName',
-        'submittedAt'
+        'submittedAt',
+        'isSystemManaged',
+        'sourceType',
+        'pinnedNewsId',
+        'pinnedEventId',
+        'reviewMessage',
+        'reviewedByUserId',
+        'reviewedAt',
+        'rejectionReason'
       ];
     }
 
@@ -1439,6 +1605,37 @@ service cloud.firestore {
         && (!('ownerId' in data) || data.ownerId == null || data.ownerId == '');
     }
 
+    function organizationDocumentStructurallyValid(data, organizationId) {
+      return data.keys().hasOnly(organizationRequestCreateFields())
+        && data.id == organizationId
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 180
+        && data.description is string && data.description.size() <= 1000
+        && data.city is string && data.city.size() <= 160
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.moderationStatus in ['pendingReview', 'approved', 'needsRevision', 'rejected', 'archived']
+        && data.subscriberCount is int && data.subscriberCount >= 0
+        && data.eventsHeldCount is int && data.eventsHeldCount >= 0
+        && data.volunteersCount is int && data.volunteersCount >= 0
+        && data.helpedPeopleCount is int && data.helpedPeopleCount >= 0
+        && data.likeCount is int && data.likeCount >= 0
+        && data.likeState is string
+        && data.adminIds is list
+        && data.moderatorIds is list
+        && (!('languages' in data) || (data.languages is list && data.languages.size() <= 12))
+        && (!('socialLinks' in data) || data.socialLinks is map)
+        && validOptionalString(data, 'imageURL', 2048)
+        && validOptionalString(data, 'logoURL', 2048)
+        && validOptionalString(data, 'coverURL', 2048)
+        && validOptionalString(data, 'website', 2048)
+        && validOptionalString(data, 'contactEmail', 320)
+        && validOptionalString(data, 'email', 320)
+        && validOptionalString(data, 'phone', 80)
+        && validOptionalString(data, 'address', 500)
+        && organizationHasValidRegionScope(data)
+        && organizationHasValidDirectoryProfile(data);
+    }
+
     function requestReviewMessageUnchanged() {
       return (
           !('reviewMessage' in resource.data)
@@ -1482,14 +1679,7 @@ service cloud.firestore {
     }
 
     function safeOrganizationRequestCreate(organizationId) {
-      return organizationHasValidRegionScope(request.resource.data)
-        && organizationHasValidDirectoryProfile(request.resource.data)
-        && request.resource.data.keys().hasOnly(organizationRequestCreateFields())
-        && request.resource.data.id is string
-        && request.resource.data.id == organizationId
-        && request.resource.data.name is string
-        && request.resource.data.description is string
-        && request.resource.data.city is string
+      return organizationDocumentStructurallyValid(request.resource.data, organizationId)
         && request.resource.data.moderationStatus == 'pendingReview'
         && request.resource.data.submittedByUserId == request.auth.uid
         && request.resource.data.submittedAt is timestamp
@@ -1498,9 +1688,15 @@ service cloud.firestore {
         && isVerifiedActiveUser();
     }
 
+    function safeOwnerOrganizationCreate(organizationId) {
+      return isOwner()
+        && organizationDocumentStructurallyValid(request.resource.data, organizationId)
+        && request.resource.data.moderationStatus == 'approved'
+        && aggregateCountersAreZeroOnCreate(request.resource.data);
+    }
+
     function safeOrganizationRequestUpdate() {
-      return organizationHasValidRegionScope(request.resource.data)
-        && organizationHasValidDirectoryProfile(request.resource.data)
+      return organizationDocumentStructurallyValid(request.resource.data, resource.data.id)
         && ('submittedByUserId' in resource.data)
         && resource.data.submittedByUserId == request.auth.uid
         && request.resource.data.submittedByUserId == resource.data.submittedByUserId
@@ -1814,7 +2010,9 @@ service cloud.firestore {
     }
 
     function onlyModerationStatusChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderationStatus']);
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderationStatus', 'updatedAt'])
+        && request.resource.data.moderationStatus != resource.data.moderationStatus
+        && request.resource.data.updatedAt is timestamp;
     }
 
     function hasRegistrationForEvent(eventId) {
@@ -2107,30 +2305,34 @@ service cloud.firestore {
       allow read: if isApprovedContent()
         || canReadModerationQueue('news')
         || canReadOrganizationModerationQueue(resource.data);
-      allow create: if canCreateOrganizationContent();
+      allow create: if validNewsDocument(request.resource.data, newsId)
+        && canCreateOrganizationContent()
+        && request.resource.data.authorId is string
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.moderationStatus == 'approved';
       allow delete: if false;
-      allow update: if canUpdateOrganizationContent()
-        || (
-          isOrganizationContent(resource.data)
-          && canModerateOrganizationContent(resource.data.organizationId)
-          && onlyModerationStatusChanged()
-        );
+      allow update: if onlyModerationStatusChanged()
+        ? canModerateAppContent('news')
+        : (validNewsDocument(request.resource.data, newsId)
+          && canUpdateOrganizationContent()
+          && request.resource.data.id == resource.data.id
+          && (
+            (!('authorId' in resource.data) && !('authorId' in request.resource.data))
+            || (
+              ('authorId' in resource.data)
+              && ('authorId' in request.resource.data)
+              && request.resource.data.authorId == resource.data.authorId
+            )
+          )
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.moderationStatus == resource.data.moderationStatus);
 
       match /comments/{commentId} {
         allow read: if get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved'
           || canReadModerationQueue('news');
 
         allow create: if isVerifiedActiveUser()
-          && request.resource.data.id == commentId
-          && request.resource.data.parentType == 'news'
-          && request.resource.data.parentId == newsId
-          && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.authorName is string
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000
-          && request.resource.data.createdAt is timestamp
-          && request.resource.data.isDeleted == false
+          && validCommentCreate('news', newsId, commentId)
           && approvedNewsTargetExists(newsId);
 
         allow update: if isVerifiedActiveUser()
@@ -2141,7 +2343,9 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000;
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.body == request.resource.data.text
+          && request.resource.data.updatedAt is timestamp;
 
         allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
           || canModerateNewsComment(newsId);
@@ -2153,30 +2357,27 @@ service cloud.firestore {
         || canReadCancelledRegisteredEvent(eventId)
         || canReadModerationQueue('events')
         || canReadOrganizationModerationQueue(resource.data);
-      allow create: if canCreateOrganizationContent();
+      allow create: if validEventDocument(request.resource.data, eventId)
+        && canCreateOrganizationContent()
+        && request.resource.data.requiresRegistration is bool
+        && (!('authorId' in request.resource.data)
+          || request.resource.data.authorId == request.auth.uid)
+        && request.resource.data.moderationStatus == 'approved';
       allow delete: if false;
-      allow update: if canUpdateOrganizationContent()
-        || (
-          isOrganizationContent(resource.data)
-          && canModerateOrganizationContent(resource.data.organizationId)
-          && onlyModerationStatusChanged()
-        );
+      allow update: if onlyModerationStatusChanged()
+        ? canModerateAppContent('events')
+        : (validEventDocument(request.resource.data, eventId)
+          && canUpdateOrganizationContent()
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.moderationStatus == resource.data.moderationStatus);
 
       match /comments/{commentId} {
         allow read: if get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved'
           || canReadModerationQueue('events');
 
         allow create: if isVerifiedActiveUser()
-          && request.resource.data.id == commentId
-          && request.resource.data.parentType == 'event'
-          && request.resource.data.parentId == eventId
-          && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.authorName is string
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000
-          && request.resource.data.createdAt is timestamp
-          && request.resource.data.isDeleted == false
+          && validCommentCreate('event', eventId, commentId)
           && approvedEventTargetExists(eventId);
 
         allow update: if isVerifiedActiveUser()
@@ -2187,7 +2388,9 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000;
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.body == request.resource.data.text
+          && request.resource.data.updatedAt is timestamp;
 
         allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
           || canModerateEventComment(eventId);
@@ -2197,7 +2400,8 @@ service cloud.firestore {
     match /organizations/{organizationId} {
       allow get: if canReadOrganization(organizationId);
       allow list: if canListOrganization();
-      allow create: if isOwner() || safeOrganizationRequestCreate(organizationId);
+      allow create: if safeOwnerOrganizationCreate(organizationId)
+        || safeOrganizationRequestCreate(organizationId);
       allow delete: if false;
       allow update: if resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         ? safeOrganizationRequestUpdate()
@@ -2214,16 +2418,8 @@ service cloud.firestore {
         allow read: if canReadOrganizationByLookup(organizationId);
 
         allow create: if isVerifiedActiveUser()
-          && request.resource.data.id == commentId
-          && request.resource.data.parentType == 'organization'
-          && request.resource.data.parentId == organizationId
-          && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.authorName is string
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000
-          && request.resource.data.createdAt is timestamp
-          && request.resource.data.isDeleted == false;
+          && validCommentCreate('organization', organizationId, commentId)
+          && canReadOrganizationByLookup(organizationId);
 
         allow update: if isVerifiedActiveUser()
           && resource.data.authorId == request.auth.uid
@@ -2233,7 +2429,9 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'body', 'updatedAt'])
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 1000;
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.body == request.resource.data.text
+          && request.resource.data.updatedAt is timestamp;
 
         allow delete: if (isVerifiedActiveUser() && resource.data.authorId == request.auth.uid)
           || canModerateOrganizationComment(organizationId);
@@ -2273,7 +2471,8 @@ service cloud.firestore {
       allow update: if safeFeedbackOwnerUpdate()
         || safeFeedbackUserReplyUpdate();
 
-      allow delete: if isOwner();
+      // Cascading deletion of messages and linked notifications is server-owned.
+      allow delete: if false;
 
       match /messages/{messageId} {
         allow read: if canReadFeedback(feedbackId);
