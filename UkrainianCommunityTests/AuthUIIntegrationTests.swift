@@ -54,6 +54,43 @@ struct AuthUIIntegrationTests {
         #expect(!ContentAuthLifecyclePolicy.canHandlePendingRoute(in: .sessionUnavailable))
     }
 
+    @Test(arguments: [
+        "Wed, 26 Aug 2026 07:39:07 GMT",
+        "2026-08-26T07:39:07Z",
+        "2026-08-26T07:39:07.000Z",
+        "2026-08-26T09:39:07+02:00"
+    ])
+    func managedUserMetadataDecodesServerDateFormats(_ lastSignIn: String) throws {
+        // UTC-string fixture matches the installed Firebase Admin SDK and the
+        // read-only production date sample; no account identifiers are retained.
+        let payload: [String: Any] = [
+            "targetUserId": "date-format-test", "emailVerified": true, "authDisabled": false,
+            "creationTime": "Tue, 26 May 2026 20:59:31 GMT",
+            "lastSignInTime": lastSignIn, "providerIds": ["password"]
+        ]
+        let response = try JSONDecoder().decode(
+            ManagedUserSecurityMetadataFunctionResponse.self,
+            from: JSONSerialization.data(withJSONObject: payload)
+        )
+        let metadata = ManagedUserSecurityMetadata(response: response)
+        #expect(metadata.lastSignInTime == Date(timeIntervalSince1970: 1_787_729_947))
+        #expect(metadata.creationTime == Date(timeIntervalSince1970: 1_779_829_171))
+        #expect(metadata.emailVerified)
+        #expect(!metadata.authDisabled)
+        #expect(metadata.providerIDs == ["password"])
+    }
+
+    @Test(arguments: [nil, "", "not a date"] as [String?])
+    func managedUserMetadataDoesNotInventMissingOrInvalidDates(_ value: String?) {
+        let response = ManagedUserSecurityMetadataFunctionResponse(
+            targetUserId: "date-format-test", emailVerified: false, authDisabled: false,
+            creationTime: value, lastSignInTime: value, providerIds: []
+        )
+        let metadata = ManagedUserSecurityMetadata(response: response)
+        #expect(metadata.creationTime == nil)
+        #expect(metadata.lastSignInTime == nil)
+    }
+
     @Test func accountStatusUpdatePreservesAuthoritativeProfileFields() {
         let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
         let updatedAt = Date(timeIntervalSince1970: 1_700_100_000)

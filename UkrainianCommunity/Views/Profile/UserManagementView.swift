@@ -221,6 +221,37 @@ struct ManagedUserSecurityMetadata: Equatable {
     let creationTime: Date?
     let lastSignInTime: Date?
     let providerIDs: [String]
+
+    init(response: ManagedUserSecurityMetadataFunctionResponse) {
+        emailVerified = response.emailVerified
+        authDisabled = response.authDisabled
+        creationTime = response.creationTime.flatMap(Self.parseAuthDate)
+        lastSignInTime = response.lastSignInTime.flatMap(Self.parseAuthDate)
+        providerIDs = response.providerIds
+    }
+
+    nonisolated private static func parseAuthDate(_ value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        // Firebase Admin UserMetadata uses Date.toUTCString(), not ISO 8601.
+        let firebaseDate = DateFormatter()
+        firebaseDate.locale = Locale(identifier: "en_US_POSIX")
+        firebaseDate.calendar = Calendar(identifier: .gregorian)
+        firebaseDate.timeZone = TimeZone(secondsFromGMT: 0)
+        firebaseDate.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        if let date = firebaseDate.date(from: trimmed) {
+            return date
+        }
+
+        // Also accept ISO timestamps if the callable's serialization changes.
+        let isoDate = ISO8601DateFormatter()
+        if let date = isoDate.date(from: trimmed) {
+            return date
+        }
+        isoDate.formatOptions.insert(.withFractionalSeconds)
+        return isoDate.date(from: trimmed)
+    }
 }
 
 @MainActor
@@ -408,13 +439,7 @@ final class UserManagementViewModel: ObservableObject {
         do {
             let response = try await CloudFunctionsClient.shared.getManagedUserSecurityMetadata(userId: userID)
             guard response.targetUserId == userID, !Task.isCancelled else { return }
-            securityMetadataByUserID[userID] = ManagedUserSecurityMetadata(
-                emailVerified: response.emailVerified,
-                authDisabled: response.authDisabled,
-                creationTime: response.creationTime.flatMap(Self.parseAuthDate),
-                lastSignInTime: response.lastSignInTime.flatMap(Self.parseAuthDate),
-                providerIDs: response.providerIds
-            )
+            securityMetadataByUserID[userID] = ManagedUserSecurityMetadata(response: response)
         } catch {
             guard !Task.isCancelled else { return }
             securityMetadataByUserID[userID] = nil
@@ -429,6 +454,7 @@ final class UserManagementViewModel: ObservableObject {
         await refresh(actor: actor)
         guard let actor, PermissionService.canManageUsers(user: actor) else { return }
         await reloadUser(id: userID, actor: actor)
+        await loadSecurityMetadata(userID: userID, actor: actor)
     }
 
     func perform(
@@ -862,11 +888,6 @@ final class UserManagementViewModel: ObservableObject {
         clearSearch()
         securityMetadataByUserID = [:]
     }
-
-    nonisolated private static func parseAuthDate(_ value: String) -> Date? {
-        ISO8601DateFormatter().date(from: value)
-    }
-
 
 }
 
