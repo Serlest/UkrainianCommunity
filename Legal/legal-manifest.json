@@ -57,7 +57,7 @@
   "unresolvedReleaseBlocks": [
     "2026-08-26 audit: missing feedback(status, updatedAt) index repaired with authorization; READY and read-only query verified. Still verify successful scheduled cleanupExpiredData after the repair before release; no manual cleanup was invoked.",
     "2026-08-26 audit: approve and publish privacy clarification draft 2026.12 (local biometrics, SDK diagnostics, account-region reporting and retention wording), then synchronize website, Firestore and app bundle.",
-    "2026-08-26 audit: complete and approve App Store Connect privacy questionnaire, trader/age declarations and review access; no public submission authorized.",
+    "2026-08-26 audit: App Store Connect age rating, review access, categories, screenshots, free price and build are prepared. Finalize country availability, content-rights declaration and publish the App Privacy questionnaire only after factual/legal confirmation; no public submission authorized.",
     "2026-08-26 audit: server-side comment filtering and server-owned creation are deployed and production-probed; complete an installed final-build test of accepted and rejected comments before public submission."
   ],
   "releaseRecommendations": [
