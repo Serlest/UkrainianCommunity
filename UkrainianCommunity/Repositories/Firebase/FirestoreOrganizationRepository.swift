@@ -613,8 +613,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             throw AppError.permissionDenied
         }
 
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedText.isEmpty else {
+        guard let trimmedText = CommentTextPolicy.validated(text) else {
             throw AppError.validationFailed
         }
 
@@ -627,7 +626,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             authorId: author.id,
             authorName: commentDisplayName(for: author),
             authorPhotoURL: author.avatarURL?.absoluteString,
-            text: String(trimmedText.prefix(1000)),
+            text: trimmedText,
             createdAt: now,
             updatedAt: nil,
             moderationStatus: .approved,

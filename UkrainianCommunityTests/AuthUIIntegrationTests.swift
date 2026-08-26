@@ -6,6 +6,154 @@ import Testing
 
 @MainActor
 struct AuthUIIntegrationTests {
+    @Test(arguments: [320.0, 768.0], [false, true])
+    func organizationLogoPickerKeepsInstructionsOutsideTheSquare(width: Double, accessibilityText: Bool) throws {
+        let previousLanguage = LocalizationStore.language
+        defer { LocalizationStore.language = previousLanguage }
+        let sourceImage = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 120)).image { context in
+            UIColor.systemBlue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 600, height: 120))
+            UIColor.systemYellow.setFill()
+            context.fill(CGRect(x: 200, y: 0, width: 200, height: 120))
+        }
+        let data = try #require(sourceImage.pngData())
+        // A panoramic source still reports the actual square preview size.
+        let thumbnail = ImageRenderer(content: OrganizationLogoThumbnail(selectedImageData: data, existingImageURL: nil, size: 72))
+        thumbnail.scale = 1
+        let thumbnailImage = try #require(thumbnail.uiImage)
+        #expect(thumbnailImage.size == CGSize(width: 72, height: 72))
+        for language in [AppLanguage.ukrainian, .german] {
+            LocalizationStore.language = language
+            for selected in [false, true] {
+                let content = VStack(alignment: .leading, spacing: 8) {
+                    OrganizationLogoPickerLabel(selectedImageData: selected ? data : nil, existingImageURL: nil)
+                    AppEditorField(title: AppStrings.Organizations.fieldName, counterText: "52/100") {
+                        Text("MikaItalia — італійський жіночий одяг в Австрії")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(16).frame(width: width).background(Color.white)
+                .environment(\.dynamicTypeSize, accessibilityText ? .accessibility3 : .large)
+                let renderer = ImageRenderer(content: content)
+                renderer.scale = 1
+                let image = try #require(renderer.uiImage)
+                Attachment.record(image, named: "organization-logo-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")-\(selected ? "selected" : "empty")")
+            }
+        }
+    }
+
+
+    @Test(arguments: [320.0, 768.0], [false, true])
+    func commentRowsRenderLongNamesDatesAndMultilineText(width: Double, accessibilityText: Bool) throws {
+        let language = LocalizationStore.language
+        defer { LocalizationStore.language = language }
+        for current in [AppLanguage.ukrainian, .german] {
+            LocalizationStore.language = current
+            let comment = Comment(id: "long-author", authorName: "Олександра-Марія / Alexandra-Maria Mustermann",
+                body: "Дякую за інформацію! 🇺🇦\nVielen Dank für die hilfreichen Informationen.\nLong words: Donaudampfschifffahrtsgesellschaftskapitän", createdAt: Date(timeIntervalSince1970: 1_787_729_947))
+            let content = VStack(alignment: .leading, spacing: 16) {
+                ContentCommentRow(comment: comment) {
+                    Image(systemName: "ellipsis.circle.fill").frame(width: 44, height: 44)
+                }
+                Divider()
+                ContentCommentRow(comment: Comment(id: "fallback", authorName: " ", body: "Second comment", createdAt: comment.createdAt)) { EmptyView() }
+            }
+            .padding(16).frame(width: width).background(Color.white)
+            .environment(\.dynamicTypeSize, accessibilityText ? .accessibility3 : .large)
+            let renderer = ImageRenderer(content: content)
+            renderer.scale = 1
+            let image = try #require(renderer.uiImage)
+            #expect(image.cgImage?.width == Int(width))
+            Attachment.record(image, named: "comments-\(current.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
+        }
+    }
+
+    @Test func presenceExpiresUsingElapsedTimeWithoutInventingDates() {
+        let started = ContinuousClock.now
+        let online = ManagedUserPresenceSnapshot(response: ManagedUserPresenceResponse(
+            targetUserId: "member", lastSeenAt: 1_800_000_000_000,
+            onlineUntil: 1_800_000_090_000, serverTime: 1_800_000_000_000), requestStartedAt: started)
+        #expect(online.isOnline(at: started.advanced(by: .seconds(89))))
+        #expect(!online.isOnline(at: started.advanced(by: .seconds(90))))
+        #expect(online.lastSeenAt == Date(timeIntervalSince1970: 1_800_000_000))
+        let missing = ManagedUserPresenceSnapshot(response: ManagedUserPresenceResponse(
+            targetUserId: "member", lastSeenAt: nil, onlineUntil: nil, serverTime: 1_800_000_000_000), requestStartedAt: started)
+        #expect(missing.lastSeenAt == nil)
+        #expect(!missing.isOnline(at: started))
+    }
+
+    @Test func presenceTracksForegroundBackgroundAndAccountSwitchWithoutGuestVisits() async throws {
+        var sent: [UserPresenceUpdate] = []
+        let service = UserPresenceService(interval: .seconds(3_600)) { sent.append($0) }
+        service.update(userID: nil, isActive: true)
+        service.update(userID: "a", isActive: false)
+        await Task.yield()
+        #expect(sent.isEmpty)
+        service.update(userID: "a", isActive: true)
+        service.update(userID: "a", isActive: true)
+        service.update(userID: "a", isActive: false)
+        service.update(userID: "a", isActive: true)
+        service.update(userID: "b", isActive: true)
+        service.update(userID: nil, isActive: true)
+        for _ in 0..<20 { await Task.yield() }
+        let a = sent.filter { $0.userId == "a" }.sorted { $0.sequence < $1.sequence }
+        let b = sent.filter { $0.userId == "b" }.sorted { $0.sequence < $1.sequence }
+        #expect(a.map(\.active) == [true, false, true, false])
+        #expect(a.map(\.sequence) == [1, 2, 3, 4])
+        #expect(Set(a.map(\.sessionId)).count == 1)
+        #expect(b.map(\.active) == [true, false])
+        #expect(a.first?.sessionId != b.first?.sessionId)
+    }
+
+    @Test func presenceHeartbeatRecoversAfterFailureAndStopsInBackground() async throws {
+        var sent: [UserPresenceUpdate] = []
+        let service = UserPresenceService(interval: .milliseconds(20)) { update in
+            sent.append(update)
+            if sent.count == 1 { throw URLError(.notConnectedToInternet) }
+        }
+        service.update(userID: "a", isActive: true)
+        for _ in 0..<100 {
+            if sent.count >= 2 { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(sent.filter(\.active).count >= 2)
+        service.update(userID: "a", isActive: false)
+        for _ in 0..<20 { await Task.yield() }
+        let countAfterBackground = sent.count
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(sent.count == countAfterBackground)
+        #expect(sent.last?.active == false)
+        service.update(userID: nil, isActive: false)
+    }
+
+    @Test(arguments: [320.0, 768.0], [false, true])
+    func presenceStatusesRender(width: Double, accessibilityText: Bool) throws {
+        let now = 1_800_000_000_000.0
+        let uptime = ContinuousClock.now
+        let responses = [
+            ManagedUserPresenceResponse(targetUserId: "online", lastSeenAt: now, onlineUntil: now + 90_000, serverTime: now),
+            ManagedUserPresenceResponse(targetUserId: "offline", lastSeenAt: now, onlineUntil: nil, serverTime: now),
+            ManagedUserPresenceResponse(targetUserId: "unknown", lastSeenAt: nil, onlineUntil: nil, serverTime: now)
+        ]
+        let previousLanguage = LocalizationStore.language
+        defer { LocalizationStore.language = previousLanguage }
+        for language in [AppLanguage.ukrainian, .german] {
+            LocalizationStore.language = language
+        let content = VStack(alignment: .leading, spacing: 20) {
+            ForEach(responses, id: \.targetUserId) { response in
+                ManagedUserPresenceStatus(snapshot: ManagedUserPresenceSnapshot(response: response, requestStartedAt: uptime))
+            }
+        }
+        .padding(20).frame(width: width).background(Color.white)
+        .environment(\.dynamicTypeSize, accessibilityText ? .accessibility3 : .large)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 1
+        let image = try #require(renderer.uiImage)
+        #expect(image.cgImage?.width == Int(width))
+        Attachment.record(image, named: "presence-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
+        }
+    }
+
     @Test func authLifecycleUsesPhaseRichTaskKeysButStableIdentityResetKeys() {
         let authenticatingKey = ContentAuthLifecyclePolicy.taskKey(
             sessionState: .authenticating,

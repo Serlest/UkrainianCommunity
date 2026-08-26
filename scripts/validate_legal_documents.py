@@ -93,6 +93,7 @@ def main() -> int:
     loaded: dict[tuple[str, str], str] = {}
     for document_type in ("terms", "privacy", "organizationRules"):
         definition = manifest.get("documents", {}).get(document_type, {})
+        document_version = definition.get("version", expected_version)
         for locale in ("de", "uk"):
             relative = definition.get("files", {}).get(locale)
             if not isinstance(relative, str):
@@ -105,9 +106,9 @@ def main() -> int:
                 continue
             loaded[(document_type, locale)] = content
             version = VERSION.search(content)
-            if version is None or version.group(1) != expected_version:
+            if version is None or version.group(1) != document_version:
                 failures.append(
-                    f"{relative} must declare manifest version {expected_version}"
+                    f"{relative} must declare manifest version {document_version}"
                 )
             has_draft_marker = (
                 "noch nicht veröffentlicht" in content
@@ -150,10 +151,12 @@ def main() -> int:
 
     auth_service = load_text("UkrainianCommunity/Services/Auth/AuthService.swift")
     app_versions = SWIFT_LEGAL_VERSION.findall(auth_service)
-    if app_versions != [expected_version, expected_version, expected_version]:
+    expected_app_versions = [manifest["documents"][kind].get("version", expected_version)
+                             for kind in ("terms", "privacy", "organizationRules")]
+    if app_versions != expected_app_versions:
         failures.append(
             "AuthService terms/privacy/organization-rules versions must match legal manifest "
-            f"{expected_version}; found {app_versions}"
+            f"{expected_app_versions}; found {app_versions}"
         )
 
     analytics_consent = load_text("functions/src/analytics/analyticsConsent.ts")
@@ -175,10 +178,11 @@ def main() -> int:
             (failures if args.release else warnings).append(message)
             continue
         website = path.read_text(encoding="utf-8")
-        if expected_version not in website:
+        document_version = manifest["documents"][document_type].get("version", expected_version)
+        if document_version not in website:
             message = (
                 f"website/{document_type} is not synchronized to legal version "
-                f"{expected_version}"
+                f"{document_version}"
             )
             (failures if args.release else warnings).append(message)
 

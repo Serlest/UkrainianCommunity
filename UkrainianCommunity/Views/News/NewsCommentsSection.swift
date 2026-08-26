@@ -2,65 +2,21 @@ import SwiftUI
 
 extension NewsDetailView {
         func commentsSection(for post: NewsPost) -> some View {
-            DetailCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(AppStrings.Common.comments)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-
-                    commentComposer(parentID: post.id)
-
-                    if post.comments.isEmpty {
-                        Text(AppStrings.Common.noCommentsYet)
-                            .font(.footnote)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ForEach(Array(post.comments.enumerated()), id: \.element.id) { index, comment in
-                                commentRow(comment, parentTitle: post.title)
-
-                                if index < post.comments.count - 1 {
-                                    Divider()
-                                        .padding(.vertical, AppTheme.eventsControlGroupSpacing)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            ContentCommentsSection(
+                comments: post.comments,
+                loadState: viewModel.commentLoadStates[post.id] ?? .loading,
+                retry: { await viewModel.loadComments(for: post.id, forceRefresh: true) },
+                composer: { commentComposer(parentID: post.id) },
+                row: { comment in commentRow(comment, parentTitle: post.title) }
+            )
         }
 
         func commentRow(_ comment: Comment, parentTitle: String) -> some View {
-            HStack(alignment: .top, spacing: 10) {
-                commentAvatar(comment)
-
-                VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Text(sanitizedAuthorName(comment.authorName))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                    Text(LocalizationStore.dateString(from: comment.createdAt, dateStyle: .short, timeStyle: .short))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-
-                        if canDeleteComment(comment) || canReportComment(comment) || canBlockComment(comment) {
-                            commentActionMenu(for: comment, parentTitle: parentTitle)
-                        }
-                }
-
-                Text(comment.text)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
+            ContentCommentRow(comment: comment) {
+                if canDeleteComment(comment) || canReportComment(comment) || canBlockComment(comment) {
+                    commentActionMenu(for: comment, parentTitle: parentTitle)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
 
         func commentActionMenu(for comment: Comment, parentTitle: String) -> some View {
@@ -71,7 +27,7 @@ extension NewsDetailView {
                     }
                 }
                 if canReportComment(comment),
-                   let target = ContentReportTarget.comment(comment, parentTitle: parentTitle) {
+                   let target = ContentReportTarget.comment(comment, parentTitle: parentTitle, parentType: .news, parentId: postID) {
                     Button(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble") {
                         presentContentReport(target)
                     }
@@ -106,97 +62,23 @@ extension NewsDetailView {
         }
 
         func commentComposer(parentID: String) -> some View {
-            VStack(alignment: .leading, spacing: 8) {
-                if authState.isAuthenticated {
-                    HStack(alignment: .bottom, spacing: 8) {
-                        TextField(AppStrings.Common.commentInputPlaceholder, text: $commentText, axis: .vertical)
-                            .focused($isCommentFieldFocused)
-                            .lineLimit(1...4)
-                            .textInputAutocapitalization(.sentences)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                            )
-
-                        Button {
-                            submitComment(parentID: parentID)
-                        } label: {
-                            Image(systemName: "paperplane.fill")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(.white)
-                                .frame(
-                                    width: AppTheme.minimumInteractiveTarget,
-                                    height: AppTheme.minimumInteractiveTarget
-                                )
-                                .background(AppTheme.accentPrimary, in: Circle())
-                        }
-                        .disabled(trimmedCommentText.isEmpty || viewModel.pendingNewsCommentIDs.contains(parentID))
-                        .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
-                        .accessibilityLabel(AppStrings.Action.send)
-                    }
-
-                    Text("\(commentText.count)/1000")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                } else {
-                    Button {
-                        guestAccessAction = .comments
-                    } label: {
-                        Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    }
-                    .buttonStyle(.plain)
+            let author = authState.user
+            return ContentCommentComposer(
+                accountID: authState.isAuthenticated ? authState.user?.id : nil,
+                canComment: PermissionService.isUsableAccount(user: authState.user),
+                isPending: viewModel.pendingNewsCommentIDs.contains(parentID),
+                focus: $isCommentFieldFocused,
+                signIn: { guestAccessAction = .comments },
+                send: { text in
+                    guard let user = author, authState.user?.id == user.id else { return .failure(.permissionDenied) }
+                    return await viewModel.addComment(to: parentID, text: text, author: user)
                 }
-            }
-        }
-
-        var trimmedCommentText: String {
-            commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            .id(parentID)
         }
 
         var newsViewTaskID: String {
             "\(postID)-\(authState.user?.id ?? "guest")"
-        }
-
-        func submitComment(parentID: String) {
-            guard let user = authState.user else {
-                guestAccessAction = .comments
-                return
-            }
-            let text = String(trimmedCommentText.prefix(1000))
-            guard !text.isEmpty else { return }
-            Task {
-                await viewModel.addComment(to: parentID, text: text, author: user)
-                await MainActor.run {
-                    commentText = ""
-                    isCommentFieldFocused = false
-                }
-            }
-        }
-
-        func commentAvatar(_ comment: Comment) -> some View {
-            let avatarURL = comment.authorPhotoURL.flatMap { URL(string: $0) }
-            return AvatarArtworkView(
-                avatarURL: avatarURL,
-                initials: commentInitials(comment),
-                size: 32,
-                showsBorder: false,
-                shadowOpacity: 0,
-                shadowRadius: 0,
-                shadowY: 0,
-                initialsFont: .caption.weight(.bold),
-                placeholderFill: AppTheme.accentPrimarySoft
-            )
-        }
-
-        func commentInitials(_ comment: Comment) -> String {
-            let name = sanitizedAuthorName(comment.authorName)
-            return String(name.prefix(1)).uppercased()
         }
 
         func canDeleteComment(_ comment: Comment) -> Bool {

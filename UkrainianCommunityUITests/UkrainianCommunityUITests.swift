@@ -358,6 +358,118 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOrganizationLogoPickerDoesNotOverlapTheNameField() throws {
+        defer { XCUIDevice.shared.orientation = .portrait }
+        for (language, largeText) in [("uk", false), ("de", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing"]
+            app.launchEnvironment["UITestResetUserSettings"] = "1"
+            app.launchEnvironment["UITestAppLanguage"] = language
+            app.launchEnvironment["UITestForceAuthenticatedSession"] = "1"
+            if largeText {
+                app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+            }
+            app.launch()
+            tapRootTab(rootTabs[2], in: app)
+            let add = app.buttons["organizations.add"]
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            // A prior test launch may have saved its local draft. Dismiss the
+            // recovery dialog before measuring the visible editor, not views behind it.
+            let newDraft = app.buttons[language == "uk" ? "Створити нову" : "Neu erstellen"]
+            if newDraft.waitForExistence(timeout: 2) { newDraft.tap() }
+            let logo = app.buttons["organization.editor.logo"]
+            let input = app.textFields["organization.editor.name"]
+            let editorScroll = app.scrollViews.containing(.textField, identifier: "organization.editor.name").firstMatch
+            XCTAssertTrue(editorScroll.waitForExistence(timeout: 5))
+            for _ in 0..<25 {
+                if input.exists && input.isHittable { break }
+                editorScroll.swipeUp()
+            }
+            attachScreenshot(named: "organization-logo-visible-editor-\(language)", from: app)
+            XCTAssertTrue(input.waitForExistence(timeout: 10))
+            XCTAssertTrue(input.isHittable, "The name field must remain reachable in the visible editor")
+            XCTAssertTrue(logo.exists)
+            let title = app.staticTexts[language == "uk" ? "Назва *" : "Name *"].firstMatch
+            XCTAssertTrue(title.exists)
+            XCTAssertGreaterThanOrEqual(title.frame.minY, logo.frame.maxY + 4,
+                                        "Upload instructions overlap the name title")
+            XCTAssertGreaterThanOrEqual(input.frame.minY, logo.frame.maxY + 4)
+            attachScreenshot(named: "organization-logo-editor-\(language)-\(largeText ? "AX" : "standard")", from: app)
+            if !largeText {
+                input.tap()
+                input.typeText("MikaItalia")
+                XCUIDevice.shared.orientation = .landscapeLeft
+                scrollToElement(input, in: app, maxSwipes: 10)
+                XCTAssertGreaterThanOrEqual(title.frame.minY, logo.frame.maxY + 4)
+                XCTAssertTrue(input.isHittable)
+                // iPhone supports portrait only; rotating must preserve the form.
+                attachScreenshot(named: "organization-logo-editor-after-rotation", from: app)
+                XCUIDevice.shared.orientation = .portrait
+            }
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    private func openComments(_ kind: String, in app: XCUIApplication) {
+        let cardID: String
+        switch kind {
+        case "events":
+            assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)
+            cardID = "event.card.event-1"
+        case "organizations":
+            assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
+            cardID = "organization.card.org-1"
+        default:
+            assertRootScreen(screenIdentifier: "screen.home", tabLabel: "Start", in: app)
+            cardID = "home.card.news-news-1"
+        }
+        let card = app.descendants(matching: .any).matching(identifier: cardID).firstMatch
+        scrollToElement(card, in: app, maxSwipes: 10)
+        XCTAssertTrue(card.waitForExistence(timeout: 15), "Missing \(kind) card")
+        card.tap()
+    }
+
+    @MainActor
+    func testCommentSubmissionOnNewsEventsAndOrganizations() throws {
+        for kind in ["news", "events", "organizations"] {
+            let app = launchAuthenticatedApp()
+            openComments(kind, in: app)
+            let input = app.descendants(matching: .any).matching(identifier: "comments.input").firstMatch
+            scrollToElement(input, in: app, maxSwipes: 20)
+            XCTAssertTrue(input.waitForExistence(timeout: 10) && input.isHittable, "Missing composer: \(kind)")
+            let message = "Comment check \(kind)"
+            input.tap()
+            input.typeText(message)
+            let send = app.buttons["comments.send"]
+            XCTAssertTrue(send.isEnabled)
+            send.tap()
+            let posted = app.staticTexts[message].firstMatch
+            scrollToElement(posted, in: app, maxSwipes: 8)
+            XCTAssertTrue(posted.waitForExistence(timeout: 10), "Comment was not posted: \(kind)")
+            XCTAssertFalse(app.staticTexts["comments.sendError"].exists)
+            attachScreenshot(named: "comments-posted-\(kind)", from: app)
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testGuestCommentEntryRequiresAuthenticationOnAllScreens() throws {
+        for kind in ["news", "events", "organizations"] {
+            let app = launchApp()
+            openComments(kind, in: app)
+            let signIn = app.buttons["comments.signIn"]
+            scrollToElement(signIn, in: app, maxSwipes: 20)
+            XCTAssertTrue(signIn.waitForExistence(timeout: 10) && signIn.isHittable)
+            XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "comments.input").firstMatch.exists)
+            signIn.tap()
+            XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+            app.terminate()
+        }
+    }
+
+    @MainActor
     func testPublicEventsScreenDoesNotExposeManagementControls() throws {
         let app = launchApp()
         assertRootScreen(screenIdentifier: "screen.events", tabLabel: "Veranstaltungen", in: app)

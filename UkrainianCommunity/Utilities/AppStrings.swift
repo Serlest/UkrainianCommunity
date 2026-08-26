@@ -1,6 +1,17 @@
 import Foundation
 
 enum AppStrings {
+    enum Comments {
+        static var loading: String { text("comments.loading", "Завантаження коментарів…") }
+        static var loadFailed: String { text("comments.load_failed", "Не вдалося завантажити коментарі") }
+        static var sending: String { text("comments.sending", "Надсилання коментаря…") }
+        static var networkError: String { text("comments.network_error", "Не вдалося з’єднатися. Перевірте інтернет і спробуйте ще раз.") }
+        static var permissionError: String { text("comments.permission_error", "Коментування недоступне для цього акаунту або матеріалу.") }
+        static var lengthError: String { text("comments.length_error", "Введіть коментар до 1000 символів. Деякі емодзі займають кілька символів. Текст не буде обрізано.") }
+        static var notFoundError: String { text("comments.not_found_error", "Матеріал більше недоступний.") }
+        static var genericError: String { text("comments.generic_error", "Не вдалося виконати дію з коментарем. Спробуйте ще раз.") }
+    }
+
     enum Tabs {
         static var home: String { text("tab.home", "Home") }
         static var events: String { text("tab.events", "Events") }
@@ -2027,8 +2038,14 @@ enum AppStrings {
         static var emailVerification: String { text("user_management.security.email_verification", "Підтвердження email") }
         static var emailVerified: String { text("user_management.security.email_verified", "Email підтверджено") }
         static var emailNotVerified: String { text("user_management.security.email_not_verified", "Email не підтверджено") }
-        static var lastSignIn: String { text("user_management.security.last_sign_in", "Останній вхід") }
+        static var lastSignIn: String { text("user_management.security.last_sign_in", "Остання авторизація") }
         static var neverSignedIn: String { text("user_management.security.never_signed_in", "Вхід ще не зафіксовано") }
+        static var presenceTitle: String { text("user_management.presence.title", "Активність у застосунку") }
+        static var presenceOnline: String { text("user_management.presence.online", "Онлайн") }
+        static var presenceLastSeen: String { text("user_management.presence.last_seen", "Востаннє в мережі") }
+        static var presenceUnknown: String { text("user_management.presence.unknown", "Активність ще не зафіксовано") }
+        static var presenceLoading: String { text("user_management.presence.loading", "Завантаження статусу…") }
+        static var presenceUnavailable: String { text("user_management.presence.unavailable", "Не вдалося оновити статус") }
         static var signInProvider: String { text("user_management.security.provider", "Спосіб входу") }
         static var auditHistoryTitle: String { text("user_management.audit_history.title", "Історія дій") }
         static var auditHistorySubtitle: String { text("user_management.audit_history.subtitle", "Попередження, блокування, деактивації та зміни ролей.") }
@@ -2137,7 +2154,7 @@ enum AppStrings {
         static var privacyIntroTitle: String { text("legal.privacy.intro.title", "What we store") }
         static var privacyIntroBody: String { text("legal.privacy.intro.body", "When you create an account, we store the profile fields needed for the app to function: email address, display name, optional Telegram username, selected federal state, role/status fields, and timestamps related to account creation and consent.") }
         static var privacyUsageTitle: String { text("legal.privacy.usage.title", "Why we use your data") }
-        static var privacyUsageBody: String { text("legal.privacy.usage.body", "We use account data to authenticate you, show your profile, apply permissions, support feedback and event registration, and protect the community through moderation and abuse prevention. Using account features creates account-linked operational records needed to provide them, including persistent news/event view deduplication and public counters, likes, bookmarks, organization follows, and registrations. These records are created independently of the optional analytics setting. If you opt in, separate daily view and action signals contribute to protected first-party aggregate reports for content owners; opting out stops only those analytics signals.") }
+        static var privacyUsageBody: String { text("legal.privacy.usage.body", "We use account data to authenticate you, show your profile, apply permissions, support feedback and event registration, and protect the community through moderation and abuse prevention. Using account features creates account-linked operational records needed to provide them, including persistent news/event view deduplication and public counters, likes, bookmarks, organization follows, and registrations. These records are created independently of the optional analytics setting. If you opt in, separate daily view and action signals contribute to protected first-party aggregate reports for content owners; opting out stops only those analytics signals. Signed-in foreground use also records an approximate online status and last-seen time for the platform owner and platform administrators only, for account and connection support. This is separate from analytics, is not public, and records no location or activity history. The last timestamp is overwritten on activity and deleted with the account; old session markers are removed on the next update. You may object to this legitimate-interest processing through the privacy contact.") }
         static var privacyStorageTitle: String { text("legal.privacy.storage.title", "Storage and service providers") }
         static var privacyStorageBody: String { text("legal.privacy.storage.body", "This app uses Firebase services for authentication, database storage, and media storage. Data is processed only to deliver the app’s features, maintain security, and support internal operations.") }
         static var privacySharingTitle: String { text("legal.privacy.sharing.title", "Sharing and visibility") }

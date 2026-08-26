@@ -123,6 +123,19 @@ struct ContentReportTarget: Identifiable, Equatable {
         )
     }
 
+    static func comment(
+        _ comment: Comment,
+        parentTitle: String,
+        parentType: CommentParentType,
+        parentId: String
+    ) -> ContentReportTarget? {
+        guard !comment.id.isEmpty, !parentId.isEmpty else { return nil }
+        // Parent identity is known from the containing detail screen/query path.
+        // Never guess an author for historical records lacking authorId.
+        return ContentReportTarget(targetType: .comment, targetId: comment.id,
+            parentType: parentType, parentId: parentId, title: parentTitle, authorId: comment.authorId)
+    }
+
     static func comment(_ comment: Comment, parentTitle: String) -> ContentReportTarget? {
         guard let parentType = comment.parentType,
               let parentId = comment.parentId else {

@@ -95,7 +95,17 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
 struct UkrainianCommunityApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var authState = AuthService.shared.authState
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var presence = UserPresenceService()
     private let container: AppContainer
+
+    private var presenceUserID: String? {
+        guard !ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+              NSClassFromString("XCTestCase") == nil,
+              authState.isAuthenticated, PermissionService.isUsableAccount(user: authState.user) else { return nil }
+        return authState.user?.id
+    }
 
     init() {
         let processInfo = ProcessInfo.processInfo
@@ -151,6 +161,12 @@ struct UkrainianCommunityApp: App {
         WindowGroup {
             AppStartupGate(container: container)
                 .environmentObject(authState)
+                .onChange(of: presenceUserID, initial: true) { _, userID in
+                    presence.update(userID: userID, isActive: scenePhase == .active)
+                }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            presence.update(userID: presenceUserID, isActive: phase == .active)
         }
     }
 }

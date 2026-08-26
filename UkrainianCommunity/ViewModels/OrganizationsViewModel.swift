@@ -16,6 +16,7 @@ final class OrganizationsViewModel: ObservableObject {
     @Published private(set) var pendingOrganizationDeleteIDs = Set<String>()
     @Published private(set) var organizationRequests: [Organization] = []
     @Published private(set) var organizationCommentsByID: [String: [Comment]] = [:]
+    @Published private(set) var commentLoadStates: [String: CommentLoadState] = [:]
     @Published private(set) var pendingOrganizationCommentIDs = Set<String>()
     @Published private(set) var isSavingOrganization = false
     @Published private(set) var isUploadingOrganizationImage = false
@@ -101,6 +102,7 @@ final class OrganizationsViewModel: ObservableObject {
         organizationRequests = []
         organizationCommentsByID = [:]
         pendingOrganizationCommentIDs = []
+        commentLoadStates = [:]
         listenerBag.removeAll()
         isSavingOrganization = false
         isUploadingOrganizationImage = false
@@ -399,6 +401,9 @@ final class OrganizationsViewModel: ObservableObject {
 
     func loadComments(for organizationID: String, forceRefresh: Bool = false) async {
         let generation = authGeneration
+        if forceRefresh || !listenerBag.contains("organizationComments:\(organizationID)") {
+            commentLoadStates[organizationID] = .loading
+        }
         startListeningComments(for: organizationID)
         guard forceRefresh || !(repository is OrganizationRealtimeRepository) else { return }
         do {
@@ -407,13 +412,17 @@ final class OrganizationsViewModel: ObservableObject {
             organizationCommentsByID[organizationID] = visibilityPolicy.visibleComments(
                 comments.deduplicatedCommentsByID()
             )
+            commentLoadStates[organizationID] = .loaded
             error = nil
         } catch let appError as AppError {
             guard isCurrentAuthGeneration(generation) else { return }
+            commentLoadStates[organizationID] = .failed(appError)
             error = appError
         } catch {
             guard isCurrentAuthGeneration(generation) else { return }
-            self.error = .unknown
+            let mapped = CommentErrorMapper.map(error)
+            commentLoadStates[organizationID] = .failed(mapped)
+            self.error = mapped
         }
     }
 
@@ -432,10 +441,12 @@ final class OrganizationsViewModel: ObservableObject {
             self.organizationCommentsByID[organizationID] = self.visibilityPolicy.visibleComments(
                 comments.deduplicatedCommentsByID()
             )
+            self.commentLoadStates[organizationID] = .loaded
             self.error = nil
         } onError: { [weak self] appError in
             guard let self, self.isCurrentAuthGeneration(generation) else { return }
             self.listenerBag.remove(key)
+            self.commentLoadStates[organizationID] = .failed(appError)
             self.error = appError
             #if DEBUG
             print("Realtime listener failed: purpose=organizationComments key=\(key) error=\(appError)")
@@ -443,8 +454,10 @@ final class OrganizationsViewModel: ObservableObject {
         }, for: key)
     }
 
-    func addComment(to organizationID: String, text: String, author: AppUser) async {
-        guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+    @discardableResult
+    func addComment(to organizationID: String, text: String, author: AppUser) async -> CommentMutationResult {
+        guard !pendingOrganizationCommentIDs.contains(organizationID) else { return .ignored }
+        guard let text = CommentTextPolicy.validated(text) else { return .failure(.validationFailed) }
         let generation = authGeneration
         pendingOrganizationCommentIDs.insert(organizationID)
         defer {
@@ -455,15 +468,15 @@ final class OrganizationsViewModel: ObservableObject {
 
         do {
             let comment = try await repository.addOrganizationComment(organizationID: organizationID, text: text, author: author)
-            guard isCurrentAuthGeneration(generation) else { return }
+            guard isCurrentAuthGeneration(generation) else { return .ignored }
             organizationCommentsByID[organizationID, default: []].upsertCommentByID(comment)
             error = nil
-        } catch let appError as AppError {
-            guard isCurrentAuthGeneration(generation) else { return }
-            error = appError
+            return .success
         } catch {
-            guard isCurrentAuthGeneration(generation) else { return }
-            self.error = .unknown
+            guard isCurrentAuthGeneration(generation) else { return .ignored }
+            let mapped = CommentErrorMapper.map(error)
+            self.error = mapped
+            return .failure(mapped)
         }
     }
 
@@ -494,8 +507,9 @@ final class OrganizationsViewModel: ObservableObject {
         }
     }
 
-    func deleteComment(organizationID: String, commentID: String) async {
-        guard !pendingOrganizationCommentIDs.contains(organizationID) else { return }
+    @discardableResult
+    func deleteComment(organizationID: String, commentID: String) async -> CommentMutationResult {
+        guard !pendingOrganizationCommentIDs.contains(organizationID) else { return .ignored }
         let generation = authGeneration
         pendingOrganizationCommentIDs.insert(organizationID)
         defer {
@@ -506,15 +520,15 @@ final class OrganizationsViewModel: ObservableObject {
 
         do {
             try await repository.deleteOrganizationComment(organizationID: organizationID, commentID: commentID)
-            guard isCurrentAuthGeneration(generation) else { return }
+            guard isCurrentAuthGeneration(generation) else { return .ignored }
             organizationCommentsByID[organizationID]?.removeAll { $0.id == commentID }
             error = nil
-        } catch let appError as AppError {
-            guard isCurrentAuthGeneration(generation) else { return }
-            error = appError
+            return .success
         } catch {
-            guard isCurrentAuthGeneration(generation) else { return }
-            self.error = .unknown
+            guard isCurrentAuthGeneration(generation) else { return .ignored }
+            let mapped = CommentErrorMapper.map(error)
+            self.error = mapped
+            return .failure(mapped)
         }
     }
 

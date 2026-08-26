@@ -38,6 +38,16 @@ struct ContentSafetyTests {
         #expect(target.authorId == "author-1")
     }
 
+    @Test func legacyCommentUsesKnownScreenContextForReportingWithoutInventingAuthor() throws {
+        let comment = Comment(id: "legacy", authorName: "Historical name", body: "Comment", createdAt: .now)
+        let target = try #require(ContentReportTarget.comment(comment, parentTitle: "Organization",
+            parentType: .organization, parentId: "known-org"))
+        #expect(target.parentType == .organization)
+        #expect(target.parentId == "known-org")
+        #expect(target.targetId == "legacy")
+        #expect(target.authorId == nil)
+    }
+
     @Test func commentWithoutParentCannotBecomeAReportTarget() {
         let comment = Comment(
             id: "legacy-comment",

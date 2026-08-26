@@ -131,7 +131,7 @@ final class AuthService {
         profileProvider: UserProfileService.shared
     )
     nonisolated static let currentTermsVersion = "2026.10"
-    nonisolated static let currentPrivacyVersion = "2026.10"
+    nonisolated static let currentPrivacyVersion = "2026.11"
     nonisolated static let currentOrganizationRulesVersion = "2026.10"
     nonisolated static let currentMinimumAgeVersion = "14+"
 

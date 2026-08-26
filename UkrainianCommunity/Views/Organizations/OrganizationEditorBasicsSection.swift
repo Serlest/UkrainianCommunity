@@ -8,24 +8,9 @@ extension OrganizationEditorView {
 
                 profileKindPicker
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
-                        logoPicker
-                            .frame(width: uploadMinHeight)
-
-                        VStack(alignment: .leading, spacing: editorCardSpacing) {
-                            nameField
-                            descriptionField
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: editorCardSpacing) {
-                        logoPicker
-                            .frame(width: uploadMinHeight * 1.35)
-                        nameField
-                        descriptionField
-                    }
-                }
+                logoPicker
+                nameField
+                descriptionField
 
                 categoryPicker
                 secondaryCategoryPicker
@@ -40,6 +25,7 @@ extension OrganizationEditorView {
                 .textInputAutocapitalization(.words)
                 .organizationEditorCompactInputStyle(minHeight: compactInputHeight)
                 .accessibilityLabel(AppStrings.Organizations.fieldName)
+                .accessibilityIdentifier("organization.editor.name")
         }
     }
 

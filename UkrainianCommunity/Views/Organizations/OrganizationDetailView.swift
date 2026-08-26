@@ -325,7 +325,6 @@ struct OrganizationDetailView: View {
     @State var hasMoreCommunitySubscribers = false
     @State var isLoadingCommunityPage = false
     @State var loadedCommunityOrganizationID: String?
-    @State var commentText = ""
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var pendingSubscriptionConfirmation: OrganizationSubscriptionConfirmation?
@@ -521,6 +520,8 @@ struct OrganizationDetailView: View {
             set: { if $0 == nil { viewModel.dismissInteractionError() } }
         ))
         .onChange(of: authState.user?.id) { _, _ in
+            loadedCommentsOrganizationID = nil
+            Task { await loadCommentsIfNeeded(for: organizationID) }
             guard let organization = viewModel.organization(for: organizationID) else { return }
             viewModel.trackViewIfNeeded(for: organization)
             recordRecentView(for: organization)

@@ -20,6 +20,7 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var pendingEventRegistrationIDs = Set<String>()
     @Published private(set) var pendingEventBookmarkIDs = Set<String>()
     @Published private(set) var pendingEventViewIDs = Set<String>()
+    @Published private(set) var commentLoadStates: [String: CommentLoadState] = [:]
     @Published private(set) var pendingEventCommentIDs = Set<String>()
     @Published private(set) var registrationError: EventRegistrationPresentationError?
     private let repository: EventRepository
@@ -115,6 +116,7 @@ final class EventsViewModel: ObservableObject {
         pendingEventBookmarkIDs = []
         pendingEventViewIDs = []
         pendingEventCommentIDs = []
+        commentLoadStates = [:]
         registrationError = nil
         trackedEventViewIDs = []
         listenerBag.removeAll()
@@ -485,6 +487,9 @@ final class EventsViewModel: ObservableObject {
 
     func loadComments(for eventID: String, forceRefresh: Bool = false) async {
         let generation = sessionGeneration
+        if forceRefresh || !listenerBag.contains("eventComments:\(eventID)") {
+            commentLoadStates[eventID] = .loading
+        }
         startListeningComments(for: eventID)
         guard forceRefresh || !(repository is EventRealtimeRepository) else { return }
         guard events.contains(where: { $0.id == eventID }) else { return }
@@ -496,13 +501,17 @@ final class EventsViewModel: ObservableObject {
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             events[currentIndex].comments = visibleComments
             events[currentIndex].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            commentLoadStates[eventID] = .loaded
             error = nil
         } catch let appError as AppError {
             guard isCurrentSession(generation) else { return }
+            commentLoadStates[eventID] = .failed(appError)
             error = appError
         } catch {
             guard isCurrentSession(generation) else { return }
-            self.error = .unknown
+            let mapped = CommentErrorMapper.map(error)
+            commentLoadStates[eventID] = .failed(mapped)
+            self.error = mapped
         }
     }
 
@@ -523,10 +532,12 @@ final class EventsViewModel: ObservableObject {
             let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             self.events[index].comments = visibleComments
             self.events[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            self.commentLoadStates[eventID] = .loaded
             self.error = nil
         } onError: { [weak self] appError in
             guard let self, self.isCurrentSession(generation) else { return }
             self.listenerBag.remove(key)
+            self.commentLoadStates[eventID] = .failed(appError)
             self.error = appError
             #if DEBUG
             print("Realtime listener failed: purpose=eventComments key=\(key) error=\(appError)")
@@ -534,9 +545,11 @@ final class EventsViewModel: ObservableObject {
         }, for: key)
     }
 
-    func addComment(to eventID: String, text: String, author: AppUser) async {
-        guard events.contains(where: { $0.id == eventID }) else { return }
-        guard !pendingEventCommentIDs.contains(eventID) else { return }
+    @discardableResult
+    func addComment(to eventID: String, text: String, author: AppUser) async -> CommentMutationResult {
+        guard events.contains(where: { $0.id == eventID }) else { return .ignored }
+        guard !pendingEventCommentIDs.contains(eventID) else { return .ignored }
+        guard let text = CommentTextPolicy.validated(text) else { return .failure(.validationFailed) }
         let generation = sessionGeneration
         pendingEventCommentIDs.insert(eventID)
         defer {
@@ -548,16 +561,16 @@ final class EventsViewModel: ObservableObject {
         do {
             let comment = try await repository.addEventComment(eventID: eventID, text: text, author: author)
             guard isCurrentSession(generation),
-                  let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
+                  let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return .ignored }
             events[currentIndex].comments.upsertCommentByID(comment)
             events[currentIndex].commentCount = events[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
-        } catch let appError as AppError {
-            guard isCurrentSession(generation) else { return }
-            error = appError
+            return .success
         } catch {
-            guard isCurrentSession(generation) else { return }
-            self.error = .unknown
+            guard isCurrentSession(generation) else { return .ignored }
+            let mapped = CommentErrorMapper.map(error)
+            self.error = mapped
+            return .failure(mapped)
         }
     }
 
@@ -593,10 +606,11 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
-    func deleteComment(eventID: String, commentID: String) async {
-        guard events.contains(where: { $0.id == eventID }) else { return }
+    @discardableResult
+    func deleteComment(eventID: String, commentID: String) async -> CommentMutationResult {
+        guard events.contains(where: { $0.id == eventID }) else { return .ignored }
         let pendingID = "\(eventID)_\(commentID)"
-        guard !pendingEventCommentIDs.contains(pendingID) else { return }
+        guard !pendingEventCommentIDs.contains(pendingID) else { return .ignored }
         let generation = sessionGeneration
         pendingEventCommentIDs.insert(pendingID)
         defer {
@@ -608,16 +622,16 @@ final class EventsViewModel: ObservableObject {
         do {
             try await repository.deleteEventComment(eventID: eventID, commentID: commentID)
             guard isCurrentSession(generation),
-                  let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
+                  let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return .ignored }
             events[currentIndex].comments.removeAll { $0.id == commentID }
             events[currentIndex].commentCount = events[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
-        } catch let appError as AppError {
-            guard isCurrentSession(generation) else { return }
-            error = appError
+            return .success
         } catch {
-            guard isCurrentSession(generation) else { return }
-            self.error = .unknown
+            guard isCurrentSession(generation) else { return .ignored }
+            let mapped = CommentErrorMapper.map(error)
+            self.error = mapped
+            return .failure(mapped)
         }
     }
 

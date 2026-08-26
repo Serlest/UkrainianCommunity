@@ -1,6 +1,6 @@
 # App Store privacy inventory
 
-Last code audit: 2026-08-24
+Last code audit: 2026-08-26
 
 This inventory is a release aid, not a substitute for the answers entered in App Store Connect. Recheck it whenever data flows or third-party SDKs change. Apple requires the App Store privacy answers to include the practices of third-party partners.
 
@@ -48,6 +48,15 @@ The client does not request Core Location permission or read the device's locati
 - Owner reporting keeps the sources distinct: daily views, actions and tracked-active windows use only opted-in signals, while public feature counters and total-account, status, account-registration, deletion and profile-region statistics are operational data calculated independently of optional analytics consent.
 - The durable local outbox stores an opaque hash of the principal, the minimal event payload, and retry state. Opt-out, logout, or account replacement invalidates delivery and removes incompatible queued data.
 - Neither operational feature records nor optional analytics signals are used for advertising or cross-app tracking. The public privacy policy and App Store Connect answers must preserve this App Functionality-versus-Analytics distinction and the same account-linked wording; do not describe either processing path as anonymous. Region reports use the region assigned to published content and never device location.
+
+## Administrator-only presence (build 32)
+
+- `updateUserPresence` records app foreground activity independently of optional aggregate analytics. This is account-linked activity: it is not anonymous, not public, and not a Firebase Auth sign-in timestamp.
+- Only active, email-verified platform `owner` and `admin` accounts can obtain the sanitized online/last-seen result through `getManagedUserPresence`. Organization ownership, administration and moderation do not grant access. All direct client reads and writes are denied, including self reads.
+- Storage is `users/{uid}/privatePresence/current`: one last-confirmed server timestamp and at most 32 random per-process/account session markers (sequence, active flag, server timestamp). No device identifiers, visited screens, content, location or historical activity timeline are recorded. Old session markers are pruned on subsequent updates after ten minutes; the last-seen timestamp persists until account deletion. Recursive account deletion removes the document; inactive/deleting/missing profiles cannot write new markers.
+- The client sends only while authenticated and foreground-active, approximately twice per minute, plus transitions. It does not persist an offline queue. A missing disconnect signal expires after 90 seconds; an ordinary sign-out may also rely on expiry because the original credential is no longer available. The detail screen polls every 30 seconds while active. This is approximate presence, not proof of attendance or an exact disconnect timestamp.
+- Privacy policy 2026.11, section 18, describes this separate administrative purpose and its legitimate-interest basis, restricted recipients, approximation, retention and right to object. Existing analytics opt-in is not consent for presence; analytics disclosure and its historical privacy version 2026.10 remain unchanged. Terms and organization rules also remain 2026.10.
+- App Store category remains account-linked Product Interaction, App Functionality, no tracking, already present in the app privacy manifest. Verify the live App Store Connect answers before release; the manifest does not publish those answers. TestFlight notes must call out the new presence processing and link the updated privacy policy.
 
 ## Required-reason APIs
 

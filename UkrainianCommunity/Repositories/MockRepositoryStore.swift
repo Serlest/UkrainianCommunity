@@ -354,6 +354,7 @@ actor MockRepositoryStore {
     }
 
     func addNewsComment(newsID: String, text: String, author: AppUser) throws -> Comment {
+        guard let text = CommentTextPolicy.validated(text) else { throw AppError.validationFailed }
         guard let index = news.firstIndex(where: { $0.id == newsID }) else { throw AppError.notFound }
         let comment = Comment(
             id: UUID().uuidString,
@@ -362,7 +363,7 @@ actor MockRepositoryStore {
             authorId: author.id,
             authorName: author.commentDisplayName,
             authorPhotoURL: author.avatarURL?.absoluteString,
-            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            text: text,
             createdAt: .now
         )
         news[index].comments.upsertByID(comment)
@@ -635,6 +636,7 @@ actor MockRepositoryStore {
     }
 
     func addEventComment(eventID: String, text: String, author: AppUser) throws -> Comment {
+        guard let text = CommentTextPolicy.validated(text) else { throw AppError.validationFailed }
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { throw AppError.notFound }
         let comment = Comment(
             id: UUID().uuidString,
@@ -643,7 +645,7 @@ actor MockRepositoryStore {
             authorId: author.id,
             authorName: author.commentDisplayName,
             authorPhotoURL: author.avatarURL?.absoluteString,
-            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            text: text,
             createdAt: .now
         )
         events[index].comments.upsertByID(comment)
@@ -708,6 +710,7 @@ actor MockRepositoryStore {
     }
 
     func addOrganizationComment(organizationID: String, text: String, author: AppUser) throws -> Comment {
+        guard let text = CommentTextPolicy.validated(text) else { throw AppError.validationFailed }
         guard organizations.contains(where: { $0.id == organizationID }) else { throw AppError.notFound }
         let comment = Comment(
             id: UUID().uuidString,
@@ -716,7 +719,7 @@ actor MockRepositoryStore {
             authorId: author.id,
             authorName: author.commentDisplayName,
             authorPhotoURL: author.avatarURL?.absoluteString,
-            text: String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)),
+            text: text,
             createdAt: .now
         )
         organizationComments[organizationID, default: []].upsertByID(comment)

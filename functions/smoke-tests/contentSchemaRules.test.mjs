@@ -200,6 +200,18 @@ describe("strict client content schemas", () => {
     }));
   });
 
+  test("comment limits accept exact Unicode boundaries and reject overflow for every parent", async () => {
+    for (const [collection, parentType, parentId] of [["news", "news", "seed-news"], ["events", "event", "seed-event"], ["organizations", "organization", "org-1"]]) {
+      for (const [id, text, allowed] of [["plain", "a".repeat(1000), true], ["emoji", "😀".repeat(500), true], ["long", "a".repeat(1001), false], ["long-emoji", "😀".repeat(501), false], ["combining", "e\u0301".repeat(501), false]]) {
+        const operation = setDoc(doc(db("regular-user"), collection, parentId, "comments", id), {
+          id, parentType, parentId, authorId: "regular-user", authorName: "User", text, body: text,
+          createdAt: NOW, isDeleted: false, moderationStatus: "approved",
+        });
+        await (allowed ? assertSucceeds(operation) : assertFails(operation));
+      }
+    }
+  });
+
   test("comments require an exact parent, author, and mirrored body", async () => {
     const valid = {
       id: "comment-1",
@@ -311,6 +323,10 @@ describe("platform moderation and server-owned deletion", () => {
       "comments",
       "organization-comment"
     )));
+  });
+
+  test("app administrators can moderate organization comments without an organization role", async () => {
+    await assertSucceeds(deleteDoc(doc(db("app-admin"), "organizations", "org-1", "comments", "organization-comment")));
   });
 
   test("published comments are immutable", async () => {

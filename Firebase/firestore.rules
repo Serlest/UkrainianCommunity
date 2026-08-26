@@ -1442,10 +1442,11 @@ service cloud.firestore {
     }
 
     function organizationHasValidDirectoryProfile(data) {
+      let profile = data.get('directoryProfile', null);
       return !('directoryProfile' in data)
         || (
-          data.directoryProfile is map
-          && data.directoryProfile.keys().hasOnly([
+          profile is map
+          && profile.keys().hasOnly([
             'profileKind',
             'secondaryCategories',
             'serviceModes',
@@ -1460,30 +1461,28 @@ service cloud.firestore {
             'currentOfferURL',
             'currentOfferValidUntil'
           ])
-          && ('profileKind' in data.directoryProfile)
-          && data.directoryProfile.profileKind in ['community', 'business', 'restaurant', 'specialist', 'institution', 'mediaProject']
-          && (!('secondaryCategories' in data.directoryProfile)
-            || (data.directoryProfile.secondaryCategories is list
-              && data.directoryProfile.secondaryCategories.size() <= 2))
-          && (!('serviceModes' in data.directoryProfile)
-            || (data.directoryProfile.serviceModes is list
-              && data.directoryProfile.serviceModes.size() <= 5))
-          && (!('regularHours' in data.directoryProfile)
-            || (data.directoryProfile.regularHours is map
-              && data.directoryProfile.regularHours.keys().hasOnly(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])))
-          && (!('services' in data.directoryProfile)
-            || (data.directoryProfile.services is list
-              && data.directoryProfile.services.size() <= 8))
-          && (!('currentOfferValidUntil' in data.directoryProfile)
-            || data.directoryProfile.currentOfferValidUntil is timestamp)
+          && ('profileKind' in profile)
+          && profile.profileKind in ['community', 'business', 'restaurant', 'specialist', 'institution', 'mediaProject']
+          && (!('secondaryCategories' in profile)
+            || (profile.secondaryCategories is list
+              && profile.secondaryCategories.size() <= 2))
+          && (!('serviceModes' in profile)
+            || (profile.serviceModes is list
+              && profile.serviceModes.size() <= 5))
+          && (!('regularHours' in profile)
+            || (profile.regularHours is map
+              && profile.regularHours.keys().hasOnly(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])))
+          && (!('services' in profile)
+            || (profile.services is list
+              && profile.services.size() <= 8))
+          && (!('currentOfferValidUntil' in profile)
+            || profile.currentOfferValidUntil is timestamp)
         );
     }
 
     function safeOrganizationInfoUpdate(organizationId) {
       return canEditOrganizationInfo(organizationId)
         && organizationDocumentStructurallyValid(request.resource.data, organizationId)
-        && organizationHasValidRegionScope(request.resource.data)
-        && organizationHasValidDirectoryProfile(request.resource.data)
         && request.resource.data.moderationStatus == resource.data.moderationStatus
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationSafeInfoFields());
     }
@@ -1639,65 +1638,33 @@ service cloud.firestore {
         && organizationHasValidDirectoryProfile(data);
     }
 
-    function requestReviewMessageUnchanged() {
-      return (
-          !('reviewMessage' in resource.data)
-          && !('reviewMessage' in request.resource.data)
-        )
-        || (
-          ('reviewMessage' in resource.data)
-          && ('reviewMessage' in request.resource.data)
-          && request.resource.data.reviewMessage == resource.data.reviewMessage
+    function safeRequestReviewFieldsUpdate(before, after) {
+      return after.moderationStatus == before.moderationStatus
+        ? !after.diff(before).affectedKeys().hasAny(['reviewMessage', 'rejectionReason'])
+        : after.moderationStatus == 'pendingReview'
+          && before.moderationStatus in ['needsRevision', 'rejected']
+          && after.get('reviewMessage', null) == null
+          && after.get('rejectionReason', null) == null;
+    }
+
+    function safeOrganizationCreate(organizationId) {
+      let data = request.resource.data;
+      // Evaluate shared authentication, legal evidence and schema once. Trying
+      // the owner path and then the requester path exceeds the Rules expression
+      // budget for a fully populated directory profile with acceptance proof.
+      return isVerifiedActiveUser()
+        && hasValidOrganizationCreationProof(organizationId, data.name)
+        && organizationDocumentStructurallyValid(data, organizationId)
+        && (
+          data.moderationStatus == 'pendingReview'
+            ? data.submittedByUserId == request.auth.uid
+              && data.submittedAt is timestamp
+              && requestCountersAreZero(data)
+              && requestRolesAreEmpty(data)
+            : data.moderationStatus == 'approved'
+              && currentUserData().get('globalRole', '') == 'owner'
+              && aggregateCountersAreZeroOnCreate(data)
         );
-    }
-
-    function requestRejectionReasonUnchanged() {
-      return (
-          !('rejectionReason' in resource.data)
-          && !('rejectionReason' in request.resource.data)
-        )
-        || (
-          ('rejectionReason' in resource.data)
-          && ('rejectionReason' in request.resource.data)
-          && request.resource.data.rejectionReason == resource.data.rejectionReason
-        );
-    }
-
-    function requestReviewFieldsCleared() {
-      return (!('reviewMessage' in request.resource.data) || request.resource.data.reviewMessage == null)
-        && (!('rejectionReason' in request.resource.data) || request.resource.data.rejectionReason == null);
-    }
-
-    function safeRequestReviewFieldsUpdate() {
-      return (
-          request.resource.data.moderationStatus == resource.data.moderationStatus
-          && requestReviewMessageUnchanged()
-          && requestRejectionReasonUnchanged()
-        )
-        || (
-          request.resource.data.moderationStatus == 'pendingReview'
-          && resource.data.moderationStatus in ['needsRevision', 'rejected']
-          && requestReviewFieldsCleared()
-        );
-    }
-
-    function safeOrganizationRequestCreate(organizationId) {
-      return hasValidOrganizationCreationProof(organizationId, request.resource.data.name)
-        && organizationDocumentStructurallyValid(request.resource.data, organizationId)
-        && request.resource.data.moderationStatus == 'pendingReview'
-        && request.resource.data.submittedByUserId == request.auth.uid
-        && request.resource.data.submittedAt is timestamp
-        && requestCountersAreZero(request.resource.data)
-        && requestRolesAreEmpty(request.resource.data)
-        && isVerifiedActiveUser();
-    }
-
-    function safeOwnerOrganizationCreate(organizationId) {
-      return isOwner()
-        && hasValidOrganizationCreationProof(organizationId, request.resource.data.name)
-        && organizationDocumentStructurallyValid(request.resource.data, organizationId)
-        && request.resource.data.moderationStatus == 'approved'
-        && aggregateCountersAreZeroOnCreate(request.resource.data);
     }
 
     function hasValidOrganizationCreationProof(organizationId, organizationName) {
@@ -1727,18 +1694,20 @@ service cloud.firestore {
     }
 
     function safeOrganizationRequestUpdate() {
-      return organizationDocumentStructurallyValid(request.resource.data, resource.data.id)
-        && ('submittedByUserId' in resource.data)
-        && resource.data.submittedByUserId == request.auth.uid
-        && request.resource.data.submittedByUserId == resource.data.submittedByUserId
-        && requestCountersAreZero(resource.data)
-        && requestCountersAreZero(request.resource.data)
-        && requestRolesAreEmpty(resource.data)
-        && requestRolesAreEmpty(request.resource.data)
-        && resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
-        && request.resource.data.moderationStatus in ['pendingReview', resource.data.moderationStatus]
-        && safeRequestReviewFieldsUpdate()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(organizationRequestUpdateFields())
+      let before = resource.data;
+      let after = request.resource.data;
+      return organizationDocumentStructurallyValid(after, before.id)
+        && ('submittedByUserId' in before)
+        && before.submittedByUserId == request.auth.uid
+        && after.submittedByUserId == before.submittedByUserId
+        // Counters and roles cannot change (the diff whitelist below excludes
+        // them), so validating their resulting values also validates the old ones.
+        && requestCountersAreZero(after)
+        && requestRolesAreEmpty(after)
+        && before.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
+        && after.moderationStatus in ['pendingReview', before.moderationStatus]
+        && safeRequestReviewFieldsUpdate(before, after)
+        && after.diff(before).affectedKeys().hasOnly(organizationRequestUpdateFields())
         && isVerifiedActiveUser();
     }
 
@@ -2178,6 +2147,12 @@ service cloud.firestore {
 
       allow delete: if false;
 
+      // Presence is read/written only through authorized Cloud Functions.
+      // In particular, it is NOT readable by the account itself or organization staff.
+      match /privatePresence/{docId} {
+        allow read, write: if false;
+      }
+
       match /notificationPreferences/{docId} {
         allow read: if isSelf(uid) && docId == 'settings';
 
@@ -2417,8 +2392,7 @@ service cloud.firestore {
     match /organizations/{organizationId} {
       allow get: if canReadOrganization(organizationId);
       allow list: if canListOrganization();
-      allow create: if safeOwnerOrganizationCreate(organizationId)
-        || safeOrganizationRequestCreate(organizationId);
+      allow create: if safeOrganizationCreate(organizationId);
       allow delete: if false;
       allow update: if resource.data.moderationStatus in ['pendingReview', 'needsRevision', 'rejected']
         ? safeOrganizationRequestUpdate()

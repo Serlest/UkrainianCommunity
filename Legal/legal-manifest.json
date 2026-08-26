@@ -3,7 +3,10 @@
   "status": "published",
   "effectiveDate": "2026-08-25",
   "canonicalLocale": "de",
-  "supportedLocales": ["de", "uk"],
+  "supportedLocales": [
+    "de",
+    "uk"
+  ],
   "operator": {
     "displayName": "Timofeev Philipp",
     "legalNameOrEntity": "Timofeev Philipp",
@@ -27,15 +30,28 @@
   "documents": {
     "terms": {
       "requiresAcceptance": true,
-      "files": {"de": "Legal/terms.de.md", "uk": "Legal/terms.uk.md"}
+      "files": {
+        "de": "Legal/terms.de.md",
+        "uk": "Legal/terms.uk.md"
+      }
     },
     "privacy": {
       "requiresAcceptance": false,
-      "files": {"de": "Legal/privacy.de.md", "uk": "Legal/privacy.uk.md"}
+      "files": {
+        "de": "Legal/privacy.de.md",
+        "uk": "Legal/privacy.uk.md"
+      },
+      "version": "2026.11",
+      "effectiveDate": "2026-08-26",
+      "supersedesVersion": "2026.10",
+      "changeSummary": "Administrator-only online/last-seen disclosure; other processing and optional analytics unchanged."
     },
     "organizationRules": {
       "requiresAcceptance": true,
-      "files": {"de": "Legal/organization-rules.de.md", "uk": "Legal/organization-rules.uk.md"}
+      "files": {
+        "de": "Legal/organization-rules.de.md",
+        "uk": "Legal/organization-rules.uk.md"
+      }
     }
   },
   "unresolvedReleaseBlocks": [],

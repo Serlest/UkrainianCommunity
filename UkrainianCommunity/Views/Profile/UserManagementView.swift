@@ -1301,6 +1301,7 @@ private struct UserDetailView: View {
     @State private var pendingRoleRemoval: ManagedOrganization?
     @State private var pendingPlatformRoleAction: PlatformRoleAction?
     @State private var pendingOwnershipTransfer: PendingOwnershipTransfer?
+    @State private var presenceRefreshRevision = 0
     @FocusState private var focusedField: UserDetailFocusField?
 
     private var selectedOrganization: ManagedOrganization? {
@@ -1492,6 +1493,7 @@ private struct UserDetailView: View {
         baseScreen
             .contentShape(Rectangle())
             .refreshable {
+                presenceRefreshRevision += 1
                 await viewModel.refreshDetail(userID: userID, actor: actor)
                 ensureSelectedOrganization()
                 ensureSelectedRole()
@@ -1561,6 +1563,8 @@ private struct UserDetailView: View {
                 UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: user.telegramUsername ?? AppStrings.Common.notAvailable)
                 UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
                 UserManagementMetadataRow(systemImage: "calendar", title: AppStrings.UserManagement.joined, value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
+                ManagedUserPresenceView(userID: userID, actor: actor,
+                    refreshToken: "\(presenceRefreshRevision)|\(viewModel.mutationRevision)")
                 if let securityMetadata {
                     UserManagementMetadataRow(
                         systemImage: securityMetadata.emailVerified ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",

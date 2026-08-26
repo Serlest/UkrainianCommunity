@@ -3,116 +3,37 @@ import SwiftUI
 extension OrganizationDetailView {
     @ViewBuilder
     func commentsSection(for organization: Organization) -> some View {
-        DetailCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(AppStrings.Common.comments)
-                    .font(AppTheme.sectionTitleFont)
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-
-                commentComposer(parentID: organization.id)
-
-                let comments = viewModel.comments(for: organization.id)
-                if comments.isEmpty {
-                    Text(AppStrings.Common.noCommentsYet)
-                        .font(AppTheme.secondaryBodyFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(comments.enumerated()), id: \.element.id) { index, comment in
-                            commentRow(comment, organization: organization)
-
-                            if index < comments.count - 1 {
-                                Divider()
-                                    .padding(.vertical, AppTheme.eventsControlGroupSpacing)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        ContentCommentsSection(
+            comments: viewModel.comments(for: organization.id),
+            loadState: viewModel.commentLoadStates[organization.id] ?? .loading,
+            retry: { await viewModel.loadComments(for: organization.id, forceRefresh: true) },
+            composer: { commentComposer(parentID: organization.id) },
+            row: { comment in commentRow(comment, organization: organization) }
+        )
     }
 
     func commentComposer(parentID: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if authState.isAuthenticated {
-                HStack(alignment: .bottom, spacing: 8) {
-                    TextField(AppStrings.Common.commentInputPlaceholder, text: $commentText, axis: .vertical)
-                        .focused($isCommentFieldFocused)
-                        .lineLimit(1...4)
-                        .textInputAutocapitalization(.sentences)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                        )
-
-                    Button {
-                        submitComment(parentID: parentID)
-                    } label: {
-                        Image(systemName: "paperplane.fill")
-                            .font(AppTheme.buttonLabelFont)
-                            .foregroundStyle(.white)
-                            .frame(
-                                width: AppTheme.minimumInteractiveTarget,
-                                height: AppTheme.minimumInteractiveTarget
-                            )
-                            .background(AppTheme.accentPrimary, in: Circle())
-                    }
-                    .disabled(trimmedCommentText.isEmpty || viewModel.pendingOrganizationCommentIDs.contains(parentID))
-                    .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
-                    .accessibilityLabel(AppStrings.Action.send)
-                }
-
-                Text("\(commentText.count)/1000")
-                    .font(AppTheme.metadataFont)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            } else {
-                Button {
-                    guestAccessAction = .comments
-                } label: {
-                    Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
-                        .font(AppTheme.metadataStrongFont)
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-                }
-                .buttonStyle(.plain)
+        let author = authState.user
+        return ContentCommentComposer(
+            accountID: authState.isAuthenticated ? authState.user?.id : nil,
+            canComment: PermissionService.isUsableAccount(user: authState.user),
+            isPending: viewModel.pendingOrganizationCommentIDs.contains(parentID),
+            focus: $isCommentFieldFocused,
+            signIn: { guestAccessAction = .comments },
+            send: { text in
+                guard let user = author, authState.user?.id == user.id else { return .failure(.permissionDenied) }
+                return await viewModel.addComment(to: parentID, text: text, author: user)
             }
-        }
+        )
+        .id(parentID)
     }
 
     func commentRow(_ comment: Comment, organization: Organization) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            commentAvatar(comment)
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Text(sanitizedAuthorName(comment.authorName))
-                        .font(AppTheme.cardTitleFont)
-                        .foregroundStyle(AppTheme.textPrimary)
-
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                    Text(LocalizationStore.dateString(from: comment.createdAt, dateStyle: .short, timeStyle: .short))
-                        .font(AppTheme.metadataFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-
-                    if canDeleteComment(comment, organization: organization) || canReportComment(comment) || canBlockComment(comment) {
-                        commentActionMenu(for: comment, organization: organization)
-                    }
-                }
-
-                Text(comment.text)
-                    .font(AppTheme.cardSubtitleFont)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
+        ContentCommentRow(comment: comment) {
+            if canDeleteComment(comment, organization: organization) || canReportComment(comment) || canBlockComment(comment) {
+                commentActionMenu(for: comment, organization: organization)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     func commentActionMenu(for comment: Comment, organization: Organization) -> some View {
@@ -123,7 +44,7 @@ extension OrganizationDetailView {
                 }
             }
             if canReportComment(comment),
-               let target = ContentReportTarget.comment(comment, parentTitle: organization.name) {
+               let target = ContentReportTarget.comment(comment, parentTitle: organization.name, parentType: .organization, parentId: organization.id) {
                 Button(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble") {
                     presentContentReport(target)
                 }
@@ -157,50 +78,12 @@ extension OrganizationDetailView {
         authState.isAuthenticated && comment.authorId != nil && comment.authorId != authState.user?.id
     }
 
-    var trimmedCommentText: String {
-        commentText.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    func submitComment(parentID: String) {
-        guard let user = authState.user else {
-            guestAccessAction = .comments
-            return
-        }
-        let text = String(trimmedCommentText.prefix(1000))
-        guard !text.isEmpty else { return }
-        Task {
-            await viewModel.addComment(to: parentID, text: text, author: user)
-            await MainActor.run {
-                commentText = ""
-                isCommentFieldFocused = false
-            }
-        }
-    }
-
     @MainActor
     func deleteComment(commentID: String) async {
-        await viewModel.deleteComment(organizationID: organizationID, commentID: commentID)
         pendingCommentDeleteID = nil
-    }
-
-    func commentAvatar(_ comment: Comment) -> some View {
-        let avatarURL = comment.authorPhotoURL.flatMap { URL(string: $0) }
-        return AvatarArtworkView(
-            avatarURL: avatarURL,
-            initials: commentInitials(comment),
-            size: 32,
-            showsBorder: false,
-            shadowOpacity: 0,
-            shadowRadius: 0,
-            shadowY: 0,
-            initialsFont: .caption.weight(.bold),
-            placeholderFill: AppTheme.accentPrimarySoft
-        )
-    }
-
-    func commentInitials(_ comment: Comment) -> String {
-        let name = sanitizedAuthorName(comment.authorName)
-        return String(name.prefix(1)).uppercased()
+        if case .failure(let error) = await viewModel.deleteComment(organizationID: organizationID, commentID: commentID) {
+            commentDeleteErrorMessage = readableOrganizationErrorText(error)
+        }
     }
 
     func sanitizedAuthorName(_ authorName: String) -> String {
@@ -210,6 +93,6 @@ extension OrganizationDetailView {
 
     func canDeleteComment(_ comment: Comment, organization: Organization) -> Bool {
         guard let user = authState.user else { return false }
-        return PermissionService.canModerateOrganizationContent(organization, user: user)
+        return PermissionService.canModerateOrganizationComments(organization, user: user)
     }
 }

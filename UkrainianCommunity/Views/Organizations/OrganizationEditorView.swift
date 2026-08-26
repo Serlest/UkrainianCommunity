@@ -31,7 +31,6 @@ struct OrganizationEditorView: View {
     let compactInputHeight: CGFloat = 40
     let summaryInputHeight: CGFloat = 78
     let summaryTextHeight: CGFloat = 60
-    let uploadMinHeight: CGFloat = 124
 
     init(
         organizationsViewModel: OrganizationsViewModel,

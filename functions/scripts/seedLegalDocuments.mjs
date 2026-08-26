@@ -10,13 +10,12 @@ const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
 const manifest = JSON.parse(
   readFileSync(new URL("../../Legal/legal-manifest.json", import.meta.url), "utf8"),
 );
-const VERSION = manifest.version;
-const VERSION_NUMBER = Number(VERSION.replace(".", ""));
 const STATUS = "published";
 const DEFAULT_LOCALE = manifest.canonicalLocale;
 const CANONICAL_LOCALE = manifest.canonicalLocale;
 const SEED_ACTOR = "legal-seed-script";
-const CHANGE_SUMMARY = `Publication of reviewed legal documents ${VERSION}.`;
+const documentVersion = (type) => manifest.documents[type].version ?? manifest.version;
+const documentVersionNumber = (type) => Number(documentVersion(type).replace(".", ""));
 
 const rawArgs = process.argv.slice(2);
 const args = new Set(rawArgs);
@@ -76,6 +75,9 @@ function sha256(value) {
 }
 
 function buildPayload(document) {
+  const VERSION = documentVersion(document.type);
+  const VERSION_NUMBER = documentVersionNumber(document.type);
+  const CHANGE_SUMMARY = manifest.documents[document.type].changeSummary ?? `Publication of legal documents ${VERSION}.`;
   const contentHash = sha256(
     Object.keys(document.locales)
       .sort()
@@ -121,7 +123,7 @@ function buildPayload(document) {
     updatedBy: SEED_ACTOR,
     publishedAt: FieldValue.serverTimestamp(),
     publishedBy: SEED_ACTOR,
-    supersedesVersion: null,
+    supersedesVersion: manifest.documents[document.type].supersedesVersion ?? null,
   };
   return {pointer, version};
 }
@@ -167,7 +169,7 @@ function initializeFirestore() {
 function pathsFor(documentType) {
   return {
     pointer: `legalDocuments/${documentType}`,
-    version: `legalDocuments/${documentType}/versions/${VERSION}`,
+    version: `legalDocuments/${documentType}/versions/${documentVersion(documentType)}`,
   };
 }
 
@@ -196,6 +198,8 @@ async function verifySeed(db) {
     ]);
     const pointerData = pointerSnapshot.data();
     const versionData = versionSnapshot.data();
+    const VERSION = documentVersion(document.type);
+    const VERSION_NUMBER = documentVersionNumber(document.type);
     const matches = pointerSnapshot.exists &&
       versionSnapshot.exists &&
       pointerData.activeVersion === VERSION &&

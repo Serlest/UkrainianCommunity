@@ -19,7 +19,6 @@ struct NewsDetailView: View {
     @State var pendingRemovalPostID: String?
     @State var guestAccessAction: GuestAccessAction?
     @State var recordedViewKeys = Set<String>()
-    @State var commentText = ""
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var permissionOrganization: Organization?
@@ -261,8 +260,7 @@ struct NewsDetailView: View {
     @MainActor
     func deleteComment(commentID: String) async {
         pendingCommentDeleteID = nil
-        await viewModel.deleteComment(postID: postID, commentID: commentID)
-        if let error = viewModel.error {
+        if case .failure(let error) = await viewModel.deleteComment(postID: postID, commentID: commentID) {
             commentDeleteErrorMessage = readableNewsErrorText(error)
         }
     }

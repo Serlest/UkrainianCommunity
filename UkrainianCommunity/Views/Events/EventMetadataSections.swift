@@ -505,104 +505,35 @@ extension EventDetailView {
         }
 
         func commentsCard(for event: Event) -> some View {
-            DetailCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(AppStrings.Common.comments)
-                        .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-
-                    eventCommentComposer(eventID: event.id)
-
-                    if event.comments.isEmpty {
-                        Text(AppStrings.Common.noCommentsYet)
-                            .font(AppTheme.cardSubtitleFont)
-                            .foregroundStyle(AppTheme.textSecondary)
-                    } else {
-                        ForEach(event.comments) { comment in
-                            eventCommentRow(comment, parentTitle: event.title)
-                                .padding(.vertical, AppTheme.eventsCardContentSpacing)
-                        }
-                    }
-                }
-            }
+            ContentCommentsSection(
+                comments: event.comments,
+                loadState: viewModel.commentLoadStates[event.id] ?? .loading,
+                retry: { await viewModel.loadComments(for: event.id, forceRefresh: true) },
+                composer: { eventCommentComposer(eventID: event.id) },
+                row: { comment in eventCommentRow(comment, parentTitle: event.title) }
+            )
         }
 
         func eventCommentComposer(eventID: String) -> some View {
-            VStack(alignment: .leading, spacing: 8) {
-                if authState.isAuthenticated {
-                    HStack(alignment: .bottom, spacing: 8) {
-                        TextField(AppStrings.Common.commentInputPlaceholder, text: $commentText, axis: .vertical)
-                            .focused($isCommentFieldFocused)
-                            .lineLimit(1...4)
-                            .textInputAutocapitalization(.sentences)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-                            )
-
-                        Button {
-                            submitEventComment(eventID: eventID)
-                        } label: {
-                            Image(systemName: "paperplane.fill")
-                                .font(AppTheme.sectionTitleFont)
-                                .foregroundStyle(.white)
-                                .frame(
-                                    width: AppTheme.minimumInteractiveTarget,
-                                    height: AppTheme.minimumInteractiveTarget
-                                )
-                                .background(AppTheme.accentPrimary, in: Circle())
-                        }
-                        .disabled(trimmedCommentText.isEmpty || viewModel.pendingEventCommentIDs.contains(eventID))
-                        .opacity(trimmedCommentText.isEmpty ? 0.55 : 1)
-                        .accessibilityLabel(AppStrings.Action.send)
-                    }
-
-                    Text("\(commentText.count)/1000")
-                        .font(AppTheme.metadataFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                } else {
-                    Button {
-                        guestAccessAction = .comments
-                    } label: {
-                        Label(AppStrings.Common.signInToComment, systemImage: "person.crop.circle.badge.plus")
-                            .font(AppTheme.metadataStrongFont)
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    }
-                    .buttonStyle(.plain)
+            let author = authState.user
+            return ContentCommentComposer(
+                accountID: authState.isAuthenticated ? authState.user?.id : nil,
+                canComment: PermissionService.isUsableAccount(user: authState.user),
+                isPending: viewModel.pendingEventCommentIDs.contains(eventID),
+                focus: $isCommentFieldFocused,
+                signIn: { guestAccessAction = .comments },
+                send: { text in
+                    guard let user = author, authState.user?.id == user.id else { return .failure(.permissionDenied) }
+                    return await viewModel.addComment(to: eventID, text: text, author: user)
                 }
-            }
+            )
+            .id(eventID)
         }
 
         func eventCommentRow(_ comment: Comment, parentTitle: String) -> some View {
-            HStack(alignment: .top, spacing: 10) {
-                eventCommentAvatar(comment)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                        Text(sanitizedEventCommentAuthorName(comment.authorName))
-                            .font(AppTheme.buttonLabelFont)
-                            .foregroundStyle(AppTheme.textPrimary)
-
-                        Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                        Text(LocalizationStore.dateString(from: comment.createdAt, dateStyle: .short, timeStyle: .short))
-                            .font(AppTheme.metadataFont)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .lineLimit(1)
-
-                        if canDeleteComment(comment) || canReportComment(comment) || canBlockComment(comment) {
-                            eventCommentActionMenu(for: comment, parentTitle: parentTitle)
-                        }
-                    }
-
-                    Text(comment.text)
-                        .font(AppTheme.secondaryBodyFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            ContentCommentRow(comment: comment) {
+                if canDeleteComment(comment) || canReportComment(comment) || canBlockComment(comment) {
+                    eventCommentActionMenu(for: comment, parentTitle: parentTitle)
                 }
             }
         }
@@ -615,7 +546,7 @@ extension EventDetailView {
                     }
                 }
                 if canReportComment(comment),
-                   let target = ContentReportTarget.comment(comment, parentTitle: parentTitle) {
+                   let target = ContentReportTarget.comment(comment, parentTitle: parentTitle, parentType: .event, parentId: eventID) {
                     Button(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble") {
                         presentContentReport(target)
                     }
@@ -685,26 +616,6 @@ extension EventDetailView {
             .accessibilityLabel(title)
         }
 
-        var trimmedCommentText: String {
-            commentText.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        func submitEventComment(eventID: String) {
-            guard let user = authState.user else {
-                guestAccessAction = .comments
-                return
-            }
-            let text = String(trimmedCommentText.prefix(1000))
-            guard !text.isEmpty else { return }
-            Task {
-                await viewModel.addComment(to: eventID, text: text, author: user)
-                await MainActor.run {
-                    commentText = ""
-                    isCommentFieldFocused = false
-                }
-            }
-        }
-
         func canDeleteComment(_ comment: Comment) -> Bool {
             guard let user = authState.user else { return false }
             if PermissionService.canModerate(section: .comments, user: user) || PermissionService.canModerate(section: .events, user: user) {
@@ -717,26 +628,6 @@ extension EventDetailView {
                 return PermissionService.canModerateOrganizationContent(organization, user: user)
             }
             return false
-        }
-
-        func eventCommentAvatar(_ comment: Comment) -> some View {
-            let avatarURL = comment.authorPhotoURL.flatMap { URL(string: $0) }
-            return AvatarArtworkView(
-                avatarURL: avatarURL,
-                initials: eventCommentInitials(comment),
-                size: 32,
-                showsBorder: false,
-                shadowOpacity: 0,
-                shadowRadius: 0,
-                shadowY: 0,
-                initialsFont: AppTheme.badgeFont,
-                placeholderFill: AppTheme.accentPrimarySoft
-            )
-        }
-
-        func eventCommentInitials(_ comment: Comment) -> String {
-            let name = sanitizedEventCommentAuthorName(comment.authorName)
-            return String(name.prefix(1)).uppercased()
         }
 
     struct EventSimilarCard: View {

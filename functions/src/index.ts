@@ -40,6 +40,7 @@ export * from "./users/accountStatusManagement";
 export * from "./users/accountDeletion";
 export * from "./users/platformRoleManagement";
 export * from "./users/userManagementQueries";
+export {updateUserPresence, getManagedUserPresence} from "./users/userPresence";
 
 type FeedbackData = {
   id?: string;

@@ -13,6 +13,7 @@ final class NewsViewModel: ObservableObject {
     @Published private(set) var pendingNewsLikeIDs = Set<String>()
     @Published private(set) var pendingNewsBookmarkIDs = Set<String>()
     @Published private(set) var pendingNewsViewIDs = Set<String>()
+    @Published private(set) var commentLoadStates: [String: CommentLoadState] = [:]
     @Published private(set) var pendingNewsCommentIDs = Set<String>()
     private let repository: NewsRepository
     private let analyticsService: AnalyticsTracking
@@ -85,6 +86,7 @@ final class NewsViewModel: ObservableObject {
         pendingNewsBookmarkIDs = []
         pendingNewsViewIDs = []
         pendingNewsCommentIDs = []
+        commentLoadStates = [:]
         trackedNewsViewIDs = []
         listenerBag.removeAll()
         hasLoaded = false
@@ -306,6 +308,9 @@ final class NewsViewModel: ObservableObject {
 
     func loadComments(for postID: String, forceRefresh: Bool = false) async {
         let generation = authGeneration
+        if forceRefresh || !listenerBag.contains("newsComments:\(postID)") {
+            commentLoadStates[postID] = .loading
+        }
         startListeningComments(for: postID)
         guard forceRefresh || !(repository is NewsRealtimeRepository) else { return }
         guard posts.contains(where: { $0.id == postID }) else { return }
@@ -317,13 +322,17 @@ final class NewsViewModel: ObservableObject {
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             posts[currentIndex].comments = visibleComments
             posts[currentIndex].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            commentLoadStates[postID] = .loaded
             error = nil
         } catch let appError as AppError {
             guard isCurrentAuthGeneration(generation) else { return }
+            commentLoadStates[postID] = .failed(appError)
             error = appError
         } catch {
             guard isCurrentAuthGeneration(generation) else { return }
-            self.error = .unknown
+            let mapped = CommentErrorMapper.map(error)
+            commentLoadStates[postID] = .failed(mapped)
+            self.error = mapped
         }
     }
 
@@ -344,10 +353,12 @@ final class NewsViewModel: ObservableObject {
             let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             self.posts[index].comments = visibleComments
             self.posts[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            self.commentLoadStates[postID] = .loaded
             self.error = nil
         } onError: { [weak self] appError in
             guard let self, self.isCurrentAuthGeneration(generation) else { return }
             self.listenerBag.remove(key)
+            self.commentLoadStates[postID] = .failed(appError)
             self.error = appError
             #if DEBUG
             print("Realtime listener failed: purpose=newsComments key=\(key) error=\(appError)")
@@ -355,9 +366,11 @@ final class NewsViewModel: ObservableObject {
         }, for: key)
     }
 
-    func addComment(to postID: String, text: String, author: AppUser) async {
-        guard posts.contains(where: { $0.id == postID }) else { return }
-        guard !pendingNewsCommentIDs.contains(postID) else { return }
+    @discardableResult
+    func addComment(to postID: String, text: String, author: AppUser) async -> CommentMutationResult {
+        guard posts.contains(where: { $0.id == postID }) else { return .ignored }
+        guard !pendingNewsCommentIDs.contains(postID) else { return .ignored }
+        guard let text = CommentTextPolicy.validated(text) else { return .failure(.validationFailed) }
         let generation = authGeneration
         pendingNewsCommentIDs.insert(postID)
         defer {
@@ -369,16 +382,16 @@ final class NewsViewModel: ObservableObject {
         do {
             let comment = try await repository.addNewsComment(newsID: postID, text: text, author: author)
             guard isCurrentAuthGeneration(generation),
-                  let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
+                  let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return .ignored }
             posts[currentIndex].comments.upsertCommentByID(comment)
             posts[currentIndex].commentCount = posts[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
-        } catch let appError as AppError {
-            guard isCurrentAuthGeneration(generation) else { return }
-            error = appError
+            return .success
         } catch {
-            guard isCurrentAuthGeneration(generation) else { return }
-            self.error = .unknown
+            guard isCurrentAuthGeneration(generation) else { return .ignored }
+            let mapped = CommentErrorMapper.map(error)
+            self.error = mapped
+            return .failure(mapped)
         }
     }
 
@@ -414,10 +427,11 @@ final class NewsViewModel: ObservableObject {
         }
     }
 
-    func deleteComment(postID: String, commentID: String) async {
-        guard posts.contains(where: { $0.id == postID }) else { return }
+    @discardableResult
+    func deleteComment(postID: String, commentID: String) async -> CommentMutationResult {
+        guard posts.contains(where: { $0.id == postID }) else { return .ignored }
         let pendingID = "\(postID)_\(commentID)"
-        guard !pendingNewsCommentIDs.contains(pendingID) else { return }
+        guard !pendingNewsCommentIDs.contains(pendingID) else { return .ignored }
         let generation = authGeneration
         pendingNewsCommentIDs.insert(pendingID)
         defer {
@@ -429,16 +443,16 @@ final class NewsViewModel: ObservableObject {
         do {
             try await repository.deleteNewsComment(newsID: postID, commentID: commentID)
             guard isCurrentAuthGeneration(generation),
-                  let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
+                  let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return .ignored }
             posts[currentIndex].comments.removeAll { $0.id == commentID }
             posts[currentIndex].commentCount = posts[currentIndex].comments.filter { !$0.isDeleted }.count
             error = nil
-        } catch let appError as AppError {
-            guard isCurrentAuthGeneration(generation) else { return }
-            error = appError
+            return .success
         } catch {
-            guard isCurrentAuthGeneration(generation) else { return }
-            self.error = .unknown
+            guard isCurrentAuthGeneration(generation) else { return .ignored }
+            let mapped = CommentErrorMapper.map(error)
+            self.error = mapped
+            return .failure(mapped)
         }
     }
 

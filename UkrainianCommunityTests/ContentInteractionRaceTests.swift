@@ -4,6 +4,102 @@ import Testing
 
 @MainActor
 struct ContentInteractionRaceTests {
+    @Test func commentDraftSurvivesFailureAndClearsOnlyAfterSuccess() async {
+        let state = CommentComposerState()
+        state.text = "  My comment  "
+        #expect(!(await state.submit { _ in .failure(.network) }))
+        #expect(state.text == "  My comment  ")
+        #expect(state.error == .network)
+        #expect(!state.isSending)
+        var submitted = ""
+        let cleared = await state.submit { text in
+            submitted = text
+            return .success
+        }
+        #expect(cleared)
+        #expect(submitted == "My comment")
+        #expect(state.text.isEmpty)
+        #expect(state.error == nil)
+    }
+
+    @Test func commentDraftPreservesNewTypingAndRejectsDuplicateSends() async {
+        let state = CommentComposerState()
+        state.text = "First message"
+        var completion: CheckedContinuation<CommentMutationResult, Never>?
+        let task = Task { await state.submit { _ in await withCheckedContinuation { completion = $0 } } }
+        #expect(await eventually { completion != nil })
+        #expect(!(await state.submit { _ in Issue.record("Duplicate send"); return .success }))
+        state.text = "Next message"
+        completion?.resume(returning: .success)
+        #expect(!(await task.value))
+        #expect(state.text == "Next message")
+    }
+
+    @Test func oldCommentSendCannotClearAnotherAccountsDraft() async {
+        let state = CommentComposerState()
+        state.text = "Account A"
+        var completion: CheckedContinuation<CommentMutationResult, Never>?
+        let task = Task { await state.submit { _ in await withCheckedContinuation { completion = $0 } } }
+        #expect(await eventually { completion != nil })
+        state.reset()
+        state.text = "Account B"
+        completion?.resume(returning: .success)
+        _ = await task.value
+        #expect(state.text == "Account B")
+        #expect(!state.isSending)
+    }
+
+    @Test func commentLengthMatchesFirestoreWithoutSilentTruncation() {
+        #expect(CommentTextPolicy.validated("  \n ") == nil)
+        #expect(CommentTextPolicy.validated(String(repeating: "a", count: 1000)) != nil)
+        #expect(CommentTextPolicy.validated(String(repeating: "a", count: 1001)) == nil)
+        #expect(CommentTextPolicy.validated(String(repeating: "😀", count: 500)) != nil)
+        #expect(CommentTextPolicy.validated(String(repeating: "😀", count: 501)) == nil)
+        #expect(CommentTextPolicy.length("e\u{0301}") == 2)
+        #expect(CommentTextPolicy.validated("  hello  ") == "hello")
+    }
+
+    @Test func newsAndOrganizationCommentFailuresAreNotEmptyOrSuccessful() async {
+        let newsRepository = ControlledNewsRepository()
+        let organizationRepository = ControlledOrganizationRepository()
+        let news = NewsViewModel(repository: newsRepository)
+        let organizations = OrganizationsViewModel(repository: organizationRepository)
+        news.posts = [makeNewsPost(id: "news")]
+        newsRepository.commentFailure = .network
+        organizationRepository.commentFailure = .permissionDenied
+        await news.loadComments(for: "news")
+        await organizations.loadComments(for: "org")
+        #expect(news.commentLoadStates["news"] == .failed(.network))
+        #expect(organizations.commentLoadStates["org"] == .failed(.permissionDenied))
+        #expect(await news.addComment(to: "news", text: "Keep this", author: MockContentBuilder.currentUser()) == .failure(.network))
+        #expect(await organizations.addComment(to: "org", text: "Keep this", author: MockContentBuilder.currentUser()) == .failure(.permissionDenied))
+        #expect(await organizations.deleteComment(organizationID: "org", commentID: "comment") == .failure(.permissionDenied))
+        #expect(news.pendingNewsCommentIDs.isEmpty)
+        #expect(organizations.pendingOrganizationCommentIDs.isEmpty)
+        newsRepository.commentFailure = nil
+        organizationRepository.commentFailure = nil
+        await news.loadComments(for: "news", forceRefresh: true)
+        await organizations.loadComments(for: "org", forceRefresh: true)
+        #expect(news.commentLoadStates["news"] == .loaded)
+        #expect(organizations.commentLoadStates["org"] == .loaded)
+        #expect(await news.addComment(to: "news", text: "Posted", author: MockContentBuilder.currentUser()) == .success)
+        #expect(await organizations.addComment(to: "org", text: "Posted", author: MockContentBuilder.currentUser()) == .success)
+    }
+
+    @Test func organizationCommentModerationMatchesPlatformAndOrganizationRoles() {
+        let organization = makeOrganization(id: "org")
+        func user(_ role: GlobalRole, block: UserBlockState = .active) -> AppUser {
+            AppUser(id: "unrelated-user", fullName: "User", city: "", email: "", bio: "",
+                    role: .user, globalRole: role, blockState: block, createdAt: .now, updatedAt: .now)
+        }
+        #expect(PermissionService.canModerateOrganizationComments(organization, user: user(.admin)))
+        #expect(PermissionService.canModerateOrganizationComments(organization, user: user(.owner)))
+        #expect(!PermissionService.canModerateOrganizationComments(organization, user: user(.user)))
+        #expect(!PermissionService.canModerateOrganizationComments(organization, user: user(.admin, block: .bannedPermanent)))
+        #expect(!PermissionService.canModerateOrganizationComments(organization, user: nil))
+    }
+
+
     @Test func newsLikeRejectsTwoSynchronousInvocations() async {
         let repository = ControlledNewsRepository()
         let viewModel = NewsViewModel(repository: repository)
@@ -183,7 +279,7 @@ struct ContentInteractionRaceTests {
         )]
         await viewModel.refresh()
         repository.completeCommentDeleteRequest(1)
-        await deletionTask.value
+        _ = await deletionTask.value
 
         #expect(viewModel.post(for: contentID)?.comments.map(\.id) == [remainingComment.id])
         #expect(viewModel.post(for: contentID)?.commentCount == 1)
@@ -410,6 +506,8 @@ struct ContentInteractionRaceTests {
 
 @MainActor
 private final class ControlledNewsRepository: NewsRepository {
+    var commentFailure: AppError?
+
     var news: [NewsPost] = []
     private(set) var likeRequestCount = 0
     private(set) var completedLikeRequestCount = 0
@@ -445,9 +543,13 @@ private final class ControlledNewsRepository: NewsRepository {
             viewContinuations[requestNumber] = continuation
         }
     }
-    func fetchNewsComments(newsID: String) async throws -> [UkrainianCommunity.Comment] { [] }
+    func fetchNewsComments(newsID: String) async throws -> [UkrainianCommunity.Comment] {
+        if let commentFailure { throw commentFailure }
+        return []
+    }
     func addNewsComment(newsID: String, text: String, author: AppUser) async throws -> UkrainianCommunity.Comment {
-        UkrainianCommunity.Comment(id: UUID().uuidString, authorName: author.preferredDisplayName, body: text, createdAt: .now)
+        if let commentFailure { throw commentFailure }
+        return UkrainianCommunity.Comment(id: UUID().uuidString, authorName: author.preferredDisplayName, body: text, createdAt: .now)
     }
     func updateNewsComment(newsID: String, commentID: String, text: String) async throws -> UkrainianCommunity.Comment {
         UkrainianCommunity.Comment(id: commentID, authorName: "Author", body: text, createdAt: .now)
@@ -535,6 +637,8 @@ private final class ControlledNewsRepository: NewsRepository {
 
 @MainActor
 private final class ControlledOrganizationRepository: OrganizationRepository {
+    var commentFailure: AppError?
+
     var organizations: [Organization] = []
     private(set) var likeRequestCount = 0
     private(set) var completedLikeRequestCount = 0
@@ -583,14 +687,20 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
         OrganizationSubscriberPage(items: [], nextCursor: nil, hasMore: false)
     }
     func fetchPublicUserProfiles(userIDs: [String]) async throws -> [PublicUserProfile] { [] }
-    func fetchOrganizationComments(organizationID: String) async throws -> [UkrainianCommunity.Comment] { [] }
+    func fetchOrganizationComments(organizationID: String) async throws -> [UkrainianCommunity.Comment] {
+        if let commentFailure { throw commentFailure }
+        return []
+    }
     func addOrganizationComment(organizationID: String, text: String, author: AppUser) async throws -> UkrainianCommunity.Comment {
-        UkrainianCommunity.Comment(id: UUID().uuidString, authorName: author.preferredDisplayName, body: text, createdAt: .now)
+        if let commentFailure { throw commentFailure }
+        return UkrainianCommunity.Comment(id: UUID().uuidString, authorName: author.preferredDisplayName, body: text, createdAt: .now)
     }
     func updateOrganizationComment(organizationID: String, commentID: String, text: String) async throws -> UkrainianCommunity.Comment {
         UkrainianCommunity.Comment(id: commentID, authorName: "Author", body: text, createdAt: .now)
     }
-    func deleteOrganizationComment(organizationID: String, commentID: String) async throws {}
+    func deleteOrganizationComment(organizationID: String, commentID: String) async throws {
+        if let commentFailure { throw commentFailure }
+    }
     func bookmarkOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {}
     func unbookmarkOrganization(id: String) async throws {}
     func isOrganizationBookmarked(id: String) async throws -> Bool { false }

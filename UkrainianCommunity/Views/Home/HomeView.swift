@@ -275,6 +275,7 @@ struct HomeView: View {
                     HomeFeedCard(item: item)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("home.card.\(item.id)")
             }
         }
     }

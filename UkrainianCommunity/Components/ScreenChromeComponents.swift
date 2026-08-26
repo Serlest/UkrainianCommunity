@@ -694,6 +694,7 @@ enum EditorScreenCloseStyle {
 /// Editors should not use app-logo headers. Choose `.cancel` for modal/sheet
 /// editors and `.back` for pushed editors during each screen migration.
 struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingContent: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.dismiss) private var dismiss
     let title: String
     let subtitle: String?
@@ -730,18 +731,25 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                 .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                editorHeader
-                    .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
-                    .padding(.top, AppTheme.editorScreenTopPadding)
-                    .padding(.bottom, AppTheme.editorScreenContentSpacing)
-                    .appCenteredContent()
+                if !dynamicTypeSize.isAccessibilitySize {
+                    paddedEditorHeader
+                }
 
                 ScrollView(.vertical, showsIndicators: true) {
-                    content
+                    VStack(alignment: .leading, spacing: 0) {
+                        // At accessibility sizes a fixed title/subtitle can consume
+                        // the whole viewport and make the form unreachable.
+                        if dynamicTypeSize.isAccessibilitySize {
+                            paddedEditorHeader
+                        }
+                        VStack(alignment: .leading, spacing: AppTheme.editorScreenContentSpacing) {
+                            content
+                        }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
                         .padding(.bottom, AppTheme.editorScreenBottomPadding)
                         .appCenteredContent()
+                    }
                 }
             }
 
@@ -758,6 +766,14 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
         .toolbar(tabBarHidden ? .hidden : .visible, for: .tabBar)
         .scrollDismissesKeyboard(.interactively)
         .observesKeyboardDismissTaps()
+    }
+
+    private var paddedEditorHeader: some View {
+        editorHeader
+            .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
+            .padding(.top, AppTheme.editorScreenTopPadding)
+            .padding(.bottom, AppTheme.editorScreenContentSpacing)
+            .appCenteredContent()
     }
 
     private var editorHeader: some View {

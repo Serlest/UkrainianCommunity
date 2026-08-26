@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.10 · Veröffentlicht am 25. August 2026 · Gültig ab 25. August 2026
+Version 2026.11 · Veröffentlicht am 26. August 2026 · Gültig ab 26. August 2026
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -126,3 +126,15 @@ Diese Erklärung wird bei Änderungen von Funktionen, Datenflüssen, Empfängern
 ## 17. Quellen der Daten
 
 Daten stammen überwiegend direkt von der betroffenen Person, aus ihren App-Handlungen oder vom Gerät/Firebase-Dienst während des Betriebs. Rollen- und Organisationsdaten können von einer berechtigten Organisation oder einem Administrator stammen. Meldungen können Angaben Dritter enthalten. Bei nicht direkt erhobenen Daten informieren wir nach Art. 14 DSGVO, soweit keine gesetzliche Ausnahme greift.
+
+## 18. Administrativer Online-Status und letzte Aktivität
+
+Ab App-Version 1.0, Build 32, übermittelt die App für angemeldete aktive Konten im Vordergrund ungefähr alle 30 Sekunden sowie bei Zustandswechseln ein minimales Anwesenheitssignal. Es enthält die Konto-ID, eine zufällige Sitzungskennung, eine laufende Nummer und den Aktivstatus; der Server setzt den Zeitpunkt. „Online“ und „zuletzt online“ sind von der letzten Anmeldung bei Firebase Authentication getrennt. Ohne weitere Bestätigung läuft „Online“ nach höchstens 90 Sekunden ab. Die Anzeige ist eine Annäherung und kein Nachweis genauer Anwesenheits- oder Abmeldezeiten.
+
+Nur der Plattforminhaber und berechtigte Plattformadministratoren mit aktivem, verifiziertem Konto können den abgeleiteten Status und den letzten bestätigten Zeitpunkt in der Benutzerverwaltung sehen. Andere Nutzer sowie Inhaber, Administratoren oder Moderatoren einzelner Organisationen erhalten dadurch keinen Zugriff. Zweck ist die Unterstützung bei aktuellen Konto- und Verbindungsproblemen sowie die nachvollziehbare Verwaltung des Plattformbetriebs. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: unser berechtigtes Interesse an diesem beschränkten administrativen Support. Aus der Anzeige allein werden keine Sperren oder anderen nachteiligen Entscheidungen abgeleitet.
+
+Gespeichert werden ein letzter bestätigter Zeitpunkt und höchstens 32 technische Sitzungsmarker pro Konto. Es werden dafür keine besuchten Seiten, Inhalte, Gerätekennungen, Standorte oder Verlaufslisten gespeichert. Marker älter als zehn Minuten werden beim nächsten Update entfernt; ohne weitere Updates können sie bis zur Kontolöschung verbleiben, gelten aber nicht weiter als online. Der letzte Zeitpunkt wird bei erneuter Aktivität überschrieben und bei Kontolöschung entfernt. Die App führt keine dauerhafte Offline-Warteschlange für diese Signale.
+
+Diese Verarbeitung ist keine optionale Reichweitenanalyse und erfolgt unabhängig von deren Einwilligung. Sie dient weder Werbung noch appübergreifendem Tracking. Ein Widerspruch aus Gründen Ihrer besonderen Situation kann an ukrainian.community@outlook.com gerichtet werden; wir prüfen ihn nach Art. 21 DSGVO. Einwilligungen zur optionalen Analyse gelten nicht als Einwilligung zum Online-Status.
+
+Änderung gegenüber Version 2026.10: Diese neue administrative Funktion, ihr Empfängerkreis, Zweck und Speicherumfang werden ausdrücklich beschrieben. Die übrigen Verarbeitungszwecke und die Bedingungen für optionale Analyse bleiben unverändert.

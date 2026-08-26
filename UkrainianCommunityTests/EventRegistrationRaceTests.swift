@@ -246,9 +246,21 @@ struct EventRegistrationRaceTests {
         #expect(await eventually { repository.commentDeleteRequestCount == 1 })
         viewModel.events.reverse()
         repository.completeCommentDeleteRequest(1)
-        await deleteTask.value
+        _ = await deleteTask.value
         #expect(viewModel.event(for: eventID)?.comments.map(\.id) == [sibling.id])
         #expect(viewModel.event(for: eventID)?.commentCount == 1)
+    }
+
+    @Test func failedEventCommentReturnsFailureWithoutAddingOrKeepingPending() async {
+        let repository = ControlledEventRepository()
+        let viewModel = EventsViewModel(repository: repository)
+        viewModel.events = [makeEvent(id: "event")]
+        let task = Task { await viewModel.addComment(to: "event", text: "Keep this", author: makeUser()) }
+        #expect(await eventually { repository.commentAddRequestCount == 1 })
+        repository.completeCommentAddRequest(1, comment: makeComment(id: "unused", body: "unused"), error: .network)
+        #expect(await task.value == .failure(.network))
+        #expect(viewModel.pendingEventCommentIDs.isEmpty)
+        #expect(viewModel.event(for: "event")?.comments.isEmpty == true)
     }
 
     @Test func oldCommentCompletionCannotMutateOrClearNewSessionPending() async {
@@ -273,8 +285,8 @@ struct EventRegistrationRaceTests {
         #expect(viewModel.event(for: eventID)?.comments.isEmpty == true)
 
         repository.completeCommentAddRequest(2, comment: makeComment(id: "new-comment", body: "New"))
-        await oldTask.value
-        await newTask.value
+        _ = await oldTask.value
+        _ = await newTask.value
         #expect(viewModel.pendingEventCommentIDs.isEmpty)
         #expect(viewModel.event(for: eventID)?.comments.map(\.id) == ["new-comment"])
     }
@@ -512,12 +524,13 @@ private final class ControlledEventRepository: @MainActor EventRepository {
         continuation.resume(returning: comments)
     }
 
-    func completeCommentAddRequest(_ requestNumber: Int, comment: UkrainianCommunity.Comment) {
+    func completeCommentAddRequest(_ requestNumber: Int, comment: UkrainianCommunity.Comment, error: AppError? = nil) {
         guard let continuation = commentAddContinuations.removeValue(forKey: requestNumber) else {
             Issue.record("Missing event comment add continuation \(requestNumber)")
             return
         }
-        continuation.resume(returning: comment)
+        if let error { continuation.resume(throwing: error) }
+        else { continuation.resume(returning: comment) }
     }
 
     func completeCommentUpdateRequest(_ requestNumber: Int, comment: UkrainianCommunity.Comment) {

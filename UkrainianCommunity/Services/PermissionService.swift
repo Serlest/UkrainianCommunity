@@ -439,6 +439,11 @@ struct PermissionService {
         false
     }
 
+    static func canModerateOrganizationComments(_ organization: Organization, user: AppUser?) -> Bool {
+        guard let user else { return false }
+        return canModerate(section: .comments, user: user) || canModerateOrganizationContent(organization, user: user)
+    }
+
     @available(*, unavailable, message: "Load the Organization and use canModerateOrganizationContent(_:user:) for comment moderation.")
     static func canModerateOrganizationComments(organizationId: String, user: AppUser?) -> Bool {
         false

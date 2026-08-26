@@ -45,7 +45,6 @@ struct EventDetailView: View {
     @State var calendarEventIDs = Set<String>()
     @State var isAddingToCalendar = false
     @State var recordedViewKeys = Set<String>()
-    @State var commentText = ""
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var permissionOrganization: Organization?
@@ -431,8 +430,7 @@ struct EventDetailView: View {
     @MainActor
     func deleteComment(commentID: String) async {
         pendingCommentDeleteID = nil
-        await viewModel.deleteComment(eventID: eventID, commentID: commentID)
-        if let error = viewModel.error {
+        if case .failure(let error) = await viewModel.deleteComment(eventID: eventID, commentID: commentID) {
             commentDeleteErrorMessage = readableEventErrorText(error)
         }
     }
