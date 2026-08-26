@@ -123,19 +123,6 @@ async function seedFirestore() {
         organizationId: "approved-org",
         moderationStatus: "pendingReview",
       }),
-      setDoc(doc(db, "legalDocuments", "organizationRules"), {
-        activeVersion: "2026.10",
-        requiresAcceptance: true,
-      }),
-      setDoc(doc(db, "organizationCreationProofs", "new-requester-org"), {
-        organizationId: "new-requester-org",
-        organizationName: "New Requester Organization",
-        userId: "requester",
-        documentType: "organizationRules",
-        version: "2026.10",
-        acceptedAt: new Date(),
-        expiresAt: new Date("2099-01-01T00:00:00Z"),
-      }),
     ]);
   });
 }
@@ -217,8 +204,8 @@ describe("account state enforcement", () => {
 });
 
 describe("organization media permissions", () => {
-  test("allows a proof-bound logo before the organization document exists", async () => {
-    await assertSucceeds(imageUpload(
+  test("rejects logo uploads before the organization document exists", async () => {
+    await assertFails(imageUpload(
       storage("requester"),
       "organizations/new-requester-org/logo.jpg",
     ));

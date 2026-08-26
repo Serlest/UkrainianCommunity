@@ -783,7 +783,7 @@ final class OrganizationsViewModel: ObservableObject {
                 guard isCurrentAuthGeneration(generation) else { return }
             }
 
-            if !isEditing && organization.moderationStatus != .approved {
+            if !isEditing {
                 try await repository.createOrganization(organization)
                 guard isCurrentAuthGeneration(generation) else { return }
                 var organizationToInsert = organization

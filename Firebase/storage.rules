@@ -82,23 +82,6 @@ service firebase.storage {
       return firestore.get(/databases/(default)/documents/organizations/$(organizationId)).data;
     }
 
-    function hasValidOrganizationCreationProof(organizationId) {
-      let rulesPath = /databases/(default)/documents/legalDocuments/organizationRules;
-      let proofPath = /databases/(default)/documents/organizationCreationProofs/$(organizationId);
-      return isVerifiedActiveUser()
-        && !organizationExists(organizationId)
-        && firestore.exists(rulesPath)
-        && firestore.exists(proofPath)
-        && firestore.get(rulesPath).data.requiresAcceptance == true
-        && firestore.get(proofPath).data.userId == request.auth.uid
-        && firestore.get(proofPath).data.documentType == 'organizationRules'
-        && firestore.get(proofPath).data.organizationId == organizationId
-        && firestore.get(proofPath).data.version == firestore.get(rulesPath).data.activeVersion
-        && firestore.get(proofPath).data.acceptedAt is timestamp
-        && firestore.get(proofPath).data.expiresAt is timestamp
-        && firestore.get(proofPath).data.expiresAt > request.time;
-    }
-
     function isOrganizationOwner(organizationId) {
       return existsOrganization(organizationId)
         && ('ownerId' in organizationData(organizationId))
@@ -219,12 +202,10 @@ service firebase.storage {
       allow create, update: if (
           isOrganizationRequestCreator(organizationId)
           || canEditOrganizationContent(organizationId)
-          || hasValidOrganizationCreationProof(organizationId)
         )
         && isSafeImageUpload();
       allow delete: if isOrganizationRequestCreator(organizationId)
-        || canEditOrganizationContent(organizationId)
-        || hasValidOrganizationCreationProof(organizationId);
+        || canEditOrganizationContent(organizationId);
     }
 
     match /organizations/{organizationId}/cover.jpg {
