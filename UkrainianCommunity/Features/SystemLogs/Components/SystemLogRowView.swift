@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SystemLogRowView: View {
     let log: SystemLogEntry
+    var isDeleting = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -16,11 +17,20 @@ struct SystemLogRowView: View {
 
                     Spacer(minLength: 8)
 
-                    Text(SystemLogDisplayFormatting.dateTime(log.createdAt))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
+                    if isDeleting {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
                 }
+
+                Text(SystemLogDisplayFormatting.dateTime(log.createdAt))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .lineLimit(1)
 
                 metadataLine
                 contextLine

@@ -3,6 +3,7 @@ import FirebaseFunctions
 import Foundation
 
 final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLoggingServiceProtocol {
+    private let database: Firestore
     private let collection: CollectionReference
     private let redactionPolicy: SystemLogRedactionPolicy
     private let functions: Functions
@@ -17,6 +18,7 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
         functions: Functions = Functions.functions(region: "europe-west3"),
         redactionPolicy: SystemLogRedactionPolicy = .default
     ) {
+        self.database = database
         collection = database.collection(SystemLogFirestoreContract.collectionPath)
         self.functions = functions
         self.redactionPolicy = redactionPolicy
@@ -85,6 +87,26 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
             field.reviewedAt.rawValue: FieldValue.serverTimestamp(),
             field.reviewedByUserId.rawValue: trimmedReviewerID
         ])
+    }
+
+    func markReviewed(logIDs: [String], reviewedByUserId: String) async throws {
+        let field = SystemLogFirestoreContract.Field.self
+        let trimmedReviewerID = reviewedByUserId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let uniqueIDs = Array(Set(logIDs.filter { !$0.isEmpty }))
+        guard !trimmedReviewerID.isEmpty, !uniqueIDs.isEmpty else { return }
+
+        for chunkStart in stride(from: 0, to: uniqueIDs.count, by: 400) {
+            let chunkEnd = min(chunkStart + 400, uniqueIDs.count)
+            let batch = database.batch()
+            for logID in uniqueIDs[chunkStart..<chunkEnd] {
+                batch.updateData([
+                    field.isReviewed.rawValue: true,
+                    field.reviewedAt.rawValue: FieldValue.serverTimestamp(),
+                    field.reviewedByUserId.rawValue: trimmedReviewerID
+                ], forDocument: collection.document(logID))
+            }
+            try await batch.commit()
+        }
     }
 
     func log(_ draft: SystemLogDraft) async throws {

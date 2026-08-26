@@ -13,7 +13,14 @@ final class SystemLogsViewModel: ObservableObject {
     @Published var selectedSection: SystemLogDashboardSection = .all
     @Published var sortOption: SystemLogSortOption = .newestFirst
     @Published private(set) var selectedFilters: Set<SystemLogQuickFilter> = []
+    @Published var selectedCategories: Set<SystemLogCategory> = []
+    @Published var selectedSeverities: Set<SystemLogSeverity> = []
+    @Published var selectedOutcomes: Set<SystemLogOutcome> = []
+    @Published var reviewFilter: SystemLogReviewFilter = .all
+    @Published var datePreset: SystemLogDatePreset = .all
     @Published private(set) var reviewingLogIDs: Set<String> = []
+    @Published private(set) var isMarkingVisibleReviewed = false
+    @Published private(set) var bulkReviewErrorMessage: String?
     @Published private(set) var reviewErrorMessages: [String: String] = [:]
     @Published private(set) var isClearingLogs = false
     @Published private(set) var deletingLogIDs = Set<String>()
@@ -44,6 +51,29 @@ final class SystemLogsViewModel: ObservableObject {
 
     var visibleLogs: [SystemLogEntry] {
         filteredLogs
+    }
+
+    var hasActiveFilters: Bool {
+        selectedSection != .all
+            || !selectedFilters.isEmpty
+            || !selectedCategories.isEmpty
+            || !selectedSeverities.isEmpty
+            || !selectedOutcomes.isEmpty
+            || reviewFilter != .all
+            || datePreset != .all
+            || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var advancedFilterCount: Int {
+        selectedCategories.count
+            + selectedSeverities.count
+            + selectedOutcomes.count
+            + (reviewFilter == .all ? 0 : 1)
+            + (datePreset == .all ? 0 : 1)
+    }
+
+    var unreviewedVisibleLogs: [SystemLogEntry] {
+        visibleLogs.filter { !$0.isReviewed }
     }
 
     func loadIfNeeded() async {
@@ -204,10 +234,63 @@ final class SystemLogsViewModel: ObservableObject {
         searchText = ""
         selectedFilters = []
         selectedSection = .all
+        clearAdvancedFilters()
     }
 
     func clearQuickFilters() {
         selectedFilters = []
+    }
+
+    func clearAdvancedFilters() {
+        selectedCategories = []
+        selectedSeverities = []
+        selectedOutcomes = []
+        reviewFilter = .all
+        datePreset = .all
+    }
+
+    func applyMetric(id: String) {
+        clearSearchAndFilters()
+        switch id {
+        case "unreviewed":
+            reviewFilter = .unreviewed
+        case "critical":
+            selectedSeverities = [.critical]
+        case "errors":
+            selectedSection = .errors
+        case "security":
+            selectedSection = .security
+        case "moderation":
+            selectedSection = .moderation
+        default:
+            break
+        }
+    }
+
+    func markVisibleReviewed() async {
+        let candidates = unreviewedVisibleLogs
+        guard !candidates.isEmpty, !isMarkingVisibleReviewed else { return }
+        guard let reviewerUserId = reviewerUserIdProvider()?.trimmingCharacters(in: .whitespacesAndNewlines), !reviewerUserId.isEmpty else {
+            bulkReviewErrorMessage = AppStrings.SystemLogs.missingReviewerError
+            return
+        }
+
+        isMarkingVisibleReviewed = true
+        bulkReviewErrorMessage = nil
+        defer { isMarkingVisibleReviewed = false }
+
+        do {
+            try await repository.markReviewed(
+                logIDs: candidates.map(\.id),
+                reviewedByUserId: reviewerUserId
+            )
+            let reviewedAt = nowProvider()
+            for log in candidates {
+                applyReviewedState(logID: log.id, reviewedByUserId: reviewerUserId, reviewedAt: reviewedAt)
+            }
+        } catch {
+            bulkReviewErrorMessage = readableReviewErrorMessage(for: error)
+        }
     }
 
     func clearAllLogs() async {

@@ -27,6 +27,8 @@ enum CloudFunctionName: String, CaseIterable {
     case acceptLegalDocument
     case acceptOrganizationRules
     case listLegalEvidence
+    case listLegalEvidenceAccounts
+    case getLegalEvidenceForUser
     case deleteOwnAccount
     case deleteFeedback
     case clearFeedbackInbox
@@ -274,6 +276,40 @@ struct LegalEvidenceListFunctionRequest: Codable, Equatable {
 }
 
 struct LegalEvidenceListFunctionResponse: Codable, Equatable {
+    let events: [LegalEvidenceFunctionEvent]
+    let generatedAt: String
+}
+
+struct LegalEvidenceAccountCursorFunctionValue: Codable, Equatable {
+    let userId: String
+    let createdAt: String
+}
+
+struct LegalEvidenceAccountFunctionValue: Codable, Equatable {
+    let userId: String
+    let displayName: String?
+    let email: String?
+    let createdAt: String?
+}
+
+struct LegalEvidenceAccountsFunctionRequest: Codable, Equatable {
+    let query: String?
+    let limit: Int
+    let cursor: LegalEvidenceAccountCursorFunctionValue?
+}
+
+struct LegalEvidenceAccountsFunctionResponse: Codable, Equatable {
+    let accounts: [LegalEvidenceAccountFunctionValue]
+    let nextCursor: LegalEvidenceAccountCursorFunctionValue?
+    let totalMatches: Int?
+}
+
+struct LegalEvidenceUserFunctionRequest: Codable, Equatable {
+    let userId: String
+}
+
+struct LegalEvidenceUserFunctionResponse: Codable, Equatable {
+    let account: LegalEvidenceAccountFunctionValue
     let events: [LegalEvidenceFunctionEvent]
     let generatedAt: String
 }
@@ -546,6 +582,28 @@ final class CloudFunctionsClient {
         )
     }
 
+    func listLegalEvidenceAccounts(
+        query: String?,
+        limit: Int = 50,
+        cursor: LegalEvidenceAccountCursorFunctionValue? = nil
+    ) async throws -> LegalEvidenceAccountsFunctionResponse {
+        try await call(
+            .listLegalEvidenceAccounts,
+            request: LegalEvidenceAccountsFunctionRequest(
+                query: query?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                limit: min(max(limit, 1), 100),
+                cursor: cursor
+            )
+        )
+    }
+
+    func getLegalEvidenceForUser(userID: String) async throws -> LegalEvidenceUserFunctionResponse {
+        try await call(
+            .getLegalEvidenceForUser,
+            request: LegalEvidenceUserFunctionRequest(userId: userID)
+        )
+    }
+
     func acceptOrganizationRules(
         organizationId: String,
         organizationName: String,
@@ -792,7 +850,9 @@ final class CloudFunctionsClient {
             return .userProfile
         case .acceptLegalDocument,
              .acceptOrganizationRules,
-             .listLegalEvidence:
+             .listLegalEvidence,
+             .listLegalEvidenceAccounts,
+             .getLegalEvidenceForUser:
             return .legalDocument
         case .saveFeaturedBanner,
              .setFeaturedBannerActive,
@@ -827,6 +887,8 @@ final class CloudFunctionsClient {
              .deactivateUser,
              .restoreUser,
              .listLegalEvidence,
+             .listLegalEvidenceAccounts,
+             .getLegalEvidenceForUser,
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
@@ -901,6 +963,8 @@ final class CloudFunctionsClient {
              .acceptLegalDocument,
              .acceptOrganizationRules,
              .listLegalEvidence,
+             .listLegalEvidenceAccounts,
+             .getLegalEvidenceForUser,
              .deleteOwnAccount,
              .deleteFeedback,
              .clearFeedbackInbox,

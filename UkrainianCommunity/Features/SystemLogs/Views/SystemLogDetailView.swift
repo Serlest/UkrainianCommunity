@@ -1,11 +1,13 @@
 import FirebaseAuth
 import SwiftUI
+import UIKit
 
 struct SystemLogDetailView: View {
     let log: SystemLogEntry
     let isMarkingReviewed: Bool
     let reviewErrorMessage: String?
     let onMarkReviewed: () async -> Void
+    @State private var didCopyDetails = false
 
     init(
         log: SystemLogEntry,
@@ -24,6 +26,22 @@ struct SystemLogDetailView: View {
             title: AppStrings.SystemLogs.detailTitle,
             subtitle: SystemLogDisplayFormatting.dateTime(log.createdAt)
         ) {
+            AppGlassIconButton(
+                systemImage: didCopyDetails ? "checkmark" : "doc.on.doc",
+                accessibilityLabel: AppStrings.SystemLogs.copyDetails
+            ) {
+                UIPasteboard.general.string = copyText
+                didCopyDetails = true
+                Task {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    didCopyDetails = false
+                }
+            }
+        } content: {
+            if didCopyDetails {
+                InlineMessageCard(style: .success, message: AppStrings.SystemLogs.detailsCopied)
+            }
+
             DetailHeaderCard(title: SystemLogDisplayFormatting.summaryTitle(log.summary), subtitle: log.technicalMessage) {
                 AppHorizontalChipRow(spacing: 8) {
                     AppInfoChip(
@@ -40,16 +58,19 @@ struct SystemLogDetailView: View {
 
             detailSection(AppStrings.SystemLogs.actorSection, rows: [
                 (AppStrings.SystemLogs.nameLabel, nonEmpty(log.actorDisplayName)),
-                (AppStrings.SystemLogs.roleLabel, SystemLogDisplayFormatting.actorRoleTitle(log.actorRole))
+                (AppStrings.SystemLogs.roleLabel, SystemLogDisplayFormatting.actorRoleTitle(log.actorRole)),
+                (AppStrings.SystemLogs.userIdLabel, nonEmpty(log.actorUserId))
             ])
 
             detailSection(AppStrings.SystemLogs.targetSection, rows: [
                 (AppStrings.SystemLogs.typeLabel, targetTypeValue),
-                (AppStrings.SystemLogs.titleLabel, nonEmpty(log.targetTitle))
+                (AppStrings.SystemLogs.titleLabel, nonEmpty(log.targetTitle)),
+                (AppStrings.SystemLogs.targetIdLabel, nonEmpty(log.targetId))
             ])
 
             detailSection(AppStrings.SystemLogs.organizationSection, rows: [
-                (AppStrings.SystemLogs.titleLabel, nonEmpty(log.organizationName))
+                (AppStrings.SystemLogs.titleLabel, nonEmpty(log.organizationName)),
+                (AppStrings.SystemLogs.organizationIdLabel, nonEmpty(log.organizationId))
             ])
 
             detailSection(AppStrings.SystemLogs.classificationSection, rows: [
@@ -58,6 +79,7 @@ struct SystemLogDetailView: View {
                 (AppStrings.SystemLogs.eventLabel, SystemLogDisplayFormatting.eventTypeTitle(log.eventType)),
                 (AppStrings.SystemLogs.outcomeLabel, log.outcome.map(SystemLogDisplayFormatting.outcomeTitle)),
                 (AppStrings.SystemLogs.retentionLabel, log.retentionPolicy.map(SystemLogDisplayFormatting.retentionPolicyTitle)),
+                (AppStrings.SystemLogs.retentionUntilLabel, retentionUntil.map(SystemLogDisplayFormatting.dateTime)),
                 (AppStrings.SystemLogs.createdAtLabel, SystemLogDisplayFormatting.dateTime(log.createdAt))
             ])
 
@@ -88,6 +110,41 @@ struct SystemLogDetailView: View {
                 (AppStrings.SystemLogs.correlationIdLabel, nonEmpty(log.correlationId))
             ])
         }
+    }
+
+    private var retentionUntil: Date? {
+        guard let retentionPolicy = log.retentionPolicy else { return nil }
+        return Calendar.current.date(byAdding: .day, value: retentionPolicy.defaultRetentionDays, to: log.createdAt)
+    }
+
+    private var copyText: String {
+        var lines = [
+            "\(AppStrings.SystemLogs.detailTitle): \(log.id)",
+            "\(AppStrings.SystemLogs.createdAtLabel): \(SystemLogDisplayFormatting.dateTime(log.createdAt))",
+            "\(AppStrings.SystemLogs.severityLabel): \(SystemLogDisplayFormatting.severityTitle(log.severity))",
+            "\(AppStrings.SystemLogs.categoryLabel): \(SystemLogDisplayFormatting.categoryTitle(log.category))",
+            "\(AppStrings.SystemLogs.eventLabel): \(SystemLogDisplayFormatting.eventTypeTitle(log.eventType))",
+            "\(AppStrings.SystemLogs.titleLabel): \(log.summary)"
+        ]
+        let optionalRows: [(String, String?)] = [
+            (AppStrings.SystemLogs.errorCodeLabel, log.errorCode),
+            (AppStrings.SystemLogs.moduleLabel, log.moduleName),
+            (AppStrings.SystemLogs.operationLabel, log.operationName),
+            (AppStrings.SystemLogs.userIdLabel, log.actorUserId),
+            (AppStrings.SystemLogs.targetIdLabel, log.targetId),
+            (AppStrings.SystemLogs.organizationIdLabel, log.organizationId),
+            (AppStrings.SystemLogs.correlationIdLabel, log.correlationId),
+            (AppStrings.SystemLogs.appVersionLabel, log.appVersion),
+            (AppStrings.SystemLogs.osVersionLabel, log.osVersion),
+            (AppStrings.SystemLogs.deviceLabel, log.deviceModel)
+        ]
+        lines.append(contentsOf: optionalRows.compactMap { title, value in
+            nonEmpty(value).map { "\(title): \($0)" }
+        })
+        if !log.metadata.isEmpty {
+            lines.append(contentsOf: log.metadata.keys.sorted().map { "\($0): \(log.metadata[$0] ?? "")" })
+        }
+        return lines.joined(separator: "\n")
     }
 
     @ViewBuilder

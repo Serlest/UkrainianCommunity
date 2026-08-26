@@ -12,6 +12,7 @@ protocol SystemLogRepositoryProtocol {
     func fetchLog(id: String) async throws -> SystemLogEntry?
 
     func markReviewed(logID: String, reviewedByUserId: String) async throws
+    func markReviewed(logIDs: [String], reviewedByUserId: String) async throws
 
     func clearAllLogs() async throws -> Int
     func deleteLog(id: String) async throws
@@ -22,6 +23,12 @@ extension SystemLogRepositoryProtocol {
 
     func clearAllLogs() async throws -> Int { 0 }
     func deleteLog(id: String) async throws {}
+
+    func markReviewed(logIDs: [String], reviewedByUserId: String) async throws {
+        for logID in logIDs {
+            try await markReviewed(logID: logID, reviewedByUserId: reviewedByUserId)
+        }
+    }
 
     func fetchLogs(
         filter: SystemLogFilter = .empty,

@@ -5,6 +5,7 @@ struct SystemLogsDashboardView: View {
     @FocusState private var isSearchFocused: Bool
     @State private var isConfirmingClear = false
     @State private var logPendingDeletion: SystemLogEntry?
+    @State private var isShowingAdvancedFilters = false
     private let embedsInNavigationStack: Bool
 
     @MainActor
@@ -39,7 +40,11 @@ struct SystemLogsDashboardView: View {
             searchBar
         } metrics: {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                SystemLogsOverviewCards(metrics: viewModel.overviewMetrics)
+                SystemLogsOverviewCards(metrics: viewModel.overviewMetrics) { metric in
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.applyMetric(id: metric.id)
+                    }
+                }
                 Text(AppStrings.SystemLogs.loadedMetricsNote)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.textSecondary)
@@ -47,21 +52,13 @@ struct SystemLogsDashboardView: View {
             }
         } trailingContent: {
             HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if viewModel.isLoading || viewModel.isClearingLogs {
+                if viewModel.isLoading || viewModel.isClearingLogs || viewModel.isMarkingVisibleReviewed {
                     ProgressView()
                         .controlSize(.small)
                 }
 
-                if viewModel.accessMode == .owner, !viewModel.logs.isEmpty {
-                    AppGlassIconButton(
-                        systemImage: "trash",
-                        accessibilityLabel: AppStrings.SystemLogs.clearAll,
-                        role: .destructive
-                    ) {
-                        isConfirmingClear = true
-                    }
-                    .disabled(viewModel.isClearingLogs)
-                    .accessibilityIdentifier("systemLogs.clearAll")
+                if !viewModel.logs.isEmpty {
+                    actionsMenu
                 }
             }
         } content: {
@@ -77,6 +74,9 @@ struct SystemLogsDashboardView: View {
         }
         .refreshable {
             await viewModel.refresh()
+        }
+        .sheet(isPresented: $isShowingAdvancedFilters) {
+            SystemLogsAdvancedFilterSheet(viewModel: viewModel)
         }
         .confirmationDialog(
             AppStrings.SystemLogs.clearConfirmationTitle,
@@ -140,16 +140,74 @@ struct SystemLogsDashboardView: View {
     }
 
     private var filters: some View {
-        SystemLogsFilterBar(
-            selectedSection: $viewModel.selectedSection,
-            sortOption: $viewModel.sortOption,
-            sections: viewModel.accessMode.visibleSections,
-            selectedFilters: viewModel.selectedFilters,
-            onToggleFilter: { filter in
-                viewModel.toggleFilter(filter)
-            },
-            onClearFilters: { viewModel.clearQuickFilters() }
-        )
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            SystemLogsFilterBar(
+                selectedSection: $viewModel.selectedSection,
+                sortOption: $viewModel.sortOption,
+                sections: viewModel.accessMode.visibleSections,
+                selectedFilters: viewModel.selectedFilters,
+                advancedFilterCount: viewModel.advancedFilterCount,
+                onToggleFilter: { filter in
+                    viewModel.toggleFilter(filter)
+                },
+                onClearFilters: { viewModel.clearQuickFilters() },
+                onShowAdvancedFilters: { isShowingAdvancedFilters = true }
+            )
+
+            if viewModel.hasActiveFilters {
+                HStack(spacing: 8) {
+                    Label(AppStrings.SystemLogs.filteredLoadedScope, systemImage: "line.3.horizontal.decrease.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+
+                    Spacer(minLength: 8)
+
+                    Button(AppStrings.SystemLogs.resetFilters) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.clearSearchAndFilters()
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                }
+            }
+        }
+    }
+
+    private var actionsMenu: some View {
+        Menu {
+            Button {
+                Task { await viewModel.refresh() }
+            } label: {
+                Label(AppStrings.SystemLogs.refresh, systemImage: "arrow.clockwise")
+            }
+
+            if !viewModel.unreviewedVisibleLogs.isEmpty {
+                Button {
+                    Task { await viewModel.markVisibleReviewed() }
+                } label: {
+                    Label(AppStrings.SystemLogs.markVisibleReviewed, systemImage: "checkmark.seal")
+                }
+                .disabled(viewModel.isMarkingVisibleReviewed)
+            }
+
+            if viewModel.accessMode == .owner {
+                Divider()
+                Button(role: .destructive) {
+                    isConfirmingClear = true
+                } label: {
+                    Label(AppStrings.SystemLogs.clearAll, systemImage: "trash")
+                }
+                .disabled(viewModel.isClearingLogs)
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(AppStrings.SystemLogs.actionsMenu)
+        .accessibilityIdentifier("systemLogs.actions")
     }
 
     @ViewBuilder
@@ -185,23 +243,26 @@ struct SystemLogsDashboardView: View {
                     InlineMessageCard(style: .error, message: clearLogsErrorMessage)
                 }
 
+                if let bulkReviewErrorMessage = viewModel.bulkReviewErrorMessage {
+                    InlineMessageCard(style: .error, message: bulkReviewErrorMessage)
+                }
+
                 DashboardSectionHeader(
                     title: AppStrings.SystemLogs.records,
                     subtitle: "\(viewModel.visibleLogs.count) \(AppStrings.SystemLogs.recordsCountSuffix)"
                 )
 
-                SystemLogsListView(
-                    logs: viewModel.visibleLogs,
-                    deletingIDs: viewModel.deletingLogIDs,
-                    deleteAction: viewModel.accessMode == .owner ? { logPendingDeletion = $0 } : nil,
-                    destination: { log in
-                        SystemLogDetailRoute(
-                            viewModel: viewModel,
-                            logID: log.id,
-                            fallbackLog: log
+                if viewModel.groupedVisibleLogs.isEmpty {
+                    logsList(viewModel.visibleLogs)
+                } else {
+                    ForEach(viewModel.groupedVisibleLogs) { group in
+                        DashboardSectionHeader(
+                            title: group.title,
+                            subtitle: "\(group.logs.count) \(AppStrings.SystemLogs.recordsCountSuffix)"
                         )
+                        logsList(group.logs)
                     }
-                )
+                }
 
                 if viewModel.canLoadMore {
                     PrimaryActionButton(
@@ -216,6 +277,24 @@ struct SystemLogsDashboardView: View {
 
             }
         }
+    }
+
+    private func logsList(_ logs: [SystemLogEntry]) -> some View {
+        SystemLogsListView(
+            logs: logs,
+            deletingIDs: viewModel.deletingLogIDs,
+            deleteAction: viewModel.accessMode == .owner ? { logPendingDeletion = $0 } : nil,
+            reviewAction: { log in
+                Task { await viewModel.markReviewed(logID: log.id) }
+            },
+            destination: { log in
+                SystemLogDetailRoute(
+                    viewModel: viewModel,
+                    logID: log.id,
+                    fallbackLog: log
+                )
+            }
+        )
     }
 
     private var emptyState: some View {

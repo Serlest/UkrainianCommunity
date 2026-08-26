@@ -5,8 +5,10 @@ struct SystemLogsFilterBar: View {
     @Binding var sortOption: SystemLogSortOption
     let sections: [SystemLogDashboardSection]
     let selectedFilters: Set<SystemLogQuickFilter>
+    let advancedFilterCount: Int
     let onToggleFilter: (SystemLogQuickFilter) -> Void
     let onClearFilters: () -> Void
+    let onShowAdvancedFilters: () -> Void
 
     var body: some View {
         AppHorizontalFilterRow {
@@ -53,6 +55,18 @@ struct SystemLogsFilterBar: View {
                 )
             }
             .accessibilityLabel(AppStrings.SystemLogs.filtersTitle)
+
+            Button(action: onShowAdvancedFilters) {
+                AppFilterChip(
+                    title: advancedFilterCount == 0
+                        ? AppStrings.SystemLogs.advancedFiltersShortTitle
+                        : "\(AppStrings.SystemLogs.advancedFiltersShortTitle) · \(advancedFilterCount)",
+                    systemImage: "slider.horizontal.3",
+                    isSelected: advancedFilterCount > 0
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(AppStrings.SystemLogs.advancedFiltersTitle)
 
             AppSortMenu(
                 selection: $sortOption,

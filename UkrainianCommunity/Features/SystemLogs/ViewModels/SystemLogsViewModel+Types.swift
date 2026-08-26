@@ -83,6 +83,48 @@ enum SystemLogQuickFilter: String, CaseIterable, Identifiable {
     }
 }
 
+enum SystemLogReviewFilter: String, CaseIterable, Identifiable {
+    case all
+    case unreviewed
+    case reviewed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: AppStrings.SystemLogs.reviewAll
+        case .unreviewed: AppStrings.SystemLogs.notReviewed
+        case .reviewed: AppStrings.SystemLogs.reviewed
+        }
+    }
+}
+
+enum SystemLogDatePreset: String, CaseIterable, Identifiable {
+    case all
+    case today
+    case sevenDays
+    case thirtyDays
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: AppStrings.SystemLogs.periodAll
+        case .today: AppStrings.SystemLogs.today
+        case .sevenDays: AppStrings.SystemLogs.sevenDays
+        case .thirtyDays: AppStrings.SystemLogs.thirtyDays
+        }
+    }
+}
+
+struct SystemLogDayGroup: Identifiable {
+    let date: Date
+    let title: String
+    let logs: [SystemLogEntry]
+
+    var id: Date { date }
+}
+
 struct SystemLogOverviewMetric: Identifiable, Equatable {
     let id: String
     let title: String

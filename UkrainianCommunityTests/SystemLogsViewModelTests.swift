@@ -83,6 +83,45 @@ struct SystemLogsViewModelTests {
         #expect(viewModel.visibleLogs == entries)
     }
 
+    @Test func advancedFiltersCombineAndReset() async throws {
+        let entries = MockSystemLogRepository.sampleEntries
+        let repository = SystemLogRepositoryStub(fetchResults: [.success(entries)])
+        let viewModel = SystemLogsViewModel(repository: repository)
+
+        await viewModel.refresh()
+        viewModel.selectedCategories = [.diagnostics]
+        viewModel.selectedSeverities = [.critical]
+        viewModel.selectedOutcomes = [.failed]
+        viewModel.reviewFilter = .unreviewed
+
+        #expect(viewModel.visibleLogs.map(\.id) == ["system-log-001"])
+        #expect(viewModel.advancedFilterCount == 4)
+        #expect(viewModel.hasActiveFilters)
+
+        viewModel.clearAdvancedFilters()
+
+        #expect(viewModel.visibleLogs == entries)
+        #expect(viewModel.advancedFilterCount == 0)
+        #expect(!viewModel.hasActiveFilters)
+    }
+
+    @Test func overviewMetricAppliesTheMatchingFilter() async throws {
+        let entries = MockSystemLogRepository.sampleEntries
+        let repository = SystemLogRepositoryStub(fetchResults: [.success(entries)])
+        let viewModel = SystemLogsViewModel(repository: repository)
+
+        await viewModel.refresh()
+        viewModel.searchText = "stale search"
+        viewModel.selectedCategories = [.organization]
+
+        viewModel.applyMetric(id: "critical")
+
+        #expect(viewModel.searchText.isEmpty)
+        #expect(viewModel.selectedCategories.isEmpty)
+        #expect(viewModel.selectedSeverities == [.critical])
+        #expect(Set(viewModel.visibleLogs.map(\.id)) == ["system-log-001", "system-log-006"])
+    }
+
     @Test func appAdminUsesVisibilityContractAndCanLoadNextPage() async throws {
         let sample = try #require(MockSystemLogRepository.sampleEntries.first)
         let firstPage = (0..<100).map { copied(sample, id: "page-\($0)") }
@@ -136,6 +175,28 @@ struct SystemLogsViewModelTests {
         #expect(repository.reviewed.first?.reviewerID == "reviewer")
         #expect(viewModel.log(id: entry.id)?.isReviewed == true)
         #expect(viewModel.log(id: entry.id)?.reviewedAt == reviewedAt)
+    }
+
+    @Test func markingVisibleReviewedOnlyUpdatesFilteredUnreviewedLogs() async throws {
+        let entries = MockSystemLogRepository.sampleEntries
+        let repository = SystemLogRepositoryStub(fetchResults: [.success(entries)])
+        let reviewedAt = Date(timeIntervalSince1970: 84)
+        let viewModel = SystemLogsViewModel(
+            repository: repository,
+            nowProvider: { reviewedAt },
+            reviewerUserIdProvider: { "owner-user" }
+        )
+
+        await viewModel.refresh()
+        viewModel.selectedSeverities = [.critical]
+        await viewModel.markVisibleReviewed()
+
+        #expect(repository.reviewed.map(\.logID) == ["system-log-001"])
+        #expect(repository.reviewed.first?.reviewerID == "owner-user")
+        #expect(viewModel.log(id: "system-log-001")?.isReviewed == true)
+        #expect(viewModel.log(id: "system-log-001")?.reviewedAt == reviewedAt)
+        #expect(viewModel.log(id: "system-log-006")?.reviewedAt != reviewedAt)
+        #expect(viewModel.bulkReviewErrorMessage == nil)
     }
 
     @Test func onlyOwnerCanClearAllLogs() async throws {

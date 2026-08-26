@@ -5,8 +5,23 @@ extension SystemLogsViewModel {
         logs.filter { log in
             matchesSection(log)
                 && matchesQuickFilters(log)
+                && matchesAdvancedFilters(log)
                 && matchesSearch(log)
         }
+    }
+
+    var groupedVisibleLogs: [SystemLogDayGroup] {
+        guard sortOption == .newestFirst || sortOption == .oldestFirst else { return [] }
+        let grouped = Dictionary(grouping: visibleLogs) { calendar.startOfDay(for: $0.createdAt) }
+        return grouped.keys
+            .sorted(by: sortOption == .newestFirst ? (>) : (<))
+            .map { date in
+                SystemLogDayGroup(
+                    date: date,
+                    title: dayGroupTitle(for: date),
+                    logs: grouped[date] ?? []
+                )
+            }
     }
 
     private func matchesSection(_ log: SystemLogEntry) -> Bool {
@@ -45,12 +60,48 @@ extension SystemLogsViewModel {
         }
     }
 
+    private func matchesAdvancedFilters(_ log: SystemLogEntry) -> Bool {
+        if !selectedCategories.isEmpty, !selectedCategories.contains(log.category) {
+            return false
+        }
+        if !selectedSeverities.isEmpty, !selectedSeverities.contains(log.severity) {
+            return false
+        }
+        if !selectedOutcomes.isEmpty, log.outcome.map(selectedOutcomes.contains) != true {
+            return false
+        }
+        switch reviewFilter {
+        case .all:
+            break
+        case .unreviewed where log.isReviewed:
+            return false
+        case .reviewed where !log.isReviewed:
+            return false
+        default:
+            break
+        }
+
+        let startDate: Date?
+        switch datePreset {
+        case .all:
+            startDate = nil
+        case .today:
+            startDate = calendar.startOfDay(for: nowProvider())
+        case .sevenDays:
+            startDate = calendar.date(byAdding: .day, value: -7, to: nowProvider())
+        case .thirtyDays:
+            startDate = calendar.date(byAdding: .day, value: -30, to: nowProvider())
+        }
+        return startDate.map { log.createdAt >= $0 } ?? true
+    }
+
     private func matchesSearch(_ log: SystemLogEntry) -> Bool {
         LocalSearchMatcher.matches(query: searchText, values: [searchableText(for: log)])
     }
 
     private func searchableText(for log: SystemLogEntry) -> String {
         [
+            log.id,
             log.summary,
             log.technicalMessage,
             log.errorCode,
@@ -58,8 +109,11 @@ extension SystemLogsViewModel {
             log.screenName,
             log.operationName,
             log.actorDisplayName,
+            log.actorUserId,
             log.targetTitle,
+            log.targetId,
             log.organizationName,
+            log.organizationId,
             log.correlationId,
             log.category.rawValue,
             log.severity.rawValue,
@@ -69,6 +123,16 @@ extension SystemLogsViewModel {
         ]
         .compactMap { $0 }
         .joined(separator: " ")
+    }
+
+    private func dayGroupTitle(for date: Date) -> String {
+        if calendar.isDateInToday(date) {
+            return AppStrings.SystemLogs.today
+        }
+        if calendar.isDateInYesterday(date) {
+            return AppStrings.SystemLogs.yesterday
+        }
+        return LocalizationStore.dateString(from: date, dateStyle: .medium, timeStyle: .none)
     }
 
 }

@@ -1,7 +1,12 @@
 import Foundation
 
 protocol LegalEvidenceRepository {
-    func fetchRecentEvidence(limit: Int) async throws -> [LegalEvidenceEvent]
+    func fetchAccounts(
+        query: String?,
+        limit: Int,
+        cursor: LegalEvidenceAccountCursor?
+    ) async throws -> LegalEvidenceAccountPage
+    func fetchEvidence(userID: String) async throws -> [LegalEvidenceEvent]
 }
 
 struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
@@ -11,9 +16,44 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
         self.functionsClient = functionsClient
     }
 
-    func fetchRecentEvidence(limit: Int = 200) async throws -> [LegalEvidenceEvent] {
-        let response = try await functionsClient.listLegalEvidence(limit: limit)
+    func fetchAccounts(
+        query: String?,
+        limit: Int = 50,
+        cursor: LegalEvidenceAccountCursor? = nil
+    ) async throws -> LegalEvidenceAccountPage {
+        let response = try await functionsClient.listLegalEvidenceAccounts(
+            query: query,
+            limit: limit,
+            cursor: cursor.map {
+                LegalEvidenceAccountCursorFunctionValue(
+                    userId: $0.userID,
+                    createdAt: ISO8601DateFormatter.legalEvidence.string(from: $0.createdAt)
+                )
+            }
+        )
+        return LegalEvidenceAccountPage(
+            accounts: response.accounts.map(Self.decode),
+            nextCursor: response.nextCursor.flatMap { cursor in
+                ISO8601DateFormatter.legalEvidence.date(from: cursor.createdAt).map {
+                    LegalEvidenceAccountCursor(userID: cursor.userId, createdAt: $0)
+                }
+            },
+            totalMatches: response.totalMatches
+        )
+    }
+
+    func fetchEvidence(userID: String) async throws -> [LegalEvidenceEvent] {
+        let response = try await functionsClient.getLegalEvidenceForUser(userID: userID)
         return response.events.compactMap(Self.decode)
+    }
+
+    private static func decode(_ account: LegalEvidenceAccountFunctionValue) -> LegalEvidenceAccount {
+        LegalEvidenceAccount(
+            userID: account.userId,
+            displayName: account.displayName,
+            email: account.email,
+            createdAt: account.createdAt.flatMap(ISO8601DateFormatter.legalEvidence.date(from:))
+        )
     }
 
     private static func decode(_ event: LegalEvidenceFunctionEvent) -> LegalEvidenceEvent? {

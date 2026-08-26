@@ -2212,12 +2212,36 @@ enum AppStrings {
     enum LegalEvidence {
         static var title: String { text("legal_evidence.title", "Consents and legal evidence") }
         static var subtitle: String { text("legal_evidence.subtitle", "Owner-only immutable history of Terms, Privacy, age, organization rules, and analytics consent.") }
+        static var accountsTitle: String { text("legal_evidence.accounts.title", "Accounts") }
+        static var accountsSubtitle: String { text("legal_evidence.accounts.subtitle", "Find an account, then open its complete confirmation history.") }
+        static var accountListInstruction: String { text("legal_evidence.accounts.instruction", "Search by name, email, or UID. Open an account to see what was confirmed, when, and which document version applied.") }
+        static var accountSearchPlaceholder: String { text("legal_evidence.accounts.search.placeholder", "Name, email, or UID") }
+        static var loadingAccounts: String { text("legal_evidence.accounts.loading", "Loading accounts…") }
+        static var loadMoreAccounts: String { text("legal_evidence.accounts.load_more", "Load more accounts") }
+        static var emptyAccountsTitle: String { text("legal_evidence.accounts.empty.title", "No accounts found") }
+        static var emptyAccountsMessage: String { text("legal_evidence.accounts.empty.message", "Accounts will appear here after registration.") }
+        static var accountSearchEmptyTitle: String { text("legal_evidence.accounts.search.empty.title", "No matching accounts") }
+        static var accountSearchEmptyMessage: String { text("legal_evidence.accounts.search.empty.message", "Check the name, email, or UID and try again.") }
+        static var searchTooShortTitle: String { text("legal_evidence.accounts.search.short.title", "Enter at least 2 characters") }
+        static var searchTooShortMessage: String { text("legal_evidence.accounts.search.short.message", "Use at least two characters of the name, email, or UID.") }
+        static var accountDetailTitle: String { text("legal_evidence.account.detail.title", "Legal confirmations") }
+        static var confirmationHistoryTitle: String { text("legal_evidence.history.title", "Confirmation history") }
+        static var contentHashLabel: String { text("legal_evidence.content_hash", "Document fingerprint") }
+        static var sourceRegistration: String { text("legal_evidence.source.registration", "Registration") }
+        static var sourceLegalDocument: String { text("legal_evidence.source.legal_document", "Legal document") }
+        static var sourceAnalytics: String { text("legal_evidence.source.analytics", "Analytics consent") }
+        static var sourceServer: String { text("legal_evidence.source.server", "Server record") }
         static var profileSubtitle: String { text("legal_evidence.profile_subtitle", "Who confirmed what, which version, and when.") }
         static var permissionTitle: String { text("legal_evidence.permission.title", "Owner access required") }
         static var permissionMessage: String { text("legal_evidence.permission.message", "Only the App Owner can view legal evidence.") }
         static var loading: String { text("legal_evidence.loading", "Loading legal evidence…") }
         static var loadFailedTitle: String { text("legal_evidence.error.title", "Evidence unavailable") }
         static var loadFailed: String { text("legal_evidence.error.message", "Unable to load legal evidence. Check the connection and try again.") }
+        static var loadFailedNetwork: String { text("legal_evidence.error.network", "No connection to the legal evidence service. Check the internet connection and try again.") }
+        static var loadFailedPermission: String { text("legal_evidence.error.permission", "The server did not confirm App Owner access. Refresh the account session and try again.") }
+        static var loadFailedSession: String { text("legal_evidence.error.session", "The account session has expired. Sign in again and retry.") }
+        static var loadFailedNotFound: String { text("legal_evidence.error.not_found", "This account and its legal evidence are no longer available.") }
+        static var loadFailedService: String { text("legal_evidence.error.service", "The legal evidence service is temporarily unavailable. Try again in a moment.") }
         static var searchPlaceholder: String { text("legal_evidence.search.placeholder", "Name, email, UID, or version") }
         static var searchEmptyTitle: String { text("legal_evidence.search.empty.title", "No matching evidence") }
         static var searchEmptyMessage: String { text("legal_evidence.search.empty.message", "Change the search text or evidence filter.") }
@@ -2238,6 +2262,22 @@ enum AppStrings {
         static var analyticsWithdrawn: String { text("legal_evidence.event.analytics_withdrawn", "Analytics consent withdrawn") }
         static var organizationRulesAccepted: String { text("legal_evidence.event.organization_rules_accepted", "Organization rules accepted") }
         static var organizationLabel: String { text("legal_evidence.organization", "Organization") }
+    }
+
+    static func legalEvidenceLoadedAccountCount(_ count: Int) -> String {
+        LocalizationStore.localizedFormat("legal_evidence.accounts.loaded_count", defaultValue: "%d accounts loaded", arguments: [count])
+    }
+
+    static func legalEvidenceSearchResultCount(_ count: Int) -> String {
+        LocalizationStore.localizedFormat("legal_evidence.accounts.search_count", defaultValue: "%d matches", arguments: [count])
+    }
+
+    static func legalEvidenceAccountCreated(_ date: String) -> String {
+        LocalizationStore.localizedFormat("legal_evidence.account.created", defaultValue: "Account created %@", arguments: [date])
+    }
+
+    static func legalEvidenceConfirmationCount(_ count: Int) -> String {
+        LocalizationStore.localizedFormat("legal_evidence.history.count", defaultValue: "%d confirmations", arguments: [count])
     }
 
     enum OrganizationRules {
@@ -2590,6 +2630,11 @@ enum AppStrings {
         static var critical: String { text("system_logs.filter.critical", "Критичні") }
         static var today: String { text("system_logs.filter.today", "Сьогодні") }
         static var sevenDays: String { text("system_logs.filter.seven_days", "7 днів") }
+        static var thirtyDays: String { text("system_logs.filter.thirty_days", "30 днів") }
+        static var yesterday: String { text("system_logs.period.yesterday", "Учора") }
+        static var periodAll: String { text("system_logs.period.all", "Увесь час") }
+        static var periodTitle: String { text("system_logs.period.title", "Період") }
+        static var reviewAll: String { text("system_logs.review.all", "Будь-який статус") }
         static var sectionPickerLabel: String { text("system_logs.filter.section_picker", "Розділ журналу") }
         static var markReviewed: String { text("system_logs.action.mark_reviewed", "Позначити як переглянуте") }
         static var filteredEmptyTitle: String { text("system_logs.empty.filtered.title", "Немає записів за вибраними фільтрами") }
@@ -2608,6 +2653,11 @@ enum AppStrings {
         static var clearFilters: String { text("system_logs.filters.clear", "Очистити пошук і фільтри") }
         static var clearSearch: String { text("system_logs.search.clear", "Очистити пошук") }
         static var filtersTitle: String { text("system_logs.filters.title", "Фільтри") }
+        static var advancedFiltersTitle: String { text("system_logs.filters.advanced.title", "Розширені фільтри") }
+        static var advancedFiltersShortTitle: String { text("system_logs.filters.advanced.short", "Ще") }
+        static var advancedFiltersSubtitle: String { text("system_logs.filters.advanced.subtitle", "Уточніть період, статус, рівень, категорію та результат події.") }
+        static var resetFilters: String { text("system_logs.filters.reset", "Скинути") }
+        static var filteredLoadedScope: String { text("system_logs.filters.loaded_scope", "Фільтри застосовано до завантажених записів") }
         static var sortNewest: String { text("system_logs.sort.newest", "Спочатку нові") }
         static var sortOldest: String { text("system_logs.sort.oldest", "Спочатку старі") }
         static var sortSeverityHigh: String { text("system_logs.sort.severity_high", "Рівень: від критичного") }
@@ -2615,6 +2665,8 @@ enum AppStrings {
         static var sortCategory: String { text("system_logs.sort.category", "За категорією") }
         static var clearQuickFilters: String { text("system_logs.filters.clear_quick", "Скинути фільтри") }
         static var actionsMenu: String { text("system_logs.actions.menu", "Дії з журналом") }
+        static var refresh: String { text("system_logs.action.refresh", "Оновити") }
+        static var markVisibleReviewed: String { text("system_logs.action.mark_visible_reviewed", "Позначити видимі як переглянуті") }
         static var clearAll: String { text("system_logs.clear_all", "Очистити журнал") }
         static var clearConfirmationTitle: String { text("system_logs.clear_all.confirm.title", "Очистити весь журнал?") }
         static var deleteConfirmationTitle: String { text("system_logs.delete_one.confirm.title", "Видалити цей запис журналу?") }
@@ -2628,6 +2680,8 @@ enum AppStrings {
         static var emptyMessage: String { text("system_logs.empty.message", "Події з’являться тут після підключення системного логування.") }
         static var filteredEmptyMessage: String { text("system_logs.empty.filtered.message", "Змініть пошук або фільтри, щоб побачити інші записи.") }
         static var detailTitle: String { text("system_logs.detail.title", "Деталі запису") }
+        static var copyDetails: String { text("system_logs.detail.copy", "Скопіювати деталі") }
+        static var detailsCopied: String { text("system_logs.detail.copied", "Деталі запису скопійовано.") }
         static var actorSection: String { text("system_logs.detail.section.actor", "Виконавець") }
         static var targetSection: String { text("system_logs.detail.section.target", "Ціль") }
         static var organizationSection: String { text("system_logs.detail.section.organization", "Організація") }
@@ -2649,6 +2703,10 @@ enum AppStrings {
         static var eventLabel: String { text("system_logs.detail.label.event", "Подія") }
         static var outcomeLabel: String { text("system_logs.detail.label.outcome", "Результат") }
         static var retentionLabel: String { text("system_logs.detail.label.retention", "Зберігання") }
+        static var retentionUntilLabel: String { text("system_logs.detail.label.retention_until", "Зберігати до") }
+        static var userIdLabel: String { text("system_logs.detail.label.user_id", "UID користувача") }
+        static var targetIdLabel: String { text("system_logs.detail.label.target_id", "ID цілі") }
+        static var organizationIdLabel: String { text("system_logs.detail.label.organization_id", "ID організації") }
         static var errorCodeLabel: String { text("system_logs.detail.label.error_code", "Код помилки") }
         static var moduleLabel: String { text("system_logs.detail.label.module", "Модуль") }
         static var screenLabel: String { text("system_logs.detail.label.screen", "Екран") }
@@ -2667,6 +2725,7 @@ enum AppStrings {
         static var technicalDiagnosticsSubtitle: String { text("system_logs.metric.errors.subtitle", "Технічна діагностика") }
         static var adminAvailableSubtitle: String { text("system_logs.metric.moderation.subtitle", "Доступно адміністратору") }
         static var restrictedJournalSubtitle: String { text("system_logs.metric.security.subtitle", "Обмежений журнал") }
+        static var metricFilterHint: String { text("system_logs.metric.filter_hint", "Застосовує відповідний фільтр") }
         static var ownerLoadPermissionError: String { text("system_logs.error.load.owner_permission", "Не вдалося завантажити журнал. Перевірте права доступу власника.") }
         static var adminLoadPermissionError: String { text("system_logs.error.load.admin_permission", "Не вдалося завантажити журнал модерації. Перевірте права доступу адміністратора.") }
         static var indexRequiredError: String { text("system_logs.error.load.index_required", "Для цього запиту журналу потрібен індекс Firestore. Перевірте налаштування індексів.") }

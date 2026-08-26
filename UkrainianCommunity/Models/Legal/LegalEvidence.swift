@@ -1,5 +1,34 @@
 import Foundation
 
+struct LegalEvidenceAccount: Identifiable, Equatable {
+    let userID: String
+    let displayName: String?
+    let email: String?
+    let createdAt: Date?
+
+    var id: String { userID }
+
+    var title: String {
+        normalized(displayName) ?? normalized(email) ?? userID
+    }
+
+    private func normalized(_ value: String?) -> String? {
+        let result = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return result.isEmpty ? nil : result
+    }
+}
+
+struct LegalEvidenceAccountCursor: Equatable {
+    let userID: String
+    let createdAt: Date
+}
+
+struct LegalEvidenceAccountPage: Equatable {
+    let accounts: [LegalEvidenceAccount]
+    let nextCursor: LegalEvidenceAccountCursor?
+    let totalMatches: Int?
+}
+
 enum LegalEvidenceEventType: String, CaseIterable, Codable, Identifiable {
     case termsAccepted
     case privacyAcknowledged

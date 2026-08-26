@@ -10916,6 +10916,29 @@
         }
       }
     },
+    "legal_evidence.account.created" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Konto erstellt am %@"}},"uk":{"stringUnit":{"state":"translated","value":"Обліковий запис створено %@"}}}},
+    "legal_evidence.account.detail.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Rechtliche Bestätigungen"}},"uk":{"stringUnit":{"state":"translated","value":"Юридичні підтвердження"}}}},
+    "legal_evidence.accounts.empty.message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Konten erscheinen hier nach der Registrierung."}},"uk":{"stringUnit":{"state":"translated","value":"Облікові записи з’являться тут після реєстрації."}}}},
+    "legal_evidence.accounts.empty.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Keine Konten gefunden"}},"uk":{"stringUnit":{"state":"translated","value":"Облікових записів не знайдено"}}}},
+    "legal_evidence.accounts.instruction" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Suchen Sie nach Name, E-Mail oder UID. Öffnen Sie ein Konto, um zu sehen, was wann und in welcher Dokumentversion bestätigt wurde."}},"uk":{"stringUnit":{"state":"translated","value":"Шукайте за ім’ям, електронною поштою або UID. Відкрийте обліковий запис, щоб побачити, що, коли та за якою версією документа було підтверджено."}}}},
+    "legal_evidence.accounts.load_more" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Weitere Konten laden"}},"uk":{"stringUnit":{"state":"translated","value":"Завантажити більше облікових записів"}}}},
+    "legal_evidence.accounts.loaded_count" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"%d Konten geladen"}},"uk":{"stringUnit":{"state":"translated","value":"Завантажено облікових записів: %d"}}}},
+    "legal_evidence.accounts.loading" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Konten werden geladen…"}},"uk":{"stringUnit":{"state":"translated","value":"Завантаження облікових записів…"}}}},
+    "legal_evidence.accounts.search.empty.message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Prüfen Sie Name, E-Mail oder UID und versuchen Sie es erneut."}},"uk":{"stringUnit":{"state":"translated","value":"Перевірте ім’я, електронну пошту або UID та повторіть спробу."}}}},
+    "legal_evidence.accounts.search.empty.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Keine passenden Konten"}},"uk":{"stringUnit":{"state":"translated","value":"Відповідних облікових записів немає"}}}},
+    "legal_evidence.accounts.search.placeholder" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Name, E-Mail oder UID"}},"uk":{"stringUnit":{"state":"translated","value":"Ім’я, електронна пошта або UID"}}}},
+    "legal_evidence.accounts.search.short.message" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Verwenden Sie mindestens zwei Zeichen aus Name, E-Mail oder UID."}},"uk":{"stringUnit":{"state":"translated","value":"Введіть щонайменше два символи імені, електронної пошти або UID."}}}},
+    "legal_evidence.accounts.search.short.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Mindestens 2 Zeichen eingeben"}},"uk":{"stringUnit":{"state":"translated","value":"Введіть щонайменше 2 символи"}}}},
+    "legal_evidence.accounts.search_count" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"%d Treffer"}},"uk":{"stringUnit":{"state":"translated","value":"Збігів: %d"}}}},
+    "legal_evidence.accounts.subtitle" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Konto suchen und anschließend den vollständigen Bestätigungsverlauf öffnen."}},"uk":{"stringUnit":{"state":"translated","value":"Знайдіть обліковий запис і відкрийте повну історію його підтверджень."}}}},
+    "legal_evidence.accounts.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Konten"}},"uk":{"stringUnit":{"state":"translated","value":"Облікові записи"}}}},
+    "legal_evidence.content_hash" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Dokument-Fingerabdruck"}},"uk":{"stringUnit":{"state":"translated","value":"Відбиток документа"}}}},
+    "legal_evidence.history.count" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"%d Bestätigungen"}},"uk":{"stringUnit":{"state":"translated","value":"Підтверджень: %d"}}}},
+    "legal_evidence.history.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Bestätigungsverlauf"}},"uk":{"stringUnit":{"state":"translated","value":"Історія підтверджень"}}}},
+    "legal_evidence.source.analytics" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Analyse-Einwilligung"}},"uk":{"stringUnit":{"state":"translated","value":"Згода на аналітику"}}}},
+    "legal_evidence.source.legal_document" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Rechtliches Dokument"}},"uk":{"stringUnit":{"state":"translated","value":"Юридичний документ"}}}},
+    "legal_evidence.source.registration" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Registrierung"}},"uk":{"stringUnit":{"state":"translated","value":"Реєстрація"}}}},
+    "legal_evidence.source.server" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Servernachweis"}},"uk":{"stringUnit":{"state":"translated","value":"Серверний запис"}}}},
     "legal_evidence.empty.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10963,6 +10986,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не вдалося завантажити юридичні підтвердження. Перевірте з’єднання та повторіть спробу."
+          }
+        }
+      }
+    },
+    "legal_evidence.error.network" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Verbindung zum Dienst für rechtliche Nachweise. Internetverbindung prüfen und erneut versuchen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Немає з’єднання із сервісом юридичних підтверджень. Перевірте інтернет-з’єднання та повторіть спробу."
+          }
+        }
+      }
+    },
+    "legal_evidence.error.not_found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Konto und seine rechtlichen Nachweise sind nicht mehr verfügbar."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цей обліковий запис і його юридичні підтвердження більше недоступні."
+          }
+        }
+      }
+    },
+    "legal_evidence.error.permission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat den Zugriff als App-Inhaber nicht bestätigt. Kontositzung aktualisieren und erneut versuchen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервер не підтвердив доступ власника застосунку. Оновіть сеанс облікового запису та повторіть спробу."
+          }
+        }
+      }
+    },
+    "legal_evidence.error.service" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Dienst für rechtliche Nachweise ist vorübergehend nicht verfügbar. Bitte gleich erneut versuchen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервіс юридичних підтверджень тимчасово недоступний. Спробуйте ще раз за мить."
+          }
+        }
+      }
+    },
+    "legal_evidence.error.session" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kontositzung ist abgelaufen. Erneut anmelden und noch einmal versuchen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сеанс облікового запису завершився. Увійдіть знову та повторіть спробу."
           }
         }
       }
@@ -35285,6 +35393,25 @@
         }
       }
     },
+    "system_logs.action.mark_visible_reviewed" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Sichtbare als geprüft markieren"}},"uk":{"stringUnit":{"state":"translated","value":"Видимі позначити як переглянуті"}}}},
+    "system_logs.action.refresh" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktualisieren"}},"uk":{"stringUnit":{"state":"translated","value":"Оновити"}}}},
+    "system_logs.detail.copied" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Protokolldetails wurden kopiert."}},"uk":{"stringUnit":{"state":"translated","value":"Деталі запису скопійовано."}}}},
+    "system_logs.detail.copy" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Details kopieren"}},"uk":{"stringUnit":{"state":"translated","value":"Скопіювати деталі"}}}},
+    "system_logs.detail.label.organization_id" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Organisations-ID"}},"uk":{"stringUnit":{"state":"translated","value":"ID організації"}}}},
+    "system_logs.detail.label.retention_until" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Aufbewahren bis"}},"uk":{"stringUnit":{"state":"translated","value":"Зберігати до"}}}},
+    "system_logs.detail.label.target_id" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Ziel-ID"}},"uk":{"stringUnit":{"state":"translated","value":"ID цілі"}}}},
+    "system_logs.detail.label.user_id" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Benutzer-UID"}},"uk":{"stringUnit":{"state":"translated","value":"UID користувача"}}}},
+    "system_logs.filter.thirty_days" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"30 Tage"}},"uk":{"stringUnit":{"state":"translated","value":"30 днів"}}}},
+    "system_logs.filters.advanced.short" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Mehr"}},"uk":{"stringUnit":{"state":"translated","value":"Ще"}}}},
+    "system_logs.filters.advanced.subtitle" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Zeitraum, Status, Stufe, Kategorie und Ergebnis eingrenzen."}},"uk":{"stringUnit":{"state":"translated","value":"Уточніть період, статус, рівень, категорію та результат події."}}}},
+    "system_logs.filters.advanced.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Erweiterte Filter"}},"uk":{"stringUnit":{"state":"translated","value":"Розширені фільтри"}}}},
+    "system_logs.filters.loaded_scope" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Filter gelten für geladene Einträge"}},"uk":{"stringUnit":{"state":"translated","value":"Фільтри застосовано до завантажених записів"}}}},
+    "system_logs.filters.reset" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Zurücksetzen"}},"uk":{"stringUnit":{"state":"translated","value":"Скинути"}}}},
+    "system_logs.metric.filter_hint" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Wendet den passenden Filter an"}},"uk":{"stringUnit":{"state":"translated","value":"Застосовує відповідний фільтр"}}}},
+    "system_logs.period.all" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Gesamter Zeitraum"}},"uk":{"stringUnit":{"state":"translated","value":"Увесь час"}}}},
+    "system_logs.period.title" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Zeitraum"}},"uk":{"stringUnit":{"state":"translated","value":"Період"}}}},
+    "system_logs.period.yesterday" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Gestern"}},"uk":{"stringUnit":{"state":"translated","value":"Учора"}}}},
+    "system_logs.review.all" : {"extractionState":"manual","localizations":{"de":{"stringUnit":{"state":"translated","value":"Beliebiger Status"}},"uk":{"stringUnit":{"state":"translated","value":"Будь-який статус"}}}},
     "system_logs.action.mark_reviewed" : {
       "extractionState" : "manual",
       "localizations" : {
