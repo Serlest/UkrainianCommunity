@@ -18,6 +18,7 @@ import {
   resolveNotificationRecipients,
   writeUserNotification,
 } from "./notificationPayloads";
+import {eventPublishingFieldChanged, nextEventStartMillis} from "./eventNotificationSemantics";
 
 type SystemAnnouncementTargetMode = "all" | "role" | "userIds";
 
@@ -145,18 +146,7 @@ function hasMeaningfulEventChange(
   before: Record<string, unknown>,
   after: Record<string, unknown>
 ): boolean {
-  return [
-    "startDate",
-    "endDate",
-    "venue",
-    "address",
-    "locationNote",
-    "latitude",
-    "longitude",
-    "city",
-    "moderationStatus",
-    "registrationState",
-  ].some((field) => String(before[field]) !== String(after[field]));
+  return eventPublishingFieldChanged(before, after);
 }
 
 function isCancellationTransition(after: Record<string, unknown>): boolean {
@@ -168,13 +158,32 @@ function eventTitle(data: Record<string, unknown> | undefined): string {
   return stringField(data, "title") ?? "Event";
 }
 
+function localizedEventTitle(
+  data: Record<string, unknown> | undefined,
+  language: NotificationLanguage
+): string {
+  const localizations = data?.localizations;
+  if (isRecord(localizations)) {
+    const preferred = localizations[language];
+    const ukrainian = localizations.uk;
+    if (isRecord(preferred) && stringField(preferred, "title")) {
+      return stringField(preferred, "title") as string;
+    }
+    if (isRecord(ukrainian) && stringField(ukrainian, "title")) {
+      return stringField(ukrainian, "title") as string;
+    }
+  }
+  return eventTitle(data);
+}
+
 function isSoon(data: Record<string, unknown> | undefined): boolean {
-  const startDate = timestampField(data, "startDate")?.toDate();
-  if (!startDate) {
+  const now = Date.now();
+  const startMillis = nextEventStartMillis(data, now);
+  if (startMillis === undefined) {
     return false;
   }
 
-  const timeUntilStart = startDate.getTime() - Date.now();
+  const timeUntilStart = startMillis - now;
   return timeUntilStart >= 0 && timeUntilStart <= soonWindowMs;
 }
 
@@ -216,6 +225,20 @@ function eventCancellationCopy(
   }
 }
 
+function eventUpdateCopy(
+  title: string,
+  language: NotificationLanguage
+): EventNotificationCopy {
+  switch (language) {
+    case "uk":
+      return {title: "Подію оновлено", body: `Оновлено: ${truncate(title, 110)}`};
+    case "de":
+      return {title: "Veranstaltung aktualisiert", body: `Aktualisiert: ${truncate(title, 110)}`};
+    case "en":
+      return {title: "Event updated", body: `${truncate(title, 110)} was updated.`};
+  }
+}
+
 type NotificationLanguage = "uk" | "de" | "en";
 
 interface EventNotificationCopy {
@@ -232,7 +255,7 @@ async function writeEventCancellationNotifications(
   eventId: string,
   candidateUserIds: string[],
   input: {
-    eventTitle: string;
+    eventData: Record<string, unknown>;
     cancelledAt: Timestamp;
     requiresPopup: boolean;
   }
@@ -245,9 +268,11 @@ async function writeEventCancellationNotifications(
   const createdNotifications = (await Promise.all(
     recipients.inboxRecipientIds.map(async (userId) => {
       const userSnapshot = await db.collection("users").doc(userId).get();
+      const language = notificationLanguage(userSnapshot.data());
+      const title = localizedEventTitle(input.eventData, language);
       const copy = eventCancellationCopy(
-        input.eventTitle,
-        notificationLanguage(userSnapshot.data())
+        title,
+        language
       );
       const notificationId = eventCancellationNotificationId(eventId, userId);
       const writeResult = await writeUserNotification({
@@ -264,7 +289,7 @@ async function writeEventCancellationNotifications(
         sourceId: eventId,
         metadata: {
           eventId,
-          eventTitle: input.eventTitle,
+          eventTitle: title,
           cancelledAt: String(input.cancelledAt.toMillis()),
           route: "openEvent",
           routeTargetId: eventId,
@@ -290,38 +315,39 @@ async function writeEventNotifications(
   eventId: string,
   userIds: string[],
   input: {
-    type: "eventUpdated" | "eventCancelled";
-    title: string;
-    message: string;
+    type: "eventUpdated";
     severity: NotificationSeverity;
     requiresPopup: boolean;
     versionPart?: string;
     metadata: Record<string, unknown>;
+    eventData?: Record<string, unknown>;
   }
 ): Promise<void> {
   const recipients = await resolveNotificationRecipients(userIds);
-  await Promise.all(recipients.inboxRecipientIds.map((userId) => writeUserNotification({
-    notificationId: input.type === "eventUpdated"
-      ? ["eventUpdated", eventId, input.versionPart ?? "unknown", userId].join("_")
-      : ["eventCancelled", eventId, userId].join("_"),
-    targetUserId: userId,
-    type: input.type,
-    title: input.title,
-    message: input.message,
-    severity: input.severity,
-    actionType: "openEvent",
-    actionTargetId: eventId,
-    requiresPopup: input.requiresPopup,
-    sourceType: "event",
-    sourceId: eventId,
-    metadata: {
-      ...input.metadata,
-      eventId,
-    },
-    dedupeKey: input.type === "eventUpdated"
-      ? `${input.type}:${eventId}:${input.versionPart ?? "unknown"}`
-      : `${input.type}:${eventId}`,
-  })));
+  await Promise.all(recipients.inboxRecipientIds.map(async (userId) => {
+    const userSnapshot = await db.collection("users").doc(userId).get();
+    const language = notificationLanguage(userSnapshot.data());
+    const localizedTitle = localizedEventTitle(input.eventData, language);
+    const copy = eventUpdateCopy(localizedTitle, language);
+    return writeUserNotification({
+      notificationId: ["eventUpdated", eventId, input.versionPart ?? "unknown", userId].join("_"),
+      targetUserId: userId,
+      type: input.type,
+      title: copy.title,
+      message: copy.body,
+      severity: input.severity,
+      actionType: "openEvent",
+      actionTargetId: eventId,
+      requiresPopup: input.requiresPopup,
+      sourceType: "event",
+      sourceId: eventId,
+      metadata: {
+        ...input.metadata,
+        eventId,
+      },
+      dedupeKey: `${input.type}:${eventId}:${input.versionPart ?? "unknown"}`,
+    });
+  }));
 }
 
 export const notifyEventUpdatedOnUpdate = onDocumentUpdated(
@@ -331,7 +357,7 @@ export const notifyEventUpdatedOnUpdate = onDocumentUpdated(
     const after = event.data?.after.data();
     if (before && after && !isCancellationTransition(before) && isCancellationTransition(after)) {
       await writeEventCancellationNotifications(event.params.eventId, await registeredUserIds(event.params.eventId), {
-        eventTitle: eventTitle(after), cancelledAt: timestampField(after, "cancelledAt") ?? Timestamp.now(),
+        eventData: after, cancelledAt: timestampField(after, "cancelledAt") ?? Timestamp.now(),
         requiresPopup: isSoon(after),
       });
       return;
@@ -349,8 +375,6 @@ export const notifyEventUpdatedOnUpdate = onDocumentUpdated(
     const versionPart = String(timestampField(after, "updatedAt")?.toMillis() ?? event.id);
     await writeEventNotifications(eventId, userIds, {
       type: "eventUpdated",
-      title: "Event updated",
-      message: `${eventTitle(after)} was updated.`,
       severity: "info",
       requiresPopup: false,
       versionPart,
@@ -358,6 +382,7 @@ export const notifyEventUpdatedOnUpdate = onDocumentUpdated(
         eventTitle: eventTitle(after),
         changedAt: versionPart,
       },
+      eventData: after,
     });
   }
 );
@@ -372,18 +397,12 @@ export const notifyEventCancelledOnDelete = onDocumentDeleted(
       return;
     }
 
-    const cancelledAt = Date.now();
+    const cancelledAt = Timestamp.now();
     const requiresPopup = isSoon(deletedEvent);
-    await writeEventNotifications(eventId, userIds, {
-      type: "eventCancelled",
-      title: "Event cancelled",
-      message: `${eventTitle(deletedEvent)} was cancelled.`,
-      severity: requiresPopup ? "critical" : "warning",
+    await writeEventCancellationNotifications(eventId, userIds, {
+      eventData: deletedEvent ?? {},
+      cancelledAt,
       requiresPopup,
-      metadata: {
-        eventTitle: eventTitle(deletedEvent),
-        cancelledAt,
-      },
     });
   }
 );
@@ -406,7 +425,6 @@ export const cancelEvent = onCall(
     const eventId = cancellationRequest.eventId;
     const userIds = await registeredUserIds(eventId);
     const cancelledAt = Timestamp.now();
-    const title = eventTitle(eventData);
     const requiresPopup = isSoon(eventData);
     if (userIds.length === 0) {
       await deleteEventContent(eventId, eventData);
@@ -430,7 +448,7 @@ export const cancelEvent = onCall(
     });
 
     const notificationResult = await writeEventCancellationNotifications(eventId, userIds, {
-      eventTitle: title,
+      eventData,
       cancelledAt,
       requiresPopup,
     });

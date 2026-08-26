@@ -374,7 +374,8 @@ service cloud.firestore {
         'organizationName', 'organizationImageURL', 'sourceName', 'sourceURL',
         'imageURL', 'body', 'authorId', 'authorName', 'publishedAt', 'createdAt',
         'updatedAt', 'moderationStatus', 'likeCount', 'likeState', 'viewCount',
-        'commentCount'
+        'commentCount', 'schemaVersion', 'localizations', 'mediaMetadata',
+        'externalAction'
       ];
     }
 
@@ -390,7 +391,8 @@ service cloud.firestore {
         'registrationState', 'likeCount', 'likeState', 'viewCount',
         'commentCount', 'category', 'audience', 'minimumAge', 'maximumAge',
         'tags', 'visibility', 'isAllDay', 'cancellationState', 'cancelledAt',
-        'cancellationReason'
+        'cancellationReason', 'schemaVersion', 'localizations', 'occurrences',
+        'participationMode', 'externalAction', 'pricing'
       ];
     }
 

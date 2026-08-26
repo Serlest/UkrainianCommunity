@@ -163,10 +163,56 @@ function event(id, authorId) {
   };
 }
 
+function localizedNews(id, authorId) {
+  return {
+    ...news(id, authorId),
+    schemaVersion: 2,
+    localizations: {
+      uk: {title: "Новина громади", subtitle: "Короткий опис", body: "Повний текст новини"},
+      de: {title: "Community-Nachricht", subtitle: "Kurzbeschreibung", body: "Vollständiger Nachrichtentext"},
+    },
+    mediaMetadata: {alternativeText: "Люди на зустрічі", credit: "Community"},
+    externalAction: {title: "Джерело", url: "https://example.org/news"},
+  };
+}
+
+function multiOccurrenceEvent(id, authorId) {
+  return {
+    ...event(id, authorId),
+    schemaVersion: 2,
+    localizations: {
+      uk: {title: "Подія громади", summary: "Короткий опис", details: "Повний опис події"},
+    },
+    occurrences: [
+      {id: "first", startDate: new Date("2026-09-10T17:00:00Z"), endDate: new Date("2026-09-10T19:00:00Z"), isAllDay: false, status: "scheduled"},
+      {id: "second", startDate: new Date("2026-09-12T10:00:00Z"), endDate: new Date("2026-09-12T12:00:00Z"), isAllDay: false, status: "scheduled"},
+    ],
+    participationMode: "externalTickets",
+    externalAction: {title: "Квитки", url: "https://example.org/tickets"},
+    pricing: {kind: "startingFrom", amount: 12, currencyCode: "EUR", note: "Ціна організатора"},
+  };
+}
+
 describe("strict client content schemas", () => {
   test("organization owner can create canonical news and events", async () => {
     await assertSucceeds(setDoc(doc(db("org-owner"), "news", "new-news"), news("new-news", "org-owner")));
     await assertSucceeds(setDoc(doc(db("org-owner"), "events", "new-event"), event("new-event", "org-owner")));
+  });
+
+  test("organization owner can create localized news and a multi-occurrence external event", async () => {
+    await assertSucceeds(setDoc(doc(db("org-owner"), "news", "localized-news"), localizedNews("localized-news", "org-owner")));
+    await assertSucceeds(setDoc(doc(db("org-owner"), "events", "multi-event"), multiOccurrenceEvent("multi-event", "org-owner")));
+  });
+
+  test("versioned content still rejects unknown top-level fields", async () => {
+    await assertFails(setDoc(doc(db("org-owner"), "news", "bad-language"), {
+      ...localizedNews("bad-language", "org-owner"),
+      privileged: true,
+    }));
+    await assertFails(setDoc(doc(db("org-owner"), "events", "bad-action"), {
+      ...multiOccurrenceEvent("bad-action", "org-owner"),
+      privileged: true,
+    }));
   });
 
   test("organization owner can update canonical news and events", async () => {
