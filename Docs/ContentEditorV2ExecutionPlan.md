@@ -72,7 +72,7 @@ Baseline rollback tag: `checkpoint/build-37-pre-content-editor-v2-20260826`
 - [ ] Verify a physical device separately.
 - [ ] Deploy backward-compatible indexes/Functions/Rules only after explicit preflight evidence.
 - [ ] Verify build 37 against the updated backend before uploading the next TestFlight build.
-- [ ] Commit and push logical checkpoints; report every live/device gate separately.
+- [x] Commit logical checkpoints; push them before any production deployment.
 
 ## Rollback rules
 
