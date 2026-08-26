@@ -2,15 +2,14 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 import { db } from "../firebase/admin";
 import {
-  buildNotificationDataPayload,
   resolveNotificationRecipients,
   writeUserNotification,
 } from "./notificationPayloads";
-import { sendPushToRegistrationDocuments } from "./pushRegistrations";
 
 const triggerOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  retry: true,
 };
 
 
@@ -49,9 +48,9 @@ export const notifyEventRegistrationConfirmedOnCreate = onDocumentCreated(
       eventTitle,
       notificationLanguage(userSnapshot.data())
     );
-    const notificationId = `eventRegistrationConfirmed_${eventId}_${userId}`;
+    const notificationId = `eventRegistrationConfirmed_${event.id}_${userId}`;
 
-    const writeResult = await writeUserNotification({
+    await writeUserNotification({
       notificationId,
       targetUserId: userId,
       type: "eventRegistrationConfirmed",
@@ -72,51 +71,8 @@ export const notifyEventRegistrationConfirmedOnCreate = onDocumentCreated(
       dedupeKey: notificationId,
     });
 
-    if (!writeResult.didCreate || !recipients.pushRecipientIds.includes(userId)) {
-      return;
-    }
-
-    await sendRegistrationPush(userId, notificationId, eventId, copy);
   }
 );
-
-async function sendRegistrationPush(
-  userId: string,
-  notificationId: string,
-  eventId: string,
-  copy: EventRegistrationCopy
-): Promise<void> {
-  const tokenSnapshot = await db
-    .collection("users")
-    .doc(userId)
-    .collection("notificationPushTokens")
-    .get();
-  const data = buildNotificationDataPayload({
-    notificationId,
-    type: "eventRegistrationConfirmed",
-    sourceType: "event",
-    sourceId: eventId,
-    actionType: "openEvent",
-    actionTargetId: eventId,
-    route: "openEvent",
-    routeTargetId: eventId,
-  });
-
-  await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
-    notification: {
-      title: copy.title,
-      body: copy.body,
-    },
-    data,
-    apns: {
-      payload: {
-        aps: {
-          sound: "default",
-        },
-      },
-    },
-  });
-}
 
 function isPublicApprovedEvent(data?: FirebaseFirestore.DocumentData): boolean {
   if (!data || data.moderationStatus !== "approved") {

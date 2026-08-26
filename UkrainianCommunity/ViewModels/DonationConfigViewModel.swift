@@ -28,7 +28,7 @@ final class DonationConfigViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            config = try await repository.fetchDonationConfig() ?? .defaults
+            config = try await RefreshRequest.run { [repository] in try await repository.fetchDonationConfig() } ?? .defaults
             hasLoaded = true
             hasLoadedData = true
         } catch {
@@ -46,7 +46,7 @@ final class DonationConfigViewModel: ObservableObject {
 
         do {
             try await repository.saveDonationConfig(config, updatedBy: userID)
-            self.config = try await repository.fetchDonationConfig() ?? config
+            self.config = try await RefreshRequest.run { [repository] in try await repository.fetchDonationConfig() } ?? config
             hasLoaded = true
             hasLoadedData = true
             statusStyle = .success

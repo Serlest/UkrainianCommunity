@@ -122,10 +122,10 @@ final class FeaturedBannerListViewModel: ObservableObject {
 
     private func performLoad(for query: FeaturedBannerCache.Key) async {
         do {
-            let loadedBanners = try await repository.fetchActiveBanners(
+            let loadedBanners = try await RefreshRequest.run { [self] in try await repository.fetchActiveBanners(
                 for: query.section,
                 federalState: query.federalState
-            )
+            ) }
             guard !Task.isCancelled else { return }
 
             let cached = cache.store(loadedBanners, for: query)

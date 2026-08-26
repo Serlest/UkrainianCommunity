@@ -125,7 +125,7 @@ struct ActivityHistoryView: View {
             }
             await loadActivityHistoryIfNeeded(userID: userID)
         }
-        .refreshable {
+        .appRefreshable {
             await refreshActivityHistory()
         }
         .confirmationDialog(

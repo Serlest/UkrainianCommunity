@@ -51,7 +51,7 @@ final class FeedbackInboxViewModel: ObservableObject {
 
     private func fetchInboxOnce() async {
         do {
-            items = try await repository.fetchFeedback()
+            items = try await RefreshRequest.run { [self] in try await repository.fetchFeedback() }
             hasLoaded = true
             error = nil
         } catch let appError as AppError {
@@ -222,7 +222,7 @@ final class FeedbackInboxViewModel: ObservableObject {
 
     private func fetchMessagesOnce(for item: FeedbackItem) async {
         do {
-            messagesByFeedbackID[item.id] = try await repository.fetchFeedbackMessages(feedback: item)
+            messagesByFeedbackID[item.id] = try await RefreshRequest.run { [self] in try await repository.fetchFeedbackMessages(feedback: item) }
             error = nil
         } catch let appError as AppError {
             error = appError

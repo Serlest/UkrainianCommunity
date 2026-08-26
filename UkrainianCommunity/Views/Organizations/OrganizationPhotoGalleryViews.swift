@@ -34,7 +34,7 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            photos = try await repository.fetchPhotos(organizationId: organizationId)
+            photos = try await RefreshRequest.run { [self] in try await repository.fetchPhotos(organizationId: organizationId) }
             errorMessage = nil
             hasLoaded = true
         } catch {
@@ -143,7 +143,7 @@ struct OrganizationPhotoGallerySection: View {
         .task(id: organizationId) {
             await viewModel.loadIfNeeded()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .onChange(of: selectedPickerItem) { _, item in

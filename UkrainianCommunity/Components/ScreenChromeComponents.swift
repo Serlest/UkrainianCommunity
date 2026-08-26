@@ -415,7 +415,7 @@ private extension View {
     @ViewBuilder
     func detailRefreshable(_ action: (() async -> Void)?) -> some View {
         if let action {
-            refreshable {
+            appRefreshable {
                 await action()
             }
         } else {

@@ -495,7 +495,7 @@ final class EventsViewModel: ObservableObject {
         guard events.contains(where: { $0.id == eventID }) else { return }
 
         do {
-            let comments = try await repository.fetchEventComments(eventID: eventID)
+            let comments = try await RefreshRequest.run { [repository] in try await repository.fetchEventComments(eventID: eventID) }
             guard isCurrentSession(generation),
                   let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
@@ -639,22 +639,25 @@ final class EventsViewModel: ObservableObject {
         events.first(where: { $0.id == eventID })
     }
 
-    func loadEventIfNeeded(eventID: String, force: Bool = false) async {
-        guard force || event(for: eventID) == nil else { return }
+    @discardableResult
+    func loadEventIfNeeded(eventID: String, force: Bool = false) async -> Bool {
+        guard force || event(for: eventID) == nil else { return true }
         let generation = sessionGeneration
 
         do {
-            let event = try await repository.fetchEvent(id: eventID)
-            guard isCurrentSession(generation) else { return }
+            let event = try await RefreshRequest.run { [repository] in try await repository.fetchEvent(id: eventID) }
+            guard isCurrentSession(generation) else { return false }
             cacheEvent(event)
             error = nil
+            return true
         } catch let appError as AppError {
-            guard isCurrentSession(generation) else { return }
+            guard isCurrentSession(generation) else { return false }
             error = appError
         } catch {
-            guard isCurrentSession(generation) else { return }
+            guard isCurrentSession(generation) else { return false }
             self.error = .unknown
         }
+        return false
     }
 
     func cacheEvent(_ event: Event) {
@@ -769,7 +772,7 @@ final class EventsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nil)
+            let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nil) }
             guard !Task.isCancelled, isCurrentSession(generation) else { return }
             feedRevision &+= 1
             events = visibilityPolicy.visibleEvents(page.items)
@@ -800,7 +803,7 @@ final class EventsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nextPageCursor)
+            let page = try await RefreshRequest.run { [repository, publicFeedPageSize, nextPageCursor] in try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nextPageCursor) }
             guard !Task.isCancelled, isCurrentSession(generation) else { return }
             feedRevision &+= 1
             appendUniqueEvents(page.items)

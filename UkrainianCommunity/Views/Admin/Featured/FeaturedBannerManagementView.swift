@@ -38,7 +38,7 @@ struct FeaturedBannerManagementView: View {
         .task {
             await viewModel.loadIfNeeded()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .confirmationDialog(

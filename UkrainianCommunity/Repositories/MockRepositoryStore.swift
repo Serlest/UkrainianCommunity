@@ -11,7 +11,7 @@ actor MockRepositoryStore {
     var feedbackItems: [FeedbackItem] = []
     var feedbackMessages: [String: [FeedbackMessage]] = [:]
     var notificationPreferencesByUserID: [String: NotificationPreferences] = [:]
-    var notificationsByUserID: [String: [AppNotification]] = [:]
+    var notificationsByUserID: [String: [AppNotification]] = MockContentBuilder.notificationDetailFixtures()
     var viewedNewsIDs = Set<String>()
 
     func updateUserProfile(_ profile: EditableUserProfileDraft) -> AppUser {

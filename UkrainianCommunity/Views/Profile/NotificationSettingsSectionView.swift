@@ -1,6 +1,10 @@
 import SwiftUI
+import UIKit
+import UserNotifications
 
 struct NotificationSettingsSectionView: View {
+    @Environment(\.openURL) private var openURL
+    @State private var systemNotificationsDenied = false
     @ObservedObject var viewModel: ProfileViewModel
     let userID: String?
     let canSendTestNotification: Bool
@@ -26,6 +30,15 @@ struct NotificationSettingsSectionView: View {
                     )
                 )
                 .disabled(viewModel.isSavingNotificationPreferences || viewModel.isLoadingNotificationPreferences)
+
+                if systemNotificationsDenied {
+                    InlineMessageCard(style: .error, message: AppStrings.Profile.systemNotificationsDenied)
+                    Button(AppStrings.Profile.openSystemNotificationSettings) {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                    .buttonStyle(.bordered)
+                }
 
                 ProfileSettingsToggleRow(
                     title: AppStrings.Profile.eventRemindersEnabled,
@@ -104,6 +117,15 @@ struct NotificationSettingsSectionView: View {
                 }
             }
         }
+        .task { await refreshSystemPermission() }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task { await refreshSystemPermission() }
+        }
+    }
+
+    private func refreshSystemPermission() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        systemNotificationsDenied = settings.authorizationStatus == .denied
     }
 
     private func reminderLeadTimeTitle(_ minutes: Int) -> String {

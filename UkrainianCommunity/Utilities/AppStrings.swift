@@ -32,6 +32,15 @@ enum AppStrings {
     }
 
     enum NotificationInbox {
+        static var detailTitle: String { text("notifications.detail.title", "Details") }
+        static var viewDetails: String { text("notifications.detail.view", "View notification details") }
+        static var closeDetails: String { text("notifications.detail.close", "Close") }
+        static var openDestination: String { text("notifications.detail.open_destination", "Go to related content") }
+        static var informationOnly: String { text("notifications.detail.information_only", "This is an informational notification. No further action is required.") }
+        static var noFurtherDetails: String { text("notifications.detail.no_further_details", "No additional details were included in this notification.") }
+        static var detailStatus: String { text("notifications.detail.status", "Status") }
+        static var deleteConfirmationTitle: String { text("notifications.detail.delete.title", "Delete this notification?") }
+        static var deleteConfirmationMessage: String { text("notifications.detail.delete.message", "Only this notification will be removed. The related content will not be deleted.") }
         static var title: String { text("notifications.inbox.title", "Notifications") }
         static var subtitle: String { text("notifications.inbox.subtitle", "Updates about your requests and support messages.") }
         static var emptyTitle: String { text("notifications.inbox.empty.title", "No notifications yet") }
@@ -1540,8 +1549,11 @@ enum AppStrings {
         static var notificationPreferencesLoadFailed: String { text("profile.notifications.load_failed", "Не вдалося завантажити налаштування сповіщень.") }
         static var notificationPreferencesSaveFailed: String { text("profile.notifications.save_failed", "Не вдалося зберегти налаштування сповіщень.") }
         static var notificationPreferencesSaved: String { text("profile.notifications.saved", "Налаштування сповіщень збережено.") }
+        static var systemNotificationsDenied: String { text("profile.notifications.system_denied", "Сповіщення заборонені в налаштуваннях iPhone. Увімкніть їх, щоб отримувати повідомлення поза застосунком.") }
+        static var openSystemNotificationSettings: String { text("profile.notifications.open_system_settings", "Відкрити налаштування iPhone") }
         static var notificationTestButton: String { text("profile.notifications.test_button", "Тестове сповіщення") }
-        static var notificationTestSent: String { text("profile.notifications.test_sent", "Тестове сповіщення буде показано за кілька секунд.") }
+        static var notificationTestSent: String { text("profile.notifications.test_sent", "Сервер прийняв тестове сповіщення. Перевірте, чи воно з’явилося на iPhone.") }
+        static var notificationTestPartial: String { text("profile.notifications.test_partial", "Сервер прийняв сповіщення лише для частини пристроїв. Перевірте налаштування APNs у Firebase.") }
         static var notificationTestFailed: String { text("profile.notifications.test_failed", "Не вдалося надіслати тестове сповіщення.") }
         static var organizationNewsNotifications: String { text("profile.notifications.organization_news", "Новини від організацій") }
         static var organizationNewsNotificationsSubtitle: String { text("profile.notifications.organization_news.subtitle", "Оновлення від організацій, на які ви підписані.") }
@@ -1932,6 +1944,7 @@ enum AppStrings {
     }
 
     enum UserManagement {
+        static var refreshFailed: String { text("user_management.refresh_failed", "Не вдалося оновити дані. Перевірте з’єднання й спробуйте ще раз.") }
         static var title: String { text("user_management.title", "Користувачі") }
         static var retry: String { text("user_management.retry", "Retry") }
         static var permission: String { text("user_management.permission", "У вас немає доступу до керування користувачами.") }

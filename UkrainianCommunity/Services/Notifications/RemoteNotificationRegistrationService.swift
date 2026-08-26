@@ -168,6 +168,7 @@ final class RemoteNotificationRegistrationService: NSObject {
     }
 
     func didFailToRegisterForRemoteNotifications(_ error: Error) {
+        hasRequestedRemoteRegistration = false
         debugLog("Remote notification registration failed: \(error)")
     }
 
@@ -185,6 +186,7 @@ final class RemoteNotificationRegistrationService: NSObject {
 
         if settings.authorizationStatus.allowsRemoteRegistration {
             registerForRemoteNotificationsIfNeeded()
+            await refreshMessagingRegistrationIfAvailable()
             return
         }
 

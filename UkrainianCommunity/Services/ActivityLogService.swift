@@ -268,7 +268,7 @@ final class ActivityLogViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            items = try await repository.fetchActivityLog(limit: 100)
+            items = try await RefreshRequest.run { [self] in try await repository.fetchActivityLog(limit: 100) }
                 .sorted { $0.createdAt > $1.createdAt }
             error = nil
             hasLoaded = true

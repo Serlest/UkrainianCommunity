@@ -17,10 +17,13 @@ import {
   writeUserNotification,
 } from "./notificationPayloads";
 import { sendPushToRegistrationDocuments } from "./pushRegistrations";
+import {deliverPushDurably} from "./durablePushDelivery";
+import {canReceiveScopedNotification} from "./workflowNotifications";
 
 const triggerOptions = {
   region: "europe-west3",
   maxInstances: 20,
+  retry: true,
 };
 
 const callableOptions = {
@@ -58,6 +61,7 @@ export const sendTestPushNotification = onCall(
       );
     }
 
+    const providerErrors = new Set<string>();
     const delivery = await sendPushToRegistrationDocuments(registrations.docs, {
       notification: {
         title: "Ukrainian Community",
@@ -77,12 +81,15 @@ export const sendTestPushNotification = onCall(
           },
         },
       },
+    }, undefined, async (_ids, result) => {
+      if (result.error?.code) providerErrors.add(result.error.code);
     });
 
     if (delivery.successCount === 0) {
       throw new HttpsError(
         "unavailable",
-        "Firebase could not deliver the test notification to a registered device."
+        "Firebase rejected the test notification.",
+        {providerErrorCodes: [...providerErrors], targetCount: delivery.targetCount}
       );
     }
     return delivery;
@@ -111,6 +118,7 @@ const centrallyDeliveredTypes = new Set<NotificationType>([
 ]);
 
 const notificationTypes = new Set<NotificationType>([
+  "organizationRequestSubmitted", "commentAdded", "contentModerationChanged", "eventParticipationChanged",
   "accountStatusChanged",
   "feedbackSubmitted",
   "feedbackReply",
@@ -166,6 +174,7 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
     }
 
     const metadata = recordValue(notification.metadata);
+    if (!await canReceiveScopedNotification(event.params.userId, metadata)) return;
 
     const userId = event.params.userId;
     const recipients = await resolveNotificationRecipients([userId], {
@@ -200,7 +209,7 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
     const title = stringValue(notification.title) ?? fallbackTitle(type);
     const body = stringValue(notification.message) ?? title;
     const localizedAlert = localizedAlertKeys(type, metadata);
-    const delivery = await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
+    await deliverPushDurably(event.data!.ref, {
       notification: { title, body },
       data: buildNotificationDataPayload({
         notificationId: event.params.notificationId,
@@ -218,19 +227,15 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
             alert: {
               titleLocKey: localizedAlert.titleLocKey,
               locKey: localizedAlert.bodyLocKey,
+              locArgs: Array.isArray(metadata.bodyLocArgs)
+                ? metadata.bodyLocArgs.filter((value): value is string => typeof value === "string") : [],
             },
             sound: "default",
           },
         },
       },
-    });
+    }, tokenSnapshot.docs);
 
-    console.info("Notification push delivery completed.", {
-      userId,
-      notificationId: event.params.notificationId,
-      type,
-      ...delivery,
-    });
   }
 );
 
@@ -238,14 +243,18 @@ export function shouldDeliverInboxNotificationPush(
   type: NotificationType,
   metadataValue: unknown
 ): boolean {
-  return centrallyDeliveredTypes.has(type)
-    && recordValue(metadataValue).pushManagedByWriter !== true;
+  const metadata = recordValue(metadataValue);
+  return (centrallyDeliveredTypes.has(type) || metadata.pushDelivery === "central")
+    && metadata.pushManagedByWriter !== true;
 }
 
 export function localizedAlertKeys(
   type: NotificationType,
   metadata: Record<string, unknown>
 ): {titleLocKey: string; bodyLocKey: string} {
+  if (typeof metadata.titleLocKey === "string" && typeof metadata.bodyLocKey === "string") {
+    return {titleLocKey: metadata.titleLocKey, bodyLocKey: metadata.bodyLocKey};
+  }
   if (type === "accountStatusChanged") {
     switch (stringValue(metadata.newAccountStatus)) {
       case "warned":

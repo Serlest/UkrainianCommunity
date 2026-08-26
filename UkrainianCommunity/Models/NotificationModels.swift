@@ -16,6 +16,10 @@ struct NotificationPreferences: Codable, Equatable {
 }
 
 enum AppNotificationType: String, Codable, CaseIterable, Sendable {
+    case organizationRequestSubmitted
+    case commentAdded
+    case contentModerationChanged
+    case eventParticipationChanged
     case feedbackSubmitted
     case feedbackReply
     case organizationRequestApproved
@@ -528,11 +532,81 @@ extension AppNotification {
     var localizedDisplayContent: AppNotificationDisplayContent {
         AppNotificationDisplayResolver.content(for: self)
     }
+
+    var detailSender: String? { detailText(actorDisplayName) }
+
+    var destinationTargetID: String? {
+        [actionTargetId, sourceId, payload["routeTargetId"], metadata["routeTargetId"],
+         metadata["targetId"], metadata["targetID"], metadata["url"]]
+            .compactMap(detailText).first
+    }
+
+    var destinationURL: URL? {
+        guard let text = [actionTargetId, metadata["url"], payload["url"]].compactMap(detailText).first,
+              let url = URL(string: text),
+              let scheme = url.scheme?.lowercased(), ["https", "http"].contains(scheme),
+              let host = url.host, !host.isEmpty else { return nil }
+        return url
+    }
+
+    var canOpenDestination: Bool {
+        guard !isDeleted, expiresAt.map({ $0 > Date() }) ?? true else { return false }
+        switch actionType {
+        case .none: return false
+        case .openNews, .openEvent, .openOrganization, .openDsaStatement:
+            return destinationTargetID != nil
+        case .openURL: return destinationURL != nil
+        case .openFeedback, .openOrganizationRequest, .openLegalDocuments, .openProfile:
+            return true
+        }
+    }
+
+    var localizedDetailContent: AppNotificationDisplayContent {
+        let summary = localizedDisplayContent
+        var paragraphs: [String] = []
+        func append(_ value: String?) {
+            guard let value = detailText(value), !value.hasPrefix("notifications."),
+                  !paragraphs.contains(value) else { return }
+            paragraphs.append(value)
+        }
+        if summary.body != AppStrings.NotificationInbox.genericBody { append(summary.body) }
+        switch type {
+        case .feedbackSubmitted, .feedbackReply:
+            append(payload["messagePreview"] ?? metadata["messagePreview"])
+        case .legalDocumentsUpdated, .reportReviewed, .eventUpdated, .eventCancelled, .systemAnnouncement, .unknown:
+            append(message ?? metadata["message"] ?? payload["message"])
+        default: break
+        }
+        if type == .contentModerationChanged,
+           let rawStatus = metadata["moderationStatus"], let status = ModerationStatus(rawValue: rawStatus) {
+            append("\(AppStrings.NotificationInbox.detailStatus): \(status.title)")
+        }
+        let context = [metadata["organizationName"], payload["organizationName"],
+                       metadata["eventTitle"], payload["eventTitle"],
+                       metadata["contentTitle"], payload["contentTitle"]].compactMap(detailText).first
+        if let context, !paragraphs.contains(where: { $0.contains(context) }) { append(context) }
+        return .init(title: summary.title, body: paragraphs.isEmpty
+                     ? AppStrings.NotificationInbox.noFurtherDetails : paragraphs.joined(separator: "\n\n"))
+    }
+
+    private func detailText(_ value: String?) -> String? {
+        guard let text = value?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
+        return text
+    }
 }
 
 private enum AppNotificationDisplayResolver {
     static func content(for notification: AppNotification) -> AppNotificationDisplayContent {
         switch notification.type {
+        case .organizationRequestSubmitted, .commentAdded, .contentModerationChanged, .eventParticipationChanged:
+            let fallback = firstNonEmpty(notification.title) ?? AppStrings.NotificationInbox.title
+            let title = notification.metadata["titleLocKey"].map {
+                LocalizationStore.localizedString($0, defaultValue: fallback)
+            } ?? fallback
+            return AppNotificationDisplayContent(
+                title: title,
+                body: firstNonEmpty(notification.message) ?? AppStrings.NotificationInbox.genericBody
+            )
         case .systemAnnouncement, .unknown:
             return AppNotificationDisplayContent(
                 title: firstNonEmpty(notification.title) ?? AppStrings.NotificationInbox.systemAnnouncementTitle,

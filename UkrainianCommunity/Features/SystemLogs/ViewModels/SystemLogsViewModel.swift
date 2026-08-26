@@ -92,7 +92,7 @@ final class SystemLogsViewModel: ObservableObject {
         }
 
         do {
-            let refreshedLogs = try await fetchLogsForAccessMode()
+            let refreshedLogs = try await RefreshRequest.run { [self] in try await fetchLogsForAccessMode() }
             guard requestRevision == dataRequestRevision else { return }
             logs = refreshedLogs
             canLoadMore = logs.count >= fetchLimit

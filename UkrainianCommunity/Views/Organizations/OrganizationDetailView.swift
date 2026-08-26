@@ -211,20 +211,20 @@ final class OrganizationActivityViewModel: ObservableObject {
             var loadedItems: [OrganizationActivityItem] = []
 
             if itemTypes.contains(.news) {
-                let filteredNews = try await newsRepository.fetchOrganizationNews(
+                let filteredNews = try await RefreshRequest.run { [self] in try await newsRepository.fetchOrganizationNews(
                     organizationID: organizationID,
                     limit: activityLimit
-                )
+                ) }
                 .filter { belongsToOrganization($0.source, organization: organization) }
                 .map(OrganizationActivityItem.init(post:))
                 loadedItems.append(contentsOf: filteredNews)
             }
 
             if itemTypes.contains(.event) {
-                let filteredEvents = try await eventRepository.fetchOrganizationEvents(
+                let filteredEvents = try await RefreshRequest.run { [self] in try await eventRepository.fetchOrganizationEvents(
                     organizationID: organizationID,
                     limit: activityLimit
-                )
+                ) }
                 .filter { belongsToOrganization($0.source, organization: organization) }
                 .map(OrganizationActivityItem.init(event:))
                 loadedItems.append(contentsOf: filteredEvents)
@@ -307,6 +307,7 @@ struct OrganizationDetailView: View {
     let onOrganizationSaved: @MainActor () async -> Void
     let onOrganizationDeleted: @MainActor () -> Void
     let onNavigateBack: (() -> Void)?
+    @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
     @State var deleteErrorMessage: String?
     @State var pendingRemovalOrganizationID: String?
@@ -427,6 +428,9 @@ struct OrganizationDetailView: View {
                 ) {
                     organizationHeaderActions(for: organization)
                 } content: {
+                    if let refreshError {
+                        InlineMessageCard(style: .error, message: readableOrganizationErrorText(refreshError))
+                    }
                     organizationHero(for: organization)
                         .onTapGesture { isCommentFieldFocused = false }
                     heroMetadata(for: organization)
@@ -620,25 +624,29 @@ struct OrganizationDetailView: View {
         loadedPreviewPhotoOrganizationID = organizationID
 
         do {
-            previewPhotos = try await photoRepository.fetchPhotos(organizationId: organizationID)
+            previewPhotos = try await RefreshRequest.run { [self] in try await photoRepository.fetchPhotos(organizationId: organizationID) }
         } catch {
-            previewPhotos = []
+            loadedPreviewPhotoOrganizationID = nil
         }
     }
 
     @MainActor
     func reloadPreviewPhotos(for organizationID: String) async {
         loadedPreviewPhotoOrganizationID = nil
-        previewPhotos = []
         await loadPreviewPhotosIfNeeded(for: organizationID)
     }
 
     @MainActor
     func refreshOrganizationDetail(for organization: Organization) async {
-        await viewModel.refresh()
-        let refreshedOrganization = viewModel.organization(for: organization.id) ?? organization
-        await refreshCommentsIfLoaded(for: refreshedOrganization.id)
-        await refreshSelectedSectionData(for: refreshedOrganization)
+        refreshError = nil
+        guard let refreshedOrganization = await viewModel.resolveOrganization(id: organization.id, force: true) else {
+            refreshError = viewModel.error
+            return
+        }
+        async let comments: Void = refreshCommentsIfLoaded(for: refreshedOrganization.id)
+        async let section: Void = refreshSelectedSectionData(for: refreshedOrganization)
+        async let photos: Void = reloadPreviewPhotos(for: refreshedOrganization.id)
+        _ = await (comments, section, photos)
     }
 
     @MainActor
@@ -701,12 +709,7 @@ struct OrganizationDetailView: View {
 
     @MainActor
     func reloadCommunityMembers(for organization: Organization) async {
-        loadedCommunityOrganizationID = nil
-        communityMembers = []
-        communitySubscriberReferences = []
-        communitySubscriberCursor = nil
-        hasMoreCommunitySubscribers = false
-        await loadCommunityMembersIfNeeded(for: organization)
+        await loadCommunityMembersPage(for: organization, reset: true)
     }
 
     @MainActor
@@ -720,11 +723,11 @@ struct OrganizationDetailView: View {
 
         if PermissionService.canViewOrganizationSubscriberIdentities(organization, user: authState.user) {
             do {
-                let page = try await organizationRepository.fetchOrganizationSubscriberPage(
+                let page = try await RefreshRequest.run { [self] in try await organizationRepository.fetchOrganizationSubscriberPage(
                     organizationID: organization.id,
                     limit: communityPageSize,
                     after: reset ? nil : communitySubscriberCursor
-                )
+                ) }
                 communitySubscriberCursor = page.nextCursor
                 hasMoreCommunitySubscribers = page.hasMore
                 mergeCommunitySubscriberReferences(page.items, reset: reset)
@@ -746,7 +749,7 @@ struct OrganizationDetailView: View {
         let userIDs = Array(Set(roleUserIDs + communitySubscriberReferences.map(\.userID)))
 
         do {
-            let profiles = try await organizationRepository.fetchPublicUserProfiles(userIDs: userIDs)
+            let profiles = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPublicUserProfiles(userIDs: userIDs) }
             var loadedProfileIDs = Set<String>()
             var members: [OrganizationCommunityMember] = []
             for profile in profiles {

@@ -119,10 +119,21 @@ export function isPermanentPushRegistrationFailure(response: SendResponse): bool
     || code === "messaging/registration-token-not-registered";
 }
 
+export type PushResultObserver = (documentIds: string[], response: SendResponse) => Promise<void>;
+
+export function isRetryablePushFailure(response: SendResponse): boolean {
+  return !response.success && [
+    "messaging/server-unavailable", "messaging/internal-error", "messaging/unknown-error",
+    "messaging/quota-exceeded", "messaging/message-rate-exceeded",
+    "messaging/device-message-rate-exceeded", "app/network-error", "app/network-timeout",
+  ].includes(response.error?.code ?? "messaging/unknown-error");
+}
+
 export async function sendPushToRegistrationDocuments(
   documents: readonly PushRegistrationDocument[],
   message: BaseMessage,
-  sendEachForMulticast: PushMulticastSender = sendWithFirebaseAdmin
+  sendEachForMulticast: PushMulticastSender = sendWithFirebaseAdmin,
+  observeResult?: PushResultObserver
 ): Promise<PushDeliveryResult> {
   const plan = consolidatedDeliveryPlan(documents);
   await removeMalformedFIDRegistrations(plan.malformedFIDDocumentReferences);
@@ -140,6 +151,27 @@ export async function sendPushToRegistrationDocuments(
       fids: batch.fids.map((registration) => registration.identifier),
     });
 
+    if (response.responses.length !== orderedTargets.length) {
+      throw new Error("Push response count mismatch; delivery cannot be acknowledged.");
+    }
+    for (let index = 0; index < response.responses.length; index++) {
+      const result = response.responses[index];
+      if (!result.success) {
+        // Never log tokens, FIDs, notification bodies or provider error messages.
+        console.error("Push provider rejected notification", {
+          code: result.error?.code ?? "messaging/unknown-error",
+          registrationKind: orderedTargets[index].kind,
+          retryable: isRetryablePushFailure(result),
+        });
+      }
+      await observeResult?.(
+        [...orderedTargets[index].documentReferences,
+          ...(result.success ? orderedTargets[index].supersededLegacyDocumentReferences : [])].map((ref) => {
+          const document = documents.find((value) => value.ref === ref);
+          return document!.id;
+        }), result
+      );
+    }
     await removeObsoleteRegistrations(orderedTargets, response.responses);
     return response;
   }));

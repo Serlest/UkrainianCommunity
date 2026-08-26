@@ -543,6 +543,90 @@ struct UkrainianCommunityTests {
         #expect(ukrainianContent.body.contains("Custom reason"))
     }
 
+    @Test func workflowNotificationsUseSelectedLanguageAndSupportColdStartRouting() throws {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+        let notification = AppNotification(
+            id: "submission-1", recipientUserId: "owner", type: .organizationRequestSubmitted,
+            sourceType: .organization, sourceId: "org-1", actionType: .openOrganizationRequest,
+            actionTargetId: "org-1", title: "Fallback", message: "Organization name",
+            metadata: ["titleLocKey": "notifications.push.organization_submitted.title"],
+            payload: [:], isRead: false, readAt: nil, createdAt: .now
+        )
+        AppLanguage.stored = .german
+        #expect(notification.localizedDisplayContent.title == "Organisationsantrag zur Prüfung")
+        AppLanguage.stored = .ukrainian
+        #expect(notification.localizedDisplayContent.title == "Заявка організації на перевірку")
+        #expect(notification.localizedDisplayContent.body == "Organization name")
+        let route = try #require(RemoteNotificationRoute(userInfo: [
+            "type": "organizationRequestSubmitted", "notificationId": "submission-1",
+            "sourceType": "organization", "sourceId": "org-1",
+            "actionType": "openOrganizationRequest", "actionTargetId": "org-1"
+        ]))
+        #expect(route.destination == .openOrganizationRequest(organizationId: "org-1"))
+        #expect(route.notificationId == "submission-1")
+    }
+
+    @Test func notificationDetailsPreserveMessageWithoutRequiringDestination() {
+        let notification = AppNotification(
+            id: "detail", recipientUserId: "user-1", type: .eventUpdated,
+            sourceType: .event, sourceId: "", title: "Updated",
+            message: "The venue has moved.\nPlease use the north entrance.",
+            actorDisplayName: "  Organizer  ", payload: [:], isRead: false, readAt: nil, createdAt: .now
+        )
+        #expect(notification.localizedDetailContent.body == notification.message)
+        #expect(notification.detailSender == "Organizer")
+        #expect(!notification.canOpenDestination)
+        #expect(notification.localizedDetailContent.body != AppStrings.NotificationInbox.genericBody)
+    }
+
+    @Test func feedbackDetailsIncludeSubjectAndMessageWithoutInternalMetadata() {
+        let notification = AppNotification(
+            id: "feedback-detail", recipientUserId: "user-1", type: .feedbackReply,
+            sourceType: .feedback, sourceId: "feedback-1", actionType: .openFeedback,
+            message: "notifications.push.feedback_reply.body",
+            metadata: ["privateInternalValue": "must-not-display"],
+            payload: ["subject": "Question about an event", "messagePreview": "Thank you. We updated the address."],
+            isRead: false, readAt: nil, createdAt: .now
+        )
+        let body = notification.localizedDetailContent.body
+        #expect(body.contains("Question about an event"))
+        #expect(body.contains("Thank you. We updated the address."))
+        #expect(!body.contains("notifications.push"))
+        #expect(!body.contains("must-not-display"))
+        #expect(notification.canOpenDestination)
+    }
+
+    @Test func notificationDestinationsRejectInvalidOrExpiredActions() {
+        func notification(action: AppNotificationActionType, target: String?, expires: Date? = nil) -> AppNotification {
+            AppNotification(id: "route", recipientUserId: "user-1", type: .systemAnnouncement,
+                sourceType: .system, sourceId: "  ", actionType: action, actionTargetId: target,
+                expiresAt: expires, payload: [:], isRead: false, readAt: nil, createdAt: .now)
+        }
+        #expect(!notification(action: .none, target: "event-1").canOpenDestination)
+        #expect(!notification(action: .openEvent, target: " \n ").canOpenDestination)
+        #expect(notification(action: .openEvent, target: " event-1 ").destinationTargetID == "event-1")
+        #expect(notification(action: .openEvent, target: "event-1").canOpenDestination)
+        #expect(!notification(action: .openEvent, target: "event-1", expires: .distantPast).canOpenDestination)
+        #expect(notification(action: .openURL, target: "https://example.com/details").canOpenDestination)
+        for unsafe in ["javascript:alert(1)", "file:///etc/passwd", "relative/path", "https://"] {
+            #expect(!notification(action: .openURL, target: unsafe).canOpenDestination)
+        }
+    }
+
+    @Test func notificationDetailActionsAreLocalized() {
+        let previousLanguage = AppLanguage.stored
+        defer { AppLanguage.stored = previousLanguage }
+        AppLanguage.stored = .german
+        #expect(AppStrings.NotificationInbox.detailTitle == "Details")
+        #expect(AppStrings.NotificationInbox.closeDetails == "Schließen")
+        #expect(AppStrings.NotificationInbox.deleteConfirmationTitle == "Diese Benachrichtigung löschen?")
+        AppLanguage.stored = .ukrainian
+        #expect(AppStrings.NotificationInbox.detailTitle == "Деталі")
+        #expect(AppStrings.NotificationInbox.closeDetails == "Закрити")
+        #expect(AppStrings.NotificationInbox.deleteConfirmationTitle == "Видалити це сповіщення?")
+    }
+
     @Test func selectedLanguageAffectsCurrencyFormatting() {
         let previousLanguage = AppLanguage.stored
         defer { AppLanguage.stored = previousLanguage }

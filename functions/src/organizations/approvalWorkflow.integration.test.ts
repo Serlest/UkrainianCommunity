@@ -153,3 +153,16 @@ async function cleanup(): Promise<void> {
     .get();
   await Promise.all(audit.docs.map((document) => document.ref.delete()));
 }
+
+
+test("repeated revision cycles create fresh inbox records instead of overwriting old alerts", {skip: !shouldRun}, async () => {
+  const orgId = organizationIds[1];
+  await db.collection("organizations").doc(orgId).update({moderationStatus: "pendingReview"});
+  const first = await commitOrganizationReview(actorUserId, {organizationId: orgId}, requestOrganizationRevisionWorkflow, "First revision");
+  await db.collection("organizations").doc(orgId).update({moderationStatus: "pendingReview"});
+  const second = await commitOrganizationReview(actorUserId, {organizationId: orgId}, requestOrganizationRevisionWorkflow, "Second revision");
+  assert.notEqual(first.notificationId, second.notificationId);
+  for (const id of [first.notificationId, second.notificationId]) {
+    assert.equal((await db.collection("users").doc(submitterUserId).collection("notificationInbox").doc(id).get()).exists, true);
+  }
+});

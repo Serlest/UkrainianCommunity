@@ -121,7 +121,7 @@ struct OrganizationManagementHubView: View {
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
             await loadManageableOrganizationContentStats()
         }
-        .refreshable {
+        .appRefreshable {
             await organizationsViewModel.refresh()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
             await loadManageableOrganizationContentStats(force: true)
@@ -295,8 +295,8 @@ struct OrganizationManagementHubView: View {
 
             loadingContentStatOrganizationIDs.insert(organizationID)
             do {
-                async let newsCount = newsRepository.fetchOrganizationNewsCount(organizationID: organizationID)
-                async let eventCount = eventRepository.fetchOrganizationEventCount(organizationID: organizationID)
+                async let newsCount = RefreshRequest.run { [self] in try await newsRepository.fetchOrganizationNewsCount(organizationID: organizationID) }
+                async let eventCount = RefreshRequest.run { [self] in try await eventRepository.fetchOrganizationEventCount(organizationID: organizationID) }
                 let stats = ManagedOrganizationContentStats(
                     newsCount: try await newsCount,
                     eventCount: try await eventCount

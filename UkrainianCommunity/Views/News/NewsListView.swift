@@ -80,7 +80,7 @@ struct NewsListView: View {
         .task {
             await viewModel.loadIfNeeded()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in

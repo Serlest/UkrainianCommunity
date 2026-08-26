@@ -408,7 +408,7 @@ struct EventRegistrationManagementView: View {
                 searchAndSortCard
                 attendeesContent
             }
-            .refreshable {
+            .appRefreshable {
                 await onRefresh()
             }
         }

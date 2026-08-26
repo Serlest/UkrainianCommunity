@@ -59,11 +59,11 @@ final class LegalEvidenceViewModel: ObservableObject {
         }
 
         do {
-            let page = try await repository.fetchAccounts(
+            let page = try await RefreshRequest.run { [self] in try await repository.fetchAccounts(
                 query: normalizedSearch.isEmpty ? nil : normalizedSearch,
                 limit: 50,
                 cursor: reset ? nil : nextCursor
-            )
+            ) }
             guard revision == requestRevision else { return }
             if reset {
                 accounts = page.accounts
@@ -113,7 +113,7 @@ final class LegalEvidenceUserViewModel: ObservableObject {
             hasLoaded = true
         }
         do {
-            events = try await repository.fetchEvidence(userID: account.userID)
+            events = try await RefreshRequest.run { [self] in try await repository.fetchEvidence(userID: account.userID) }
         } catch is CancellationError {
             return
         } catch {

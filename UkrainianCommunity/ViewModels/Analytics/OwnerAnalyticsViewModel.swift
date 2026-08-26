@@ -428,7 +428,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
         }
 
         do {
-            let loadedSnapshot = try await repository.fetchSnapshot(period: period)
+            let loadedSnapshot = try await RefreshRequest.run { [self] in try await repository.fetchSnapshot(period: period) }
             guard generation == loadGeneration, selectedPeriod == period else { return }
             snapshotByPeriod[period] = OwnerAnalyticsCacheEntry(value: loadedSnapshot, loadedAt: now())
             errorByPeriod.removeValue(forKey: period)

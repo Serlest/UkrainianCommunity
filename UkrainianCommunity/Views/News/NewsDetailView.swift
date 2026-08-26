@@ -12,6 +12,7 @@ struct NewsDetailView: View {
     let onNewsDeleted: () -> Void
     let onNavigateBack: (() -> Void)?
     let organizationRepository: OrganizationRepository
+    @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
     @State var deleteErrorMessage: String?
     @State var isDeleting = false
@@ -93,6 +94,9 @@ struct NewsDetailView: View {
                 ) {
                     newsHeaderActions(for: post)
                 } content: {
+                    if let refreshError {
+                        InlineMessageCard(style: .error, message: readableNewsErrorText(refreshError))
+                    }
                     articleHeader(for: post)
                         .onTapGesture { isCommentFieldFocused = false }
 
@@ -231,7 +235,11 @@ struct NewsDetailView: View {
     }
 
     func refreshNewsDetail() async {
-        await viewModel.refresh()
+        refreshError = nil
+        guard await viewModel.loadPostIfNeeded(postID: postID, force: true) else {
+            refreshError = viewModel.error
+            return
+        }
         guard let post = viewModel.post(for: postID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
         await viewModel.loadComments(for: postID, forceRefresh: true)
@@ -251,7 +259,7 @@ struct NewsDetailView: View {
         guard permissionOrganization?.id != organizationID else { return }
 
         do {
-            permissionOrganization = try await organizationRepository.fetchOrganization(id: organizationID)
+            permissionOrganization = try await RefreshRequest.run { [self] in try await organizationRepository.fetchOrganization(id: organizationID) }
         } catch {
             permissionOrganization = nil
         }

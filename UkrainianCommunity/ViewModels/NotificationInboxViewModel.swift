@@ -16,6 +16,7 @@ final class NotificationInboxViewModel: ObservableObject {
     @Published private(set) var isClearing = false
     @Published private(set) var error: AppError?
     @Published private(set) var snapshotVersion = 0
+    @Published private(set) var sessionVersion = 0
     @Published var selectedFilter: NotificationInboxFilter = .all
 
     private let repository: NotificationInboxRepository
@@ -38,6 +39,9 @@ final class NotificationInboxViewModel: ObservableObject {
         listener?.cancel()
         listener = nil
         currentUserID = userID
+        sessionVersion += 1
+        isLoading = false
+        isClearing = false
         notifications = []
         unreadCount = 0
         snapshotVersion = 0
@@ -63,11 +67,13 @@ final class NotificationInboxViewModel: ObservableObject {
 
     private func refresh(clearErrorOnSuccess: Bool) async {
         guard let userID = currentUserID else { return }
+        let session = sessionVersion
         isLoading = true
-        defer { isLoading = false }
+        defer { if sessionVersion == session { isLoading = false } }
 
         do {
-            let loadedNotifications = try await repository.fetchNotifications(userID: userID, limit: notificationLimit)
+            let loadedNotifications = try await RefreshRequest.run { [self] in try await repository.fetchNotifications(userID: userID, limit: notificationLimit) }
+            guard sessionVersion == session else { return }
             notifications = loadedNotifications
             unreadCount = loadedNotifications.filter(\.countsAsUnread).count
             snapshotVersion += 1
@@ -75,45 +81,57 @@ final class NotificationInboxViewModel: ObservableObject {
                 error = nil
             }
         } catch let appError as AppError {
+            guard sessionVersion == session else { return }
             error = appError
         } catch {
+            guard sessionVersion == session else { return }
             self.error = .unknown
         }
     }
 
     func markRead(_ notification: AppNotification) async {
-        guard let userID = currentUserID, !notification.isRead else { return }
+        guard let userID = currentUserID, notification.recipientUserId == userID, !notification.isRead else { return }
+        let session = sessionVersion
 
         do {
             try await repository.markNotificationRead(userID: userID, notificationID: notification.id)
+            guard sessionVersion == session else { return }
             applyReadState(notificationID: notification.id, isRead: true, readAt: Date())
             error = nil
         } catch let appError as AppError {
+            guard sessionVersion == session else { return }
             error = appError
         } catch {
+            guard sessionVersion == session else { return }
             self.error = .unknown
         }
     }
 
     func markUnread(_ notification: AppNotification) async {
-        guard let userID = currentUserID, notification.isRead else { return }
+        guard let userID = currentUserID, notification.recipientUserId == userID, notification.isRead else { return }
+        let session = sessionVersion
 
         do {
             try await repository.markNotificationUnread(userID: userID, notificationID: notification.id)
+            guard sessionVersion == session else { return }
             applyReadState(notificationID: notification.id, isRead: false, readAt: nil)
             error = nil
         } catch let appError as AppError {
+            guard sessionVersion == session else { return }
             error = appError
         } catch {
+            guard sessionVersion == session else { return }
             self.error = .unknown
         }
     }
 
     func markAllRead() async {
         guard let userID = currentUserID, unreadCount > 0 else { return }
+        let session = sessionVersion
 
         do {
             try await repository.markAllNotificationsRead(userID: userID)
+            guard sessionVersion == session else { return }
             notifications = notifications.map { notification in
                 guard notification.countsAsUnread else { return notification }
                 return notification.updatingReadState(isRead: true, readAt: notification.readAt ?? Date())
@@ -121,69 +139,81 @@ final class NotificationInboxViewModel: ObservableObject {
             unreadCount = 0
             error = nil
         } catch let appError as AppError {
+            guard sessionVersion == session else { return }
             error = appError
         } catch {
+            guard sessionVersion == session else { return }
             self.error = .unknown
         }
     }
 
     func archive(_ notification: AppNotification) async {
-        guard let userID = currentUserID else { return }
+        guard let userID = currentUserID, notification.recipientUserId == userID else { return }
+        let session = sessionVersion
 
         do {
             try await repository.archiveNotification(userID: userID, notificationID: notification.id)
+            guard sessionVersion == session else { return }
             applyArchiveState(notificationID: notification.id)
             error = nil
         } catch let appError as AppError {
+            guard sessionVersion == session else { return }
             error = appError
         } catch {
+            guard sessionVersion == session else { return }
             self.error = .unknown
         }
     }
 
-    func delete(_ notification: AppNotification) async {
-        guard let userID = currentUserID else { return }
-
+    @discardableResult
+    func delete(_ notification: AppNotification) async -> Bool {
+        guard let userID = currentUserID, notification.recipientUserId == userID else { return false }
+        let session = sessionVersion
         do {
             try await repository.deleteNotification(userID: userID, notificationID: notification.id)
-            let wasUnread = notification.countsAsUnread
+            guard sessionVersion == session else { return false }
             notifications.removeAll { $0.id == notification.id }
-            if wasUnread {
-                unreadCount = max(0, unreadCount - 1)
-            }
+            // A listener may already have removed this notification while the write was pending.
+            unreadCount = notifications.filter(\.countsAsUnread).count
             error = nil
-        } catch let appError as AppError {
-            error = appError
+            return true
         } catch {
-            self.error = .unknown
+            guard sessionVersion == session else { return false }
+            self.error = (error as? AppError) ?? .unknown
+            return false
         }
     }
 
     func clearAll() async {
         guard let userID = currentUserID, !notifications.isEmpty, !isClearing else { return }
+        let session = sessionVersion
         isClearing = true
-        defer { isClearing = false }
+        defer { if sessionVersion == session { isClearing = false } }
 
         do {
             try await repository.clearNotifications(userID: userID)
+            guard sessionVersion == session else { return }
             notifications = []
             unreadCount = 0
             snapshotVersion += 1
             error = nil
         } catch let appError as AppError {
+            guard sessionVersion == session else { return }
             error = appError
         } catch {
+            guard sessionVersion == session else { return }
             self.error = .unknown
         }
     }
 
     private func startListening(userID: String) {
+        let session = sessionVersion
         isLoading = notifications.isEmpty
         listener = repository.listenNotifications(
             userID: userID,
             limit: notificationLimit,
             onChange: { [weak self] notifications in
-                guard let self else { return }
+                guard let self, self.sessionVersion == session else { return }
                 self.notifications = notifications
                 self.unreadCount = notifications.filter(\.countsAsUnread).count
                 self.snapshotVersion += 1
@@ -191,7 +221,8 @@ final class NotificationInboxViewModel: ObservableObject {
                 self.error = nil
             },
             onError: { [weak self] appError in
-                self?.handleListenerError(appError)
+                guard let self, self.sessionVersion == session else { return }
+                self.handleListenerError(appError)
             }
         )
     }
@@ -202,7 +233,9 @@ final class NotificationInboxViewModel: ObservableObject {
         isLoading = false
         error = appError
 
+        let session = sessionVersion
         Task {
+            guard sessionVersion == session else { return }
             await refresh(clearErrorOnSuccess: false)
         }
     }

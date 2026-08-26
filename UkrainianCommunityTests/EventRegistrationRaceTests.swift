@@ -4,6 +4,18 @@ import Testing
 
 @MainActor
 struct EventRegistrationRaceTests {
+    @Test func forcedEventDetailRefreshPreservesOtherCachedPages() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let old = makeEvent(id: "older-page", registeredCount: 1)
+        let other = makeEvent(id: "another-page")
+        model.events = [other, old]
+        repository.events = [makeEvent(id: old.id, registeredCount: 8)]
+        #expect(await model.loadEventIfNeeded(eventID: old.id, force: true))
+        #expect(model.events.map(\.id) == [other.id, old.id])
+        #expect(model.event(for: old.id)?.registeredCount == 8)
+    }
+
     @Test func registrationRejectsDoubleTapAndUsesAuthoritativeResponse() async {
         let repository = ControlledEventRepository()
         let viewModel = EventsViewModel(repository: repository)

@@ -66,7 +66,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
 
     private func refreshFeedback() async {
         do {
-            ownerFeedbackItems = try await feedbackRepository.fetchFeedback()
+            ownerFeedbackItems = try await RefreshRequest.run { [self] in try await feedbackRepository.fetchFeedback() }
             hasLoadedFeedback = true
         } catch {
             hasLoadedFeedback = true
@@ -75,7 +75,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
 
     private func refreshOrganizationRequests() async {
         do {
-            pendingOrganizationRequests = try await organizationRepository.fetchPendingOrganizations()
+            pendingOrganizationRequests = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPendingOrganizations() }
             hasLoadedOrganizationRequests = true
         } catch {
             hasLoadedOrganizationRequests = true

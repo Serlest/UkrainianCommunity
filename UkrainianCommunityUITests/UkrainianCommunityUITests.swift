@@ -35,6 +35,181 @@ final class UkrainianCommunityUITests: XCTestCase {
         return app
     }
 
+    private func launchNotificationDetailsApp(largeText: Bool = false) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments.append("-ui-testing")
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = largeText ? "uk" : "de"
+        app.launchEnvironment["UITestForceAuthenticatedSession"] = "1"
+        app.launchEnvironment["UITestNotificationDetails"] = "1"
+        if largeText {
+            app.launchEnvironment["UITestAppAppearance"] = "dark"
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        }
+        app.launch()
+        return app
+    }
+
+    @MainActor
+    func testNotificationDetailsReadCloseDeleteAndNavigate() throws {
+        let app = launchNotificationDetailsApp()
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let bell = app.buttons["notificationInbox.bell"].firstMatch
+        XCTAssertTrue(bell.waitForExistence(timeout: 20))
+        bell.tap()
+        let info = element("notificationInbox.open.detail-info", in: app)
+        XCTAssertTrue(info.waitForExistence(timeout: 10))
+        app.segmentedControls.buttons["Ungelesen"].tap()
+        info.tap()
+        let body = app.staticTexts["notificationDetail.body"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(body.label.count, 400)
+        XCTAssertFalse(app.buttons["notificationDetail.openDestination"].exists)
+        attachScreenshot(named: "notification-details-german-full-text", from: app)
+        app.buttons["notificationDetail.close"].tap()
+        XCTAssertTrue(body.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(info.exists, "Read notification must leave the unread filter")
+        app.segmentedControls.buttons["Alle"].tap()
+        XCTAssertTrue(info.waitForExistence(timeout: 5), "Closing must retain the notification")
+        info.tap()
+        let delete = app.buttons["notificationDetail.delete"]
+        scrollToElement(delete, in: app, maxSwipes: 12)
+        XCTAssertTrue(delete.isHittable)
+        delete.tap()
+        app.buttons["Abbrechen"].tap()
+        XCTAssertTrue(body.exists)
+        delete.tap()
+        let confirmation = app.alerts.buttons["notificationDetail.confirmDelete"].firstMatch
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+        attachScreenshot(named: "notification-details-delete-confirmation", from: app)
+        confirmation.tap()
+        XCTAssertTrue(body.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(info.exists)
+        let event = element("notificationInbox.open.detail-event", in: app)
+        XCTAssertTrue(event.waitForExistence(timeout: 5))
+        event.tap()
+        let open = app.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(open.waitForExistence(timeout: 5))
+        attachScreenshot(named: "notification-details-event-action", from: app)
+        open.tap()
+        XCTAssertTrue(open.waitForNonExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label IN %@", ["Ukrainischer Gemeinschaftsabend", "Український вечір спільноти"])).firstMatch.waitForExistence(timeout: 10))
+        attachScreenshot(named: "notification-details-event-destination", from: app)
+    }
+
+    @MainActor
+    func testNotificationDetailsFromProfileSupportUkrainianDarkLargeText() throws {
+        let app = launchNotificationDetailsApp(largeText: true)
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let bell = app.buttons["notificationInbox.bell"].firstMatch
+        XCTAssertTrue(bell.waitForExistence(timeout: 10))
+        bell.tap()
+        let info = element("notificationInbox.open.detail-info", in: app)
+        scrollToElement(info, in: app)
+        XCTAssertTrue(info.waitForExistence(timeout: 10))
+        info.tap()
+        let close = app.buttons["notificationDetail.close"]
+        XCTAssertTrue(close.waitForExistence(timeout: 10) && close.isHittable)
+        XCTAssertEqual(close.label, "Закрити")
+        attachScreenshot(named: "notification-details-ukrainian-dark-AX-top", from: app)
+        let delete = app.buttons["notificationDetail.delete"]
+        scrollToElement(delete, in: app, maxSwipes: 30)
+        XCTAssertTrue(delete.isHittable)
+        XCTAssertTrue(close.isHittable, "Close must remain accessible after scrolling")
+        attachScreenshot(named: "notification-details-ukrainian-dark-AX-bottom", from: app)
+        close.tap()
+        XCTAssertTrue(close.waitForNonExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testUserDetailPullRefreshUpdatesPresenceAndKeepsNavigation() throws {
+        let app = launchUserRefreshApp(failing: false)
+        openRefreshTestUser(in: app)
+        XCTAssertTrue(element("user.presence.online", in: app).waitForExistence(timeout: 8))
+        pullToRefresh(in: app)
+        XCTAssertTrue(element("user.presence.lastSeen", in: app).waitForExistence(timeout: 10))
+        XCTAssertFalse(element("user.detail.refreshError", in: app).exists)
+        XCTAssertTrue(app.staticTexts["Olena (updated)"].firstMatch.waitForExistence(timeout: 5))
+        attachScreenshot(named: "user-pull-refresh-offline", from: app)
+        // A second native gesture must work, and the same destination must stay mounted.
+        pullToRefresh(in: app)
+        XCTAssertTrue(element("user.presence.lastSeen", in: app).waitForExistence(timeout: 5))
+        app.buttons["Zurück"].firstMatch.tap()
+        XCTAssertTrue(element("userManagement.user.user-1", in: app).waitForExistence(timeout: 5))
+        element("userManagement.user.user-1", in: app).tap()
+        XCTAssertTrue(element("user.presence.lastSeen", in: app).waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testUserDetailFailedPullKeepsScreenAndRetryWorks() throws {
+        let app = launchUserRefreshApp(failing: true)
+        openRefreshTestUser(in: app)
+        XCTAssertTrue(element("user.presence.online", in: app).waitForExistence(timeout: 8))
+        pullToRefresh(in: app)
+        XCTAssertTrue(element("user.detail.refreshError", in: app).waitForExistence(timeout: 10))
+        attachScreenshot(named: "user-pull-refresh-error", from: app)
+        pullToRefresh(in: app)
+        XCTAssertTrue(element("user.detail.refreshError", in: app).waitForNonExistence(timeout: 10))
+        XCTAssertTrue(element("user.presence.lastSeen", in: app).waitForExistence(timeout: 10))
+        app.buttons["Zurück"].firstMatch.tap()
+        XCTAssertTrue(element("userManagement.user.user-1", in: app).waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testMainFeedPullRefreshKeepsNavigationResponsive() throws {
+        let app = launchAuthenticatedApp()
+        for (index, filterID, cardPrefix) in [
+            (0, "home.filter.type", "home.card."),
+            (1, "events.filter.period", "event.card."),
+            (2, "organizations.filter.category", "organization.card.")
+        ] {
+            tapRootTab(rootTabs[index], in: app, timeout: 15)
+            XCTAssertTrue(element(filterID, in: app).waitForExistence(timeout: 8))
+            pullToRefresh(in: app)
+            XCTAssertTrue(element(filterID, in: app).exists)
+            let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", cardPrefix)).firstMatch
+            scrollToElement(card, in: app, maxSwipes: 5)
+            XCTAssertTrue(card.waitForExistence(timeout: 5))
+            card.tap()
+            let back = app.buttons["navigation.back"].firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 5))
+            pullToRefresh(in: app)
+            XCTAssertTrue(back.isHittable)
+            back.tap()
+            XCTAssertTrue(element(filterID, in: app).waitForExistence(timeout: 5))
+        }
+    }
+
+    private func launchUserRefreshApp(failing: Bool) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "de"
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launchEnvironment["UITestUserRefresh"] = "1"
+        if failing { app.launchEnvironment["UITestUserRefreshFailure"] = "1" }
+        app.launch()
+        return app
+    }
+
+    private func openRefreshTestUser(in app: XCUIApplication) {
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let users = element("profile.userManagement", in: app)
+        scrollToElement(users, in: app, maxSwipes: 12)
+        XCTAssertTrue(users.waitForExistence(timeout: 5))
+        users.tap()
+        let member = element("userManagement.user.user-1", in: app)
+        XCTAssertTrue(member.waitForExistence(timeout: 8))
+        member.tap()
+    }
+
+    private func pullToRefresh(in app: XCUIApplication) {
+        let scroll = app.scrollViews.firstMatch
+        let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+        let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+        start.press(forDuration: 0.1, thenDragTo: end)
+    }
+
     private func launchOwnerApp(
         language: String = "de",
         appearance: String? = nil,

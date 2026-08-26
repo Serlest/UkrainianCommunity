@@ -270,8 +270,15 @@ final class UserManagementViewModel: ObservableObject {
     @Published private(set) var updatingUserIDs = Set<String>()
     @Published private(set) var mutationRevision = 0
 
-    private let db = Firestore.firestore()
-    private let roleManagementService: OrganizationRoleManagementService
+    private lazy var db = Firestore.firestore()
+    private lazy var roleManagementService: OrganizationRoleManagementService = suppliedRoleManagementService ?? FirestoreOrganizationRoleManagementService()
+    private let suppliedRoleManagementService: OrganizationRoleManagementService?
+    private let reads: UserManagementReads
+    private var refreshRevision = 0
+    private var sessionRevision = 0
+    private var detailRevisions: [String: Int] = [:]
+    private var metadataRevisions: [String: Int] = [:]
+    private var organizationsRevision = 0
     private let pageSize = 40
     private var loadedActorKey: String?
     private var lastUserDocument: QueryDocumentSnapshot?
@@ -280,8 +287,9 @@ final class UserManagementViewModel: ObservableObject {
     private var usersCollection: CollectionReference { db.collection("users") }
     private var organizationsCollection: CollectionReference { db.collection("organizations") }
 
-    init(roleManagementService: OrganizationRoleManagementService? = nil) {
-        self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
+    init(roleManagementService: OrganizationRoleManagementService? = nil, reads: UserManagementReads = .live) {
+        self.suppliedRoleManagementService = roleManagementService
+        self.reads = reads
     }
 
     func load(actor: AppUser?) async {
@@ -292,63 +300,44 @@ final class UserManagementViewModel: ObservableObject {
 
     func refresh(actor: AppUser?) async {
         let actorKey = managementActorKey(for: actor)
-        reset(for: actorKey)
-
-        guard PermissionService.canManageUsers(user: actor) else {
-            return
-        }
-
+        if loadedActorKey != actorKey { reset(for: actorKey) }
+        guard PermissionService.canManageUsers(user: actor) else { return }
+        refreshRevision &+= 1
+        isLoadingMore = false
+        let revision = refreshRevision
+        let session = sessionRevision
         isLoading = true
         error = nil
-        defer {
-            isLoading = false
-        }
+        defer { if revision == refreshRevision { isLoading = false } }
 
+        async let roles: Void = refreshOrganizations(session: session)
         do {
-            let usersSnapshot = try await usersCollection
-                .order(by: "createdAt", descending: true)
-                .limit(to: pageSize)
-                .getDocuments()
-            guard loadedActorKey == actorKey, !Task.isCancelled else { return }
-            users = usersSnapshot.documents.map(makeUser(from:))
-            lastUserDocument = usersSnapshot.documents.last
-            canLoadMore = usersSnapshot.documents.count == pageSize
-        } catch {
-            guard !Task.isCancelled, loadedActorKey == actorKey else { return }
-            self.error = .network
-            return
-        }
-
-        do {
-            async let approvedOrganizationsTask = organizationsCollection
-                .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-                .getDocuments()
-            async let reviewableOrganizationsTask = organizationsCollection
-                .whereField(
-                    "moderationStatus",
-                    in: [
-                        ModerationStatus.pendingReview.rawValue,
-                        ModerationStatus.needsRevision.rawValue,
-                        ModerationStatus.rejected.rawValue
-                    ]
-                )
-                .getDocuments()
-            let (approvedOrganizations, reviewableOrganizations) = try await (
-                approvedOrganizationsTask,
-                reviewableOrganizationsTask
-            )
-            guard loadedActorKey == actorKey, !Task.isCancelled else { return }
-            organizations = uniqueOrganizationDocuments(
-                approvedOrganizations.documents + reviewableOrganizations.documents
-            )
-            .map(makeManagedOrganization(from:))
-            .sorted {
-                let result = LocalizationStore.compareForSorting($0.name, $1.name)
-                return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+            let page = try await RefreshRequest.run { [reads, pageSize] in
+                try await reads.users(pageSize)
             }
+            guard session == sessionRevision, revision == refreshRevision, !Task.isCancelled else { return }
+            users = page.users
+            lastUserDocument = page.cursor
+            canLoadMore = page.hasMore
         } catch {
-            guard !Task.isCancelled, loadedActorKey == actorKey else { return }
-            organizations = []
+            guard session == sessionRevision, revision == refreshRevision, !Task.isCancelled else { return }
+            self.error = .network
+        }
+        await roles
+    }
+
+    private func refreshOrganizations(session: Int) async {
+        guard session == sessionRevision, !Task.isCancelled else { return }
+        organizationsRevision &+= 1
+        let revision = organizationsRevision
+        do {
+            let refreshed = try await RefreshRequest.run { [reads] in try await reads.organizations() }
+            guard session == sessionRevision, revision == organizationsRevision, !Task.isCancelled else { return }
+            organizations = refreshed
+        } catch {
+            guard session == sessionRevision, revision == organizationsRevision, !Task.isCancelled else { return }
+            // Keep the last successful role data; a failed read must not erase the screen.
+            self.error = .network
         }
     }
 
@@ -360,23 +349,24 @@ final class UserManagementViewModel: ObservableObject {
               !isLoadingMore,
               let lastUserDocument else { return }
 
+        let revision = refreshRevision
+        let session = sessionRevision
         isLoadingMore = true
-        defer { isLoadingMore = false }
+        defer { if revision == refreshRevision { isLoadingMore = false } }
 
         do {
-            let snapshot = try await usersCollection
-                .order(by: "createdAt", descending: true)
-                .start(afterDocument: lastUserDocument)
-                .limit(to: pageSize)
-                .getDocuments()
-            guard managementActorKey(for: actor) == loadedActorKey, !Task.isCancelled else { return }
+            let snapshot = try await RefreshRequest.run { [self] in
+                try await usersCollection.order(by: "createdAt", descending: true)
+                    .start(afterDocument: lastUserDocument).limit(to: pageSize).getDocuments(source: .server)
+            }
+            guard session == sessionRevision, revision == refreshRevision, !Task.isCancelled else { return }
 
             let existingIDs = Set(users.map(\.id))
-            users.append(contentsOf: snapshot.documents.map(makeUser(from:)).filter { !existingIDs.contains($0.id) })
+            users.append(contentsOf: snapshot.documents.map(Self.makeUser(from:)).filter { !existingIDs.contains($0.id) })
             self.lastUserDocument = snapshot.documents.last
             canLoadMore = snapshot.documents.count == pageSize
         } catch {
-            guard !Task.isCancelled else { return }
+            guard session == sessionRevision, revision == refreshRevision, !Task.isCancelled else { return }
             statusMessage = AppStrings.UserManagement.loadMoreFailed
         }
     }
@@ -402,17 +392,20 @@ final class UserManagementViewModel: ObservableObject {
         }
 
         do {
-            let response = try await CloudFunctionsClient.shared.searchManagedUsers(query: trimmedQuery)
+            let response = try await RefreshRequest.run {
+                try await CloudFunctionsClient.shared.searchManagedUsers(query: trimmedQuery)
+            }
             guard generation == searchGeneration, !Task.isCancelled else { return }
 
             var usersByID: [String: AppUser] = [:]
             for userIDs in response.userIds.chunked(into: 30) where !userIDs.isEmpty {
-                let snapshot = try await usersCollection
-                    .whereField(FieldPath.documentID(), in: Array(userIDs))
-                    .getDocuments()
+                let snapshot = try await RefreshRequest.run { [self] in
+                    try await usersCollection.whereField(FieldPath.documentID(), in: Array(userIDs))
+                        .getDocuments(source: .server)
+                }
                 guard generation == searchGeneration, !Task.isCancelled else { return }
                 for document in snapshot.documents {
-                    usersByID[document.documentID] = makeUser(from: document)
+                    usersByID[document.documentID] = Self.makeUser(from: document)
                 }
             }
 
@@ -434,16 +427,22 @@ final class UserManagementViewModel: ObservableObject {
     }
 
     func loadSecurityMetadata(userID: String, actor: AppUser?) async {
-        guard let actor, PermissionService.canManageUsers(user: actor) else { return }
-
+        guard PermissionService.canManageUsers(user: actor), managementActorKey(for: actor) == loadedActorKey else { return }
+        let session = sessionRevision
+        metadataRevisions[userID, default: 0] &+= 1
+        let revision = metadataRevisions[userID]
         do {
-            let response = try await CloudFunctionsClient.shared.getManagedUserSecurityMetadata(userId: userID)
-            guard response.targetUserId == userID, !Task.isCancelled else { return }
-            securityMetadataByUserID[userID] = ManagedUserSecurityMetadata(response: response)
+            let metadata = try await RefreshRequest.run { [reads] in try await reads.securityMetadata(userID) }
+            guard session == sessionRevision, revision == metadataRevisions[userID], !Task.isCancelled else { return }
+            securityMetadataByUserID[userID] = metadata
         } catch {
-            guard !Task.isCancelled else { return }
-            securityMetadataByUserID[userID] = nil
+            guard session == sessionRevision, revision == metadataRevisions[userID], !Task.isCancelled else { return }
+            self.error = .network
         }
+    }
+
+    func loadPresence(userID: String) async throws -> ManagedUserPresenceSnapshot {
+        try await reads.presence(userID)
     }
 
     func securityMetadata(for userID: String) -> ManagedUserSecurityMetadata? {
@@ -451,10 +450,14 @@ final class UserManagementViewModel: ObservableObject {
     }
 
     func refreshDetail(userID: String, actor: AppUser?) async {
-        await refresh(actor: actor)
-        guard let actor, PermissionService.canManageUsers(user: actor) else { return }
-        await reloadUser(id: userID, actor: actor)
-        await loadSecurityMetadata(userID: userID, actor: actor)
+        guard let actor, PermissionService.canManageUsers(user: actor),
+              managementActorKey(for: actor) == loadedActorKey else { return }
+        error = nil
+        // Keep list, search and pagination intact while refreshing this destination.
+        async let user: Void = reloadUser(id: userID, actor: actor, afterMutation: false)
+        async let metadata: Void = loadSecurityMetadata(userID: userID, actor: actor)
+        async let roles: Void = refreshOrganizations(session: sessionRevision)
+        _ = await (user, metadata, roles)
     }
 
     func perform(
@@ -625,7 +628,7 @@ final class UserManagementViewModel: ObservableObject {
     }
 
     func user(withID id: String) -> AppUser? {
-        users.first { $0.id == id }
+        users.first { $0.id == id } ?? searchResults.first { $0.id == id }
     }
 
     func organizationRoles(for user: AppUser) -> [UserOrganizationRole] {
@@ -661,20 +664,22 @@ final class UserManagementViewModel: ObservableObject {
         }
     }
 
-    private func reloadUser(id: String, actor: AppUser) async {
+    private func reloadUser(id: String, actor: AppUser, afterMutation: Bool = true) async {
         guard managementActorKey(for: actor) == loadedActorKey else { return }
-
+        let session = sessionRevision
+        detailRevisions[id, default: 0] &+= 1
+        let revision = detailRevisions[id]
         do {
-            let document = try await usersCollection.document(id).getDocument()
-            guard document.exists, let data = document.data() else { return }
-            let refreshedUser = makeUser(id: document.documentID, data: data)
-            if let index = users.firstIndex(where: { $0.id == id }) {
-                users[index] = refreshedUser
-            } else {
-                users.append(refreshedUser)
-            }
+            let refreshedUser = try await RefreshRequest.run { [reads] in try await reads.user(id) }
+            guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
+            guard let refreshedUser else { self.error = .notFound; return }
+            if let index = users.firstIndex(where: { $0.id == id }) { users[index] = refreshedUser }
+            else { users.append(refreshedUser) }
+            if let index = searchResults.firstIndex(where: { $0.id == id }) { searchResults[index] = refreshedUser }
         } catch {
-            statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed
+            guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
+            self.error = .network
+            if afterMutation { statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed }
         }
     }
 
@@ -687,7 +692,7 @@ final class UserManagementViewModel: ObservableObject {
                 statusMessage = AppStrings.UserManagement.organizationMissing
                 return
             }
-            let refreshedOrganization = makeManagedOrganization(id: document.documentID, data: data)
+            let refreshedOrganization = Self.makeManagedOrganization(id: document.documentID, data: data)
             if let index = organizations.firstIndex(where: { $0.id == id }) {
                 organizations[index] = refreshedOrganization
             } else {
@@ -811,11 +816,11 @@ final class UserManagementViewModel: ObservableObject {
         )
     }
 
-    private func makeUser(from document: QueryDocumentSnapshot) -> AppUser {
-        makeUser(id: document.documentID, data: document.data())
+    static func makeUser(from document: QueryDocumentSnapshot) -> AppUser {
+        Self.makeUser(id: document.documentID, data: document.data())
     }
 
-    private func makeUser(id: String, data: [String: Any]) -> AppUser {
+    static func makeUser(id: String, data: [String: Any]) -> AppUser {
         let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
         let globalRole = (data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user
         let isBlocked = data["isBlocked"] as? Bool ?? false
@@ -852,11 +857,11 @@ final class UserManagementViewModel: ObservableObject {
         )
     }
 
-    private func makeManagedOrganization(from document: QueryDocumentSnapshot) -> ManagedOrganization {
-        makeManagedOrganization(id: document.documentID, data: document.data())
+    static func makeManagedOrganization(from document: QueryDocumentSnapshot) -> ManagedOrganization {
+        Self.makeManagedOrganization(id: document.documentID, data: document.data())
     }
 
-    private func makeManagedOrganization(id: String, data: [String: Any]) -> ManagedOrganization {
+    static func makeManagedOrganization(id: String, data: [String: Any]) -> ManagedOrganization {
         return ManagedOrganization(
             id: id,
             name: data["name"] as? String ?? id,
@@ -868,7 +873,7 @@ final class UserManagementViewModel: ObservableObject {
         )
     }
 
-    private func uniqueOrganizationDocuments(_ documents: [QueryDocumentSnapshot]) -> [QueryDocumentSnapshot] {
+    static func uniqueOrganizationDocuments(_ documents: [QueryDocumentSnapshot]) -> [QueryDocumentSnapshot] {
         var seenIDs = Set<String>()
         return documents.filter { seenIDs.insert($0.documentID).inserted }
     }
@@ -880,6 +885,11 @@ final class UserManagementViewModel: ObservableObject {
 
     private func reset(for actorKey: String?) {
         loadedActorKey = actorKey
+        sessionRevision &+= 1
+        refreshRevision &+= 1
+        isLoading = false
+        isLoadingMore = false
+        detailRevisions = [:]
         users = []
         organizations = []
         error = nil
@@ -891,9 +901,21 @@ final class UserManagementViewModel: ObservableObject {
 
 }
 
+private struct ManagedUserRoute: Identifiable, Hashable {
+    let user: AppUser
+    var id: String { user.id }
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
 struct UserManagementView: View {
     @EnvironmentObject private var authState: AuthState
-    @StateObject private var viewModel = UserManagementViewModel()
+    @StateObject private var viewModel: UserManagementViewModel
+
+    init(reads: UserManagementReads = .live) {
+        _viewModel = StateObject(wrappedValue: UserManagementViewModel(reads: reads))
+    }
+    @State private var selectedUserRoute: ManagedUserRoute?
     @State private var searchText = ""
     @State private var selectedFilter: UserManagementFilter = .all
     @State private var sortOption: AppListSortOption = .newest
@@ -943,6 +965,7 @@ struct UserManagementView: View {
         ) {
             userManagementContent
         }
+        .onChange(of: actorLoadKey) { _, _ in selectedUserRoute = nil }
         .task(id: actorLoadKey) {
             await viewModel.load(actor: actor)
         }
@@ -955,8 +978,14 @@ struct UserManagementView: View {
             guard !Task.isCancelled else { return }
             await viewModel.search(query: normalizedSearch, actor: actor)
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh(actor: actor)
+            if normalizedSearch.count >= 2 {
+                await viewModel.search(query: normalizedSearch, actor: actor)
+            }
+        }
+        .navigationDestination(item: $selectedUserRoute) { route in
+            UserDetailView(userID: route.user.id, fallbackUser: route.user, viewModel: viewModel, actor: actor)
         }
         .alert(AppStrings.UserManagement.title, isPresented: Binding(
             get: { viewModel.statusMessage != nil },
@@ -1139,18 +1168,15 @@ struct UserManagementView: View {
             }
         } else {
             VStack(spacing: AppTheme.feedRowSpacing) {
+                if viewModel.error != nil {
+                    InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
+                }
                 ForEach(filteredUsers) { user in
-                    NavigationLink {
-                        UserDetailView(
-                            userID: user.id,
-                            fallbackUser: user,
-                            viewModel: viewModel,
-                            actor: actor
-                        )
-                    } label: {
+                    Button { selectedUserRoute = ManagedUserRoute(user: user) } label: {
                         ManagedUserRow(user: user, organizationRoles: viewModel.organizationRoles(for: user))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("userManagement.user.\(user.id)")
                 }
                 if normalizedSearch.isEmpty {
                     loadMoreButton
@@ -1301,7 +1327,15 @@ private struct UserDetailView: View {
     @State private var pendingRoleRemoval: ManagedOrganization?
     @State private var pendingPlatformRoleAction: PlatformRoleAction?
     @State private var pendingOwnershipTransfer: PendingOwnershipTransfer?
-    @State private var presenceRefreshRevision = 0
+    @StateObject private var presenceModel: ManagedUserPresenceViewModel
+
+    init(userID: String, fallbackUser: AppUser, viewModel: UserManagementViewModel, actor: AppUser?) {
+        self.userID = userID
+        self.fallbackUser = fallbackUser
+        self.viewModel = viewModel
+        self.actor = actor
+        _presenceModel = StateObject(wrappedValue: ManagedUserPresenceViewModel(load: viewModel.loadPresence))
+    }
     @FocusState private var focusedField: UserDetailFocusField?
 
     private var selectedOrganization: ManagedOrganization? {
@@ -1479,6 +1513,10 @@ private struct UserDetailView: View {
             AppGroupedContentPlane {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     profileCard
+                    if viewModel.error != nil {
+                        InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
+                            .accessibilityIdentifier("user.detail.refreshError")
+                    }
                     platformRolesCard
                     organizationRolesCard
                     roleAssignmentCard
@@ -1492,9 +1530,10 @@ private struct UserDetailView: View {
     private var lifecycleScreen: some View {
         baseScreen
             .contentShape(Rectangle())
-            .refreshable {
-                presenceRefreshRevision += 1
-                await viewModel.refreshDetail(userID: userID, actor: actor)
+            .appRefreshable {
+                async let details: Void = viewModel.refreshDetail(userID: userID, actor: actor)
+                async let presence: Void = presenceModel.refresh(userID: userID, actor: actor)
+                _ = await (details, presence)
                 ensureSelectedOrganization()
                 ensureSelectedRole()
             }
@@ -1564,7 +1603,7 @@ private struct UserDetailView: View {
                 UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
                 UserManagementMetadataRow(systemImage: "calendar", title: AppStrings.UserManagement.joined, value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
                 ManagedUserPresenceView(userID: userID, actor: actor,
-                    refreshToken: "\(presenceRefreshRevision)|\(viewModel.mutationRevision)")
+                    refreshToken: "\(viewModel.mutationRevision)", model: presenceModel)
                 if let securityMetadata {
                     UserManagementMetadataRow(
                         systemImage: securityMetadata.emailVerified ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",

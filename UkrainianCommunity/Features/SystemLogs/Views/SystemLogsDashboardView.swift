@@ -72,7 +72,7 @@ struct SystemLogsDashboardView: View {
         .onChange(of: viewModel.sortOption) {
             Task { await viewModel.refresh() }
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .sheet(isPresented: $isShowingAdvancedFilters) {

@@ -130,7 +130,7 @@ struct HomeView: View {
 
             Button(AppStrings.Events.cancel, role: .cancel) {}
         }
-        .refreshable {
+        .appRefreshable {
             await refreshContentWhenAuthIsReady(force: true)
         }
         .task(id: authBootstrapKey) {

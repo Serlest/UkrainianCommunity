@@ -141,7 +141,7 @@ struct SavedContentView: View {
         .task {
             await loadSavedContentIfNeeded()
         }
-        .refreshable {
+        .appRefreshable {
             await refreshSavedContent()
         }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in
@@ -246,9 +246,9 @@ struct SavedContentView: View {
         isLoadingSavedContent = true
         defer { isLoadingSavedContent = false }
 
-        async let newsLoad = newsRepository.fetchBookmarkedNews()
-        async let eventsLoad = eventRepository.fetchBookmarkedEvents()
-        async let organizationsLoad = organizationRepository.fetchBookmarkedOrganizations()
+        async let newsLoad = RefreshRequest.run { [self] in try await newsRepository.fetchBookmarkedNews() }
+        async let eventsLoad = RefreshRequest.run { [self] in try await eventRepository.fetchBookmarkedEvents() }
+        async let organizationsLoad = RefreshRequest.run { [self] in try await organizationRepository.fetchBookmarkedOrganizations() }
         var firstError: AppError?
 
         do {
@@ -443,7 +443,7 @@ struct FollowedOrganizationsView: View {
         .task {
             await refreshSubscriptions()
         }
-        .refreshable {
+        .appRefreshable {
             await refreshSubscriptions()
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
@@ -518,7 +518,7 @@ struct FollowedOrganizationsView: View {
         defer { isLoadingSubscriptions = false }
 
         do {
-            followedOrganizations = try await organizationRepository.fetchSubscribedOrganizations()
+            followedOrganizations = try await RefreshRequest.run { [self] in try await organizationRepository.fetchSubscribedOrganizations() }
             for organization in followedOrganizations {
                 if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == organization.id }) {
                     organizationsViewModel.organizations[index] = organization

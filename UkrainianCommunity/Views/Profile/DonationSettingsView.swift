@@ -18,7 +18,7 @@ struct DonationSettingsView: View {
                     title: DonationLocalization.ownerOnlyTitle(for: language),
                     message: DonationLocalization.ownerOnlyMessage(for: language)
                 )
-            } else if viewModel.isLoading {
+            } else if viewModel.isLoading && !viewModel.hasLoadedData {
                 LoadingStateCard(title: nil)
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else if !viewModel.hasLoadedData {
@@ -43,12 +43,11 @@ struct DonationSettingsView: View {
             await viewModel.loadIfNeeded()
             draft = viewModel.config
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.load()
-            draft = viewModel.config
         }
-        .onChange(of: viewModel.config) { _, newConfig in
-            draft = newConfig
+        .onChange(of: viewModel.config) { previousConfig, newConfig in
+            if draft == previousConfig { draft = newConfig }
         }
     }
 

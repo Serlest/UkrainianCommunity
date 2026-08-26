@@ -126,7 +126,7 @@ struct LegalDocumentView: View {
         .task {
             await viewModel.load()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.load()
         }
     }
@@ -165,7 +165,7 @@ private final class LegalDocumentReaderViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            document = try await repository.fetchActiveDocumentForReader(type: kind.documentType)
+            document = try await RefreshRequest.run { [repository, kind] in try await repository.fetchActiveDocumentForReader(type: kind.documentType) }
         } catch {
             document = LegalDocument.hardcodedFallback(type: kind.documentType)
             errorMessage = AppStrings.Legal.offlineFallbackNotice

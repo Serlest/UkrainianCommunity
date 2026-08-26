@@ -3,6 +3,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../firebase/admin";
 
 export type NotificationType =
+  | "organizationRequestSubmitted"
+  | "commentAdded"
+  | "contentModerationChanged"
+  | "eventParticipationChanged"
   | "accountStatusChanged"
   | "feedbackSubmitted"
   | "feedbackReply"
@@ -236,8 +240,11 @@ export async function writeUserNotification(
   );
 
   const didCreate = await db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(notificationReference);
-    if (snapshot.exists) {
+    const [snapshot, recipient] = await Promise.all([
+      transaction.get(notificationReference),
+      transaction.get(db.collection("users").doc(input.targetUserId)),
+    ]);
+    if (!recipient.exists || snapshot.exists) {
       return {
         didCreate: false,
       };
@@ -286,6 +293,7 @@ export function buildUserNotificationDocument(input: WriteNotificationInput) {
 
 function buildNotificationDocument(input: NotificationDocumentInput) {
   const metadata = {
+    pushDelivery: "central",
     ...(input.metadata ?? {}),
     title: input.title,
     message: input.message,
@@ -340,6 +348,10 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
       return "success";
     case "systemAnnouncement":
       return "critical";
+    case "organizationRequestSubmitted":
+    case "commentAdded":
+    case "contentModerationChanged":
+    case "eventParticipationChanged":
     case "feedbackSubmitted":
     case "feedbackReply":
     case "eventUpdated":
@@ -357,6 +369,10 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
 
 function defaultActionType(type: NotificationType): NotificationActionType {
   switch (type) {
+    case "organizationRequestSubmitted": return "openOrganizationRequest";
+    case "commentAdded":
+    case "contentModerationChanged": return "none";
+    case "eventParticipationChanged": return "openEvent";
     case "feedbackSubmitted":
     case "feedbackReply":
       return "openFeedback";
@@ -389,6 +405,10 @@ function defaultActionType(type: NotificationType): NotificationActionType {
 
 function defaultSourceType(type: NotificationType): NotificationSourceType {
   switch (type) {
+    case "organizationRequestSubmitted": return "organization";
+    case "commentAdded":
+    case "contentModerationChanged": return "system";
+    case "eventParticipationChanged": return "event";
     case "feedbackSubmitted":
     case "feedbackReply":
       return "feedback";

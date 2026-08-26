@@ -7,14 +7,13 @@ import {
 
 import { db } from "../firebase/admin";
 import {
-  buildNotificationDataPayload,
   resolveNotificationRecipients,
 } from "./notificationPayloads";
-import { sendPushToRegistrationDocuments } from "./pushRegistrations";
 
 const triggerOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  retry: true,
 };
 
 const followerPageSize = 250;
@@ -131,14 +130,9 @@ async function notifyOrganizationFollowers(content: PublishedOrganizationContent
       .filter((userId): userId is string => userId !== undefined)
       .filter((userId) => !excludedUserIds.has(userId));
     const recipients = await resolveNotificationRecipients(candidateUserIds);
-    const createdNotifications = await writeFollowerInboxNotifications(
+    await writeFollowerInboxNotifications(
       content,
       recipients.inboxRecipientIds
-    );
-    const pushRecipientIds = new Set(recipients.pushRecipientIds);
-    await sendFollowerPushes(
-      content,
-      createdNotifications.filter((notification) => pushRecipientIds.has(notification.recipientUserId))
     );
 
     lastDocument = page.docs.at(-1);
@@ -218,6 +212,7 @@ function followerNotificationDocument(
     ? "organizationNewsPublished"
     : "organizationEventPublished";
   const metadata = {
+    pushDelivery: "central",
     organizationId: content.organizationId,
     organizationName: content.organizationName,
     contentId: content.contentId,
@@ -258,49 +253,6 @@ function isAlreadyExistsError(error: unknown): boolean {
     : undefined;
 
   return code === 6 || code === "already-exists" || code === "ALREADY_EXISTS";
-}
-
-async function sendFollowerPushes(
-  content: PublishedOrganizationContent,
-  createdNotifications: CreatedRecipientNotification[]
-): Promise<void> {
-  await Promise.all(createdNotifications.map(async (notification) => {
-    const [userSnapshot, tokenSnapshot] = await Promise.all([
-      db.collection("users").doc(notification.recipientUserId).get(),
-      db.collection("users")
-        .doc(notification.recipientUserId)
-        .collection("notificationPushTokens")
-        .get(),
-    ]);
-    const data = buildNotificationDataPayload({
-      notificationId: notification.notificationId,
-      type: content.kind === "news"
-        ? "organizationNewsPublished"
-        : "organizationEventPublished",
-      sourceType: "organization",
-      sourceId: content.organizationId,
-      actionType: content.kind === "news" ? "openNews" : "openEvent",
-      actionTargetId: content.contentId,
-      route: content.kind === "news" ? "openNews" : "openEvent",
-      routeTargetId: content.contentId,
-    });
-    const copy = followerNotificationCopy(content, notificationLanguage(userSnapshot.data()));
-
-    await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
-      notification: {
-        title: copy.title,
-        body: copy.body,
-      },
-      data,
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-          },
-        },
-      },
-    });
-  }));
 }
 
 function publishedOrganizationContent(

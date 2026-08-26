@@ -24,7 +24,7 @@ struct OwnerAnalyticsView: View {
         .task(id: viewModel.selectedPeriod) {
             await viewModel.loadIfNeeded()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.load()
         }
         .accessibilityIdentifier("screen.ownerAnalytics")

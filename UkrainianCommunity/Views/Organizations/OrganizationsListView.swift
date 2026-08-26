@@ -194,9 +194,10 @@ struct OrganizationsListView: View {
             }
             await viewModel.loadRemainingPagesForSearch()
         }
-        .refreshable {
-            await viewModel.refresh()
-            await refreshFeaturedBanners()
+        .appRefreshable {
+            async let content: Void = viewModel.refresh()
+            async let banners: Void = refreshFeaturedBanners()
+            _ = await (content, banners)
         }
         .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
             guard !didManuallyChangeRegion else { return }

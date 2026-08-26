@@ -13,13 +13,11 @@ import { db } from "../firebase/admin";
 import { getOrganizationRoles } from "../permissions/organizationPermissions";
 import { assertOwner, getUserPermissions, isOwner } from "../permissions/userPermissions";
 import {
-  buildNotificationDataPayload,
   type NotificationActionType,
   type NotificationSeverity,
   resolveNotificationRecipients,
   writeUserNotification,
 } from "./notificationPayloads";
-import { sendPushToRegistrationDocuments } from "./pushRegistrations";
 
 type SystemAnnouncementTargetMode = "all" | "role" | "userIds";
 
@@ -53,6 +51,7 @@ interface EventCancellationResponse {
 const triggerOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  retry: true,
 };
 
 const callableOptions = {
@@ -269,7 +268,7 @@ async function writeEventCancellationNotifications(
           cancelledAt: String(input.cancelledAt.toMillis()),
           route: "openEvent",
           routeTargetId: eventId,
-          pushManagedByWriter: true,
+          pushDelivery: "central",
         },
         dedupeKey: `eventCancelled:${eventId}`,
       });
@@ -285,60 +284,6 @@ async function writeEventCancellationNotifications(
     createdNotifications,
     pushRecipientIds: new Set(recipients.pushRecipientIds),
   };
-}
-
-async function sendEventCancellationPushes(
-  eventId: string,
-  eventTitleValue: string,
-  createdNotifications: CreatedEventNotification[],
-  pushRecipientIds: Set<string>
-): Promise<number> {
-  const pushNotifications = createdNotifications.filter((notification) =>
-    pushRecipientIds.has(notification.recipientUserId)
-  );
-
-  const sendResults = await Promise.all(pushNotifications.map(async (notification) => {
-    const [userSnapshot, tokenSnapshot] = await Promise.all([
-      db.collection("users").doc(notification.recipientUserId).get(),
-      db.collection("users")
-        .doc(notification.recipientUserId)
-        .collection("notificationPushTokens")
-        .get(),
-    ]);
-    const copy = eventCancellationCopy(
-      eventTitleValue,
-      notificationLanguage(userSnapshot.data())
-    );
-    const data = buildNotificationDataPayload({
-      notificationId: notification.notificationId,
-      type: "eventCancelled",
-      sourceType: "event",
-      sourceId: eventId,
-      actionType: "openEvent",
-      actionTargetId: eventId,
-      route: "openEvent",
-      routeTargetId: eventId,
-    });
-
-    const delivery = await sendPushToRegistrationDocuments(tokenSnapshot.docs, {
-      notification: {
-        title: copy.title,
-        body: copy.body,
-      },
-      data,
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-          },
-        },
-      },
-    });
-
-    return delivery.targetCount > 0;
-  }));
-
-  return sendResults.filter(Boolean).length;
 }
 
 async function writeEventNotifications(
@@ -384,6 +329,13 @@ export const notifyEventUpdatedOnUpdate = onDocumentUpdated(
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
+    if (before && after && !isCancellationTransition(before) && isCancellationTransition(after)) {
+      await writeEventCancellationNotifications(event.params.eventId, await registeredUserIds(event.params.eventId), {
+        eventTitle: eventTitle(after), cancelledAt: timestampField(after, "cancelledAt") ?? Timestamp.now(),
+        requiresPopup: isSoon(after),
+      });
+      return;
+    }
     if (!before || !after || isCancellationTransition(after) || !hasMeaningfulEventChange(before, after)) {
       return;
     }
@@ -482,12 +434,8 @@ export const cancelEvent = onCall(
       cancelledAt,
       requiresPopup,
     });
-    const pushRecipientCount = await sendEventCancellationPushes(
-      eventId,
-      title,
-      notificationResult.createdNotifications,
-      notificationResult.pushRecipientIds
-    );
+    // Dispatch is asynchronous; this response must not claim device delivery.
+    const pushRecipientCount = 0;
 
     return {
       eventId,

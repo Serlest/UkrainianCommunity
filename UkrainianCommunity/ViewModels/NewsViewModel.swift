@@ -316,7 +316,7 @@ final class NewsViewModel: ObservableObject {
         guard posts.contains(where: { $0.id == postID }) else { return }
 
         do {
-            let comments = try await repository.fetchNewsComments(newsID: postID)
+            let comments = try await RefreshRequest.run { [repository] in try await repository.fetchNewsComments(newsID: postID) }
             guard isCurrentAuthGeneration(generation),
                   let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
@@ -460,12 +460,13 @@ final class NewsViewModel: ObservableObject {
         posts.first(where: { $0.id == postID })
     }
 
-    func loadPostIfNeeded(postID: String, force: Bool = false) async {
-        guard force || post(for: postID) == nil else { return }
+    @discardableResult
+    func loadPostIfNeeded(postID: String, force: Bool = false) async -> Bool {
+        guard force || post(for: postID) == nil else { return true }
         let generation = authGeneration
         do {
-            let post = try await repository.fetchNews(id: postID)
-            guard isCurrentAuthGeneration(generation) else { return }
+            let post = try await RefreshRequest.run { [repository] in try await repository.fetchNews(id: postID) }
+            guard isCurrentAuthGeneration(generation) else { return false }
             if let index = posts.firstIndex(where: { $0.id == post.id }) {
                 posts[index] = post
             } else {
@@ -473,13 +474,15 @@ final class NewsViewModel: ObservableObject {
             }
             contentVersion &+= 1
             error = nil
+            return true
         } catch let appError as AppError {
-            guard isCurrentAuthGeneration(generation) else { return }
+            guard isCurrentAuthGeneration(generation) else { return false }
             error = appError
         } catch {
-            guard isCurrentAuthGeneration(generation) else { return }
+            guard isCurrentAuthGeneration(generation) else { return false }
             self.error = .unknown
         }
+        return false
     }
 
     var editorRepository: NewsRepository {
@@ -578,7 +581,7 @@ final class NewsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nil)
+            let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nil) }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             feedRevision &+= 1
             posts = visibilityPolicy.visibleNews(page.items)
@@ -609,7 +612,7 @@ final class NewsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nextPageCursor)
+            let page = try await RefreshRequest.run { [repository, publicFeedPageSize, nextPageCursor] in try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nextPageCursor) }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             appendUniquePosts(page.items)
             self.nextPageCursor = page.nextCursor

@@ -19,9 +19,9 @@ final class LegalDocumentManagementViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            async let termsState = repository.fetchManagementState(type: .terms)
-            async let privacyState = repository.fetchManagementState(type: .privacy)
-            async let organizationRulesState = repository.fetchManagementState(type: .organizationRules)
+            async let termsState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .terms) }
+            async let privacyState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .privacy) }
+            async let organizationRulesState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .organizationRules) }
             let loadedStates = try await [termsState, privacyState, organizationRulesState]
             states = Dictionary(uniqueKeysWithValues: loadedStates.map { ($0.type, $0) })
         } catch {
@@ -85,7 +85,7 @@ struct LegalDocumentManagementView: View {
         .task {
             await viewModel.load()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.load()
         }
     }

@@ -189,7 +189,7 @@ final class RecentViewsViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            items = try await repository.fetchRecentViews(limit: 30)
+            items = try await RefreshRequest.run { [self] in try await repository.fetchRecentViews(limit: 30) }
                 .sorted { $0.viewedAt > $1.viewedAt }
             error = nil
             hasLoaded = true

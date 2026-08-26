@@ -159,6 +159,9 @@ struct ContentView: View {
             selectedAppearanceCode = newAppearance.rawValue
             UserSettings.stored = profileViewModel.settings
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task { await configureRemoteNotifications(for: notificationInboxUserID) }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in
             Task {
                 await newsViewModel.refresh()
@@ -677,7 +680,10 @@ struct ContentView: View {
     }
 
     private func handleNotificationTap(_ notification: AppNotification) {
-        guard notification.actionType != .none else { return }
+        guard notification.canOpenDestination else {
+            showNotificationRouteUnavailable()
+            return
+        }
 
         isShowingNotificationInbox = false
 
@@ -796,8 +802,7 @@ struct ContentView: View {
     }
 
     private func routeToURL(_ notification: AppNotification) {
-        guard let urlString = notificationURLString(notification),
-              let url = URL(string: urlString) else {
+        guard let url = notification.destinationURL else {
             showNotificationRouteUnavailable()
             return
         }
@@ -857,28 +862,8 @@ struct ContentView: View {
         }
     }
 
-    private func notificationURLString(_ notification: AppNotification) -> String? {
-        [
-            notification.actionTargetId,
-            notification.metadata["url"],
-            notification.payload["url"]
-        ]
-        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .first { !$0.isEmpty }
-    }
-
     private func notificationTargetID(_ notification: AppNotification) -> String? {
-        [
-            notification.actionTargetId,
-            notification.sourceId,
-            notification.payload["routeTargetId"],
-            notification.metadata["routeTargetId"],
-            notification.metadata["targetId"],
-            notification.metadata["targetID"],
-            notification.metadata["url"]
-        ]
-        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .first { !$0.isEmpty }
+        notification.destinationTargetID
     }
 
     private func handleProfileBrowseDestination(_ destination: ProfileBrowseDestination) {

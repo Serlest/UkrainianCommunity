@@ -194,7 +194,7 @@ final class MyRegistrationsViewModel: ObservableObject {
         }
 
         do {
-            let loadedEvents = try await repository.fetchRegisteredEvents()
+            let loadedEvents = try await RefreshRequest.run { [self] in try await repository.fetchRegisteredEvents() }
             guard !Task.isCancelled, sessionGeneration == generation else { return }
             events = loadedEvents
             error = nil

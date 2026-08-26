@@ -5,8 +5,7 @@ struct ManagedUserPresenceView: View {
     let actor: AppUser?
     let refreshToken: String
     @Environment(\.scenePhase) private var scenePhase
-    @State private var snapshot: ManagedUserPresenceSnapshot?
-    @State private var failed = false
+    @ObservedObject var model: ManagedUserPresenceViewModel
     @State private var retry = 0
 
     private var loadKey: String {
@@ -16,12 +15,12 @@ struct ManagedUserPresenceView: View {
     var body: some View {
         if PermissionService.canManageUsers(user: actor) {
             VStack(alignment: .leading, spacing: 8) {
-                if failed {
+                if model.failed {
                     UserManagementMetadataRow(systemImage: "wifi.exclamationmark", title: AppStrings.UserManagement.presenceTitle,
                                               value: AppStrings.UserManagement.presenceUnavailable)
                     Button(AppStrings.UserManagement.retry) { retry += 1 }
                         .font(.subheadline)
-                } else if let snapshot {
+                } else if let snapshot = model.snapshot {
                     TimelineView(.periodic(from: .now, by: 1)) { _ in
                         ManagedUserPresenceStatus(snapshot: snapshot)
                     }
@@ -33,23 +32,14 @@ struct ManagedUserPresenceView: View {
                 }
             }
             .task(id: loadKey) {
-                snapshot = nil
-                failed = false
-                guard scenePhase == .active else { return }
+                guard scenePhase == .active else { model.cancelPending(); return }
                 repeat {
-                    do {
-                        let value = try await UserPresenceAPI.load(userID: userID)
-                        guard !Task.isCancelled else { return }
-                        snapshot = value
-                        failed = false
-                    } catch {
-                        guard !Task.isCancelled else { return }
-                        snapshot = nil
-                        failed = true
-                    }
+                    await model.refresh(userID: userID, actor: actor)
+                    guard !Task.isCancelled else { return }
                     do { try await Task.sleep(for: .seconds(30)) } catch { return }
                 } while !Task.isCancelled
             }
+            .onDisappear { model.cancelPending() }
         }
     }
 }

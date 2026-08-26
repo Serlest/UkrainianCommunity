@@ -1,6 +1,159 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "notifications.detail.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Деталі"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        }
+      }
+    },
+    "notifications.detail.view" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переглянути деталі сповіщення"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benachrichtigungsdetails anzeigen"
+          }
+        }
+      }
+    },
+    "notifications.detail.close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрити"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen"
+          }
+        }
+      }
+    },
+    "notifications.detail.open_destination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перейти до пов’язаного вмісту"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugehörigen Inhalt öffnen"
+          }
+        }
+      }
+    },
+    "notifications.detail.information_only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Це інформаційне сповіщення. Додаткових дій не потрібно."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dies ist eine Information. Es sind keine weiteren Schritte erforderlich."
+          }
+        }
+      }
+    },
+    "notifications.detail.no_further_details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Це сповіщення не містить додаткових деталей."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Benachrichtigung enthält keine weiteren Details."
+          }
+        }
+      }
+    },
+    "notifications.detail.status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        }
+      }
+    },
+    "notifications.detail.delete.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити це сповіщення?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Benachrichtigung löschen?"
+          }
+        }
+      }
+    },
+    "notifications.detail.delete.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Буде видалено лише це сповіщення. Пов’язаний вміст залишиться без змін."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur diese Benachrichtigung wird entfernt. Der zugehörige Inhalt bleibt erhalten."
+          }
+        }
+      }
+    },
     "comments.loading" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28263,24 +28416,18 @@
       }
     },
     "profile.notifications.test_sent" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Testbenachrichtigung wird in wenigen Sekunden angezeigt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Тестове сповіщення буде показано за кілька секунд."
-          }
-        },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Тестове сповіщення буде показано за кілька секунд."
+            "value" : "Сервер прийняв тестове сповіщення. Перевірте, чи воно з’явилося на iPhone."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat die Testmitteilung angenommen. Prüfe, ob sie auf dem iPhone angezeigt wird."
           }
         }
       }
@@ -43626,6 +43773,176 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Прибрати із закладок"
+          }
+        }
+      }
+    },
+    "notifications.push.organization_submitted.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заявка організації на перевірку"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsantrag zur Prüfung"
+          }
+        }
+      }
+    },
+    "notifications.push.comment_added.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новий коментар"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Kommentar"
+          }
+        }
+      }
+    },
+    "notifications.push.content_moderated.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус публікації змінено"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veröffentlichungsstatus geändert"
+          }
+        }
+      }
+    },
+    "notifications.push.participant_registered.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нова реєстрація на подію"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Veranstaltungsanmeldung"
+          }
+        }
+      }
+    },
+    "notifications.push.participant_cancelled.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реєстрацію на подію скасовано"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltungsanmeldung storniert"
+          }
+        }
+      }
+    },
+    "notifications.push.workflow.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "profile.notifications.system_denied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сповіщення заборонені в налаштуваннях iPhone. Увімкніть їх, щоб отримувати повідомлення поза застосунком."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitteilungen sind in den iPhone-Einstellungen deaktiviert. Aktiviere sie, um auch außerhalb der App benachrichtigt zu werden."
+          }
+        }
+      }
+    },
+    "profile.notifications.open_system_settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкрити налаштування iPhone"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone-Einstellungen öffnen"
+          }
+        }
+      }
+    },
+    "profile.notifications.test_partial" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервер прийняв сповіщення лише для частини пристроїв. Перевірте налаштування APNs у Firebase."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat die Mitteilung nur für einen Teil der Geräte angenommen. Prüfe die APNs-Einstellungen in Firebase."
+          }
+        }
+      }
+    },
+    "user_management.refresh_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося оновити дані. Перевірте з’єднання й спробуйте ще раз."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Daten konnten nicht aktualisiert werden. Prüfe deine Verbindung und versuche es erneut."
           }
         }
       }

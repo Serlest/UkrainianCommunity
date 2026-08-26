@@ -44,7 +44,7 @@ final class MyFeedbackViewModel: ObservableObject {
 
     private func fetchMyFeedbackOnce(userID: String) async {
         do {
-            items = try await repository.fetchFeedback(userID: userID)
+            items = try await RefreshRequest.run { [self] in try await repository.fetchFeedback(userID: userID) }
             loadedUserID = userID
             error = nil
         } catch let appError as AppError {
@@ -83,7 +83,7 @@ final class MyFeedbackViewModel: ObservableObject {
 
     private func fetchMessagesOnce(for item: FeedbackItem) async {
         do {
-            messagesByFeedbackID[item.id] = try await repository.fetchFeedbackMessages(feedback: item)
+            messagesByFeedbackID[item.id] = try await RefreshRequest.run { [self] in try await repository.fetchFeedbackMessages(feedback: item) }
             actionError = nil
         } catch let appError as AppError {
             actionError = appError

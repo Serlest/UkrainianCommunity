@@ -228,7 +228,7 @@ struct MyFeedbackView: View {
         .task(id: currentUserID) {
             await viewModel.loadIfNeeded(userID: currentUserID)
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh(userID: currentUserID)
         }
         .sheet(item: $selectedFeedback) { item in
@@ -561,7 +561,7 @@ struct FeedbackInboxView: View {
         .task {
             await viewModel.loadIfNeeded()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .confirmationDialog(

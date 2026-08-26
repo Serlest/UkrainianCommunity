@@ -1,3 +1,4 @@
+import {randomUUID} from "node:crypto";
 import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
@@ -236,6 +237,7 @@ export async function commitOrganizationReview(
 ): Promise<OrganizationReviewCommitResult> {
   const organizationReference = db.collection("organizations").doc(reviewRequest.organizationId);
 
+  const reviewId = randomUUID();
   return db.runTransaction(async (transaction): Promise<OrganizationReviewCommitResult> => {
     const organizationDocument = await transaction.get(organizationReference);
     if (!organizationDocument.exists) {
@@ -270,6 +272,7 @@ export async function commitOrganizationReview(
     };
     const notificationId = [
       workflow.notificationType,
+      reviewId,
       organization.organizationId,
       organization.submittedByUserId,
     ].join("_");

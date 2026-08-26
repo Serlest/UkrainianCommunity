@@ -399,19 +399,19 @@ struct ProfileView: View {
             // previous account's switch value visible after an account change.
             isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
         }
-        .refreshable {
-            await viewModel.refresh()
-            await donationConfigViewModel.load()
-            if authState.isAuthenticated {
-                await registrationsViewModel.refresh()
-                if let userID = authState.user?.id {
-                    await myFeedbackViewModel.refresh(userID: userID)
-                    await notificationInboxViewModel.refresh()
-                    await viewModel.refreshNotificationPreferences(userID: userID)
-                }
-                await organizationsViewModel.refresh()
-                await refreshOwnerVisibilityIfAllowed()
+        .appRefreshable {
+            async let profile: Void = viewModel.refresh()
+            async let donation: Void = donationConfigViewModel.load()
+            if authState.isAuthenticated, let userID = authState.user?.id {
+                async let registrations: Void = registrationsViewModel.refresh()
+                async let feedback: Void = myFeedbackViewModel.refresh(userID: userID)
+                async let notifications: Void = notificationInboxViewModel.refresh()
+                async let preferences: Void = viewModel.refreshNotificationPreferences(userID: userID)
+                async let organizations: Void = organizationsViewModel.refresh()
+                async let owner: Void = refreshOwnerVisibilityIfAllowed()
+                _ = await (registrations, feedback, notifications, preferences, organizations, owner)
             }
+            _ = await (profile, donation)
         }
         .onChange(of: authState.isAuthenticated) { _, isAuthenticated in
             Task {
@@ -632,7 +632,7 @@ struct ProfileView: View {
                 organizationRepository: organizationRepository
             )
         case .userManagement:
-            UserManagementView()
+            UserManagementView(reads: MockContentBuilder.userManagementRefreshFixture() ?? .live)
         case .featuredBannerManagement:
             FeaturedBannerManagementView(
                 repository: featuredBannerRepository,
@@ -1206,6 +1206,7 @@ struct ProfileView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.userManagement")
                     }
 
                     if canShowFeaturedBanners {

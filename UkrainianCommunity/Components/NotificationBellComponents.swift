@@ -58,6 +58,7 @@ struct AppNotificationBellButton: View {
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())
             .accessibilityLabel(AppStrings.Home.notifications)
+            .accessibilityIdentifier("notificationInbox.bell")
             .accessibilityValue(AppStrings.NotificationInbox.unreadCount(configuration.unreadCount))
         }
     }

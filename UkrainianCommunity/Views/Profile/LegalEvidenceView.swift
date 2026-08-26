@@ -37,7 +37,7 @@ struct LegalEvidenceView: View {
             }
             await viewModel.load()
         }
-        .refreshable {
+        .appRefreshable {
             guard PermissionService.isAppOwner(user: authState.user) else { return }
             await viewModel.load()
         }
@@ -238,7 +238,7 @@ private struct LegalEvidenceUserDetailView: View {
             content
         }
         .task { await viewModel.load() }
-        .refreshable { await viewModel.load() }
+        .appRefreshable { await viewModel.load() }
         .accessibilityIdentifier("screen.legalEvidence.user")
     }
 

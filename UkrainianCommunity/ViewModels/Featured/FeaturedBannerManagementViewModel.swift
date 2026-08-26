@@ -122,7 +122,7 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            banners = try await repository.fetchAllBannersForOwner()
+            banners = try await RefreshRequest.run { [self] in try await repository.fetchAllBannersForOwner() }
             error = nil
             hasLoaded = true
         } catch is CancellationError {

@@ -35,6 +35,7 @@ struct EventDetailView: View {
     let onEventDeleted: @MainActor @Sendable () -> Void
     let onNavigateBack: (() -> Void)?
     let organizationRepository: OrganizationRepository
+    @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
     @State var deleteErrorMessage: String?
     @State var isDeleting = false
@@ -125,6 +126,9 @@ struct EventDetailView: View {
                 ) {
                     eventHeaderActions(for: event)
                 } scrollContent: { scrollProxy in
+                    if let refreshError {
+                        InlineMessageCard(style: .error, message: readableEventErrorText(refreshError))
+                    }
                     articleHeader(for: event)
                         .onTapGesture { isCommentFieldFocused = false }
 
@@ -337,10 +341,10 @@ struct EventDetailView: View {
     }
 
     func refreshEventDetail() async {
-        if viewModel.event(for: eventID)?.isCancelled == true {
-            await viewModel.loadEventIfNeeded(eventID: eventID, force: true)
-        } else {
-            await viewModel.refresh()
+        refreshError = nil
+        guard await viewModel.loadEventIfNeeded(eventID: eventID, force: true) else {
+            refreshError = viewModel.error
+            return
         }
         guard let event = viewModel.event(for: eventID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
@@ -421,7 +425,7 @@ struct EventDetailView: View {
         guard permissionOrganization?.id != organizationID else { return }
 
         do {
-            permissionOrganization = try await organizationRepository.fetchOrganization(id: organizationID)
+            permissionOrganization = try await RefreshRequest.run { [self] in try await organizationRepository.fetchOrganization(id: organizationID) }
         } catch {
             permissionOrganization = nil
         }
@@ -542,7 +546,7 @@ struct EventDetailView: View {
         defer { isLoadingEventRegistrationAttendees = false }
 
         do {
-            eventRegistrationAttendees = try await viewModel.editorRepository.fetchEventRegistrations(eventID: event.id)
+            eventRegistrationAttendees = try await RefreshRequest.run { [self] in try await viewModel.editorRepository.fetchEventRegistrations(eventID: event.id) }
             loadedEventRegistrationAttendeesEventID = event.id
         } catch let appError as AppError {
             eventRegistrationAttendeesErrorMessage = readableEventErrorText(appError)

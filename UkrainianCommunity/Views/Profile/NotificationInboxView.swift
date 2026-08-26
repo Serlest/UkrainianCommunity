@@ -4,6 +4,8 @@ struct NotificationInboxView: View {
     @ObservedObject var viewModel: NotificationInboxViewModel
     let onNotificationTap: (AppNotification) -> Void
     @State private var isShowingClearConfirmation = false
+    @State private var selectedNotification: AppNotification?
+    @State private var pendingDestination: AppNotification?
 
     init(
         viewModel: NotificationInboxViewModel,
@@ -38,12 +40,21 @@ struct NotificationInboxView: View {
             headerControls
             inboxContent
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .navigationTitle(AppStrings.NotificationInbox.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(item: $selectedNotification, onDismiss: openPendingDestination) { notification in
+            NotificationDetailView(notification: notification, viewModel: viewModel) { destination in
+                pendingDestination = destination
+            }
+        }
+        .onChange(of: viewModel.sessionVersion) { _, _ in
+            pendingDestination = nil
+            selectedNotification = nil
+        }
         .confirmationDialog(
             AppStrings.NotificationInbox.clearConfirmationTitle,
             isPresented: $isShowingClearConfirmation,
@@ -112,10 +123,7 @@ struct NotificationInboxView: View {
                     NotificationInboxRow(
                         notification: notification,
                         tapAction: {
-                            Task {
-                                await viewModel.markRead(notification)
-                                onNotificationTap(notification)
-                            }
+                            selectedNotification = notification
                         },
                         markReadAction: {
                             Task { await viewModel.markRead(notification) }
@@ -141,6 +149,14 @@ struct NotificationInboxView: View {
             : AppStrings.NotificationInbox.emptyTitle
     }
 
+    private func openPendingDestination() {
+        guard let notification = pendingDestination else { return }
+        pendingDestination = nil
+        // Wait for the detail sheet to finish dismissing before changing tabs
+        // or dismissing the inbox's own full-screen presentation.
+        onNotificationTap(notification)
+    }
+
     private var emptyMessage: String {
         viewModel.selectedFilter == .unread
             ? AppStrings.NotificationInbox.unreadEmptyMessage
@@ -149,6 +165,7 @@ struct NotificationInboxView: View {
 }
 
 private struct NotificationInboxRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let notification: AppNotification
     let tapAction: () -> Void
     let markReadAction: () -> Void
@@ -160,47 +177,24 @@ private struct NotificationInboxRow: View {
         AppEditorSectionCard {
             HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
                 Button(action: tapAction) {
-                    HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
-                    ZStack(alignment: .topTrailing) {
-                        Circle()
-                            .fill(iconTint.opacity(notification.isRead ? 0.10 : 0.16))
-                            .frame(width: 42, height: 42)
-
-                        Image(systemName: systemImage)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(iconTint)
-                            .frame(width: 42, height: 42)
-
-                        if !notification.isRead {
-                            Circle()
-                                .fill(AppTheme.accentDestructive)
-                                .frame(width: 9, height: 9)
-                                .offset(x: -1, y: 2)
+                    Group {
+                        if dynamicTypeSize.isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                                HStack {
+                                    notificationIcon
+                                    Spacer(minLength: 0)
+                                    disclosureIndicator
+                                }
+                                textContent
+                            }
+                        } else {
+                            HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
+                                notificationIcon
+                                textContent
+                                Spacer(minLength: 0)
+                                disclosureIndicator
+                            }
                         }
-                    }
-
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(title)
-                                .font(.headline.weight(notification.isRead ? .regular : .semibold))
-                                .foregroundStyle(AppTheme.textPrimary)
-                                .multilineTextAlignment(.leading)
-
-                            severityLabel
-                        }
-
-                        Text(bodyText)
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(dateText)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.textSecondary)
-                    }
-
-                        Spacer(minLength: 0)
                     }
                     .contentShape(Rectangle())
                 }
@@ -208,6 +202,9 @@ private struct NotificationInboxRow: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(title). \(bodyText). \(dateText)")
                 .accessibilityValue(notification.isRead ? "" : AppStrings.NotificationInbox.filterUnread)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint(AppStrings.NotificationInbox.viewDetails)
+                .accessibilityIdentifier("notificationInbox.open.\(notification.id)")
 
                 Menu {
                     Button(action: notification.isRead ? markUnreadAction : markReadAction) {
@@ -240,6 +237,55 @@ private struct NotificationInboxRow: View {
         .accessibilityAction(named: AppStrings.NotificationInbox.delete, deleteAction)
     }
 
+    private var notificationIcon: some View {
+        ZStack(alignment: .topTrailing) {
+            Circle()
+                .fill(iconTint.opacity(notification.isRead ? 0.10 : 0.16))
+                .frame(width: 42, height: 42)
+
+            Image(systemName: systemImage)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(iconTint)
+                .frame(width: 42, height: 42)
+
+            if !notification.isRead {
+                Circle()
+                    .fill(AppTheme.accentDestructive)
+                    .frame(width: 9, height: 9)
+                    .offset(x: -1, y: 2)
+            }
+        }
+    }
+
+    private var textContent: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title)
+                    .font(.headline.weight(notification.isRead ? .regular : .semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .multilineTextAlignment(.leading)
+
+                severityLabel
+            }
+
+            Text(bodyText)
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textSecondary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
+
+            Text(dateText)
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+    }
+
+    private var disclosureIndicator: some View {
+        Image(systemName: "chevron.forward")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.textSecondary)
+    }
+
     @ViewBuilder
     private var severityLabel: some View {
         if notification.severity != .info {
@@ -267,8 +313,14 @@ private struct NotificationInboxRow: View {
 
     private var systemImage: String {
         switch notification.type {
-        case .feedbackSubmitted, .feedbackReply:
+        case .commentAdded, .feedbackSubmitted, .feedbackReply:
             return "bubble.left.and.bubble.right"
+        case .organizationRequestSubmitted:
+            return "building.2.crop.circle"
+        case .contentModerationChanged:
+            return "checkmark.shield"
+        case .eventParticipationChanged:
+            return "person.badge.plus"
         case .organizationRequestApproved:
             return "checkmark.seal"
         case .organizationRequestNeedsRevision:

@@ -4,6 +4,34 @@ import Testing
 
 @MainActor
 struct ContentInteractionRaceTests {
+    @Test func forcedNewsDetailRefreshPreservesOtherCachedPages() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let old = makeNewsPost(id: "older-page", likeCount: 1)
+        let other = makeNewsPost(id: "another-page")
+        model.posts = [other, old]
+        repository.news = [makeNewsPost(id: old.id, likeCount: 8)]
+        #expect(await model.loadPostIfNeeded(postID: old.id, force: true))
+        #expect(model.posts.map(\.id) == [other.id, old.id])
+        #expect(model.post(for: old.id)?.likeCount == 8)
+        repository.news = []
+        #expect(!(await model.loadPostIfNeeded(postID: old.id, force: true)))
+        #expect(model.post(for: old.id)?.likeCount == 8)
+        #expect(model.error != nil)
+    }
+
+    @Test func forcedOrganizationDetailRefreshBypassesCacheWithoutReplacingFeed() async {
+        let repository = ControlledOrganizationRepository()
+        let model = OrganizationsViewModel(repository: repository)
+        let old = makeOrganization(id: "older-page", likeCount: 1)
+        let other = makeOrganization(id: "another-page")
+        model.organizations = [other, old]
+        repository.organizations = [makeOrganization(id: old.id, likeCount: 8)]
+        #expect(await model.resolveOrganization(id: old.id)?.likeCount == 1)
+        #expect(await model.resolveOrganization(id: old.id, force: true)?.likeCount == 8)
+        #expect(model.organizations.map(\.id) == [other.id, old.id])
+    }
+
     @Test func commentDraftSurvivesFailureAndClearsOnlyAfterSuccess() async {
         let state = CommentComposerState()
         state.text = "  My comment  "

@@ -365,17 +365,17 @@ final class OrganizationsViewModel: ObservableObject {
         ))
     }
 
-    func resolveOrganization(id organizationID: String) async -> Organization? {
+    func resolveOrganization(id organizationID: String, force: Bool = false) async -> Organization? {
         let trimmedID = organizationID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return nil }
         let generation = authGeneration
 
-        if let organization = organization(for: trimmedID) {
+        if !force, let organization = organization(for: trimmedID) {
             return organization
         }
 
         do {
-            let organization = try await repository.fetchOrganization(id: trimmedID)
+            let organization = try await RefreshRequest.run { [repository] in try await repository.fetchOrganization(id: trimmedID) }
             guard isCurrentAuthGeneration(generation) else { return nil }
             guard visibilityPolicy.visibleOrganizations([organization]).isEmpty == false else {
                 return nil
@@ -407,7 +407,7 @@ final class OrganizationsViewModel: ObservableObject {
         startListeningComments(for: organizationID)
         guard forceRefresh || !(repository is OrganizationRealtimeRepository) else { return }
         do {
-            let comments = try await repository.fetchOrganizationComments(organizationID: organizationID)
+            let comments = try await RefreshRequest.run { [repository] in try await repository.fetchOrganizationComments(organizationID: organizationID) }
             guard isCurrentAuthGeneration(generation) else { return }
             organizationCommentsByID[organizationID] = visibilityPolicy.visibleComments(
                 comments.deduplicatedCommentsByID()
@@ -566,7 +566,7 @@ final class OrganizationsViewModel: ObservableObject {
 
     private func fetchOrganizationRequestsOnce(userID: String, generation: UInt) async {
         do {
-            let requests = try await repository.fetchOrganizationRequests(submittedByUserID: userID)
+            let requests = try await RefreshRequest.run { [repository] in try await repository.fetchOrganizationRequests(submittedByUserID: userID) }
             guard isCurrentAuthGeneration(generation) else { return }
             organizationRequests = requests.deduplicatedOrganizationsByID()
             error = nil
@@ -724,7 +724,7 @@ final class OrganizationsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nil)
+            let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nil) }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             feedRevision &+= 1
             organizations = visibilityPolicy.visibleOrganizations(page.items)
@@ -755,7 +755,7 @@ final class OrganizationsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nextPageCursor)
+            let page = try await RefreshRequest.run { [repository, publicFeedPageSize, nextPageCursor] in try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nextPageCursor) }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             appendUniqueOrganizations(page.items)
             self.nextPageCursor = page.nextCursor
@@ -936,7 +936,7 @@ final class OrganizationsViewModel: ObservableObject {
         guard [.pendingReview, .needsRevision, .rejected].contains(organization.moderationStatus) else { return }
 
         do {
-            let latest = try await repository.fetchOrganization(id: organization.id)
+            let latest = try await RefreshRequest.run { [repository] in try await repository.fetchOrganization(id: organization.id) }
             guard isCurrentAuthGeneration(generation) else { throw CancellationError() }
             guard latest.submittedByUserId == organization.submittedByUserId,
                   [.pendingReview, .needsRevision, .rejected].contains(latest.moderationStatus) else {

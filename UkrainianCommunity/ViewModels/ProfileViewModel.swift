@@ -132,7 +132,9 @@ final class ProfileViewModel: ObservableObject {
             guard response.successCount > 0 else {
                 throw AppError.unknown
             }
-            notificationPreferencesMessage = AppStrings.Profile.notificationTestSent
+            notificationPreferencesMessage = response.failureCount > 0
+                ? AppStrings.Profile.notificationTestPartial
+                : AppStrings.Profile.notificationTestSent
         } catch {
             notificationPreferencesMessage = AppStrings.Profile.notificationTestFailed
         }
@@ -143,7 +145,7 @@ final class ProfileViewModel: ObservableObject {
         defer { isLoadingNotificationPreferences = false }
 
         do {
-            notificationPreferences = try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            notificationPreferences = try await RefreshRequest.run { [self] in try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID) }
             notificationPreferencesMessage = nil
             loadedNotificationPreferencesUserID = userID
         } catch let appError as AppError {
@@ -391,9 +393,9 @@ final class ProfileViewModel: ObservableObject {
 
         do {
             if !(repository is FirestoreUserRepository) {
-                user = try await repository.fetchCurrentUser()
+                user = try await RefreshRequest.run { [self] in try await repository.fetchCurrentUser() }
             }
-            settings = try await repository.fetchSettings()
+            settings = try await RefreshRequest.run { [self] in try await repository.fetchSettings() }
             settings.language = LocalizationStore.language
             error = nil
             profileMessage = nil

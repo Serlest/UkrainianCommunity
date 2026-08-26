@@ -168,7 +168,8 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
 
         return AppNotification(
             id: data["id"] as? String ?? document.documentID,
-            recipientUserId: data["recipientUserId"] as? String ?? "",
+            // The authenticated inbox path is authoritative, including legacy records without this field.
+            recipientUserId: document.reference.parent.parent?.documentID ?? data["recipientUserId"] as? String ?? "",
             type: type,
             sourceType: sourceType,
             sourceId: data["sourceId"] as? String ?? "",
@@ -297,7 +298,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .warning
         case .legalDocumentsUpdated, .systemAnnouncement:
             .critical
-        case .feedbackSubmitted, .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .eventRegistrationConfirmed, .organizationNewsPublished, .organizationEventPublished, .unknown:
+        case .organizationRequestSubmitted, .commentAdded, .contentModerationChanged, .eventParticipationChanged, .feedbackSubmitted, .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .eventRegistrationConfirmed, .organizationNewsPublished, .organizationEventPublished, .unknown:
             .info
         }
     }
@@ -306,7 +307,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         switch type {
         case .feedbackSubmitted, .feedbackReply:
             .openFeedback
-        case .organizationRequestApproved, .organizationRequestNeedsRevision, .organizationRequestRejected:
+        case .organizationRequestSubmitted, .organizationRequestApproved, .organizationRequestNeedsRevision, .organizationRequestRejected:
             .openOrganizationRequest
         case .organizationRoleAssigned, .organizationRoleRemoved:
             .openOrganization
@@ -320,7 +321,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .openLegalDocuments
         case .accountStatusChanged, .roleChanged:
             .openProfile
-        case .systemAnnouncement, .unknown:
+        case .commentAdded, .contentModerationChanged, .eventParticipationChanged, .systemAnnouncement, .unknown:
             .none
         }
     }

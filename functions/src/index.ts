@@ -3,10 +3,8 @@ import {onDocumentCreated} from "firebase-functions/v2/firestore";
 
 import {db} from "./firebase/admin";
 import {
-  buildNotificationDataPayload,
   resolveNotificationRecipients,
 } from "./notifications/notificationPayloads";
-import {sendPushToRegistrationDocuments} from "./notifications/pushRegistrations";
 import {feedbackManagerGlobalRoles} from "./permissions/userPermissions";
 
 export * from "./counters/aggregation";
@@ -63,6 +61,7 @@ export const notifyFeedbackCreated = onDocumentCreated(
   {
     document: "feedback/{feedbackId}",
     region: "europe-west3",
+    retry: true,
   },
   async (event) => {
     const feedback = event.data?.data() as FeedbackData | undefined;
@@ -98,6 +97,7 @@ export const notifyFeedbackMessageCreated = onDocumentCreated(
   {
     document: "feedback/{feedbackId}/messages/{messageId}",
     region: "europe-west3",
+    retry: true,
   },
   async (event) => {
     const message = event.data?.data() as FeedbackMessageData | undefined;
@@ -202,7 +202,7 @@ async function createInboxNotificationAndPush(input: {
     .collection("notificationInbox")
     .doc(input.notificationId);
 
-  const didCreate = await db.runTransaction(async (transaction) => {
+  await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(notificationReference);
     if (snapshot.exists) {
       return false;
@@ -227,7 +227,9 @@ async function createInboxNotificationAndPush(input: {
       deletedAt: null,
       readAt: null,
       metadata: {
+        pushDelivery: "central",
         titleLocKey: input.titleLocKey,
+        bodyLocArgs: input.bodyLocArgs,
         bodyLocKey: input.bodyLocKey,
         ...input.payload,
       },
@@ -242,78 +244,6 @@ async function createInboxNotificationAndPush(input: {
     return true;
   });
 
-  if (!didCreate) {
-    return;
-  }
-
-  try {
-    await sendPushIfEnabled(
-      input.recipientUserId,
-      input.notificationId,
-      input.titleLocKey,
-      input.bodyLocKey,
-      input.bodyLocArgs,
-      buildNotificationDataPayload({
-        notificationId: input.notificationId,
-        type: input.type,
-        sourceType: "feedback",
-        sourceId: input.sourceId,
-        actionType: "openFeedback",
-        actionTargetId: input.sourceId,
-        route: "openFeedback",
-        routeTargetId: input.sourceId,
-      })
-    );
-  } catch (error) {
-    console.error("Feedback push delivery failed after inbox notification was created.", {
-      notificationId: input.notificationId,
-      recipientUserId: input.recipientUserId,
-      error,
-    });
-  }
-}
-
-async function sendPushIfEnabled(
-  userId: string,
-  notificationId: string,
-  titleLocKey: string,
-  bodyLocKey: string,
-  bodyLocArgs: string[],
-  data: Record<string, string>
-) {
-  const preferencesSnapshot = await db
-    .collection("users")
-    .doc(userId)
-    .collection("notificationPreferences")
-    .doc("settings")
-    .get();
-  if (preferencesSnapshot.data()?.notificationsEnabled !== true) {
-    return;
-  }
-
-  const tokensSnapshot = await db
-    .collection("users")
-    .doc(userId)
-    .collection("notificationPushTokens")
-    .get();
-  await sendPushToRegistrationDocuments(tokensSnapshot.docs, {
-    data: {
-      ...data,
-      notificationId,
-    },
-    apns: {
-      payload: {
-        aps: {
-          alert: {
-            titleLocKey,
-            locKey: bodyLocKey,
-            locArgs: bodyLocArgs,
-          },
-          sound: "default",
-        },
-      },
-    },
-  });
 }
 
 function preview(value?: string): string {
@@ -326,3 +256,6 @@ function displayName(value?: string): string {
   return trimmed.length > 0 ? trimmed : "A user";
 }
 export { cleanupAnalyticsAggregates } from "./analytics/cleanupAnalyticsAggregates";
+export {notifyOrganizationRequestSubmitted, notifyNewsCommentCreated, notifyEventCommentCreated,
+  notifyOrganizationCommentCreated, notifyNewsModerationChanged, notifyEventModerationChanged,
+  notifyEventParticipationChanged} from "./notifications/workflowNotifications";

@@ -128,3 +128,11 @@ describe("push registration schema compatibility", () => {
     assert.ok(true);
   });
 });
+
+
+test("delivery receipts are server-only, including for the inbox owner", async () => {
+  const db = authenticated();
+  const ref = doc(db, "users", "verified-user", "notificationInbox", "notice", "privateDelivery", "push");
+  await assertFails(getDoc(ref));
+  await assertFails(setDoc(ref, {status: "complete"}));
+});

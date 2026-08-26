@@ -1,6 +1,58 @@
 import Foundation
 
 enum MockContentBuilder {
+    nonisolated static func notificationDetailFixtures() -> [String: [AppNotification]] {
+        guard ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+              ProcessInfo.processInfo.environment["UITestNotificationDetails"] == "1" else { return [:] }
+        // Mock repositories initialize before the app applies its test language setting.
+        let language = ProcessInfo.processInfo.environment["UITestAppLanguage"] ?? "de"
+        let bundle = Bundle.main.path(forResource: language, ofType: "lproj").flatMap(Bundle.init(path:)) ?? .main
+        func fixtureText(_ key: String, _ fallback: String) -> String {
+            bundle.localizedString(forKey: key, value: fallback, table: nil)
+        }
+        let userID = currentUser().id
+        let message = fixtureText("mock.event.1.details", "An evening for networking, announcements, and practical orientation for families living in Tirol. Tea, children’s corner, and language support will be available.")
+        return [userID: [
+            AppNotification(id: "detail-info", recipientUserId: userID, type: .systemAnnouncement,
+                sourceType: .system, sourceId: "", title: fixtureText("mock.event.1.title", "Ukrainian Community Evening"),
+                message: Array(repeating: message, count: 4).joined(separator: "\n\n"),
+                actorDisplayName: "Community Team", payload: [:], isRead: false, readAt: nil, createdAt: .now),
+            AppNotification(id: "detail-event", recipientUserId: userID, type: .eventUpdated,
+                sourceType: .event, sourceId: "event-1", actionType: .openEvent, actionTargetId: "event-1",
+                message: message, payload: [:], isRead: false, readAt: nil, createdAt: .now.addingTimeInterval(-60))
+        ]]
+    }
+
+    @MainActor
+    static func userManagementRefreshFixture() -> UserManagementReads? {
+        guard ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+              ProcessInfo.processInfo.environment["UITestUserRefresh"] == "1" else { return nil }
+        var presenceReads = 0
+        var userReads = 0
+        let failOnce = ProcessInfo.processInfo.environment["UITestUserRefreshFailure"] == "1"
+        return UserManagementReads(users: { _ in
+            .init(users: [currentUser(), ownerUser()], cursor: nil, hasMore: false)
+        }, user: { _ in
+            userReads += 1
+            try await Task.sleep(for: .milliseconds(700))
+            if failOnce && userReads == 1 { throw AppError.network }
+            let member = currentUser()
+            return AppUser(id: member.id, fullName: member.fullName, displayName: "Olena (updated)",
+                city: member.city, email: member.email, bio: member.bio, role: member.role,
+                blockState: member.blockState, createdAt: member.createdAt, updatedAt: .now)
+        }, organizations: { [] }, securityMetadata: { id in
+            ManagedUserSecurityMetadata(response: .init(targetUserId: id, emailVerified: true,
+                authDisabled: false, creationTime: nil, lastSignInTime: nil, providerIds: ["password"]))
+        }, presence: { id in
+            presenceReads += 1
+            try await Task.sleep(for: .milliseconds(700))
+            if failOnce && presenceReads == 2 { throw AppError.network }
+            let now = Date().timeIntervalSince1970 * 1_000
+            return ManagedUserPresenceSnapshot(response: .init(targetUserId: id, lastSeenAt: now,
+                onlineUntil: presenceReads == 1 ? now + 90_000 : nil, serverTime: now), requestStartedAt: .now)
+        })
+    }
+
     nonisolated private static let calendar = Calendar.current
 
     nonisolated static func currentUser() -> AppUser {

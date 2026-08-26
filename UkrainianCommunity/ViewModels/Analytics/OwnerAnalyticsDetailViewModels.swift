@@ -177,11 +177,11 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
         }
 
         do {
-            let loadedSnapshot = try await repository.fetchContentDetail(
+            let loadedSnapshot = try await RefreshRequest.run { [self] in try await repository.fetchContentDetail(
                 period: period,
                 contentID: contentID,
                 contentType: contentType
-            )
+            ) }
             guard generation == loadGeneration, selectedPeriod == period else { return }
             snapshotByPeriod[period] = OwnerAnalyticsCacheEntry(value: loadedSnapshot, loadedAt: now())
             errorByPeriod.removeValue(forKey: period)
@@ -372,7 +372,7 @@ final class AnalyticsOrganizationDetailViewModel: ObservableObject {
         }
 
         do {
-            let loadedSnapshot = try await repository.fetchOrganizationDetail(period: period, organizationID: organizationID)
+            let loadedSnapshot = try await RefreshRequest.run { [self] in try await repository.fetchOrganizationDetail(period: period, organizationID: organizationID) }
             guard generation == loadGeneration, selectedPeriod == period else { return }
             snapshotByPeriod[period] = OwnerAnalyticsCacheEntry(value: loadedSnapshot, loadedAt: now())
             errorByPeriod.removeValue(forKey: period)

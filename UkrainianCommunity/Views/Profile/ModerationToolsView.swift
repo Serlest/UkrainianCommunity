@@ -197,7 +197,7 @@ private final class ModerationQueueViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let allItems = try await loadAllowedItems()
+            let allItems = try await RefreshRequest.run { [self] in try await loadAllowedItems() }
 
             guard !Task.isCancelled else { return }
             items = allItems
@@ -405,7 +405,7 @@ struct ModerationToolsView: View {
         ) {
             moderationContent
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .task {

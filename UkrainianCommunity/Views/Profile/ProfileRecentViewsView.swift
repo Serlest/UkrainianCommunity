@@ -125,7 +125,7 @@ struct RecentViewsView: View {
             }
             await loadRecentViewsIfNeeded(userID: userID)
         }
-        .refreshable {
+        .appRefreshable {
             await refreshRecentViews()
         }
         .confirmationDialog(

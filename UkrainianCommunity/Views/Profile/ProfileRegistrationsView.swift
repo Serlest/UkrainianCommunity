@@ -116,7 +116,7 @@ struct MyRegistrationsView: View {
             await viewModel.loadIfNeeded()
             await viewModel.refreshIfStale()
         }
-        .refreshable {
+        .appRefreshable {
             await viewModel.refresh()
         }
         .onChange(of: eventsViewModel.contentVersion) { _, _ in
