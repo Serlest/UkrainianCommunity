@@ -38,15 +38,9 @@ extension OrganizationEditorView {
                 user: authState.user,
                 organizationRulesVersion: organizationRulesDocument?.version
             )
-            guard didSave else {
-                if viewModel.errorMessage == AppStrings.OrganizationRules.acceptanceFailed {
-                    await loadOrganizationRulesIfNeeded(force: true)
-                    if organizationRulesDocument != nil {
-                        viewModel.errorMessage = nil
-                    }
-                }
-                return
-            }
+            // Keep the accepted rules and the concrete failure visible so the
+            // user can retry without reopening the document and losing context.
+            guard didSave else { return }
             await onSaved()
             dismiss()
         }

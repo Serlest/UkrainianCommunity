@@ -951,7 +951,7 @@ final class OrganizationEditorViewModel: ObservableObject {
     }
 
     private func isPlatformOwner(_ user: AppUser?) -> Bool {
-        PermissionService.canManageOrganizationRequests(user: user)
+        PermissionService.isAppOwner(user: user)
     }
 
     private func shouldResubmitRequest(user: AppUser?) -> Bool {
