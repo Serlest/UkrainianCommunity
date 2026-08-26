@@ -75,6 +75,33 @@ def validate_privacy_manifest(
     if not isinstance(collected_types, list) or not collected_types:
         failures.append("PrivacyInfo.xcprivacy must declare collected data types")
     else:
+        expected_purposes = {
+            "Name": {"AppFunctionality"},
+            "EmailAddress": {"AppFunctionality"},
+            "PhoneNumber": {"AppFunctionality"},
+            "PhysicalAddress": {"AppFunctionality"},
+            "OtherUserContactInfo": {"AppFunctionality"},
+            "CoarseLocation": {"AppFunctionality", "Analytics"},
+            "PhotosorVideos": {"AppFunctionality"},
+            "CustomerSupport": {"AppFunctionality"},
+            "OtherUserContent": {"AppFunctionality"},
+            "UserID": {"AppFunctionality", "Analytics"},
+            "DeviceID": {"AppFunctionality"},
+            "ProductInteraction": {"AppFunctionality", "Analytics"},
+            "OtherDiagnosticData": {"AppFunctionality", "Analytics"},
+            "OtherDataTypes": {"AppFunctionality", "Analytics"},
+        }
+        by_type = {entry.get("NSPrivacyCollectedDataType"): entry for entry in collected_types}
+        if len(by_type) != len(collected_types):
+            failures.append("PrivacyInfo.xcprivacy contains duplicate data categories")
+        for short_name, purposes in expected_purposes.items():
+            full_name = "NSPrivacyCollectedDataType" + short_name
+            entry = by_type.get(full_name, {})
+            expected = {"NSPrivacyCollectedDataTypePurpose" + purpose for purpose in purposes}
+            if set(entry.get("NSPrivacyCollectedDataTypePurposes", [])) != expected:
+                failures.append(f"{full_name} must match the audited data-purpose inventory")
+            if entry.get("NSPrivacyCollectedDataTypeLinked") is not True:
+                failures.append(f"{full_name} includes account-linked first-party records")
         for entry in collected_types:
             if entry.get("NSPrivacyCollectedDataTypeTracking") is not False:
                 data_type = entry.get("NSPrivacyCollectedDataType", "unknown data type")

@@ -49,18 +49,33 @@ The following six representations must say the same thing:
 
 Any mismatch is a release blocker, even if the build and tests are green.
 
-## Current unresolved blockers for version 2026.10
+## Release audit on 2026-08-26
 
-- Deploy and verify automatic deletion for separate `auditLogs`, closed support, feedback and report records.
-- Public DSA-compliant notice-and-action flow and internal appeal/statement-of-reasons workflow.
-- Austrian lawyer review of the final filled German text.
+Live read-only evidence verified published Terms/organization rules 2026.10 and
+privacy 2026.11 in German/Ukrainian against Firestore and all six public pages.
+Firestore and Storage Rules exactly match the repository. DSA portal, decision,
+appeal and account-deletion Functions are ACTIVE. These facts supersede the old
+blanket claim that all of those implementations are still absent; they do not
+prove every real-user workflow.
 
-The operator identity is filled as Timofeev Philipp, a private non-commercial
-hobby operator at Egger-Lienz-Straße 47, 6020 Innsbruck. Registration now
-requires an explicit `14+` confirmation and stores its timestamp/version. Closed
-support, feedback and report conversations use a six-month retention rule in the
-scheduled cleanup implementation; these changes remain release-blocking until
-the matching Functions, index and Rules are deployed and verified.
+The 04:00 Vienna `cleanupExpiredData` run failed on 2026-08-26 because the
+production feedback(status ASC, updatedAt ASC) index was missing. With user
+authorization, only that index was created; READY and the equivalent read-only
+query (0 matching documents) were verified at 20:23 Vienna. The next scheduled
+cleanup still needs successful-run evidence. Do not mark full retention verified
+or run a destructive manual cleanup merely to make this checkbox green.
+
+The separate `cleanupAnalyticsAggregates` Function is ACTIVE in its original
+region europe-west1 and its 03:30 scheduler last attempt reports no error.
+
+Remaining approvals: operator/contact and non-commercial status, Austrian/EU
+legal assessment (including presence and operational account-region reports),
+App Store DSA/trader declaration, and the separate draft privacy clarification
+2026.12. Drafts are not published, do not change existing acceptance versions,
+and must not be substituted into a currently published version's evidence.
+
+`Legal/legal-manifest.json` deliberately retains unresolved release blocks.
+Passing structural tests or uploading TestFlight does not clear them.
 
 Organization creation now has a separate versioned German/Ukrainian rules
 document. Creation is bound to an immutable server acceptance log and a private

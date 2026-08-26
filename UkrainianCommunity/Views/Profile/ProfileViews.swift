@@ -1099,6 +1099,7 @@ struct ProfileView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.settings.open")
             }
         }
     }

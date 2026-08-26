@@ -35,6 +35,27 @@ private final class LegalManagementRepositoryStub: LegalDocumentRepository {
 
 @MainActor
 struct LegalDocumentManagementTests {
+    @Test func offlineDocumentsContainFullDistinctTranslationsAndCorrectAcceptance() throws {
+        let url = try #require(Bundle.main.url(forResource: "LegalDocuments", withExtension: "json"))
+        let data = try Data(contentsOf: url)
+        let bundled = try JSONDecoder().decode([String: LegalDocument].self, from: data)
+        for kind in LegalDocumentType.allCases {
+            let document = LegalDocument.hardcodedFallback(type: kind)
+            #expect(document == bundled[kind.rawValue])
+            #expect(document.version == kind.legacyVersion)
+            #expect(document.requiresAcceptance == (kind != .privacy))
+            let german = try #require(document.content(preferredLocale: "de"))
+            let ukrainian = try #require(document.content(preferredLocale: "uk"))
+            #expect(german.contentMarkdown != ukrainian.contentMarkdown)
+            #expect(german.contentHash != ukrainian.contentHash)
+            #expect(german.contentMarkdown.contains("ukrainian.community@outlook.com") || kind == .organizationRules)
+            #expect(german.contentMarkdown.components(separatedBy: "\n## ").count == ukrainian.contentMarkdown.components(separatedBy: "\n## ").count)
+        }
+        let privacy = LegalDocument.hardcodedFallback(type: .privacy)
+        #expect(privacy.content(preferredLocale: "de")?.contentMarkdown.contains("## 18.") == true)
+        #expect(privacy.content(preferredLocale: "uk")?.contentMarkdown.contains("## 18.") == true)
+    }
+
     @Test func firstLoadFailureDoesNotExposeFallbackDocumentsAsManagementState() async {
         let repository = LegalManagementRepositoryStub()
         repository.error = .network

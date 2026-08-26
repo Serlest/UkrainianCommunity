@@ -26,6 +26,16 @@ final class UkrainianCommunityUITests: XCTestCase {
         return app
     }
 
+    private func launchGuestApp(language: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = language
+        app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launch()
+        return app
+    }
+
     private func launchAuthenticatedApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
@@ -396,6 +406,27 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     override func tearDownWithError() throws {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
+    }
+
+    @MainActor
+    func testAppStoreScreenshotSet() throws {
+        for language in ["de", "uk"] {
+            let app = launchGuestApp(language: language)
+            XCTAssertTrue(app.otherElements["screen.home"].waitForExistence(timeout: 20))
+            for (index, suffix) in [(0, "home"), (1, "events"), (2, "organizations"), (3, "profile")] {
+                let tab = rootTabs[index]
+                if app.tabBars.firstMatch.exists {
+                    tapRootTab(tab, in: app, timeout: 20)
+                } else {
+                    let adaptiveTab = app.buttons[tab.tabIdentifier].firstMatch
+                    XCTAssertTrue(adaptiveTab.waitForExistence(timeout: 20))
+                    adaptiveTab.tap()
+                    XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: 20))
+                }
+                attachScreenshot(named: "appstore-\(language)-0\(index + 1)-\(suffix)", from: app)
+            }
+            app.terminate()
+        }
     }
 
     private func assertRootScreen(
@@ -1007,15 +1038,22 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testProfileSettingsContainsLegalRows() throws {
-        let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        for kind in ["terms", "privacy"] {
+            let app = launchApp()
+            assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+            let settings = app.buttons["profile.settings.open"].firstMatch
+            scrollToElement(settings, in: app)
+            XCTAssertTrue(settings.isHittable)
+            settings.tap()
 
-        let privacyLink = app.buttons["profile.legal.privacy"].firstMatch
-        let termsLink = app.buttons["profile.legal.terms"].firstMatch
-        scrollToElement(termsLink, in: app)
-        scrollToElement(privacyLink, in: app)
-        XCTAssertTrue(termsLink.exists)
-        XCTAssertTrue(privacyLink.exists)
+            let link = app.buttons["profile.legal.\(kind)"].firstMatch
+            scrollToElement(link, in: app)
+            XCTAssertTrue(link.isHittable)
+            link.tap()
+            XCTAssertTrue(element("legal.\(kind).screen", in: app).waitForExistence(timeout: 10))
+            attachScreenshot(named: "guest-legal-\(kind)-de", from: app)
+            app.terminate()
+        }
     }
 
     @MainActor

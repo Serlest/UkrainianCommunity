@@ -278,7 +278,7 @@ describe("email verification enforcement", () => {
       createdAt: new Date("2026-06-09T11:00:00Z"),
     }));
 
-    await assertSucceeds(setDoc(doc(verifiedDb, "news", "news-1", "comments", "comment-verified"), {
+    await assertFails(setDoc(doc(verifiedDb, "news", "news-1", "comments", "comment-verified"), {
       id: "comment-verified",
       parentType: "news",
       parentId: "news-1",

@@ -504,74 +504,15 @@ struct FirestoreNewsRepository: NewsRepository {
         guard Auth.auth().currentUser?.uid == author.id else {
             throw AppError.permissionDenied
         }
-
-        guard let trimmedText = CommentTextPolicy.validated(text) else {
-            throw AppError.validationFailed
-        }
-
-        let now = Date()
-        let newsReference = collection.document(newsID)
-        let commentReference = newsReference.collection("comments").document()
-        let comment = Comment(
-            id: commentReference.documentID,
+        return try await CloudCommentMutationService.shared.save(
             parentType: .news,
             parentId: newsID,
-            authorId: author.id,
-            authorName: author.commentDisplayName,
-            authorPhotoURL: author.avatarURL?.absoluteString,
-            text: trimmedText,
-            createdAt: now,
-            updatedAt: nil,
-            moderationStatus: .approved,
-            isDeleted: false
+            text: text
         )
-
-        let firestore = Firestore.firestore()
-        let batch = firestore.batch()
-        batch.setData(makeCommentData(from: comment.dto), forDocument: commentReference)
-        try await batch.commit()
-        return comment
     }
 
     func updateNewsComment(newsID: String, commentID: String, text: String) async throws -> Comment {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            throw AppError.permissionDenied
-        }
-
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedText.isEmpty else {
-            throw AppError.validationFailed
-        }
-
-        let commentReference = collection.document(newsID).collection("comments").document(commentID)
-        let snapshot = try await commentReference.getDocument()
-        guard let existing = makeCommentDTO(from: snapshot.data() ?? [:]) else {
-            throw AppError.notFound
-        }
-        guard existing.authorId == uid else {
-            throw AppError.permissionDenied
-        }
-
-        let now = Date()
-        try await commentReference.updateData([
-            "text": String(trimmedText.prefix(1000)),
-            "body": String(trimmedText.prefix(1000)),
-            "updatedAt": Timestamp(date: now)
-        ])
-
-        return Comment(
-            id: commentID,
-            parentType: .news,
-            parentId: newsID,
-            authorId: existing.authorId,
-            authorName: existing.authorName,
-            authorPhotoURL: existing.authorPhotoURL,
-            text: String(trimmedText.prefix(1000)),
-            createdAt: existing.createdAt,
-            updatedAt: now,
-            moderationStatus: existing.moderationStatus.flatMap(ModerationStatus.init(rawValue:)) ?? .approved,
-            isDeleted: existing.isDeleted ?? false
-        )
+        throw AppError.permissionDenied
     }
 
     func deleteNewsComment(newsID: String, commentID: String) async throws {

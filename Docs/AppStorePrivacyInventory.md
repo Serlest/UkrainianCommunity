@@ -16,19 +16,23 @@ This inventory is a release aid, not a substitute for the answers entered in App
 | --- | --- | --- | --- | --- |
 | Contact Info — Name | Full name and display name | Yes | App Functionality | Account profile, authorship and community participation |
 | Contact Info — Email Address | Authentication and profile email | Yes | App Functionality | Firebase Authentication and user profile |
-| Contact Info — Other User Contact Info | Optional Telegram username; organization/event contact email, phone and links | Usually | App Functionality | User-supplied profile or published content |
+| Contact Info — Phone Number | Optional published organization/specialist telephone number | Yes | App Functionality | `ContentModels.Organization.phone`; may be a sole trader's personal contact; not phone authentication |
+| Contact Info — Physical Address | Publisher-supplied organization/specialist or event address | Yes | App Functionality | `ContentModels.address`; may be a home business; do not hide it under Other Contact Info |
+| Contact Info — Other User Contact Info | Optional Telegram username and contact links | Yes | App Functionality | User-supplied profile or published content |
+| Location — Coarse Location | Account's manually selected Austrian federal state | Yes | App Functionality, Analytics | Registration/profile regional selection and aggregate account-region reporting; not GPS or background location |
 | User Content — Photos or Videos | Avatar, news/event/organization images and gallery media | Yes | App Functionality | Uploaded to Firebase Storage; current client selects images |
+| User Content — Customer Support | Support requests, replies, feedback and content reports | Yes | App Functionality | Account-linked conversations and moderation/support handling; no assumption of Apple's optional-disclosure exemption |
 | User Content — Other User Content | Bios, posts, events, organizations, comments, feedback and reports | Yes | App Functionality | Firestore content and moderation flows |
-| Identifiers — User ID | Firebase UID and internal document IDs | Yes | App Functionality | Authentication, authorization and ownership |
+| Identifiers — User ID | Firebase UID and internal document IDs | Yes | App Functionality, Analytics | Authentication, ownership, consent authorization and account-linked analytics deduplication |
 | Identifiers — Device ID | Firebase Installation ID for new builds, legacy FCM registration tokens during migration, and hashed document identifiers | Yes | App Functionality | Push notifications; not used for tracking. The dual-schema migration is documented in `Docs/PushRegistrationMigration.md` |
 | Usage Data — Product Interaction | Operational account-feature records: per-account news/event view deduplication, public view counters, news likes, bookmarks, organization follows and event registrations | Yes for per-account records; public counters are aggregate | App Functionality | Created when a signed-in user uses the relevant feature, independently of optional analytics consent; preserves requested state, prevents duplicate lifetime view counts and maintains feature/public counters |
 | Usage Data — Product Interaction | Optional daily first-party signals for views, likes, bookmarks, follows and registrations | Yes while deduplicating; owner reports are aggregate | Analytics | Sent to the first-party aggregation callable only after explicit opt-in; owner reports do not expose participant lists |
-| Diagnostics — Other Diagnostic Data | Security, moderation, audit and operational logs | Yes when an actor is known | App Functionality | Restricted system logs used for safety and support |
-| Other Data — legal acceptance evidence | Organization-rules version, server time, account ID, app locale/version, intended organization ID/name | Yes | App Functionality | Owner-restricted immutable evidence; short-lived creation proof expires after 30 days |
+| Diagnostics — Other Diagnostic Data | App diagnostic logs; Firebase SDK user-agent and transport diagnostics | Yes for app logs; SDK manifests also contain unlinked records | App Functionality, Analytics | Build 36 archive: Auth, Firestore, Installations and GoogleDataTransport declare diagnostic Analytics; do not confuse this with Firebase Analytics SDK or optional owner analytics |
+| Other Data Types | Versioned legal/age confirmations; SDK messaging metadata | Yes for legal evidence; SDK metadata also declared unlinked | App Functionality, Analytics | Immutable legal evidence and 30-day organization proof; FirebaseMessaging's embedded manifest also declares OtherDataTypes/Analytics |
 
 ## Location distinction
 
-The client does not request Core Location permission or read the device's location. Event and organization editors can supply a place or coordinates for public content. Before submission, verify App Store Connect wording against the shipped build; do not label this as device precise-location collection unless the app begins reading a user's device location.
+The client does not request Core Location permission or read the device's location. The manually selected profile federal state is still account-linked regional information and is conservatively disclosed as Coarse Location. Public event/organization coordinates describe a venue, not the user's live device position. A publisher may nevertheless supply a personal business address, disclosed separately as Physical Address. Do not claim that absence of a location permission means no regional/contact data is collected.
 
 ## Data not observed in the audited client
 
@@ -58,7 +62,17 @@ The client does not request Core Location permission or read the device's locati
 - Privacy policy 2026.11, section 18, describes this separate administrative purpose and its legitimate-interest basis, restricted recipients, approximation, retention and right to object. Existing analytics opt-in is not consent for presence; analytics disclosure and its historical privacy version 2026.10 remain unchanged. Terms and organization rules also remain 2026.10.
 - App Store category remains account-linked Product Interaction, App Functionality, no tracking, already present in the app privacy manifest. Verify the live App Store Connect answers before release; the manifest does not publish those answers. TestFlight notes must call out the new presence processing and link the updated privacy policy.
 
-## Required-reason APIs
+## Local Face ID / Touch ID protection
+
+`AppLockService` uses Apple's `LocalAuthentication` and permits device-passcode fallback. It protects access to an existing password-authenticated session; it is not Sign in with Apple and does not replace Firebase Authentication. The app receives an authentication result, never a face template, fingerprint or device passcode. Only a per-account local preference under a hashed UID is stored. No biometric data is uploaded, so Face ID alone does not add Sensitive Info to the App Store label. Registration choice is optional/off by default and Profile retains enable/disable controls.
+
+## SDK diagnostics and optional analytics are different
+
+The optional switch controls the first-party daily content analytics, not every SDK diagnostic. Build 36 contains 30 privacy manifests, including the app's. The app does not override Firebase's default diagnostic collection setting. SDK declarations must therefore be included in the combined App Store answers; disabling the first-party switch is not a promise to disable all provider telemetry. The policy clarification is prepared separately in `Legal/drafts/privacy-2026.12.*.md` and must be approved and published before public release.
+
+References checked on 2026-08-26: [Apple data definitions](https://developer.apple.com/app-store/app-privacy-details/) and [Firebase SDK disclosures](https://firebase.google.com/docs/ios/app-store-data-collection). The category mapping above is the technical audit's interpretation of those definitions, not a legal opinion.
+
+## Required-reason API declaration
 
 The first-party code uses `UserDefaults` and SwiftUI `@AppStorage` for user preferences and analytics consent. The privacy manifest declares `NSPrivacyAccessedAPICategoryUserDefaults` with reason `CA92.1`, limited to data accessible only by this app. No first-party uses of file timestamp, system boot time, disk-space, or active-keyboard required-reason API categories were found.
 

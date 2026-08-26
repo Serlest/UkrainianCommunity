@@ -200,19 +200,19 @@ describe("strict client content schemas", () => {
     }));
   });
 
-  test("comment limits accept exact Unicode boundaries and reject overflow for every parent", async () => {
+  test("direct client comment creation is rejected for every parent and length", async () => {
     for (const [collection, parentType, parentId] of [["news", "news", "seed-news"], ["events", "event", "seed-event"], ["organizations", "organization", "org-1"]]) {
-      for (const [id, text, allowed] of [["plain", "a".repeat(1000), true], ["emoji", "😀".repeat(500), true], ["long", "a".repeat(1001), false], ["long-emoji", "😀".repeat(501), false], ["combining", "e\u0301".repeat(501), false]]) {
+      for (const [id, text] of [["plain", "a".repeat(1000)], ["emoji", "😀".repeat(500)], ["long", "a".repeat(1001)], ["long-emoji", "😀".repeat(501)], ["combining", "e\u0301".repeat(501)]]) {
         const operation = setDoc(doc(db("regular-user"), collection, parentId, "comments", id), {
           id, parentType, parentId, authorId: "regular-user", authorName: "User", text, body: text,
           createdAt: NOW, isDeleted: false, moderationStatus: "approved",
         });
-        await (allowed ? assertSucceeds(operation) : assertFails(operation));
+        await assertFails(operation);
       }
     }
   });
 
-  test("comments require an exact parent, author, and mirrored body", async () => {
+  test("well-formed comments still require the server callable", async () => {
     const valid = {
       id: "comment-1",
       parentType: "news",
@@ -225,7 +225,7 @@ describe("strict client content schemas", () => {
       isDeleted: false,
       moderationStatus: "approved",
     };
-    await assertSucceeds(setDoc(doc(db("regular-user"), "news", "seed-news", "comments", "comment-1"), valid));
+    await assertFails(setDoc(doc(db("regular-user"), "news", "seed-news", "comments", "comment-1"), valid));
     await assertFails(setDoc(doc(db("regular-user"), "news", "seed-news", "comments", "comment-2"), {
       ...valid,
       id: "comment-2",

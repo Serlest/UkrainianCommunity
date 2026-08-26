@@ -2537,13 +2537,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib einen Kommentar mit höchstens 1000 Zeichen ein. Manche Emojis zählen mehrfach. Der Text wird nicht gekürzt."
+            "value" : "Prüfe den Kommentar: höchstens 1000 Zeichen und keine Drohungen, Beleidigungen, gefährlichen Inhalte oder Spam. Der Text wird nicht gekürzt."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Введіть коментар до 1000 символів. Деякі емодзі займають кілька символів. Текст не буде обрізано."
+            "value" : "Перевірте коментар: до 1000 символів, без погроз, образ, небезпечного або спам-вмісту. Текст не буде обрізано."
           }
         }
       }

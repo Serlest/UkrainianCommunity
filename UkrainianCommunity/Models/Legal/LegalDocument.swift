@@ -58,6 +58,12 @@ struct LegalDocument: Identifiable, Codable, Equatable {
     }
 
     static func hardcodedFallback(type: LegalDocumentType) -> LegalDocument {
+        // Use the complete published text offline, with real translations and
+        // acceptance metadata. The abbreviated copy is an emergency fallback
+        // only; CI and bundle tests prevent shipping a missing resource.
+        if let document = bundledDocuments[type.rawValue] {
+            return document
+        }
         let sections: [(title: String, body: String)]
         let title: String
 
@@ -124,7 +130,7 @@ struct LegalDocument: Identifiable, Codable, Equatable {
             canonicalLocale: AppLanguage.german.rawValue,
             contentHash: nil,
             changeSummary: nil,
-            requiresAcceptance: true,
+            requiresAcceptance: type != .privacy,
             status: .published,
             updatedAt: nil,
             updatedBy: nil,
@@ -132,6 +138,14 @@ struct LegalDocument: Identifiable, Codable, Equatable {
             publishedBy: nil
         )
     }
+
+    private static let bundledDocuments: [String: LegalDocument] = {
+        guard let url = Bundle.main.url(forResource: "LegalDocuments", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let documents = try? JSONDecoder().decode([String: LegalDocument].self, from: data)
+        else { return [:] }
+        return documents
+    }()
 }
 
 struct LegalAcceptanceReceipt: Codable, Equatable {

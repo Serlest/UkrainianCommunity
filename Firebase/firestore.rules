@@ -2345,9 +2345,10 @@ service cloud.firestore {
         allow read: if get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved'
           || canReadModerationQueue('news');
 
-        allow create: if isVerifiedActiveUser()
-          && validCommentCreate('news', newsId, commentId)
-          && approvedNewsTargetExists(newsId);
+        // Comment text is created and edited only by the saveComment callable,
+        // which performs the server-side objectionable-content check. Admin SDK
+        // writes bypass Rules; direct clients cannot bypass that filter.
+        allow create: if false;
 
         allow update: if false;
 
@@ -2379,9 +2380,7 @@ service cloud.firestore {
         allow read: if get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved'
           || canReadModerationQueue('events');
 
-        allow create: if isVerifiedActiveUser()
-          && validCommentCreate('event', eventId, commentId)
-          && approvedEventTargetExists(eventId);
+        allow create: if false;
 
         allow update: if false;
 
@@ -2408,9 +2407,7 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if canReadOrganizationByLookup(organizationId);
 
-        allow create: if isVerifiedActiveUser()
-          && validCommentCreate('organization', organizationId, commentId)
-          && canReadOrganizationByLookup(organizationId);
+        allow create: if false;
 
         allow update: if false;
 

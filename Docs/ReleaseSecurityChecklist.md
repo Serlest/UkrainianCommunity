@@ -2,6 +2,23 @@
 
 Use this checklist for the first release after the security and privacy hardening work. A merged pull request means the repository is prepared; it does not mean Firebase configuration, backend code, rules, indexes, legal documents or App Store metadata have been deployed.
 
+## Current preparation status — 2026-08-26
+
+Preparation only: public App Review submission and release are NOT authorized.
+The live version was switched from automatic to MANUAL release and read back.
+App Privacy was initially empty; the privacy URL and data-category draft are
+being reconciled with code and the build-36 SDK manifests. See
+`Docs/ReleaseReadiness-2026-08-26.md` for the final state of this audit.
+
+The active published legal texts remain Terms/organization rules 2026.10 and
+privacy 2026.11. Draft 2026.12 is not published. The new complete offline bundle
+must match the approved canonical sources; run
+`python3 scripts/generate_bundled_legal.py --check` on every release commit.
+
+A green structure check is not a legal approval. The `--release` legal gate now
+intentionally fails for the confirmed retention failure and unresolved approvals.
+Do not clear these blocks merely to obtain a passing command.
+
 ## Repository gate
 
 Run `python3 scripts/validate_release_configuration.py` and `python3 scripts/validate_legal_documents.py --release` on the exact release commit. The first automated preflight checks build-number consistency, export-compliance metadata, privacy-manifest semantics, absence of the Google/Firebase Analytics product and the App Check client configuration. The second blocks publication while legal identity, bilingual document synchronization, DSA pages or retention decisions remain unresolved. Neither replaces the signed archive or its privacy report.
