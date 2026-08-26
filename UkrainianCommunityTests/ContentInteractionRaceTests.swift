@@ -189,6 +189,69 @@ struct ContentInteractionRaceTests {
         #expect(viewModel.post(for: contentID)?.commentCount == 1)
     }
 
+    @Test(arguments: [false, true], [false, true])
+    func organizationCreationAndEditingPreserveAllFields(isOwner: Bool, withLogo: Bool) async throws {
+        let repository = ControlledOrganizationRepository()
+        let viewModel = OrganizationsViewModel(repository: repository)
+        let user = AppUser(
+            id: "organization-field-audit", fullName: "Test User", displayName: "Tester",
+            city: "Innsbruck", email: "test@example.org", bio: "", role: .user,
+            globalRole: isOwner ? .owner : .user, blockState: .active, createdAt: .now, updatedAt: .now
+        )
+        let profile = OrganizationDirectoryProfile(
+            profileKind: .business, secondaryCategories: ["retail", "culture"],
+            serviceModes: [.online, .inStore], serviceArea: "Tirol",
+            regularHours: ["monday": "09:00-18:00", "sunday": "closed"],
+            specialHoursNote: "By appointment", services: ["Consultation", "Delivery"],
+            orderURL: "https://example.org/order", bookingURL: "https://example.org/book",
+            currentOfferTitle: "Offer", currentOfferDetails: "Details",
+            currentOfferURL: "https://example.org/offer", currentOfferValidUntil: .now
+        )
+        let organization = Organization(
+            id: UUID().uuidString, name: "All fields", description: "Short description",
+            shortDescription: "Short description", fullDescription: "Full description",
+            regionScope: .federalState, federalState: .tirol, city: "Innsbruck",
+            coverURL: "https://example.org/cover.jpg", contactEmail: "contact@example.org",
+            email: "mail@example.org", phone: "+43 123456789", website: "https://example.org",
+            address: "Museumstrasse 1", latitude: 47.269, longitude: 11.404,
+            organizationType: "culture", directoryProfile: profile, foundedYear: 2020, foundedMonth: 5,
+            languages: ["Українська", "Deutsch"], socialLinks: ["other": "https://example.org/social"],
+            telegramURL: "https://t.me/example", donationURL: "https://example.org/support",
+            facebookURL: "https://facebook.com/example", instagramURL: "https://instagram.com/example",
+            whatsappURL: "https://wa.me/43123456789", youtubeURL: "https://youtube.com/@example",
+            linkedinURL: "https://linkedin.com/company/example", missionStatement: "Mission",
+            contactPerson: "Contact", submittedByUserId: isOwner ? nil : user.id,
+            createdAt: .now, updatedAt: .now, moderationStatus: isOwner ? .approved : .pendingReview,
+            likeCount: 0, likeState: .notLiked
+        )
+        let imageData: Data? = withLogo ? Data([1, 2, 3]) : nil
+        try await viewModel.createOrganization(organization, imageData: imageData, user: user)
+        let created = try #require(repository.organizations.first)
+        try expectOrganizationFieldsEqual(created, organization)
+        #expect((created.logoURL != nil) == withLogo)
+        #expect(repository.createRequestCount == 1)
+        #expect(repository.updateRequestCount == (withLogo ? 1 : 0))
+        viewModel.organizations = [created]
+        try await viewModel.updateOrganization(created, imageData: imageData, user: user)
+        let updated = try #require(repository.organizations.first)
+        try expectOrganizationFieldsEqual(updated, organization)
+        #expect(repository.updateRequestCount == (withLogo ? 2 : 1))
+        let decoded = Organization(dto: updated.dto)
+        #expect(decoded.directoryProfile == profile)
+    }
+
+    private func expectOrganizationFieldsEqual(_ actual: Organization, _ expected: Organization) throws {
+        let encoder = JSONEncoder()
+        var actualFields = try JSONSerialization.jsonObject(with: encoder.encode(actual.dto)) as! [String: Any]
+        var expectedFields = try JSONSerialization.jsonObject(with: encoder.encode(expected.dto)) as! [String: Any]
+        // Only these fields intentionally change in the image/save pipeline.
+        for key in ["imageURL", "logoURL", "updatedAt"] {
+            actualFields.removeValue(forKey: key)
+            expectedFields.removeValue(forKey: key)
+        }
+        #expect(NSDictionary(dictionary: actualFields).isEqual(to: expectedFields))
+    }
+
     @Test func organizationLikeRejectsTwoSynchronousInvocations() async {
         let repository = ControlledOrganizationRepository()
         let viewModel = OrganizationsViewModel(repository: repository)
@@ -486,8 +549,17 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
     }
     func fetchPendingOrganizations() async throws -> [Organization] { [] }
     func fetchOrganizationRequests(submittedByUserID: String) async throws -> [Organization] { [] }
-    func createOrganization(_ organization: Organization) async throws {}
-    func updateOrganization(_ organization: Organization) async throws {}
+    private(set) var createRequestCount = 0
+    private(set) var updateRequestCount = 0
+    func createOrganization(_ organization: Organization) async throws {
+        createRequestCount += 1
+        organizations.append(organization)
+    }
+    func updateOrganization(_ organization: Organization) async throws {
+        updateRequestCount += 1
+        organizations.removeAll { $0.id == organization.id }
+        organizations.append(organization)
+    }
     func deleteOrganization(id: String) async throws {}
     func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL {
         URL(string: "https://example.com/\(organizationID).jpg")!

@@ -1,14 +1,58 @@
 import SwiftUI
 
 extension OrganizationDetailView {
-    @ViewBuilder
     func directoryProfileCards(for organization: Organization) -> some View {
-        if let profile = organization.directoryProfile {
-            verifiedSpecialistCard(profile, moderationStatus: organization.moderationStatus)
-            directoryActionCard(profile)
-            directoryOfferCard(profile)
-            directoryHoursCard(profile)
-            directoryServicesCard(profile)
+        OrganizationDirectorySection(profile: organization.directoryProfile, moderationStatus: organization.moderationStatus)
+    }
+}
+
+/// Used by both the public detail page and the moderation preview.
+struct OrganizationDirectorySection: View {
+    let profile: OrganizationDirectoryProfile?
+    let moderationStatus: ModerationStatus
+    var usesPublicDetailStyle = true
+
+    var body: some View {
+        if let profile {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                directoryIdentityCard(profile)
+                verifiedSpecialistCard(profile, moderationStatus: moderationStatus)
+                directoryActionCard(profile)
+                directoryOfferCard(profile)
+                directoryHoursCard(profile)
+                directoryServicesCard(profile)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func directoryCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if usesPublicDetailStyle {
+            DetailCard(content: content)
+        } else {
+            AppEditorSectionCard(content: content)
+        }
+    }
+
+    private func directoryIdentityCard(_ profile: OrganizationDirectoryProfile) -> some View {
+        directoryCard {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                Label(profile.profileKind.title, systemImage: profile.profileKind.systemImage)
+                    .font(AppTheme.cardTitleFont)
+                    .foregroundStyle(AppTheme.textPrimary)
+                if !profile.secondaryCategories.isEmpty {
+                    Text(AppStrings.Organizations.categoriesTitle)
+                        .font(AppTheme.metadataStrongFont)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    ForEach(profile.secondaryCategories, id: \.self) { category in
+                        Text(OrganizationEditorCategory(rawValue: category)?.title ?? category)
+                            .font(AppTheme.secondaryBodyFont)
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -18,7 +62,7 @@ extension OrganizationDetailView {
         moderationStatus: ModerationStatus
     ) -> some View {
         if profile.profileKind == .specialist, moderationStatus == .approved {
-            DetailCard {
+            directoryCard {
                 Label(AppStrings.Organizations.verifiedSpecialist, systemImage: "checkmark.seal.fill")
                     .font(AppTheme.cardTitleFont)
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
@@ -31,20 +75,16 @@ extension OrganizationDetailView {
     private func directoryActionCard(_ profile: OrganizationDirectoryProfile) -> some View {
         let actions = directoryActions(profile)
         if !actions.isEmpty {
-            DetailCard {
+            directoryCard {
                 AppAdaptiveGrid(
                     minimumWidth: 140,
                     maximumWidth: 240,
                     spacing: AppTheme.eventsMetadataSpacing
                 ) {
                     ForEach(actions, id: \.title) { action in
-                        Link(destination: action.url) {
-                            Label(action.title, systemImage: action.systemImage)
-                                .font(AppTheme.buttonLabelFont)
-                                .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
-                                .appGlassActionSurface(.prominent)
-                        }
-                        .buttonStyle(.plain)
+                        OrganizationDirectoryLink(title: action.title, systemImage: action.systemImage, value: action.value)
+                            .frame(maxWidth: .infinity, minHeight: AppTheme.iconButtonSize)
+                            .appGlassActionSurface(.prominent)
                     }
                 }
             }
@@ -53,15 +93,19 @@ extension OrganizationDetailView {
 
     @ViewBuilder
     private func directoryOfferCard(_ profile: OrganizationDirectoryProfile) -> some View {
-        if let title = profile.currentOfferTitle {
-            DetailCard {
+        if profile.currentOfferTitle != nil || profile.currentOfferDetails != nil
+            || profile.currentOfferURL != nil || profile.currentOfferValidUntil != nil {
+            directoryCard {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     Label(AppStrings.Organizations.currentOfferTitle, systemImage: "tag.fill")
                         .font(AppTheme.sectionTitleFont)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    Text(title)
-                        .font(AppTheme.cardTitleFont)
-                        .foregroundStyle(AppTheme.textPrimary)
+                    if let title = profile.currentOfferTitle {
+                        Text(title)
+                            .font(AppTheme.cardTitleFont)
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if let details = profile.currentOfferDetails {
                         Text(details)
                             .font(AppTheme.cardSubtitleFont)
@@ -73,11 +117,8 @@ extension OrganizationDetailView {
                             .font(AppTheme.metadataFont)
                             .foregroundStyle(AppTheme.textSecondary)
                     }
-                    if let url = normalizedURL(profile.currentOfferURL) {
-                        Link(destination: url) {
-                            Label(AppStrings.Organizations.currentOfferTitle, systemImage: "arrow.up.right")
-                                .font(AppTheme.buttonLabelFont)
-                        }
+                    if let value = profile.currentOfferURL {
+                        OrganizationDirectoryLink(title: AppStrings.Organizations.currentOfferTitle, systemImage: "arrow.up.right", value: value)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -88,7 +129,7 @@ extension OrganizationDetailView {
     @ViewBuilder
     private func directoryHoursCard(_ profile: OrganizationDirectoryProfile) -> some View {
         if !profile.regularHours.isEmpty || profile.specialHoursNote != nil {
-            DetailCard {
+            directoryCard {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     HStack {
                         Text(AppStrings.Organizations.openingHoursTitle)
@@ -128,7 +169,7 @@ extension OrganizationDetailView {
     @ViewBuilder
     private func directoryServicesCard(_ profile: OrganizationDirectoryProfile) -> some View {
         if !profile.services.isEmpty || !profile.serviceModes.isEmpty || profile.serviceArea != nil {
-            DetailCard {
+            directoryCard {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     Text(AppStrings.Organizations.servicesTitle)
                         .font(AppTheme.sectionTitleFont)
@@ -164,20 +205,15 @@ extension OrganizationDetailView {
         }
     }
 
-    private func directoryActions(_ profile: OrganizationDirectoryProfile) -> [(title: String, systemImage: String, url: URL)] {
-        var actions: [(String, String, URL)] = []
-        if let url = normalizedURL(profile.orderURL) {
+    private func directoryActions(_ profile: OrganizationDirectoryProfile) -> [(title: String, systemImage: String, value: String)] {
+        var actions: [(String, String, String)] = []
+        if let url = profile.orderURL {
             actions.append((AppStrings.Organizations.orderAction, "bag", url))
         }
-        if let url = normalizedURL(profile.bookingURL) {
+        if let url = profile.bookingURL {
             actions.append((AppStrings.Organizations.bookingAction, "calendar.badge.plus", url))
         }
         return actions
-    }
-
-    private func normalizedURL(_ value: String?) -> URL? {
-        guard let value else { return nil }
-        return URL(string: value)
     }
 
     private func isOpenNow(_ profile: OrganizationDirectoryProfile, now: Date = Date()) -> Bool? {
@@ -214,39 +250,27 @@ extension OrganizationDetailView {
     }
 }
 
-struct OrganizationDirectoryReadOnlySection: View {
-    let profile: OrganizationDirectoryProfile?
+private struct OrganizationDirectoryLink: View {
+    let title: String
+    let systemImage: String
+    let value: String
 
     var body: some View {
-        if let profile,
-           !profile.services.isEmpty || !profile.regularHours.isEmpty || profile.currentOfferTitle != nil {
-            AppEditorSectionCard {
-                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                    if let offer = profile.currentOfferTitle {
-                        Label(offer, systemImage: "tag.fill")
-                            .font(AppTheme.cardTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    }
-                    if !profile.services.isEmpty {
-                        AppEditorSectionTitle(title: AppStrings.Organizations.servicesTitle)
-                        Text(profile.services.joined(separator: " · "))
-                            .font(AppTheme.cardSubtitleFont)
-                            .foregroundStyle(AppTheme.textSecondary)
-                    }
-                    if !profile.regularHours.isEmpty {
-                        AppEditorSectionTitle(title: AppStrings.Organizations.openingHoursTitle)
-                        ForEach(OrganizationWeekday.allCases) { day in
-                            if let hours = profile.regularHours[day.rawValue] {
-                                HStack {
-                                    Text(day.title)
-                                    Spacer()
-                                    Text(hours == "closed" ? AppStrings.Organizations.hoursClosed : hours)
-                                }
-                                .font(AppTheme.secondaryBodyFont)
-                            }
-                        }
-                    }
-                }
+        if let url = OrganizationWebURL.url(from: value) {
+            Link(destination: url) {
+                Label(title, systemImage: systemImage)
+                    .font(AppTheme.buttonLabelFont)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .buttonStyle(.plain)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Label(title, systemImage: systemImage)
+                    .font(AppTheme.buttonLabelFont)
+                Text(value)
+                    .font(AppTheme.secondaryBodyFont)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
             }
         }
     }

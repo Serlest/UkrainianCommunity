@@ -11,11 +11,12 @@ struct OrganizationContactCard: View {
     private var contactItems: [OrganizationContactItem] {
         var items: [OrganizationContactItem] = []
 
-        if let websiteURL = organizationWebsiteURL(for: organization) {
+        if let website = organizationWebsiteText(for: organization) {
+            let websiteURL = organizationWebsiteURL(for: organization)
             items.append(
                 OrganizationContactItem(
                     title: AppStrings.Organizations.fieldWebsite,
-                    value: cleanURLDisplayText(websiteURL),
+                    value: websiteURL.map(cleanURLDisplayText) ?? website,
                     systemImage: "globe",
                     destination: websiteURL
                 )
@@ -299,11 +300,11 @@ private struct OrganizationContactItem: Identifiable {
     let title: String
     let value: String
     let systemImage: String
-    let destination: URL
+    let destination: URL?
     var isAddress = false
 
     var id: String {
-        "\(title)-\(destination.absoluteString)"
+        "\(title)-\(destination?.absoluteString ?? value)"
     }
 }
 
@@ -312,47 +313,58 @@ private struct OrganizationContactRow: View {
     let organization: Organization
 
     var body: some View {
-        Link(destination: item.destination) {
-            VStack(spacing: 0) {
-                HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: item.systemImage)
+        Group {
+            if let destination = item.destination {
+                Link(destination: destination) { rowContent }
+                    .buttonStyle(.plain)
+            } else {
+                rowContent
+                    .textSelection(.enabled)
+            }
+        }
+        .accessibilityLabel("\(item.title): \(item.value)")
+    }
+
+    private var rowContent: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: item.systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    .frame(width: 28, height: 28)
+                    .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+
+                    Text(item.value)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-                        .frame(width: 28, height: 28)
-                        .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(item.isAddress ? 2 : 1)
+                        .truncationMode(item.isAddress ? .tail : .middle)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(item.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.textSecondary)
+                Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-                        Text(item.value)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .lineLimit(item.isAddress ? 2 : 1)
-                            .truncationMode(item.isAddress ? .tail : .middle)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
+                if item.destination != nil {
                     Image(systemName: "arrow.up.right")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(AppTheme.textSecondary)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 11)
-
-                if item.isAddress, organization.latitude != nil, organization.longitude != nil {
-                    OrganizationContactMapPreview(organization: organization)
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 12)
-                }
             }
-            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
+
+            if item.isAddress, organization.latitude != nil, organization.longitude != nil {
+                OrganizationContactMapPreview(organization: organization)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(item.title): \(item.value)")
+        .contentShape(Rectangle())
     }
 }
 

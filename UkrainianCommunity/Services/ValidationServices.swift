@@ -436,7 +436,7 @@ struct OrganizationValidationService {
             errors.append(AppStrings.Validation.organizationEmailInvalid)
         }
         if !trimmedWebsite.isEmpty,
-           URL(string: trimmedWebsite)?.scheme?.isEmpty != false {
+           OrganizationWebURL.url(from: trimmedWebsite) == nil {
             errors.append(AppStrings.Validation.organizationWebsiteInvalid)
         }
         if !trimmedFoundedYear.isEmpty {

@@ -5,11 +5,11 @@ import SwiftUI
 
 enum OrganizationDetailSection: CaseIterable, Identifiable {
     case about
+    case contacts
     case news
     case events
     case photos
     case team
-    case contacts
 
     var id: Self { self }
 

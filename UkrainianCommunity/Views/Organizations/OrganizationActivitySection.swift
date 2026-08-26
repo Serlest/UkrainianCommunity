@@ -17,6 +17,7 @@ extension OrganizationDetailView {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("organization.section.\(section)")
             }
         }
     }

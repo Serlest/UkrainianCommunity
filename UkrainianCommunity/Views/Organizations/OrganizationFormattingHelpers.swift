@@ -32,8 +32,7 @@ func organizationWebsiteText(for organization: Organization) -> String? {
 
 func organizationWebsiteDisplayText(for organization: Organization) -> String? {
     guard let website = organizationWebsiteText(for: organization) else { return nil }
-    let normalized = website.hasPrefix("http://") || website.hasPrefix("https://") ? website : "https://\(website)"
-    guard let url = URL(string: normalized), let host = url.host, !host.isEmpty else {
+    guard let url = OrganizationWebURL.url(from: website), let host = url.host, !host.isEmpty else {
         return website
     }
     return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
@@ -45,10 +44,7 @@ func organizationWebsiteURL(for organization: Organization) -> URL? {
 }
 
 func normalizedOrganizationURL(from value: String?) -> URL? {
-    guard let rawValue = value?.trimmingCharacters(in: .whitespacesAndNewlines), !rawValue.isEmpty else { return nil }
-    let normalized = rawValue.hasPrefix("http://") || rawValue.hasPrefix("https://") ? rawValue : "https://\(rawValue)"
-    guard let url = URL(string: normalized), url.host?.isEmpty == false else { return nil }
-    return url
+    OrganizationWebURL.url(from: value)
 }
 
 func cleanURLDisplayText(_ url: URL) -> String {

@@ -404,11 +404,7 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     func setHours(_ value: String, for weekday: String) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            regularHours.removeValue(forKey: weekday)
-        } else {
-            regularHours[weekday] = trimmed
-        }
+        regularHours[weekday] = trimmed.isEmpty ? "closed" : trimmed
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -867,9 +863,7 @@ final class OrganizationEditorViewModel: ObservableObject {
     }
 
     private var normalizedWebsite: String {
-        guard !trimmedWebsite.isEmpty else { return "" }
-        guard URL(string: trimmedWebsite)?.scheme?.isEmpty != false else { return trimmedWebsite }
-        return "https://\(trimmedWebsite)"
+        OrganizationWebURL.normalizedInput(trimmedWebsite)
     }
 
     private var normalizedTelegramURL: String {
@@ -997,10 +991,7 @@ final class OrganizationEditorViewModel: ObservableObject {
     }
 
     private static func normalizedWebURL(_ rawValue: String) -> String {
-        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
-        guard URL(string: trimmed)?.scheme?.isEmpty != false else { return trimmed }
-        return "https://\(trimmed)"
+        OrganizationWebURL.normalizedInput(rawValue)
     }
 
     private static func normalizedTelegramURL(_ rawValue: String) -> String {
@@ -1063,7 +1054,7 @@ final class OrganizationEditorViewModel: ObservableObject {
             return normalizedWebURL(trimmed)
         }
         let digits = trimmed.filter(\.isNumber)
-        guard !digits.isEmpty else { return "" }
+        guard !digits.isEmpty else { return trimmed }
         return "https://wa.me/\(digits)"
     }
 
@@ -1116,7 +1107,7 @@ final class OrganizationEditorViewModel: ObservableObject {
         ]
             .filter { !$0.isEmpty }
             .compactMap { value in
-                URL(string: value)?.scheme?.isEmpty == false ? nil : AppStrings.Validation.organizationWebsiteInvalid
+                OrganizationWebURL.url(from: value) != nil ? nil : AppStrings.Validation.organizationWebsiteInvalid
             }
     }
 

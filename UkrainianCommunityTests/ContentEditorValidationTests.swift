@@ -114,6 +114,48 @@ struct ContentEditorValidationTests {
         #expect(viewModel.validationMessage == nil)
     }
 
+    @Test(arguments: [
+        "https://example.org/path?q=value#section", "example.org/path",
+        "HTTPS://example.org/path", "Support-URL: https://example.org/support"
+    ])
+    func organizationWebLinksUseTheSameNormalizationForSavingAndDisplay(_ input: String) {
+        let normalized = OrganizationWebURL.normalizedInput(input)
+        let url = OrganizationWebURL.url(from: input)
+        #expect(url != nil)
+        #expect(normalized == url?.absoluteString)
+        #expect(normalizedOrganizationURL(from: input) == url)
+        let errors = OrganizationValidationService().validate(
+            name: "Organization", shortDescription: "A complete organization description",
+            region: .tirol, city: "Innsbruck", email: "", website: normalized, foundedYear: ""
+        )
+        #expect(errors.isEmpty)
+    }
+
+    @Test(arguments: [
+        "javascript:alert(1)", "ftp://example.org", "https://", "https://two words.example",
+        "https://trusted.example@other.example", "Support-URL: javascript:alert(1)",
+        "Some text https://example.org", "Support-URL: https://one.example https://two.example"
+    ])
+    func organizationRejectsUnusableWebLinksWithoutErasingTheInput(_ input: String) {
+        #expect(OrganizationWebURL.url(from: input) == nil)
+        #expect(OrganizationWebURL.normalizedInput(input) == input)
+        let errors = OrganizationValidationService().validate(
+            name: "Organization", shortDescription: "A complete organization description",
+            region: .tirol, city: "Innsbruck", email: "", website: input, foundedYear: ""
+        )
+        #expect(errors == [AppStrings.Validation.organizationWebsiteInvalid])
+    }
+
+    @Test func organizationClosedDaysRemainExplicitAndCanBeReopened() {
+        let editor = OrganizationEditorViewModel(mode: .create)
+        editor.setHours("09:00-18:00", for: "monday")
+        editor.setHours("", for: "monday")
+        #expect(editor.regularHours["monday"] == "closed")
+        #expect(editor.regularHours["tuesday"] == nil)
+        editor.setHours("10:00-16:00", for: "monday")
+        #expect(editor.regularHours["monday"] == "10:00-16:00")
+    }
+
     private func newsInput(
         title: String = "Community update",
         summary: String = "Short summary",

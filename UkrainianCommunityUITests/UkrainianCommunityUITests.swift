@@ -303,6 +303,54 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOrganizationDetailShowsPersistedProfileAndContacts() throws {
+        let app = launchApp()
+        assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
+        let card = app.descendants(matching: .any).matching(identifier: "organization.card.org-1").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+        let contacts = app.buttons["organization.section.contacts"]
+        XCTAssertTrue(contacts.waitForExistence(timeout: 10))
+
+        func reveal(_ text: String) {
+            let element = app.staticTexts[text].firstMatch
+            for _ in 0..<10 {
+                if element.exists && element.isHittable { break }
+                app.swipeUp()
+            }
+            XCTAssertTrue(element.exists && element.isHittable, "Field is not visible: \(text)")
+        }
+        reveal("Kostenlose Erstberatung ohne Angebotstitel")
+        attachScreenshot(named: "organization-offer-without-title", from: app)
+        reveal("09:00-18:00")
+        reveal("Termine nach Vereinbarung")
+        reveal("Sprachberatung")
+        reveal("Kulturveranstaltungen")
+        reveal("Tirol / Österreich")
+        attachScreenshot(named: "organization-hours-and-services", from: app)
+
+        for _ in 0..<12 {
+            if contacts.isHittable { break }
+            app.swipeDown()
+        }
+        XCTAssertTrue(contacts.isHittable)
+        contacts.tap()
+        reveal("Community Team")
+        reveal("example.org/ukrainian-house-tirol")
+        reveal("t.me/ukrainian_house")
+        attachScreenshot(named: "organization-website-and-contacts", from: app)
+        reveal("instagram.com/ukrainian_house")
+        reveal("facebook.com/ukrainian_house")
+        reveal("wa.me/43512123456")
+        reveal("youtube.com/@ukrainian_house")
+        reveal("linkedin.com/company/ukrainian-house")
+        reveal("hello@example.org")
+        reveal("+43 512 123456")
+        reveal("Museumstraße 1, Innsbruck")
+        attachScreenshot(named: "organization-all-contact-fields", from: app)
+    }
+
+    @MainActor
     func testPublicOrganizationsScreenDoesNotExposeManagementControls() throws {
         let app = launchApp()
         assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)

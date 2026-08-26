@@ -676,8 +676,8 @@ enum OrganizationServiceMode: String, Codable, CaseIterable, Identifiable {
 }
 
 struct OrganizationDirectoryProfile: Codable, Equatable {
-    static let maximumSecondaryCategoryCount = 2
-    static let maximumServiceCount = 8
+    nonisolated static let maximumSecondaryCategoryCount = 2
+    nonisolated static let maximumServiceCount = 8
 
     let profileKind: OrganizationProfileKind
     let secondaryCategories: [String]
@@ -694,7 +694,7 @@ struct OrganizationDirectoryProfile: Codable, Equatable {
     let currentOfferURL: String?
     let currentOfferValidUntil: Date?
 
-    init(
+    nonisolated init(
         profileKind: OrganizationProfileKind = .community,
         secondaryCategories: [String] = [],
         serviceModes: [OrganizationServiceMode] = [],

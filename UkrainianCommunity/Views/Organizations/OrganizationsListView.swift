@@ -501,6 +501,7 @@ struct OrganizationsListView: View {
             OrganizationCard(organization: organization)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("organization.card.\(organization.id)")
         .modifier(OrganizationDeleteSwipeActions(
             isEnabled: presentationMode.allowsManagementControls
                 && !organization.isSystemOrganization
