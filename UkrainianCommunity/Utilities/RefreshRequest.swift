@@ -34,6 +34,11 @@ enum RefreshRequest {
         var operation: Task<Void, Never>?
         var deadline: Task<Void, Never>?
 
+        // An explicit deinit avoids Swift 6.3's optimizer crash for a synthesized
+        // isolated generic deinit on iOS 17 (swiftlang/swift#90625).
+        // finish owns cancellation and continuation cleanup; ARC needs no extra work.
+        deinit {}
+
         func finish(_ result: Result<Value, Error>) {
             guard let continuation else { return }
             self.continuation = nil
