@@ -1186,36 +1186,21 @@ struct UserManagementView: View {
 
 }
 
-private struct ManagedUserRow: View {
+struct ManagedUserRow: View {
     let user: AppUser
     let organizationRoles: [UserOrganizationRole]
 
     var body: some View {
         AppEditorSectionCard {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 12) {
                     UserManagementAvatar(user: user, size: 46)
-                    identityContent
-                    Spacer(minLength: 12)
-                    registrationDate
+                    identityText
                 }
-
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top, spacing: 12) {
-                        UserManagementAvatar(user: user, size: 46)
-                        identityText
-                    }
-                    badges
-                    registrationDate
-                }
+                badges
+                registrationDate
             }
-        }
-    }
-
-    private var identityContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            identityText
-            badges
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -1259,8 +1244,9 @@ private struct ManagedUserRow: View {
         )
         .font(.caption2)
         .foregroundStyle(AppTheme.textSecondary)
-        .multilineTextAlignment(.trailing)
-        .fixedSize(horizontal: true, vertical: false)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var secondaryLine: String {

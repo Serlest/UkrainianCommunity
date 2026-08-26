@@ -30,7 +30,8 @@ struct UserManagementStatusBadge: View {
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
             .background(tint.opacity(0.10), in: Capsule())
-            .lineLimit(1)
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
     }
 }
 
@@ -85,12 +86,13 @@ struct UserManagementBadgeFlowLayout: Layout {
         subviews: Subviews,
         cache: inout ()
     ) -> CGSize {
+        guard !subviews.isEmpty else { return .zero }
         let maxWidth = proposal.width ?? .greatestFiniteMagnitude
         var position = CGPoint.zero
         var lineHeight: CGFloat = 0
 
         for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+            let size = subview.sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
             if position.x > 0, position.x + size.width > maxWidth {
                 position.x = 0
                 position.y += lineHeight + spacing
@@ -101,7 +103,9 @@ struct UserManagementBadgeFlowLayout: Layout {
         }
 
         return CGSize(
-            width: min(maxWidth, max(0, position.x - spacing)),
+            // Report the width used for wrapping, not the final row's width.
+            // Otherwise placement can wrap more rows than were measured.
+            width: proposal.width ?? max(0, position.x - spacing),
             height: position.y + lineHeight
         )
     }
@@ -116,7 +120,7 @@ struct UserManagementBadgeFlowLayout: Layout {
         var lineHeight: CGFloat = 0
 
         for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+            let size = subview.sizeThatFits(ProposedViewSize(width: bounds.width, height: nil))
             if position.x > bounds.minX, position.x + size.width > bounds.maxX {
                 position.x = bounds.minX
                 position.y += lineHeight + spacing

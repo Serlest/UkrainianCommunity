@@ -1,4 +1,6 @@
 import Foundation
+import SwiftUI
+import UIKit
 import Testing
 @testable import UkrainianCommunity
 
@@ -89,6 +91,47 @@ struct AuthUIIntegrationTests {
         let metadata = ManagedUserSecurityMetadata(response: response)
         #expect(metadata.creationTime == nil)
         #expect(metadata.lastSignInTime == nil)
+    }
+
+    @Test(arguments: [320.0, 390.0, 768.0], [false, true])
+    func managedUserCardsRenderWithConsistentStructure(width: Double, accessibilityText: Bool) throws {
+        let createdAt = Date(timeIntervalSince1970: 1_787_729_947)
+        let users = [
+            ("Short Name", "short@example.org", "", [CommunityRole]()),
+            ("Organization Admin", "admin@example.org", "", [.communityAdmin]),
+            ("A Long Display Name With Several Organization Roles", "long.address.for.layout@example.org", "Innsbruck", [.communityOwner, .communityAdmin, .communityModerator]),
+            ("Member", "member@example.org", "Wien", [CommunityRole]())
+        ].enumerated().map { index, item in
+            let user = AppUser(
+                id: "layout-user-\(index)", fullName: item.0, displayName: item.0,
+                city: item.2, email: item.1, bio: "", role: .user,
+                globalRole: .user, blockState: .active, createdAt: createdAt, updatedAt: createdAt
+            )
+            let roles = item.3.enumerated().map { roleIndex, role in
+                UserOrganizationRole(
+                    organization: ManagedOrganization(
+                        id: "layout-org-\(roleIndex)", name: "Organization \(roleIndex)",
+                        city: "Innsbruck", logoURL: nil, ownerId: nil, adminIds: [], moderatorIds: []
+                    ), role: role
+                )
+            }
+            return (user: user, roles: roles)
+        }
+        let content = VStack(spacing: 16) {
+            ForEach(users, id: \.user.id) { item in
+                ManagedUserRow(user: item.user, organizationRoles: item.roles)
+            }
+        }
+        .padding(16)
+        .frame(width: width)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .environment(\.colorScheme, .light)
+        .environment(\.dynamicTypeSize, accessibilityText ? .accessibility3 : .large)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 1
+        let image = try #require(renderer.uiImage)
+        #expect(image.cgImage?.width == Int(width))
+        Attachment.record(image, named: "managed-users-\(Int(width))-\(accessibilityText ? "large-text" : "standard").png")
     }
 
     @Test func accountStatusUpdatePreservesAuthoritativeProfileFields() {
