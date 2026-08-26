@@ -2071,6 +2071,23 @@
         }
       }
     },
+    "auth.select_federal_state" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundesland wählen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оберіть федеральну землю"
+          }
+        }
+      }
+    },
     "auth.send_reset_link" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -42290,6 +42307,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Потрібна електронна пошта."
+          }
+        }
+      }
+    },
+    "validation.auth.federal_state_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte wählen Sie ein Bundesland für die Registrierung."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оберіть федеральну землю для реєстрації."
           }
         }
       }

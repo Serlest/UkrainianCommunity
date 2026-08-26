@@ -794,6 +794,7 @@ struct UkrainianCommunityTests {
             password: "short",
             repeatedPassword: "different",
             displayName: " ",
+            selectedFederalState: nil,
             acceptedTerms: false,
             acceptedPrivacy: false,
             confirmedMinimumAge: false
@@ -803,12 +804,31 @@ struct UkrainianCommunityTests {
         #expect(registrationErrors.contains(AppStrings.Validation.authPasswordTooShort))
         #expect(registrationErrors.contains(AppStrings.Validation.authPasswordMismatch))
         #expect(registrationErrors.contains(AppStrings.Validation.authDisplayNameRequired))
+        #expect(registrationErrors.contains(AppStrings.Validation.authFederalStateRequired))
         #expect(registrationErrors.contains(AppStrings.Validation.authTermsRequired))
         #expect(registrationErrors.contains(AppStrings.Validation.authPrivacyRequired))
         #expect(registrationErrors.contains(AppStrings.Validation.authMinimumAgeRequired))
 
         let resetErrors = service.validatePasswordReset(email: "nope")
         #expect(resetErrors == [AppStrings.Validation.authEmailInvalid])
+    }
+
+    @Test func registrationRequiresAnExplicitFederalStateSelection() {
+        let service = AuthValidationService()
+        func errors(for state: AustrianFederalState?) -> [String] {
+            service.validateRegistration(
+                email: "member@example.org", password: "secure-password",
+                repeatedPassword: "secure-password", displayName: "Member",
+                selectedFederalState: state, acceptedTerms: true,
+                acceptedPrivacy: true, confirmedMinimumAge: true
+            )
+        }
+
+        #expect(errors(for: nil) == [AppStrings.Validation.authFederalStateRequired])
+        for state in AustrianFederalState.allCases {
+            #expect(errors(for: state).isEmpty)
+        }
+        #expect(errors(for: nil) == [AppStrings.Validation.authFederalStateRequired])
     }
 
     @Test func authLegalVersionsAreStableAndNonEmpty() {

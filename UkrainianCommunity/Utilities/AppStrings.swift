@@ -2380,6 +2380,7 @@ enum AppStrings {
         static var authPasswordTooShort: String { text("validation.auth.password_too_short", "Password must be at least 8 characters.") }
         static var authPasswordMismatch: String { text("validation.auth.password_mismatch", "Passwords do not match.") }
         static var authDisplayNameRequired: String { text("validation.auth.display_name_required", "Display name is required.") }
+        static var authFederalStateRequired: String { text("validation.auth.federal_state_required", "Оберіть федеральну землю для реєстрації.") }
         static var authTermsRequired: String { text("validation.auth.terms_required", "You need to accept the Terms of Use.") }
         static var authPrivacyRequired: String { text("validation.auth.privacy_required", "You need to confirm that you read the Privacy Policy.") }
         static var authMinimumAgeRequired: String { text("validation.auth.minimum_age_required", "You must confirm that you are at least 14 years old.") }
@@ -2442,6 +2443,7 @@ enum AppStrings {
         static var creatingAccount: String { text("auth.creating_account", "Creating Account...") }
         static var resetPasswordSending: String { text("auth.reset_password.sending", "Sending...") }
         static var federalState: String { text("auth.federal_state", "Federal State") }
+        static var selectFederalState: String { text("auth.select_federal_state", "Оберіть федеральну землю") }
         static var signInInstead: String { text("auth.sign_in_instead", "Already have an account? Sign In") }
         static var createAccountInstead: String { text("auth.create_account_instead", "Need an account? Create one") }
         static var registerSubtitle: String { text("auth.register.subtitle", "Create an account with the essentials. You can complete your profile later.") }

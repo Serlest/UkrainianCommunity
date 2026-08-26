@@ -405,7 +405,21 @@ final class UkrainianCommunityUITests: XCTestCase {
         let createAccountButton = app.buttons["Konto erstellen"].firstMatch
         XCTAssertTrue(createAccountButton.waitForExistence(timeout: 10))
         createAccountButton.tap()
-        XCTAssertTrue(app.buttons["auth.register.submit"].waitForExistence(timeout: 10))
+        let submit = app.buttons["auth.register.submit"]
+        XCTAssertTrue(submit.waitForExistence(timeout: 10))
+        let region = app.buttons["auth.register.federalState"]
+        scrollToElement(region, in: app)
+        XCTAssertTrue(region.exists)
+        XCTAssertTrue(region.label.contains("Bundesland wählen"), region.debugDescription)
+        XCTAssertFalse(submit.isEnabled)
+        attachScreenshot(named: "registration-empty-region", from: app)
+
+        region.tap()
+        app.buttons["Wien"].tap()
+        XCTAssertTrue(region.label.contains("Wien"), region.debugDescription)
+        region.tap()
+        app.buttons["Bundesland wählen"].tap()
+        XCTAssertTrue(region.label.contains("Bundesland wählen"), region.debugDescription)
     }
 
     @MainActor

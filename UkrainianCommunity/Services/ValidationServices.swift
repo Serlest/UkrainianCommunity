@@ -25,6 +25,7 @@ struct AuthValidationService {
         password: String,
         repeatedPassword: String,
         displayName: String,
+        selectedFederalState: AustrianFederalState?,
         acceptedTerms: Bool,
         acceptedPrivacy: Bool,
         confirmedMinimumAge: Bool
@@ -37,6 +38,10 @@ struct AuthValidationService {
 
         if password != repeatedPassword {
             errors.append(AppStrings.Validation.authPasswordMismatch)
+        }
+
+        if selectedFederalState == nil {
+            errors.append(AppStrings.Validation.authFederalStateRequired)
         }
 
         if !acceptedTerms {

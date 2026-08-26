@@ -239,7 +239,7 @@ struct RegisterView: View {
     @State private var repeatedPassword = ""
     @State private var displayName = ""
     @State private var telegramUsername = ""
-    @State private var selectedFederalState: AustrianFederalState = .tirol
+    @State private var selectedFederalState: AustrianFederalState? = nil
     @State private var acceptedTerms = false
     @State private var acceptedPrivacy = false
     @State private var confirmedMinimumAge = false
@@ -272,11 +272,13 @@ struct RegisterView: View {
                     EditorTextField(AppStrings.Auth.telegramUsername, text: $telegramUsername, systemImage: "paperplane", autocapitalization: .never, autocorrectionDisabled: true)
 
                     Picker(AppStrings.Auth.federalState, selection: $selectedFederalState) {
+                        Text(AppStrings.Auth.selectFederalState).tag(Optional<AustrianFederalState>.none)
                         ForEach(AustrianFederalState.allCases) { state in
-                            Text(AppStrings.FederalStates.title(for: state)).tag(state)
+                            Text(AppStrings.FederalStates.title(for: state)).tag(Optional(state))
                         }
                     }
                     .font(.subheadline)
+                    .accessibilityIdentifier("auth.register.federalState")
                 }
             }
 
@@ -323,8 +325,8 @@ struct RegisterView: View {
     private func submit() {
         let errors = validationErrors
 
-        guard errors.isEmpty else {
-            errorMessage = errors.first
+        guard errors.isEmpty, let selectedFederalState else {
+            errorMessage = errors.first ?? AppStrings.Validation.authFederalStateRequired
             return
         }
 
@@ -361,6 +363,7 @@ struct RegisterView: View {
             password: password,
             repeatedPassword: repeatedPassword,
             displayName: displayName,
+            selectedFederalState: selectedFederalState,
             acceptedTerms: acceptedTerms,
             acceptedPrivacy: acceptedPrivacy,
             confirmedMinimumAge: confirmedMinimumAge
@@ -382,6 +385,7 @@ struct RegisterView: View {
             || !repeatedPassword.isEmpty
             || !displayName.isEmpty
             || !telegramUsername.isEmpty
+            || selectedFederalState != nil
             || acceptedTerms
             || acceptedPrivacy
             || confirmedMinimumAge
