@@ -739,8 +739,35 @@ private struct HomeFilterRow: View {
     let onToggleSaved: () -> Void
     let onToggleSubscribed: () -> Void
 
+    private enum Filter: String {
+        case type, region, subscribed, saved
+    }
+
     var body: some View {
-        AppHorizontalFilterRow {
+        AppPrioritizedFilterRow(
+            pinned: [.type, .region],
+            filters: [.subscribed, .saved],
+            isActive: isActive
+        ) { filter in
+            filterControl(filter)
+                .accessibilityIdentifier("home.filter.\(filter.rawValue)")
+        }
+        .accessibilityIdentifier("home.filters")
+    }
+
+    private func isActive(_ filter: Filter) -> Bool {
+        switch filter {
+        case .type: selectedContentType != .all
+        case .region: selectedFederalState != nil
+        case .subscribed: selectedFilter == .subscribed
+        case .saved: selectedFilter == .saved
+        }
+    }
+
+    @ViewBuilder
+    private func filterControl(_ filter: Filter) -> some View {
+        switch filter {
+        case .type:
             Menu {
                 ForEach(HomeContentTypeFilter.allCases, id: \.self) { contentType in
                     Button {
@@ -758,7 +785,7 @@ private struct HomeFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .region:
             Button(action: onSelectRegion) {
                 AppFilterChip(
                     title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
@@ -768,12 +795,12 @@ private struct HomeFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .subscribed:
             Button(action: onToggleSubscribed) {
                 AppFilterChip(title: AppStrings.Home.filterSubscribed, systemImage: "person.2.fill", isSelected: selectedFilter == .subscribed)
             }
             .buttonStyle(.plain)
-
+        case .saved:
             Button(action: onToggleSaved) {
                 AppFilterChip(title: AppStrings.Home.filterSaved, systemImage: "bookmark", isSelected: selectedFilter == .saved)
             }

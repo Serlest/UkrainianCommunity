@@ -786,6 +786,17 @@ struct UkrainianCommunityTests {
         #expect(AnalyticsContentType(rawValue: "guideArticle") == nil)
     }
 
+    @Test func filterOrderPinsLeadingControlsAndStablyPromotesActiveFilters() {
+        let pinned = ["first", "region"]
+        let filters = ["category", "audience", "age", "registered", "saved"]
+        #expect(AppFilterOrder.ordered(pinned: pinned, filters: filters, active: []) == pinned + filters)
+        #expect(AppFilterOrder.ordered(pinned: pinned, filters: filters, active: ["saved"]) ==
+            ["first", "region", "saved", "category", "audience", "age", "registered"])
+        #expect(AppFilterOrder.ordered(pinned: pinned, filters: filters, active: ["saved", "audience", "region"]) ==
+            ["first", "region", "audience", "saved", "category", "age", "registered"])
+        #expect(AppFilterOrder.ordered(pinned: pinned, filters: filters, active: Set(filters)) == pinned + filters)
+    }
+
     @Test func authValidationRejectsInvalidRegistrationAndResetInputs() {
         let service = AuthValidationService()
 

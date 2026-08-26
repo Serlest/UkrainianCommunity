@@ -203,6 +203,71 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testDiscoveryFiltersPinRegionAndPromoteActiveFiltersAcrossTabs() throws {
+        let app = launchAuthenticatedApp()
+        let configurations: [(tab: MainTabSpec, namespace: String, order: [String])] = [
+            (rootTabs[0], "home", ["type", "region", "subscribed", "saved"]),
+            (rootTabs[1], "events", ["period", "region", "category", "audience", "age", "registered", "saved"]),
+            (rootTabs[2], "organizations", ["category", "region", "subscribed", "bookmarked"])
+        ]
+        for configuration in configurations {
+            tapRootTab(configuration.tab, in: app)
+            let namespace = configuration.namespace
+            let row = app.scrollViews["\(namespace).filters"]
+            scrollToElement(row, in: app)
+            XCTAssertTrue(row.exists)
+            func chip(_ name: String) -> XCUIElement { app.buttons["\(namespace).filter.\(name)"] }
+            func expectOrder(_ names: [String]) {
+                let actual = row.buttons.allElementsBoundByIndex.map(\.identifier)
+                    .filter { $0.hasPrefix("\(namespace).filter.") }
+                XCTAssertEqual(actual, names.map { "\(namespace).filter.\($0)" })
+            }
+            func reveal(_ button: XCUIElement) {
+                for _ in 0..<8 {
+                    if button.isHittable { break }
+                    row.swipeLeft()
+                }
+                XCTAssertTrue(button.isHittable)
+            }
+            expectOrder(configuration.order)
+            let first = chip(configuration.order[0])
+            let region = chip("region")
+            XCTAssertTrue(first.isHittable)
+            XCTAssertTrue(region.isHittable)
+            XCTAssertLessThan(first.frame.minX, region.frame.minX)
+
+            let savedName = configuration.order.last!
+            let saved = chip(savedName)
+            reveal(saved)
+            saved.tap()
+            let promoted = Array(configuration.order.prefix(2)) + [savedName] + configuration.order.dropFirst(2).dropLast()
+            expectOrder(promoted)
+            XCTAssertTrue(first.isHittable, "Row should return to its leading controls after reordering")
+            XCTAssertTrue(region.isHittable)
+            attachScreenshot(named: "\(namespace)-active-filter-order", from: app)
+
+            if namespace == "events" {
+                let audience = chip("audience")
+                reveal(audience)
+                audience.tap()
+                app.buttons["Für Familien"].tap()
+                expectOrder(["period", "region", "audience", "saved", "category", "age", "registered"])
+                XCTAssertTrue(first.isHittable)
+                reveal(audience)
+                audience.tap()
+                app.buttons["Für alle"].tap()
+                expectOrder(promoted)
+            }
+
+            reveal(saved)
+            saved.tap()
+            expectOrder(configuration.order)
+            XCTAssertTrue(first.isHittable)
+            XCTAssertTrue(region.isHittable)
+        }
+    }
+
+    @MainActor
     func testStartupSplashTransitionsToMainInterface() throws {
         let app = launchApp()
         let logo = app.images["startup.logo"]

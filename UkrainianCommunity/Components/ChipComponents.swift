@@ -191,6 +191,42 @@ struct AppHorizontalFilterRow<Content: View>: View {
     }
 }
 
+/// Keep the leading controls fixed and partition the rest without changing
+/// their relative order within the active and inactive groups.
+enum AppFilterOrder {
+    nonisolated static func ordered<Item: Hashable>(
+        pinned: [Item], filters: [Item], active: Set<Item>
+    ) -> [Item] {
+        pinned + filters.filter { active.contains($0) } + filters.filter { !active.contains($0) }
+    }
+}
+
+struct AppPrioritizedFilterRow<Item: Hashable, Content: View>: View {
+    let pinned: [Item]
+    let filters: [Item]
+    let isActive: (Item) -> Bool
+    @ViewBuilder let content: (Item) -> Content
+
+    var body: some View {
+        let active = Set(filters.filter(isActive))
+        let ordered = AppFilterOrder.ordered(pinned: pinned, filters: filters, active: active)
+        ScrollViewReader { proxy in
+            AppHorizontalFilterRow {
+                ForEach(ordered, id: \.self) { item in
+                    content(item)
+                        .id(item)
+                }
+            }
+            .onChange(of: ordered) { _, _ in
+                // A newly active chip may have moved out of the current viewport.
+                if let first = pinned.first {
+                    proxy.scrollTo(first, anchor: .leading)
+                }
+            }
+        }
+    }
+}
+
 enum AppListSortOption: String, CaseIterable, Identifiable, Hashable {
     case newest
     case oldest

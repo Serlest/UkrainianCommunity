@@ -666,8 +666,35 @@ private struct OrganizationFiltersSection: View {
     let onToggleSubscribed: () -> Void
     let onToggleBookmarked: () -> Void
 
+    private enum Filter: String {
+        case category, region, subscribed, bookmarked
+    }
+
     var body: some View {
-        AppHorizontalFilterRow {
+        AppPrioritizedFilterRow(
+            pinned: [.category, .region],
+            filters: [.subscribed, .bookmarked],
+            isActive: isActive
+        ) { filter in
+            filterControl(filter)
+                .accessibilityIdentifier("organizations.filter.\(filter.rawValue)")
+        }
+        .accessibilityIdentifier("organizations.filters")
+    }
+
+    private func isActive(_ filter: Filter) -> Bool {
+        switch filter {
+        case .category: selectedCategory != .all
+        case .region: selectedFederalState != nil
+        case .subscribed: savedFilterMode == .subscribed
+        case .bookmarked: savedFilterMode == .bookmarked
+        }
+    }
+
+    @ViewBuilder
+    private func filterControl(_ filter: Filter) -> some View {
+        switch filter {
+        case .category:
             Menu {
                 ForEach(OrganizationCategoryFilter.allCases) { category in
                     Button {
@@ -685,7 +712,7 @@ private struct OrganizationFiltersSection: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .region:
             Button(action: onSelectRegion) {
                 AppFilterChip(
                     title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
@@ -695,7 +722,7 @@ private struct OrganizationFiltersSection: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .subscribed:
             Button(action: onToggleSubscribed) {
                 AppFilterChip(
                     title: AppStrings.Home.filterSubscribed,
@@ -704,7 +731,7 @@ private struct OrganizationFiltersSection: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .bookmarked:
             Button(action: onToggleBookmarked) {
                 AppFilterChip(
                     title: AppStrings.Organizations.filterBookmarks,

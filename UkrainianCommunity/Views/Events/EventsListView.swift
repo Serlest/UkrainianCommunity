@@ -710,8 +710,38 @@ private struct EventFilterRow: View {
     let onSelectSaved: () -> Void
     let onSelectRegistered: () -> Void
 
+    private enum Filter: String {
+        case period, category, audience, age, region, registered, saved
+    }
+
     var body: some View {
-        AppHorizontalFilterRow {
+        AppPrioritizedFilterRow(
+            pinned: [.period, .region],
+            filters: [.category, .audience, .age, .registered, .saved],
+            isActive: isActive
+        ) { filter in
+            filterControl(filter)
+                .accessibilityIdentifier("events.filter.\(filter.rawValue)")
+        }
+        .accessibilityIdentifier("events.filters")
+    }
+
+    private func isActive(_ filter: Filter) -> Bool {
+        switch filter {
+        case .period: selectedPeriod != .all
+        case .category: selectedCategory != .all
+        case .audience: selectedAudience != .all
+        case .age: selectedAge != .any
+        case .region: selectedFederalState != nil
+        case .registered: selectedFeedScope == .registered
+        case .saved: selectedFeedScope == .saved
+        }
+    }
+
+    @ViewBuilder
+    private func filterControl(_ filter: Filter) -> some View {
+        switch filter {
+        case .period:
             Menu {
                 ForEach(EventDiscoveryFilter.allCases) { period in
                     Button {
@@ -729,7 +759,7 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .category:
             Menu {
                 ForEach(EventCategoryFilter.allCases) { category in
                     Button {
@@ -747,7 +777,7 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .audience:
             Menu {
                 ForEach(EventAudienceFilter.allCases) { audience in
                     Button { onSelectAudience(audience) } label: {
@@ -763,7 +793,7 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .age:
             Menu {
                 ForEach(EventAgeFilter.allCases) { age in
                     Button { onSelectAge(age) } label: {
@@ -779,7 +809,7 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .region:
             Button(action: onSelectRegion) {
                 AppFilterChip(
                     title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
@@ -789,7 +819,7 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .registered:
             Button(action: onSelectRegistered) {
                 AppFilterChip(
                     title: AppStrings.Events.filterRegistered,
@@ -798,7 +828,7 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-
+        case .saved:
             Button(action: onSelectSaved) {
                 AppFilterChip(
                     title: AppStrings.Home.filterSaved,
