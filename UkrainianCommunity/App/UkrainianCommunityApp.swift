@@ -146,6 +146,10 @@ struct UkrainianCommunityApp: App {
             AppAppearance.stored = .system
         }
 
+        if isUITesting, environment["UITestResetContentDrafts"] == "1" {
+            try? LocalDraftRecoveryService.shared.resetAllDraftsForUITesting()
+        }
+
         if let languageCode = environment["UITestAppLanguage"],
            let language = AppLanguage(rawValue: languageCode) {
             AppLanguage.stored = language

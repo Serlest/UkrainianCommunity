@@ -21,6 +21,7 @@ struct NewsOrganizerPickerSheet: View {
                         .accessibilityAddTraits(
                             organization.id == selectedOrganizationID ? .isSelected : []
                         )
+                        .accessibilityIdentifier("editor.news.organizer.\(organization.id)")
                     }
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)

@@ -26,9 +26,11 @@ extension EventEditorView {
                     organizerCard
                 }
                 mainCard
+                eventLocalizationCard
                 imageCard
             case .schedule:
                 dateTimeCard
+                occurrencesCard
                 locationCard
             case .audience:
                 categoryCard
@@ -73,6 +75,7 @@ extension EventEditorView {
                     ) {
                         currentStep = currentStep.next
                     }
+                    .accessibilityIdentifier("editor.event.next")
                 }
             }
         }
@@ -94,59 +97,8 @@ extension EventEditorView {
             editorCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     editorSectionTitle(AppStrings.Events.editorPreviewTitle)
-
-                    Text(viewModel.title)
-                        .font(AppTheme.cardTitleFont)
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(viewModel.summary)
-                        .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Label(
-                        LocalizationStore.dateString(
-                            from: viewModel.startDate,
-                            dateStyle: .full,
-                            timeStyle: viewModel.isAllDay ? .none : .short
-                        ),
-                        systemImage: "calendar"
-                    )
-
-                    Label(
-                        [viewModel.venue, viewModel.city]
-                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                            .filter { !$0.isEmpty }
-                            .joined(separator: ", "),
-                        systemImage: "mappin.and.ellipse"
-                    )
-
-                    AppHorizontalChipRow {
-                        AppInfoChip(
-                            title: viewModel.selectedCategory.title,
-                            systemImage: viewModel.selectedCategory.systemImage,
-                            tint: AppTheme.accentPrimaryForeground,
-                            fill: AppTheme.badgeBlueFill
-                        )
-                        AppInfoChip(
-                            title: viewModel.selectedAudience.title,
-                            systemImage: viewModel.selectedAudience.systemImage,
-                            tint: AppTheme.textSecondary,
-                            fill: AppTheme.surfaceControl
-                        )
-                        if viewModel.requiresRegistration {
-                            AppInfoChip(
-                                title: AppStrings.Events.requiresRegistrationToggle,
-                                systemImage: "checklist",
-                                tint: AppTheme.accentSuccessForeground,
-                                fill: AppTheme.badgeGreenFill
-                            )
-                        }
-                    }
+                    EventCard(event: viewModel.previewEvent, previewImage: selectedPreviewImage)
                 }
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
             }
         }
 

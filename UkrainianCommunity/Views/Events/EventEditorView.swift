@@ -21,6 +21,7 @@ struct EventEditorView: View {
     @State var imageProcessingToken = UUID()
     @State var isShowingMapPicker = false
     @State var isShowingOrganizerPicker = false
+    @State var hasPromptedOrganizerSelection = false
     @State var isApplyingLocationSelection = false
     @State var activeDatePicker: EventEditorDatePicker?
     @State var isShowingDraftRecoveryDialog = false
@@ -248,8 +249,12 @@ struct EventEditorView: View {
     func applyDefaultOrganizerIfNeeded() {
         guard !viewModel.isEditing else { return }
         guard viewModel.selectedOrganizationId == nil else { return }
-        guard availableOrganizerOrganizations.count == 1, let organization = availableOrganizerOrganizations.first else { return }
-        viewModel.selectOrganizer(organization)
+        if availableOrganizerOrganizations.count == 1, let organization = availableOrganizerOrganizations.first {
+            viewModel.selectOrganizer(organization)
+        } else if availableOrganizerOrganizations.count > 1, !hasPromptedOrganizerSelection {
+            hasPromptedOrganizerSelection = true
+            isShowingOrganizerPicker = true
+        }
     }
 
     func loadRecoverableDraftIfNeeded() async {
@@ -299,6 +304,9 @@ struct EventEditorView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSelectOrganizer)
+                .frame(minHeight: 52)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("editor.event.organizer")
             }
         }
     }

@@ -54,8 +54,8 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
     init(news: NewsPost) {
         id = news.id
         kind = .news
-        title = news.title
-        subtitle = Self.nonEmpty(news.subtitle)
+        title = news.localizedTitle
+        subtitle = Self.nonEmpty(news.localizedSubtitle)
         metadata = Self.joined([
             news.source.displayOrganizationName ?? news.authorName,
             Self.dateText(news.publishedAt)
@@ -73,8 +73,8 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
     init(event: Event) {
         id = event.id
         kind = .event
-        title = event.title
-        subtitle = Self.nonEmpty(event.summary)
+        title = event.localizedTitle
+        subtitle = Self.nonEmpty(event.localizedSummary)
         metadata = Self.joined([
             Self.nonEmpty(event.organizerName) ?? event.source.displayOrganizationName,
             Self.joined([Self.nonEmpty(event.city), Self.nonEmpty(event.venue)]),

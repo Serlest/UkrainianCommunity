@@ -21,7 +21,7 @@ extension EventDetailView {
                 }
 
                 DetailHeaderShareButton(
-                    title: event.title,
+                    title: event.localizedTitle,
                     message: eventShareMessage(for: event),
                     url: eventShareURL(for: event)
                 )
@@ -58,7 +58,7 @@ extension EventDetailView {
 
         func eventShareMessage(for event: Event) -> String {
             [
-                event.summary,
+                event.localizedSummary,
                 eventScheduleText(for: event),
                 [event.venue, event.city].filter { !$0.isEmpty }.joined(separator: ", ")
             ]
@@ -87,7 +87,7 @@ extension EventDetailView {
         }
 
         func articleHeader(for event: Event) -> some View {
-            DetailHeaderCard(title: event.title, subtitle: nil) {
+            DetailHeaderCard(title: event.localizedTitle, subtitle: nil) {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     eventBadge(for: event)
                     metadataRow(for: event)
@@ -135,8 +135,9 @@ extension EventDetailView {
 
         func metadataItems(for event: Event) -> some View {
             Group {
-                AppMetadataLine(title: LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .none), systemImage: "calendar")
-                AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate), systemImage: "clock")
+                let occurrence = event.nextOccurrence() ?? event.occurrences.first!
+                AppMetadataLine(title: LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .medium, timeStyle: .none), systemImage: "calendar")
+                AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay), systemImage: "clock")
                 AppMetadataLine(title: eventViewCountText(for: event), systemImage: "eye")
             }
         }
@@ -191,7 +192,7 @@ extension EventDetailView {
                             .font(AppTheme.sectionTitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
 
-                        Text(event.summary)
+                        Text(event.localizedSummary)
                             .font(AppTheme.cardSubtitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineSpacing(2)

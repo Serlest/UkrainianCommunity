@@ -1,6 +1,89 @@
 import SwiftUI
 
 extension EventEditorView {
+        var occurrencesCard: some View {
+            editorCard {
+                VStack(alignment: .leading, spacing: editorCardSpacing) {
+                    editorSectionTitle(ContentPublishingStrings.multipleDates)
+
+                    ForEach(Array(viewModel.additionalOccurrences.enumerated()), id: \.element.id) { index, occurrence in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Label("\(ContentPublishingStrings.multipleDates) \(index + 2)", systemImage: "calendar.badge.clock")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                Spacer()
+                                Button(role: .destructive) {
+                                    viewModel.removeOccurrence(id: occurrence.id)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                                }
+                                .accessibilityLabel(ContentPublishingStrings.removeOccurrence)
+                            }
+
+                            DatePicker(
+                                AppStrings.Events.fieldStartDate,
+                                selection: occurrenceStartBinding(occurrence),
+                                displayedComponents: occurrence.isAllDay ? [.date] : [.date, .hourAndMinute]
+                            )
+                            DatePicker(
+                                AppStrings.Events.fieldEndDate,
+                                selection: occurrenceEndBinding(occurrence),
+                                in: occurrence.startDate...,
+                                displayedComponents: occurrence.isAllDay ? [.date] : [.date, .hourAndMinute]
+                            )
+                            Toggle(AppStrings.Events.allDay, isOn: occurrenceAllDayBinding(occurrence))
+                        }
+                        .padding(.vertical, 6)
+
+                        if index < viewModel.additionalOccurrences.count - 1 {
+                            editorDivider
+                        }
+                    }
+
+                    Button {
+                        viewModel.addOccurrence()
+                    } label: {
+                        Label(ContentPublishingStrings.addOccurrence, systemImage: "plus.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.allOccurrences.count >= EventEditorViewModel.maximumOccurrenceCount)
+
+                    Text("\(viewModel.allOccurrences.count)/\(EventEditorViewModel.maximumOccurrenceCount)")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        }
+
+        func occurrenceStartBinding(_ occurrence: EventOccurrence) -> Binding<Date> {
+            Binding(
+                get: { viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id })?.startDate ?? occurrence.startDate },
+                set: { newValue in
+                    let duration = occurrence.endDate.timeIntervalSince(occurrence.startDate)
+                    viewModel.updateOccurrence(id: occurrence.id, startDate: newValue, endDate: newValue.addingTimeInterval(max(60, duration)))
+                }
+            )
+        }
+
+        func occurrenceEndBinding(_ occurrence: EventOccurrence) -> Binding<Date> {
+            Binding(
+                get: { viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id })?.endDate ?? occurrence.endDate },
+                set: { viewModel.updateOccurrence(id: occurrence.id, endDate: $0) }
+            )
+        }
+
+        func occurrenceAllDayBinding(_ occurrence: EventOccurrence) -> Binding<Bool> {
+            Binding(
+                get: { viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id })?.isAllDay ?? occurrence.isAllDay },
+                set: { viewModel.updateOccurrence(id: occurrence.id, isAllDay: $0) }
+            )
+        }
+
         var dateTimeCard: some View {
             editorCard {
                 VStack(alignment: .leading, spacing: editorCardSpacing) {

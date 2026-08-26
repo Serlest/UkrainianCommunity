@@ -25,6 +25,7 @@ extension NewsEditorView {
                                 .frame(minHeight: bodyInputHeight)
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 4)
+                                .accessibilityIdentifier("editor.news.body")
                         }
 
                         HStack {
@@ -92,54 +93,7 @@ extension NewsEditorView {
             editorCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     editorSectionTitle(AppStrings.NewsEditor.previewTitle)
-
-                    coverPickerContent
-                        .allowsHitTesting(false)
-
-                    Text(viewModel.title)
-                        .font(AppTheme.cardTitleFont)
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(viewModel.summary)
-                        .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    AppHorizontalChipRow {
-                        if let organization = viewModel.organizerName {
-                            AppInfoChip(
-                                title: organization,
-                                systemImage: "building.2",
-                                tint: AppTheme.accentPrimaryForeground,
-                                fill: AppTheme.accentPrimarySoft,
-                                size: .small
-                            )
-                        }
-                        if let state = viewModel.previewFederalState {
-                            AppInfoChip(
-                                title: state.displayName,
-                                systemImage: "map",
-                                tint: AppTheme.textSecondary,
-                                fill: AppTheme.surfaceControl,
-                                size: .small
-                            )
-                        }
-                    }
-
-                    if !viewModel.previewTags.isEmpty {
-                        Text(viewModel.previewTags.map { "#\($0)" }.joined(separator: "  "))
-                            .font(.footnote.weight(.medium))
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    if let source = viewModel.previewSource {
-                        Label(source, systemImage: "link")
-                            .font(.footnote)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .lineLimit(2)
-                    }
+                    NewsCard(post: viewModel.previewPost, previewImage: selectedPreviewImage)
                 }
             }
         }

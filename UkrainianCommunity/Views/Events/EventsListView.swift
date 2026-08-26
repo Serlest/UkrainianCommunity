@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import UIKit
 
 struct EventNavigationRoute: Hashable {
     let eventID: String
@@ -88,19 +89,20 @@ private struct EventDiscoveryContent {
 }
 
 func eventScheduleText(for event: Event) -> String {
-    let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .none)
-    let timeRangeText = LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate)
+    let occurrence = event.nextOccurrence() ?? event.occurrences.first!
+    let startDateText = LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .medium, timeStyle: .none)
+    let timeRangeText = LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay)
 
-    guard event.endDate > event.startDate else {
+    guard occurrence.endDate > occurrence.startDate else {
         return "\(startDateText), \(timeRangeText)"
     }
 
-    let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
+    let isSameDay = Calendar.current.isDate(occurrence.startDate, inSameDayAs: occurrence.endDate)
     if isSameDay {
         return "\(startDateText), \(timeRangeText)"
     }
 
-    let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
+    let endDateText = LocalizationStore.dateString(from: occurrence.endDate, dateStyle: .medium, timeStyle: .short)
     return "\(startDateText)–\(endDateText)"
 }
 
@@ -195,9 +197,11 @@ struct EventsListView: View {
         let now = Date()
         let events = filteredEvents
         let upcomingEvents = events
-            .filter { $0.endDate >= now }
+            .filter { $0.nextOccurrence(relativeTo: now) != nil }
             .sorted {
-                $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate < $1.startDate
+                let left = $0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate
+                let right = $1.nextOccurrence(relativeTo: now)?.startDate ?? $1.startDate
+                return left == right ? $0.id < $1.id : left < right
             }
         let filteredUpcomingEvents: [Event]
 
@@ -205,17 +209,17 @@ struct EventsListView: View {
         case .all:
             filteredUpcomingEvents = upcomingEvents
         case .today:
-            filteredUpcomingEvents = upcomingEvents.filter { calendar.isDate($0.startDate, inSameDayAs: now) }
+            filteredUpcomingEvents = upcomingEvents.filter { calendar.isDate($0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate, inSameDayAs: now) }
         case .thisWeek:
             guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
                 filteredUpcomingEvents = upcomingEvents
                 break
             }
-            filteredUpcomingEvents = upcomingEvents.filter { interval.contains($0.startDate) }
+            filteredUpcomingEvents = upcomingEvents.filter { interval.contains($0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate) }
         }
 
         let groupedEvents = Dictionary(grouping: filteredUpcomingEvents) {
-            calendar.startOfDay(for: $0.startDate)
+            calendar.startOfDay(for: $0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate)
         }
 
         let upcomingSections = groupedEvents
@@ -223,14 +227,16 @@ struct EventsListView: View {
                 UpcomingEventDaySection(
                     date: day,
                     events: events.sorted {
-                        $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate < $1.startDate
+                        let left = $0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate
+                        let right = $1.nextOccurrence(relativeTo: now)?.startDate ?? $1.startDate
+                        return left == right ? $0.id < $1.id : left < right
                     }
                 )
             }
             .sorted { $0.date < $1.date }
 
         let pastEvents = events
-            .filter { $0.endDate < now }
+            .filter { $0.nextOccurrence(relativeTo: now) == nil }
             .sorted {
                 $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate > $1.startDate
             }
@@ -588,9 +594,9 @@ struct EventsListView: View {
         LocalSearchMatcher.matches(
             query: searchText,
             values: [
-                event.title,
-                event.summary,
-                event.details,
+                event.localizedTitle,
+                event.localizedSummary,
+                event.localizedDetails,
                 event.city,
                 event.venue,
                 event.address,
@@ -610,7 +616,7 @@ struct EventsListView: View {
         let upcomingEvents = content.upcomingSections.flatMap(\.events)
 
         return VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
-            if let firstDate = upcomingEvents.first?.startDate {
+            if let firstDate = upcomingEvents.first?.nextOccurrence()?.startDate {
                 EventMonthHeader(title: eventMonthTitleText(for: firstDate))
             }
 
@@ -915,8 +921,9 @@ private func looksLikeRawEventAuthorIdentifier(_ value: String) -> Bool {
     return value.rangeOfCharacter(from: allowedCharacters.inverted) == nil
 }
 
-private struct EventCard: View {
+struct EventCard: View {
     let event: Event
+    var previewImage: UIImage? = nil
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -924,7 +931,7 @@ private struct EventCard: View {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                     HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
-                        AppEventDateBlock(date: event.startDate)
+                        AppEventDateBlock(date: displayOccurrence.startDate)
 
                         Spacer(minLength: 0)
 
@@ -935,7 +942,7 @@ private struct EventCard: View {
                 }
             } else {
                 HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
-                    AppEventDateBlock(date: event.startDate)
+                    AppEventDateBlock(date: displayOccurrence.startDate)
                     eventDetails
 
                     Spacer(minLength: 0)
@@ -953,14 +960,14 @@ private struct EventCard: View {
         VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
             typeChip
 
-            Text(event.title)
+            Text(event.localizedTitle)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if !event.summary.isEmpty {
-                Text(event.summary)
+            if !event.localizedSummary.isEmpty {
+                Text(event.localizedSummary)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
@@ -984,15 +991,25 @@ private struct EventCard: View {
     }
 
     private var eventThumbnail: some View {
-        AppFeedThumbnail(
-            imageURL: event.imageURL,
-            fallbackSystemImage: "calendar",
-            tint: AppTheme.accentPrimaryForeground,
-            fill: AppTheme.badgeBlueFill,
-            size: AppTheme.eventsThumbnailSize,
-            cornerRadius: AppTheme.rowCardCornerRadius,
-            source: "EventCard"
-        )
+        Group {
+            if let previewImage {
+                Image(uiImage: previewImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: AppTheme.eventsThumbnailSize, height: AppTheme.eventsThumbnailSize)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.rowCardCornerRadius, style: .continuous))
+            } else {
+                AppFeedThumbnail(
+                    imageURL: event.imageURL,
+                    fallbackSystemImage: "calendar",
+                    tint: AppTheme.accentPrimaryForeground,
+                    fill: AppTheme.badgeBlueFill,
+                    size: AppTheme.eventsThumbnailSize,
+                    cornerRadius: AppTheme.rowCardCornerRadius,
+                    source: "EventCard"
+                )
+            }
+        }
         .frame(maxHeight: AppTheme.eventsThumbnailSize)
     }
 
@@ -1007,7 +1024,19 @@ private struct EventCard: View {
     }
 
     private var timeText: String {
-        LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate)
+        LocalizationStore.timeRangeString(
+            startDate: displayOccurrence.startDate,
+            endDate: displayOccurrence.endDate,
+            isAllDay: displayOccurrence.isAllDay
+        )
+    }
+
+    private var displayOccurrence: EventOccurrence {
+        event.nextOccurrence() ?? event.occurrences.first ?? EventOccurrence(
+            startDate: event.startDate,
+            endDate: event.endDate,
+            isAllDay: event.isAllDay
+        )
     }
 
     private var locationText: String {
@@ -1020,8 +1049,8 @@ private struct EventCard: View {
 
     private var accessibilitySummary: String {
         [
-            event.title,
-            event.summary,
+            event.localizedTitle,
+            event.localizedSummary,
             eventScheduleText(for: event),
             event.city,
             event.registrationState.title,

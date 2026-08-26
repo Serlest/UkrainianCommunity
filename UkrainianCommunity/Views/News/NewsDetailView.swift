@@ -104,7 +104,7 @@ struct NewsDetailView: View {
                     heroImage(for: post)
                         .onTapGesture { isCommentFieldFocused = false }
 
-                    if !post.subtitle.isEmpty {
+                    if !post.localizedSubtitle.isEmpty {
                         leadBlock(for: post)
                             .onTapGesture { isCommentFieldFocused = false }
                     }
@@ -113,6 +113,9 @@ struct NewsDetailView: View {
                         .onTapGesture { isCommentFieldFocused = false }
 
                     articleSourceSection(for: post)
+                        .onTapGesture { isCommentFieldFocused = false }
+
+                    articleExternalActionSection(for: post)
                         .onTapGesture { isCommentFieldFocused = false }
 
                     tagsSection(for: post)

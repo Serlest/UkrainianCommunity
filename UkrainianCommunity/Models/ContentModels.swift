@@ -170,6 +170,8 @@ struct Comment: Identifiable, Codable {
 }
 
 struct NewsPost: Identifiable, Codable {
+    let schemaVersion: Int
+    let localizations: [String: NewsLocalizedContent]
     let id: String
     let title: String
     let subtitle: String
@@ -182,6 +184,8 @@ struct NewsPost: Identifiable, Codable {
     let sourceName: String?
     let sourceURL: String?
     let imageURL: String?
+    let mediaMetadata: NewsMediaMetadata?
+    let externalAction: ExternalContentAction?
     let body: String
     let authorId: String?
     let authorName: String
@@ -198,6 +202,8 @@ struct NewsPost: Identifiable, Codable {
 
     nonisolated init(
         id: String,
+        schemaVersion: Int = 1,
+        localizations: [String: NewsLocalizedContent] = [:],
         title: String,
         subtitle: String,
         regionScope: RegionScope? = .federalState,
@@ -209,6 +215,8 @@ struct NewsPost: Identifiable, Codable {
         sourceName: String? = nil,
         sourceURL: String? = nil,
         imageURL: String? = nil,
+        mediaMetadata: NewsMediaMetadata? = nil,
+        externalAction: ExternalContentAction? = nil,
         body: String,
         authorId: String? = nil,
         authorName: String,
@@ -224,6 +232,8 @@ struct NewsPost: Identifiable, Codable {
         commentCount: Int? = nil
     ) {
         self.id = id
+        self.schemaVersion = max(1, schemaVersion)
+        self.localizations = localizations
         self.title = title
         self.subtitle = subtitle
         self.regionScope = regionScope
@@ -235,6 +245,8 @@ struct NewsPost: Identifiable, Codable {
         self.sourceName = sourceName
         self.sourceURL = sourceURL
         self.imageURL = imageURL
+        self.mediaMetadata = mediaMetadata
+        self.externalAction = externalAction
         self.body = body
         self.authorId = authorId
         self.authorName = authorName
@@ -249,6 +261,15 @@ struct NewsPost: Identifiable, Codable {
         self.isBookmarked = isBookmarked
         self.commentCount = max(0, commentCount ?? comments.filter { !$0.isDeleted }.count)
     }
+
+    nonisolated var localizedContent: NewsLocalizedContent {
+        localizations.resolved(for: LocalizationStore.language)
+            ?? NewsLocalizedContent(title: title, subtitle: subtitle, body: body)
+    }
+
+    nonisolated var localizedTitle: String { localizedContent.title }
+    nonisolated var localizedSubtitle: String { localizedContent.subtitle }
+    nonisolated var localizedBody: String { localizedContent.body }
 }
 
 struct OrganizationPhoto: Identifiable, Codable, Equatable {
@@ -475,6 +496,8 @@ enum EventAudience: String, CaseIterable, Codable, Identifiable {
 }
 
 struct Event: Identifiable, Codable {
+    let schemaVersion: Int
+    let localizations: [String: EventLocalizedContent]
     let id: String
     let title: String
     let summary: String
@@ -498,10 +521,14 @@ struct Event: Identifiable, Codable {
     let imageURL: String?
     let startDate: Date
     let endDate: Date
+    let occurrences: [EventOccurrence]
     let createdAt: Date
     let updatedAt: Date
     let requiresRegistration: Bool
+    let participationMode: EventParticipationMode
+    let externalAction: ExternalContentAction?
     let price: Double
+    let pricing: EventPricing
     let capacity: Int?
     let registeredCount: Int
     var comments: [Comment]
@@ -524,6 +551,8 @@ struct Event: Identifiable, Codable {
 
     nonisolated init(
         id: String,
+        schemaVersion: Int = 1,
+        localizations: [String: EventLocalizedContent] = [:],
         title: String,
         summary: String,
         details: String,
@@ -546,10 +575,14 @@ struct Event: Identifiable, Codable {
         imageURL: String? = nil,
         startDate: Date,
         endDate: Date,
+        occurrences: [EventOccurrence] = [],
         createdAt: Date,
         updatedAt: Date,
         requiresRegistration: Bool = true,
+        participationMode: EventParticipationMode? = nil,
+        externalAction: ExternalContentAction? = nil,
         price: Double = 0,
+        pricing: EventPricing? = nil,
         capacity: Int?,
         registeredCount: Int,
         comments: [Comment],
@@ -571,6 +604,8 @@ struct Event: Identifiable, Codable {
         cancellationReason: String? = nil
     ) {
         self.id = id
+        self.schemaVersion = max(1, schemaVersion)
+        self.localizations = localizations
         self.title = title
         self.summary = summary
         self.details = details
@@ -592,12 +627,22 @@ struct Event: Identifiable, Codable {
         self.contactEmail = Self.trimmedOptional(contactEmail)
         self.contactURL = Self.trimmedOptional(contactURL)
         self.imageURL = imageURL
-        self.startDate = startDate
-        self.endDate = endDate
+        let validOccurrences = occurrences.filter(\.isValid).sorted { $0.startDate < $1.startDate }
+        self.occurrences = validOccurrences.isEmpty
+            ? [EventOccurrence(startDate: startDate, endDate: endDate, isAllDay: isAllDay)]
+            : validOccurrences
+        self.startDate = self.occurrences.first?.startDate ?? startDate
+        self.endDate = self.occurrences.map(\.endDate).max() ?? endDate
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.requiresRegistration = requiresRegistration
+        self.participationMode = participationMode ?? (requiresRegistration ? .inAppRegistration : .none)
+        self.externalAction = externalAction
         self.price = max(0, price)
+        self.pricing = pricing ?? EventPricing(
+            kind: price > 0 ? .exact : .free,
+            amount: price > 0 ? price : nil
+        )
         self.capacity = capacity
         self.registeredCount = registeredCount
         self.comments = comments
@@ -628,6 +673,19 @@ struct Event: Identifiable, Codable {
 
     nonisolated var isCancelled: Bool {
         cancellationState == "cancelled"
+    }
+
+    nonisolated var localizedContent: EventLocalizedContent {
+        localizations.resolved(for: LocalizationStore.language)
+            ?? EventLocalizedContent(title: title, summary: summary, details: details)
+    }
+
+    nonisolated var localizedTitle: String { localizedContent.title }
+    nonisolated var localizedSummary: String { localizedContent.summary }
+    nonisolated var localizedDetails: String { localizedContent.details }
+
+    nonisolated func nextOccurrence(relativeTo date: Date = Date()) -> EventOccurrence? {
+        occurrences.first { $0.status == .scheduled && $0.endDate >= date }
     }
 
     nonisolated func accepts(age: Int) -> Bool {
@@ -1021,8 +1079,8 @@ struct HomeFeedItem: Identifiable, Equatable {
         id = "news-\(post.id)"
         sourceType = post.source.sourceType == .organization ? .organization : .app
         itemType = .news
-        title = post.title
-        summary = post.subtitle
+        title = post.localizedTitle
+        summary = post.localizedSubtitle
         imageURL = post.imageURL
         publishedAt = post.publishedAt
         regionScope = post.regionScope
@@ -1045,15 +1103,16 @@ struct HomeFeedItem: Identifiable, Equatable {
         id = "event-\(event.id)"
         sourceType = event.source.sourceType == .organization ? .organization : .app
         itemType = .event
-        title = event.title
-        summary = event.summary
+        title = event.localizedTitle
+        summary = event.localizedSummary
         imageURL = event.imageURL
         publishedAt = event.createdAt
         regionScope = event.regionScope
         federalState = event.federalState
         city = event.city
-        eventStartDate = event.startDate
-        eventEndDate = event.endDate
+        let occurrence = event.nextOccurrence() ?? event.occurrences.first
+        eventStartDate = occurrence?.startDate ?? event.startDate
+        eventEndDate = occurrence?.endDate ?? event.endDate
         eventVenue = event.venue
         organizationId = event.source.organizationId
         organizationName = event.source.displayOrganizationName

@@ -102,6 +102,103 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testContentEditorV2ReachesRealNewsPreview() throws {
+        let app = launchOwnerApp(language: "uk", resetContentDrafts: true)
+
+        tapRootTab(rootTabs[0], in: app, timeout: 20)
+        app.buttons["quickCreate.news"].tap()
+        let newNewsDraft = app.buttons["Створити нову"]
+        if newNewsDraft.waitForExistence(timeout: 2) { newNewsDraft.tap() }
+        let organizer = element("editor.news.organizer", in: app)
+        XCTAssertTrue(organizer.waitForExistence(timeout: 10))
+        organizer.tap()
+        let organizationOption = element("editor.news.organizer.org-1", in: app)
+        XCTAssertTrue(organizationOption.waitForExistence(timeout: 10))
+        organizationOption.tap()
+
+        let newsTitle = element("editor.news.title", in: app)
+        newsTitle.tap()
+        newsTitle.typeText("Тестова новина")
+        let newsSummary = element("editor.news.summary", in: app)
+        newsSummary.tap()
+        newsSummary.typeText("Короткий опис для перевірки картки")
+        let newsNext = element("editor.news.next", in: app)
+        scrollToElement(newsNext, in: app, maxSwipes: 10)
+        newsNext.tap()
+
+        let newsBody = element("editor.news.body", in: app)
+        scrollToElement(newsBody, in: app, maxSwipes: 12)
+        newsBody.tap()
+        newsBody.typeText("Повний текст тестової новини для попереднього перегляду.")
+        scrollToElement(newsNext, in: app, maxSwipes: 12)
+        newsNext.tap()
+        XCTAssertTrue(app.staticTexts["Як виглядатиме новина"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Тестова новина"].waitForExistence(timeout: 10))
+        attachScreenshot(named: "content-v2-news-real-preview", from: app)
+    }
+
+    @MainActor
+    func testContentEditorV2ReachesRealEventPreview() throws {
+        let app = launchOwnerApp(language: "uk", resetContentDrafts: true)
+
+        tapRootTab(rootTabs[1], in: app, timeout: 20)
+        app.buttons["quickCreate.event"].tap()
+        let newEventDraft = app.buttons["Створити нову"]
+        if newEventDraft.waitForExistence(timeout: 2) { newEventDraft.tap() }
+        let eventOrganizerPicker = element("editor.event.organizerPicker", in: app)
+        if !eventOrganizerPicker.waitForExistence(timeout: 5) {
+            let eventOrganizer = element("editor.event.organizer", in: app)
+            XCTAssertTrue(eventOrganizer.waitForExistence(timeout: 10))
+            eventOrganizer.tap()
+        }
+        XCTAssertTrue(eventOrganizerPicker.waitForExistence(timeout: 10))
+        let eventOrganizationOption = element("editor.event.organizer.org-1", in: app)
+        if eventOrganizationOption.waitForExistence(timeout: 3) {
+            eventOrganizationOption.tap()
+        } else {
+            let organizationNames = app.staticTexts.matching(
+                NSPredicate(format: "label == %@", "Ukrainian Community")
+            )
+            let organizationName = organizationNames.element(boundBy: max(0, organizationNames.count - 1))
+            XCTAssertTrue(organizationName.waitForExistence(timeout: 10))
+            organizationName.tap()
+        }
+        let eventTitle = app.textFields["editor.event.title"].firstMatch
+        XCTAssertTrue(eventTitle.waitForExistence(timeout: 10))
+        eventTitle.tap()
+        eventTitle.typeText("Тестова подія")
+        XCTAssertEqual(eventTitle.value as? String, "Тестова подія")
+        let eventSummary = app.textViews["editor.event.summary"].firstMatch
+        eventSummary.tap()
+        eventSummary.typeText("Короткий опис події")
+        XCTAssertEqual(eventSummary.value as? String, "Короткий опис події")
+        let eventDetails = app.textViews["editor.event.details"].firstMatch
+        eventDetails.tap()
+        eventDetails.typeText("Повний опис події для попереднього перегляду.")
+        XCTAssertEqual(eventDetails.value as? String, "Повний опис події для попереднього перегляду.")
+        XCTAssertEqual(eventTitle.value as? String, "Тестова подія")
+        let eventNext = element("editor.event.next", in: app)
+        scrollToElement(eventNext, in: app, maxSwipes: 12)
+        XCTAssertTrue(eventNext.isEnabled)
+        eventNext.tap()
+
+        let eventAddress = element("editor.event.address", in: app)
+        scrollToElement(eventAddress, in: app, maxSwipes: 12)
+        eventAddress.tap()
+        eventAddress.typeText("Museumstrasse 1")
+        let eventCity = element("editor.event.city", in: app)
+        eventCity.tap()
+        eventCity.typeText("Innsbruck")
+        scrollToElement(eventNext, in: app, maxSwipes: 12)
+        eventNext.tap()
+        scrollToElement(eventNext, in: app, maxSwipes: 12)
+        eventNext.tap()
+        XCTAssertTrue(app.staticTexts["Так виглядатиме подія"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Тестова подія"].waitForExistence(timeout: 10))
+        attachScreenshot(named: "content-v2-event-real-preview", from: app)
+    }
+
+    @MainActor
     private func launchAppLockTestApp(scenario: String = "success", language: String = "de", largeText: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
@@ -367,13 +464,17 @@ final class UkrainianCommunityUITests: XCTestCase {
     private func launchOwnerApp(
         language: String = "de",
         appearance: String? = nil,
-        contentSizeCategory: String? = nil
+        contentSizeCategory: String? = nil,
+        resetContentDrafts: Bool = false
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = language
         app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        if resetContentDrafts {
+            app.launchEnvironment["UITestResetContentDrafts"] = "1"
+        }
         if let appearance {
             app.launchEnvironment["UITestAppAppearance"] = appearance
         }

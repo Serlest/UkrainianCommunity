@@ -64,8 +64,8 @@ private enum SavedContentItem: Identifiable {
 
     var title: String {
         switch self {
-        case let .news(post): post.title
-        case let .event(event): event.title
+        case let .news(post): post.localizedTitle
+        case let .event(event): event.localizedTitle
         case let .organization(organization): organization.name
         }
     }
@@ -563,12 +563,12 @@ private struct SavedNewsCard: View {
                     .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(post.title)
+                    Text(post.localizedTitle)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
 
-                    Text(post.subtitle)
+                    Text(post.localizedSubtitle)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)
@@ -602,12 +602,12 @@ private struct SavedEventCard: View {
                     .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(event.title)
+                    Text(event.localizedTitle)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
 
-                    Text(event.summary)
+                    Text(event.localizedSummary)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)

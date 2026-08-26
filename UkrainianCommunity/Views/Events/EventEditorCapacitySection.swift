@@ -10,9 +10,15 @@ extension EventEditorView {
                         editorDivider
                     }
                     registrationRequirementRow
-                    if viewModel.requiresRegistration {
+                    if viewModel.participationMode.requiresExternalURL {
+                        editorDivider
+                        externalParticipationRows
+                    }
+                    if viewModel.participationMode != .none {
                         editorDivider
                         priceRow
+                    }
+                    if viewModel.requiresRegistration {
                         editorDivider
                         capacityRow
                     }
@@ -39,29 +45,69 @@ extension EventEditorView {
         }
 
         var registrationRequirementRow: some View {
-            Toggle(isOn: $viewModel.requiresRegistration) {
-                HStack(spacing: AppTheme.dashboardSpacing) {
-                    Image(systemName: "checklist")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(AppStrings.Events.requiresRegistrationToggle)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(AppTheme.textPrimary)
-
-                        Text(AppStrings.Events.requiresRegistrationHelper)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary)
+            Menu {
+                ForEach(EventParticipationMode.allCases) { mode in
+                    Button {
+                        viewModel.participationMode = mode
+                    } label: {
+                        if viewModel.participationMode == mode {
+                            Label(mode.localizedTitle, systemImage: "checkmark")
+                        } else {
+                            Text(mode.localizedTitle)
+                        }
                     }
                 }
+            } label: {
+                settingsRow(
+                    systemImage: "checklist",
+                    title: ContentPublishingStrings.participation,
+                    value: viewModel.participationMode.localizedTitle,
+                    showsChevron: true
+                )
             }
-            .toggleStyle(.switch)
+            .buttonStyle(.plain)
+        }
+
+        var externalParticipationRows: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                editorField(title: ContentPublishingStrings.linkButtonTitle, counterText: "\(viewModel.externalActionTitle.count)/\(EventEditorViewModel.externalActionTitleLimit)") {
+                    TextField(ContentPublishingStrings.linkButtonTitle, text: $viewModel.externalActionTitle)
+                        .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                }
+                editorField(title: "URL", counterText: "\(viewModel.externalActionURL.count)/\(EventEditorViewModel.externalActionURLLimit)") {
+                    TextField("https://", text: $viewModel.externalActionURL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                }
+                if !viewModel.isValidExternalParticipation {
+                    Text(ContentPublishingStrings.secureWebLinkRequired)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
+                }
+            }
         }
 
         var priceRow: some View {
             VStack(alignment: .leading, spacing: 4) {
+                Menu {
+                    ForEach(EventPriceKind.allCases) { kind in
+                        Button(kind.localizedTitle) {
+                            viewModel.priceKind = kind
+                        }
+                    }
+                } label: {
+                    settingsRow(
+                        systemImage: "eurosign.circle",
+                        title: ContentPublishingStrings.priceType,
+                        value: viewModel.priceKind.localizedTitle,
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if [.exact, .startingFrom, .range].contains(viewModel.priceKind) {
                 HStack(spacing: AppTheme.dashboardSpacing) {
                     Image(systemName: "eurosign.circle")
                         .font(.subheadline.weight(.semibold))
@@ -82,8 +128,20 @@ extension EventEditorView {
                         .frame(maxWidth: 112)
                 }
                 .frame(minHeight: 44)
+                }
 
-                Text(AppStrings.Events.priceHelper)
+                if viewModel.priceKind == .range {
+                    TextField(ContentPublishingStrings.maximumPrice, text: $viewModel.maximumPriceText)
+                        .keyboardType(.decimalPad)
+                        .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                }
+
+                editorField(title: ContentPublishingStrings.priceNote, counterText: "\(viewModel.priceNote.count)/\(EventEditorViewModel.priceNoteLimit)") {
+                    TextField(ContentPublishingStrings.priceNote, text: $viewModel.priceNote)
+                        .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                }
+
+                Text(ContentPublishingStrings.informationOnly)
                     .font(.caption.weight(.medium))
                     .foregroundStyle(AppTheme.textSecondary)
                     .padding(.leading, AppTheme.metadataIconSize + AppTheme.dashboardSpacing)

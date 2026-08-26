@@ -15,6 +15,7 @@ extension NewsEditorView {
                             .focused($focusedField, equals: .title)
                             .onSubmit { focusedField = .summary }
                             .newsEditorCompactInputStyle(minHeight: compactInputHeight)
+                            .accessibilityIdentifier("editor.news.title")
                     }
 
                     editorField(
@@ -39,6 +40,7 @@ extension NewsEditorView {
                                 .frame(minHeight: summaryTextHeight)
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
+                                .accessibilityIdentifier("editor.news.summary")
                         }
                         .newsEditorCompactInputStyle(minHeight: summaryInputHeight)
                     }
@@ -99,6 +101,7 @@ extension NewsEditorView {
                     .frame(minHeight: 52)
                     .contentShape(Rectangle())
                     .accessibilityHint(canSelectOrganizer ? AppStrings.NewsEditor.organizerPickerHint : "")
+                    .accessibilityIdentifier("editor.news.organizer")
                 }
             }
         }

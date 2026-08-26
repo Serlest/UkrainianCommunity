@@ -286,6 +286,8 @@ struct FirestoreEventRepository: EventRepository {
         let resolvedAuthorName = try await resolvedCurrentUserAuthorName()
         let normalizedEvent = Event(
             id: event.id,
+            schemaVersion: event.schemaVersion,
+            localizations: event.localizations,
             title: event.title,
             summary: event.summary,
             details: event.details,
@@ -308,10 +310,14 @@ struct FirestoreEventRepository: EventRepository {
             imageURL: event.imageURL,
             startDate: event.startDate,
             endDate: event.endDate,
+            occurrences: event.occurrences,
             createdAt: now,
             updatedAt: now,
             requiresRegistration: event.requiresRegistration,
+            participationMode: event.participationMode,
+            externalAction: event.externalAction,
             price: event.price,
+            pricing: event.pricing,
             capacity: event.capacity,
             registeredCount: event.registeredCount,
             comments: event.comments,
@@ -330,6 +336,8 @@ struct FirestoreEventRepository: EventRepository {
         let dto = normalizedEvent.dto
         var data: [String: Any] = [
             "id": dto.id,
+            "schemaVersion": dto.schemaVersion ?? 1,
+            "localizations": FirestoreContentPublishingCoding.eventLocalizationsData(dto.localizations ?? [:]),
             "title": dto.title,
             "summary": dto.summary,
             "details": dto.details,
@@ -344,10 +352,13 @@ struct FirestoreEventRepository: EventRepository {
             "imageURL": dto.imageURL as Any,
             "startDate": dto.startDate,
             "endDate": dto.endDate,
+            "occurrences": FirestoreContentPublishingCoding.occurrencesData(dto.occurrences ?? []),
             "createdAt": dto.createdAt,
             "updatedAt": dto.updatedAt,
             "requiresRegistration": dto.requiresRegistration ?? true,
+            "participationMode": dto.participationMode ?? EventParticipationMode.inAppRegistration.rawValue,
             "price": dto.price,
+            "pricing": FirestoreContentPublishingCoding.pricingData(dto.pricing ?? EventPricing()),
             "registeredCount": dto.registeredCount,
             "moderationStatus": dto.moderationStatus,
             "registrationState": dto.registrationState,
@@ -404,6 +415,9 @@ struct FirestoreEventRepository: EventRepository {
         if let contactURL = dto.contactURL {
             data["contactURL"] = contactURL
         }
+        if let externalAction = FirestoreContentPublishingCoding.externalActionData(dto.externalAction) {
+            data["externalAction"] = externalAction
+        }
 
         do {
             try await collection.document(dto.id).setData(data)
@@ -444,6 +458,8 @@ struct FirestoreEventRepository: EventRepository {
         }
 
         var data: [String: Any] = [
+            "schemaVersion": event.schemaVersion,
+            "localizations": FirestoreContentPublishingCoding.eventLocalizationsData(event.localizations),
             "title": event.title,
             "summary": event.summary,
             "details": event.details,
@@ -458,9 +474,12 @@ struct FirestoreEventRepository: EventRepository {
             "imageURL": event.imageURL as Any,
             "startDate": Timestamp(date: event.startDate),
             "endDate": Timestamp(date: event.endDate),
+            "occurrences": FirestoreContentPublishingCoding.occurrencesData(event.occurrences),
             "updatedAt": Timestamp(date: event.updatedAt),
             "requiresRegistration": event.requiresRegistration,
+            "participationMode": event.participationMode.rawValue,
             "price": event.price,
+            "pricing": FirestoreContentPublishingCoding.pricingData(event.pricing),
             "category": event.category.rawValue,
             "audience": event.audience.rawValue,
             "tags": event.tags,
@@ -525,6 +544,7 @@ struct FirestoreEventRepository: EventRepository {
         data["contactPhone"] = event.contactPhone ?? FieldValue.delete()
         data["contactEmail"] = event.contactEmail ?? FieldValue.delete()
         data["contactURL"] = event.contactURL ?? FieldValue.delete()
+        data["externalAction"] = FirestoreContentPublishingCoding.externalActionData(event.externalAction) ?? FieldValue.delete()
 
         do {
             try await collection.document(event.id).updateData(data)
@@ -949,6 +969,8 @@ struct FirestoreEventRepository: EventRepository {
 
         return EventDTO(
             id: data["id"] as? String ?? document.documentID,
+            schemaVersion: (data["schemaVersion"] as? NSNumber)?.intValue,
+            localizations: FirestoreContentPublishingCoding.eventLocalizations(from: data["localizations"]),
             title: title,
             summary: summary,
             details: details,
@@ -974,10 +996,14 @@ struct FirestoreEventRepository: EventRepository {
             imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
             startDate: startDate,
             endDate: endDate,
+            occurrences: FirestoreContentPublishingCoding.occurrences(from: data["occurrences"]),
             createdAt: createdAt,
             updatedAt: updatedAt,
             requiresRegistration: data["requiresRegistration"] as? Bool,
+            participationMode: data["participationMode"] as? String,
+            externalAction: FirestoreContentPublishingCoding.externalAction(from: data["externalAction"]),
             price: (data["price"] as? NSNumber)?.doubleValue ?? 0,
+            pricing: FirestoreContentPublishingCoding.pricing(from: data["pricing"]),
             capacity: data["capacity"] as? Int,
             registeredCount: data["registeredCount"] as? Int ?? 0,
             comments: comments,

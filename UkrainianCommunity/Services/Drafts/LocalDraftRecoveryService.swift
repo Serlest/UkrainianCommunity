@@ -1,7 +1,7 @@
 import Foundation
 
 struct NewsCreateDraft: Codable, Equatable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     let version: Int
     let updatedAt: Date
@@ -15,15 +15,23 @@ struct NewsCreateDraft: Codable, Equatable {
     let sourceInput: String
     let tagsInput: String
     let selectedFederalState: AustrianFederalState?
+    let germanTitle: String?
+    let germanSummary: String?
+    let germanBody: String?
+    let imageCaption: String?
+    let imageAlternativeText: String?
+    let imageCredit: String?
+    let externalActionTitle: String?
+    let externalActionURL: String?
 
     var hasMeaningfulContent: Bool {
-        [title, summary, body, sourceInput, tagsInput]
+        [title, summary, body, sourceInput, tagsInput, germanTitle ?? "", germanSummary ?? "", germanBody ?? "", imageCaption ?? "", imageAlternativeText ?? "", imageCredit ?? "", externalActionTitle ?? "", externalActionURL ?? ""]
             .contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 }
 
 struct EventCreateDraft: Codable, Equatable {
-    static let currentVersion = 2
+    static let currentVersion = 3
 
     let version: Int
     let hasMeaningfulMetadata: Bool?
@@ -59,6 +67,16 @@ struct EventCreateDraft: Codable, Equatable {
     let requiresRegistration: Bool
     let priceText: String
     let capacityText: String
+    let germanTitle: String?
+    let germanSummary: String?
+    let germanDetails: String?
+    let additionalOccurrences: [EventOccurrence]?
+    let participationMode: EventParticipationMode?
+    let externalActionTitle: String?
+    let externalActionURL: String?
+    let priceKind: EventPriceKind?
+    let maximumPriceText: String?
+    let priceNote: String?
 
     var hasMeaningfulContent: Bool {
         [
@@ -76,12 +94,20 @@ struct EventCreateDraft: Codable, Equatable {
             contactURL,
             tagInput,
             priceText,
-            capacityText
+            capacityText,
+            germanTitle ?? "",
+            germanSummary ?? "",
+            germanDetails ?? "",
+            externalActionTitle ?? "",
+            externalActionURL ?? "",
+            maximumPriceText ?? "",
+            priceNote ?? ""
         ]
         .contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         || !tags.isEmpty
         || latitude != nil
         || longitude != nil
+        || !(additionalOccurrences ?? []).isEmpty
         || hasMeaningfulMetadata == true
     }
 }
@@ -238,6 +264,20 @@ final class LocalDraftRecoveryService {
         let url = try draftURL(for: key)
         guard fileManager.fileExists(atPath: url.path) else { return }
         try fileManager.removeItem(at: url)
+    }
+
+    /// Keeps editor UI tests independent from drafts left by earlier test runs.
+    /// Production code never calls this reset path.
+    func resetAllDraftsForUITesting() throws {
+        let directoryURL = try draftsDirectoryURL()
+        let draftURLs = try fileManager.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+        for url in draftURLs {
+            try fileManager.removeItem(at: url)
+        }
     }
 
     private func draftURL(for key: String) throws -> URL {

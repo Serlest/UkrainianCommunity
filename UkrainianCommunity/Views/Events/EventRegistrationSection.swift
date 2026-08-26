@@ -32,11 +32,18 @@ extension EventDetailView {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                    EventDetailRow(systemImage: "calendar", title: AppStrings.Events.fieldStartDate, value: LocalizationStore.dateString(from: event.startDate, dateStyle: .full, timeStyle: .none))
-                    EventDetailRow(systemImage: "clock", title: AppStrings.Events.startTime, value: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate))
-
-                    if Calendar.current.startOfDay(for: event.endDate) != Calendar.current.startOfDay(for: event.startDate) {
-                        EventDetailRow(systemImage: "calendar.badge.clock", title: AppStrings.Events.fieldEndDate, value: LocalizationStore.dateString(from: event.endDate, dateStyle: .full, timeStyle: .short))
+                    ForEach(Array(event.occurrences.enumerated()), id: \.element.id) { index, occurrence in
+                        if index > 0 { Divider().overlay(AppTheme.borderSubtle) }
+                        EventDetailRow(
+                            systemImage: index == 0 ? "calendar" : "calendar.badge.plus",
+                            title: event.occurrences.count == 1 ? AppStrings.Events.fieldStartDate : "\(ContentPublishingStrings.multipleDates) \(index + 1)",
+                            value: LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .full, timeStyle: .none)
+                        )
+                        EventDetailRow(
+                            systemImage: "clock",
+                            title: AppStrings.Events.startTime,
+                            value: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay)
+                        )
                     }
                 }
             }
@@ -45,14 +52,23 @@ extension EventDetailView {
         func primaryActionsCard(for event: Event) -> some View {
             detailGlassCard(padding: 9) {
                 VStack(spacing: 8) {
-                    if !event.requiresRegistration {
+                    if event.participationMode == .none {
                         registrationNotRequiredLine
                     }
 
                     HStack(spacing: 12) {
-                        if event.requiresRegistration {
+                        if event.participationMode == .inAppRegistration {
                             registrationButton(for: event)
                                 .frame(maxWidth: .infinity)
+                        } else if event.participationMode.requiresExternalURL,
+                                  let action = event.externalAction,
+                                  let url = action.webURL {
+                            Link(destination: url) {
+                                Label(action.title ?? event.participationMode.localizedTitle, systemImage: "arrow.up.right.square")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                            }
+                            .buttonStyle(.borderedProminent)
                         }
 
                         eventActionButton(
@@ -400,7 +416,7 @@ struct EventRegistrationManagementView: View {
         NavigationStack {
             EditorScreenShell(
                 title: AppStrings.Events.registrationManagementTitle,
-                subtitle: event.title,
+                subtitle: event.localizedTitle,
                 closeStyle: .cancel,
                 closeAction: { dismiss() }
             ) {

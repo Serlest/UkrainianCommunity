@@ -106,6 +106,8 @@ struct CommentDTO: Codable, Identifiable {
 
 struct NewsPostDTO: Codable, Identifiable {
     let id: String
+    let schemaVersion: Int?
+    let localizations: [String: NewsLocalizedContent]?
     let title: String
     let subtitle: String
     let regionScope: String?
@@ -120,6 +122,8 @@ struct NewsPostDTO: Codable, Identifiable {
     let sourceName: String?
     let sourceURL: String?
     let imageURL: String?
+    let mediaMetadata: NewsMediaMetadata?
+    let externalAction: ExternalContentAction?
     let body: String
     let authorId: String?
     let authorName: String
@@ -137,6 +141,8 @@ struct NewsPostDTO: Codable, Identifiable {
 
 struct EventDTO: Codable, Identifiable {
     let id: String
+    let schemaVersion: Int?
+    let localizations: [String: EventLocalizedContent]?
     let title: String
     let summary: String
     let details: String
@@ -162,10 +168,14 @@ struct EventDTO: Codable, Identifiable {
     let imageURL: String?
     let startDate: Date
     let endDate: Date
+    let occurrences: [EventOccurrence]?
     let createdAt: Date
     let updatedAt: Date
     let requiresRegistration: Bool?
+    let participationMode: String?
+    let externalAction: ExternalContentAction?
     let price: Double
+    let pricing: EventPricing?
     let capacity: Int?
     let registeredCount: Int
     let comments: [CommentDTO]
@@ -424,6 +434,8 @@ extension NewsPost {
     init(dto: NewsPostDTO) {
         self.init(
             id: dto.id,
+            schemaVersion: dto.schemaVersion ?? 1,
+            localizations: dto.localizations ?? [:],
             title: dto.title,
             subtitle: dto.subtitle,
             regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .federalState,
@@ -440,6 +452,8 @@ extension NewsPost {
             sourceName: dto.sourceName,
             sourceURL: dto.sourceURL,
             imageURL: dto.imageURL,
+            mediaMetadata: dto.mediaMetadata,
+            externalAction: dto.externalAction,
             body: dto.body,
             authorId: dto.authorId,
             authorName: dto.authorName,
@@ -459,6 +473,8 @@ extension NewsPost {
     var dto: NewsPostDTO {
         NewsPostDTO(
             id: id,
+            schemaVersion: schemaVersion,
+            localizations: localizations,
             title: title,
             subtitle: subtitle,
             regionScope: regionScope?.rawValue,
@@ -473,6 +489,8 @@ extension NewsPost {
             sourceName: sourceName,
             sourceURL: sourceURL,
             imageURL: imageURL,
+            mediaMetadata: mediaMetadata,
+            externalAction: externalAction,
             body: body,
             authorId: authorId,
             authorName: authorName,
@@ -494,6 +512,8 @@ extension Event {
     init(dto: EventDTO) {
         self.init(
             id: dto.id,
+            schemaVersion: dto.schemaVersion ?? 1,
+            localizations: dto.localizations ?? [:],
             title: dto.title,
             summary: dto.summary,
             details: dto.details,
@@ -521,10 +541,14 @@ extension Event {
             imageURL: dto.imageURL,
             startDate: dto.startDate,
             endDate: dto.endDate,
+            occurrences: dto.occurrences ?? [],
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
             requiresRegistration: dto.requiresRegistration ?? true,
+            participationMode: dto.participationMode.flatMap(EventParticipationMode.init(rawValue:)),
+            externalAction: dto.externalAction,
             price: dto.price,
+            pricing: dto.pricing,
             capacity: dto.capacity,
             registeredCount: dto.registeredCount,
             comments: dto.comments.map(Comment.init(dto:)),
@@ -550,6 +574,8 @@ extension Event {
     var dto: EventDTO {
         EventDTO(
             id: id,
+            schemaVersion: schemaVersion,
+            localizations: localizations,
             title: title,
             summary: summary,
             details: details,
@@ -575,10 +601,14 @@ extension Event {
             imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
+            occurrences: occurrences,
             createdAt: createdAt,
             updatedAt: updatedAt,
             requiresRegistration: requiresRegistration,
+            participationMode: participationMode.rawValue,
+            externalAction: externalAction,
             price: price,
+            pricing: pricing,
             capacity: capacity,
             registeredCount: registeredCount,
             comments: comments.map(\.dto),

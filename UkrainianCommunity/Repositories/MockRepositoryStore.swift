@@ -887,6 +887,8 @@ private extension NewsPost {
     nonisolated func settingImageURL(_ imageURL: String?) -> NewsPost {
         NewsPost(
             id: id,
+            schemaVersion: schemaVersion,
+            localizations: localizations,
             title: title,
             subtitle: subtitle,
             regionScope: regionScope,
@@ -898,6 +900,8 @@ private extension NewsPost {
             sourceName: sourceName,
             sourceURL: sourceURL,
             imageURL: imageURL,
+            mediaMetadata: mediaMetadata,
+            externalAction: externalAction,
             body: body,
             authorId: authorId,
             authorName: authorName,
@@ -989,6 +993,8 @@ private extension Event {
     nonisolated func settingImageURL(_ imageURL: String?) -> Event {
         Event(
             id: id,
+            schemaVersion: schemaVersion,
+            localizations: localizations,
             title: title,
             summary: summary,
             details: details,
@@ -1011,10 +1017,14 @@ private extension Event {
             imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
+            occurrences: occurrences,
             createdAt: createdAt,
             updatedAt: Date(),
             requiresRegistration: requiresRegistration,
+            participationMode: participationMode,
+            externalAction: externalAction,
             price: price,
+            pricing: pricing,
             capacity: capacity,
             registeredCount: registeredCount,
             comments: comments,

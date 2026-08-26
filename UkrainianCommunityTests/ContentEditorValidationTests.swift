@@ -156,6 +156,150 @@ struct ContentEditorValidationTests {
         #expect(editor.regularHours["monday"] == "10:00-16:00")
     }
 
+    @Test func localizedContentUsesTheSelectedLanguageAndFallsBackToUkrainian() {
+        let values = [
+            "uk": NewsLocalizedContent(title: "Українська", subtitle: "Опис", body: "Текст"),
+            "de": NewsLocalizedContent(title: "Deutsch", subtitle: "Beschreibung", body: "Text")
+        ]
+        #expect(values.resolved(for: .german)?.title == "Deutsch")
+        #expect(values.resolved(for: .ukrainian)?.title == "Українська")
+        #expect(["uk": values["uk"]!].resolved(for: .german)?.title == "Українська")
+    }
+
+    @Test func legacyNewsDraftDecodesWithoutVersionTwoOptionalFields() throws {
+        let draft = NewsCreateDraft(
+            version: 1,
+            updatedAt: referenceDate,
+            organizationId: "organization-1",
+            organizationName: "Community",
+            organizationImageURL: nil,
+            organizationFederalState: .tirol,
+            title: "Стара чернетка",
+            summary: "Короткий опис",
+            body: "Повний текст",
+            sourceInput: "",
+            tagsInput: "",
+            selectedFederalState: .tirol,
+            germanTitle: nil,
+            germanSummary: nil,
+            germanBody: nil,
+            imageCaption: nil,
+            imageAlternativeText: nil,
+            imageCredit: nil,
+            externalActionTitle: nil,
+            externalActionURL: nil
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        var legacyObject = try #require(JSONSerialization.jsonObject(with: encoder.encode(draft)) as? [String: Any])
+        [
+            "germanTitle", "germanSummary", "germanBody", "imageCaption",
+            "imageAlternativeText", "imageCredit", "externalActionTitle", "externalActionURL"
+        ].forEach { legacyObject.removeValue(forKey: $0) }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(
+            NewsCreateDraft.self,
+            from: JSONSerialization.data(withJSONObject: legacyObject)
+        )
+
+        #expect(decoded.title == draft.title)
+        #expect(decoded.germanTitle == nil)
+        #expect(decoded.externalActionURL == nil)
+    }
+
+    @Test func eventOccurrencesAreSortedAndResolveTheNextActiveSession() {
+        let first = EventOccurrence(
+            id: "first",
+            startDate: referenceDate.addingTimeInterval(3_600),
+            endDate: referenceDate.addingTimeInterval(7_200)
+        )
+        let second = EventOccurrence(
+            id: "second",
+            startDate: referenceDate.addingTimeInterval(86_400),
+            endDate: referenceDate.addingTimeInterval(90_000)
+        )
+        let event = testEvent(occurrences: [second, first])
+        #expect(event.occurrences.map(\.id) == ["first", "second"])
+        #expect(event.startDate == first.startDate)
+        #expect(event.endDate == second.endDate)
+        #expect(event.nextOccurrence(relativeTo: referenceDate)?.id == "first")
+        #expect(event.nextOccurrence(relativeTo: first.endDate.addingTimeInterval(1))?.id == "second")
+    }
+
+    @Test func eventEditorCapsOccurrencesAndNormalizesAllDaySessions() {
+        let viewModel = EventEditorViewModel(repository: MockEventRepository(), mode: .create())
+        for _ in 1..<EventEditorViewModel.maximumOccurrenceCount {
+            viewModel.addOccurrence()
+        }
+        #expect(viewModel.allOccurrences.count == EventEditorViewModel.maximumOccurrenceCount)
+        viewModel.addOccurrence()
+        #expect(viewModel.allOccurrences.count == EventEditorViewModel.maximumOccurrenceCount)
+
+        let occurrence = viewModel.additionalOccurrences[0]
+        viewModel.updateOccurrence(id: occurrence.id, isAllDay: true)
+        let normalized = viewModel.additionalOccurrences[0]
+        #expect(normalized.isAllDay)
+        #expect(Calendar.current.component(.hour, from: normalized.startDate) == 0)
+        #expect(normalized.endDate > normalized.startDate)
+    }
+
+    @Test func editorsRejectOversizedOptionalPublishingFields() {
+        let news = NewsEditorViewModel(
+            repository: MockNewsRepository(),
+            mode: .create(context: .init(
+                organizationId: "organization-1",
+                organizationName: "Community",
+                organizationImageURL: nil,
+                organizationFederalState: .tirol
+            ))
+        )
+        news.title = "Новина"
+        news.summary = "Короткий опис"
+        news.body = "Повний текст"
+        news.germanTitle = String(repeating: "a", count: NewsEditorViewModel.titleLimit + 1)
+        #expect(news.validationMessage == ContentPublishingStrings.publishingFieldsTooLong)
+        news.germanTitle = ""
+        news.externalActionTitle = String(repeating: "a", count: NewsEditorViewModel.externalActionTitleLimit + 1)
+        #expect(!news.canPublish)
+        news.externalActionTitle = "Детальніше"
+        #expect(!news.isValidExternalAction)
+        news.externalActionURL = "https://example.org/details"
+        #expect(news.isValidExternalAction)
+
+        let event = EventEditorViewModel(
+            repository: MockEventRepository(),
+            mode: .create(context: .init(
+                organizationId: "organization-1",
+                organizationName: "Community",
+                organizationImageURL: nil,
+                organizationFederalState: .tirol
+            ))
+        )
+        event.title = "Подія"
+        event.summary = "Короткий опис"
+        event.details = "Повний опис"
+        event.city = "Innsbruck"
+        event.venue = "Community Center"
+        event.startDate = Date().addingTimeInterval(86_400)
+        event.endDate = Date().addingTimeInterval(90_000)
+        event.priceNote = String(repeating: "a", count: EventEditorViewModel.priceNoteLimit + 1)
+        #expect(event.validationMessage == ContentPublishingStrings.publishingFieldsTooLong)
+        #expect(!event.canPublish)
+    }
+
+    @Test func legacyEventDerivesCompatibleParticipationAndPricing() {
+        let registered = testEvent(requiresRegistration: true, price: 15)
+        #expect(registered.participationMode == .inAppRegistration)
+        #expect(registered.pricing.kind == .exact)
+        #expect(registered.pricing.amount == 15)
+
+        let informational = testEvent(requiresRegistration: false, price: 0)
+        #expect(informational.participationMode == .none)
+        #expect(informational.pricing.kind == .free)
+    }
+
     private func newsInput(
         title: String = "Community update",
         summary: String = "Short summary",
@@ -214,6 +358,35 @@ struct ContentEditorValidationTests {
             maximumAgeText: maximumAgeText,
             federalState: federalState,
             now: referenceDate
+        )
+    }
+
+    private func testEvent(
+        occurrences: [EventOccurrence] = [],
+        requiresRegistration: Bool = false,
+        price: Double = 0
+    ) -> Event {
+        Event(
+            id: "event",
+            title: "Подія",
+            summary: "Опис",
+            details: "Деталі",
+            city: "Innsbruck",
+            venue: "Community Center",
+            startDate: referenceDate.addingTimeInterval(3_600),
+            endDate: referenceDate.addingTimeInterval(7_200),
+            occurrences: occurrences,
+            createdAt: referenceDate,
+            updatedAt: referenceDate,
+            requiresRegistration: requiresRegistration,
+            price: price,
+            capacity: nil,
+            registeredCount: 0,
+            comments: [],
+            moderationStatus: .approved,
+            registrationState: .notRegistered,
+            likeCount: 0,
+            likeState: .notLiked
         )
     }
 }

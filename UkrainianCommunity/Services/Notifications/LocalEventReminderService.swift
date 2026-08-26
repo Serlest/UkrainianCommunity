@@ -10,11 +10,12 @@ protocol LocalEventReminderServiceProtocol {
 
 struct LocalEventReminderService: LocalEventReminderServiceProtocol {
     func scheduleEventReminder(event: Event, userID: String, leadMinutes: Int) async throws {
-        let reminderDate = event.startDate.addingTimeInterval(TimeInterval(-max(0, leadMinutes) * 60))
+        guard let occurrence = event.nextOccurrence() else { return }
+        let reminderDate = occurrence.startDate.addingTimeInterval(TimeInterval(-max(0, leadMinutes) * 60))
         guard reminderDate > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = event.title
+        content.title = event.localizedTitle
         content.body = reminderBody(for: event)
         content.sound = .default
 
@@ -83,7 +84,7 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
         )
 
         guard preferences.notificationsEnabled, preferences.eventRemindersEnabled else { return }
-        for event in events where event.startDate > Date() {
+        for event in events where event.nextOccurrence() != nil {
             try await scheduleEventReminder(
                 event: event,
                 userID: userID,

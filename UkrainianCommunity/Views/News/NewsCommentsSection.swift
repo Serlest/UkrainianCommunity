@@ -7,7 +7,7 @@ extension NewsDetailView {
                 loadState: viewModel.commentLoadStates[post.id] ?? .loading,
                 retry: { await viewModel.loadComments(for: post.id, forceRefresh: true) },
                 composer: { commentComposer(parentID: post.id) },
-                row: { comment in commentRow(comment, parentTitle: post.title) }
+                row: { comment in commentRow(comment, parentTitle: post.localizedTitle) }
             )
         }
 

@@ -9,6 +9,7 @@ extension EventEditorView {
                             .font(.subheadline)
                             .textInputAutocapitalization(.sentences)
                             .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                            .accessibilityIdentifier("editor.event.title")
                     }
 
                     editorField(title: AppStrings.Events.fieldSummary) {
@@ -18,6 +19,7 @@ extension EventEditorView {
                             minHeight: summaryInputHeight,
                             counterText: "\(viewModel.summary.count)/200"
                         )
+                        .accessibilityIdentifier("editor.event.summary")
                     }
 
                     editorField(title: AppStrings.Events.fieldDetails) {
@@ -27,6 +29,7 @@ extension EventEditorView {
                             minHeight: detailsInputHeight,
                             counterText: "\(viewModel.details.count)/2000"
                         )
+                        .accessibilityIdentifier("editor.event.details")
                     }
                 }
             }

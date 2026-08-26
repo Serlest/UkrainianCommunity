@@ -26,11 +26,14 @@ extension NewsEditorView {
                     organizerCard
                 }
                 mainInformationCard
+                newsLocalizationCard
             case .content:
                 coverImageCard
+                newsMediaMetadataCard
                 bodyContentCard
             case .preview:
                 additionalDetailsCard
+                newsExternalActionCard
                 if let validationMessage = viewModel.validationMessage {
                     editorCard {
                         Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
@@ -68,6 +71,7 @@ extension NewsEditorView {
                         focusedField = nil
                         currentStep = currentStep.next
                     }
+                    .accessibilityIdentifier("editor.news.next")
                 }
             }
         }

@@ -187,7 +187,7 @@ struct MyRegistrationsView: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(event.title), \(registrationEventScheduleText(for: event))")
+        .accessibilityLabel("\(event.localizedTitle), \(registrationEventScheduleText(for: event))")
     }
 
     private func readableRegistrationsErrorText(_ error: AppError) -> String {
@@ -245,9 +245,14 @@ private struct RegistrationEventRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
+        let occurrence = event.nextOccurrence() ?? event.occurrences.first ?? EventOccurrence(
+            startDate: event.startDate,
+            endDate: event.endDate,
+            isAllDay: event.isAllDay
+        )
         SoftContentCard(padding: AppTheme.eventsCardPadding) {
             HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
-                AppEventDateBlock(date: event.startDate)
+                AppEventDateBlock(date: occurrence.startDate)
 
                 VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
                     AppInfoChip(
@@ -258,20 +263,20 @@ private struct RegistrationEventRow: View {
                         size: .small
                     )
 
-                    Text(event.title)
+                    Text(event.localizedTitle)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
-                    if !event.summary.isEmpty {
-                        Text(event.summary)
+                    if !event.localizedSummary.isEmpty {
+                        Text(event.localizedSummary)
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     }
 
                     VStack(alignment: .leading, spacing: 3) {
-                        AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate), systemImage: "clock")
+                        AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate), systemImage: "clock")
                         AppMetadataLine(title: event.city.isEmpty ? event.venue : event.city, systemImage: event.city.isEmpty ? "building.2" : "mappin.and.ellipse")
                     }
                     .lineLimit(1)
@@ -307,19 +312,24 @@ private struct RegistrationEventRow: View {
     }
 }
 func registrationEventScheduleText(for event: Event) -> String {
-    let startDateText = LocalizationStore.dateString(from: event.startDate, dateStyle: .medium, timeStyle: .short)
+    let occurrence = event.nextOccurrence() ?? event.occurrences.first ?? EventOccurrence(
+        startDate: event.startDate,
+        endDate: event.endDate,
+        isAllDay: event.isAllDay
+    )
+    let startDateText = LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .medium, timeStyle: .short)
 
-    guard event.endDate > event.startDate else {
+    guard occurrence.endDate > occurrence.startDate else {
         return startDateText
     }
 
-    let isSameDay = Calendar.current.isDate(event.startDate, inSameDayAs: event.endDate)
+    let isSameDay = Calendar.current.isDate(occurrence.startDate, inSameDayAs: occurrence.endDate)
     if isSameDay {
-        let endTimeText = LocalizationStore.dateString(from: event.endDate, dateStyle: .none, timeStyle: .short)
+        let endTimeText = LocalizationStore.dateString(from: occurrence.endDate, dateStyle: .none, timeStyle: .short)
         return "\(startDateText) - \(endTimeText)"
     }
 
-    let endDateText = LocalizationStore.dateString(from: event.endDate, dateStyle: .medium, timeStyle: .short)
+    let endDateText = LocalizationStore.dateString(from: occurrence.endDate, dateStyle: .medium, timeStyle: .short)
     return "\(startDateText) - \(endDateText)"
 }
 extension MyRegistrationsViewModel {

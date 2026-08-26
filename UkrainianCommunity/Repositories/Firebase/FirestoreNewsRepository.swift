@@ -158,6 +158,8 @@ struct FirestoreNewsRepository: NewsRepository {
 
         var data: [String: Any] = [
             "id": dto.id,
+            "schemaVersion": dto.schemaVersion ?? 1,
+            "localizations": FirestoreContentPublishingCoding.newsLocalizationsData(dto.localizations ?? [:]),
             "title": dto.title,
             "subtitle": dto.subtitle,
             "summary": dto.subtitle,
@@ -188,6 +190,12 @@ struct FirestoreNewsRepository: NewsRepository {
         }
         if let sourceURL = dto.sourceURL {
             data["sourceURL"] = sourceURL
+        }
+        if let mediaMetadata = FirestoreContentPublishingCoding.newsMediaData(dto.mediaMetadata) {
+            data["mediaMetadata"] = mediaMetadata
+        }
+        if let externalAction = FirestoreContentPublishingCoding.externalActionData(dto.externalAction) {
+            data["externalAction"] = externalAction
         }
         do {
             try await collection.document(news.id).setData(data)
@@ -228,6 +236,8 @@ struct FirestoreNewsRepository: NewsRepository {
         }
 
         var data: [String: Any] = [
+            "schemaVersion": news.schemaVersion,
+            "localizations": FirestoreContentPublishingCoding.newsLocalizationsData(news.localizations),
             "title": news.title,
             "subtitle": news.subtitle,
             "summary": news.subtitle,
@@ -251,6 +261,8 @@ struct FirestoreNewsRepository: NewsRepository {
         }
         data["sourceName"] = news.sourceName ?? FieldValue.delete()
         data["sourceURL"] = news.sourceURL ?? FieldValue.delete()
+        data["mediaMetadata"] = FirestoreContentPublishingCoding.newsMediaData(news.mediaMetadata) ?? FieldValue.delete()
+        data["externalAction"] = FirestoreContentPublishingCoding.externalActionData(news.externalAction) ?? FieldValue.delete()
         do {
             try await collection.document(news.id).updateData(data)
         } catch {
@@ -633,6 +645,8 @@ struct FirestoreNewsRepository: NewsRepository {
 
         return NewsPostDTO(
             id: data["id"] as? String ?? document.documentID,
+            schemaVersion: (data["schemaVersion"] as? NSNumber)?.intValue,
+            localizations: FirestoreContentPublishingCoding.newsLocalizations(from: data["localizations"]),
             title: title,
             subtitle: subtitle,
             regionScope: data["regionScope"] as? String,
@@ -647,6 +661,8 @@ struct FirestoreNewsRepository: NewsRepository {
             sourceName: (data["sourceName"] as? String)?.nilIfEmpty,
             sourceURL: (data["sourceURL"] as? String)?.nilIfEmpty,
             imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
+            mediaMetadata: FirestoreContentPublishingCoding.newsMedia(from: data["mediaMetadata"]),
+            externalAction: FirestoreContentPublishingCoding.externalAction(from: data["externalAction"]),
             body: body,
             authorId: (data["authorId"] as? String)?.nilIfEmpty,
             authorName: authorName,

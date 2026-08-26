@@ -141,7 +141,7 @@ struct EventDetailView: View {
                     heroImageSection(for: event)
                         .onTapGesture { isCommentFieldFocused = false }
 
-                    if !event.summary.isEmpty {
+                    if !event.localizedSummary.isEmpty {
                         leadBlock(for: event)
                             .onTapGesture { isCommentFieldFocused = false }
                     }
@@ -382,8 +382,8 @@ struct EventDetailView: View {
             return ""
         }
         return pendingRegistrationConfirmation.isCancellation
-        ? AppStrings.Events.confirmCancelRegistrationMessage(event.title)
-        : AppStrings.Events.confirmRegisterMessage(event.title)
+        ? AppStrings.Events.confirmCancelRegistrationMessage(event.localizedTitle)
+        : AppStrings.Events.confirmRegisterMessage(event.localizedTitle)
     }
 
     func confirmPendingRegistrationChange() {
@@ -507,15 +507,18 @@ struct EventDetailView: View {
     }
 
     func eventPriceText(for event: Event) -> String {
-        guard event.price > 0 else {
-            return AppStrings.Events.freePrice
+        let amount: (Double) -> String = { value in
+            value.rounded(.down) == value ? "€\(Int(value))" : "€\(String(format: "%.2f", value))"
         }
-
-        if event.price.rounded(.down) == event.price {
-            return "€\(Int(event.price))"
+        switch event.pricing.kind {
+        case .unspecified: return ContentPublishingStrings.priceUnspecified
+        case .free: return AppStrings.Events.freePrice
+        case .exact: return event.pricing.amount.map(amount) ?? ContentPublishingStrings.priceUnspecified
+        case .startingFrom: return event.pricing.amount.map { "\(ContentPublishingStrings.priceFrom) \(amount($0))" } ?? ContentPublishingStrings.priceUnspecified
+        case .range:
+            guard let minimum = event.pricing.amount, let maximum = event.pricing.maximumAmount else { return ContentPublishingStrings.priceUnspecified }
+            return "\(amount(minimum))–\(amount(maximum))"
         }
-
-        return "€\(String(format: "%.2f", event.price))"
     }
 
     var eventViewTaskID: String {
@@ -720,19 +723,29 @@ final class EventCalendarWriter {
             throw CalendarError.missingCalendar
         }
 
-        let calendarEvent = EKEvent(eventStore: eventStore)
-        calendarEvent.title = appEvent.title
-        calendarEvent.startDate = appEvent.startDate
-        calendarEvent.endDate = appEvent.endDate
-        calendarEvent.isAllDay = appEvent.isAllDay
-        calendarEvent.location = joinedLocation(for: appEvent)
-        calendarEvent.notes = [appEvent.summary, appEvent.details]
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n\n")
-        calendarEvent.calendar = calendar
+        let now = Date()
+        let futureOccurrences = appEvent.occurrences.filter {
+            $0.status == .scheduled && $0.endDate >= now
+        }
+        let occurrences = futureOccurrences.isEmpty
+            ? [EventOccurrence(startDate: appEvent.startDate, endDate: appEvent.endDate, isAllDay: appEvent.isAllDay)]
+            : futureOccurrences
 
-        try eventStore.save(calendarEvent, span: .thisEvent, commit: true)
+        for occurrence in occurrences {
+            let calendarEvent = EKEvent(eventStore: eventStore)
+            calendarEvent.title = appEvent.localizedTitle
+            calendarEvent.startDate = occurrence.startDate
+            calendarEvent.endDate = occurrence.endDate
+            calendarEvent.isAllDay = occurrence.isAllDay
+            calendarEvent.location = joinedLocation(for: appEvent)
+            calendarEvent.notes = [appEvent.localizedSummary, appEvent.localizedDetails, appEvent.externalAction?.url]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n\n")
+            calendarEvent.calendar = calendar
+            try eventStore.save(calendarEvent, span: .thisEvent, commit: false)
+        }
+        try eventStore.commit()
     }
 
     func joinedLocation(for event: Event) -> String {

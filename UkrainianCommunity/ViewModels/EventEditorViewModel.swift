@@ -4,6 +4,13 @@ import Foundation
 
 @MainActor
 final class EventEditorViewModel: ObservableObject {
+    static let maximumOccurrenceCount = 30
+    static let localizedTitleLimit = 120
+    static let localizedSummaryLimit = 200
+    static let localizedDetailsLimit = 2_000
+    static let externalActionTitleLimit = 120
+    static let externalActionURLLimit = 2_048
+    static let priceNoteLimit = 500
     static let locationNoteCharacterLimit = 160
 
     struct CreateContext {
@@ -59,6 +66,9 @@ final class EventEditorViewModel: ObservableObject {
     @Published var details = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
+    @Published var germanTitle = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanSummary = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanDetails = "" { didSet { scheduleCreateDraftAutosave() } }
     @Published var city = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
@@ -108,6 +118,7 @@ final class EventEditorViewModel: ObservableObject {
     @Published var endDate = Date().addingTimeInterval(60 * 60) {
         didSet { markCreateDraftMetadataChanged() }
     }
+    @Published var additionalOccurrences: [EventOccurrence] = [] { didSet { scheduleCreateDraftAutosave() } }
     @Published var selectedCategory: EventCategory = .meetups {
         didSet { markCreateDraftMetadataChanged() }
     }
@@ -132,6 +143,17 @@ final class EventEditorViewModel: ObservableObject {
     @Published var requiresRegistration = true {
         didSet { markCreateDraftMetadataChanged() }
     }
+    @Published var participationMode: EventParticipationMode = .inAppRegistration {
+        didSet {
+            requiresRegistration = participationMode.usesInAppRegistration
+            markCreateDraftMetadataChanged()
+        }
+    }
+    @Published var externalActionTitle = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var externalActionURL = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var priceKind: EventPriceKind = .free { didSet { markCreateDraftMetadataChanged() } }
+    @Published var maximumPriceText = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var priceNote = "" { didSet { scheduleCreateDraftAutosave() } }
     @Published var priceText = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
@@ -155,6 +177,7 @@ final class EventEditorViewModel: ObservableObject {
     private let mode: Mode
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
+    private var hasCompletedCreateDraftRecoveryCheck = false
     private var isApplyingRecoveredDraft = false
     private var hasMeaningfulCreateDraftMetadata = false
 
@@ -187,8 +210,10 @@ final class EventEditorViewModel: ObservableObject {
             contactEmail = existingEvent.contactEmail ?? ""
             contactURL = existingEvent.contactURL ?? ""
             selectedFederalState = existingEvent.federalState ?? .tirol
-            startDate = existingEvent.startDate
-            endDate = existingEvent.endDate
+            let primaryOccurrence = existingEvent.occurrences.first
+            startDate = primaryOccurrence?.startDate ?? existingEvent.startDate
+            endDate = primaryOccurrence?.endDate ?? existingEvent.endDate
+            additionalOccurrences = Array(existingEvent.occurrences.dropFirst())
             selectedCategory = existingEvent.category
             selectedAudience = existingEvent.audience
             minimumAgeText = existingEvent.minimumAge.map(String.init) ?? ""
@@ -196,6 +221,12 @@ final class EventEditorViewModel: ObservableObject {
             tags = existingEvent.tags
             isAllDay = existingEvent.isAllDay
             requiresRegistration = existingEvent.requiresRegistration
+            participationMode = existingEvent.participationMode
+            externalActionTitle = existingEvent.externalAction?.title ?? ""
+            externalActionURL = existingEvent.externalAction?.url ?? ""
+            priceKind = existingEvent.pricing.kind
+            maximumPriceText = Self.priceText(from: existingEvent.pricing.maximumAmount ?? 0)
+            priceNote = existingEvent.pricing.note ?? ""
             priceText = Self.priceText(from: existingEvent.price)
             capacityText = existingEvent.capacity.map(String.init) ?? ""
         }
@@ -207,19 +238,22 @@ final class EventEditorViewModel: ObservableObject {
 
     var canPublish: Bool {
         validationIssue == nil
+            && isValidPublishingMetadata
+            && isValidGermanContent
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
     }
 
     var validationMessage: String? {
-        validationIssue?.message
+        validationIssue?.message ?? (isValidPublishingMetadata && isValidGermanContent ? nil : ContentPublishingStrings.publishingFieldsTooLong)
     }
 
     var canAdvanceBasics: Bool {
         !trimmedTitle.isEmpty
             && !trimmedSummary.isEmpty
             && !trimmedDetails.isEmpty
+            && isValidGermanContent
     }
 
     var canAdvanceSchedule: Bool {
@@ -228,25 +262,150 @@ final class EventEditorViewModel: ObservableObject {
             return false
         }
 
+        let primaryIsValid: Bool
         if isAllDay {
             let start = Calendar.current.startOfDay(for: startDate)
             let end = Calendar.current.startOfDay(for: endDate)
-            return end >= start && (isEditing || start >= Calendar.current.startOfDay(for: Date()))
+            primaryIsValid = end >= start && (isEditing || start >= Calendar.current.startOfDay(for: Date()))
+        } else {
+            primaryIsValid = endDate > startDate && (isEditing || startDate >= Date().addingTimeInterval(-60))
         }
 
-        return endDate > startDate && (isEditing || startDate >= Date().addingTimeInterval(-60))
+        guard primaryIsValid, allOccurrences.count <= Self.maximumOccurrenceCount else { return false }
+        let earliestAllowedDate = Calendar.current.startOfDay(for: Date())
+        return additionalOccurrences.allSatisfy { occurrence in
+            occurrence.isValid && (isEditing || occurrence.startDate >= earliestAllowedDate)
+        }
     }
 
     var canAdvanceAudience: Bool {
-        guard !requiresOrganizationRegionBeforePublishing else { return false }
+        guard !requiresOrganizationRegionBeforePublishing, isValidPublishingMetadata else { return false }
         guard !requiresRegistration || Self.isValidPositiveIntegerOrBlank(capacityText) else { return false }
-        guard !requiresRegistration || Self.isValidNonNegativeDecimalOrBlank(priceText) else { return false }
+        guard isValidPricing, isValidExternalParticipation else { return false }
         guard Self.isValidAgeOrBlank(minimumAgeText), Self.isValidAgeOrBlank(maximumAgeText) else { return false }
 
         if let minimumAge = resolvedMinimumAge, let maximumAge = resolvedMaximumAge {
             return maximumAge >= minimumAge
         }
         return true
+    }
+
+    var allOccurrences: [EventOccurrence] {
+        [EventOccurrence(startDate: normalizedStart, endDate: normalizedEnd, isAllDay: isAllDay)]
+            + additionalOccurrences.sorted { $0.startDate < $1.startDate }
+    }
+
+    var previewEvent: Event {
+        let now = Date()
+        let source = selectedCreateContext?.source ?? ContentSourceMetadata(sourceType: .organization, organizationName: publishingOrganizationName)
+        let pricing = resolvedPricing
+        return Event(
+            id: "preview",
+            schemaVersion: 2,
+            localizations: resolvedLocalizations,
+            title: trimmedTitle,
+            summary: resolvedSummary,
+            details: trimmedDetails,
+            federalState: resolvedFederalState,
+            source: source,
+            city: trimmedCity,
+            venue: trimmedVenue,
+            address: resolvedAddress,
+            locationNote: resolvedLocationNote,
+            imageURL: existingImageURL,
+            startDate: normalizedStart,
+            endDate: normalizedEnd,
+            occurrences: allOccurrences,
+            createdAt: now,
+            updatedAt: now,
+            requiresRegistration: participationMode.usesInAppRegistration,
+            participationMode: participationMode,
+            externalAction: resolvedExternalAction,
+            price: pricing.amount ?? 0,
+            pricing: pricing,
+            capacity: resolvedCapacity,
+            registeredCount: 0,
+            comments: [],
+            moderationStatus: .approved,
+            registrationState: .notRegistered,
+            likeCount: 0,
+            likeState: .notLiked,
+            category: selectedCategory,
+            audience: selectedAudience,
+            minimumAge: resolvedMinimumAge,
+            maximumAge: resolvedMaximumAge,
+            tags: tags,
+            isAllDay: isAllDay
+        )
+    }
+
+    var isValidExternalParticipation: Bool {
+        guard participationMode.requiresExternalURL else { return true }
+        return ExternalContentAction(url: externalActionURL).webURL != nil
+    }
+
+    private var isValidGermanContent: Bool {
+        germanTitle.count <= Self.localizedTitleLimit
+            && germanSummary.count <= Self.localizedSummaryLimit
+            && germanDetails.count <= Self.localizedDetailsLimit
+    }
+
+    private var isValidPublishingMetadata: Bool {
+        externalActionTitle.count <= Self.externalActionTitleLimit
+            && externalActionURL.count <= Self.externalActionURLLimit
+            && priceNote.count <= Self.priceNoteLimit
+            && allOccurrences.count <= Self.maximumOccurrenceCount
+    }
+
+    var isValidPricing: Bool {
+        switch priceKind {
+        case .unspecified, .free:
+            return true
+        case .exact, .startingFrom:
+            return Self.isValidNonNegativeDecimalOrBlank(priceText) && parsedPrice != nil
+        case .range:
+            guard let minimum = parsedPrice,
+                  let maximum = parsedMaximumPrice else { return false }
+            return minimum >= 0 && maximum >= minimum
+        }
+    }
+
+    func addOccurrence() {
+        guard allOccurrences.count < Self.maximumOccurrenceCount else { return }
+        let previous = additionalOccurrences.last ?? EventOccurrence(
+            startDate: normalizedStart,
+            endDate: normalizedEnd,
+            isAllDay: isAllDay
+        )
+        let nextStart = Calendar.current.date(byAdding: .day, value: 1, to: previous.startDate) ?? previous.startDate
+        let nextEnd = Calendar.current.date(byAdding: .day, value: 1, to: previous.endDate) ?? previous.endDate
+        additionalOccurrences.append(EventOccurrence(startDate: nextStart, endDate: nextEnd, isAllDay: previous.isAllDay))
+    }
+
+    func updateOccurrence(id: String, startDate: Date? = nil, endDate: Date? = nil, isAllDay: Bool? = nil) {
+        guard let index = additionalOccurrences.firstIndex(where: { $0.id == id }) else { return }
+        let current = additionalOccurrences[index]
+        let resolvedIsAllDay = isAllDay ?? current.isAllDay
+        var resolvedStart = startDate ?? current.startDate
+        var resolvedEnd = endDate ?? current.endDate
+        if resolvedIsAllDay {
+            resolvedStart = Calendar.current.startOfDay(for: resolvedStart)
+            let endDay = Calendar.current.startOfDay(for: resolvedEnd)
+            resolvedEnd = Calendar.current.date(byAdding: .day, value: 1, to: max(resolvedStart, endDay)) ?? resolvedEnd
+        }
+        let replacement = EventOccurrence(
+            id: current.id,
+            startDate: resolvedStart,
+            endDate: resolvedEnd,
+            isAllDay: resolvedIsAllDay,
+            status: current.status
+        )
+        guard replacement.isValid else { return }
+        additionalOccurrences[index] = replacement
+    }
+
+    func removeOccurrence(id: String) {
+        additionalOccurrences.removeAll { $0.id == id }
     }
 
     var navigationTitle: String {
@@ -407,6 +566,12 @@ final class EventEditorViewModel: ObservableObject {
     func loadRecoverableDraftIfNeeded() async {
         guard isCreateMode, !hasCheckedCreateDraftRecovery else { return }
         hasCheckedCreateDraftRecovery = true
+        defer {
+            hasCompletedCreateDraftRecoveryCheck = true
+            if pendingRecoveryDraft == nil, currentEventCreateDraft().hasMeaningfulContent {
+                scheduleCreateDraftAutosave()
+            }
+        }
 
         do {
             guard let draft = try await draftRecoveryService.loadEventCreateDraft(key: createDraftStorageKey),
@@ -573,8 +738,13 @@ final class EventEditorViewModel: ObservableObject {
             eventFederalState = selectedFederalState
         }
         let resolvedEventOrganizerName = resolvedOrganizerName()
+        let localizations = resolvedLocalizations
+        let eventPricing = resolvedPricing
+        let externalAction = resolvedExternalAction
         let newEvent = Event(
             id: eventID,
+            schemaVersion: 2,
+            localizations: localizations,
             title: trimmedTitle,
             summary: resolvedSummary,
             details: trimmedDetails,
@@ -597,10 +767,14 @@ final class EventEditorViewModel: ObservableObject {
             imageURL: nil,
             startDate: normalizedStartDate,
             endDate: normalizedEndDate,
+            occurrences: allOccurrences,
             createdAt: createdAt,
             updatedAt: now,
-            requiresRegistration: requiresRegistration,
-            price: resolvedPrice,
+            requiresRegistration: participationMode.usesInAppRegistration,
+            participationMode: participationMode,
+            externalAction: externalAction,
+            price: eventPricing.amount ?? 0,
+            pricing: eventPricing,
             capacity: existingCapacity,
             registeredCount: existingRegisteredCount,
             comments: existingComments,
@@ -682,6 +856,9 @@ final class EventEditorViewModel: ObservableObject {
             title = ""
             summary = ""
             details = ""
+            germanTitle = ""
+            germanSummary = ""
+            germanDetails = ""
             city = ""
             venue = ""
             address = ""
@@ -697,6 +874,7 @@ final class EventEditorViewModel: ObservableObject {
             selectedProcessedImage = nil
             startDate = now
             endDate = now.addingTimeInterval(60 * 60)
+            additionalOccurrences = []
             selectedCategory = .meetups
             selectedAudience = .everyone
             minimumAgeText = ""
@@ -705,7 +883,13 @@ final class EventEditorViewModel: ObservableObject {
             tagInput = ""
             isAllDay = false
             requiresRegistration = true
+            participationMode = .inAppRegistration
+            externalActionTitle = ""
+            externalActionURL = ""
+            priceKind = .free
             priceText = ""
+            maximumPriceText = ""
+            priceNote = ""
             capacityText = ""
             return true
         } catch {
@@ -828,6 +1012,40 @@ final class EventEditorViewModel: ObservableObject {
         return Double(normalized)
     }
 
+    private var parsedMaximumPrice: Double? {
+        Double(maximumPriceText.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "."))
+    }
+
+    private var resolvedLocalizations: [String: EventLocalizedContent] {
+        var result = [PublishedContentLanguage.ukrainian.rawValue: EventLocalizedContent(
+            title: trimmedTitle,
+            summary: resolvedSummary,
+            details: trimmedDetails
+        )]
+        if [germanTitle, germanSummary, germanDetails].contains(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+            result[PublishedContentLanguage.german.rawValue] = EventLocalizedContent(
+                title: germanTitle.trimmedOrFallback(trimmedTitle),
+                summary: germanSummary.trimmedOrFallback(resolvedSummary),
+                details: germanDetails.trimmedOrFallback(trimmedDetails)
+            )
+        }
+        return result
+    }
+
+    private var resolvedPricing: EventPricing {
+        EventPricing(
+            kind: priceKind,
+            amount: [.exact, .startingFrom, .range].contains(priceKind) ? parsedPrice : nil,
+            maximumAmount: priceKind == .range ? parsedMaximumPrice : nil,
+            note: priceNote
+        )
+    }
+
+    private var resolvedExternalAction: ExternalContentAction? {
+        guard participationMode.requiresExternalURL else { return nil }
+        return ExternalContentAction(title: externalActionTitle, url: externalActionURL)
+    }
+
     private var resolvedCapacity: Int? {
         guard requiresRegistration else { return nil }
         guard !trimmedCapacityText.isEmpty else { return nil }
@@ -913,6 +1131,7 @@ final class EventEditorViewModel: ObservableObject {
 
     private func scheduleCreateDraftAutosave() {
         guard isCreateMode, !isApplyingRecoveredDraft else { return }
+        guard hasCompletedCreateDraftRecoveryCheck else { return }
         guard !isPublishing, !isUploadingImage, !isProcessingImage else { return }
 
         draftAutosaveTask?.cancel()
@@ -981,7 +1200,17 @@ final class EventEditorViewModel: ObservableObject {
             tagInput: tagInput,
             requiresRegistration: requiresRegistration,
             priceText: priceText,
-            capacityText: capacityText
+            capacityText: capacityText,
+            germanTitle: germanTitle,
+            germanSummary: germanSummary,
+            germanDetails: germanDetails,
+            additionalOccurrences: additionalOccurrences,
+            participationMode: participationMode,
+            externalActionTitle: externalActionTitle,
+            externalActionURL: externalActionURL,
+            priceKind: priceKind,
+            maximumPriceText: maximumPriceText,
+            priceNote: priceNote
         )
     }
 
@@ -1024,6 +1253,16 @@ final class EventEditorViewModel: ObservableObject {
         requiresRegistration = draft.requiresRegistration
         priceText = draft.priceText
         capacityText = draft.capacityText
+        germanTitle = draft.germanTitle ?? ""
+        germanSummary = draft.germanSummary ?? ""
+        germanDetails = draft.germanDetails ?? ""
+        additionalOccurrences = draft.additionalOccurrences ?? []
+        participationMode = draft.participationMode ?? (draft.requiresRegistration ? .inAppRegistration : .none)
+        externalActionTitle = draft.externalActionTitle ?? ""
+        externalActionURL = draft.externalActionURL ?? ""
+        priceKind = draft.priceKind ?? (draft.priceText.isEmpty ? .free : .exact)
+        maximumPriceText = draft.maximumPriceText ?? ""
+        priceNote = draft.priceNote ?? ""
         hasMeaningfulCreateDraftMetadata = draft.hasMeaningfulMetadata == true
 
         isApplyingRecoveredDraft = false
@@ -1042,6 +1281,14 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private func validate() -> Bool {
+        guard isValidExternalParticipation else {
+            errorMessage = ContentPublishingStrings.secureWebLinkRequired
+            return false
+        }
+        guard isValidPricing else {
+            errorMessage = AppStrings.Events.invalidPrice
+            return false
+        }
         guard let validationIssue else { return true }
         errorMessage = validationIssue.message
         return false
@@ -1150,6 +1397,8 @@ private extension Event {
     func settingImageURL(_ imageURL: String?) -> Event {
         Event(
             id: id,
+            schemaVersion: schemaVersion,
+            localizations: localizations,
             title: title,
             summary: summary,
             details: details,
@@ -1172,10 +1421,14 @@ private extension Event {
             imageURL: imageURL,
             startDate: startDate,
             endDate: endDate,
+            occurrences: occurrences,
             createdAt: createdAt,
             updatedAt: updatedAt,
             requiresRegistration: requiresRegistration,
+            participationMode: participationMode,
+            externalAction: externalAction,
             price: price,
+            pricing: pricing,
             capacity: capacity,
             registeredCount: registeredCount,
             comments: comments,

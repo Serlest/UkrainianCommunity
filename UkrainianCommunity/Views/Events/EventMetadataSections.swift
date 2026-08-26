@@ -40,7 +40,7 @@ extension EventDetailView {
                         .font(AppTheme.sectionTitleFont)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                    Text(event.details)
+                    Text(event.localizedDetails)
                         .font(AppTheme.cardSubtitleFont)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .lineSpacing(2)
@@ -277,9 +277,12 @@ extension EventDetailView {
                     Text(AppStrings.Events.detailsSectionTitle)
                         .font(AppTheme.sectionTitleFont)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    if event.requiresRegistration {
+                    if event.participationMode != .none {
                         EventDetailRow(systemImage: "tag", title: AppStrings.Events.priceTitle, value: eventPriceText(for: event))
-                        EventDetailRow(systemImage: "person.2", title: AppStrings.Events.expectedParticipants, value: eventParticipantsText(for: event))
+                        if event.participationMode == .inAppRegistration {
+                            EventDetailRow(systemImage: "person.2", title: AppStrings.Events.expectedParticipants, value: eventParticipantsText(for: event))
+                        }
+                        EventDetailRow(systemImage: "checklist", title: ContentPublishingStrings.participation, value: event.participationMode.localizedTitle)
                     } else {
                         EventDetailRow(systemImage: "checkmark.seal", title: AppStrings.Events.requiresRegistrationToggle, value: AppStrings.Events.registrationNotRequired)
                     }
@@ -445,7 +448,7 @@ extension EventDetailView {
         func similarEvents(for event: Event) -> [Event] {
             let now = Date()
             return viewModel.events
-                .filter { $0.id != event.id && $0.endDate >= now }
+                .filter { $0.id != event.id && $0.nextOccurrence(relativeTo: now) != nil }
                 .sorted { lhs, rhs in
                     let lhsScore = similarEventScore(lhs, comparedTo: event)
                     let rhsScore = similarEventScore(rhs, comparedTo: event)
@@ -453,13 +456,16 @@ extension EventDetailView {
                         return lhsScore > rhsScore
                     }
 
-                    let lhsProximity = abs(lhs.startDate.timeIntervalSince(event.startDate))
-                    let rhsProximity = abs(rhs.startDate.timeIntervalSince(event.startDate))
+                    let sourceDate = event.nextOccurrence(relativeTo: now)?.startDate ?? event.startDate
+                    let lhsDate = lhs.nextOccurrence(relativeTo: now)?.startDate ?? lhs.startDate
+                    let rhsDate = rhs.nextOccurrence(relativeTo: now)?.startDate ?? rhs.startDate
+                    let lhsProximity = abs(lhsDate.timeIntervalSince(sourceDate))
+                    let rhsProximity = abs(rhsDate.timeIntervalSince(sourceDate))
                     if lhsProximity != rhsProximity {
                         return lhsProximity < rhsProximity
                     }
 
-                    return lhs.startDate < rhs.startDate
+                    return lhsDate < rhsDate
                 }
                 .prefix(4)
                 .map { $0 }
@@ -510,7 +516,7 @@ extension EventDetailView {
                 loadState: viewModel.commentLoadStates[event.id] ?? .loading,
                 retry: { await viewModel.loadComments(for: event.id, forceRefresh: true) },
                 composer: { eventCommentComposer(eventID: event.id) },
-                row: { comment in eventCommentRow(comment, parentTitle: event.title) }
+                row: { comment in eventCommentRow(comment, parentTitle: event.localizedTitle) }
             )
         }
 
@@ -634,9 +640,14 @@ extension EventDetailView {
         let event: Event
 
         var body: some View {
+            let occurrence = event.nextOccurrence() ?? event.occurrences.first ?? EventOccurrence(
+                startDate: event.startDate,
+                endDate: event.endDate,
+                isAllDay: event.isAllDay
+            )
             SoftContentCard(padding: AppTheme.eventsCardPadding) {
                 HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
-                    AppEventDateBlock(date: event.startDate)
+                    AppEventDateBlock(date: occurrence.startDate)
 
                     VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
                         AppInfoChip(
@@ -647,14 +658,14 @@ extension EventDetailView {
                             size: .small
                         )
 
-                        Text(event.title)
+                        Text(event.localizedTitle)
                             .font(AppTheme.cardTitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineLimit(2)
 
                         HStack(spacing: AppTheme.eventsMetadataSpacing) {
                             AppMetadataLine(
-                                title: LocalizationStore.timeRangeString(startDate: event.startDate, endDate: event.endDate),
+                                title: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate),
                                 systemImage: "clock"
                             )
                             AppMetadataLine(

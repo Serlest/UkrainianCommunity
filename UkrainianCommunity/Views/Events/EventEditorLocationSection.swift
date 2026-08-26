@@ -10,6 +10,7 @@ extension EventEditorView {
                     editorSectionTitle(AppStrings.Events.fieldLocation)
 
                     iconTextField(systemImage: "mappin.circle", placeholder: AppStrings.Events.locationPlaceholder, text: $viewModel.venue)
+                        .accessibilityIdentifier("editor.event.venue")
 
                     locationSuggestions
 
@@ -18,6 +19,7 @@ extension EventEditorView {
                             .font(.subheadline)
                             .textInputAutocapitalization(.words)
                             .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                            .accessibilityIdentifier("editor.event.address")
                     }
 
                     editorField(title: AppStrings.Common.city) {
@@ -25,6 +27,7 @@ extension EventEditorView {
                             .font(.subheadline)
                             .textInputAutocapitalization(.words)
                             .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                            .accessibilityIdentifier("editor.event.city")
                     }
 
                     editorField(title: AppStrings.Events.locationNoteTitle) {

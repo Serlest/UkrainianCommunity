@@ -21,6 +21,7 @@ struct OrganizerPickerSheet: View {
                         .accessibilityAddTraits(
                             organization.id == selectedOrganizationID ? .isSelected : []
                         )
+                        .accessibilityIdentifier("editor.event.organizer.\(organization.id)")
                     }
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
@@ -38,6 +39,7 @@ struct OrganizerPickerSheet: View {
                 }
             }
         }
+        .accessibilityIdentifier("editor.event.organizerPicker")
     }
 
     func organizerRow(for organization: Organization) -> some View {

@@ -21,7 +21,7 @@ extension NewsDetailView {
                 }
 
                 DetailHeaderShareButton(
-                    title: post.title,
+                    title: post.localizedTitle,
                     message: newsShareMessage(for: post),
                     url: safeShareURL(post.sourceURL)
                 )
@@ -57,8 +57,8 @@ extension NewsDetailView {
         }
 
         func newsShareMessage(for post: NewsPost) -> String {
-            let subtitle = post.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            let source = subtitle.isEmpty ? post.body.trimmingCharacters(in: .whitespacesAndNewlines) : subtitle
+            let subtitle = post.localizedSubtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let source = subtitle.isEmpty ? post.localizedBody.trimmingCharacters(in: .whitespacesAndNewlines) : subtitle
             guard source.count > 400 else { return source }
             return String(source.prefix(397)).trimmingCharacters(in: .whitespacesAndNewlines) + "…"
         }
@@ -72,7 +72,7 @@ extension NewsDetailView {
         }
 
         func articleHeader(for post: NewsPost) -> some View {
-            DetailHeaderCard(title: post.title, subtitle: nil) {
+            DetailHeaderCard(title: post.localizedTitle, subtitle: nil) {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     newsBadge
                     metadataRow(for: post)
@@ -122,6 +122,15 @@ extension NewsDetailView {
                         .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.78))
                 )
                 .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.55), radius: 8, y: 4)
+                .accessibilityLabel(post.mediaMetadata?.alternativeText ?? post.localizedTitle)
+
+                if post.mediaMetadata?.caption != nil || post.mediaMetadata?.credit != nil {
+                    Text([post.mediaMetadata?.caption, post.mediaMetadata?.credit]
+                        .compactMap { $0 }
+                        .joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
             }
         }
 
@@ -138,7 +147,7 @@ extension NewsDetailView {
                             .font(AppTheme.sectionTitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
 
-                        Text(post.subtitle)
+                        Text(post.localizedSubtitle)
                             .font(AppTheme.cardSubtitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineSpacing(2)
@@ -155,7 +164,7 @@ extension NewsDetailView {
                         .font(AppTheme.sectionTitleFont)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                    Text(post.body)
+                    Text(post.localizedBody)
                         .font(AppTheme.cardSubtitleFont)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .lineSpacing(2)
@@ -208,6 +217,19 @@ extension NewsDetailView {
             }
 
             return nil
+        }
+
+        @ViewBuilder
+        func articleExternalActionSection(for post: NewsPost) -> some View {
+            if let action = post.externalAction, let url = action.webURL {
+                Link(destination: url) {
+                    Label(action.title ?? ContentPublishingStrings.externalLink, systemImage: "arrow.up.right.square")
+                        .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderedProminent)
+            }
         }
 
         func trimmedNonEmpty(_ value: String?) -> String? {
@@ -391,14 +413,14 @@ extension NewsDetailView {
                     relatedNewsThumbnail(for: post)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(post.title)
+                        Text(post.localizedTitle)
                             .font(AppTheme.cardTitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        if !post.subtitle.isEmpty {
-                            Text(post.subtitle)
+                        if !post.localizedSubtitle.isEmpty {
+                            Text(post.localizedSubtitle)
                                 .font(AppTheme.metadataFont)
                                 .foregroundStyle(AppTheme.textSecondary)
                                 .lineLimit(2)

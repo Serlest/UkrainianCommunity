@@ -6,6 +6,11 @@ final class NewsEditorViewModel: ObservableObject {
     static let titleLimit = 120
     static let summaryLimit = 200
     static let bodyLimit = 10_000
+    static let imageCaptionLimit = 500
+    static let imageAlternativeTextLimit = 1_000
+    static let imageCreditLimit = 300
+    static let externalActionTitleLimit = 120
+    static let externalActionURLLimit = 2_048
     static let tagLimit = 8
     static let tagCharacterLimit = 30
 
@@ -50,6 +55,14 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var body = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
+    @Published var germanTitle = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanSummary = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanBody = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var imageCaption = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var imageAlternativeText = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var imageCredit = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var externalActionTitle = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var externalActionURL = "" { didSet { scheduleCreateDraftAutosave() } }
     @Published var sourceInput = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
@@ -78,6 +91,7 @@ final class NewsEditorViewModel: ObservableObject {
     private let mode: Mode
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
+    private var hasCompletedCreateDraftRecoveryCheck = false
     private var isApplyingRecoveredDraft = false
 
     init(
@@ -102,6 +116,15 @@ final class NewsEditorViewModel: ObservableObject {
             sourceInput = existingNews.sourceName ?? existingNews.sourceURL ?? ""
             tagsInput = existingNews.tags.joined(separator: ", ")
             selectedFederalState = existingNews.federalState ?? .tirol
+            let german = existingNews.localizations[PublishedContentLanguage.german.rawValue]
+            germanTitle = german?.title ?? ""
+            germanSummary = german?.subtitle ?? ""
+            germanBody = german?.body ?? ""
+            imageCaption = existingNews.mediaMetadata?.caption ?? ""
+            imageAlternativeText = existingNews.mediaMetadata?.alternativeText ?? ""
+            imageCredit = existingNews.mediaMetadata?.credit ?? ""
+            externalActionTitle = existingNews.externalAction?.title ?? ""
+            externalActionURL = existingNews.externalAction?.url ?? ""
         }
     }
 
@@ -111,6 +134,9 @@ final class NewsEditorViewModel: ObservableObject {
 
     var canPublish: Bool {
         validationIssue == nil
+            && isValidExternalAction
+            && isValidPublishingMetadata
+            && isValidGermanContent
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
@@ -123,10 +149,11 @@ final class NewsEditorViewModel: ObservableObject {
             && trimmedSummary.count <= Self.summaryLimit
             && hasOrganizerForCreate
             && resolvedFederalState != nil
+            && isValidGermanContent
     }
 
     var canAdvanceContent: Bool {
-        !trimmedBody.isEmpty && trimmedBody.count <= Self.bodyLimit
+        !trimmedBody.isEmpty && trimmedBody.count <= Self.bodyLimit && isValidPublishingMetadata
     }
 
     var previewTags: [String] { parsedTags }
@@ -135,7 +162,62 @@ final class NewsEditorViewModel: ObservableObject {
         return source.isEmpty ? nil : source
     }
     var previewFederalState: AustrianFederalState? { resolvedFederalState }
-    var validationMessage: String? { validationIssue?.message }
+    var previewPost: NewsPost {
+        let now = Date()
+        let source = selectedCreateContext?.source ?? ContentSourceMetadata(sourceType: .organization, organizationName: organizerName)
+        return NewsPost(
+            id: "preview",
+            schemaVersion: 2,
+            localizations: resolvedLocalizations,
+            title: trimmedTitle,
+            subtitle: trimmedSummary,
+            federalState: resolvedFederalState,
+            tags: parsedTags,
+            source: source,
+            sourceName: resolvedArticleSource.sourceName,
+            sourceURL: resolvedArticleSource.sourceURL,
+            imageURL: existingImageURL,
+            mediaMetadata: NewsMediaMetadata(caption: imageCaption, alternativeText: imageAlternativeText, credit: imageCredit),
+            externalAction: resolvedExternalAction,
+            body: trimmedBody,
+            authorName: resolvedAuthorName,
+            publishedAt: now,
+            createdAt: now,
+            updatedAt: now,
+            comments: [],
+            moderationStatus: .approved,
+            likeCount: 0,
+            likeState: .notLiked
+        )
+    }
+    var validationMessage: String? {
+        validationIssue?.message ?? (isValidPublishingMetadata && isValidGermanContent ? nil : ContentPublishingStrings.publishingFieldsTooLong)
+    }
+
+    var isValidExternalAction: Bool {
+        let value = externalActionURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = externalActionTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.isEmpty { return title.isEmpty }
+        return ExternalContentAction(url: value).webURL != nil
+    }
+
+    var hasGermanContent: Bool {
+        [germanTitle, germanSummary, germanBody].contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    private var isValidGermanContent: Bool {
+        germanTitle.count <= Self.titleLimit
+            && germanSummary.count <= Self.summaryLimit
+            && germanBody.count <= Self.bodyLimit
+    }
+
+    private var isValidPublishingMetadata: Bool {
+        imageCaption.count <= Self.imageCaptionLimit
+            && imageAlternativeText.count <= Self.imageAlternativeTextLimit
+            && imageCredit.count <= Self.imageCreditLimit
+            && externalActionTitle.count <= Self.externalActionTitleLimit
+            && externalActionURL.count <= Self.externalActionURLLimit
+    }
 
     var isEditing: Bool {
         mode.isEditing
@@ -275,6 +357,12 @@ final class NewsEditorViewModel: ObservableObject {
     func loadRecoverableDraftIfNeeded() async {
         guard isCreateMode, !hasCheckedCreateDraftRecovery else { return }
         hasCheckedCreateDraftRecovery = true
+        defer {
+            hasCompletedCreateDraftRecoveryCheck = true
+            if pendingRecoveryDraft == nil, currentNewsCreateDraft().hasMeaningfulContent {
+                scheduleCreateDraftAutosave()
+            }
+        }
 
         do {
             guard let draft = try await draftRecoveryService.loadNewsCreateDraft(key: createDraftStorageKey),
@@ -374,8 +462,17 @@ final class NewsEditorViewModel: ObservableObject {
             existingCommentCount = existingNews.commentCount
         }
         let articleSource = resolvedArticleSource
+        let localizations = resolvedLocalizations
+        let mediaMetadata = NewsMediaMetadata(
+            caption: imageCaption,
+            alternativeText: imageAlternativeText,
+            credit: imageCredit
+        )
+        let externalAction = resolvedExternalAction
         let news = NewsPost(
             id: newsID,
+            schemaVersion: 2,
+            localizations: localizations,
             title: trimmedTitle,
             subtitle: trimmedSummary,
             regionScope: .federalState,
@@ -387,6 +484,8 @@ final class NewsEditorViewModel: ObservableObject {
             sourceName: articleSource.sourceName,
             sourceURL: articleSource.sourceURL,
             imageURL: nil,
+            mediaMetadata: mediaMetadata,
+            externalAction: externalAction,
             body: trimmedBody,
             authorId: existingAuthorID,
             authorName: resolvedAuthorName,
@@ -470,6 +569,14 @@ final class NewsEditorViewModel: ObservableObject {
             title = ""
             summary = ""
             body = ""
+            germanTitle = ""
+            germanSummary = ""
+            germanBody = ""
+            imageCaption = ""
+            imageAlternativeText = ""
+            imageCredit = ""
+            externalActionTitle = ""
+            externalActionURL = ""
             sourceInput = ""
             tagsInput = ""
             selectedImageData = nil
@@ -485,6 +592,28 @@ final class NewsEditorViewModel: ObservableObject {
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var resolvedLocalizations: [String: NewsLocalizedContent] {
+        var result = [PublishedContentLanguage.ukrainian.rawValue: NewsLocalizedContent(
+            title: trimmedTitle,
+            subtitle: trimmedSummary,
+            body: trimmedBody
+        )]
+        if hasGermanContent {
+            result[PublishedContentLanguage.german.rawValue] = NewsLocalizedContent(
+                title: germanTitle.trimmedOrFallback(trimmedTitle),
+                subtitle: germanSummary.trimmedOrFallback(trimmedSummary),
+                body: germanBody.trimmedOrFallback(trimmedBody)
+            )
+        }
+        return result
+    }
+
+    private var resolvedExternalAction: ExternalContentAction? {
+        let url = externalActionURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !url.isEmpty else { return nil }
+        return ExternalContentAction(title: externalActionTitle, url: url)
     }
 
     private var trimmedSummary: String {
@@ -574,6 +703,7 @@ final class NewsEditorViewModel: ObservableObject {
 
     private func scheduleCreateDraftAutosave() {
         guard isCreateMode, !isApplyingRecoveredDraft else { return }
+        guard hasCompletedCreateDraftRecoveryCheck else { return }
         guard !isPublishing, !isUploadingImage, !isProcessingImage else { return }
 
         draftAutosaveTask?.cancel()
@@ -613,7 +743,15 @@ final class NewsEditorViewModel: ObservableObject {
             body: body,
             sourceInput: sourceInput,
             tagsInput: tagsInput,
-            selectedFederalState: selectedFederalState
+            selectedFederalState: selectedFederalState,
+            germanTitle: germanTitle,
+            germanSummary: germanSummary,
+            germanBody: germanBody,
+            imageCaption: imageCaption,
+            imageAlternativeText: imageAlternativeText,
+            imageCredit: imageCredit,
+            externalActionTitle: externalActionTitle,
+            externalActionURL: externalActionURL
         )
     }
 
@@ -634,6 +772,14 @@ final class NewsEditorViewModel: ObservableObject {
         body = draft.body
         sourceInput = draft.sourceInput
         tagsInput = draft.tagsInput
+        germanTitle = draft.germanTitle ?? ""
+        germanSummary = draft.germanSummary ?? ""
+        germanBody = draft.germanBody ?? ""
+        imageCaption = draft.imageCaption ?? ""
+        imageAlternativeText = draft.imageAlternativeText ?? ""
+        imageCredit = draft.imageCredit ?? ""
+        externalActionTitle = draft.externalActionTitle ?? ""
+        externalActionURL = draft.externalActionURL ?? ""
         if let selectedFederalState = draft.selectedFederalState {
             self.selectedFederalState = selectedFederalState
         }
@@ -694,6 +840,11 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     private func validate() -> Bool {
+        guard isValidExternalAction else {
+            errorMessage = ContentPublishingStrings.secureWebLinkRequired
+            successMessage = nil
+            return false
+        }
         guard let validationIssue else { return true }
         errorMessage = validationIssue.message
         successMessage = nil
@@ -720,6 +871,8 @@ private extension NewsPost {
     func settingImageURL(_ imageURL: String?) -> NewsPost {
         NewsPost(
             id: id,
+            schemaVersion: schemaVersion,
+            localizations: localizations,
             title: title,
             subtitle: subtitle,
             regionScope: regionScope,
@@ -731,6 +884,8 @@ private extension NewsPost {
             sourceName: sourceName,
             sourceURL: sourceURL,
             imageURL: imageURL,
+            mediaMetadata: mediaMetadata,
+            externalAction: externalAction,
             body: body,
             authorId: authorId,
             authorName: authorName,
