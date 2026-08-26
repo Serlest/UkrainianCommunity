@@ -163,32 +163,29 @@ async function writeFollowerInboxNotifications(
   const createdNotifications: CreatedRecipientNotification[] = [];
 
   for (const chunk of chunks(recipientUserIds, concurrentRecipientWrites)) {
+    const userReferences = chunk.map((recipientUserId) => db.collection("users").doc(recipientUserId));
+    const userSnapshots = await db.getAll(...userReferences);
     const bulkWriter = db.bulkWriter();
-    const writeResults = Promise.all(chunk.map(async (recipientUserId) => {
+    const writeResults = Promise.all(chunk.map((recipientUserId, index) => {
       const notificationId = followerNotificationId(content, recipientUserId);
-      const userSnapshot = await db.collection("users").doc(recipientUserId).get();
+      const userSnapshot = userSnapshots[index];
       const copy = followerNotificationCopy(content, notificationLanguage(userSnapshot.data()));
       const notificationReference = db.collection("users")
         .doc(recipientUserId)
         .collection("notificationInbox")
         .doc(notificationId);
 
-      try {
-        await bulkWriter.create(
-          notificationReference,
-          followerNotificationDocument(content, recipientUserId, notificationId, copy)
-        );
-      } catch (error) {
-        if (isAlreadyExistsError(error)) {
-          return undefined;
-        }
-        throw error;
-      }
-
-      return {
-        recipientUserId,
-        notificationId,
-      };
+      return bulkWriter.create(
+        notificationReference,
+        followerNotificationDocument(content, recipientUserId, notificationId, copy)
+      )
+        .then(() => ({ recipientUserId, notificationId }))
+        .catch((error: unknown) => {
+          if (isAlreadyExistsError(error)) {
+            return undefined;
+          }
+          throw error;
+        });
     }));
     await bulkWriter.close();
     const results = await writeResults;
