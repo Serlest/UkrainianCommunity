@@ -967,6 +967,10 @@ struct AppSearchableBrandHeader: View {
     @Binding var searchText: String
     let placeholder: String
     let collapseToken: Int
+    let creationKind: QuickCreationKind?
+    var additionalCreateAction: (() -> Void)?
+    var additionalCreateTitle: String?
+    var additionalCreateIdentifier: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isSearchFocused: Bool
 
@@ -974,22 +978,38 @@ struct AppSearchableBrandHeader: View {
         isSearchPresented: Binding<Bool>,
         searchText: Binding<String>,
         placeholder: String,
-        collapseToken: Int = 0
+        collapseToken: Int = 0,
+        creationKind: QuickCreationKind? = nil,
+        additionalCreateAction: (() -> Void)? = nil,
+        additionalCreateTitle: String? = nil,
+        additionalCreateIdentifier: String? = nil
     ) {
         _isSearchPresented = isSearchPresented
         _searchText = searchText
         self.placeholder = placeholder
         self.collapseToken = collapseToken
+        self.creationKind = creationKind
+        self.additionalCreateAction = additionalCreateAction
+        self.additionalCreateTitle = additionalCreateTitle
+        self.additionalCreateIdentifier = additionalCreateIdentifier
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
             AppBrandHeader {
-                AppGlassIconButton(
-                    systemImage: showsCloseButton ? "xmark" : "magnifyingglass",
-                    accessibilityLabel: showsCloseButton ? AppStrings.Search.close : AppStrings.Search.open
-                ) {
-                    toggleSearch()
+                HStack(spacing: 4) {
+                    AppGlassIconButton(
+                        systemImage: showsCloseButton ? "xmark" : "magnifyingglass",
+                        accessibilityLabel: showsCloseButton ? AppStrings.Search.close : AppStrings.Search.open
+                    ) {
+                        toggleSearch()
+                    }
+                    if let creationKind { QuickCreationButton(kind: creationKind) }
+                    if let additionalCreateAction, let additionalCreateTitle {
+                        AppGlassIconButton(systemImage: "plus", accessibilityLabel: additionalCreateTitle, action: additionalCreateAction)
+                            .accessibilityIdentifier(additionalCreateIdentifier ?? "quickCreate.additional")
+                    }
+                    AppNotificationBellButton()
                 }
             }
 

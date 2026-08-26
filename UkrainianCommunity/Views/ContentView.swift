@@ -18,6 +18,8 @@ struct ContentView: View {
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
     @StateObject private var organizationsViewModel: OrganizationsViewModel
+    @StateObject private var authoringOrganizations: AuthoringOrganizationsViewModel
+    @State private var quickCreation: QuickCreationKind?
     @StateObject private var profileViewModel: ProfileViewModel
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
@@ -66,6 +68,7 @@ struct ContentView: View {
             notificationInboxRepository: container.notificationInboxRepository,
             analyticsService: container.analyticsService
         ))
+        _authoringOrganizations = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: container.organizationRepository))
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(
             repository: container.userRepository,
             feedbackRepository: container.feedbackRepository,
@@ -112,6 +115,15 @@ struct ContentView: View {
         .preferredColorScheme(selectedAppearance.colorScheme)
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
+        .environment(\.quickCreationActions, quickCreationActions)
+        .task(id: authoringIdentityKey) {
+            await authoringOrganizations.load(for: authState.isAuthenticated ? authState.user : nil)
+        }
+        .onReceive(authState.appLock.protectionChanges) { _ in
+            if let userID = authState.appLock.userID, userID == authState.user?.id {
+                handlePendingRemoteNotificationRouteIfReady()
+            }
+        }
         .environment(\.contentReportPresentation, ContentReportPresentationConfiguration(
             present: contentReportCoordinator.present
         ))
@@ -161,6 +173,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             Task { await configureRemoteNotifications(for: notificationInboxUserID) }
+            Task { await authoringOrganizations.load(for: authState.isAuthenticated ? authState.user : nil) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in
             Task {
@@ -172,6 +185,21 @@ struct ContentView: View {
         .sheet(item: $authState.presentedAuthFlow) { destination in
             AuthFlowContainerView(initialDestination: destination)
                 .environmentObject(authState)
+        }
+        .sheet(item: $quickCreation) { kind in
+            NavigationStack {
+                switch kind {
+                case .news:
+                    NewsEditorView(repository: container.newsRepository, organizationRepository: container.organizationRepository) {
+                        await newsViewModel.refresh()
+                    }
+                case .event:
+                    EventEditorView(repository: container.eventRepository, organizationRepository: container.organizationRepository) {
+                        await eventsViewModel.refresh()
+                    }
+                }
+            }
+            .environmentObject(authState)
         }
         .sheet(item: $contentReportCoordinator.target) { target in
             ContentReportSheet(target: target, coordinator: contentReportCoordinator)
@@ -358,6 +386,24 @@ struct ContentView: View {
         )
     }
 
+    private var authoringIdentityKey: String {
+        "\(authTaskKey):\(authState.user?.updatedAt.timeIntervalSince1970 ?? 0)"
+    }
+
+    private var quickCreationActions: QuickCreationActions {
+        let user = authState.isAuthenticated ? authState.user : nil
+        let canCreateNews = authoringOrganizations.organizations.contains {
+            PermissionService.canCreateOrganizationNews($0, user: user)
+        }
+        let canCreateEvent = authoringOrganizations.organizations.contains {
+            PermissionService.canCreateOrganizationEvent($0, user: user)
+        }
+        return QuickCreationActions(
+            news: canCreateNews ? { quickCreation = .news } : nil,
+            event: canCreateEvent ? { quickCreation = .event } : nil
+        )
+    }
+
     @ViewBuilder
     private var rootTabs: some View {
         homeTab
@@ -490,6 +536,7 @@ struct ContentView: View {
     }
 
     private func handleAuthIdentityChange(for key: String) {
+        quickCreation = nil
         guard lastHandledAuthIdentityResetKey != key else { return }
         guard lastHandledAuthIdentityResetKey != nil else {
             lastHandledAuthIdentityResetKey = key
@@ -811,6 +858,7 @@ struct ContentView: View {
     }
 
     private func handlePendingRemoteNotificationRouteIfReady() {
+        guard !authState.appLock.isLocked else { return }
         guard ContentAuthLifecyclePolicy.canHandlePendingRoute(in: authState.sessionState),
               let route = remoteNotificationRouteCoordinator.pendingRoute else {
             return

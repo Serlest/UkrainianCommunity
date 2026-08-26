@@ -296,24 +296,16 @@ struct OrganizationsListView: View {
     }
 
     private var organizationsHeader: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            AppSearchableBrandHeader(
-                isSearchPresented: $isSearchPresented,
-                searchText: $searchText,
-                placeholder: AppStrings.Search.organizationsPlaceholder,
-                collapseToken: searchResetToken
-            )
-
-            if PermissionService.canCreateOrganization(user: authState.user) {
-                AppGlassIconButton(
-                    systemImage: "plus",
-                    accessibilityLabel: AppStrings.Organizations.addOrganization
-                ) {
-                    isShowingCreateOrganization = true
-                }
-                .accessibilityIdentifier("organizations.add")
-            }
-        }
+        AppSearchableBrandHeader(
+            isSearchPresented: $isSearchPresented,
+            searchText: $searchText,
+            placeholder: AppStrings.Search.organizationsPlaceholder,
+            collapseToken: searchResetToken,
+            additionalCreateAction: PermissionService.canCreateOrganization(user: authState.user)
+                ? { isShowingCreateOrganization = true } : nil,
+            additionalCreateTitle: AppStrings.Organizations.addOrganization,
+            additionalCreateIdentifier: "organizations.add"
+        )
     }
 
     @ViewBuilder

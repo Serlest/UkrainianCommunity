@@ -17,6 +17,30 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         try await fetchOrganizationsPage(limit: 30, after: nil).items
     }
 
+    func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization] {
+        guard PermissionService.isUsableAccount(user: user), Auth.auth().currentUser?.uid == user.id else {
+            throw AppError.permissionDenied
+        }
+        let approved = collection.whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+        let documents: [QueryDocumentSnapshot]
+        if PermissionService.isAppOwner(user: user) {
+            documents = try await approved.getDocuments(source: .server).documents
+        } else {
+            // Query canonical organization roles, not the first catalog page or
+            // potentially stale user membership mirrors. Existing Rules apply.
+            async let owned = approved.whereField("ownerId", isEqualTo: user.id).getDocuments(source: .server)
+            async let administered = approved.whereField("adminIds", arrayContains: user.id).getDocuments(source: .server)
+            async let moderated = approved.whereField("moderatorIds", arrayContains: user.id).getDocuments(source: .server)
+            let snapshots = try await [owned, administered, moderated]
+            var seen = Set<String>()
+            documents = snapshots.flatMap(\.documents).filter { seen.insert($0.documentID).inserted }
+        }
+        let organizations = try documents.map {
+            try Organization(dto: makeOrganizationDTO(from: $0, likedOrganizationIDs: [], subscribedOrganizationIDs: [], bookmarkedOrganizationIDs: []))
+        }
+        return PermissionService.manageableOrganizations(from: organizations, user: user)
+    }
+
     func fetchBookmarkedOrganizations() async throws -> [Organization] {
         let bookmarkedIDs = try await fetchBookmarkedOrganizationIDs()
         guard !bookmarkedIDs.isEmpty else { return [] }

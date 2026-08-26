@@ -6,6 +6,40 @@ import Testing
 
 @MainActor
 struct AuthUIIntegrationTests {
+    @Test(arguments: [320.0, 390.0], [false, true])
+    func registrationAnalyticsConsentRendersCompleteDisclosure(width: Double, accessibilityText: Bool) throws {
+        let previousLanguage = LocalizationStore.language
+        defer { LocalizationStore.language = previousLanguage }
+        for language in [AppLanguage.ukrainian, .german] {
+            LocalizationStore.language = language
+            let content = RegistrationAnalyticsConsentView(isEnabled: .constant(false))
+                .padding(16).frame(width: width).background(Color.white)
+                .environment(\.dynamicTypeSize, accessibilityText ? .accessibility3 : .large)
+            // ImageRenderer cannot render the UIKit-backed native Switch and
+            // substitutes a warning tile. Host it to inspect the actual control.
+            let host = UIHostingController(rootView: content)
+            host.safeAreaRegions = []
+            let size = host.sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
+            let window = UIWindow(frame: CGRect(origin: .zero, size: size))
+            window.overrideUserInterfaceStyle = .light
+            window.rootViewController = host
+            window.isHidden = false
+            defer { window.isHidden = true }
+            host.view.frame = window.bounds
+            host.view.setNeedsLayout()
+            host.view.layoutIfNeeded()
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            var didDraw = false
+            let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+                didDraw = host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+            }
+            #expect(didDraw)
+            #expect(image.cgImage?.width == Int(width))
+            Attachment.record(image, named: "registration-analytics-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
+        }
+    }
+
     @Test(arguments: [320.0, 768.0], [false, true])
     func organizationLogoPickerKeepsInstructionsOutsideTheSquare(width: Double, accessibilityText: Bool) throws {
         let previousLanguage = LocalizationStore.language

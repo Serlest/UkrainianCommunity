@@ -51,6 +51,149 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testQuickCreationUsesExistingEditorsAndBellIsSharedAcrossTabs() throws {
+        let app = launchOwnerApp()
+        for (index, kind) in [(0, "news"), (1, "event")] {
+            tapRootTab(rootTabs[index], in: app, timeout: 20)
+            let create = app.buttons["quickCreate.\(kind)"]
+            XCTAssertTrue(create.waitForExistence(timeout: 20))
+            XCTAssertTrue(create.isHittable)
+            attachScreenshot(named: "quick-create-\(kind)", from: app)
+            create.tap()
+            XCTAssertTrue(element("editor.\(kind)", in: app).waitForExistence(timeout: 15))
+            // The draft-preservation scenario deliberately leaves a local draft.
+            // Handle the real recovery prompt before testing the editor close path.
+            let newDraft = app.buttons["Neu erstellen"]
+            if newDraft.waitForExistence(timeout: 2) { newDraft.tap() }
+            attachScreenshot(named: "existing-editor-\(kind)", from: app)
+            app.buttons["Abbrechen"].firstMatch.tap()
+            XCTAssertTrue(app.buttons["quickCreate.\(kind)"].waitForExistence(timeout: 10))
+        }
+        for tab in rootTabs {
+            tapRootTab(tab, in: app, timeout: 20)
+            let bell = app.buttons["notificationInbox.bell"].firstMatch
+            XCTAssertTrue(bell.waitForExistence(timeout: 10))
+            XCTAssertTrue(bell.isHittable)
+            attachScreenshot(named: "shared-bell-\(tab.tabIdentifier)", from: app)
+            bell.tap()
+            let back = app.buttons["navigation.back"].firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 10))
+            back.tap()
+            XCTAssertTrue(element(tab.screenIdentifier, in: app).waitForExistence(timeout: 10))
+        }
+        app.terminate()
+        let guest = launchApp()
+        XCTAssertTrue(guest.tabBars.firstMatch.waitForExistence(timeout: 15))
+        XCTAssertFalse(guest.buttons["quickCreate.news"].exists)
+        XCTAssertFalse(guest.buttons["notificationInbox.bell"].exists)
+        tapRootTab(rootTabs[1], in: guest, timeout: 10)
+        XCTAssertFalse(guest.buttons["quickCreate.event"].exists)
+    }
+
+    @MainActor
+    private func launchAppLockTestApp(scenario: String = "success", language: String = "de", largeText: Bool = false) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = language
+        app.launchEnvironment["UITestAppLockScenario"] = scenario
+        app.launchEnvironment["UITestResetAppLock"] = "1"
+        if largeText {
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+            app.launchEnvironment["UITestAppAppearance"] = "dark"
+        }
+        app.launch()
+        return app
+    }
+
+    @MainActor
+    private func enableAppLock(in app: XCUIApplication) {
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        scrollToElement(settings, in: app, maxSwipes: 24)
+        settings.tap()
+        let toggle = app.switches["profile.settings.appLock"].firstMatch
+        scrollToElement(toggle, in: app, maxSwipes: 10)
+        XCTAssertEqual(toggle.value as? String, "0")
+        toggle.tap()
+        let enabled = NSPredicate(format: "value == '1'")
+        expectation(for: enabled, evaluatedWith: toggle)
+        waitForExpectations(timeout: 8)
+    }
+
+    @MainActor
+    func testAppLockCoversPresentedInboxAndRejectsFailedUnlock() throws {
+        // Scripted LocalAuthentication verifies app behavior, not real Face ID hardware.
+        let app = launchAppLockTestApp(scenario: "failureThenSuccess")
+        enableAppLock(in: app)
+        app.buttons["navigation.back"].firstMatch.tap()
+        tapRootTab(rootTabs[0], in: app, timeout: 10)
+        app.buttons["notificationInbox.bell"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["navigation.back"].firstMatch.waitForExistence(timeout: 10))
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 10))
+        app.activate()
+        let unlock = app.buttons["appLock.unlock"]
+        XCTAssertTrue(unlock.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["navigation.back"].firstMatch.isHittable)
+        attachScreenshot(named: "app-lock-covers-inbox", from: app)
+        unlock.tap()
+        XCTAssertTrue(app.staticTexts["Der Zugriff konnte nicht bestätigt werden. Versuchen Sie es erneut oder melden Sie sich mit Ihrem Passwort an."].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["navigation.back"].firstMatch.isHittable)
+        unlock.tap()
+        XCTAssertTrue(unlock.waitForNonExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["navigation.back"].firstMatch.isHittable)
+        app.buttons["navigation.back"].firstMatch.tap()
+        XCTAssertTrue(app.tabBars.firstMatch.isHittable)
+    }
+
+    @MainActor
+    func testUkrainianLargeTextLockPreservesNewsEditorDraft() throws {
+        let app = launchAppLockTestApp(language: "uk", largeText: true)
+        enableAppLock(in: app)
+        attachScreenshot(named: "app-lock-settings-uk-accessibility", from: app)
+        app.buttons["navigation.back"].firstMatch.tap()
+        tapRootTab(rootTabs[0], in: app, timeout: 10)
+        let create = app.buttons["quickCreate.news"]
+        XCTAssertTrue(create.waitForExistence(timeout: 10))
+        attachScreenshot(named: "quick-create-uk-accessibility", from: app)
+        create.tap()
+        let newDraft = app.buttons["Створити нову"]
+        if newDraft.waitForExistence(timeout: 2) { newDraft.tap() }
+        let title = app.textFields.firstMatch
+        scrollToElement(title, in: app, maxSwipes: 12)
+        XCTAssertTrue(title.isHittable)
+        title.tap()
+        title.typeText("Draft kept")
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 10))
+        app.activate()
+        let unlock = app.buttons["appLock.unlock"]
+        XCTAssertTrue(unlock.waitForExistence(timeout: 10))
+        scrollToElement(unlock, in: app, maxSwipes: 12)
+        attachScreenshot(named: "app-lock-uk-accessibility", from: app)
+        unlock.tap()
+        XCTAssertTrue(unlock.waitForNonExistence(timeout: 8))
+        XCTAssertEqual(title.value as? String, "Draft kept")
+    }
+
+    @MainActor
+    func testAppLockRestoresLockedAndOffersExistingPasswordLogin() throws {
+        let app = launchAppLockTestApp()
+        enableAppLock(in: app)
+        app.terminate()
+        app.launchEnvironment["UITestResetAppLock"] = nil
+        app.launch()
+        let password = app.buttons["appLock.passwordSignIn"]
+        XCTAssertTrue(password.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.tabBars.firstMatch.isHittable)
+        password.tap()
+        XCTAssertTrue(app.buttons["auth.login.submit"].waitForExistence(timeout: 20))
+        XCTAssertFalse(app.buttons["appLock.unlock"].exists)
+    }
+
+    @MainActor
     func testNotificationDetailsReadCloseDeleteAndNavigate() throws {
         let app = launchNotificationDetailsApp()
         tapRootTab(rootTabs[3], in: app, timeout: 20)
@@ -784,6 +927,47 @@ final class UkrainianCommunityUITests: XCTestCase {
         let termsSwitch = app.switches[AppStringsPlaceholder.acceptTermsDE]
         scrollToElement(termsSwitch, in: app)
         XCTAssertTrue(termsSwitch.exists)
+        XCTAssertEqual(termsSwitch.value as? String, "0")
+        let analytics = app.switches["auth.register.analyticsConsent"]
+        scrollToElement(analytics, in: app)
+        XCTAssertTrue(analytics.isHittable)
+        XCTAssertEqual(analytics.value as? String, "0", "Optional analytics must never be preselected")
+        attachScreenshot(named: "registration-optional-analytics-off-de", from: app)
+        analytics.tap()
+        XCTAssertEqual(analytics.value as? String, "1")
+        XCTAssertEqual(termsSwitch.value as? String, "0", "Analytics must not accept mandatory agreements")
+        analytics.tap()
+        XCTAssertEqual(analytics.value as? String, "0")
+        scrollToElement(termsSwitch, in: app)
+        termsSwitch.tap()
+        XCTAssertEqual(analytics.value as? String, "0", "Terms acceptance must not opt in to analytics")
+    }
+
+    @MainActor
+    func testRegistrationAnalyticsSupportsUkrainianLargeText() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "uk"
+        app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launchEnvironment["UITestAppAppearance"] = "dark"
+        app.launch()
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let create = app.buttons["Створити обліковий запис"].firstMatch
+        scrollToElement(create, in: app, maxSwipes: 12)
+        XCTAssertTrue(create.waitForExistence(timeout: 10))
+        create.tap()
+        let analytics = app.switches["auth.register.analyticsConsent"]
+        scrollToElement(analytics, in: app, maxSwipes: 35)
+        XCTAssertTrue(analytics.isHittable)
+        XCTAssertEqual(analytics.value as? String, "0")
+        attachScreenshot(named: "registration-optional-analytics-uk-dark-AX", from: app)
+        analytics.tap()
+        XCTAssertEqual(analytics.value as? String, "1")
+        let submit = app.buttons["auth.register.submit"]
+        scrollToElement(submit, in: app, maxSwipes: 30)
+        XCTAssertTrue(submit.isHittable)
+        XCTAssertFalse(submit.isEnabled, "Optional consent must not bypass registration validation")
     }
 
     @MainActor

@@ -461,10 +461,11 @@ struct AuthSessionConsistencyTests {
         let backend = FakeAuthBackend()
         backend.createUserResult = firebaseUser
         let profiles = FakeAuthProfileProvider(createError: AppError.network)
-        let service = makeService(state: state, backend: backend, profiles: profiles)
+        let consent = RecordingRegistrationConsent()
+        let service = makeService(state: state, backend: backend, profiles: profiles, consent: consent)
 
         do {
-            try await service.register(draft: makeDraft(), password: "password")
+            try await service.register(draft: makeDraft(analyticsEnabled: true), password: "password")
             Issue.record("Expected profile creation to fail")
         } catch RegistrationError.profileNetwork {
         } catch {
@@ -476,6 +477,7 @@ struct AuthSessionConsistencyTests {
         #expect(backend.currentSessionUser?.uid == nil)
         #expect(state.sessionState == .guest)
         #expect(state.user == nil)
+        #expect(consent.choices.isEmpty)
     }
 
     @Test
@@ -561,11 +563,165 @@ struct AuthSessionConsistencyTests {
         #expect(state.errorMessage == AppStrings.Auth.emailVerificationResendFailed)
     }
 
+    @Test(arguments: [false, true])
+    func registrationStoresOnlyExplicitChoiceForCreatedAccount(analyticsEnabled: Bool) async throws {
+        let suite = "RegistrationConsent.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let consent = AnalyticsConsentService(userDefaults: defaults)
+        let state = AuthState()
+        state.setGuestSession()
+        let user = FakeAuthSessionUser(uid: "new-user", email: "new@example.com", isEmailVerified: false)
+        // Failure to send the verification email must not discard the saved choice.
+        user.verificationEmailError = FakeAuthError.expected
+        let backend = FakeAuthBackend()
+        backend.createUserResult = user
+        let profiles = FakeAuthProfileProvider(profiles: [user.uid: makeUser(id: user.uid)])
+        let service = makeService(state: state, backend: backend, profiles: profiles, consent: consent)
+
+        try await service.register(draft: makeDraft(analyticsEnabled: analyticsEnabled), password: "password")
+        let restoredConsent = AnalyticsConsentService(userDefaults: defaults)
+        #expect(state.sessionState == .verificationPending)
+        #expect(restoredConsent.isAnalyticsEnabled(for: user.uid) == analyticsEnabled)
+        #expect(!restoredConsent.isAnalyticsEnabled(for: nil))
+        #expect(!restoredConsent.isAnalyticsEnabled(for: "different-user"))
+
+        user.isEmailVerified = true
+        await service.restoreSession()
+        #expect(state.sessionState == .authenticated)
+        #expect(restoredConsent.isAnalyticsEnabled(for: user.uid) == analyticsEnabled)
+        // Profile withdrawal uses this same per-principal consent store.
+        restoredConsent.setAnalyticsEnabled(false, for: user.uid)
+        #expect(!consent.isAnalyticsEnabled(for: user.uid))
+    }
+
+    @Test
+    func registrationCannotSaveConsentAfterBackendAccountChanges() async {
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend()
+        backend.createUserResult = FakeAuthSessionUser(uid: "new-user", email: "new@example.com", isEmailVerified: false)
+        let profiles = FakeAuthProfileProvider()
+        profiles.createHandler = {
+            backend.currentSessionUser = FakeAuthSessionUser(uid: "different-user", email: "other@example.com", isEmailVerified: true)
+        }
+        let consent = RecordingRegistrationConsent()
+        let service = makeService(state: state, backend: backend, profiles: profiles, consent: consent)
+        do {
+            try await service.register(draft: makeDraft(analyticsEnabled: true), password: "password")
+            Issue.record("Expected changed session to reject registration completion")
+        } catch {}
+        #expect(consent.choices.isEmpty)
+    }
+
+    @Test
+    func appLockDefaultsOffAndPersistsPerAccountAcrossRestarts() async {
+        let suite = "AppLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localAuth = FakeLocalAuthentication()
+        let lock = AppLockService(defaults: defaults, authentication: localAuth)
+        lock.updateSession(userID: "a")
+        #expect(!lock.isEnabled && !lock.isLocked)
+        await lock.setEnabled(true)
+        #expect(lock.isEnabled && lock.isUnlocked)
+        let restored = AppLockService(defaults: defaults, authentication: localAuth)
+        restored.updateSession(userID: "a")
+        #expect(restored.isLocked)
+        restored.updateSession(userID: "b")
+        #expect(!restored.isEnabled)
+        restored.updateSession(userID: nil)
+        await restored.setEnabled(true)
+        #expect(!restored.isEnabled)
+        restored.updateSession(userID: "a")
+        #expect(restored.isLocked)
+    }
+
+    @Test
+    func appLockFailureCancelAndUnavailableNeverUnlockOrDisable() async {
+        let suite = "AppLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localAuth = FakeLocalAuthentication()
+        let lock = AppLockService(defaults: defaults, authentication: localAuth)
+        lock.updateSession(userID: "a")
+        localAuth.biometry = .unavailable
+        await lock.setEnabled(true)
+        #expect(!lock.isEnabled)
+        localAuth.biometry = .touchID
+        await lock.setEnabled(true)
+        lock.lock()
+        localAuth.accepted = false
+        await lock.unlock()
+        #expect(lock.isLocked)
+        await lock.setEnabled(false)
+        #expect(lock.isEnabled && lock.isLocked)
+        localAuth.error = NSError(domain: "com.apple.LocalAuthentication", code: -2)
+        await lock.unlock()
+        #expect(lock.isLocked && !lock.isAuthenticating)
+        localAuth.error = nil
+        localAuth.accepted = true
+        await lock.unlock()
+        #expect(!lock.isLocked)
+        await lock.setEnabled(false)
+        #expect(!lock.isEnabled)
+    }
+
+    @Test(arguments: [true, false])
+    func appLockRejectsLateAuthenticationAfterBackgroundOrAccountChange(background: Bool) async {
+        let suite = "AppLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localAuth = FakeLocalAuthentication()
+        let lock = AppLockService(defaults: defaults, authentication: localAuth)
+        lock.updateSession(userID: "a")
+        await lock.setEnabled(true)
+        lock.lock()
+        localAuth.shouldSuspend = true
+        let task = Task { await lock.unlock() }
+        for _ in 0..<100 where localAuth.continuation == nil { await Task.yield() }
+        #expect(localAuth.continuation != nil)
+        if background { lock.enterBackground() } else { lock.updateSession(userID: "b") }
+        localAuth.continuation?.resume(returning: true)
+        localAuth.continuation = nil
+        await task.value
+        if !background { lock.updateSession(userID: "a") }
+        #expect(lock.isLocked)
+        #expect(!lock.isAuthenticating)
+    }
+
+    @Test
+    func appLockKeepsPreferenceAndRequiresPasswordAfterSignOut() async throws {
+        let suite = "AppLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let lock = AppLockService(defaults: defaults, authentication: FakeLocalAuthentication())
+        let state = AuthState(appLock: lock)
+        let firebaseUser = FakeAuthSessionUser(uid: "user-a", email: "a@example.com", isEmailVerified: true)
+        let backend = FakeAuthBackend(currentUser: firebaseUser, signInUser: firebaseUser)
+        let profiles = FakeAuthProfileProvider(profiles: ["user-a": makeUser(id: "user-a")])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+        state.setAuthenticatedSession(user: makeUser(id: "user-a"))
+        await lock.setEnabled(true)
+        lock.lock()
+        #expect(await service.signOut())
+        #expect(state.isGuest && lock.userID == nil)
+        _ = try await service.signIn(email: "a@example.com", password: "password")
+        #expect(state.isAuthenticated && lock.isEnabled && !lock.isLocked)
+        lock.enterBackground()
+        #expect(lock.isLocked)
+        lock.updateSession(userID: "user-a", passwordAuthenticated: true)
+        #expect(lock.isLocked)
+        lock.becomeActive()
+        #expect(lock.isLocked)
+    }
+
     private func makeService(
         state: AuthState,
         backend: FakeAuthBackend,
         profiles: FakeAuthProfileProvider,
-        notifications: FakeAuthNotificationRegistration? = nil
+        notifications: FakeAuthNotificationRegistration? = nil,
+        consent: (any AnalyticsConsentProviding)? = nil
     ) -> AuthService {
         let resolvedNotifications: FakeAuthNotificationRegistration
         if let notifications {
@@ -578,7 +734,8 @@ struct AuthSessionConsistencyTests {
             authState: state,
             backend: backend,
             profileProvider: profiles,
-            notificationRegistration: resolvedNotifications
+            notificationRegistration: resolvedNotifications,
+            analyticsConsent: consent ?? RecordingRegistrationConsent()
         )
     }
 
@@ -597,7 +754,7 @@ struct AuthSessionConsistencyTests {
         )
     }
 
-    private func makeDraft() -> RegistrationProfileDraft {
+    private func makeDraft(analyticsEnabled: Bool = false) -> RegistrationProfileDraft {
         RegistrationProfileDraft(
             email: "new@example.com",
             displayName: "New User",
@@ -608,13 +765,23 @@ struct AuthSessionConsistencyTests {
             termsVersion: AuthService.currentTermsVersion,
             privacyVersion: AuthService.currentPrivacyVersion,
             minimumAgeConfirmedAt: .now,
-            minimumAgeVersion: AuthService.currentMinimumAgeVersion
+            minimumAgeVersion: AuthService.currentMinimumAgeVersion,
+            analyticsConsentEnabled: analyticsEnabled
         )
     }
 }
 
 private enum FakeAuthError: Error {
     case expected
+}
+
+private final class RecordingRegistrationConsent: AnalyticsConsentProviding {
+    var choices: [String: Bool] = [:]
+    func isAnalyticsEnabled(for principalID: String?) -> Bool { choices[principalID ?? ""] == true }
+    func analyticsConsentID(for principalID: String?) -> String? { nil }
+    func setAnalyticsEnabled(_ isEnabled: Bool, for principalID: String?) {
+        if let principalID { choices[principalID] = isEnabled }
+    }
 }
 
 private final class FakeAuthSessionUser: AuthSessionUserProviding {
@@ -732,6 +899,7 @@ private final class FakeAuthProfileProvider: AuthProfileProviding {
     var profiles: [String: AppUser]
     var fetchError: Error?
     var createError: Error?
+    var createHandler: (() async throws -> Void)?
     var fetchHandler: ((String) async throws -> AppUser)?
     private(set) var fetchCallCount = 0
     private(set) var createCallCount = 0
@@ -748,6 +916,7 @@ private final class FakeAuthProfileProvider: AuthProfileProviding {
 
     func createRegisteredUserDocument(for uid: String, draft: RegistrationProfileDraft) async throws {
         createCallCount += 1
+        try await createHandler?()
         if let createError { throw createError }
     }
 
@@ -842,4 +1011,19 @@ private final class FakeAuthNotificationRegistration: AuthNotificationRegistrati
     func resumeAfterFailedSignOut() async {
         resumeCallCount += 1
     }
+}
+
+@MainActor
+private final class FakeLocalAuthentication: LocalAuthenticationProviding {
+    var biometry: AppBiometry = .faceID
+    var accepted = true
+    var error: Error?
+    var shouldSuspend = false
+    var continuation: CheckedContinuation<Bool, Never>?
+    func authenticate(reason: String) async throws -> Bool {
+        if let error { throw error }
+        if shouldSuspend { return await withCheckedContinuation { continuation = $0 } }
+        return accepted
+    }
+    func cancel() {}
 }

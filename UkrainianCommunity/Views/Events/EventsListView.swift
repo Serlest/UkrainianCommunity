@@ -479,7 +479,8 @@ struct EventsListView: View {
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
             placeholder: AppStrings.Search.eventsPlaceholder,
-            collapseToken: searchResetToken
+            collapseToken: searchResetToken,
+            creationKind: .event
         )
     }
 

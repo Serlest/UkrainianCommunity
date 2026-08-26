@@ -239,6 +239,30 @@ private enum TestDeliveryError: Error {
 
 @MainActor
 struct AnalyticsDeliveryConsistencyTests {
+    @Test func consentKeepsDisclosureLanguageAcrossDeferredVerificationAndRestart() throws {
+        let suite = "AnalyticsConsentLocale.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        let previousLanguage = LocalizationStore.language
+        defer {
+            defaults.removePersistentDomain(forName: suite)
+            LocalizationStore.language = previousLanguage
+        }
+        let consent = AnalyticsConsentService(userDefaults: defaults)
+        LocalizationStore.language = .ukrainian
+        consent.setAnalyticsEnabled(true, for: "new-user")
+        let consentID = consent.analyticsConsentID(for: "new-user")
+        LocalizationStore.language = .german
+        let restored = AnalyticsConsentService(userDefaults: defaults)
+        #expect(restored.analyticsConsentLocale(for: "new-user") == "uk")
+        #expect(restored.analyticsConsentID(for: "new-user") == consentID)
+        #expect(restored.analyticsConsentLocale(for: "another-user") == nil)
+        restored.setAnalyticsEnabled(false, for: "new-user")
+        #expect(restored.analyticsConsentLocale(for: "new-user") == nil)
+        restored.setAnalyticsEnabled(true, for: "new-user")
+        #expect(restored.analyticsConsentLocale(for: "new-user") == "de")
+        #expect(restored.analyticsConsentID(for: "new-user") != consentID)
+    }
+
     @Test func legacyGlobalConsentRequiresFreshPerPrincipalOptIn() {
         let suiteName = "AnalyticsPrincipalConsentTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

@@ -10,7 +10,7 @@ struct EventEditorView: View {
     @Environment(\.accessibilityReduceTransparency) var reduceTransparency
     @EnvironmentObject var authState: AuthState
     @StateObject var viewModel: EventEditorViewModel
-    @StateObject var organizerOrganizationsViewModel: OrganizationsViewModel
+    @StateObject var organizerOrganizationsViewModel: AuthoringOrganizationsViewModel
     @StateObject var locationSearch = EventLocationSearchViewModel()
     @State var selectedPhoto: PhotosPickerItem?
     @State var selectedPreviewImage: UIImage?
@@ -41,6 +41,16 @@ struct EventEditorView: View {
 
     init(
         repository: EventRepository,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onPublished: @escaping @MainActor () async -> Void = {}
+    ) {
+        _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create()))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
+        self.onPublished = onPublished
+    }
+
+    init(
+        repository: EventRepository,
         organizationId: String,
         organizationName: String,
         organizationImageURL: String?,
@@ -57,7 +67,7 @@ struct EventEditorView: View {
                 organizationFederalState: organizationFederalState
             ))
         ))
-        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -68,7 +78,7 @@ struct EventEditorView: View {
         onPublished: @escaping @MainActor () async -> Void = {}
     ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .edit(existing: event)))
-        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -85,6 +95,7 @@ struct EventEditorView: View {
             editorNavigation
         }
         .tint(AppTheme.accentPrimary)
+        .accessibilityIdentifier("editor.event")
         .sheet(isPresented: $isShowingMapPicker) {
             EventMapPickerView(
                 initialCoordinate: viewModel.selectedCoordinate,
@@ -192,8 +203,8 @@ struct EventEditorView: View {
         .onDisappear {
             imageProcessingTask?.cancel()
         }
-        .task {
-            await organizerOrganizationsViewModel.loadIfNeeded()
+        .task(id: authState.user?.id) {
+            await organizerOrganizationsViewModel.load(for: authState.user)
             applyDefaultOrganizerIfNeeded()
             await loadRecoverableDraftIfNeeded()
         }

@@ -8,7 +8,7 @@ struct NewsEditorView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.accessibilityReduceTransparency) var reduceTransparency
     @StateObject var viewModel: NewsEditorViewModel
-    @StateObject var organizerOrganizationsViewModel: OrganizationsViewModel
+    @StateObject var organizerOrganizationsViewModel: AuthoringOrganizationsViewModel
     @State var selectedPhoto: PhotosPickerItem?
     @State var selectedPreviewImage: UIImage?
     @State var cropSourceImage: UIImage?
@@ -45,7 +45,7 @@ struct NewsEditorView: View {
         onPublished: @escaping @MainActor () async -> Void = {}
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create()))
-        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -67,7 +67,7 @@ struct NewsEditorView: View {
                 organizationFederalState: organizationFederalState
             ))
         ))
-        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -78,7 +78,7 @@ struct NewsEditorView: View {
         onPublished: @escaping @MainActor () async -> Void = {}
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .edit(existing: news)))
-        _organizerOrganizationsViewModel = StateObject(wrappedValue: OrganizationsViewModel(repository: organizationRepository))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
     }
 
@@ -100,6 +100,7 @@ struct NewsEditorView: View {
             }
         }
         .tint(AppTheme.accentPrimary)
+        .accessibilityIdentifier("editor.news")
         .sheet(isPresented: $isShowingOrganizerPicker) {
             NewsOrganizerPickerSheet(
                 organizations: availableOrganizerOrganizations,
@@ -180,7 +181,7 @@ struct NewsEditorView: View {
         .task(id: authState.user?.id) {
             viewModel.setAuthState(authState)
             guard !viewModel.isEditing else { return }
-            await organizerOrganizationsViewModel.loadIfNeeded()
+            await organizerOrganizationsViewModel.load(for: authState.user)
             applyDefaultOrganizerIfNeeded()
             await loadRecoverableDraftIfNeeded()
         }

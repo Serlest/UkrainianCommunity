@@ -1046,6 +1046,7 @@ struct ProfileView: View {
                     countBadge: notificationInboxViewModel.unreadCount
                 )
             }
+            .accessibilityIdentifier("profile.settings.open")
             .buttonStyle(.plain)
         }
     }

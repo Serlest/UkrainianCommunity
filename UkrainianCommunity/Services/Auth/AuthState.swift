@@ -36,13 +36,16 @@ final class AuthState: ObservableObject {
     @Published var presentedAuthFlow: AuthFlowDestination?
 
     private let userProfileLoader: UserProfileLoader
+    let appLock: AppLockService
     private var userLoadGeneration = 0
 
     init(
+        appLock: AppLockService? = nil,
         userProfileLoader: @escaping UserProfileLoader = {
             try await UserProfileService.shared.fetchExistingUserProfile(uid: $0)
         }
     ) {
+        self.appLock = appLock ?? AppLockService()
         self.userProfileLoader = userProfileLoader
     }
 
@@ -72,6 +75,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func beginRestoringSession() {
+        appLock.lock()
         invalidateUserLoad()
         user = nil
         pendingVerificationEmail = nil
@@ -92,6 +96,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func setGuestSession() {
+        appLock.updateSession(userID: nil)
         invalidateUserLoad()
         user = nil
         pendingVerificationEmail = nil
@@ -101,7 +106,8 @@ final class AuthState: ObservableObject {
     }
 
     @MainActor
-    func setAuthenticatedSession(user: AppUser) {
+    func setAuthenticatedSession(user: AppUser, passwordAuthenticated: Bool = false) {
+        appLock.updateSession(userID: user.id, passwordAuthenticated: passwordAuthenticated)
         invalidateUserLoad()
         self.user = user
         pendingVerificationEmail = nil
@@ -125,6 +131,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func setVerificationPendingSession(userID: String, email: String?) {
+        appLock.updateSession(userID: userID)
         invalidateUserLoad()
         user = nil
         pendingSessionUserID = userID
@@ -139,6 +146,7 @@ final class AuthState: ObservableObject {
         email: String?,
         errorMessage: String
     ) {
+        appLock.updateSession(userID: userID)
         invalidateUserLoad()
         user = nil
         pendingSessionUserID = userID

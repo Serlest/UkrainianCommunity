@@ -4,12 +4,18 @@ import Foundation
 protocol AnalyticsConsentProviding {
     func isAnalyticsEnabled(for principalID: String?) -> Bool
     func analyticsConsentID(for principalID: String?) -> String?
+    func analyticsConsentLocale(for principalID: String?) -> String?
     func setAnalyticsEnabled(_ isEnabled: Bool, for principalID: String?)
+}
+
+extension AnalyticsConsentProviding {
+    func analyticsConsentLocale(for principalID: String?) -> String? { nil }
 }
 
 final class AnalyticsConsentService: AnalyticsConsentProviding {
     private let userDefaults: UserDefaults
     private let storageKey: String
+    private var localeStorageKey: String { storageKey + ".locale" }
 
     init(
         userDefaults: UserDefaults = .standard,
@@ -38,12 +44,15 @@ final class AnalyticsConsentService: AnalyticsConsentProviding {
         guard let identifier = storageIdentifier(for: principalID) else { return }
 
         var storedValues = userDefaults.dictionary(forKey: storageKey) ?? [:]
+        var storedLocales = userDefaults.dictionary(forKey: localeStorageKey) ?? [:]
         if isEnabled {
             if storedValues[identifier] as? String == nil {
                 storedValues[identifier] = UUID().uuidString
+                storedLocales[identifier] = LocalizationStore.language.rawValue
             }
         } else {
             storedValues.removeValue(forKey: identifier)
+            storedLocales.removeValue(forKey: identifier)
         }
 
         if storedValues.isEmpty {
@@ -51,6 +60,19 @@ final class AnalyticsConsentService: AnalyticsConsentProviding {
         } else {
             userDefaults.set(storedValues, forKey: storageKey)
         }
+        if storedLocales.isEmpty {
+            userDefaults.removeObject(forKey: localeStorageKey)
+        } else {
+            userDefaults.set(storedLocales, forKey: localeStorageKey)
+        }
+    }
+
+    func analyticsConsentLocale(for principalID: String?) -> String? {
+        guard analyticsConsentID(for: principalID) != nil,
+              let identifier = storageIdentifier(for: principalID),
+              let locale = userDefaults.dictionary(forKey: localeStorageKey)?[identifier] as? String,
+              locale == "de" || locale == "uk" else { return nil }
+        return locale
     }
 
     private func storageIdentifier(for principalID: String?) -> String? {

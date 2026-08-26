@@ -7,6 +7,10 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   doc,
+  collection,
+  query,
+  where,
+  getDocs,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
@@ -231,4 +235,24 @@ describe("organization region scope updates", () => {
       {regionScope: "federalState"}
     ));
   });
+});
+
+// Same role-constrained queries used by quick creation and both existing editors.
+describe("authoring organization discovery", () => {
+  for (const [uid, field, operation] of [
+    ["organization-owner", "ownerId", "=="],
+    ["organization-admin", "adminIds", "array-contains"],
+    ["organization-moderator", "moderatorIds", "array-contains"],
+  ]) {
+    test(`${field} discovers approved authoring organizations under existing Rules`, async () => {
+      const result = await assertSucceeds(getDocs(query(
+        collection(auth(uid), "organizations"),
+        where("moderationStatus", "==", "approved"),
+        where(field, operation, uid)
+      )));
+      if (result.docs.length !== 1 || result.docs[0].id !== APPROVED_ORGANIZATION_ID) {
+        throw new Error("Expected only the approved authoring organization");
+      }
+    });
+  }
 });

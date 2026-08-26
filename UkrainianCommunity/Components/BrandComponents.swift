@@ -138,12 +138,19 @@ struct AppBrandHeader<TrailingContent: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-            AdaptiveBrandLockupView(layout: .horizontal)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+                AdaptiveBrandLockupView(layout: .horizontal)
+                    .fixedSize(horizontal: true, vertical: false)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-            trailingContent
+                trailingContent
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                AdaptiveBrandLockupView(layout: .horizontal)
+                HStack { Spacer(minLength: 0); trailingContent }
+            }
         }
         .frame(maxWidth: .infinity, minHeight: AppTheme.appHeaderLogoSize.height)
         .padding(.leading, AppTheme.appHeaderLeadingAdjustment)

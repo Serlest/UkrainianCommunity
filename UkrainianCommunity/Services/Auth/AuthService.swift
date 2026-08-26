@@ -21,6 +21,7 @@ struct RegistrationProfileDraft {
     let privacyVersion: String
     let minimumAgeConfirmedAt: Date
     let minimumAgeVersion: String
+    var analyticsConsentEnabled = false
 }
 
 enum RegistrationError: Error {
@@ -140,6 +141,7 @@ final class AuthService {
     private let backend: any AuthBackendProviding
     private let profileProvider: any AuthProfileProviding
     private let notificationRegistration: (any AuthNotificationRegistrationProviding)?
+    private let analyticsConsent: any AnalyticsConsentProviding
     @MainActor private var transitionGeneration: UInt = 0
     // Firebase user and session calls cannot be cancelled once started.
     // Serializing them lets a newer transition replace any stale backend result
@@ -154,12 +156,14 @@ final class AuthService {
         authState: AuthState,
         backend: any AuthBackendProviding,
         profileProvider: any AuthProfileProviding,
-        notificationRegistration: (any AuthNotificationRegistrationProviding)? = nil
+        notificationRegistration: (any AuthNotificationRegistrationProviding)? = nil,
+        analyticsConsent: (any AnalyticsConsentProviding)? = nil
     ) {
         self.authState = authState
         self.backend = backend
         self.profileProvider = profileProvider
         self.notificationRegistration = notificationRegistration
+        self.analyticsConsent = analyticsConsent ?? AnalyticsConsentService()
     }
 
     @MainActor
@@ -408,7 +412,7 @@ final class AuthService {
                 sessionUser: sessionUser,
                 transition: transition
             )
-            authState.setAuthenticatedSession(user: user)
+            authState.setAuthenticatedSession(user: user, passwordAuthenticated: true)
             authState.dismissAuthFlow()
             return user
         } catch AuthVerificationError.emailNotVerified {
@@ -480,7 +484,11 @@ final class AuthService {
             throw mappedError
         }
 
-        try ensureCurrentTransition(transition)
+        try validateCurrentBackendUser(sessionUser, transition: transition)
+        // Persist only a successful registration's explicit choice, scoped to its UID.
+        // FirstPartyAnalyticsService still requires verified email and a server receipt
+        // before authorizing any analytics delivery, including after an app restart.
+        analyticsConsent.setAnalyticsEnabled(draft.analyticsConsentEnabled, for: sessionUser.uid)
         authState.setVerificationPendingSession(
             userID: sessionUser.uid,
             email: sessionUser.email ?? draft.email

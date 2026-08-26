@@ -29,6 +29,7 @@ struct AppStartupGate: View {
                     .transition(.opacity)
             }
         }
+        .background(AppLockShield(authState: authState).frame(width: 0, height: 0))
         .onAppear {
             startMinimumSplashTimer()
             evaluateStartupState()

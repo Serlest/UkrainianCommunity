@@ -1,6 +1,21 @@
 import Foundation
 
 enum AppStrings {
+    enum AppLock {
+        static var settingsTitle: String { text("app_lock.settings_title", "Захист доступу") }
+        static var toggleTitle: String { text("app_lock.toggle_title", "Захист через Face ID / Touch ID") }
+        static var settingsHelp: String { text("app_lock.settings_help", "Після згортання застосунку доступ до цього акаунту на цьому пристрої потребуватиме Face ID, Touch ID або коду пристрою. Після виходу з акаунту потрібно знову ввести email і пароль.") }
+        static var unavailable: String { text("app_lock.unavailable", "Налаштуйте Face ID або Touch ID в параметрах пристрою та дозвольте доступ для застосунку.") }
+        static var lockedTitle: String { text("app_lock.locked_title", "Доступ заблоковано") }
+        static var lockedHelp: String { text("app_lock.locked_help", "Натисніть «Розблокувати», щоб підтвердити доступ через Face ID, Touch ID або код пристрою.") }
+        static var unlock: String { text("app_lock.unlock", "Розблокувати") }
+        static var reason: String { text("app_lock.reason", "Підтвердьте доступ до вашого акаунту.") }
+        static var failed: String { text("app_lock.failed", "Не вдалося підтвердити доступ. Спробуйте ще раз або увійдіть з паролем.") }
+        static var passwordSignIn: String { text("app_lock.password_sign_in", "Увійти з паролем") }
+        static var passwordHelp: String { text("app_lock.password_help", "Ця дія завершить поточний сеанс і відкриє звичайний вхід. Незбережені зміни може бути втрачено.") }
+        static var signOutFailed: String { text("app_lock.sign_out_failed", "Не вдалося завершити сеанс. Доступ залишається заблокованим. Спробуйте ще раз.") }
+    }
+
     enum Comments {
         static var loading: String { text("comments.loading", "Завантаження коментарів…") }
         static var loadFailed: String { text("comments.load_failed", "Не вдалося завантажити коментарі") }
@@ -2479,6 +2494,8 @@ enum AppStrings {
         static var registerSubtitle: String { text("auth.register.subtitle", "Create an account with the essentials. You can complete your profile later.") }
         static var continueAsGuest: String { text("auth.continue_as_guest", "Continue as Guest") }
         static var consentTitle: String { text("auth.consent.title", "Terms & Privacy") }
+        static var analyticsConsentTitle: String { text("auth.consent.analytics_title", "Allow optional usage analytics") }
+        static var analyticsConsentHelp: String { text("auth.consent.analytics_help", "Your choice does not affect registration. Analytics can start on this device only after email verification. You can change your choice in Profile → Settings.") }
         static var consentSubtitle: String { text("auth.consent.subtitle", "To create an account, accept the Terms, confirm that you read the Privacy Policy, and confirm that you are at least 14.") }
         static var acceptTerms: String { text("auth.consent.accept_terms", "I accept the Terms of Use") }
         static var acceptPrivacy: String { text("auth.consent.accept_privacy", "I have read the Privacy Policy") }

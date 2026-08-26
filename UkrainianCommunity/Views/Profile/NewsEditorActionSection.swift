@@ -118,6 +118,11 @@ extension NewsEditorView {
 
         @ViewBuilder
         var statusContent: some View {
+            if let error = organizerOrganizationsViewModel.error, !viewModel.isEditing {
+                ErrorStateCard(title: AppStrings.Profile.createNews, message: readableOrganizationErrorText(error), retryTitle: AppStrings.News.retry) {
+                    Task { await organizerOrganizationsViewModel.load(for: authState.user) }
+                }
+            }
             if viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage {
                 editorCard {
                     Label(statusMessage, systemImage: "arrow.triangle.2.circlepath")

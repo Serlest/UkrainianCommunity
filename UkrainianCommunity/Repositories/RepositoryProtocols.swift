@@ -289,6 +289,7 @@ protocol EventRepository: EventRegistrationMutating {
 
 protocol OrganizationRepository {
     func fetchOrganizations() async throws -> [Organization]
+    func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization]
     func fetchBookmarkedOrganizations() async throws -> [Organization]
     func fetchSubscribedOrganizations() async throws -> [Organization]
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage
@@ -444,6 +445,11 @@ extension Event {
 }
 
 extension OrganizationRepository {
+    func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization] {
+        PermissionService.manageableOrganizations(from: try await fetchOrganizations(), user: user)
+            .filter { $0.moderationStatus == .approved }
+    }
+
     func fetchBookmarkedOrganizations() async throws -> [Organization] {
         try await fetchOrganizations().filter(\.isBookmarked)
     }

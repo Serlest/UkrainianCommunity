@@ -228,7 +228,8 @@ struct HomeView: View {
             isSearchPresented: $isSearchPresented,
             searchText: $searchText,
             placeholder: AppStrings.Search.homePlaceholder,
-            collapseToken: searchResetToken
+            collapseToken: searchResetToken,
+            creationKind: .news
         )
     }
 

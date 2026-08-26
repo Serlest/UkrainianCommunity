@@ -503,6 +503,43 @@ struct ContentInteractionRaceTests {
         )
     }
 
+    @Test(arguments: ["owner", "admin", "moderator", "unrelated"])
+    func authoringDiscoveryUsesCanonicalRolesBeyondThePublicPage(role: String) async {
+        let user = MockContentBuilder.currentUser()
+        let repository = ControlledOrganizationRepository()
+        let target = Organization(
+            id: "not-on-public-first-page", name: "Authoring organization", description: "Description", city: "Vienna",
+            ownerId: role == "owner" ? user.id : "another-owner",
+            adminIds: role == "admin" ? [user.id] : [],
+            moderatorIds: role == "moderator" ? [user.id] : [],
+            createdAt: .now, updatedAt: .now, moderationStatus: .approved,
+            likeCount: 0, likeState: .notLiked
+        )
+        repository.organizations = []
+        repository.authoringHandler = { [target] _ in [target] }
+        let model = AuthoringOrganizationsViewModel(repository: repository)
+        await model.load(for: user)
+        #expect(model.organizations.map(\.id) == (role == "unrelated" ? [] : [target.id]))
+        #expect(!model.isLoading && model.error == nil)
+        await model.load(for: nil)
+        #expect(model.organizations.isEmpty)
+    }
+
+    @Test
+    func authoringDiscoveryDiscardsAResponseAfterLogout() async {
+        let repository = ControlledOrganizationRepository()
+        let target = makeOrganization(id: "org")
+        var continuation: CheckedContinuation<[Organization], Never>?
+        repository.authoringHandler = { _ in await withCheckedContinuation { continuation = $0 } }
+        let model = AuthoringOrganizationsViewModel(repository: repository)
+        let task = Task { await model.load(for: MockContentBuilder.ownerUser()) }
+        #expect(await eventually { continuation != nil })
+        await model.load(for: nil)
+        continuation?.resume(returning: [target])
+        await task.value
+        #expect(model.organizations.isEmpty && !model.isLoading)
+    }
+
     private func makeOrganization(
         id: String,
         likeState: LikeState = .notLiked,
@@ -665,6 +702,11 @@ private final class ControlledNewsRepository: NewsRepository {
 
 @MainActor
 private final class ControlledOrganizationRepository: OrganizationRepository {
+    var authoringHandler: ((AppUser) async throws -> [Organization])?
+    func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization] {
+        if let authoringHandler { return try await authoringHandler(user) }
+        return PermissionService.manageableOrganizations(from: organizations, user: user)
+    }
     var commentFailure: AppError?
 
     var organizations: [Organization] = []

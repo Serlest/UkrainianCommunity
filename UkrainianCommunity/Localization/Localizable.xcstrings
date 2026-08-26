@@ -1,6 +1,244 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "app_lock.settings_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriffsschutz"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Захист доступу"
+          }
+        }
+      }
+    },
+    "app_lock.toggle_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Face ID / Touch ID schützen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Захист через Face ID / Touch ID"
+          }
+        }
+      }
+    },
+    "app_lock.settings_help": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach dem Wechsel in den Hintergrund wird der Zugriff auf dieses Konto auf diesem Gerät mit Face ID, Touch ID oder dem Gerätecode geschützt. Nach dem Abmelden sind E-Mail und Passwort erneut erforderlich."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Після згортання застосунку доступ до цього акаунту на цьому пристрої потребуватиме Face ID, Touch ID або коду пристрою. Після виходу з акаунту потрібно знову ввести email і пароль."
+          }
+        }
+      }
+    },
+    "app_lock.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richten Sie Face ID oder Touch ID in den Geräteeinstellungen ein und erlauben Sie den Zugriff für die App."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштуйте Face ID або Touch ID в параметрах пристрою та дозвольте доступ для застосунку."
+          }
+        }
+      }
+    },
+    "app_lock.locked_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zugriff gesperrt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ заблоковано"
+          }
+        }
+      }
+    },
+    "app_lock.locked_help": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippen Sie auf „Entsperren“, um den Zugriff mit Face ID, Touch ID oder dem Gerätecode zu bestätigen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Натисніть «Розблокувати», щоб підтвердити доступ через Face ID, Touch ID або код пристрою."
+          }
+        }
+      }
+    },
+    "app_lock.unlock": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entsperren"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розблокувати"
+          }
+        }
+      }
+    },
+    "app_lock.reason": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestätigen Sie den Zugriff auf Ihr Konto."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтвердьте доступ до вашого акаунту."
+          }
+        }
+      }
+    },
+    "app_lock.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Zugriff konnte nicht bestätigt werden. Versuchen Sie es erneut oder melden Sie sich mit Ihrem Passwort an."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося підтвердити доступ. Спробуйте ще раз або увійдіть з паролем."
+          }
+        }
+      }
+    },
+    "app_lock.password_sign_in": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Passwort anmelden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійти з паролем"
+          }
+        }
+      }
+    },
+    "app_lock.password_help": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dadurch werden Sie abgemeldet und die normale Anmeldung wird geöffnet. Nicht gespeicherte Änderungen können verloren gehen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ця дія завершить поточний сеанс і відкриє звичайний вхід. Незбережені зміни може бути втрачено."
+          }
+        }
+      }
+    },
+    "app_lock.sign_out_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Abmeldung ist fehlgeschlagen. Der Zugriff bleibt gesperrt. Versuchen Sie es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося завершити сеанс. Доступ залишається заблокованим. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "auth.consent.analytics_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optionale Nutzungsanalyse erlauben"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дозволити необов’язкову аналітику"
+          }
+        }
+      }
+    },
+    "auth.consent.analytics_help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihre Auswahl hat keinen Einfluss auf die Registrierung. Die Analyse kann auf diesem Gerät erst nach Bestätigung der E-Mail-Adresse beginnen. Sie können Ihre Auswahl unter Profil → Einstellungen ändern."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваш вибір не впливає на реєстрацію. Аналітика на цьому пристрої може початися лише після підтвердження email. Змінити вибір можна в розділі Профіль → Налаштування."
+          }
+        }
+      }
+    },
     "notifications.detail.title" : {
       "extractionState" : "manual",
       "localizations" : {

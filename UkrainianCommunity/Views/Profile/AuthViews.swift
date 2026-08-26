@@ -243,6 +243,7 @@ struct RegisterView: View {
     @State private var acceptedTerms = false
     @State private var acceptedPrivacy = false
     @State private var confirmedMinimumAge = false
+    @State private var analyticsConsentEnabled = false
     @State private var errorMessage: String?
     @State private var isSubmitting = false
     private let validationService = AuthValidationService()
@@ -291,6 +292,10 @@ struct RegisterView: View {
             }
 
             AppEditorSectionCard {
+                RegistrationAnalyticsConsentView(isEnabled: $analyticsConsentEnabled)
+            }
+
+            AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     if let errorMessage {
                         InlineMessageCard(style: .error, message: errorMessage)
@@ -317,6 +322,7 @@ struct RegisterView: View {
                 }
             }
         }
+        .disabled(isSubmitting)
         .navigationTitle(AppStrings.Auth.registerTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.register.screen")
@@ -343,7 +349,8 @@ struct RegisterView: View {
             termsVersion: AuthService.currentTermsVersion,
             privacyVersion: AuthService.currentPrivacyVersion,
             minimumAgeConfirmedAt: now,
-            minimumAgeVersion: AuthService.currentMinimumAgeVersion
+            minimumAgeVersion: AuthService.currentMinimumAgeVersion,
+            analyticsConsentEnabled: analyticsConsentEnabled
         )
 
         Task {
@@ -389,6 +396,43 @@ struct RegisterView: View {
             || acceptedTerms
             || acceptedPrivacy
             || confirmedMinimumAge
+    }
+}
+
+struct RegistrationAnalyticsConsentView: View {
+    @Binding var isEnabled: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if dynamicTypeSize.isAccessibilitySize {
+                consentTitle
+                Toggle(AppStrings.Auth.analyticsConsentTitle, isOn: $isEnabled)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel(AppStrings.Auth.analyticsConsentTitle)
+                    .accessibilityIdentifier("auth.register.analyticsConsent")
+            } else {
+                Toggle(isOn: $isEnabled) { consentTitle }
+                    .accessibilityIdentifier("auth.register.analyticsConsent")
+            }
+
+            Text(AppStrings.Profile.analyticsCollectionSubtitle)
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(AppStrings.Auth.analyticsConsentHelp)
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var consentTitle: some View {
+        Text(AppStrings.Auth.analyticsConsentTitle)
+            .font(.headline)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 

@@ -316,7 +316,10 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         #if canImport(FirebaseFunctions)
         guard let principalID = authContext.principalID else { return }
         let principalBinding = Self.principalBinding(principalID)
-        let locale = LocalizationStore.language.rawValue
+        // Registration consent may be synchronized only after email verification.
+        // Record the language of the original disclosure, not a later UI language.
+        let locale = consentService.analyticsConsentLocale(for: principalID)
+            ?? LocalizationStore.language.rawValue
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         Task { @MainActor [weak self] in
             guard let self else { return }

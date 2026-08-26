@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfilePreferencesView: View {
     @Environment(\.locale) private var locale
+    @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: ProfileViewModel
     @ObservedObject var userBlockingCoordinator: UserBlockingCoordinator
     let analyticsService: AnalyticsTracking
@@ -63,6 +64,8 @@ struct ProfilePreferencesView: View {
             }
 
             if let currentUser {
+                BiometricLockSettingsSection(lock: authState.appLock)
+
                 NotificationSettingsSectionView(
                     viewModel: viewModel,
                     userID: currentUser.id,
