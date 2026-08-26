@@ -348,6 +348,12 @@ final class OrganizationsViewModel: ObservableObject {
         contentVersion &+= 1
     }
 
+    func trackViewWhileVisible(for organization: Organization) async {
+        await analyticsService.observeVisibleView {
+            self.trackViewIfNeeded(for: organization)
+        }
+    }
+
     func trackViewIfNeeded(for organization: Organization, sourceScreen: String = "organization_detail") {
         guard let collectionScopeID = analyticsService.collectionScopeID else { return }
         let trackingKey = AnalyticsTrackingKey.daily(

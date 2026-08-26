@@ -295,6 +295,7 @@ final class OrganizationActivityViewModel: ObservableObject {
 
 struct OrganizationDetailView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.scenePhase) private var analyticsScenePhase
     @Environment(\.organizationPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.accessibilityReduceMotion) var reduceMotion
@@ -453,8 +454,11 @@ struct OrganizationDetailView: View {
                             }
                     }
                 }
+                .task(id: analyticsScenePhase == .active ? organization.id : nil) {
+                    guard analyticsScenePhase == .active else { return }
+                    await viewModel.trackViewWhileVisible(for: organization)
+                }
                 .task(id: organization.id) {
-                    viewModel.trackViewIfNeeded(for: organization)
                     recordRecentView(for: organization)
                 }
             } else {
@@ -527,7 +531,6 @@ struct OrganizationDetailView: View {
             loadedCommentsOrganizationID = nil
             Task { await loadCommentsIfNeeded(for: organizationID) }
             guard let organization = viewModel.organization(for: organizationID) else { return }
-            viewModel.trackViewIfNeeded(for: organization)
             recordRecentView(for: organization)
         }
         .onChange(of: selectedSection) { _, _ in

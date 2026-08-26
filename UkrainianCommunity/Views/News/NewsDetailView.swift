@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NewsDetailView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.scenePhase) private var analyticsScenePhase
     @Environment(\.newsPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.contentReportPresentation) var contentReportPresentation
@@ -205,6 +206,11 @@ struct NewsDetailView: View {
             },
             set: { if $0 == nil { viewModel.dismissInteractionError() } }
         ))
+        .task(id: analyticsScenePhase == .active ? viewModel.post(for: postID)?.id : nil) {
+            guard analyticsScenePhase == .active,
+                  let post = viewModel.post(for: postID) else { return }
+            await viewModel.trackViewWhileVisible(for: post)
+        }
         .task {
             await viewModel.loadPostIfNeeded(postID: postID)
             guard let post = viewModel.post(for: postID) else { return }
@@ -213,7 +219,6 @@ struct NewsDetailView: View {
             guard !recordedViewKeys.contains(newsViewTaskID) else { return }
             recordedViewKeys.insert(newsViewTaskID)
             viewModel.recordView(for: postID)
-            viewModel.trackViewIfNeeded(for: post)
             RecentViewRecorder.recordNews(post)
         }
         .onChange(of: authState.user?.id) { _, _ in
@@ -221,7 +226,6 @@ struct NewsDetailView: View {
             guard !recordedViewKeys.contains(newsViewTaskID) else { return }
             recordedViewKeys.insert(newsViewTaskID)
             viewModel.recordView(for: postID)
-            viewModel.trackViewIfNeeded(for: post)
             RecentViewRecorder.recordNews(post)
         }
         .onDisappear {

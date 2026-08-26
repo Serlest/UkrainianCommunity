@@ -10,11 +10,41 @@ import FirebaseFunctions
 private final class ToggleableRecordingAnalyticsService: AnalyticsTracking {
     let isCollectionAvailable = true
     private(set) var isCollectionEnabled = false
-    private(set) var collectionScopeID: String?
+    private var scopeID: String?
+    private let changes = AnalyticsCollectionChanges()
+    private var scopeReads = 0
+    private var readWaiters: [(Int, CheckedContinuation<Void, Never>)] = []
+    var collectionScopeID: String? {
+        scopeReads += 1
+        let ready = readWaiters.filter { $0.0 <= scopeReads }
+        readWaiters.removeAll { $0.0 <= scopeReads }
+        ready.forEach { $0.1.resume() }
+        return scopeID
+    }
     private(set) var events: [AppAnalyticsEvent] = []
     private(set) var allTrackedEvents: [AppAnalyticsEvent] = []
 
     func actionCapture(for event: AppAnalyticsEvent) -> AnalyticsActionCapture? { nil }
+
+    func collectionChanges() -> AsyncStream<Void> { changes.stream() }
+
+    func waitForScopeReads(_ count: Int) async {
+        guard scopeReads < count else { return }
+        await withCheckedContinuation { readWaiters.append((count, $0)) }
+    }
+
+    func beginConsentSynchronization() {
+        isCollectionEnabled = true
+        scopeID = nil
+        changes.notify()
+    }
+
+    func confirmConsentSynchronization() {
+        scopeID = UUID().uuidString
+        changes.notify()
+    }
+
+    func repeatCollectionSignal() { changes.notify() }
 
     func track(_ event: AppAnalyticsEvent, actionCapture: AnalyticsActionCapture?) {
         guard isCollectionEnabled else { return }
@@ -26,11 +56,12 @@ private final class ToggleableRecordingAnalyticsService: AnalyticsTracking {
         guard isCollectionEnabled != isEnabled else { return }
         isCollectionEnabled = isEnabled
         if isEnabled {
-            collectionScopeID = UUID().uuidString
+            scopeID = UUID().uuidString
         } else {
-            collectionScopeID = nil
+            scopeID = nil
             events.removeAll()
         }
+        changes.notify()
     }
 }
 
@@ -352,6 +383,54 @@ struct AnalyticsDeliveryConsistencyTests {
         #expect(analytics.allTrackedEvents.count == 6)
     }
 
+    @Test(.timeLimit(.minutes(1))) func visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates() async throws {
+        let analytics = ToggleableRecordingAnalyticsService()
+        analytics.beginConsentSynchronization()
+        let post = try #require(try await MockNewsRepository().fetchNews().first)
+        let event = try #require(try await MockEventRepository().fetchEvents().first)
+        let organization = try #require(try await MockOrganizationRepository().fetchOrganizations().first)
+        let news = NewsViewModel(repository: MockNewsRepository(), analyticsService: analytics)
+        let events = EventsViewModel(repository: MockEventRepository(), analyticsService: analytics)
+        let organizations = OrganizationsViewModel(repository: MockOrganizationRepository(), analyticsService: analytics)
+        let tasks = [
+            Task { await news.trackViewWhileVisible(for: post) },
+            Task { await events.trackViewWhileVisible(for: event) },
+            Task { await organizations.trackViewWhileVisible(for: organization) }
+        ]
+        defer { tasks.forEach { $0.cancel() } }
+        await analytics.waitForScopeReads(3)
+        #expect(analytics.allTrackedEvents.isEmpty)
+
+        analytics.confirmConsentSynchronization()
+        await analytics.waitForScopeReads(6)
+        #expect(Set(analytics.events.map(\.name)) == [.newsView, .eventView, .organizationView])
+        #expect(analytics.allTrackedEvents.count == 3)
+        analytics.repeatCollectionSignal()
+        await analytics.waitForScopeReads(9)
+        #expect(analytics.allTrackedEvents.count == 3)
+
+        analytics.setCollectionEnabled(false)
+        await analytics.waitForScopeReads(12)
+        #expect(analytics.allTrackedEvents.count == 3)
+        tasks.forEach { $0.cancel() }
+        for task in tasks { await task.value }
+        analytics.setCollectionEnabled(true)
+        #expect(analytics.allTrackedEvents.count == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1))) func dismissedDetailDoesNotRecordWhenConsentFinishesLater() async throws {
+        let analytics = ToggleableRecordingAnalyticsService()
+        analytics.beginConsentSynchronization()
+        let organization = try #require(try await MockOrganizationRepository().fetchOrganizations().first)
+        let model = OrganizationsViewModel(repository: MockOrganizationRepository(), analyticsService: analytics)
+        let task = Task { await model.trackViewWhileVisible(for: organization) }
+        await analytics.waitForScopeReads(1)
+        task.cancel()
+        await task.value
+        analytics.confirmConsentSynchronization()
+        #expect(analytics.allTrackedEvents.isEmpty)
+    }
+
     #if canImport(FirebaseFunctions)
     @Test func installationGuestConsentNeverAuthorizesAggregateDelivery() {
         let authorization = AnalyticsDeliveryAuthorization()
@@ -468,6 +547,20 @@ struct AnalyticsDeliveryConsistencyTests {
         await outbox.waitForDrain(toCompleteFor: newSession)
         #expect(await outbox.pendingEntryCount() == 0)
         #expect(await delivery.snapshot().count == 2)
+    }
+
+    @Test func analyticsFailureDiagnosticsExcludeSensitiveErrorDetails() {
+        let error = NSError(domain: "com.google.firebase.appCheck", code: 0, userInfo: [
+            NSLocalizedDescriptionKey: "secret-token and private-content",
+            NSUnderlyingErrorKey: NSError(domain: "com.apple.devicecheck", code: 3,
+                userInfo: [NSLocalizedDescriptionKey: "private-response"])
+        ])
+        let diagnostic = AnalyticsDeliveryFailureDiagnostic(error: error)
+        #expect(diagnostic.domain == "com.google.firebase.appCheck")
+        #expect(diagnostic.code == 0)
+        #expect(diagnostic.underlyingCodes == "com.apple.devicecheck:3")
+        #expect(!String(describing: diagnostic).contains("secret-token"))
+        #expect(!String(describing: diagnostic).contains("private-"))
     }
 
     @Test func permanentFailureDropsPoisonEntryAndContinuesWithNewerEvent() async throws {

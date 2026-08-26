@@ -1,5 +1,6 @@
 import FirebaseFirestore
 import Foundation
+import CoreFoundation
 
 private struct AnalyticsTimestampedValue<Value> {
     let value: Value
@@ -121,7 +122,7 @@ enum AnalyticsFirestorePayloadResolver {
     }
 
     nonisolated private static func numericValue(_ value: Any?) -> Double {
-        if value is Bool { return 0 }
+        if isBoolean(value) { return 0 }
         switch value {
         case let value as Int:
             return Double(value)
@@ -368,7 +369,7 @@ enum AnalyticsFirestorePayloadResolver {
     }
 
     nonisolated private static func isNonNegativeInteger(_ value: Any?) -> Bool {
-        if value is Bool {
+        if isBoolean(value) {
             return false
         }
 
@@ -387,6 +388,13 @@ enum AnalyticsFirestorePayloadResolver {
         default:
             return false
         }
+    }
+
+    nonisolated private static func isBoolean(_ value: Any?) -> Bool {
+        // Firestore bridges integers through NSNumber. `value is Bool` also
+        // matches NSNumber(0/1), hiding valid zero metrics and single views.
+        guard let number = value as? NSNumber else { return false }
+        return CFGetTypeID(number) == CFBooleanGetTypeID()
     }
 
     nonisolated private static func nonEmptyString(_ value: Any?) -> String? {

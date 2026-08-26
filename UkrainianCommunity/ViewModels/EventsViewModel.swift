@@ -466,6 +466,12 @@ final class EventsViewModel: ObservableObject {
         interactionTasks[taskKey] = task
     }
 
+    func trackViewWhileVisible(for event: Event) async {
+        await analyticsService.observeVisibleView {
+            self.trackViewIfNeeded(for: event)
+        }
+    }
+
     func trackViewIfNeeded(for event: Event, sourceScreen: String = "event_detail") {
         guard let collectionScopeID = analyticsService.collectionScopeID else { return }
         let trackingKey = AnalyticsTrackingKey.daily(

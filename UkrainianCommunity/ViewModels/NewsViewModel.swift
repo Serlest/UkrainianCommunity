@@ -217,6 +217,12 @@ final class NewsViewModel: ObservableObject {
         interactionTasks[taskKey] = task
     }
 
+    func trackViewWhileVisible(for post: NewsPost) async {
+        await analyticsService.observeVisibleView {
+            self.trackViewIfNeeded(for: post)
+        }
+    }
+
     func trackViewIfNeeded(for post: NewsPost, sourceScreen: String = "news_detail") {
         guard let collectionScopeID = analyticsService.collectionScopeID else { return }
         let trackingKey = AnalyticsTrackingKey.daily(

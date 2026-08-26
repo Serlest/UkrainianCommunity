@@ -287,9 +287,9 @@ final class UserManagementViewModel: ObservableObject {
     private var usersCollection: CollectionReference { db.collection("users") }
     private var organizationsCollection: CollectionReference { db.collection("organizations") }
 
-    init(roleManagementService: OrganizationRoleManagementService? = nil, reads: UserManagementReads = .live) {
+    init(roleManagementService: OrganizationRoleManagementService? = nil, reads: UserManagementReads? = nil) {
         self.suppliedRoleManagementService = roleManagementService
-        self.reads = reads
+        self.reads = reads ?? .live
     }
 
     func load(actor: AppUser?) async {
@@ -912,7 +912,7 @@ struct UserManagementView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: UserManagementViewModel
 
-    init(reads: UserManagementReads = .live) {
+    init(reads: UserManagementReads? = nil) {
         _viewModel = StateObject(wrappedValue: UserManagementViewModel(reads: reads))
     }
     @State private var selectedUserRoute: ManagedUserRoute?

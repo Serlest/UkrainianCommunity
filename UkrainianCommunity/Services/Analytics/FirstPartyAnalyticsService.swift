@@ -47,6 +47,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
     }
 
     private let consentService: AnalyticsConsentProviding
+    private let collectionChangeNotifications = AnalyticsCollectionChanges()
     private var authContext: AuthContext
     private let pendingWithdrawalStorageKey = "analyticsPendingConsentWithdrawal.v1"
     private static let isDebugLoggingEnabled = false
@@ -101,7 +102,20 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
                 region: "europe-west3",
                 authorization: authorization
             ),
-            authorization: authorization
+            authorization: authorization,
+            reportFailure: { diagnostic, failedSession in
+                Task { @MainActor in
+                    guard authorization.allowsDelivery(for: failedSession) else { return }
+                    // Existing logger deduplicates repeats; no analytics content,
+                    // consent IDs or auth/App Check tokens enter the system log.
+                    let safeError = NSError(domain: diagnostic.domain, code: diagnostic.code,
+                        userInfo: [NSLocalizedDescriptionKey: "Analytics delivery failed."])
+                    await SystemTechnicalErrorLoggingService.shared.logFailure(safeError,
+                        context: SystemTechnicalErrorContext(moduleName: "Analytics",
+                            operationName: "deliverAggregate",
+                            metadata: ["underlyingErrorCodes": diagnostic.underlyingCodes]))
+                }
+            }
         )
         #endif
 
@@ -173,6 +187,10 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         #else
         return nil
         #endif
+    }
+
+    func collectionChanges() -> AsyncStream<Void> {
+        collectionChangeNotifications.stream()
     }
 
     func actionCapture(for event: AppAnalyticsEvent) -> AnalyticsActionCapture? {
@@ -248,6 +266,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
             consentID: analyticsConsentID
         )
         deliverySession = session
+        collectionChangeNotifications.notify()
         Task(priority: .utility) { [aggregateOutbox] in
             await aggregateOutbox.transition(to: session)
         }

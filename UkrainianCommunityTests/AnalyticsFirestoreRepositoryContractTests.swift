@@ -136,6 +136,26 @@ struct AnalyticsFirestoreRepositoryContractTests {
         }
     }
 
+    @Test func firestoreBridgedZeroAndOneAreNumbersNotBooleans() {
+        var data = completeUserStatsPayload()
+        let fields = data[AnalyticsFirestoreSchema.UserStatsField.metrics] as! [String: Any]
+        data[AnalyticsFirestoreSchema.UserStatsField.metrics] = fields.mapValues { _ in NSNumber(value: 0) }
+        data[AnalyticsFirestoreSchema.UserStatsField.usersByFederalState] = ["tirol": NSNumber(value: 1)]
+        #expect(AnalyticsFirestorePayloadResolver.isUserStatsAvailable(
+            data: data, expectedPeriodDocumentID: "seven_days", generatedAt: .now, expectedSourceCount: 7
+        ))
+        let item: [String: Any] = ["contentID": "one", "contentType": "news", "viewCount": NSNumber(value: 1)]
+        #expect(AnalyticsFirestorePayloadResolver.preferredTopContentPayloads(array: [item], keyedMap: nil).count == 1)
+        for invalid: Any in [true, NSNumber(value: true), NSNumber(value: false), NSNumber(value: -1), NSNumber(value: 0.5)] {
+            var invalidFields = data[AnalyticsFirestoreSchema.UserStatsField.metrics] as! [String: Any]
+            invalidFields[AnalyticsFirestoreSchema.UserStatsField.deletedAccounts] = invalid
+            data[AnalyticsFirestoreSchema.UserStatsField.metrics] = invalidFields
+            #expect(!AnalyticsFirestorePayloadResolver.isUserStatsAvailable(
+                data: data, expectedPeriodDocumentID: "seven_days", generatedAt: .now, expectedSourceCount: 7
+            ))
+        }
+    }
+
     @Test func userStatsAvailabilityRejectsMissingFreshnessAndMalformedValues() {
         let generatedAt = Date(timeIntervalSince1970: 1_777_593_600)
         let data = completeUserStatsPayload()

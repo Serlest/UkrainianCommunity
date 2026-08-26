@@ -24,6 +24,7 @@ enum EventRegistrationConfirmation: Equatable {
 
 struct EventDetailView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.scenePhase) private var analyticsScenePhase
     @Environment(\.eventPresentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.accessibilityReduceMotion) var reduceMotion
@@ -301,6 +302,12 @@ struct EventDetailView: View {
             },
             set: { if $0 == nil { viewModel.dismissInteractionError() } }
         ))
+        .task(id: analyticsScenePhase == .active && viewModel.event(for: eventID)?.isCancelled == false
+              ? viewModel.event(for: eventID)?.id : nil) {
+            guard analyticsScenePhase == .active,
+                  let event = viewModel.event(for: eventID), !event.isCancelled else { return }
+            await viewModel.trackViewWhileVisible(for: event)
+        }
         .task {
             if viewModel.event(for: eventID) == nil {
                 await viewModel.loadEventIfNeeded(eventID: eventID)
@@ -313,7 +320,6 @@ struct EventDetailView: View {
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
             recordedViewKeys.insert(eventViewTaskID)
             viewModel.recordView(for: eventID)
-            viewModel.trackViewIfNeeded(for: event)
             RecentViewRecorder.recordEvent(event)
         }
         .onChange(of: authState.user?.id) { _, _ in
@@ -327,7 +333,6 @@ struct EventDetailView: View {
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
             recordedViewKeys.insert(eventViewTaskID)
             viewModel.recordView(for: eventID)
-            viewModel.trackViewIfNeeded(for: event)
             RecentViewRecorder.recordEvent(event)
         }
         .onDisappear {

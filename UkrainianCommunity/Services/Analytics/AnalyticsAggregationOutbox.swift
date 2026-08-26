@@ -61,6 +61,28 @@ nonisolated final class AnalyticsDeliveryAuthorization: @unchecked Sendable {
     }
 }
 
+/// Diagnostics deliberately exclude NSError descriptions/userInfo: provider
+/// errors may embed credentials, URLs or payloads. Retain only domains/codes.
+nonisolated struct AnalyticsDeliveryFailureDiagnostic: Sendable, Equatable {
+    let domain: String
+    let code: Int
+    let underlyingCodes: String
+
+    init(error: Error) {
+        let error = error as NSError
+        domain = error.domain
+        code = error.code
+        var chain: [String] = []
+        var underlying = error.userInfo[NSUnderlyingErrorKey] as? NSError
+        for _ in 0..<4 {
+            guard let current = underlying else { break }
+            chain.append("\(current.domain):\(current.code)")
+            underlying = current.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        underlyingCodes = chain.joined(separator: " -> ")
+    }
+}
+
 nonisolated protocol AnalyticsAggregationDelivering: Sendable {
     func deliver(
         _ request: AnalyticsAggregationRequest,
@@ -301,6 +323,7 @@ actor AnalyticsAggregationOutbox {
     private let authorization: AnalyticsDeliveryAuthorization
     private let userDefaults: UserDefaults
     private let storageKey: String
+    private let reportFailure: @Sendable (AnalyticsDeliveryFailureDiagnostic, AnalyticsDeliverySession) -> Void
     private let maximumEntryCount: Int
     private let now: @Sendable () -> Date
     private let retrySleep: @Sendable (UInt64) async -> Void
@@ -317,6 +340,7 @@ actor AnalyticsAggregationOutbox {
         userDefaults: UserDefaults = .standard,
         storageKey: String = "analyticsAggregateOutbox.v1",
         maximumEntryCount: Int = 200,
+        reportFailure: @escaping @Sendable (AnalyticsDeliveryFailureDiagnostic, AnalyticsDeliverySession) -> Void = { _, _ in },
         now: @escaping @Sendable () -> Date = { Date() },
         retrySleep: @escaping @Sendable (UInt64) async -> Void = { nanoseconds in
             try? await Task.sleep(nanoseconds: nanoseconds)
@@ -328,6 +352,7 @@ actor AnalyticsAggregationOutbox {
         self.userDefaults = userDefaults
         self.storageKey = storageKey
         self.maximumEntryCount = maximumEntryCount
+        self.reportFailure = reportFailure
         self.now = now
         self.retrySleep = retrySleep
         if let data = userDefaults.data(forKey: storageKey),
@@ -486,6 +511,7 @@ actor AnalyticsAggregationOutbox {
                     break
                 }
 
+                reportFailure(AnalyticsDeliveryFailureDiagnostic(error: error), session)
                 if Self.isPermanentDeliveryError(error) {
                     entries.remove(at: currentIndex)
                     persist()
