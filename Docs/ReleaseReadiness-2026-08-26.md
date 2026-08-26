@@ -36,13 +36,15 @@ Paid Apps тепер очікує даних; базова ціна налашт
   та видалення реальних акаунтів не створювалися/не виконувалися.
 - cleanupAnalyticsAggregates ACTIVE у europe-west1; планувальник 03:30 Vienna
   увімкнений, остання спроба без помилки.
-- **cleanupExpiredData о 04:00 Vienna 26.08 завершився помилкою**:
-  FAILED_PRECONDITION — немає індексу feedback(status ASC, updatedAt ASC).
-  Потрібний індекс уже описаний у Firebase/firestore.indexes.json.
-- За дозволом користувача створено тільки цей індекс. О 20:23 Vienna
-  підтверджено READY та успішний read-only запит status=closed,
-  updatedAt <= шість місяців тому, limit=200: знайдено 0 документів.
-  Ручне очищення не запускалося; успіх наступного штатного запуску ще не перевірений.
+- Ранковий cleanupExpiredData 26.08 спочатку завершився FAILED_PRECONDITION
+  через відсутній індекс feedback(status ASC, updatedAt ASC). За дозволом
+  користувача індекс створено; о 20:23 Vienna підтверджено READY та успішний
+  read-only запит для закритих звернень старше шести місяців.
+- Після ремонту штатну функцію cleanupExpiredData запущено через її Cloud
+  Scheduler job. О 21:31 Vienna Cloud Logging зафіксував
+  `Scheduled data retention cleanup completed.` з errorCount=0. Прострочених
+  користувацьких матеріалів не було; видалено один прострочений службовий запис
+  analyticsRateLimits. Планувальник залишився ENABLED.
 - Архів TestFlight 36 містить 30 privacy manifests. Firebase Auth, Firestore,
   Installations, Messaging і GoogleDataTransport мають власні декларації
   технічної діагностики/метаданих, які теж потрібно враховувати.
@@ -97,6 +99,7 @@ Paid Apps тепер очікує даних; базова ціна налашт
 | Серверні unit-тести | Повний набір пройшов; нові тести фільтра також пройшли |
 | Firestore/Storage Rules | 133 passed, 0 failed; production readback збігається з репозиторієм |
 | Comment integration | Emulator і production probe пройшли; тимчасові записи видалені |
+| Retention cleanup | Після ремонту індексу штатний запуск завершився успішно; errorCount=0 |
 | TestFlight 37 | VALID; What to Test додано для de-DE/uk; прикріплено до 1.0 |
 | App Store screenshots | 16 прийнято: de-DE/uk × iPhone 6.7-inch/iPad 12.9-inch |
 | Структура документів, локалізація, plist, структура репозиторію, diff | Пройшли |
@@ -113,10 +116,10 @@ Paid Apps тепер очікує даних; базова ціна налашт
 
 ### 1. Очищення даних
 
-Індекс створено з дозволу користувача, READY і відповідний запит без видалення
-підтверджено. Залишається перевірити успішний запланований запуск після ремонту
-(наступний — 27.08 о 04:00 Europe/Vienna). Створення індексу не є доказом
-повного очищення. Ручне видалення старих даних у цій перевірці не запускалося.
+Індекс створено з дозволу користувача й підтверджено READY. Після ремонту
+виконано саме штатний cleanupExpiredData через Cloud Scheduler; журнал функції
+підтвердив успішне завершення без помилок. Окремого довільного скрипта видалення
+даних не застосовували.
 
 ### 2. Неприйнятний вміст у коментарях
 
@@ -179,6 +182,6 @@ iOS unit-тести пройшли; результати цільових UI-п�
 
 Докази без секретів збережені поза репозиторієм у робочій папці Codex:
 outputs/release-readiness/{production-audit,archive-privacy,app-store-version,
-dsa-endpoint-check,feedback-index-verification,ios-test-verification}.json
-та журнали перевірок. Зміни цього аудиту ще не
-закомічені й не відправлені в GitHub. Нового TestFlight-білда не створено.
+dsa-endpoint-check,feedback-index-verification,retention-cleanup-verification,
+ios-test-verification}.json та журнали перевірок. Зміни аудиту закомічені й
+відправлені в GitHub; TestFlight 37 завантажено, але на App Review не подано.
