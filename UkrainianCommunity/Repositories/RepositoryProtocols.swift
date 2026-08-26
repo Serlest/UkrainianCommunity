@@ -46,6 +46,11 @@ protocol NotificationInboxRepository {
         onChange: @escaping @MainActor ([AppNotification]) -> Void,
         onError: @escaping @MainActor (AppError) -> Void
     ) -> AppRealtimeListener
+    func listenUnreadCount(
+        userID: String,
+        onChange: @escaping @MainActor (Int) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener
     func fetchUnreadCount(userID: String) async throws -> Int
     func markNotificationRead(userID: String, notificationID: String) async throws
     func markNotificationUnread(userID: String, notificationID: String) async throws

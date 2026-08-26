@@ -15,12 +15,13 @@ final class UkrainianCommunityUITests: XCTestCase {
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
     ]
 
-    private func launchApp() -> XCUIApplication {
+    private func launchApp(appLockScenario: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launchEnvironment["UITestAppLockScenario"] = appLockScenario
         app.launch()
         return app
     }
@@ -919,7 +920,7 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testRegistrationShowsConsentControls() throws {
-        let app = launchApp()
+        let app = launchApp(appLockScenario: "success")
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
 
         app.buttons["Konto erstellen"].firstMatch.tap()
@@ -938,6 +939,18 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertEqual(termsSwitch.value as? String, "0", "Analytics must not accept mandatory agreements")
         analytics.tap()
         XCTAssertEqual(analytics.value as? String, "0")
+        let appLock = app.switches["auth.register.appLock"]
+        scrollToElement(appLock, in: app)
+        XCTAssertTrue(appLock.isHittable)
+        XCTAssertEqual(appLock.value as? String, "0")
+        attachScreenshot(named: "registration-faceid-optional-de", from: app)
+        appLock.tap()
+        expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: appLock)
+        waitForExpectations(timeout: 8)
+        XCTAssertEqual(analytics.value as? String, "0")
+        XCTAssertEqual(termsSwitch.value as? String, "0")
+        appLock.tap()
+        XCTAssertEqual(appLock.value as? String, "0")
         scrollToElement(termsSwitch, in: app)
         termsSwitch.tap()
         XCTAssertEqual(analytics.value as? String, "0", "Terms acceptance must not opt in to analytics")
@@ -951,6 +964,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launchEnvironment["UITestForceGuestSession"] = "1"
         app.launchEnvironment["UITestAppAppearance"] = "dark"
+        app.launchEnvironment["UITestAppLockScenario"] = "success"
         app.launch()
         tapRootTab(rootTabs[3], in: app, timeout: 20)
         let create = app.buttons["Створити обліковий запис"].firstMatch
@@ -964,10 +978,31 @@ final class UkrainianCommunityUITests: XCTestCase {
         attachScreenshot(named: "registration-optional-analytics-uk-dark-AX", from: app)
         analytics.tap()
         XCTAssertEqual(analytics.value as? String, "1")
+        let appLock = app.switches["auth.register.appLock"]
+        scrollToElement(appLock, in: app, maxSwipes: 20)
+        XCTAssertTrue(appLock.isHittable)
+        XCTAssertEqual(appLock.value as? String, "0")
+        attachScreenshot(named: "registration-faceid-uk-dark-AX", from: app)
+        appLock.tap()
+        expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: appLock)
+        waitForExpectations(timeout: 8)
         let submit = app.buttons["auth.register.submit"]
         scrollToElement(submit, in: app, maxSwipes: 30)
         XCTAssertTrue(submit.isHittable)
         XCTAssertFalse(submit.isEnabled, "Optional consent must not bypass registration validation")
+    }
+
+    @MainActor
+    func testRegistrationExplainsUnavailableBiometrics() throws {
+        let app = launchApp(appLockScenario: "unavailable")
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        app.buttons["Konto erstellen"].firstMatch.tap()
+        let appLock = app.switches["auth.register.appLock"]
+        scrollToElement(appLock, in: app, maxSwipes: 15)
+        XCTAssertTrue(appLock.exists)
+        XCTAssertFalse(appLock.isEnabled)
+        XCTAssertEqual(appLock.value as? String, "0")
+        attachScreenshot(named: "registration-faceid-unavailable-de", from: app)
     }
 
     @MainActor

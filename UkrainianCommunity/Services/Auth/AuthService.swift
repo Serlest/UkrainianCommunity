@@ -22,6 +22,7 @@ struct RegistrationProfileDraft {
     let minimumAgeConfirmedAt: Date
     let minimumAgeVersion: String
     var analyticsConsentEnabled = false
+    var appLockAuthorization: RegistrationAppLockAuthorization? = nil
 }
 
 enum RegistrationError: Error {
@@ -489,6 +490,9 @@ final class AuthService {
         // FirstPartyAnalyticsService still requires verified email and a server receipt
         // before authorizing any analytics delivery, including after an app restart.
         analyticsConsent.setAnalyticsEnabled(draft.analyticsConsentEnabled, for: sessionUser.uid)
+        if let authorization = draft.appLockAuthorization {
+            authState.appLock.enableAfterRegistration(authorization, userID: sessionUser.uid)
+        }
         authState.setVerificationPendingSession(
             userID: sessionUser.uid,
             email: sessionUser.email ?? draft.email

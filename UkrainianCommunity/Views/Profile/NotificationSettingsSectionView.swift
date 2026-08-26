@@ -5,6 +5,7 @@ import UserNotifications
 struct NotificationSettingsSectionView: View {
     @Environment(\.openURL) private var openURL
     @State private var systemNotificationsDenied = false
+    @State private var systemBadgesDisabled = false
     @ObservedObject var viewModel: ProfileViewModel
     let userID: String?
     let canSendTestNotification: Bool
@@ -31,8 +32,9 @@ struct NotificationSettingsSectionView: View {
                 )
                 .disabled(viewModel.isSavingNotificationPreferences || viewModel.isLoadingNotificationPreferences)
 
-                if systemNotificationsDenied {
-                    InlineMessageCard(style: .error, message: AppStrings.Profile.systemNotificationsDenied)
+                if systemNotificationsDenied || systemBadgesDisabled {
+                    InlineMessageCard(style: .error, message: systemNotificationsDenied
+                        ? AppStrings.Profile.systemNotificationsDenied : AppStrings.Profile.systemBadgesDisabled)
                     Button(AppStrings.Profile.openSystemNotificationSettings) {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
                     }
@@ -126,6 +128,8 @@ struct NotificationSettingsSectionView: View {
     private func refreshSystemPermission() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         systemNotificationsDenied = settings.authorizationStatus == .denied
+        systemBadgesDisabled = settings.authorizationStatus != .notDetermined
+            && settings.badgeSetting == .disabled
     }
 
     private func reminderLeadTimeTitle(_ minutes: Int) -> String {

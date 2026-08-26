@@ -4,6 +4,8 @@ import type {BaseMessage, SendResponse} from "firebase-admin/messaging";
 import {db} from "../firebase/admin";
 import {isRetryablePushFailure, sendPushToRegistrationDocuments, type PushRegistrationDocument, type PushMulticastSender} from "./pushRegistrations";
 
+import {unreadNotificationCount} from "./notificationBadge";
+
 const maxAgeMs = 24 * 60 * 60 * 1000;
 const leaseMs = 120_000;
 
@@ -52,10 +54,18 @@ export async function deliverPushDurably(
   let configurationFailure = false;
   const collapseId = createHash("sha256").update(notificationRef.path).digest("hex");
   try {
+    // Read the current total on every attempt, including retries; never increment
+    // on delivery or reuse a historical event's count.
+    const userId = notificationRef.parent.parent!.id;
+    const badge = await unreadNotificationCount(userId);
     await sendPushToRegistrationDocuments(pending, {
       ...message,
       apns: {
         ...message.apns,
+        payload: {
+          ...message.apns?.payload,
+          aps: {...message.apns?.payload?.aps, badge},
+        },
         headers: {
           ...message.apns?.headers,
           "apns-push-type": "alert", "apns-priority": "10",

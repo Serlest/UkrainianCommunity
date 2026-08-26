@@ -78,7 +78,8 @@ struct ContentView: View {
             eventRepository: container.eventRepository
         ))
         _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
-            repository: container.notificationInboxRepository
+            repository: container.notificationInboxRepository,
+            badgeUpdater: SystemNotificationBadgeUpdater()
         ))
         _notificationPopupCoordinator = StateObject(wrappedValue: NotificationPopupCoordinatorService(
             repository: container.notificationInboxRepository
@@ -172,7 +173,10 @@ struct ContentView: View {
             UserSettings.stored = profileViewModel.settings
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            Task { await configureRemoteNotifications(for: notificationInboxUserID) }
+            Task {
+                await configureRemoteNotifications(for: notificationInboxUserID)
+                await notificationInboxViewModel.refreshBadge()
+            }
             Task { await authoringOrganizations.load(for: authState.isAuthenticated ? authState.user : nil) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in

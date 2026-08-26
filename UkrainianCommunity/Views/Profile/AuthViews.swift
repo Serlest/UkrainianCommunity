@@ -234,6 +234,8 @@ struct LoginView: View {
 }
 
 struct RegisterView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var appLockChoice = RegistrationAppLockChoice()
     @State private var email: String
     @State private var password = ""
     @State private var repeatedPassword = ""
@@ -296,6 +298,10 @@ struct RegisterView: View {
             }
 
             AppEditorSectionCard {
+                RegistrationBiometricLockView(choice: appLockChoice)
+            }
+
+            AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     if let errorMessage {
                         InlineMessageCard(style: .error, message: errorMessage)
@@ -322,7 +328,12 @@ struct RegisterView: View {
                 }
             }
         }
-        .disabled(isSubmitting)
+        .disabled(isSubmitting || appLockChoice.isAuthenticating)
+        .onDisappear { appLockChoice.cancelPendingAuthentication() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { appLockChoice.cancelPendingAuthentication() }
+            if phase == .active { appLockChoice.refreshAvailability() }
+        }
         .navigationTitle(AppStrings.Auth.registerTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.register.screen")
@@ -350,7 +361,8 @@ struct RegisterView: View {
             privacyVersion: AuthService.currentPrivacyVersion,
             minimumAgeConfirmedAt: now,
             minimumAgeVersion: AuthService.currentMinimumAgeVersion,
-            analyticsConsentEnabled: analyticsConsentEnabled
+            analyticsConsentEnabled: analyticsConsentEnabled,
+            appLockAuthorization: appLockChoice.authorization
         )
 
         Task {

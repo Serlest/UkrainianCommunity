@@ -5,11 +5,13 @@ import type {BatchResponse, SendResponse} from "firebase-admin/messaging";
 import {db} from "../firebase/admin";
 import {notifyOrganizationSubmission, notifyContentComment, isOrganizationSubmission, organizationStaff, canReceiveScopedNotification} from "./workflowNotifications";
 import {deliverPushDurably, notificationPushIsExpired, terminalTargetIds} from "./durablePushDelivery";
-import {shouldDeliverInboxNotificationPush} from "./inboxPushDelivery";
+import {countsAsUnread, unreadNotificationCount} from "./notificationBadge";
+import {shouldDeliverInboxNotificationPush, synchronizeNotificationBadge} from "./inboxPushDelivery";
 import type {PushRegistrationDocument} from "./pushRegistrations";
 
 const live = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const owner = "notification-audit-owner", admin = "notification-audit-admin", author = "notification-audit-author", staff = "notification-audit-staff";
+const badgeUser = "notification-badge-test-user";
 const orgId = "notification-audit-org";
 const inbox = (id: string) => db.collection("users").doc(id).collection("notificationInbox");
 before(async () => {
@@ -22,7 +24,7 @@ before(async () => {
 });
 after(async () => {if (live) await cleanup();});
 async function cleanup() {
-  for (const id of [owner, admin, author, staff]) await db.recursiveDelete(db.collection("users").doc(id));
+  for (const id of [owner, admin, author, staff, badgeUser]) await db.recursiveDelete(db.collection("users").doc(id));
   await db.recursiveDelete(db.collection("organizations").doc(orgId));
 }
 
@@ -144,4 +146,56 @@ test("concurrent delivery events cannot send through the same active lease", {sk
     await assert.rejects(deliverPushDurably(ref, {}, [registration("one")], async () => {throw Error("Duplicate provider call");}), /lease is still active/);
   } finally {release();}
   await first;
+});
+
+
+test("badge eligibility matches unread inbox semantics", () => {
+  assert.equal(countsAsUnread({isRead: false}), true);
+  assert.equal(countsAsUnread({isRead: false, archivedAt: null, deletedAt: null}), true);
+  assert.equal(countsAsUnread({isRead: true}), false);
+  assert.equal(countsAsUnread({isRead: false, archivedAt: Timestamp.now()}), false);
+  assert.equal(countsAsUnread({isRead: false, deletedAt: Timestamp.now()}), false);
+});
+
+test("APNs badge counts all unread records, preserves alert, retries with latest total and syncs zero without sound", {skip: !live}, async () => {
+  const user = db.collection("users").doc(badgeUser);
+  await user.set({accountStatus: "active", blockState: "active"});
+  await user.collection("notificationPreferences").doc("settings").set({notificationsEnabled: true});
+  await user.collection("notificationPushTokens").doc("one").set({token: "badge-test-token"});
+  const batchWrite = db.batch();
+  for (let i = 0; i < 65; i++) {
+    batchWrite.set(inbox(badgeUser).doc(`unread-${i}`), {isRead: false, createdAt: Timestamp.now()});
+  }
+  batchWrite.set(inbox(badgeUser).doc("read"), {isRead: true});
+  batchWrite.set(inbox(badgeUser).doc("archived"), {isRead: false, archivedAt: Timestamp.now()});
+  batchWrite.set(inbox(badgeUser).doc("deleted"), {isRead: false, deletedAt: Timestamp.now()});
+  await batchWrite.commit();
+  assert.equal(await unreadNotificationCount(badgeUser), 65);
+  const message = {apns: {payload: {aps: {sound: "default", alert: {locKey: "localized"}, badge: 999}}}};
+  const ref = inbox(badgeUser).doc("unread-0");
+  await assert.rejects(deliverPushDurably(ref, message, [registration("one")], async (sent) => {
+    assert.equal(sent.apns?.payload?.aps.badge, 65);
+    assert.equal(sent.apns?.payload?.aps.sound, "default");
+    assert.deepEqual(sent.apns?.payload?.aps.alert, {locKey: "localized"});
+    return batch([{success: false, error: {code: "messaging/server-unavailable"} as SendResponse["error"]}]);
+  }), /Transient push/);
+  await inbox(badgeUser).doc("unread-1").update({isRead: true});
+  await deliverPushDurably(ref, message, [registration("one")], async (sent) => {
+    assert.equal(sent.apns?.payload?.aps.badge, 64);
+    return batch([{success: true}]);
+  });
+  const readAll = db.batch();
+  for (const doc of (await inbox(badgeUser).get()).docs) readAll.update(doc.ref, {isRead: true});
+  await readAll.commit();
+  let calls = 0;
+  await synchronizeNotificationBadge(badgeUser, async (sent) => {
+    calls++;
+    assert.deepEqual(sent.apns?.payload?.aps, {badge: 0});
+    assert.equal(sent.notification, undefined);
+    assert.equal(sent.apns?.headers?.["apns-push-type"], "alert");
+    return batch([{success: true}]);
+  });
+  assert.equal(calls, 1);
+  await user.collection("notificationPreferences").doc("settings").update({notificationsEnabled: false});
+  await synchronizeNotificationBadge(badgeUser, async () => {throw Error("Must respect disabled notifications");});
 });

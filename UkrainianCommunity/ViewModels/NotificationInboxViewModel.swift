@@ -20,22 +20,35 @@ final class NotificationInboxViewModel: ObservableObject {
     @Published var selectedFilter: NotificationInboxFilter = .all
 
     private let repository: NotificationInboxRepository
+    private let badgeUpdater: (any NotificationBadgeUpdating)?
+    private var unreadListener: AppRealtimeListener?
+    private var unreadRevision = 0
     private var listener: AppRealtimeListener?
     private var currentUserID: String?
     private let notificationLimit = 50
 
-    init(repository: NotificationInboxRepository) {
+    init(repository: NotificationInboxRepository, badgeUpdater: (any NotificationBadgeUpdating)? = nil) {
         self.repository = repository
+        self.badgeUpdater = badgeUpdater
     }
 
     func configure(userID: String?) async {
         if currentUserID == userID {
-            if let userID, listener == nil {
-                startListening(userID: userID)
+            if let userID {
+                if listener == nil { startListening(userID: userID) }
+                if unreadListener == nil { startUnreadListening(userID: userID) }
+            } else {
+                badgeUpdater?.setCount(0)
             }
             return
         }
 
+        // Do not erase a valid APNs badge during a cold-start fetch for the same
+        // restored session. Logout/account switching must clear the previous user.
+        if currentUserID != nil || userID == nil { badgeUpdater?.setCount(0) }
+        unreadListener?.cancel()
+        unreadListener = nil
+        unreadRevision += 1
         listener?.cancel()
         listener = nil
         currentUserID = userID
@@ -50,6 +63,7 @@ final class NotificationInboxViewModel: ObservableObject {
 
         guard let userID else { return }
         startListening(userID: userID)
+        startUnreadListening(userID: userID)
     }
 
     var filteredNotifications: [AppNotification] {
@@ -63,6 +77,45 @@ final class NotificationInboxViewModel: ObservableObject {
 
     func refresh() async {
         await refresh(clearErrorOnSuccess: true)
+        await refreshBadge()
+    }
+
+    func refreshBadge() async {
+        guard let userID = currentUserID else { return }
+        if unreadListener == nil { startUnreadListening(userID: userID) }
+        let session = sessionVersion
+        unreadRevision += 1
+        let revision = unreadRevision
+        do {
+            let count = try await RefreshRequest.run { [self] in
+                try await repository.fetchUnreadCount(userID: userID)
+            }
+            guard sessionVersion == session, unreadRevision == revision else { return }
+            setUnreadCount(count)
+        } catch {
+            // A failed/offline refresh must not erase a known badge.
+            guard sessionVersion == session, unreadRevision == revision else { return }
+            self.error = (error as? AppError) ?? .network
+        }
+    }
+
+    private func setUnreadCount(_ count: Int) {
+        unreadCount = max(0, count)
+        badgeUpdater?.setCount(unreadCount)
+    }
+
+    private func startUnreadListening(userID: String) {
+        let session = sessionVersion
+        unreadListener = repository.listenUnreadCount(userID: userID, onChange: { [weak self] count in
+            guard let self, self.sessionVersion == session else { return }
+            self.unreadRevision += 1
+            self.setUnreadCount(count)
+        }, onError: { [weak self] error in
+            guard let self, self.sessionVersion == session else { return }
+            self.unreadListener?.cancel()
+            self.unreadListener = nil
+            self.error = error
+        })
     }
 
     private func refresh(clearErrorOnSuccess: Bool) async {
@@ -75,7 +128,6 @@ final class NotificationInboxViewModel: ObservableObject {
             let loadedNotifications = try await RefreshRequest.run { [self] in try await repository.fetchNotifications(userID: userID, limit: notificationLimit) }
             guard sessionVersion == session else { return }
             notifications = loadedNotifications
-            unreadCount = loadedNotifications.filter(\.countsAsUnread).count
             snapshotVersion += 1
             if clearErrorOnSuccess {
                 error = nil
@@ -98,6 +150,7 @@ final class NotificationInboxViewModel: ObservableObject {
             guard sessionVersion == session else { return }
             applyReadState(notificationID: notification.id, isRead: true, readAt: Date())
             error = nil
+            await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
             error = appError
@@ -116,6 +169,7 @@ final class NotificationInboxViewModel: ObservableObject {
             guard sessionVersion == session else { return }
             applyReadState(notificationID: notification.id, isRead: false, readAt: nil)
             error = nil
+            await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
             error = appError
@@ -136,8 +190,8 @@ final class NotificationInboxViewModel: ObservableObject {
                 guard notification.countsAsUnread else { return notification }
                 return notification.updatingReadState(isRead: true, readAt: notification.readAt ?? Date())
             }
-            unreadCount = 0
             error = nil
+            await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
             error = appError
@@ -156,6 +210,7 @@ final class NotificationInboxViewModel: ObservableObject {
             guard sessionVersion == session else { return }
             applyArchiveState(notificationID: notification.id)
             error = nil
+            await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
             error = appError
@@ -173,10 +228,9 @@ final class NotificationInboxViewModel: ObservableObject {
             try await repository.deleteNotification(userID: userID, notificationID: notification.id)
             guard sessionVersion == session else { return false }
             notifications.removeAll { $0.id == notification.id }
-            // A listener may already have removed this notification while the write was pending.
-            unreadCount = notifications.filter(\.countsAsUnread).count
             error = nil
-            return true
+            await refreshBadge()
+            return sessionVersion == session
         } catch {
             guard sessionVersion == session else { return false }
             self.error = (error as? AppError) ?? .unknown
@@ -194,9 +248,9 @@ final class NotificationInboxViewModel: ObservableObject {
             try await repository.clearNotifications(userID: userID)
             guard sessionVersion == session else { return }
             notifications = []
-            unreadCount = 0
             snapshotVersion += 1
             error = nil
+            await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
             error = appError
@@ -215,7 +269,6 @@ final class NotificationInboxViewModel: ObservableObject {
             onChange: { [weak self] notifications in
                 guard let self, self.sessionVersion == session else { return }
                 self.notifications = notifications
-                self.unreadCount = notifications.filter(\.countsAsUnread).count
                 self.snapshotVersion += 1
                 self.isLoading = false
                 self.error = nil
@@ -243,26 +296,13 @@ final class NotificationInboxViewModel: ObservableObject {
     private func applyReadState(notificationID: String, isRead: Bool, readAt: Date?) {
         guard let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
         let notification = notifications[index]
-        let wasUnread = notification.countsAsUnread
         notifications[index] = notification.updatingReadState(isRead: isRead, readAt: readAt)
-        let isUnread = notifications[index].countsAsUnread
-        updateUnreadCount(wasUnread: wasUnread, isUnread: isUnread)
     }
 
     private func applyArchiveState(notificationID: String) {
         guard let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
         let notification = notifications[index]
-        let wasUnread = notification.countsAsUnread
         notifications[index] = notification.updatingArchiveState(archivedAt: Date())
-        let isUnread = notifications[index].countsAsUnread
-        updateUnreadCount(wasUnread: wasUnread, isUnread: isUnread)
     }
 
-    private func updateUnreadCount(wasUnread: Bool, isUnread: Bool) {
-        if wasUnread && !isUnread {
-            unreadCount = max(0, unreadCount - 1)
-        } else if !wasUnread && isUnread {
-            unreadCount += 1
-        }
-    }
 }

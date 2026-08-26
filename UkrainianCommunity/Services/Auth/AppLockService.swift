@@ -148,6 +148,14 @@ final class AppLockService: ObservableObject {
         await evaluate(changePreference: enabled)
     }
 
+    /// Called only after AuthService validates successful profile creation and
+    /// the current backend UID. A form choice alone cannot enable protection.
+    func enableAfterRegistration(_ authorization: RegistrationAppLockAuthorization, userID: String) {
+        guard authorization.consume() else { return }
+        defaults.set(true, forKey: preferenceKey(userID))
+        updateSession(userID: userID, passwordAuthenticated: true)
+    }
+
     private func evaluate(changePreference: Bool?) async {
         guard let expectedUserID = userID else { return }
         generation &+= 1
@@ -183,6 +191,77 @@ final class AppLockService: ObservableObject {
     private func preferenceKey(_ userID: String) -> String {
         let hash = SHA256.hash(data: Data(userID.utf8)).map { String(format: "%02x", $0) }.joined()
         return storageKey + "." + hash
+    }
+}
+
+/// An in-memory, single-use confirmation. Never serialized to Firebase or disk.
+@MainActor
+final class RegistrationAppLockAuthorization {
+    private var consumed = false
+    fileprivate init() {}
+    fileprivate func consume() -> Bool {
+        guard !consumed else { return false }
+        consumed = true
+        return true
+    }
+}
+
+/// Owns the registration form's optional choice, without changing any account.
+@MainActor
+final class RegistrationAppLockChoice: ObservableObject {
+    @Published private(set) var authorization: RegistrationAppLockAuthorization?
+    @Published private(set) var isAuthenticating = false
+    @Published private(set) var biometry: AppBiometry = .unavailable
+    @Published private(set) var errorMessage: String?
+    private let authentication: any LocalAuthenticationProviding
+    private var generation = 0
+
+    init(authentication: (any LocalAuthenticationProviding)? = nil) {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           let scenario = ProcessInfo.processInfo.environment["UITestAppLockScenario"] {
+            self.authentication = ScriptedLocalAuthentication(scenario: scenario)
+            return
+        }
+#endif
+        self.authentication = authentication ?? DeviceLocalAuthentication()
+    }
+
+    var isEnabled: Bool { authorization != nil }
+    func refreshAvailability() { biometry = authentication.biometry }
+
+    func cancelPendingAuthentication() {
+        generation &+= 1
+        authentication.cancel()
+        isAuthenticating = false
+    }
+
+    func setEnabled(_ enabled: Bool) async {
+        guard !enabled || (!isEnabled && !isAuthenticating) else { return }
+        cancelPendingAuthentication()
+        authorization = nil
+        errorMessage = nil
+        guard enabled else { return }
+        refreshAvailability()
+        guard biometry != .unavailable else {
+            errorMessage = AppStrings.AppLock.unavailable
+            return
+        }
+        let request = generation
+        isAuthenticating = true
+        defer { if generation == request { isAuthenticating = false } }
+        do {
+            let accepted = try await authentication.authenticate(reason: AppStrings.AppLock.reason)
+            guard generation == request, !Task.isCancelled else { return }
+            if accepted {
+                authorization = RegistrationAppLockAuthorization()
+            } else {
+                errorMessage = AppStrings.AppLock.registrationFailed
+            }
+        } catch {
+            guard generation == request else { return }
+            errorMessage = AppStrings.AppLock.registrationFailed
+        }
     }
 }
 

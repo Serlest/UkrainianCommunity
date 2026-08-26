@@ -18,6 +18,8 @@ import {
 } from "./notificationPayloads";
 import { sendPushToRegistrationDocuments } from "./pushRegistrations";
 import {deliverPushDurably} from "./durablePushDelivery";
+import {countsAsUnread, unreadNotificationCount} from "./notificationBadge";
+import {isRetryablePushFailure, type PushMulticastSender} from "./pushRegistrations";
 import {canReceiveScopedNotification} from "./workflowNotifications";
 
 const triggerOptions = {
@@ -61,6 +63,7 @@ export const sendTestPushNotification = onCall(
       );
     }
 
+    const badge = await unreadNotificationCount(auth.uid);
     const providerErrors = new Set<string>();
     const delivery = await sendPushToRegistrationDocuments(registrations.docs, {
       notification: {
@@ -77,6 +80,7 @@ export const sendTestPushNotification = onCall(
       apns: {
         payload: {
           aps: {
+            badge, // A diagnostic push does not create an unread inbox record.
             sound: "default",
           },
         },
@@ -429,4 +433,37 @@ function enumString<T extends string>(value: unknown, values: Set<T>): T | undef
 
 function fallbackTitle(type: NotificationType): string {
   return type === "systemAnnouncement" ? "Important announcement" : "Ukrainian Community";
+}
+
+/** A read/delete on another device must also correct this device's badge.
+ * No sound/banner and no new inbox entry; APNs may coalesce these updates. */
+export const syncNotificationBadgeOnUpdate = onDocumentUpdated({
+  ...triggerOptions,
+  document: "users/{userId}/notificationInbox/{notificationId}",
+}, async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (!before || !after || countsAsUnread(before) === countsAsUnread(after)) return;
+  await synchronizeNotificationBadge(event.params.userId);
+});
+
+export async function synchronizeNotificationBadge(userId: string, sender?: PushMulticastSender): Promise<void> {
+  const recipients = await resolveNotificationRecipients([userId]);
+  if (!recipients.pushRecipientIds.includes(userId)) return;
+  const registrations = await db.collection("users").doc(userId).collection("notificationPushTokens").get();
+  if (registrations.empty) return;
+  const badge = await unreadNotificationCount(userId);
+  let retry = false;
+  await sendPushToRegistrationDocuments(registrations.docs, {
+    apns: {
+      headers: {
+        "apns-push-type": "alert",
+        "apns-priority": "5",
+        "apns-collapse-id": "notification-inbox-badge",
+        "apns-expiration": "0",
+      },
+      payload: {aps: {badge}},
+    },
+  }, sender, async (_ids, response) => { retry ||= isRetryablePushFailure(response); });
+  if (retry) throw new Error("Transient badge delivery failure; retry with the latest unread count.");
 }

@@ -637,6 +637,88 @@ struct AuthSessionConsistencyTests {
         #expect(restored.isLocked)
     }
 
+    @Test(arguments: ["success", "declined", "authFailure", "profileFailure", "backendChanged"])
+    func registrationBiometricsAreAppliedOnlyToSuccessfullyCreatedAccount(scenario: String) async throws {
+        let suite = "RegistrationAppLock.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localAuth = FakeLocalAuthentication()
+        localAuth.accepted = scenario != "declined"
+        let choice = RegistrationAppLockChoice(authentication: localAuth)
+        #expect(!choice.isEnabled)
+        await choice.setEnabled(true)
+        let lock = AppLockService(defaults: defaults, authentication: FakeLocalAuthentication())
+        let state = AuthState(appLock: lock)
+        state.setGuestSession()
+        let backend = FakeAuthBackend()
+        let user = FakeAuthSessionUser(uid: "registered", email: "new@example.com", isEmailVerified: false)
+        user.verificationEmailError = FakeAuthError.expected
+        backend.createUserResult = user
+        if scenario == "authFailure" { backend.createUserError = FakeAuthError.expected }
+        let profiles = FakeAuthProfileProvider()
+        if scenario == "profileFailure" { profiles.createError = AppError.network }
+        if scenario == "backendChanged" {
+            profiles.createHandler = {
+                backend.currentSessionUser = FakeAuthSessionUser(uid: "other", email: "other@example.com", isEmailVerified: true)
+            }
+        }
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+        var draft = makeDraft()
+        draft.appLockAuthorization = choice.authorization
+        let expectsRegistration = scenario == "success" || scenario == "declined"
+        do {
+            try await service.register(draft: draft, password: "password")
+            #expect(expectsRegistration)
+        } catch { #expect(!expectsRegistration) }
+
+        if expectsRegistration {
+            #expect(state.isVerificationPending)
+            #expect(!lock.isLocked)
+        }
+        let restored = AppLockService(defaults: defaults, authentication: FakeLocalAuthentication())
+        restored.updateSession(userID: "registered")
+        #expect(restored.isEnabled == (scenario == "success"))
+        restored.updateSession(userID: "other")
+        #expect(!restored.isEnabled)
+        if scenario == "success", let authorization = choice.authorization {
+            // The same confirmation must not enable another account.
+            restored.enableAfterRegistration(authorization, userID: "other")
+            #expect(!restored.isEnabled)
+            await lock.setEnabled(false) // Existing Profile settings path.
+            #expect(!lock.isEnabled)
+            await lock.setEnabled(true)
+            #expect(lock.isEnabled)
+        }
+    }
+
+    @Test
+    func registrationBiometricChoiceHandlesCancellationUnavailableAndLateSuccess() async {
+        let authentication = FakeLocalAuthentication()
+        let choice = RegistrationAppLockChoice(authentication: authentication)
+        authentication.biometry = .unavailable
+        await choice.setEnabled(true)
+        #expect(!choice.isEnabled && !choice.isAuthenticating)
+        authentication.biometry = .touchID
+        authentication.error = NSError(domain: "com.apple.LocalAuthentication", code: -2)
+        await choice.setEnabled(true)
+        #expect(!choice.isEnabled && choice.errorMessage != nil)
+        authentication.error = nil
+        authentication.shouldSuspend = true
+        let pending = Task { await choice.setEnabled(true) }
+        for _ in 0..<100 where authentication.continuation == nil { await Task.yield() }
+        #expect(authentication.continuation != nil)
+        choice.cancelPendingAuthentication()
+        authentication.continuation?.resume(returning: true)
+        authentication.continuation = nil
+        await pending.value
+        #expect(!choice.isEnabled && !choice.isAuthenticating)
+        authentication.shouldSuspend = false
+        await choice.setEnabled(true)
+        #expect(choice.isEnabled)
+        await choice.setEnabled(false)
+        #expect(choice.authorization == nil)
+    }
+
     @Test
     func appLockFailureCancelAndUnavailableNeverUnlockOrDisable() async {
         let suite = "AppLockTests.\(UUID().uuidString)"

@@ -44,10 +44,32 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         return FirebaseRealtimeListener(registration)
     }
 
+    // Independent of the 50-row inbox page: the badge represents the whole inbox.
+    func listenUnreadCount(
+        userID: String,
+        onChange: @escaping @MainActor (Int) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let registration = inboxCollection(userID: userID)
+            .whereField("isRead", isEqualTo: false)
+            .addSnapshotListener(includeMetadataChanges: true) { snapshot, error in
+                if let error {
+                    Self.logListenerFailure(error, listenerName: "notificationUnreadCount", userID: userID)
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+                // A partial offline cache must not replace the authoritative APNs total.
+                guard let snapshot, !snapshot.metadata.isFromCache else { return }
+                let count = snapshot.documents.map(makeNotification).filter(\.countsAsUnread).count
+                Task { @MainActor in onChange(count) }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
     func fetchUnreadCount(userID: String) async throws -> Int {
         let snapshot = try await inboxCollection(userID: userID)
             .whereField("isRead", isEqualTo: false)
-            .getDocuments()
+            .getDocuments(source: .server)
 
         return snapshot.documents
             .map(makeNotification)
@@ -79,14 +101,16 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         }
         guard !unreadDocuments.isEmpty else { return }
 
-        let batch = database.batch()
-        for document in unreadDocuments {
-            batch.updateData([
-                "isRead": true,
-                "readAt": FieldValue.serverTimestamp()
-            ], forDocument: document.reference)
+        for start in stride(from: 0, to: unreadDocuments.count, by: 450) {
+            let batch = database.batch()
+            for document in unreadDocuments[start..<min(start + 450, unreadDocuments.count)] {
+                batch.updateData([
+                    "isRead": true,
+                    "readAt": FieldValue.serverTimestamp()
+                ], forDocument: document.reference)
+            }
+            try await batch.commit()
         }
-        try await batch.commit()
     }
 
     func markNotificationPopupPresented(userID: String, notificationID: String) async throws {

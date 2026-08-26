@@ -2,6 +2,9 @@ import Foundation
 
 enum AppStrings {
     enum AppLock {
+        static var registrationTitle: String { text("app_lock.registration_title", "Увімкнути Face ID / Touch ID") }
+        static var registrationHelp: String { text("app_lock.registration_help", "Необов’язково. Підтвердьте захист через Face ID, Touch ID або код пристрою. Він увімкнеться для цього акаунта на цьому пристрої після успішної реєстрації. Згодом його можна ввімкнути або вимкнути в налаштуваннях профілю. Звичайний вхід з email і паролем залишається доступним.") }
+        static var registrationFailed: String { text("app_lock.registration_failed", "Захист не ввімкнено. Спробуйте ще раз або продовжуйте реєстрацію без нього.") }
         static var settingsTitle: String { text("app_lock.settings_title", "Захист доступу") }
         static var toggleTitle: String { text("app_lock.toggle_title", "Захист через Face ID / Touch ID") }
         static var settingsHelp: String { text("app_lock.settings_help", "Після згортання застосунку доступ до цього акаунту на цьому пристрої потребуватиме Face ID, Touch ID або коду пристрою. Після виходу з акаунту потрібно знову ввести email і пароль.") }
@@ -1565,6 +1568,7 @@ enum AppStrings {
         static var notificationPreferencesSaveFailed: String { text("profile.notifications.save_failed", "Не вдалося зберегти налаштування сповіщень.") }
         static var notificationPreferencesSaved: String { text("profile.notifications.saved", "Налаштування сповіщень збережено.") }
         static var systemNotificationsDenied: String { text("profile.notifications.system_denied", "Сповіщення заборонені в налаштуваннях iPhone. Увімкніть їх, щоб отримувати повідомлення поза застосунком.") }
+        static var systemBadgesDisabled: String { text("profile.notifications.badges_disabled", "Значки вимкнені в налаштуваннях iPhone. Увімкніть їх, щоб бачити кількість непрочитаних на іконці застосунку.") }
         static var openSystemNotificationSettings: String { text("profile.notifications.open_system_settings", "Відкрити налаштування iPhone") }
         static var notificationTestButton: String { text("profile.notifications.test_button", "Тестове сповіщення") }
         static var notificationTestSent: String { text("profile.notifications.test_sent", "Сервер прийняв тестове сповіщення. Перевірте, чи воно з’явилося на iPhone.") }

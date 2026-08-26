@@ -1,5 +1,50 @@
 import SwiftUI
 
+struct RegistrationBiometricLockView: View {
+    @ObservedObject var choice: RegistrationAppLockChoice
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if dynamicTypeSize.isAccessibilitySize {
+                title
+                toggle.labelsHidden()
+            } else {
+                toggle
+            }
+            Text(AppStrings.AppLock.registrationHelp)
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if choice.biometry == .unavailable {
+                Text(AppStrings.AppLock.unavailable)
+                    .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+            }
+            if let error = choice.errorMessage {
+                Text(error).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+            }
+            if choice.isAuthenticating { ProgressView() }
+        }
+        .onAppear { choice.refreshAvailability() }
+    }
+
+    private var title: some View {
+        Text(AppStrings.AppLock.registrationTitle)
+            .font(.headline)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var toggle: some View {
+        Toggle(isOn: Binding(
+            get: { choice.isEnabled },
+            set: { enabled in Task { await choice.setEnabled(enabled) } }
+        )) { title }
+        .disabled(choice.isAuthenticating || (choice.biometry == .unavailable && !choice.isEnabled))
+        .accessibilityLabel(AppStrings.AppLock.registrationTitle)
+        .accessibilityIdentifier("auth.register.appLock")
+    }
+}
+
 struct BiometricLockSettingsSection: View {
     @ObservedObject var lock: AppLockService
     @Environment(\.scenePhase) private var scenePhase
