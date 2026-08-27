@@ -25,6 +25,8 @@ enum AppNotificationType: String, Codable, CaseIterable, Sendable {
     case organizationRequestApproved
     case organizationRequestNeedsRevision
     case organizationRequestRejected
+    case organizationRequestCleanupWarning
+    case organizationRequestExpired
     case accountStatusChanged
     case legalDocumentsUpdated
     case organizationNewsPublished
@@ -657,6 +659,16 @@ private enum AppNotificationDisplayResolver {
                 title: AppStrings.NotificationInbox.organizationRejectedTitle,
                 body: firstNonEmpty(notification.payload["rejectionReason"], notification.metadata["rejectionReason"])
                     ?? AppStrings.NotificationInbox.organizationRejectedBody(organizationName(for: notification))
+            )
+        case .organizationRequestCleanupWarning:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.organizationCleanupWarningTitle,
+                body: AppStrings.NotificationInbox.organizationCleanupWarningBody(organizationName(for: notification))
+            )
+        case .organizationRequestExpired:
+            return AppNotificationDisplayContent(
+                title: AppStrings.NotificationInbox.organizationExpiredTitle,
+                body: AppStrings.NotificationInbox.organizationExpiredBody(organizationName(for: notification))
             )
         case .accountStatusChanged:
             return accountStatusContent(for: notification)

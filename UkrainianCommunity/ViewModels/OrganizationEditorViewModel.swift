@@ -1,4 +1,5 @@
 import Combine
+import FirebaseFunctions
 import Foundation
 
 enum OrganizationEditorCategory: String, CaseIterable, Identifiable {
@@ -653,7 +654,10 @@ final class OrganizationEditorViewModel: ObservableObject {
                         locale: AppLanguage.stored.rawValue
                     )
                 } catch {
-                    errorMessage = AppStrings.OrganizationRules.acceptanceFailed
+                    let functionsCode = FunctionsErrorCode(rawValue: (error as NSError).code)
+                    errorMessage = functionsCode == .resourceExhausted
+                        ? AppStrings.Organizations.requestLimitReached
+                        : AppStrings.OrganizationRules.acceptanceFailed
                     return false
                 }
                 try await organizationsViewModel.createOrganization(

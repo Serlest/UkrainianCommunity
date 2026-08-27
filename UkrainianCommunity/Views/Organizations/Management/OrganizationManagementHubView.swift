@@ -44,6 +44,8 @@ struct OrganizationManagementHubView: View {
     @State private var isShowingCreateOrganization = false
     @State private var editingOrganizationRequest: Organization?
     @State private var previewingOrganizationRequest: Organization?
+    @State private var pendingDeleteOrganizationRequest: Organization?
+    @State private var deleteRequestErrorDialog: AppErrorDialog?
     @State private var organizationContentStats: [String: ManagedOrganizationContentStats] = [:]
     @State private var loadingContentStatOrganizationIDs = Set<String>()
 
@@ -179,6 +181,25 @@ struct OrganizationManagementHubView: View {
                 OrganizationRequestPreviewView(organization: organization)
             }
         }
+        .appDestructiveActionDialog(Binding(
+            get: {
+                guard let organization = pendingDeleteOrganizationRequest else { return nil }
+                let isPending = organization.moderationStatus == .pendingReview
+                return AppDestructiveActionDialog(
+                    title: isPending
+                        ? AppStrings.Organizations.withdrawRequestTitle
+                        : AppStrings.Organizations.deleteRequestTitle,
+                    message: AppStrings.Organizations.requestDeleteMessage,
+                    destructiveActionTitle: isPending
+                        ? AppStrings.Organizations.withdrawRequest
+                        : AppStrings.Organizations.deleteRequest
+                ) {
+                    Task { await deleteOrganizationRequest(organization) }
+                }
+            },
+            set: { if $0 == nil { pendingDeleteOrganizationRequest = nil } }
+        ))
+        .appErrorDialog($deleteRequestErrorDialog)
     }
 
     private var createOrganizationCard: some View {
@@ -251,6 +272,9 @@ struct OrganizationManagementHubView: View {
                             },
                             editAction: {
                                 editingOrganizationRequest = organization
+                            },
+                            deleteAction: {
+                                pendingDeleteOrganizationRequest = organization
                             }
                         )
                     }
@@ -260,6 +284,17 @@ struct OrganizationManagementHubView: View {
             if let error = organizationsViewModel.error {
                 InlineMessageCard(style: .error, message: organizationErrorMessage(error))
             }
+        }
+    }
+
+    private func deleteOrganizationRequest(_ organization: Organization) async {
+        do {
+            try await organizationsViewModel.deleteOrganization(id: organization.id, user: authorityUser)
+            pendingDeleteOrganizationRequest = nil
+        } catch {
+            deleteRequestErrorDialog = AppErrorDialog(
+                message: AppStrings.Organizations.requestDeleteFailed
+            )
         }
     }
 

@@ -3,7 +3,10 @@ import {describe, it} from "node:test";
 
 import {HttpsError} from "firebase-functions/v2/https";
 
-import {parseOrganizationRulesAcceptanceRequest} from "./organizationRulesAcceptance";
+import {
+  hasReachedOrganizationRequestLimit,
+  parseOrganizationRulesAcceptanceRequest,
+} from "./organizationRulesAcceptance";
 
 describe("organization rules acceptance request", () => {
   it("normalizes a valid organization-bound request", () => {
@@ -31,5 +34,11 @@ describe("organization rules acceptance request", () => {
       }),
       (error: unknown) => error instanceof HttpsError && error.code === "invalid-argument"
     );
+  });
+
+  it("allows three unpublished requests and blocks the next one", () => {
+    assert.equal(hasReachedOrganizationRequestLimit(2), false);
+    assert.equal(hasReachedOrganizationRequestLimit(3), true);
+    assert.equal(hasReachedOrganizationRequestLimit(4), true);
   });
 });

@@ -85,6 +85,8 @@ enum AppStrings {
         static var organizationApprovedTitle: String { text("notifications.inbox.organization_approved.title", "Organization approved") }
         static var organizationNeedsRevisionTitle: String { text("notifications.inbox.organization_needs_revision.title", "Organization needs revision") }
         static var organizationRejectedTitle: String { text("notifications.inbox.organization_rejected.title", "Organization rejected") }
+        static var organizationCleanupWarningTitle: String { text("notifications.inbox.organization_cleanup_warning.title", "Organization request will be deleted soon") }
+        static var organizationExpiredTitle: String { text("notifications.inbox.organization_expired.title", "Organization request deleted") }
         static var accountStatusChangedTitle: String { text("notifications.inbox.account_status_changed.title", "Account status updated") }
         static var legalDocumentsUpdatedTitle: String { text("notifications.inbox.legal_documents_updated.title", "Legal documents updated") }
         static var roleChangedTitle: String { text("notifications.inbox.role_changed.title", "Role updated") }
@@ -120,6 +122,22 @@ enum AppStrings {
             LocalizationStore.localizedFormat(
                 "notifications.inbox.organization_rejected.body",
                 defaultValue: "%@ was rejected.",
+                arguments: [organizationName]
+            )
+        }
+
+        static func organizationCleanupWarningBody(_ organizationName: String) -> String {
+            LocalizationStore.localizedFormat(
+                "notifications.inbox.organization_cleanup_warning.body",
+                defaultValue: "%@ will be deleted if it is not updated or resubmitted.",
+                arguments: [organizationName]
+            )
+        }
+
+        static func organizationExpiredBody(_ organizationName: String) -> String {
+            LocalizationStore.localizedFormat(
+                "notifications.inbox.organization_expired.body",
+                defaultValue: "%@ was deleted after 30 days without changes.",
                 arguments: [organizationName]
             )
         }
@@ -837,6 +855,23 @@ enum AppStrings {
         static var requestSubmittedSuccessfully: String { text("organizations.editor.request_success", "Заявку надіслано на перевірку.") }
         static var updatedSuccessfully: String { text("organizations.editor.updated_success", "Зміни збережено.") }
         static var requestAlreadyReviewed: String { text("organizations.editor.error.request_already_reviewed", "Заявку вже було розглянуто. Оновіть сторінку.") }
+        static var withdrawRequest: String { text("organizations.request.withdraw", "Відкликати заявку") }
+        static var deleteRequest: String { text("organizations.request.delete", "Видалити заявку") }
+        static var withdrawRequestTitle: String { text("organizations.request.withdraw.title", "Відкликати заявку?") }
+        static var deleteRequestTitle: String { text("organizations.request.delete.title", "Видалити заявку?") }
+        static var requestDeleteMessage: String { text("organizations.request.delete.message", "Заявку, логотип і всі завантажені фотографії буде видалено назавжди.") }
+        static var requestDeleteFailed: String { text("organizations.request.delete.failed", "Не вдалося видалити заявку. Перевірте з’єднання та спробуйте ще раз.") }
+        static var requestLimitReached: String { text("organizations.request.limit_reached", "У вас уже є три активні заявки. Завершіть або видаліть одну з них перед створенням нової.") }
+        static var requestCleanupCaption: String { text("organizations.request.cleanup.caption", "Якщо не внести зміни, заявку буде автоматично видалено через 30 днів після останнього оновлення.") }
+
+        static func requestCleanupDate(_ date: Date) -> String {
+            let formatted = date.formatted(date: .abbreviated, time: .omitted)
+            return LocalizationStore.localizedFormat(
+                "organizations.request.cleanup.date",
+                defaultValue: "Автовидалення: %@",
+                arguments: [formatted]
+            )
+        }
         static var imageSectionTitle: String { text("organizations.editor.image_section", "Логотип") }
         static var logoUploadTitle: String { text("organizations.editor.logo_upload_title", "Додати логотип") }
         static var logoUploadHelper: String { text("organizations.editor.logo_upload_helper", "Квадратний логотип виглядатиме найкраще") }

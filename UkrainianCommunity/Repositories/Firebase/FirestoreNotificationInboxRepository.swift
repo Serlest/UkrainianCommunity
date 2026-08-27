@@ -318,7 +318,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         switch type {
         case .organizationRequestApproved:
             .success
-        case .organizationRequestNeedsRevision, .organizationRequestRejected, .accountStatusChanged, .eventCancelled:
+        case .organizationRequestNeedsRevision, .organizationRequestRejected, .organizationRequestCleanupWarning, .organizationRequestExpired, .accountStatusChanged, .eventCancelled:
             .warning
         case .legalDocumentsUpdated, .systemAnnouncement:
             .critical
@@ -333,7 +333,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         switch type {
         case .feedbackSubmitted, .feedbackReply:
             .openFeedback
-        case .organizationRequestSubmitted, .organizationRequestApproved, .organizationRequestNeedsRevision, .organizationRequestRejected:
+        case .organizationRequestSubmitted, .organizationRequestApproved, .organizationRequestNeedsRevision, .organizationRequestRejected, .organizationRequestCleanupWarning:
             .openOrganizationRequest
         case .organizationRoleAssigned, .organizationRoleRemoved:
             .openOrganization
@@ -345,7 +345,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .none
         case .legalDocumentsUpdated:
             .openLegalDocuments
-        case .accountStatusChanged, .roleChanged:
+        case .accountStatusChanged, .roleChanged, .organizationRequestExpired:
             .openProfile
         case .contentDraftReady:
             .openContentPlanning

@@ -22,6 +22,8 @@ export type AuditActionType =
   | "organizationRequestApproved"
   | "organizationRequestNeedsRevision"
   | "organizationRequestRejected"
+  | "organizationRequestDiscarded"
+  | "organizationRequestExpired"
   | "systemLogsClearRequested"
   | "systemLogsCleared"
   | "systemLogDeleted"

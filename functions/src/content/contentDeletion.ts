@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {requireVerifiedActiveUser} from "../auth/context";
+import {auditLogRef, buildAuditLog} from "../audit/auditLog";
 import {adminStorage, db} from "../firebase/admin";
 import {getOrganizationRoles} from "../permissions/organizationPermissions";
 import {isOwner} from "../permissions/userPermissions";
@@ -113,6 +114,20 @@ export async function discardUnpublishedOrganizationRequest(
       );
     }
 
+    const organization = organizationSnapshot.data() ?? {};
+    transaction.set(auditLogRef(), buildAuditLog({
+      actionType: "organizationRequestDiscarded",
+      targetUserId: actorUserId,
+      performedBy: actorUserId,
+      reason: "Organization request discarded by its submitter.",
+      previousValue: {
+        organizationId,
+        moderationStatus: organization.moderationStatus ?? null,
+        organizationName: organization.name ?? null,
+      },
+      newValue: {deleted: true},
+    }));
+    transaction.delete(db.collection("organizationCreationProofs").doc(organizationId));
     transaction.delete(organizationReference);
     return true;
   });

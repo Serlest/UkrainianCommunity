@@ -1,6 +1,97 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "notifications.inbox.organization_cleanup_warning.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ wird gelöscht, wenn du die Anfrage nicht bearbeitest oder erneut einreichst." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "%@ буде видалено, якщо ви не внесете зміни або не надішлете заявку повторно." } }
+      }
+    },
+    "notifications.inbox.organization_cleanup_warning.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisationsanfrage wird bald gelöscht" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заявку на організацію скоро буде видалено" } }
+      }
+    },
+    "notifications.inbox.organization_expired.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ wurde nach 30 Tagen ohne Änderungen gelöscht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "%@ видалено після 30 днів без змін." } }
+      }
+    },
+    "notifications.inbox.organization_expired.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisationsanfrage gelöscht" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заявку на організацію видалено" } }
+      }
+    },
+    "organizations.request.cleanup.caption" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ohne Änderungen wird die Anfrage 30 Tage nach der letzten Aktualisierung automatisch gelöscht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Якщо не внести зміни, заявку буде автоматично видалено через 30 днів після останнього оновлення." } }
+      }
+    },
+    "organizations.request.cleanup.date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Automatische Löschung: %@" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Автовидалення: %@" } }
+      }
+    },
+    "organizations.request.delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anfrage löschen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Видалити заявку" } }
+      }
+    },
+    "organizations.request.delete.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Anfrage konnte nicht gelöscht werden. Prüfe deine Verbindung und versuche es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося видалити заявку. Перевірте з’єднання та спробуйте ще раз." } }
+      }
+    },
+    "organizations.request.delete.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Anfrage, das Logo und alle hochgeladenen Fotos werden dauerhaft gelöscht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заявку, логотип і всі завантажені фотографії буде видалено назавжди." } }
+      }
+    },
+    "organizations.request.delete.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anfrage löschen?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Видалити заявку?" } }
+      }
+    },
+    "organizations.request.limit_reached" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Du hast bereits drei aktive Anfragen. Schließe eine davon ab oder lösche sie, bevor du eine neue erstellst." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "У вас уже є три активні заявки. Завершіть або видаліть одну з них перед створенням нової." } }
+      }
+    },
+    "organizations.request.withdraw" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anfrage zurückziehen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Відкликати заявку" } }
+      }
+    },
+    "organizations.request.withdraw.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Anfrage zurückziehen?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Відкликати заявку?" } }
+      }
+    },
     "content_planning.archive" : {
       "extractionState" : "manual",
       "localizations" : {

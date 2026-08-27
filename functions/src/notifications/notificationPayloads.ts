@@ -16,6 +16,8 @@ export type NotificationType =
   | "organizationRequestApproved"
   | "organizationRequestNeedsRevision"
   | "organizationRequestRejected"
+  | "organizationRequestCleanupWarning"
+  | "organizationRequestExpired"
   | "organizationRoleAssigned"
   | "organizationRoleRemoved"
   | "reportReviewed"
@@ -345,6 +347,8 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
     case "accountStatusChanged":
     case "organizationRequestNeedsRevision":
     case "organizationRequestRejected":
+    case "organizationRequestCleanupWarning":
+    case "organizationRequestExpired":
     case "eventCancelled":
       return "warning";
     case "organizationRequestApproved":
@@ -393,7 +397,10 @@ function defaultActionType(type: NotificationType): NotificationActionType {
     case "organizationRequestApproved":
     case "organizationRequestNeedsRevision":
     case "organizationRequestRejected":
+    case "organizationRequestCleanupWarning":
       return "openOrganizationRequest";
+    case "organizationRequestExpired":
+      return "openProfile";
     case "organizationRoleAssigned":
     case "organizationRoleRemoved":
       return "openOrganization";
@@ -432,6 +439,8 @@ function defaultSourceType(type: NotificationType): NotificationSourceType {
     case "organizationRequestApproved":
     case "organizationRequestNeedsRevision":
     case "organizationRequestRejected":
+    case "organizationRequestCleanupWarning":
+    case "organizationRequestExpired":
     case "organizationRoleAssigned":
     case "organizationRoleRemoved":
       return "organization";

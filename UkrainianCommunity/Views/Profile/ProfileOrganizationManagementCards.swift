@@ -136,6 +136,7 @@ struct OrganizationRequestCard: View {
     let organization: Organization
     let previewAction: () -> Void
     let editAction: () -> Void
+    let deleteAction: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var canEdit: Bool {
@@ -177,35 +178,62 @@ struct OrganizationRequestCard: View {
                     InlineMessageCard(style: .info, message: reviewMessage)
                 }
 
-                if canEdit {
-                    Button(action: editAction) {
-                        Label(AppStrings.Action.edit, systemImage: "pencil")
+                if let cleanupDate {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Label(AppStrings.Organizations.requestCleanupDate(cleanupDate), systemImage: "clock.badge.exclamationmark")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
-                            .frame(maxWidth: .infinity)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.vertical, 9)
-                            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                    .contentShape(Rectangle())
-                } else {
-                    Button(action: previewAction) {
-                        Label(AppStrings.Profile.previewOrganizationRequest, systemImage: "doc.text.magnifyingglass")
-                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentWarningForeground)
+                        Text(AppStrings.Organizations.requestCleanupCaption)
+                            .font(.caption2)
                             .foregroundStyle(AppTheme.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.vertical, 9)
-                            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: 10) {
+                    requestActionButton
+
+                    Button(action: deleteAction) {
+                        Image(systemName: "trash")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentDestructiveForeground)
+                            .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                            .background(AppTheme.accentDestructive.opacity(0.09), in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                    .contentShape(Rectangle())
+                    .accessibilityLabel(deleteActionTitle)
                 }
             }
         }
+    }
+
+    private var requestActionButton: some View {
+        Button(action: canEdit ? editAction : previewAction) {
+            Label(
+                canEdit ? AppStrings.Action.edit : AppStrings.Profile.previewOrganizationRequest,
+                systemImage: canEdit ? "pencil" : "doc.text.magnifyingglass"
+            )
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(canEdit ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
+            .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+    }
+
+    private var cleanupDate: Date? {
+        guard organization.moderationStatus == .needsRevision || organization.moderationStatus == .rejected else {
+            return nil
+        }
+        return Calendar.current.date(byAdding: .day, value: 30, to: organization.updatedAt)
+    }
+
+    private var deleteActionTitle: String {
+        organization.moderationStatus == .pendingReview
+            ? AppStrings.Organizations.withdrawRequest
+            : AppStrings.Organizations.deleteRequest
     }
 
     private var statusBadge: some View {

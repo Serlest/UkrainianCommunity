@@ -599,7 +599,17 @@ struct PermissionService {
     }
 
     static func canDeleteOrganization(_ organization: Organization, user: AppUser?) -> Bool {
-        !organization.isSystemOrganization && canDeleteOrganization(user: user)
+        !organization.isSystemOrganization
+            && (canDeleteOrganization(user: user) || canDiscardOrganizationRequest(organization, user: user))
+    }
+
+    static func canDiscardOrganizationRequest(_ organization: Organization, user: AppUser?) -> Bool {
+        guard let user, hasUsableAccount(user), organization.submittedByUserId == user.id else {
+            return false
+        }
+        return organization.moderationStatus == .pendingReview
+            || organization.moderationStatus == .needsRevision
+            || organization.moderationStatus == .rejected
     }
 
     static func canDeleteOrganization(user: AppUser?) -> Bool {

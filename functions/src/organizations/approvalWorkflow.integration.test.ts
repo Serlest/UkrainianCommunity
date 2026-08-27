@@ -123,11 +123,21 @@ test("submitter cleanup deletes a pending request but fails closed after approva
   skip: !shouldRun,
 }, async () => {
   const organizationId = organizationIds[3];
+  await db.collection("organizationCreationProofs").doc(organizationId).set({
+    userId: submitterUserId,
+  });
   assert.equal(await discardUnpublishedOrganizationRequest(
     organizationId,
     submitterUserId
   ), true);
   assert.equal((await db.collection("organizations").doc(organizationId).get()).exists, false);
+  assert.equal((await db.collection("organizationCreationProofs").doc(organizationId).get()).exists, false);
+  const discardAudit = await db.collection("auditLogs")
+    .where("targetUserId", "==", submitterUserId)
+    .where("actionType", "==", "organizationRequestDiscarded")
+    .get();
+  assert.equal(discardAudit.size, 1);
+  assert.equal(discardAudit.docs[0].data().performedBy, submitterUserId);
 
   await db.collection("organizations").doc(organizationId).set({
     name: "Approved organization",
@@ -147,6 +157,8 @@ async function cleanup(): Promise<void> {
     ...organizationIds.map((organizationId) => db.recursiveDelete(
       db.collection("organizations").doc(organizationId)
     )),
+    ...organizationIds.map((organizationId) => db.collection("organizationCreationProofs")
+      .doc(organizationId).delete()),
   ]);
   const audit = await db.collection("auditLogs")
     .where("targetUserId", "==", submitterUserId)

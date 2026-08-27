@@ -3,6 +3,7 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
+import {isOwner} from "../permissions/userPermissions";
 
 interface AcceptOrganizationRulesRequest {
   organizationId: string;
@@ -24,6 +25,8 @@ const callableOptions = {
   maxInstances: 10,
 };
 const proofValidityDays = 30;
+export const maximumUnpublishedOrganizationRequests = 3;
+const unpublishedOrganizationStatuses = ["pendingReview", "needsRevision", "rejected"];
 
 export const acceptOrganizationRules = onCall(
   callableOptions,
@@ -34,14 +37,32 @@ export const acceptOrganizationRules = onCall(
     const versionReference = documentReference.collection("versions").doc(input.version);
     const proofReference = db.collection("organizationCreationProofs").doc(input.organizationId);
     const logReference = db.collection("legalAcceptanceLogs").doc();
+    const requestQuery = db.collection("organizations")
+      .where("submittedByUserId", "==", auth.uid)
+      .where("moderationStatus", "in", unpublishedOrganizationStatuses)
+      .limit(maximumUnpublishedOrganizationRequests + 1);
     let committedAt = new Date();
 
     await db.runTransaction(async (transaction) => {
-      const [documentSnapshot, versionSnapshot, proofSnapshot] = await Promise.all([
+      const [documentSnapshot, versionSnapshot, proofSnapshot, requestSnapshot] = await Promise.all([
         transaction.get(documentReference),
         transaction.get(versionReference),
         transaction.get(proofReference),
+        transaction.get(requestQuery),
       ]);
+
+      if (!isOwner(auth.permissions)) {
+        const otherRequestCount = requestSnapshot.docs.filter(
+          (document) => document.id !== input.organizationId
+        ).length;
+        if (hasReachedOrganizationRequestLimit(otherRequestCount)) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "Resolve or delete an existing organization request before creating another.",
+            {reason: "organization-request-limit", maximum: maximumUnpublishedOrganizationRequests}
+          );
+        }
+      }
 
       if (!documentSnapshot.exists || documentSnapshot.data()?.activeVersion !== input.version) {
         throw new HttpsError("failed-precondition", "Requested organization rules are not active.");
@@ -101,6 +122,11 @@ export function parseOrganizationRulesAcceptanceRequest(
   data: unknown
 ): AcceptOrganizationRulesRequest {
   return parseRequest(data);
+}
+
+export function hasReachedOrganizationRequestLimit(otherRequestCount: number): boolean {
+  return Number.isInteger(otherRequestCount)
+    && otherRequestCount >= maximumUnpublishedOrganizationRequests;
 }
 
 function parseRequest(data: unknown): AcceptOrganizationRulesRequest {

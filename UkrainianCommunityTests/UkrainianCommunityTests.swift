@@ -135,7 +135,9 @@ struct UkrainianCommunityTests {
         id: String = "org-1",
         ownerId: String? = nil,
         adminIds: [String] = [],
-        moderatorIds: [String] = []
+        moderatorIds: [String] = [],
+        submittedByUserId: String? = nil,
+        moderationStatus: ModerationStatus = .approved
     ) -> Organization {
         Organization(
             id: id,
@@ -145,9 +147,10 @@ struct UkrainianCommunityTests {
             ownerId: ownerId,
             adminIds: adminIds,
             moderatorIds: moderatorIds,
+            submittedByUserId: submittedByUserId,
             createdAt: .now,
             updatedAt: .now,
-            moderationStatus: .approved,
+            moderationStatus: moderationStatus,
             likeCount: 0,
             likeState: .notLiked
         )
@@ -351,6 +354,30 @@ struct UkrainianCommunityTests {
 
         #expect(PermissionService.canDeleteOrganizationContent(organization, user: owner))
         #expect(PermissionService.canDeleteOrganizationContent(organization, user: platformAdmin) == false)
+    }
+
+    @Test func submitterCanDiscardOnlyOwnUnpublishedOrganizationRequests() {
+        let submitter = makeUser(id: "submitter")
+        let anotherUser = makeUser(id: "another")
+
+        for status in [ModerationStatus.pendingReview, .needsRevision, .rejected] {
+            let request = makeOrganization(
+                id: "request-\(status.rawValue)",
+                submittedByUserId: submitter.id,
+                moderationStatus: status
+            )
+            #expect(PermissionService.canDiscardOrganizationRequest(request, user: submitter))
+            #expect(PermissionService.canDeleteOrganization(request, user: submitter))
+            #expect(PermissionService.canDeleteOrganization(request, user: anotherUser) == false)
+        }
+
+        let approved = makeOrganization(
+            id: "approved-request",
+            submittedByUserId: submitter.id,
+            moderationStatus: .approved
+        )
+        #expect(PermissionService.canDiscardOrganizationRequest(approved, user: submitter) == false)
+        #expect(PermissionService.canDeleteOrganization(approved, user: submitter) == false)
     }
 
     @Test func subscriberIdentityVisibilityMatchesBackendOwnerContract() {

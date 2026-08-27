@@ -19,7 +19,7 @@
     "test:retention:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-retention --only firestore \"node --test lib/retention/analyticsActivityRetention.integration.test.js\"",
     "test:notifications:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-push-registration --only firestore \"node --test lib/notifications/pushRegistrationMutations.integration.test.js\"",
     "test:comments:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-comments --only firestore \"node --test lib/safety/commentModeration.integration.test.js\"",
-    "test:organizations:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-organization-review --only firestore \"node --test lib/organizations/approvalWorkflow.integration.test.js\"",
+    "test:organizations:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-organization-review --only firestore \"node --test lib/organizations/*.integration.test.js\"",
     "test:counters:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-counter-migration --only firestore \"node --test scripts/counterAggregationMigration.integration.mjs\"",
     "test:analytics-cutover:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-analytics-cutover --only firestore \"node --test scripts/analyticsSchemaCutover.integration.mjs\"",
     "test:rules": "npm run test:rules:all",

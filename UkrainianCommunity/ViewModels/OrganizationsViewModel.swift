@@ -626,7 +626,10 @@ final class OrganizationsViewModel: ObservableObject {
             validationErrorMessage = AppStrings.Organizations.actionPermissionError
             throw AppError.permissionDenied
         }
-        guard PermissionService.canDeleteOrganization(user: user) else {
+        let organization = organizationRequests.first(where: { $0.id == id })
+            ?? organizations.first(where: { $0.id == id })
+        guard let organization,
+              PermissionService.canDeleteOrganization(organization, user: user) else {
             validationErrorMessage = AppStrings.Organizations.actionPermissionError
             throw AppError.permissionDenied
         }

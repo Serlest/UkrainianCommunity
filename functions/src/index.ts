@@ -28,6 +28,7 @@ export * from "./notifications/inboxPushDelivery";
 export * from "./notifications/organizationFollowerNotifications";
 export * from "./notifications/pushRegistrationMutations";
 export * from "./organizations/approvalWorkflow";
+export * from "./organizations/organizationRequestRetention";
 export * from "./organizations/organizationPhotoMutations";
 export * from "./organizations/roleManagement";
 export * from "./retention/dataRetention";

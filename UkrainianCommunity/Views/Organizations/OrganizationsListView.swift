@@ -498,7 +498,7 @@ struct OrganizationsListView: View {
         .modifier(OrganizationDeleteSwipeActions(
             isEnabled: presentationMode.allowsManagementControls
                 && !organization.isSystemOrganization
-                && PermissionService.canDeleteOrganization(user: authState.user),
+                && PermissionService.canDeleteOrganization(organization, user: authState.user),
             onDelete: {
                 pendingDeleteOrganizationID = organization.id
             }

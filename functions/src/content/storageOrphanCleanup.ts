@@ -17,7 +17,7 @@ export const cleanupEventImagesOnDelete = onDocumentDeleted(
 );
 
 export const cleanupOrganizationImagesOnDelete = onDocumentDeleted(
-  {document: "organizations/{organizationId}", region},
+  {document: "organizations/{organizationId}", region, retry: true},
   async (event) => deletePrefix(`organizations/${event.params.organizationId}/`)
 );
 

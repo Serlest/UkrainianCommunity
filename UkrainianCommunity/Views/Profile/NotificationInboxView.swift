@@ -327,6 +327,10 @@ private struct NotificationInboxRow: View {
             return "pencil.and.list.clipboard"
         case .organizationRequestRejected:
             return "xmark.seal"
+        case .organizationRequestCleanupWarning:
+            return "clock.badge.exclamationmark"
+        case .organizationRequestExpired:
+            return "trash.circle"
         case .accountStatusChanged:
             return "person.crop.circle.badge.exclamationmark"
         case .legalDocumentsUpdated:
