@@ -733,7 +733,7 @@ final class OrganizationsViewModel: ObservableObject {
             let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchOrganizationsPage(limit: publicFeedPageSize, after: nil) }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             feedRevision &+= 1
-            organizations = visibilityPolicy.visibleOrganizations(page.items)
+            organizations = visibilityPolicy.visibleOrganizations(page.items).deduplicatedOrganizationsByID()
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
             contentVersion &+= 1
@@ -780,8 +780,10 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     private func appendUniqueOrganizations(_ newOrganizations: [Organization]) {
-        let existingIDs = Set(organizations.map(\.id))
-        organizations.append(contentsOf: visibilityPolicy.visibleOrganizations(newOrganizations).filter { !existingIDs.contains($0.id) })
+        var seenIDs = Set(organizations.map(\.id))
+        organizations.append(contentsOf: visibilityPolicy.visibleOrganizations(newOrganizations).filter {
+            seenIDs.insert($0.id).inserted
+        })
     }
 
     private func saveOrganization(_ organization: Organization, imageData: Data?, isEditing: Bool) async throws {

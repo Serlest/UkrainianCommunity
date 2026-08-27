@@ -781,7 +781,7 @@ final class EventsViewModel: ObservableObject {
             let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nil) }
             guard !Task.isCancelled, isCurrentSession(generation) else { return }
             feedRevision &+= 1
-            events = visibilityPolicy.visibleEvents(page.items)
+            events = visibilityPolicy.visibleEvents(page.items).deduplicatedEventsByID()
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
             contentVersion &+= 1
@@ -829,8 +829,10 @@ final class EventsViewModel: ObservableObject {
     }
 
     private func appendUniqueEvents(_ newEvents: [Event]) {
-        let existingIDs = Set(events.map(\.id))
-        events.append(contentsOf: visibilityPolicy.visibleEvents(newEvents).filter { !existingIDs.contains($0.id) })
+        var seenIDs = Set(events.map(\.id))
+        events.append(contentsOf: visibilityPolicy.visibleEvents(newEvents).filter {
+            seenIDs.insert($0.id).inserted
+        })
     }
 
     private func rollbackBookmark(

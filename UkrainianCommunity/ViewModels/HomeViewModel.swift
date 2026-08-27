@@ -27,7 +27,10 @@ final class HomeViewModel: ObservableObject {
         let eventItems = events.map(HomeFeedItem.init(event:))
         let organizationItems = organizations.map(HomeFeedItem.init(organization:))
         let unsortedItems = postItems + eventItems + organizationItems
-        let updatedFeedItems = unsortedItems.sorted {
+        var seenItemIDs = Set<String>()
+        let updatedFeedItems = unsortedItems.filter {
+            seenItemIDs.insert($0.id).inserted
+        }.sorted {
             $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
         }
 

@@ -590,7 +590,7 @@ final class NewsViewModel: ObservableObject {
             let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nil) }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             feedRevision &+= 1
-            posts = visibilityPolicy.visibleNews(page.items)
+            posts = visibilityPolicy.visibleNews(page.items).deduplicatedNewsByID()
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
             contentVersion &+= 1
@@ -637,8 +637,10 @@ final class NewsViewModel: ObservableObject {
     }
 
     private func appendUniquePosts(_ newPosts: [NewsPost]) {
-        let existingIDs = Set(posts.map(\.id))
-        posts.append(contentsOf: visibilityPolicy.visibleNews(newPosts).filter { !existingIDs.contains($0.id) })
+        var seenIDs = Set(posts.map(\.id))
+        posts.append(contentsOf: visibilityPolicy.visibleNews(newPosts).filter {
+            seenIDs.insert($0.id).inserted
+        })
     }
 
     private func rollbackBookmark(

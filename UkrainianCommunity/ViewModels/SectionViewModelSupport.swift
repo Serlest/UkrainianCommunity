@@ -4,6 +4,15 @@ nonisolated let defaultRefreshStaleInterval: TimeInterval = 300
 nonisolated let organizationRefreshStaleInterval: TimeInterval = 600
 nonisolated let publicFeedPageSize = 30
 
+extension Array where Element == NewsPost {
+    func deduplicatedNewsByID() -> [NewsPost] {
+        var seenIDs = Set<String>()
+        return filter { post in
+            seenIDs.insert(post.id).inserted
+        }
+    }
+}
+
 extension Array where Element == Organization {
     func deduplicatedOrganizationsByID() -> [Organization] {
         var seenIDs = Set<String>()

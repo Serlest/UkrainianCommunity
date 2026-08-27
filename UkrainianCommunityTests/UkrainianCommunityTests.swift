@@ -1104,6 +1104,31 @@ struct UkrainianCommunityTests {
         withExtendedLifetime(observation) {}
     }
 
+    @Test func homeViewModelRemovesDuplicateDocumentsBeforeRendering() async throws {
+        let newsRepository = MockNewsRepository()
+        let eventRepository = MockEventRepository()
+        let organizationRepository = MockOrganizationRepository()
+        let viewModel = HomeViewModel(
+            newsRepository: newsRepository,
+            eventRepository: eventRepository,
+            organizationRepository: organizationRepository
+        )
+        let post = try #require(await newsRepository.fetchNews().first)
+        let event = try #require(await eventRepository.fetchEvents().first)
+        let organization = try #require(await organizationRepository.fetchOrganizations().first)
+
+        viewModel.updateFeed(
+            posts: [post, post],
+            events: [event, event],
+            organizations: [organization, organization],
+            isLoading: false,
+            error: nil
+        )
+
+        #expect(viewModel.feedItems.count == 3)
+        #expect(Set(viewModel.feedItems.map(\.id)).count == viewModel.feedItems.count)
+    }
+
     @Test func eventDiscoveryDateRulesSupportUpcomingPastTodayAndThisWeek() {
         let calendar = Calendar.current
         let now = calendar.date(from: DateComponents(year: 2026, month: 5, day: 11, hour: 12, minute: 0)) ?? Date()
