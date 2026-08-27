@@ -4242,6 +4242,40 @@
         }
       }
     },
+    "events.category.excursions_nature" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausflüge und Natur"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Екскурсії та природа"
+          }
+        }
+      }
+    },
+    "events.category.festivals_fairs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Festivals und Jahrmärkte"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фестивалі та ярмарки"
+          }
+        }
+      }
+    },
     "events.category.food_market" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4306,6 +4340,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Музика"
+          }
+        }
+      }
+    },
+    "events.category.nightlife_parties" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachtleben und Partys"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нічне життя та вечірки"
           }
         }
       }
@@ -15918,6 +15969,23 @@
         }
       }
     },
+    "news.editor.category.finance_taxes_consumer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finanzen, Steuern und Verbraucherrechte"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фінанси, податки та права споживачів"
+          }
+        }
+      }
+    },
     "news.editor.category.health" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15931,6 +15999,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Здоров’я"
+          }
+        }
+      }
+    },
+    "news.editor.category.safety_emergencies" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sicherheit und Notfälle"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Безпека та надзвичайні ситуації"
           }
         }
       }

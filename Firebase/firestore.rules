@@ -470,7 +470,8 @@ service cloud.firestore {
           || (data.additionalCategories is list
             && data.additionalCategories.size() <= 2
             && data.additionalCategories.hasOnly([
-              'news', 'event', 'lawAndDocuments', 'benefitsAndSupport', 'health',
+              'news', 'event', 'lawAndDocuments', 'benefitsAndSupport',
+              'financeTaxesAndConsumerRights', 'health', 'safetyAndEmergencies',
               'work', 'education', 'housing', 'transport',
               'communityAndIntegration', 'culture', 'other'
             ])
@@ -527,9 +528,10 @@ service cloud.firestore {
             && data.additionalCategories.size() <= 2
             && data.additionalCategories.hasOnly([
               'meetups', 'training', 'culture', 'education', 'childrenAndFamily',
-              'sportsAndWellness', 'music', 'foodAndMarket', 'businessAndNetworking',
-              'volunteering', 'supportAndIntegration', 'celebration',
-              'saleAndPromotion', 'other'
+              'sportsAndWellness', 'excursionsAndNature', 'music',
+              'nightlifeAndParties', 'foodAndMarket', 'festivalsAndFairs',
+              'businessAndNetworking', 'volunteering', 'supportAndIntegration',
+              'celebration', 'saleAndPromotion', 'other'
             ])
             && (!('category' in data) || !(data.category in data.additionalCategories))))
         && validOptionalString(data, 'imageURL', 2048)

@@ -11,6 +11,20 @@ import {writeUserNotification} from "../notifications/notificationPayloads";
 type DraftKind = "news" | "event";
 type DraftState = "readyForReview" | "needsAttention";
 
+const newsCategories = new Set([
+  "news", "event", "lawAndDocuments", "benefitsAndSupport",
+  "financeTaxesAndConsumerRights", "health", "safetyAndEmergencies",
+  "work", "education", "housing", "transport",
+  "communityAndIntegration", "culture", "other",
+]);
+
+const eventCategories = new Set([
+  "meetups", "training", "culture", "education", "childrenAndFamily",
+  "sportsAndWellness", "excursionsAndNature", "music", "nightlifeAndParties",
+  "foodAndMarket", "festivalsAndFairs", "businessAndNetworking",
+  "volunteering", "supportAndIntegration", "celebration", "saleAndPromotion", "other",
+]);
+
 interface SourceInput {
   url: string;
   title?: string;
@@ -218,7 +232,27 @@ export const deleteOwnerContentDraft = onCall(
 function validatePayload(kind: DraftKind, payload: Record<string, unknown>): void {
   requiredString(payload.summary, "payload.summary", 200);
   stringArray(payload.tags, "payload.tags", 8, 30);
-  stringArray(payload.additionalCategories, "payload.additionalCategories", 2, 60);
+  const allowedCategories = kind === "news" ? newsCategories : eventCategories;
+  const category = payload.category == null
+    ? undefined
+    : enumValue(payload.category, "payload.category", allowedCategories);
+  const additionalCategories = stringArray(
+    payload.additionalCategories,
+    "payload.additionalCategories",
+    2,
+    60
+  );
+  if (additionalCategories.some((candidate) => !allowedCategories.has(candidate))) {
+    throw new HttpsError("invalid-argument", "payload.additionalCategories contains an invalid category.");
+  }
+  if (new Set(additionalCategories).size !== additionalCategories.length) {
+    throw new HttpsError("invalid-argument", "payload.additionalCategories must not contain duplicates.");
+  }
+  if (category && additionalCategories.includes(category)) {
+    throw new HttpsError("invalid-argument", "Primary and additional categories must be distinct.");
+  }
+  if (category) payload.category = category;
+  payload.additionalCategories = additionalCategories;
   optionalWebURL(payload.externalActionURL, "payload.externalActionURL");
 
   if (kind === "news") {

@@ -166,6 +166,49 @@ struct ContentEditorValidationTests {
         #expect(["uk": values["uk"]!].resolved(for: .german)?.title == "Українська")
     }
 
+    @Test func expandedContentCategoriesAreLocalizedAndCodable() throws {
+        let previousLanguage = LocalizationStore.language
+        defer { LocalizationStore.language = previousLanguage }
+
+        let newsCategories: [NewsCategory] = [
+            .financeTaxesAndConsumerRights,
+            .safetyAndEmergencies
+        ]
+        let eventCategories: [EventCategory] = [
+            .excursionsAndNature,
+            .nightlifeAndParties,
+            .festivalsAndFairs
+        ]
+
+        LocalizationStore.language = .ukrainian
+        #expect(newsCategories.map(\.title) == [
+            "Фінанси, податки та права споживачів",
+            "Безпека та надзвичайні ситуації"
+        ])
+        #expect(eventCategories.map(\.title) == [
+            "Екскурсії та природа",
+            "Нічне життя та вечірки",
+            "Фестивалі та ярмарки"
+        ])
+
+        LocalizationStore.language = .german
+        #expect(newsCategories.map(\.title) == [
+            "Finanzen, Steuern und Verbraucherrechte",
+            "Sicherheit und Notfälle"
+        ])
+        #expect(eventCategories.map(\.title) == [
+            "Ausflüge und Natur",
+            "Nachtleben und Partys",
+            "Festivals und Jahrmärkte"
+        ])
+
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        #expect(try decoder.decode([NewsCategory].self, from: encoder.encode(newsCategories)) == newsCategories)
+        #expect(try decoder.decode([EventCategory].self, from: encoder.encode(eventCategories)) == eventCategories)
+        #expect(Set(EventCategory.allCases).isSuperset(of: Set(eventCategories)))
+    }
+
     @Test func organizationLocalizedContentResolvesEveryPublicTextField() {
         let ukrainian = OrganizationLocalizedContent(
             name: "Український центр", shortDescription: "Коротко", fullDescription: "Повний опис",

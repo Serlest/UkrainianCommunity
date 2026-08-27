@@ -173,6 +173,53 @@ test("accepts one primary category and at most two additional topics", () => {
   assert.deepEqual(parsed.payload.additionalCategories, ["education", "benefitsAndSupport"]);
 });
 
+test("accepts the expanded categories and rejects unknown or duplicate topics", () => {
+  const parsed = parseOwnerContentDraftInput({
+    idempotencyKey: "expanded-event-topics",
+    kind: "event",
+    payload: {
+      title: "Нічний фестиваль",
+      summary: "Короткий опис.",
+      details: "Повний перевірений опис.",
+      city: "Innsbruck",
+      venue: "Messe Innsbruck",
+      federalState: "tirol",
+      startDate: "2026-11-13T18:00:00+01:00",
+      endDate: "2026-11-13T23:00:00+01:00",
+      category: "nightlifeAndParties",
+      additionalCategories: ["music", "festivalsAndFairs"],
+      tags: [],
+    },
+    sources: [{url: "https://example.org/event", isPrimary: true}],
+  });
+  assert.deepEqual(parsed.payload.additionalCategories, ["music", "festivalsAndFairs"]);
+
+  for (const additionalCategories of [
+    ["notARealCategory"],
+    ["music", "music"],
+    ["nightlifeAndParties"],
+  ]) {
+    assert.throws(() => parseOwnerContentDraftInput({
+      idempotencyKey: `invalid-${additionalCategories.join("-")}`,
+      kind: "event",
+      payload: {
+        title: "Подія",
+        summary: "Короткий опис.",
+        details: "Повний перевірений опис.",
+        city: "Innsbruck",
+        venue: "Messe Innsbruck",
+        federalState: "tirol",
+        startDate: "2026-11-13T18:00:00+01:00",
+        endDate: "2026-11-13T23:00:00+01:00",
+        category: "nightlifeAndParties",
+        additionalCategories,
+        tags: [],
+      },
+      sources: [{url: "https://example.org/event", isPrimary: true}],
+    }));
+  }
+});
+
 test("rejects more than two additional topics", () => {
   assert.throws(() => parseOwnerContentDraftInput({
     idempotencyKey: "news-with-too-many-topics",

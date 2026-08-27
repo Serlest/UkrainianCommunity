@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - "integration/**"
       - "release/**"
   schedule:
     - cron: "17 2 * * *"
@@ -60,6 +61,12 @@ jobs:
 
       - name: Validate localization catalog
         run: python3 scripts/validate_localizations.py
+
+      - name: Validate shared content category contract
+        run: python3 scripts/validate_content_category_contract.py
+
+      - name: Validate Firestore index uniqueness
+        run: python3 scripts/validate_firestore_indexes.py
 
       - name: Validate property lists and privacy manifests
         run: python3 scripts/validate_property_lists.py
@@ -137,6 +144,16 @@ jobs:
         if: needs.changes.outputs.functions == 'true'
         working-directory: functions
         run: npm run test:notifications:integration
+
+      - name: Run comment moderation integration test
+        if: needs.changes.outputs.functions == 'true'
+        working-directory: functions
+        run: npm run test:comments:integration
+
+      - name: Run organization moderation integration tests
+        if: needs.changes.outputs.functions == 'true'
+        working-directory: functions
+        run: npm run test:organizations:integration
 
       - name: Run counter migration and reconciliation integration test
         if: needs.changes.outputs.functions == 'true'

@@ -223,8 +223,13 @@ describe("strict client content schemas", () => {
     }));
     await assertSucceeds(setDoc(doc(db("org-owner"), "events", "topic-event"), {
       ...event("topic-event", "org-owner"),
-      category: "culture",
-      additionalCategories: ["music", "childrenAndFamily"],
+      category: "nightlifeAndParties",
+      additionalCategories: ["music", "festivalsAndFairs"],
+    }));
+    await assertSucceeds(setDoc(doc(db("org-owner"), "news", "finance-news"), {
+      ...news("finance-news", "org-owner"),
+      category: "financeTaxesAndConsumerRights",
+      additionalCategories: ["safetyAndEmergencies"],
     }));
     await assertFails(setDoc(doc(db("org-owner"), "news", "too-many-topics"), {
       ...news("too-many-topics", "org-owner"),

@@ -500,7 +500,9 @@ enum AppStrings {
         static var categoryEvent: String { text("news.editor.category.event", "Подія") }
         static var categoryLawAndDocuments: String { text("news.editor.category.law_documents", "Документи та право") }
         static var categoryBenefitsAndSupport: String { text("news.editor.category.benefits_support", "Виплати та підтримка") }
+        static var categoryFinanceTaxesAndConsumerRights: String { text("news.editor.category.finance_taxes_consumer", "Фінанси, податки та права споживачів") }
         static var categoryHealth: String { text("news.editor.category.health", "Здоров’я") }
+        static var categorySafetyAndEmergencies: String { text("news.editor.category.safety_emergencies", "Безпека та надзвичайні ситуації") }
         static var categoryWork: String { text("news.editor.category.work", "Робота") }
         static var categoryEducation: String { text("news.editor.category.education", "Освіта") }
         static var categoryHousing: String { text("news.editor.category.housing", "Житло") }
@@ -592,8 +594,11 @@ enum AppStrings {
         static var categoryChildren: String { text("events.category.children", "Для дітей") }
         static var categoryChildrenAndFamily: String { text("events.category.children_family", "Діти та сім’я") }
         static var categorySportsAndWellness: String { text("events.category.sports_wellness", "Спорт і здоров’я") }
+        static var categoryExcursionsAndNature: String { text("events.category.excursions_nature", "Екскурсії та природа") }
         static var categoryMusic: String { text("events.category.music", "Музика") }
+        static var categoryNightlifeAndParties: String { text("events.category.nightlife_parties", "Нічне життя та вечірки") }
         static var categoryFoodAndMarket: String { text("events.category.food_market", "Їжа та ярмарки") }
+        static var categoryFestivalsAndFairs: String { text("events.category.festivals_fairs", "Фестивалі та ярмарки") }
         static var categoryBusinessAndNetworking: String { text("events.category.business_networking", "Бізнес і нетворкінг") }
         static var categoryVolunteering: String { text("events.category.volunteering", "Волонтерство") }
         static var categorySupportAndIntegration: String { text("events.category.support_integration", "Підтримка та інтеграція") }

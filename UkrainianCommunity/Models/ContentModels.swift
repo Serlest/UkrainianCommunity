@@ -48,7 +48,9 @@ enum NewsCategory: String, CaseIterable, Codable, Identifiable {
     case event
     case lawAndDocuments
     case benefitsAndSupport
+    case financeTaxesAndConsumerRights
     case health
+    case safetyAndEmergencies
     case work
     case education
     case housing
@@ -71,8 +73,12 @@ enum NewsCategory: String, CaseIterable, Codable, Identifiable {
             AppStrings.NewsEditor.categoryLawAndDocuments
         case .benefitsAndSupport:
             AppStrings.NewsEditor.categoryBenefitsAndSupport
+        case .financeTaxesAndConsumerRights:
+            AppStrings.NewsEditor.categoryFinanceTaxesAndConsumerRights
         case .health:
             AppStrings.NewsEditor.categoryHealth
+        case .safetyAndEmergencies:
+            AppStrings.NewsEditor.categorySafetyAndEmergencies
         case .work:
             AppStrings.NewsEditor.categoryWork
         case .education:
@@ -100,8 +106,12 @@ enum NewsCategory: String, CaseIterable, Codable, Identifiable {
             "doc.text"
         case .benefitsAndSupport:
             "hand.raised"
+        case .financeTaxesAndConsumerRights:
+            "eurosign.circle"
         case .health:
             "cross.case"
+        case .safetyAndEmergencies:
+            "exclamationmark.shield"
         case .work:
             "briefcase"
         case .education:
@@ -424,8 +434,11 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
     case education
     case childrenAndFamily
     case sportsAndWellness
+    case excursionsAndNature
     case music
+    case nightlifeAndParties
     case foodAndMarket
+    case festivalsAndFairs
     case businessAndNetworking
     case volunteering
     case supportAndIntegration
@@ -436,7 +449,8 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
     static var allCases: [EventCategory] {
         [
             .meetups, .childrenAndFamily, .culture, .music, .education,
-            .training, .sportsAndWellness, .foodAndMarket,
+            .training, .sportsAndWellness, .excursionsAndNature,
+            .nightlifeAndParties, .foodAndMarket, .festivalsAndFairs,
             .businessAndNetworking, .volunteering, .supportAndIntegration,
             .celebration, .saleAndPromotion, .other
         ]
@@ -462,10 +476,16 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
             AppStrings.Events.categoryChildrenAndFamily
         case .sportsAndWellness:
             AppStrings.Events.categorySportsAndWellness
+        case .excursionsAndNature:
+            AppStrings.Events.categoryExcursionsAndNature
         case .music:
             AppStrings.Events.categoryMusic
+        case .nightlifeAndParties:
+            AppStrings.Events.categoryNightlifeAndParties
         case .foodAndMarket:
             AppStrings.Events.categoryFoodAndMarket
+        case .festivalsAndFairs:
+            AppStrings.Events.categoryFestivalsAndFairs
         case .businessAndNetworking:
             AppStrings.Events.categoryBusinessAndNetworking
         case .volunteering:
@@ -497,10 +517,16 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
             "figure.2.and.child.holdinghands"
         case .sportsAndWellness:
             "figure.run"
+        case .excursionsAndNature:
+            "mountain.2"
         case .music:
             "music.note"
+        case .nightlifeAndParties:
+            "moon.stars"
         case .foodAndMarket:
             "fork.knife"
+        case .festivalsAndFairs:
+            "flag.2.crossed"
         case .businessAndNetworking:
             "briefcase"
         case .volunteering:

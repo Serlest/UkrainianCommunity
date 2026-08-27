@@ -9,6 +9,18 @@ import {extname, join, resolve} from "node:path";
 const projectId = process.env.UAC_FIREBASE_PROJECT_ID ?? "ukrainiancommunity-dbd5f";
 const storageBucket = process.env.UAC_FIREBASE_STORAGE_BUCKET ?? `${projectId}.firebasestorage.app`;
 const firestoreBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)`;
+const newsCategories = new Set([
+  "news", "event", "lawAndDocuments", "benefitsAndSupport",
+  "financeTaxesAndConsumerRights", "health", "safetyAndEmergencies",
+  "work", "education", "housing", "transport",
+  "communityAndIntegration", "culture", "other",
+]);
+const eventCategories = new Set([
+  "meetups", "training", "culture", "education", "childrenAndFamily",
+  "sportsAndWellness", "excursionsAndNature", "music", "nightlifeAndParties",
+  "foodAndMarket", "festivalsAndFairs", "businessAndNetworking",
+  "volunteering", "supportAndIntegration", "celebration", "saleAndPromotion", "other",
+]);
 
 const [command, argument] = process.argv.slice(2);
 if (!command || !["list", "save"].includes(command)) {
@@ -192,7 +204,22 @@ function validateDraft(item) {
   if (!Array.isArray(item.sources) || item.sources.filter((source) => source.isPrimary).length !== 1) {
     fail("Each draft requires sources with exactly one primary source.");
   }
-  if ((item.payload.additionalCategories?.length ?? 0) > 2) fail("additionalCategories supports at most two values.");
+  const allowedCategories = item.kind === "news" ? newsCategories : eventCategories;
+  const category = item.payload.category;
+  if (category != null && (!allowedCategories.has(category))) fail("payload.category is invalid.");
+  const additionalCategories = item.payload.additionalCategories ?? [];
+  if (!Array.isArray(additionalCategories) || additionalCategories.length > 2) {
+    fail("additionalCategories supports at most two values.");
+  }
+  if (additionalCategories.some((candidate) => !allowedCategories.has(candidate))) {
+    fail("additionalCategories contains an invalid category.");
+  }
+  if (new Set(additionalCategories).size !== additionalCategories.length) {
+    fail("additionalCategories must not contain duplicates.");
+  }
+  if (category != null && additionalCategories.includes(category)) {
+    fail("Primary and additional categories must be distinct.");
+  }
 }
 
 async function uploadGeneratedImage(ownerUserId, draftId, imagePath, alternativeText) {
