@@ -47,6 +47,28 @@ extension EventEditorView {
                             }
                         }
                     }
+
+                    editorDivider
+
+                    editorSectionTitle(AppStrings.Events.additionalCategoriesTitle)
+
+                    AppHorizontalFilterRow {
+                        ForEach(EventCategory.allCases) { category in
+                            EventEditorCategoryChip(
+                                category: category,
+                                isSelected: viewModel.additionalCategories.contains(category)
+                            ) {
+                                viewModel.toggleAdditionalCategory(category)
+                            }
+                            .disabled(viewModel.isAdditionalCategoryDisabled(category))
+                            .opacity(viewModel.isAdditionalCategoryDisabled(category) && !viewModel.additionalCategories.contains(category) ? 0.45 : 1)
+                        }
+                    }
+
+                    Text(AppStrings.Events.additionalCategoriesHelper)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineSpacing(2)
                 }
             }
         }

@@ -36,7 +36,7 @@ interface ParsedDraftInput {
 }
 
 const newsFields = new Set([
-  "title", "summary", "body", "sourceInput", "tags", "federalState",
+  "title", "summary", "body", "sourceInput", "category", "additionalCategories", "tags", "federalState",
   "germanTitle", "germanSummary", "germanBody", "imageCaption",
   "imageAlternativeText", "imageCredit", "externalActionTitle", "externalActionURL",
   "regionScope", "publicationMode", "scheduledAt",
@@ -46,7 +46,7 @@ const eventFields = new Set([
   "title", "summary", "details", "city", "venue", "address", "locationNote",
   "latitude", "longitude", "eventOrganizerName", "organizerURL", "contactPhone",
   "contactEmail", "contactURL", "federalState", "startDate", "endDate", "isAllDay",
-  "category", "audience", "minimumAge", "maximumAge", "tags", "capacity",
+  "category", "additionalCategories", "audience", "minimumAge", "maximumAge", "tags", "capacity",
   "germanTitle", "germanSummary", "germanDetails", "additionalOccurrences",
   "participationMode", "externalActionTitle", "externalActionURL", "priceKind",
   "price", "maximumPrice", "priceNote",
@@ -218,6 +218,7 @@ export const deleteOwnerContentDraft = onCall(
 function validatePayload(kind: DraftKind, payload: Record<string, unknown>): void {
   requiredString(payload.summary, "payload.summary", 200);
   stringArray(payload.tags, "payload.tags", 8, 30);
+  stringArray(payload.additionalCategories, "payload.additionalCategories", 2, 60);
   optionalWebURL(payload.externalActionURL, "payload.externalActionURL");
 
   if (kind === "news") {

@@ -1,7 +1,7 @@
 import Foundation
 
 struct NewsCreateDraft: Codable, Equatable {
-    static let currentVersion = 3
+    static let currentVersion = 4
 
     let version: Int
     let updatedAt: Date
@@ -14,6 +14,8 @@ struct NewsCreateDraft: Codable, Equatable {
     let body: String
     let sourceInput: String
     let tagsInput: String
+    var selectedCategory: NewsCategory? = nil
+    var additionalCategories: [NewsCategory]? = nil
     let selectedFederalState: AustrianFederalState?
     let germanTitle: String?
     let germanSummary: String?
@@ -35,7 +37,7 @@ struct NewsCreateDraft: Codable, Equatable {
 }
 
 struct EventCreateDraft: Codable, Equatable {
-    static let currentVersion = 4
+    static let currentVersion = 5
 
     let version: Int
     let hasMeaningfulMetadata: Bool?
@@ -63,6 +65,7 @@ struct EventCreateDraft: Codable, Equatable {
     let endDate: Date
     let isAllDay: Bool
     let selectedCategory: EventCategory
+    var additionalCategories: [EventCategory]? = nil
     let selectedAudience: EventAudience?
     let minimumAgeText: String?
     let maximumAgeText: String?

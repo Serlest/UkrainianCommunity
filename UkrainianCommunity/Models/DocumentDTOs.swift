@@ -114,6 +114,7 @@ struct NewsPostDTO: Codable, Identifiable {
     let federalState: String?
     let city: String?
     let category: String?
+    let additionalCategories: [String]?
     let tags: [String]?
     let sourceType: String?
     let organizationId: String?
@@ -188,6 +189,7 @@ struct EventDTO: Codable, Identifiable {
     let likeState: String
     let viewCount: Int
     let category: String?
+    let additionalCategories: [String]?
     let audience: String?
     let minimumAge: Int?
     let maximumAge: Int?
@@ -445,6 +447,7 @@ extension NewsPost {
             federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
             city: dto.city,
             category: dto.category.flatMap(NewsCategory.init(rawValue:)) ?? .news,
+            additionalCategories: (dto.additionalCategories ?? []).compactMap(NewsCategory.init(rawValue:)),
             tags: dto.tags ?? [],
             source: ContentSourceMetadata(
                 sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)) ?? .app,
@@ -485,6 +488,7 @@ extension NewsPost {
             federalState: federalState?.rawValue,
             city: city,
             category: category.rawValue,
+            additionalCategories: additionalCategories.map(\.rawValue),
             tags: tags,
             sourceType: source.sourceType.rawValue,
             organizationId: source.organizationId,
@@ -564,6 +568,7 @@ extension Event {
             likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
             viewCount: dto.viewCount,
             category: dto.category.flatMap(EventCategory.init(rawValue:)) ?? .unspecified,
+            additionalCategories: (dto.additionalCategories ?? []).compactMap(EventCategory.init(rawValue:)),
             audience: dto.audience.flatMap(EventAudience.init(rawValue:)) ?? .everyone,
             minimumAge: dto.minimumAge,
             maximumAge: dto.maximumAge,
@@ -626,6 +631,7 @@ extension Event {
             likeState: likeState.rawValue,
             viewCount: viewCount,
             category: category.rawValue,
+            additionalCategories: additionalCategories.map(\.rawValue),
             audience: audience.rawValue,
             minimumAge: minimumAge,
             maximumAge: maximumAge,

@@ -245,20 +245,34 @@ extension NewsDetailView {
 
         @ViewBuilder
         func tagsSection(for post: NewsPost) -> some View {
-            if !post.tags.isEmpty {
+            if !post.additionalCategories.isEmpty || !post.tags.isEmpty {
                 DetailCard {
-                    Text(AppStrings.News.tagsSectionTitle)
-                        .font(AppTheme.sectionTitleFont)
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    if !post.additionalCategories.isEmpty {
+                        Text(AppStrings.NewsEditor.additionalCategoriesTitle)
+                            .font(AppTheme.sectionTitleFont)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                    AppHorizontalChipRow {
-                        ForEach(post.tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(AppTheme.metadataStrongFont)
-                                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(AppTheme.accentPrimarySoft, in: Capsule())
+                        AppHorizontalChipRow {
+                            ForEach(post.additionalCategories) { category in
+                                AppInfoChip(title: category.title, systemImage: category.systemImage, size: .small)
+                            }
+                        }
+                    }
+
+                    if !post.tags.isEmpty {
+                        Text(AppStrings.News.tagsSectionTitle)
+                            .font(AppTheme.sectionTitleFont)
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
+
+                        AppHorizontalChipRow {
+                            ForEach(post.tags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(AppTheme.metadataStrongFont)
+                                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(AppTheme.accentPrimarySoft, in: Capsule())
+                            }
                         }
                     }
                 }
@@ -443,7 +457,9 @@ extension NewsDetailView {
         func relatedScore(_ candidate: NewsPost, to post: NewsPost) -> Int {
             var score = 0
 
-            if candidate.category == post.category {
+            if candidate.category == post.category
+                || candidate.additionalCategories.contains(post.category)
+                || post.additionalCategories.contains(candidate.category) {
                 score += 4
             }
 

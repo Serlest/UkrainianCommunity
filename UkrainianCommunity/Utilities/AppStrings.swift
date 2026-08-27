@@ -487,9 +487,19 @@ enum AppStrings {
         static var noOrganizerAccess: String { text("news.editor.organizer.no_access", "У вас немає організацій для публікації новин.") }
         static var categoryNews: String { text("news.editor.category.news", "Новина") }
         static var categoryEvent: String { text("news.editor.category.event", "Подія") }
+        static var categoryLawAndDocuments: String { text("news.editor.category.law_documents", "Документи та право") }
+        static var categoryBenefitsAndSupport: String { text("news.editor.category.benefits_support", "Виплати та підтримка") }
+        static var categoryHealth: String { text("news.editor.category.health", "Здоров’я") }
+        static var categoryWork: String { text("news.editor.category.work", "Робота") }
         static var categoryEducation: String { text("news.editor.category.education", "Освіта") }
+        static var categoryHousing: String { text("news.editor.category.housing", "Житло") }
+        static var categoryTransport: String { text("news.editor.category.transport", "Транспорт") }
+        static var categoryCommunityAndIntegration: String { text("news.editor.category.community_integration", "Громада та інтеграція") }
         static var categoryCulture: String { text("news.editor.category.culture", "Культура") }
         static var categoryOther: String { text("news.editor.category.other", "Інше") }
+        static var categorySectionTitle: String { text("news.editor.category.primary", "Основна категорія *") }
+        static var additionalCategoriesTitle: String { text("news.editor.category.additional", "Додаткові теми — до 2") }
+        static var additionalCategoriesHelper: String { text("news.editor.category.additional_helper", "Оберіть лише теми, які справді допомагають знайти новину. Регіон і терміновість задаються окремо.") }
         static var bodySectionTitle: String { text("news.editor.body.title", "Зміст новини *") }
         static var bodyPlaceholder: String { text("news.editor.body.placeholder", "Напишіть основний текст новини...") }
         static var sourceSectionTitle: String { text("news.editor.source.title", "Source") }
@@ -729,7 +739,9 @@ enum AppStrings {
         static var contactURLField: String { text("events.editor.organizer_contact.contact_url", "Contact link") }
         static var contactURLPlaceholder: String { text("events.editor.organizer_contact.contact_url_placeholder", "Registration or contact page") }
         static var organizerContactHelper: String { text("events.editor.organizer_contact.helper", "Optional. Add external organizer or contact details if different from the publishing organization.") }
-        static var categorySectionTitle: String { text("events.editor.category_section", "Категорія *") }
+        static var categorySectionTitle: String { text("events.editor.category_section", "Основна категорія *") }
+        static var additionalCategoriesTitle: String { text("events.editor.additional_categories", "Додаткові теми — до 2") }
+        static var additionalCategoriesHelper: String { text("events.editor.additional_categories_helper", "Наприклад, для культурної музичної програми: «Культура» — основна, «Музика» — додаткова.") }
         static var tagsSectionTitle: String { text("events.editor.tags_section", "Tags") }
         static var tagPlaceholder: String { text("events.editor.tag_placeholder", "Add a tag") }
         static var tagsHelper: String { text("events.editor.tags_helper", "Optional. Add short tags to help people understand the event topic.") }

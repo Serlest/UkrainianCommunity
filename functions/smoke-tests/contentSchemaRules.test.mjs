@@ -215,6 +215,32 @@ describe("strict client content schemas", () => {
     await assertSucceeds(setDoc(doc(db("org-owner"), "events", "new-event"), event("new-event", "org-owner")));
   });
 
+  test("content accepts at most two known additional categories distinct from the primary", async () => {
+    await assertSucceeds(setDoc(doc(db("org-owner"), "news", "topic-news"), {
+      ...news("topic-news", "org-owner"),
+      category: "communityAndIntegration",
+      additionalCategories: ["education", "benefitsAndSupport"],
+    }));
+    await assertSucceeds(setDoc(doc(db("org-owner"), "events", "topic-event"), {
+      ...event("topic-event", "org-owner"),
+      category: "culture",
+      additionalCategories: ["music", "childrenAndFamily"],
+    }));
+    await assertFails(setDoc(doc(db("org-owner"), "news", "too-many-topics"), {
+      ...news("too-many-topics", "org-owner"),
+      additionalCategories: ["education", "health", "benefitsAndSupport"],
+    }));
+    await assertFails(setDoc(doc(db("org-owner"), "events", "unknown-topic"), {
+      ...event("unknown-topic", "org-owner"),
+      additionalCategories: ["notARealCategory"],
+    }));
+    await assertFails(setDoc(doc(db("org-owner"), "news", "duplicate-primary-topic"), {
+      ...news("duplicate-primary-topic", "org-owner"),
+      category: "health",
+      additionalCategories: ["health"],
+    }));
+  });
+
   test("organization owner can schedule hidden news and events", async () => {
     const scheduledAt = new Date("2027-01-10T12:00:00Z");
     await assertSucceeds(setDoc(doc(db("org-owner"), "news", "scheduled-news"), {

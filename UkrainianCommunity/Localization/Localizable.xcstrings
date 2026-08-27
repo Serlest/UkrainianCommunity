@@ -5081,13 +5081,47 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kategorie *"
+            "value" : "Hauptkategorie *"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Категорія *"
+            "value" : "Основна категорія *"
+          }
+        }
+      }
+    },
+    "events.editor.additional_categories" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zusätzliche Themen – bis zu 2"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додаткові теми — до 2"
+          }
+        }
+      }
+    },
+    "events.editor.additional_categories_helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beispiel für ein kulturelles Musikprogramm: Kultur als Hauptkategorie, Musik als zusätzliches Thema."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Наприклад, для культурної музичної програми: «Культура» — основна, «Музика» — додаткова."
           }
         }
       }
@@ -15850,6 +15884,125 @@
         }
       }
     },
+    "news.editor.category.law_documents" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokumente & Recht"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Документи та право"
+          }
+        }
+      }
+    },
+    "news.editor.category.benefits_support" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leistungen & Unterstützung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виплати та підтримка"
+          }
+        }
+      }
+    },
+    "news.editor.category.health" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesundheit"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здоров’я"
+          }
+        }
+      }
+    },
+    "news.editor.category.work" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arbeit"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Робота"
+          }
+        }
+      }
+    },
+    "news.editor.category.housing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wohnen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Житло"
+          }
+        }
+      }
+    },
+    "news.editor.category.transport" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilität"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Транспорт"
+          }
+        }
+      }
+    },
+    "news.editor.category.community_integration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Community & Integration"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Громада та інтеграція"
+          }
+        }
+      }
+    },
     "news.editor.category.culture" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15914,6 +16067,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Новина"
+          }
+        }
+      }
+    },
+    "news.editor.category.primary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hauptkategorie *"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Основна категорія *"
+          }
+        }
+      }
+    },
+    "news.editor.category.additional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zusätzliche Themen – bis zu 2"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додаткові теми — до 2"
+          }
+        }
+      }
+    },
+    "news.editor.category.additional_helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle nur Themen, die das Auffinden der Nachricht wirklich verbessern. Region und Dringlichkeit werden separat festgelegt."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оберіть лише теми, які справді допомагають знайти новину. Регіон і терміновість задаються окремо."
           }
         }
       }

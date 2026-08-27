@@ -25,7 +25,9 @@ Prepare facts for review; never publish content and never select an organization
 
 Required: `title`, `summary`, `body`, `sourceInput`.
 
-Optional: `tags`, `federalState`, `germanTitle`, `germanSummary`, `germanBody`, `imageCaption`, `imageAlternativeText`, `imageCredit`, `externalActionTitle`, `externalActionURL`.
+Optional: `category`, `additionalCategories`, `tags`, `federalState`, `germanTitle`, `germanSummary`, `germanBody`, `imageCaption`, `imageAlternativeText`, `imageCredit`, `externalActionTitle`, `externalActionURL`.
+
+Choose exactly one primary `category`. Add no more than two distinct `additionalCategories`; use them only when they materially improve discovery. Geography, audience, and urgency are not categories.
 
 Use a direct canonical web URL for `sourceInput` when available. Keep titles under 120 characters, summaries under 200 characters, body under 10,000 characters, at most 8 tags, and each tag under 30 characters.
 
@@ -33,7 +35,9 @@ Use a direct canonical web URL for `sourceInput` when available. Keep titles und
 
 Required: `title`, `summary`, `details`, `city`, `federalState`, `startDate`, `endDate`. At least one of `venue` or `address` must be present.
 
-Optional: `locationNote`, `latitude`, `longitude`, `eventOrganizerName`, `organizerURL`, `contactPhone`, `contactEmail`, `contactURL`, `isAllDay`, `category`, `audience`, `minimumAge`, `maximumAge`, `tags`, `capacity`, `germanTitle`, `germanSummary`, `germanDetails`, `additionalOccurrences`, `participationMode`, `externalActionTitle`, `externalActionURL`, `priceKind`, `price`, `maximumPrice`, `priceNote`.
+Optional: `locationNote`, `latitude`, `longitude`, `eventOrganizerName`, `organizerURL`, `contactPhone`, `contactEmail`, `contactURL`, `isAllDay`, `category`, `additionalCategories`, `audience`, `minimumAge`, `maximumAge`, `tags`, `capacity`, `germanTitle`, `germanSummary`, `germanDetails`, `additionalOccurrences`, `participationMode`, `externalActionTitle`, `externalActionURL`, `priceKind`, `price`, `maximumPrice`, `priceNote`.
+
+Choose exactly one primary `category`. Add no more than two distinct `additionalCategories`; a combined cultural music program, for example, can use `culture` as primary and `music` as additional. Do not encode city, target age, or urgency as a category.
 
 Dates must be ISO 8601 with an explicit time zone. For third-party tickets or registration use the official external URL and the corresponding `participationMode`; Ukrainian Community is not the ticket seller. Price is reference information only.
 

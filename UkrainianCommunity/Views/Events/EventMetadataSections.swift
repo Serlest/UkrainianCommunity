@@ -51,20 +51,30 @@ extension EventDetailView {
 
         @ViewBuilder
         func eventTagsCard(for event: Event) -> some View {
-            if !event.tags.isEmpty {
+            if !event.additionalCategories.isEmpty || !event.tags.isEmpty {
                 DetailCard {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                        Text(AppStrings.Events.tagsSectionTitle)
-                            .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
+                        if !event.additionalCategories.isEmpty {
+                            Text(AppStrings.Events.additionalCategoriesTitle)
+                                .font(AppTheme.sectionTitleFont)
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                        AppHorizontalChipRow(spacing: 8) {
-                            ForEach(event.tags, id: \.self) { tag in
-                                AppInfoChip(
-                                    title: tag,
-                                    systemImage: "tag",
-                                    size: .small
-                                )
+                            AppHorizontalChipRow(spacing: 8) {
+                                ForEach(event.additionalCategories) { category in
+                                    AppInfoChip(title: category.title, systemImage: category.systemImage, size: .small)
+                                }
+                            }
+                        }
+
+                        if !event.tags.isEmpty {
+                            Text(AppStrings.Events.tagsSectionTitle)
+                                .font(AppTheme.sectionTitleFont)
+                                .foregroundStyle(AppTheme.accentPrimaryForeground)
+
+                            AppHorizontalChipRow(spacing: 8) {
+                                ForEach(event.tags, id: \.self) { tag in
+                                    AppInfoChip(title: tag, systemImage: "tag", size: .small)
+                                }
                             }
                         }
                     }
@@ -474,7 +484,9 @@ extension EventDetailView {
         func similarEventScore(_ candidate: Event, comparedTo event: Event) -> Int {
             var score = tagOverlap(candidate.tags, event.tags) * 100
 
-            if candidate.category == event.category {
+            if candidate.category == event.category
+                || candidate.additionalCategories.contains(event.category)
+                || event.additionalCategories.contains(candidate.category) {
                 score += 35
             }
 

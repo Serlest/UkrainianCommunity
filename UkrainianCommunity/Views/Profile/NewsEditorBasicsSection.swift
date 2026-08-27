@@ -48,6 +48,46 @@ extension NewsEditorView {
             }
         }
 
+        var newsCategoryCard: some View {
+            editorCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    editorSectionTitle(AppStrings.NewsEditor.categorySectionTitle)
+
+                    AppHorizontalFilterRow {
+                        ForEach(NewsCategory.allCases) { category in
+                            NewsEditorCategoryChip(
+                                category: category,
+                                isSelected: viewModel.selectedCategory == category
+                            ) {
+                                viewModel.selectedCategory = category
+                            }
+                        }
+                    }
+
+                    Divider()
+                    editorSectionTitle(AppStrings.NewsEditor.additionalCategoriesTitle)
+
+                    AppHorizontalFilterRow {
+                        ForEach(NewsCategory.allCases) { category in
+                            NewsEditorCategoryChip(
+                                category: category,
+                                isSelected: viewModel.additionalCategories.contains(category)
+                            ) {
+                                viewModel.toggleAdditionalCategory(category)
+                            }
+                            .disabled(viewModel.isAdditionalCategoryDisabled(category))
+                            .opacity(viewModel.isAdditionalCategoryDisabled(category) && !viewModel.additionalCategories.contains(category) ? 0.45 : 1)
+                        }
+                    }
+
+                    Text(AppStrings.NewsEditor.additionalCategoriesHelper)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineSpacing(2)
+                }
+            }
+        }
+
         var noOrganizerAccessCard: some View {
             EmptyStateCard(
                 systemImage: "building.2.crop.circle",
@@ -149,4 +189,28 @@ extension NewsEditorView {
                     .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
             }
         }
+}
+
+private struct NewsEditorCategoryChip: View {
+    let category: NewsCategory
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(category.title, systemImage: category.systemImage)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(isSelected ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(isSelected ? AppTheme.accentPrimarySoft : AppTheme.surfaceGlass, in: Capsule())
+                .overlay(Capsule().strokeBorder(isSelected ? AppTheme.accentPrimary.opacity(0.12) : AppTheme.borderSubtle))
+        }
+        .buttonStyle(.plain)
+        .frame(minHeight: AppTheme.minimumInteractiveTarget)
+        .contentShape(Rectangle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
 }

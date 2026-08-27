@@ -69,6 +69,15 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var tagsInput = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
+    @Published var selectedCategory: NewsCategory = .news {
+        didSet {
+            additionalCategories.removeAll { $0 == selectedCategory }
+            scheduleCreateDraftAutosave()
+        }
+    }
+    @Published var additionalCategories: [NewsCategory] = [] {
+        didSet { scheduleCreateDraftAutosave() }
+    }
     @Published var selectedFederalState: AustrianFederalState = .tirol {
         didSet { scheduleCreateDraftAutosave() }
     }
@@ -128,6 +137,8 @@ final class NewsEditorViewModel: ObservableObject {
             body = existingNews.body
             sourceInput = existingNews.sourceName ?? existingNews.sourceURL ?? ""
             tagsInput = existingNews.tags.joined(separator: ", ")
+            selectedCategory = existingNews.category
+            additionalCategories = existingNews.additionalCategories
             selectedFederalState = existingNews.federalState ?? .tirol
             selectedRegionScope = existingNews.regionScope == .austria ? .austria : .federalState
             let german = existingNews.localizations[PublishedContentLanguage.german.rawValue]
@@ -194,6 +205,8 @@ final class NewsEditorViewModel: ObservableObject {
             subtitle: trimmedSummary,
             regionScope: selectedRegionScope,
             federalState: selectedRegionScope == .austria ? nil : resolvedFederalState,
+            category: selectedCategory,
+            additionalCategories: additionalCategories,
             tags: parsedTags,
             source: source,
             sourceName: resolvedArticleSource.sourceName,
@@ -514,7 +527,8 @@ final class NewsEditorViewModel: ObservableObject {
             regionScope: selectedRegionScope,
             federalState: newsFederalState,
             city: existingCity,
-            category: .news,
+            category: selectedCategory,
+            additionalCategories: additionalCategories,
             tags: parsedTags,
             source: existingSource,
             sourceName: articleSource.sourceName,
@@ -793,6 +807,8 @@ final class NewsEditorViewModel: ObservableObject {
             body: body,
             sourceInput: sourceInput,
             tagsInput: tagsInput,
+            selectedCategory: selectedCategory,
+            additionalCategories: additionalCategories,
             selectedFederalState: selectedFederalState,
             germanTitle: germanTitle,
             germanSummary: germanSummary,
@@ -826,6 +842,8 @@ final class NewsEditorViewModel: ObservableObject {
         body = draft.body
         sourceInput = draft.sourceInput
         tagsInput = draft.tagsInput
+        selectedCategory = draft.selectedCategory ?? .news
+        additionalCategories = normalizedAdditionalCategories(draft.additionalCategories ?? [])
         germanTitle = draft.germanTitle ?? ""
         germanSummary = draft.germanSummary ?? ""
         germanBody = draft.germanBody ?? ""
@@ -843,6 +861,28 @@ final class NewsEditorViewModel: ObservableObject {
         if let scheduledAt = draft.scheduledAt { self.scheduledAt = scheduledAt }
 
         isApplyingRecoveredDraft = false
+    }
+
+    func toggleAdditionalCategory(_ category: NewsCategory) {
+        guard category != selectedCategory else { return }
+        if let index = additionalCategories.firstIndex(of: category) {
+            additionalCategories.remove(at: index)
+        } else if additionalCategories.count < NewsCategory.maximumAdditionalCategoryCount {
+            additionalCategories.append(category)
+        }
+    }
+
+    func isAdditionalCategoryDisabled(_ category: NewsCategory) -> Bool {
+        category == selectedCategory
+            || (!additionalCategories.contains(category)
+                && additionalCategories.count >= NewsCategory.maximumAdditionalCategoryCount)
+    }
+
+    private func normalizedAdditionalCategories(_ categories: [NewsCategory]) -> [NewsCategory] {
+        Array(categories.reduce(into: [NewsCategory]()) { result, candidate in
+            guard candidate != selectedCategory, !result.contains(candidate) else { return }
+            result.append(candidate)
+        }.prefix(NewsCategory.maximumAdditionalCategoryCount))
     }
 
     private func downloadGeneratedImageIfNeeded() async throws -> Data? {
@@ -972,6 +1012,7 @@ private extension NewsPost {
             federalState: federalState,
             city: city,
             category: category,
+            additionalCategories: additionalCategories,
             tags: tags,
             source: source,
             sourceName: sourceName,

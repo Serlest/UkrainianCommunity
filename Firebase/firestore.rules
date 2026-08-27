@@ -389,7 +389,7 @@ service cloud.firestore {
     function newsDocumentFields() {
       return [
         'id', 'title', 'subtitle', 'summary', 'regionScope', 'federalState',
-        'city', 'category', 'tags', 'sourceType', 'organizationId',
+        'city', 'category', 'additionalCategories', 'tags', 'sourceType', 'organizationId',
         'organizationName', 'organizationImageURL', 'sourceName', 'sourceURL',
         'imageURL', 'body', 'authorId', 'authorName', 'publishedAt', 'createdAt',
         'updatedAt', 'moderationStatus', 'likeCount', 'likeState', 'viewCount',
@@ -408,7 +408,7 @@ service cloud.firestore {
         'startDate', 'endDate', 'createdAt', 'updatedAt', 'requiresRegistration',
         'price', 'capacity', 'registeredCount', 'moderationStatus',
         'registrationState', 'likeCount', 'likeState', 'viewCount',
-        'commentCount', 'category', 'audience', 'minimumAge', 'maximumAge',
+        'commentCount', 'category', 'additionalCategories', 'audience', 'minimumAge', 'maximumAge',
         'tags', 'visibility', 'isAllDay', 'cancellationState', 'cancelledAt',
         'cancellationReason', 'schemaVersion', 'localizations', 'occurrences',
         'participationMode', 'externalAction', 'pricing', 'scheduledAt'
@@ -466,6 +466,15 @@ service cloud.firestore {
         && data.commentCount is int && data.commentCount >= 0
         && data.likeState is string
         && (!('tags' in data) || (data.tags is list && data.tags.size() <= 12))
+        && (!('additionalCategories' in data)
+          || (data.additionalCategories is list
+            && data.additionalCategories.size() <= 2
+            && data.additionalCategories.hasOnly([
+              'news', 'event', 'lawAndDocuments', 'benefitsAndSupport', 'health',
+              'work', 'education', 'housing', 'transport',
+              'communityAndIntegration', 'culture', 'other'
+            ])
+            && (!('category' in data) || !(data.category in data.additionalCategories))))
         && validOptionalString(data, 'imageURL', 2048)
         && validOptionalString(data, 'sourceURL', 2048)
         && validContentRegion(data);
@@ -513,6 +522,16 @@ service cloud.firestore {
         && (!('maximumAge' in data) || (data.maximumAge is int && data.maximumAge >= 0 && data.maximumAge <= 120))
         && (!('minimumAge' in data) || !('maximumAge' in data) || data.minimumAge <= data.maximumAge)
         && (!('tags' in data) || (data.tags is list && data.tags.size() <= 12))
+        && (!('additionalCategories' in data)
+          || (data.additionalCategories is list
+            && data.additionalCategories.size() <= 2
+            && data.additionalCategories.hasOnly([
+              'meetups', 'training', 'culture', 'education', 'childrenAndFamily',
+              'sportsAndWellness', 'music', 'foodAndMarket', 'businessAndNetworking',
+              'volunteering', 'supportAndIntegration', 'celebration',
+              'saleAndPromotion', 'other'
+            ])
+            && (!('category' in data) || !(data.category in data.additionalCategories))))
         && validOptionalString(data, 'imageURL', 2048)
         && validContentRegion(data);
     }

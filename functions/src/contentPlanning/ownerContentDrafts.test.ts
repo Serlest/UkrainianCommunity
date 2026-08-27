@@ -153,3 +153,38 @@ test("rejects scheduled publication less than five minutes ahead", () => {
     sources: [{url: "https://example.org/news", isPrimary: true}],
   }));
 });
+
+test("accepts one primary category and at most two additional topics", () => {
+  const parsed = parseOwnerContentDraftInput({
+    idempotencyKey: "news-with-topics",
+    kind: "news",
+    payload: {
+      title: "Корисна новина",
+      summary: "Короткий опис.",
+      body: "Повний перевірений текст.",
+      sourceInput: "https://example.org/news",
+      category: "communityAndIntegration",
+      additionalCategories: ["education", "benefitsAndSupport"],
+      tags: ["Тіроль"],
+    },
+    sources: [{url: "https://example.org/news", isPrimary: true}],
+  });
+
+  assert.deepEqual(parsed.payload.additionalCategories, ["education", "benefitsAndSupport"]);
+});
+
+test("rejects more than two additional topics", () => {
+  assert.throws(() => parseOwnerContentDraftInput({
+    idempotencyKey: "news-with-too-many-topics",
+    kind: "news",
+    payload: {
+      title: "Новина",
+      summary: "Короткий опис.",
+      body: "Повний перевірений текст.",
+      sourceInput: "https://example.org/news",
+      additionalCategories: ["education", "health", "benefitsAndSupport"],
+      tags: [],
+    },
+    sources: [{url: "https://example.org/news", isPrimary: true}],
+  }));
+});

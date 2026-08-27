@@ -46,11 +46,20 @@ enum ContentPublicationMode: String, CaseIterable, Codable, Identifiable {
 enum NewsCategory: String, CaseIterable, Codable, Identifiable {
     case news
     case event
+    case lawAndDocuments
+    case benefitsAndSupport
+    case health
+    case work
     case education
+    case housing
+    case transport
+    case communityAndIntegration
     case culture
     case other
 
     var id: String { rawValue }
+
+    nonisolated static let maximumAdditionalCategoryCount = 2
 
     var title: String {
         switch self {
@@ -58,8 +67,22 @@ enum NewsCategory: String, CaseIterable, Codable, Identifiable {
             AppStrings.NewsEditor.categoryNews
         case .event:
             AppStrings.NewsEditor.categoryEvent
+        case .lawAndDocuments:
+            AppStrings.NewsEditor.categoryLawAndDocuments
+        case .benefitsAndSupport:
+            AppStrings.NewsEditor.categoryBenefitsAndSupport
+        case .health:
+            AppStrings.NewsEditor.categoryHealth
+        case .work:
+            AppStrings.NewsEditor.categoryWork
         case .education:
             AppStrings.NewsEditor.categoryEducation
+        case .housing:
+            AppStrings.NewsEditor.categoryHousing
+        case .transport:
+            AppStrings.NewsEditor.categoryTransport
+        case .communityAndIntegration:
+            AppStrings.NewsEditor.categoryCommunityAndIntegration
         case .culture:
             AppStrings.NewsEditor.categoryCulture
         case .other:
@@ -73,8 +96,22 @@ enum NewsCategory: String, CaseIterable, Codable, Identifiable {
             "newspaper"
         case .event:
             "calendar"
+        case .lawAndDocuments:
+            "doc.text"
+        case .benefitsAndSupport:
+            "hand.raised"
+        case .health:
+            "cross.case"
+        case .work:
+            "briefcase"
         case .education:
             "graduationcap"
+        case .housing:
+            "house"
+        case .transport:
+            "tram"
+        case .communityAndIntegration:
+            "person.3"
         case .culture:
             "theatermasks"
         case .other:
@@ -186,6 +223,7 @@ struct NewsPost: Identifiable, Codable {
     let federalState: AustrianFederalState?
     let city: String?
     let category: NewsCategory
+    let additionalCategories: [NewsCategory]
     let tags: [String]
     let source: ContentSourceMetadata
     let sourceName: String?
@@ -218,6 +256,7 @@ struct NewsPost: Identifiable, Codable {
         federalState: AustrianFederalState? = .tirol,
         city: String? = nil,
         category: NewsCategory = .news,
+        additionalCategories: [NewsCategory] = [],
         tags: [String] = [],
         source: ContentSourceMetadata = ContentSourceMetadata(),
         sourceName: String? = nil,
@@ -249,6 +288,10 @@ struct NewsPost: Identifiable, Codable {
         self.federalState = federalState
         self.city = city
         self.category = category
+        self.additionalCategories = Array(additionalCategories.reduce(into: [NewsCategory]()) { result, candidate in
+            guard candidate != category, !result.contains(candidate) else { return }
+            result.append(candidate)
+        }.prefix(NewsCategory.maximumAdditionalCategoryCount))
         self.tags = tags
         self.source = source
         self.sourceName = sourceName
@@ -401,6 +444,8 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
+    nonisolated static let maximumAdditionalCategoryCount = 2
+
     var title: String {
         switch self {
         case .unspecified:
@@ -549,6 +594,7 @@ struct Event: Identifiable, Codable {
     var likeState: LikeState
     var viewCount: Int
     let category: EventCategory
+    let additionalCategories: [EventCategory]
     let audience: EventAudience
     let minimumAge: Int?
     let maximumAge: Int?
@@ -604,6 +650,7 @@ struct Event: Identifiable, Codable {
         likeState: LikeState,
         viewCount: Int = 0,
         category: EventCategory = .meetups,
+        additionalCategories: [EventCategory] = [],
         audience: EventAudience = .everyone,
         minimumAge: Int? = nil,
         maximumAge: Int? = nil,
@@ -665,6 +712,10 @@ struct Event: Identifiable, Codable {
         self.likeState = likeState
         self.viewCount = viewCount
         self.category = category
+        self.additionalCategories = Array(additionalCategories.reduce(into: [EventCategory]()) { result, candidate in
+            guard candidate != category, candidate != .unspecified, !result.contains(candidate) else { return }
+            result.append(candidate)
+        }.prefix(EventCategory.maximumAdditionalCategoryCount))
         self.audience = audience
         let normalizedMinimumAge = minimumAge.map { min(max(0, $0), 120) }
         let normalizedMaximumAge = maximumAge.map { min(max(0, $0), 120) }

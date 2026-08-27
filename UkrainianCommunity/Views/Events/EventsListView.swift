@@ -300,7 +300,7 @@ struct EventsListView: View {
 
     private func matchesSelectedCategory(_ event: Event) -> Bool {
         guard let category = selectedCategory.category else { return true }
-        return event.category == category
+        return event.category == category || event.additionalCategories.contains(category)
     }
 
     private func matchesSelectedAudience(_ event: Event) -> Bool {

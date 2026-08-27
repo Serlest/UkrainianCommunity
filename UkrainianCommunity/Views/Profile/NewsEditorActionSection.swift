@@ -26,6 +26,7 @@ extension NewsEditorView {
                     organizerCard
                 }
                 mainInformationCard
+                newsCategoryCard
                 newsLocalizationCard
             case .content:
                 coverImageCard

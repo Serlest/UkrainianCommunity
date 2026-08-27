@@ -120,6 +120,12 @@ final class EventEditorViewModel: ObservableObject {
     }
     @Published var additionalOccurrences: [EventOccurrence] = [] { didSet { scheduleCreateDraftAutosave() } }
     @Published var selectedCategory: EventCategory = .meetups {
+        didSet {
+            additionalCategories.removeAll { $0 == selectedCategory }
+            markCreateDraftMetadataChanged()
+        }
+    }
+    @Published var additionalCategories: [EventCategory] = [] {
         didSet { markCreateDraftMetadataChanged() }
     }
     @Published var selectedAudience: EventAudience = .everyone {
@@ -225,6 +231,7 @@ final class EventEditorViewModel: ObservableObject {
             endDate = primaryOccurrence?.endDate ?? existingEvent.endDate
             additionalOccurrences = Array(existingEvent.occurrences.dropFirst())
             selectedCategory = existingEvent.category
+            additionalCategories = existingEvent.additionalCategories
             selectedAudience = existingEvent.audience
             minimumAgeText = existingEvent.minimumAge.map(String.init) ?? ""
             maximumAgeText = existingEvent.maximumAge.map(String.init) ?? ""
@@ -353,6 +360,7 @@ final class EventEditorViewModel: ObservableObject {
             likeCount: 0,
             likeState: .notLiked,
             category: selectedCategory,
+            additionalCategories: additionalCategories,
             audience: selectedAudience,
             minimumAge: resolvedMinimumAge,
             maximumAge: resolvedMaximumAge,
@@ -816,6 +824,7 @@ final class EventEditorViewModel: ObservableObject {
             likeState: existingLikeState,
             viewCount: existingViewCount,
             category: selectedCategory,
+            additionalCategories: additionalCategories,
             audience: selectedAudience,
             minimumAge: resolvedMinimumAge,
             maximumAge: resolvedMaximumAge,
@@ -913,6 +922,7 @@ final class EventEditorViewModel: ObservableObject {
             endDate = now.addingTimeInterval(60 * 60)
             additionalOccurrences = []
             selectedCategory = .meetups
+            additionalCategories = []
             selectedAudience = .everyone
             minimumAgeText = ""
             maximumAgeText = ""
@@ -1234,6 +1244,7 @@ final class EventEditorViewModel: ObservableObject {
             endDate: endDate,
             isAllDay: isAllDay,
             selectedCategory: selectedCategory,
+            additionalCategories: additionalCategories,
             selectedAudience: selectedAudience,
             minimumAgeText: minimumAgeText,
             maximumAgeText: maximumAgeText,
@@ -1289,6 +1300,7 @@ final class EventEditorViewModel: ObservableObject {
         endDate = draft.endDate
         isAllDay = draft.isAllDay
         selectedCategory = draft.selectedCategory
+        additionalCategories = normalizedAdditionalCategories(draft.additionalCategories ?? [])
         selectedAudience = draft.selectedAudience ?? .everyone
         minimumAgeText = draft.minimumAgeText ?? ""
         maximumAgeText = draft.maximumAgeText ?? ""
@@ -1313,6 +1325,30 @@ final class EventEditorViewModel: ObservableObject {
         hasMeaningfulCreateDraftMetadata = draft.hasMeaningfulMetadata == true
 
         isApplyingRecoveredDraft = false
+    }
+
+    func toggleAdditionalCategory(_ category: EventCategory) {
+        guard category != selectedCategory, category != .unspecified else { return }
+        if let index = additionalCategories.firstIndex(of: category) {
+            additionalCategories.remove(at: index)
+        } else if additionalCategories.count < EventCategory.maximumAdditionalCategoryCount {
+            additionalCategories.append(category)
+        }
+    }
+
+    func isAdditionalCategoryDisabled(_ category: EventCategory) -> Bool {
+        category == selectedCategory
+            || (!additionalCategories.contains(category)
+                && additionalCategories.count >= EventCategory.maximumAdditionalCategoryCount)
+    }
+
+    private func normalizedAdditionalCategories(_ categories: [EventCategory]) -> [EventCategory] {
+        Array(categories.reduce(into: [EventCategory]()) { result, candidate in
+            guard candidate != selectedCategory,
+                  candidate != .unspecified,
+                  !result.contains(candidate) else { return }
+            result.append(candidate)
+        }.prefix(EventCategory.maximumAdditionalCategoryCount))
     }
 
     private func downloadGeneratedImageIfNeeded() async throws -> Data? {
@@ -1501,6 +1537,7 @@ private extension Event {
             likeState: likeState,
             viewCount: viewCount,
             category: category,
+            additionalCategories: additionalCategories,
             audience: audience,
             minimumAge: minimumAge,
             maximumAge: maximumAge,
