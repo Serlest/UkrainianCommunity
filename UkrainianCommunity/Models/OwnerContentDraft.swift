@@ -24,6 +24,13 @@ struct OwnerContentSourceReference: Codable, Equatable, Identifiable {
     var id: String { url }
 }
 
+struct OwnerContentGeneratedImage: Codable, Equatable {
+    let url: String
+    let storagePath: String
+    let alternativeText: String?
+    let credit: String?
+}
+
 struct OwnerContentDraft: Identifiable, Equatable {
     let id: String
     let schemaVersion: Int
@@ -41,6 +48,7 @@ struct OwnerContentDraft: Identifiable, Equatable {
     let scheduledAt: Date?
     let completedAt: Date?
     let failureMessage: String?
+    let generatedImage: OwnerContentGeneratedImage?
 
     var requiresAttention: Bool {
         state == .needsAttention || state == .failed || !missingFields.isEmpty

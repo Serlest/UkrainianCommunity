@@ -81,6 +81,7 @@ final class NewsEditorViewModel: ObservableObject {
     @Published private(set) var removesExistingImage = false
     @Published private(set) var pendingRecoveryDraft: NewsCreateDraft?
     private var selectedProcessedImage: ProcessedImageSelection?
+    private var generatedImageURL: String?
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: NewsRepository
@@ -255,7 +256,7 @@ final class NewsEditorViewModel: ObservableObject {
         if case let .edit(existingNews) = mode {
             return existingNews.imageURL
         }
-        return nil
+        return generatedImageURL
     }
 
     var organizerName: String? {
@@ -314,6 +315,7 @@ final class NewsEditorViewModel: ObservableObject {
         errorMessage = nil
         selectedImageData = data
         selectedProcessedImage = nil
+        generatedImageURL = nil
         removesExistingImage = false
     }
 
@@ -324,6 +326,7 @@ final class NewsEditorViewModel: ObservableObject {
         errorMessage = nil
         if selection != nil {
             removesExistingImage = false
+            generatedImageURL = nil
         }
     }
 
@@ -331,6 +334,7 @@ final class NewsEditorViewModel: ObservableObject {
         selectedImageData = nil
         selectedProcessedImage = nil
         removesExistingImage = isEditing
+        generatedImageURL = nil
         successMessage = nil
         errorMessage = nil
     }
@@ -516,9 +520,10 @@ final class NewsEditorViewModel: ObservableObject {
         do {
             switch mode {
             case .create:
+                let generatedImageData = try await downloadGeneratedImageIfNeeded()
                 try await repository.createNews(news)
 
-                if selectedImageData != nil {
+                if selectedImageData != nil || generatedImageData != nil {
                     isUploadingImage = true
                     do {
                         let downloadURL: URL
@@ -527,9 +532,9 @@ final class NewsEditorViewModel: ObservableObject {
                                 processedImage: selectedProcessedImage,
                                 newsID: newsID
                             )
-                        } else if let selectedImageData {
+                        } else if let imageData = selectedImageData ?? generatedImageData {
                             downloadURL = try await imageUploadService.uploadNewsCoverImage(
-                                data: selectedImageData,
+                                data: imageData,
                                 newsID: newsID
                             )
                         } else {
@@ -764,7 +769,8 @@ final class NewsEditorViewModel: ObservableObject {
             imageAlternativeText: imageAlternativeText,
             imageCredit: imageCredit,
             externalActionTitle: externalActionTitle,
-            externalActionURL: externalActionURL
+            externalActionURL: externalActionURL,
+            generatedImageURL: generatedImageURL
         )
     }
 
@@ -793,11 +799,27 @@ final class NewsEditorViewModel: ObservableObject {
         imageCredit = draft.imageCredit ?? ""
         externalActionTitle = draft.externalActionTitle ?? ""
         externalActionURL = draft.externalActionURL ?? ""
+        generatedImageURL = draft.generatedImageURL?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let selectedFederalState = draft.selectedFederalState {
             self.selectedFederalState = selectedFederalState
         }
 
         isApplyingRecoveredDraft = false
+    }
+
+    private func downloadGeneratedImageIfNeeded() async throws -> Data? {
+        guard selectedImageData == nil else { return nil }
+        guard let generatedImageURL else { return nil }
+        guard let url = URL(string: generatedImageURL),
+              url.scheme?.lowercased() == "https" else { throw AppError.validationFailed }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard data.count <= 15_000_000,
+              let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode),
+              httpResponse.mimeType?.hasPrefix("image/") == true else {
+            throw AppError.validationFailed
+        }
+        return data
     }
 
     private var resolvedFederalState: AustrianFederalState? {

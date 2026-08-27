@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 
-import {parseOwnerContentDraftInput} from "./ownerContentDrafts";
+import {parseOwnerContentDraftID, parseOwnerContentDraftInput} from "./ownerContentDrafts";
 
 test("parses a verified news draft without organization assignment", () => {
   const parsed = parseOwnerContentDraftInput({
@@ -79,4 +79,37 @@ test("rejects unsupported fields such as organizationId", () => {
     },
     sources: [{url: "https://example.org/news", isPrimary: true}],
   }));
+});
+
+test("accepts generated original image metadata and maps its URL into the editor payload", () => {
+  const parsed = parseOwnerContentDraftInput({
+    idempotencyKey: "event-with-generated-image",
+    kind: "event",
+    payload: {
+      title: "Зустріч",
+      summary: "Зустріч громади.",
+      details: "Деталі зустрічі.",
+      city: "Innsbruck",
+      venue: "Saal",
+      federalState: "tirol",
+      startDate: "2026-10-10T18:00:00+02:00",
+      endDate: "2026-10-10T20:00:00+02:00",
+      tags: [],
+    },
+    generatedImage: {
+      url: "https://firebasestorage.googleapis.com/example.jpg",
+      storagePath: "users/owner/contentPlanningDraftImages/draft/cover.jpg",
+      alternativeText: "Альпійський захід сонця",
+      credit: "Зображення створене ШІ",
+    },
+    sources: [{url: "https://example.org/event", isPrimary: true}],
+  });
+
+  assert.equal(parsed.payload.generatedImageURL, "https://firebasestorage.googleapis.com/example.jpg");
+  assert.equal(parsed.generatedImage?.storagePath, "users/owner/contentPlanningDraftImages/draft/cover.jpg");
+});
+
+test("validates owner content draft identifiers before deletion", () => {
+  assert.equal(parseOwnerContentDraftID({draftId: "a".repeat(40)}), "a".repeat(40));
+  assert.throws(() => parseOwnerContentDraftID({draftId: "../draft"}));
 });

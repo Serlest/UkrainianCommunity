@@ -36,6 +36,27 @@
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернетки" } }
       }
     },
+    "content_planning.delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Löschen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Видалити" } }
+      }
+    },
+    "content_planning.delete.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf und das dafür erstellte Titelbild werden endgültig gelöscht. Bereits veröffentlichte Inhalte bleiben unverändert." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернетку та створену для неї обкладинку буде видалено безповоротно. Опублікований контент не зміниться." } }
+      }
+    },
+    "content_planning.delete.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Entwurf löschen?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Видалити чернетку?" } }
+      }
+    },
     "content_planning.empty.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -55,6 +76,13 @@
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Inhaltsplanung konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося завантажити планування. Перевірте з’єднання та спробуйте ще раз." } }
+      }
+    },
+    "content_planning.error.delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf konnte nicht gelöscht werden. Prüfe die Verbindung und versuche es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося видалити чернетку. Перевірте з’єднання та спробуйте ще раз." } }
       }
     },
     "content_planning.error.update" : {

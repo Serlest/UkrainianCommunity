@@ -73,4 +73,14 @@ final class OwnerContentPlanningViewModel: ObservableObject {
             errorMessage = AppStrings.ContentPlanning.updateFailed
         }
     }
+
+    func delete(_ draft: OwnerContentDraft) async {
+        guard let activeUserID else { return }
+        do {
+            try await repository.delete(userID: activeUserID, draftID: draft.id)
+            drafts.removeAll { $0.id == draft.id }
+        } catch {
+            errorMessage = AppStrings.ContentPlanning.deleteFailed
+        }
+    }
 }

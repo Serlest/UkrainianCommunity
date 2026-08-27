@@ -1038,10 +1038,14 @@ enum AppStrings {
         static var archive: String { text("content_planning.archive", "Архівувати") }
         static var archiveTitle: String { text("content_planning.archive.title", "Архівувати чернетку?") }
         static var archiveMessage: String { text("content_planning.archive.message", "Чернетка зникне з планування, але опублікований контент не буде змінено.") }
+        static var delete: String { text("content_planning.delete", "Видалити") }
+        static var deleteTitle: String { text("content_planning.delete.title", "Видалити чернетку?") }
+        static var deleteMessage: String { text("content_planning.delete.message", "Чернетку та створену для неї обкладинку буде видалено безповоротно. Опублікований контент не зміниться.") }
         static var emptyTitle: String { text("content_planning.empty.title", "Тут поки порожньо") }
         static var emptyMessage: String { text("content_planning.empty.message", "Надішліть посилання асистенту. Після перевірки матеріал з’явиться тут і залишиться приватним до вашої публікації.") }
         static var loadFailed: String { text("content_planning.error.load", "Не вдалося завантажити планування. Перевірте з’єднання та спробуйте ще раз.") }
         static var updateFailed: String { text("content_planning.error.update", "Не вдалося оновити чернетку. Спробуйте ще раз.") }
+        static var deleteFailed: String { text("content_planning.error.delete", "Не вдалося видалити чернетку. Перевірте з’єднання та спробуйте ще раз.") }
         static func missingFields(_ count: Int) -> String {
             LocalizationStore.localizedFormat(
                 "content_planning.missing_fields",

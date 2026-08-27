@@ -22,6 +22,7 @@ struct OwnerContentPlanningView: View {
     @State private var selectedFilter: OwnerContentPlanningFilter = .drafts
     @State private var selectedDraft: OwnerContentDraft?
     @State private var pendingArchiveDraft: OwnerContentDraft?
+    @State private var pendingDeleteDraft: OwnerContentDraft?
 
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
@@ -72,7 +73,8 @@ struct OwnerContentPlanningView: View {
                             OwnerContentDraftCard(
                                 draft: draft,
                                 openAction: { selectedDraft = draft },
-                                archiveAction: { pendingArchiveDraft = draft }
+                                archiveAction: { pendingArchiveDraft = draft },
+                                deleteAction: { pendingDeleteDraft = draft }
                             )
                         }
                     }
@@ -105,6 +107,23 @@ struct OwnerContentPlanningView: View {
             Button(AppStrings.Common.cancel, role: .cancel) { pendingArchiveDraft = nil }
         } message: {
             Text(AppStrings.ContentPlanning.archiveMessage)
+        }
+        .confirmationDialog(
+            AppStrings.ContentPlanning.deleteTitle,
+            isPresented: Binding(
+                get: { pendingDeleteDraft != nil },
+                set: { if !$0 { pendingDeleteDraft = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.ContentPlanning.delete, role: .destructive) {
+                guard let draft = pendingDeleteDraft else { return }
+                pendingDeleteDraft = nil
+                Task { await viewModel.delete(draft) }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { pendingDeleteDraft = nil }
+        } message: {
+            Text(AppStrings.ContentPlanning.deleteMessage)
         }
     }
 
@@ -159,10 +178,24 @@ private struct OwnerContentDraftCard: View {
     let draft: OwnerContentDraft
     let openAction: () -> Void
     let archiveAction: () -> Void
+    let deleteAction: () -> Void
 
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: 12) {
+                if let generatedImage = draft.generatedImage {
+                    RemoteImageView(
+                        imageURL: generatedImage.url,
+                        height: 180,
+                        cornerRadius: AppTheme.imageRadius,
+                        source: "OwnerContentDraftCard",
+                        placeholderStyle: .glassSkeleton
+                    )
+                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                    .clipped()
+                    .accessibilityLabel(generatedImage.alternativeText ?? draft.title)
+                }
+
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: draft.kind == .news ? "newspaper.fill" : "calendar.badge.plus")
                         .font(.headline.weight(.semibold))
@@ -186,8 +219,12 @@ private struct OwnerContentDraftCard: View {
                     Spacer(minLength: 0)
 
                     Menu {
-                        Button(role: .destructive, action: archiveAction) {
+                        Button(action: archiveAction) {
                             Label(AppStrings.ContentPlanning.archive, systemImage: "archivebox")
+                        }
+                        Divider()
+                        Button(role: .destructive, action: deleteAction) {
+                            Label(AppStrings.ContentPlanning.delete, systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis")

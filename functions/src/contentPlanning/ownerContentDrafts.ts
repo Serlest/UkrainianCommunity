@@ -4,7 +4,7 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {requireVerifiedActiveUser} from "../auth/context";
-import {db} from "../firebase/admin";
+import {adminStorage, db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
 import {writeUserNotification} from "../notifications/notificationPayloads";
 
@@ -27,6 +27,12 @@ interface ParsedDraftInput {
   sources: Array<Record<string, unknown>>;
   verificationNotes: string[];
   missingFields: string[];
+  generatedImage?: {
+    url: string;
+    storagePath: string;
+    alternativeText?: string;
+    credit?: string;
+  };
 }
 
 const newsFields = new Set([
@@ -66,6 +72,14 @@ export function parseOwnerContentDraftInput(value: unknown): ParsedDraftInput {
     ? undefined
     : enumValue(input.state, "state", new Set<DraftState>(["readyForReview", "needsAttention"]));
   const sources = sourceArray(input.sources);
+  const generatedImage = optionalGeneratedImage(input.generatedImage);
+  if (generatedImage) {
+    payload.generatedImageURL = generatedImage.url;
+    if (kind === "news") {
+      payload.imageAlternativeText ??= generatedImage.alternativeText ?? null;
+      payload.imageCredit ??= generatedImage.credit ?? null;
+    }
+  }
 
   return {
     idempotencyKey,
@@ -76,6 +90,7 @@ export function parseOwnerContentDraftInput(value: unknown): ParsedDraftInput {
     sources,
     verificationNotes,
     missingFields,
+    generatedImage,
   };
 }
 
@@ -90,6 +105,12 @@ export async function saveOwnerContentDraftForUser(
   const reference = db.collection("users").doc(ownerUserId)
     .collection("contentPlanningDrafts").doc(draftId);
   let created = false;
+
+  if (parsed.generatedImage && !parsed.generatedImage.storagePath.startsWith(
+    `users/${ownerUserId}/contentPlanningDraftImages/`
+  )) {
+    throw new HttpsError("invalid-argument", "Generated image must belong to the owner draft area.");
+  }
 
   await db.runTransaction(async (transaction) => {
     const existing = await transaction.get(reference);
@@ -111,6 +132,7 @@ export async function saveOwnerContentDraftForUser(
       scheduledAt: null,
       completedAt: null,
       failureMessage: null,
+      generatedImage: parsed.generatedImage ?? null,
     });
   });
 
@@ -141,6 +163,51 @@ export const saveOwnerContentDraft = onCall(
     assertOwner(actor.permissions);
     const parsed = parseOwnerContentDraftInput(request.data);
     return saveOwnerContentDraftForUser(actor.uid, parsed);
+  }
+);
+
+export function parseOwnerContentDraftID(value: unknown): string {
+  const input = record(value, "request");
+  const draftId = requiredString(input.draftId, "draftId", 40);
+  if (!/^[a-f0-9]{40}$/.test(draftId)) {
+    throw new HttpsError("invalid-argument", "draftId is invalid.");
+  }
+  return draftId;
+}
+
+export async function deleteOwnerContentDraftForUser(
+  ownerUserId: string,
+  draftId: string
+): Promise<{deleted: boolean}> {
+  const draftReference = db.collection("users").doc(ownerUserId)
+    .collection("contentPlanningDrafts").doc(draftId);
+  const snapshot = await draftReference.get();
+  if (!snapshot.exists) return {deleted: false};
+
+  const generatedImage = snapshot.get("generatedImage") as Record<string, unknown> | undefined;
+  const storagePath = typeof generatedImage?.storagePath === "string"
+    ? generatedImage.storagePath
+    : undefined;
+  const expectedPrefix = `users/${ownerUserId}/contentPlanningDraftImages/`;
+  if (storagePath?.startsWith(expectedPrefix)) {
+    await adminStorage.bucket().file(storagePath).delete({ignoreNotFound: true});
+  }
+
+  const notificationReference = db.collection("users").doc(ownerUserId)
+    .collection("notificationInbox").doc(`contentDraftReady_${draftId}`);
+  const batch = db.batch();
+  batch.delete(draftReference);
+  batch.delete(notificationReference);
+  await batch.commit();
+  return {deleted: true};
+}
+
+export const deleteOwnerContentDraft = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const actor = await requireVerifiedActiveUser(request);
+    assertOwner(actor.permissions);
+    return deleteOwnerContentDraftForUser(actor.uid, parseOwnerContentDraftID(request.data));
   }
 );
 
@@ -214,6 +281,25 @@ function sourceArray(value: unknown): Array<Record<string, unknown>> {
     throw new HttpsError("invalid-argument", "Exactly one source must be primary.");
   }
   return sources;
+}
+
+function optionalGeneratedImage(value: unknown): ParsedDraftInput["generatedImage"] {
+  if (value === undefined || value === null) return undefined;
+  const image = record(value, "generatedImage");
+  const storagePath = requiredString(image.storagePath, "generatedImage.storagePath", 500);
+  if (storagePath.startsWith("/") || storagePath.includes("..")) {
+    throw new HttpsError("invalid-argument", "generatedImage.storagePath is invalid.");
+  }
+  const url = requiredWebURL(image.url, "generatedImage.url");
+  if (new URL(url).protocol !== "https:") {
+    throw new HttpsError("invalid-argument", "generatedImage.url must use HTTPS.");
+  }
+  return {
+    url,
+    storagePath,
+    alternativeText: optionalString(image.alternativeText, 500),
+    credit: optionalString(image.credit, 200),
+  };
 }
 
 function record(value: unknown, field: string): Record<string, unknown> {

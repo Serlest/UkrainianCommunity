@@ -23,6 +23,7 @@ struct NewsCreateDraft: Codable, Equatable {
     let imageCredit: String?
     let externalActionTitle: String?
     let externalActionURL: String?
+    let generatedImageURL: String?
 
     var hasMeaningfulContent: Bool {
         [title, summary, body, sourceInput, tagsInput, germanTitle ?? "", germanSummary ?? "", germanBody ?? "", imageCaption ?? "", imageAlternativeText ?? "", imageCredit ?? "", externalActionTitle ?? "", externalActionURL ?? ""]
@@ -77,6 +78,7 @@ struct EventCreateDraft: Codable, Equatable {
     let priceKind: EventPriceKind?
     let maximumPriceText: String?
     let priceNote: String?
+    let generatedImageURL: String?
 
     var hasMeaningfulContent: Bool {
         [

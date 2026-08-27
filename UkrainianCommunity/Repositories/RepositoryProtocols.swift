@@ -93,6 +93,7 @@ protocol OwnerContentDraftRepository {
     ) -> AppRealtimeListener
     func markCompleted(userID: String, draftID: String) async throws
     func archive(userID: String, draftID: String) async throws
+    func delete(userID: String, draftID: String) async throws
 }
 
 protocol FeedbackRepository {

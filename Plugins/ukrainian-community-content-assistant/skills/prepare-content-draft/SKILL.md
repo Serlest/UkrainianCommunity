@@ -15,8 +15,11 @@ Prepare facts for review; never publish content and never select an organization
 4. Separate confirmed facts from suggestions. Never invent dates, location, price, registration terms, contact details, or translations.
 5. Write natural Ukrainian copy for the Ukrainian Community audience. German fields are optional and may be left empty.
 6. Map only confirmed facts into the schema below. Use `missingFields` for required or useful details that remain unknown and `verificationNotes` for conflicts, ambiguity, or time-sensitive caveats.
-7. Create a stable `idempotencyKey` from the primary URL and content type, then call the connected `save_owner_content_draft` tool exactly once. Reuse the same key if a network retry is necessary. Do not choose an organization, schedule publication, publish, or upload an image.
-8. Report the created draft ID, type, primary source, and any missing fields. Tell the owner that the draft is private and awaits review in the app.
+7. Review the official page's available photos only to understand the place, season, subject, and visual atmosphere. Never copy, download for reuse, hotlink, or present a source photo as Ukrainian Community media.
+8. Generate a new original 16:9 cover that truthfully matches the confirmed information. Keep it clean for an iOS card: no copied composition, logos, trademarks, watermarks, embedded text, or recognizable people. Do not invent a specific performer, venue detail, weather condition, or activity that sources do not support.
+9. Upload the generated cover only to the owner's private content-planning image area and include its HTTPS URL, exact storage path, Ukrainian alternative text, and the credit `Зображення створене ШІ` in `generatedImage`. If generation or upload fails, save the draft without an image and explain this in `verificationNotes`; never substitute a source image.
+10. Create a stable `idempotencyKey` from the primary URL and content type, then call the connected `save_owner_content_draft` tool exactly once. Reuse the same key if a network retry is necessary. Do not choose an organization, schedule publication, or publish.
+11. Report the created draft ID, type, primary source, generated-image status, and any missing fields. Tell the owner that the draft is private and awaits review in the app.
 
 ## News payload
 
@@ -45,3 +48,19 @@ Supported `priceKind`: `unspecified`, `free`, `exact`, `startingFrom`, `range`.
 - Do not include private personal data that is not clearly intended for public publication.
 - If sources conflict on a critical fact, set state to `needsAttention` and explain the conflict instead of choosing silently.
 - A successful tool call means only that a private draft was saved. It never means the content was published.
+- Source photos are research references only. The generated cover must be a new visual asset, not a transformation or close imitation of one source photograph.
+
+## Generated image object
+
+When an original cover is available, pass this top-level object alongside `payload`, `sources`, and the review fields:
+
+```json
+{
+  "generatedImage": {
+    "url": "https://...",
+    "storagePath": "users/<owner-id>/contentPlanningDraftImages/<draft-id>/cover.jpg",
+    "alternativeText": "Короткий точний опис зображення українською",
+    "credit": "Зображення створене ШІ"
+  }
+}
+```

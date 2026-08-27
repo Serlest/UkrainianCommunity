@@ -219,14 +219,16 @@ struct ContentEditorValidationTests {
             imageAlternativeText: nil,
             imageCredit: nil,
             externalActionTitle: nil,
-            externalActionURL: nil
+            externalActionURL: nil,
+            generatedImageURL: nil
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         var legacyObject = try #require(JSONSerialization.jsonObject(with: encoder.encode(draft)) as? [String: Any])
         [
             "germanTitle", "germanSummary", "germanBody", "imageCaption",
-            "imageAlternativeText", "imageCredit", "externalActionTitle", "externalActionURL"
+            "imageAlternativeText", "imageCredit", "externalActionTitle", "externalActionURL",
+            "generatedImageURL"
         ].forEach { legacyObject.removeValue(forKey: $0) }
 
         let decoder = JSONDecoder()

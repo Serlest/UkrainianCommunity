@@ -168,6 +168,7 @@ final class EventEditorViewModel: ObservableObject {
     @Published var selectedImageData: Data?
     @Published private(set) var pendingRecoveryDraft: EventCreateDraft?
     private var selectedProcessedImage: ProcessedImageSelection?
+    private var generatedImageURL: String?
     @Published private var selectedCreateContext: CreateContext?
 
     private let repository: EventRepository
@@ -451,7 +452,7 @@ final class EventEditorViewModel: ObservableObject {
             }
             return imageURL
         }
-        return nil
+        return generatedImageURL
     }
 
     var organizerName: String? {
@@ -522,11 +523,13 @@ final class EventEditorViewModel: ObservableObject {
         errorMessage = nil
         selectedImageData = data
         selectedProcessedImage = nil
+        generatedImageURL = nil
     }
 
     func setSelectedImageSelection(_ selection: ProcessedImageSelection?) {
         selectedProcessedImage = selection
         selectedImageData = selection?.data
+        if selection != nil { generatedImageURL = nil }
         successMessage = nil
         errorMessage = nil
     }
@@ -809,16 +812,17 @@ final class EventEditorViewModel: ObservableObject {
         do {
             switch mode {
             case .create:
+                let generatedImageData = try await downloadGeneratedImageIfNeeded()
                 try await repository.createEvent(newEvent)
 
-                if selectedImageData != nil {
+                if selectedImageData != nil || generatedImageData != nil {
                     isUploadingImage = true
                     do {
                         let downloadURL: URL
                         if let selectedProcessedImage {
                             downloadURL = try await imageUploadService.uploadEventCoverImage(processedImage: selectedProcessedImage, eventID: eventID)
-                        } else if let selectedImageData {
-                            downloadURL = try await imageUploadService.uploadEventCoverImage(data: selectedImageData, eventID: eventID)
+                        } else if let imageData = selectedImageData ?? generatedImageData {
+                            downloadURL = try await imageUploadService.uploadEventCoverImage(data: imageData, eventID: eventID)
                         } else {
                             throw AppError.validationFailed
                         }
@@ -1224,7 +1228,8 @@ final class EventEditorViewModel: ObservableObject {
             externalActionURL: externalActionURL,
             priceKind: priceKind,
             maximumPriceText: maximumPriceText,
-            priceNote: priceNote
+            priceNote: priceNote,
+            generatedImageURL: generatedImageURL
         )
     }
 
@@ -1277,9 +1282,25 @@ final class EventEditorViewModel: ObservableObject {
         priceKind = draft.priceKind ?? (draft.priceText.isEmpty ? .free : .exact)
         maximumPriceText = draft.maximumPriceText ?? ""
         priceNote = draft.priceNote ?? ""
+        generatedImageURL = draft.generatedImageURL?.trimmingCharacters(in: .whitespacesAndNewlines)
         hasMeaningfulCreateDraftMetadata = draft.hasMeaningfulMetadata == true
 
         isApplyingRecoveredDraft = false
+    }
+
+    private func downloadGeneratedImageIfNeeded() async throws -> Data? {
+        guard selectedImageData == nil else { return nil }
+        guard let generatedImageURL else { return nil }
+        guard let url = URL(string: generatedImageURL),
+              url.scheme?.lowercased() == "https" else { throw AppError.validationFailed }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard data.count <= 15_000_000,
+              let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode),
+              httpResponse.mimeType?.hasPrefix("image/") == true else {
+            throw AppError.validationFailed
+        }
+        return data
     }
 
     private var resolvedFederalState: AustrianFederalState? {

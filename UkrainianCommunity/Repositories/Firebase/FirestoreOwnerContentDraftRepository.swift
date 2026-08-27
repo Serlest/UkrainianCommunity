@@ -1,8 +1,10 @@
 import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 
 struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
     private let database = Firestore.firestore()
+    private let functions = Functions.functions(region: "europe-west3")
 
     func fetchDrafts(userID: String, limit: Int) async throws -> [OwnerContentDraft] {
         let snapshot = try await collection(userID: userID)
@@ -47,6 +49,14 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
         ])
     }
 
+    func delete(userID: String, draftID: String) async throws {
+        struct Request: Encodable { let draftId: String }
+        struct Response: Decodable { let deleted: Bool }
+
+        let callable: Callable<Request, Response> = functions.httpsCallable("deleteOwnerContentDraft")
+        _ = try await callable.call(Request(draftId: draftID))
+    }
+
     private func collection(userID: String) -> CollectionReference {
         database.collection("users").document(userID).collection("contentPlanningDrafts")
     }
@@ -83,7 +93,20 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             updatedAt: date(data["updatedAt"]) ?? .now,
             scheduledAt: date(data["scheduledAt"]),
             completedAt: date(data["completedAt"]),
-            failureMessage: optionalString(data["failureMessage"])
+            failureMessage: optionalString(data["failureMessage"]),
+            generatedImage: makeGeneratedImage(data["generatedImage"])
+        )
+    }
+
+    private func makeGeneratedImage(_ value: Any?) -> OwnerContentGeneratedImage? {
+        guard let data = value as? [String: Any],
+              let url = optionalString(data["url"]),
+              let storagePath = optionalString(data["storagePath"]) else { return nil }
+        return OwnerContentGeneratedImage(
+            url: url,
+            storagePath: storagePath,
+            alternativeText: optionalString(data["alternativeText"]),
+            credit: optionalString(data["credit"])
         )
     }
 
@@ -120,7 +143,8 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             imageAlternativeText: optionalString(payload["imageAlternativeText"]),
             imageCredit: optionalString(payload["imageCredit"]),
             externalActionTitle: optionalString(payload["externalActionTitle"]),
-            externalActionURL: optionalString(payload["externalActionURL"])
+            externalActionURL: optionalString(payload["externalActionURL"]),
+            generatedImageURL: optionalString(payload["generatedImageURL"])
         )
     }
 
@@ -187,7 +211,8 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             externalActionURL: optionalString(payload["externalActionURL"]),
             priceKind: priceKind,
             maximumPriceText: decimalString(payload["maximumPrice"]),
-            priceNote: optionalString(payload["priceNote"])
+            priceNote: optionalString(payload["priceNote"]),
+            generatedImageURL: optionalString(payload["generatedImageURL"])
         )
     }
 
