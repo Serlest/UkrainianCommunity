@@ -138,6 +138,10 @@ final class UkrainianCommunityUITests: XCTestCase {
         newsNext.tap()
         XCTAssertTrue(app.staticTexts["Як виглядатиме новина"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Тестова новина"].waitForExistence(timeout: 10))
+        let closeButton = app.buttons["Скасувати"].firstMatch
+        XCTAssertTrue(closeButton.isHittable)
+        XCTAssertGreaterThanOrEqual(closeButton.frame.minX, app.frame.minX + 8)
+        XCTAssertLessThanOrEqual(closeButton.frame.maxX, app.frame.maxX - 8)
         attachScreenshot(named: "content-v2-news-real-preview", from: app)
     }
 

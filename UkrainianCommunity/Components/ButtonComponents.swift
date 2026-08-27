@@ -113,7 +113,9 @@ struct AppGlassIconButton: View {
     @available(iOS 26.0, *)
     private var nativeGlassButton: some View {
         Button(role: role, action: action) {
-            icon
+            Image(systemName: systemImage)
+                .font(AppTheme.glassIconButtonIconFont)
+                .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
         }
         .buttonStyle(.glass)
         .buttonBorderShape(.roundedRectangle(radius: AppTheme.glassIconButtonCornerRadius))

@@ -114,6 +114,9 @@ struct NewsEditorView: View {
                 editorNavigation
             }
         }
+        // Preview cards and long server messages must not widen this modal and
+        // push the close control beyond the leading safe area.
+        .containerRelativeFrame(.horizontal)
         .tint(AppTheme.accentPrimary)
         .accessibilityIdentifier("editor.news")
         .sheet(isPresented: $isShowingOrganizerPicker) {

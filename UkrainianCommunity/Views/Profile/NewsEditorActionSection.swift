@@ -145,9 +145,15 @@ extension NewsEditorView {
 
             if let errorMessage = viewModel.errorMessage {
                 editorCard {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(AppTheme.accentDestructiveForeground)
+                    Label {
+                        Text(errorMessage)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.accentDestructiveForeground)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
 
