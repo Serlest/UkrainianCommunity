@@ -65,6 +65,7 @@ struct OrganizationEditorView: View {
             statusContent
             editorProgress
             editorStepContent
+                .id(currentStep)
             editorNavigation
         }
         .tint(AppTheme.accentPrimary)

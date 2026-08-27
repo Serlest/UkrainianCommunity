@@ -111,12 +111,13 @@ struct NewsEditorView: View {
             } else {
                 editorProgress
                 editorStepContent
+                    // Every step contains similarly-shaped cards. Giving the
+                    // subtree an explicit identity prevents SwiftUI from
+                    // reusing stale text fields/layers when the preview opens.
+                    .id(currentStep)
                 editorNavigation
             }
         }
-        // Preview cards and long server messages must not widen this modal and
-        // push the close control beyond the leading safe area.
-        .containerRelativeFrame(.horizontal)
         .tint(AppTheme.accentPrimary)
         .accessibilityIdentifier("editor.news")
         .sheet(isPresented: $isShowingOrganizerPicker) {
