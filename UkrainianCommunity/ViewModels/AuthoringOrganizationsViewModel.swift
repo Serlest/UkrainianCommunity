@@ -9,18 +9,29 @@ final class AuthoringOrganizationsViewModel: ObservableObject {
     @Published private(set) var contentVersion = 0
     private let repository: OrganizationRepository
     private var generation = 0
+    private var loadedUserID: String?
 
     init(repository: OrganizationRepository) { self.repository = repository }
 
     func load(for user: AppUser?) async {
         generation &+= 1
         let request = generation
-        organizations = []
         error = nil
         guard let user, PermissionService.isUsableAccount(user: user) else {
+            loadedUserID = nil
+            organizations = []
             isLoading = false
             contentVersion &+= 1
             return
+        }
+
+        // Keep the last verified permissions visible during a same-account
+        // refresh. Clearing them here made quick-create controls disappear and
+        // reappear every time the app became active. Never retain permissions
+        // across account boundaries.
+        if loadedUserID != user.id {
+            loadedUserID = user.id
+            organizations = []
         }
         isLoading = true
         do {

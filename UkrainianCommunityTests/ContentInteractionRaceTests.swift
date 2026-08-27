@@ -540,6 +540,32 @@ struct ContentInteractionRaceTests {
         #expect(model.organizations.isEmpty && !model.isLoading)
     }
 
+    @Test
+    func authoringDiscoveryPreservesVerifiedPermissionsDuringSameUserRefresh() async {
+        let repository = ControlledOrganizationRepository()
+        let user = MockContentBuilder.ownerUser()
+        let target = makeOrganization(id: "org")
+        repository.authoringHandler = { _ in [target] }
+        let model = AuthoringOrganizationsViewModel(repository: repository)
+
+        await model.load(for: user)
+        #expect(model.organizations.map(\.id) == [target.id])
+
+        var continuation: CheckedContinuation<[Organization], Never>?
+        repository.authoringHandler = { _ in
+            await withCheckedContinuation { continuation = $0 }
+        }
+        let refresh = Task { await model.load(for: user) }
+        #expect(await eventually { continuation != nil })
+        #expect(model.isLoading)
+        #expect(model.organizations.map(\.id) == [target.id])
+
+        continuation?.resume(returning: [target])
+        await refresh.value
+        #expect(!model.isLoading)
+        #expect(model.organizations.map(\.id) == [target.id])
+    }
+
     private func makeOrganization(
         id: String,
         likeState: LikeState = .notLiked,

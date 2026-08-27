@@ -71,13 +71,17 @@ final class UkrainianCommunityUITests: XCTestCase {
             XCTAssertTrue(create.isHittable)
             attachScreenshot(named: "quick-create-\(kind)", from: app)
             create.tap()
-            XCTAssertTrue(element("editor.\(kind)", in: app).waitForExistence(timeout: 15))
+            let editor = element("editor.\(kind)", in: app)
+            XCTAssertTrue(editor.waitForExistence(timeout: 15))
             // The draft-preservation scenario deliberately leaves a local draft.
             // Handle the real recovery prompt before testing the editor close path.
             let newDraft = app.buttons["Neu erstellen"]
             if newDraft.waitForExistence(timeout: 2) { newDraft.tap() }
             attachScreenshot(named: "existing-editor-\(kind)", from: app)
             app.buttons["Abbrechen"].firstMatch.tap()
+            let discardDraft = app.buttons["Verwerfen"].firstMatch
+            if discardDraft.waitForExistence(timeout: 2) { discardDraft.tap() }
+            XCTAssertTrue(editor.waitForNonExistence(timeout: 10))
             XCTAssertTrue(app.buttons["quickCreate.\(kind)"].waitForExistence(timeout: 10))
         }
         for tab in rootTabs {

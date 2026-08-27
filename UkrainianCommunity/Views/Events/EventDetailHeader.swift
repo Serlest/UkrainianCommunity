@@ -68,7 +68,10 @@ extension EventDetailView {
         }
 
         func eventShareURL(for event: Event) -> URL? {
-            [event.contactURL, event.organizerURL].compactMap(safeEventShareURL).first
+            if let externalURL = event.externalAction?.webURL {
+                return externalURL
+            }
+            return [event.contactURL, event.organizerURL].compactMap(safeEventShareURL).first
         }
 
         private func safeEventShareURL(_ value: String?) -> URL? {
@@ -135,9 +138,12 @@ extension EventDetailView {
 
         func metadataItems(for event: Event) -> some View {
             Group {
-                let occurrence = event.nextOccurrence() ?? event.occurrences.first!
-                AppMetadataLine(title: LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .medium, timeStyle: .none), systemImage: "calendar")
-                AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay), systemImage: "clock")
+                let occurrence = event.nextOccurrence() ?? event.occurrences.first
+                let startDate = occurrence?.startDate ?? event.startDate
+                let endDate = occurrence?.endDate ?? event.endDate
+                let isAllDay = occurrence?.isAllDay ?? event.isAllDay
+                AppMetadataLine(title: LocalizationStore.dateString(from: startDate, dateStyle: .medium, timeStyle: .none), systemImage: "calendar")
+                AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: startDate, endDate: endDate, isAllDay: isAllDay), systemImage: "clock")
                 AppMetadataLine(title: eventViewCountText(for: event), systemImage: "eye")
             }
         }

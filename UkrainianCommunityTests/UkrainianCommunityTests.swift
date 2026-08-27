@@ -5,6 +5,7 @@
 //  Created by Philipp Timofeev on 28.04.26.
 //
 
+import Combine
 import Foundation
 import Testing
 @testable import UkrainianCommunity
@@ -1063,6 +1064,44 @@ struct UkrainianCommunityTests {
         #expect(destinations.contains { if case .news = $0 { return true } else { return false } })
         #expect(destinations.contains { if case .event = $0 { return true } else { return false } })
         #expect(destinations.contains { if case .organization = $0 { return true } else { return false } })
+    }
+
+    @Test func homeViewModelDoesNotRepublishAnIdenticalFeedSnapshot() async throws {
+        let newsRepository = MockNewsRepository()
+        let eventRepository = MockEventRepository()
+        let organizationRepository = MockOrganizationRepository()
+        let viewModel = HomeViewModel(
+            newsRepository: newsRepository,
+            eventRepository: eventRepository,
+            organizationRepository: organizationRepository
+        )
+        let posts = try await newsRepository.fetchNews()
+        let events = try await eventRepository.fetchEvents()
+        let organizations = try await organizationRepository.fetchOrganizations()
+        var publicationCount = 0
+        let observation = viewModel.objectWillChange.sink {
+            publicationCount += 1
+        }
+
+        viewModel.updateFeed(
+            posts: posts,
+            events: events,
+            organizations: organizations,
+            isLoading: false,
+            error: nil
+        )
+        let firstPublicationCount = publicationCount
+        viewModel.updateFeed(
+            posts: posts,
+            events: events,
+            organizations: organizations,
+            isLoading: false,
+            error: nil
+        )
+
+        #expect(firstPublicationCount > 0)
+        #expect(publicationCount == firstPublicationCount)
+        withExtendedLifetime(observation) {}
     }
 
     @Test func eventDiscoveryDateRulesSupportUpcomingPastTodayAndThisWeek() {

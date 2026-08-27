@@ -187,9 +187,6 @@ struct NewsEditorView: View {
         }
         .onChange(of: organizerOrganizationsViewModel.contentVersion) { _, _ in
             applyDefaultOrganizerIfNeeded()
-            Task {
-                await loadRecoverableDraftIfNeeded()
-            }
         }
         .onDisappear {
             imageProcessingTask?.cancel()

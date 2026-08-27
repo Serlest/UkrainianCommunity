@@ -304,8 +304,14 @@ struct HomeView: View {
             isAuthenticated: authState.isAuthenticated
         )
 
-        visibleFeedItems = rebuiltItems
-        seenPaginationItems.removeAll()
+        if visibleFeedItems != rebuiltItems {
+            visibleFeedItems = rebuiltItems
+        }
+
+        // Preserve pagination guards for cards that remain on screen. Clearing
+        // the entire set on every child-model publication could repeatedly
+        // trigger the same page load while the home feed was settling.
+        seenPaginationItems.formIntersection(Set(rebuiltItems.map(\.id)))
     }
 
     private func toggleFeedFilter(_ filter: HomeFeedFilter) {
@@ -518,8 +524,6 @@ struct HomeView: View {
             isLoading: isLoading ?? (newsViewModel.isLoading || eventsViewModel.isLoading || organizationsViewModel.isLoading),
             error: newsViewModel.error ?? eventsViewModel.error ?? organizationsViewModel.error
         )
-
-        rebuildVisibleFeedItems()
     }
 
     private var homeErrorText: String {

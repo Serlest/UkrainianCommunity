@@ -21,7 +21,6 @@ struct EventEditorView: View {
     @State var imageProcessingToken = UUID()
     @State var isShowingMapPicker = false
     @State var isShowingOrganizerPicker = false
-    @State var hasPromptedOrganizerSelection = false
     @State var isApplyingLocationSelection = false
     @State var activeDatePicker: EventEditorDatePicker?
     @State var isShowingDraftRecoveryDialog = false
@@ -203,6 +202,7 @@ struct EventEditorView: View {
         }
         .onDisappear {
             imageProcessingTask?.cancel()
+            locationSearch.clear()
         }
         .task(id: authState.user?.id) {
             await organizerOrganizationsViewModel.load(for: authState.user)
@@ -211,15 +211,6 @@ struct EventEditorView: View {
         }
         .onChange(of: organizerOrganizationsViewModel.contentVersion) { _, _ in
             applyDefaultOrganizerIfNeeded()
-            Task {
-                await loadRecoverableDraftIfNeeded()
-            }
-        }
-        .onChange(of: authState.user?.id) { _, _ in
-            applyDefaultOrganizerIfNeeded()
-            Task {
-                await loadRecoverableDraftIfNeeded()
-            }
         }
     }
 
@@ -251,9 +242,6 @@ struct EventEditorView: View {
         guard viewModel.selectedOrganizationId == nil else { return }
         if availableOrganizerOrganizations.count == 1, let organization = availableOrganizerOrganizations.first {
             viewModel.selectOrganizer(organization)
-        } else if availableOrganizerOrganizations.count > 1, !hasPromptedOrganizerSelection {
-            hasPromptedOrganizerSelection = true
-            isShowingOrganizerPicker = true
         }
     }
 

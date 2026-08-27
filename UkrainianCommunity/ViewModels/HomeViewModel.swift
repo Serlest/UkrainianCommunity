@@ -23,16 +23,23 @@ final class HomeViewModel: ObservableObject {
         isLoading: Bool,
         error: AppError?
     ) {
-        feedItems = (
-            posts.map(HomeFeedItem.init(post:))
-                + events.map(HomeFeedItem.init(event:))
-                + organizations.map(HomeFeedItem.init(organization:))
-        )
-        .sorted {
+        let postItems = posts.map(HomeFeedItem.init(post:))
+        let eventItems = events.map(HomeFeedItem.init(event:))
+        let organizationItems = organizations.map(HomeFeedItem.init(organization:))
+        let unsortedItems = postItems + eventItems + organizationItems
+        let updatedFeedItems = unsortedItems.sorted {
             $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
         }
-        self.isLoading = isLoading
-        self.error = error
+
+        if feedItems != updatedFeedItems {
+            feedItems = updatedFeedItems
+        }
+        if self.isLoading != isLoading {
+            self.isLoading = isLoading
+        }
+        if self.error != error {
+            self.error = error
+        }
     }
 
     func resetForAuthChange() {

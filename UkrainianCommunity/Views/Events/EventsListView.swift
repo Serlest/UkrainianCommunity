@@ -89,20 +89,23 @@ private struct EventDiscoveryContent {
 }
 
 func eventScheduleText(for event: Event) -> String {
-    let occurrence = event.nextOccurrence() ?? event.occurrences.first!
-    let startDateText = LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .medium, timeStyle: .none)
-    let timeRangeText = LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay)
+    let occurrence = event.nextOccurrence() ?? event.occurrences.first
+    let startDate = occurrence?.startDate ?? event.startDate
+    let endDate = occurrence?.endDate ?? event.endDate
+    let isAllDay = occurrence?.isAllDay ?? event.isAllDay
+    let startDateText = LocalizationStore.dateString(from: startDate, dateStyle: .medium, timeStyle: .none)
+    let timeRangeText = LocalizationStore.timeRangeString(startDate: startDate, endDate: endDate, isAllDay: isAllDay)
 
-    guard occurrence.endDate > occurrence.startDate else {
+    guard endDate > startDate else {
         return "\(startDateText), \(timeRangeText)"
     }
 
-    let isSameDay = Calendar.current.isDate(occurrence.startDate, inSameDayAs: occurrence.endDate)
+    let isSameDay = Calendar.current.isDate(startDate, inSameDayAs: endDate)
     if isSameDay {
         return "\(startDateText), \(timeRangeText)"
     }
 
-    let endDateText = LocalizationStore.dateString(from: occurrence.endDate, dateStyle: .medium, timeStyle: .short)
+    let endDateText = LocalizationStore.dateString(from: endDate, dateStyle: .medium, timeStyle: .short)
     return "\(startDateText)–\(endDateText)"
 }
 
