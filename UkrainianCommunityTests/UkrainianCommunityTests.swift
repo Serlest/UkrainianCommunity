@@ -30,6 +30,25 @@ private actor RecordingFeedbackRepository: FeedbackRepository {
 
 @MainActor
 struct UkrainianCommunityTests {
+    @Test func eventMonthBucketsKeepAdjacentMonthsSeparate() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Vienna")!
+        let augustEvent = calendar.date(from: DateComponents(year: 2026, month: 8, day: 28, hour: 16))!
+        let septemberEvent = calendar.date(from: DateComponents(year: 2026, month: 9, day: 5, hour: 16))!
+
+        let groups = calendarMonthGroups(
+            [septemberEvent, augustEvent],
+            calendar: calendar,
+            date: { $0 }
+        )
+
+        #expect(groups.count == 2)
+        #expect(calendar.component(.month, from: groups[0].monthStart) == 8)
+        #expect(groups[0].elements == [augustEvent])
+        #expect(calendar.component(.month, from: groups[1].monthStart) == 9)
+        #expect(groups[1].elements == [septemberEvent])
+    }
+
     @Test func localSearchMatchesMultipleWordsAcrossFieldsAndIgnoresDiacritics() {
         #expect(LocalSearchMatcher.matches(
             query: "Muller Wien",

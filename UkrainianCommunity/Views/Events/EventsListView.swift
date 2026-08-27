@@ -83,6 +83,13 @@ private struct UpcomingEventDaySection: Identifiable {
     var id: Date { date }
 }
 
+private struct UpcomingEventMonthSection: Identifiable {
+    let monthStart: Date
+    let events: [Event]
+
+    var id: Date { monthStart }
+}
+
 private struct EventDiscoveryContent {
     let upcomingSections: [UpcomingEventDaySection]
     let pastEvents: [Event]
@@ -111,6 +118,27 @@ func eventScheduleText(for event: Event) -> String {
 
 private func eventMonthTitleText(for date: Date) -> String {
     LocalizationStore.dateString(from: date, localizedTemplate: "MMMM yyyy")
+}
+
+func eventMonthBucketStart(for date: Date, calendar: Calendar = .current) -> Date {
+    calendar.dateInterval(of: .month, for: date)?.start ?? calendar.startOfDay(for: date)
+}
+
+struct CalendarMonthGroup<Element> {
+    let monthStart: Date
+    let elements: [Element]
+}
+
+func calendarMonthGroups<Element>(
+    _ elements: [Element],
+    calendar: Calendar = .current,
+    date: (Element) -> Date
+) -> [CalendarMonthGroup<Element>] {
+    Dictionary(grouping: elements) {
+        eventMonthBucketStart(for: date($0), calendar: calendar)
+    }
+    .map { CalendarMonthGroup(monthStart: $0.key, elements: $0.value) }
+    .sorted { $0.monthStart < $1.monthStart }
 }
 
 struct EventsListView: View {
@@ -616,13 +644,9 @@ struct EventsListView: View {
     }
 
     private func upcomingContent(_ content: EventDiscoveryContent) -> some View {
-        let upcomingEvents = content.upcomingSections.flatMap(\.events)
+        let monthSections = upcomingMonthSections(from: content.upcomingSections)
 
-        return VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
-            if let firstDate = upcomingEvents.first?.nextOccurrence()?.startDate {
-                EventMonthHeader(title: eventMonthTitleText(for: firstDate))
-            }
-
+        return VStack(alignment: .leading, spacing: AppTheme.eventsSectionSpacing) {
             if content.upcomingSections.isEmpty {
                 EmptyStateCard(
                     systemImage: "calendar.badge.exclamationmark",
@@ -630,19 +654,38 @@ struct EventsListView: View {
                     message: AppStrings.Events.filteredUpcomingEmpty
                 )
             } else {
-                DashboardFeedContainer(
-                    items: upcomingEvents,
-                    spacing: AppTheme.feedRowSpacing,
-                    onItemAppear: { event in
-                        Task {
-                            await viewModel.loadNextPageIfNeeded(currentItemID: event.id)
+                ForEach(monthSections) { section in
+                    VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+                        EventMonthHeader(title: eventMonthTitleText(for: section.monthStart))
+
+                        DashboardFeedContainer(
+                            items: section.events,
+                            spacing: AppTheme.feedRowSpacing,
+                            onItemAppear: { event in
+                                Task {
+                                    await viewModel.loadNextPageIfNeeded(currentItemID: event.id)
+                                }
+                            }
+                        ) { event in
+                            eventRow(for: event)
                         }
                     }
-                ) { event in
-                    eventRow(for: event)
                 }
             }
         }
+    }
+
+    private func upcomingMonthSections(from daySections: [UpcomingEventDaySection]) -> [UpcomingEventMonthSection] {
+        let calendar = Calendar.current
+        return calendarMonthGroups(daySections, calendar: calendar, date: \.date)
+            .map { group in
+                UpcomingEventMonthSection(
+                    monthStart: group.monthStart,
+                    events: group.elements
+                        .sorted { $0.date < $1.date }
+                        .flatMap(\.events)
+                )
+            }
     }
 
     private func pastContent(_ content: EventDiscoveryContent) -> some View {
