@@ -1,0 +1,1389 @@
+[
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/events/e/122227061.html#2026-08-28",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Фестиваль вуличного мистецтва KRAPOLDI",
+      "summary": "Новий цирк, акробатика, клоунада й безкоштовні виступи просто неба в Rapoldipark.",
+      "details": "Фінальні дні фестивалю KRAPOLDI перетворять Rapoldipark на простір нового цирку, клоунади та міжнародного вуличного театру. 28 і 29 серпня парк прийматиме безкоштовну програму, а окремі вистави у великих шатрах можуть потребувати квитка. Перевірте розклад конкретної вистави на офіційній сторінці.",
+      "city": "Innsbruck",
+      "venue": "Rapoldipark",
+      "address": "Rapoldipark, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-08-28T09:00:00+02:00",
+      "endDate": "2026-08-28T20:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "childrenAndFamily",
+        "celebration"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "цирк",
+        "вуличне мистецтво",
+        "сім’я"
+      ],
+      "germanTitle": "KRAPOLDI Festival Innsbruck",
+      "germanSummary": "Neuer Zirkus, Akrobatik, Clownerie und Open-Air-Programm im Rapoldipark.",
+      "germanDetails": "An den letzten Festivaltagen wird der Rapoldipark zur Bühne für neuen Zirkus, Clownerie und internationales Straßentheater. Das Parkfest am 28. und 29. August ist kostenlos; einzelne Zeltproduktionen können Tickets erfordern. Bitte den konkreten Spielplan auf der offiziellen Seite prüfen.",
+      "eventOrganizerName": "Innsbruck Marketing GmbH",
+      "organizerURL": "https://www.innsbruck.info/events/e/122227061.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/events/e/122227061.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/events/e/122227061.html",
+        "title": "KRAPOLDI Festival Innsbruck",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "точний час завершення обраної програми"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-krapoldi.jpg",
+    "imageAlternativeText": "Вуличні артисти та глядачі у зеленому парку Інсбрука"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/en/events/e/122215683.html#2026-08-30",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Блошиний ринок у telfsPARK",
+      "summary": "Антикваріат, вінтажні речі та корисні знахідки щонеділі в Тельфсі.",
+      "details": "На ринку представлені картини, порцеляна, скло, старі листівки, різьблені вироби, предмети побуту та багато інших вживаних речей. Перший найближчий термін — 30 серпня з 10:00 до 16:00; далі ринок повторюється щонеділі до 29 листопада.",
+      "city": "Telfs",
+      "venue": "telfsPARK",
+      "address": "Michael-Seeber-Straße 3, 6410 Telfs",
+      "federalState": "tirol",
+      "startDate": "2026-08-30T10:00:00+02:00",
+      "endDate": "2026-08-30T16:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "saleAndPromotion"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Telfs",
+        "ринок",
+        "вінтаж",
+        "антикваріат"
+      ],
+      "germanTitle": "Flohmarkt im telfsPARK",
+      "germanSummary": "Antiquitäten, Vintage und Alltagsfunde jeden Sonntag in Telfs.",
+      "germanDetails": "Der Flohmarkt bietet Gemälde, Porzellan, Glas, alte Postkarten, Schnitzereien und viele Alltagsgegenstände. Der nächste Termin ist am 30. August von 10:00 bis 16:00 Uhr; danach findet der Markt sonntags bis 29. November statt.",
+      "eventOrganizerName": "Waltraud Abfalter",
+      "organizerURL": "https://www.innsbruck.info/en/events/e/122215683.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/en/events/e/122215683.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/en/events/e/122215683.html",
+        "title": "Flohmarkt im telfsPARK",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-telfspark-flohmarkt.jpg",
+    "imageAlternativeText": "Охайний альпійський блошиний ринок з вінтажними речами"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/en/events/e/122229931.html#2026-09-01",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Регіональний Telfer Marktl",
+      "summary": "Щовівторка пішохідна зона Тельфса стає ринком локальних продуктів.",
+      "details": "На Telfer Marktl продають свіжі овочі, сир, м’ясні та рибні продукти, хліб, мед, трави, олії й вино. Найближча дата — 1 вересня, 08:00–12:00; наступні вівторки тривають до 6 жовтня.",
+      "city": "Telfs",
+      "venue": "Fußgängerzone",
+      "address": "Untermarktstraße, 6410 Telfs",
+      "federalState": "tirol",
+      "startDate": "2026-09-01T08:00:00+02:00",
+      "endDate": "2026-09-01T12:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "saleAndPromotion"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Telfs",
+        "локальні продукти",
+        "ринок"
+      ],
+      "germanTitle": "Telfer Marktl",
+      "germanSummary": "Jeden Dienstag wird die Fußgängerzone in Telfs zum Markt für regionale Produkte.",
+      "germanDetails": "Angeboten werden Gemüse, Käse, Fleisch- und Fischprodukte, Brot, Honig, Kräuter, Öle und Wein. Der nächste Termin ist am 1. September von 08:00 bis 12:00 Uhr; weitere Dienstage folgen bis 6. Oktober.",
+      "eventOrganizerName": "Telfer Marktl",
+      "organizerURL": "https://www.innsbruck.info/en/events/e/122229931.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/en/events/e/122229931.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/en/events/e/122229931.html",
+        "title": "Telfer Marktl",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-telfer-marktl.jpg",
+    "imageAlternativeText": "Регіональний продуктовий ринок у пішохідній зоні Тельфса"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/events/e/122281488.html#2026-09-04",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Weingassenfest у старому місті",
+      "summary": "Вино, регіональна кухня та жива музика у провулках історичного центру Інсбрука.",
+      "details": "4 і 5 вересня Kiebachgasse та Seilergasse приймають 18-й Weingassenfest. На гостей чекають вибрані вина, регіональні страви, заклади старого міста та жива музика. Обидва дні програма триває з 11:00 до 23:00.",
+      "city": "Innsbruck",
+      "venue": "Vier-Viecher-Eck",
+      "address": "Kiebachgasse / Seilergasse, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-09-04T11:00:00+02:00",
+      "endDate": "2026-09-04T23:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "music",
+        "celebration"
+      ],
+      "audience": "adults",
+      "tags": [
+        "Innsbruck",
+        "вино",
+        "жива музика",
+        "старе місто"
+      ],
+      "germanTitle": "Weingassenfest 2026",
+      "germanSummary": "Wein, regionale Küche und Live-Musik in den Gassen der Innsbrucker Altstadt.",
+      "germanDetails": "Am 4. und 5. September findet rund um Kiebach- und Seilergasse das 18. Weingassenfest statt. Geboten werden ausgewählte Weine, regionale Spezialitäten und Live-Musik, jeweils von 11:00 bis 23:00 Uhr.",
+      "eventOrganizerName": "Weingassenfest",
+      "organizerURL": "https://www.innsbruck.info/events/e/122281488.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/events/e/122281488.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-05T11:00:00+02:00",
+          "endDate": "2026-09-05T23:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/events/e/122281488.html",
+        "title": "Weingassenfest 2026",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-weingassenfest.jpg",
+    "imageAlternativeText": "Вуличне винне свято в історичному центрі Інсбрука"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/en/events/e/122220069.html#2026-09-05",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Щомісячний ринок в Аксамсі",
+      "summary": "Свіжі регіональні продукти, ремесла та місцеві смаколики на Dorfplatz.",
+      "details": "На сільській площі продають свіжі продукти з регіону, сезонні м’ясні вироби, овочі, молочні продукти, мед і ручні роботи. Найближчі ринки: 5 вересня, 3 жовтня та 7 листопада, 09:00–13:00.",
+      "city": "Axams",
+      "venue": "Dorfplatz Axams",
+      "address": "Silvester-Jordan-Straße 1, 6094 Axams",
+      "federalState": "tirol",
+      "startDate": "2026-09-05T09:00:00+02:00",
+      "endDate": "2026-09-05T13:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "saleAndPromotion"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Axams",
+        "фермерський ринок",
+        "ремесла"
+      ],
+      "germanTitle": "Monatsmarkt in Axams",
+      "germanSummary": "Regionale Lebensmittel, Handwerk und Tiroler Spezialitäten direkt am Dorfplatz.",
+      "germanDetails": "Am Dorfplatz werden frische regionale Produkte, saisonale Fleischwaren, Gemüse, Milchprodukte, Honig und Handwerk angeboten. Die nächsten Termine sind 5. September, 3. Oktober und 7. November, jeweils 09:00–13:00 Uhr.",
+      "eventOrganizerName": "Gemeinde Axams",
+      "organizerURL": "https://www.innsbruck.info/en/events/e/122220069.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/en/events/e/122220069.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-10-03T09:00:00+02:00",
+          "endDate": "2026-10-03T13:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-11-07T09:00:00+01:00",
+          "endDate": "2026-11-07T13:00:00+01:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/en/events/e/122220069.html",
+        "title": "Monatsmarkt in Axams",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-axams-markt.jpg",
+    "imageAlternativeText": "Фермери й ремісники на сільській площі Аксамса"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/en/events/e/122272558.html#2026-09-05",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Осінній антикварний і блошиний ринок",
+      "summary": "Вінтаж, платівки, одяг, колекційні речі та осінні смаколики на Marktplatz.",
+      "details": "5 вересня Marktplatz в Інсбруку заповнять антикваріат, вініл, вінтажний одяг, монети, комікси й різні рідкісні речі. Також заплановані південнотирольські страви, молоде вино та бар.",
+      "city": "Innsbruck",
+      "venue": "Marktplatz",
+      "address": "Marktplatz, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-09-05T10:00:00+02:00",
+      "endDate": "2026-09-05T20:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "saleAndPromotion"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "блошиний ринок",
+        "вінтаж"
+      ],
+      "germanTitle": "Herbstmarkt – Antik- und Flohmarkt",
+      "germanSummary": "Vintage, Schallplatten, Kleidung, Sammlerstücke und Herbstgenuss am Marktplatz.",
+      "germanDetails": "Am 5. September gibt es am Innsbrucker Marktplatz Antiquitäten, Vinyl, Vintage-Kleidung, Münzen, Comics und Kuriositäten. Dazu kommen Südtiroler Spezialitäten, junger Wein und eine Bar.",
+      "eventOrganizerName": "Innsbruck Marketing",
+      "organizerURL": "https://www.innsbruck.info/en/events/e/122272558.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/en/events/e/122272558.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/en/events/e/122272558.html",
+        "title": "Herbstmarkt – Antik- und Flohmarkt",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-herbstmarkt.jpg",
+    "imageAlternativeText": "Осінній антикварний ринок на площі Інсбрука"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/events.html#2026-09-06",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Традиційний Schafabtrieb в Аксамсі",
+      "summary": "Повернення овець з альпійських пасовищ і тирольська традиційна програма.",
+      "details": "Традиційне повернення отари з літніх пасовищ до Аксамса супроводжується місцевою атмосферою та частуванням. Перед поїздкою обов’язково звірте точний час прибуття тварин у календарі організатора — він залежить від маршруту та погоди.",
+      "city": "Axams",
+      "venue": "Ortszentrum Axams",
+      "address": "6094 Axams",
+      "federalState": "tirol",
+      "startDate": "2026-09-06T11:00:00+02:00",
+      "endDate": "2026-09-06T17:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "celebration",
+        "childrenAndFamily"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Axams",
+        "традиції",
+        "вівці",
+        "Альпи"
+      ],
+      "germanTitle": "Traditioneller Schafabtrieb in Axams",
+      "germanSummary": "Rückkehr der Schafe von den Almen mit Tiroler Brauchtum.",
+      "germanDetails": "Beim traditionellen Schafabtrieb kehren die Tiere von den Sommerweiden nach Axams zurück. Die genaue Ankunftszeit hängt von Route und Wetter ab und soll vor der Anreise nochmals im Veranstaltungskalender geprüft werden.",
+      "eventOrganizerName": "Gemeinde Axams",
+      "organizerURL": "https://www.innsbruck.info/events.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/events.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/events.html",
+        "title": "Traditioneller Schafabtrieb in Axams",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "пряме посилання організатора",
+      "точний час проходження"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-schafabtrieb.jpg",
+    "imageAlternativeText": "Прикрашені вівці повертаються з альпійських пасовищ"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/alle-events/klangspuren-schwaz#2026-09-10",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Фестиваль сучасної музики Klangspuren",
+      "summary": "Міжнародна програма нової музики, концертів і творчих форматів у Шваці та Інсбруку.",
+      "details": "Klangspuren триватиме з 10 до 26 вересня у Шваці, Інсбруку та інших локаціях. Це серія концертів і мистецьких подій, тому час і квитки залежать від обраної програми. Відкрийте офіційний розклад перед публікацією.",
+      "city": "Schwaz",
+      "venue": "Mehrere Spielorte",
+      "address": "Schwaz und Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-09-10T18:00:00+02:00",
+      "endDate": "2026-09-26T22:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Schwaz",
+        "Innsbruck",
+        "сучасна музика",
+        "фестиваль"
+      ],
+      "germanTitle": "Klangspuren Schwaz",
+      "germanSummary": "Internationales Festival für neue Musik mit Konzerten und kreativen Formaten.",
+      "germanDetails": "Klangspuren findet vom 10. bis 26. September in Schwaz, Innsbruck und weiteren Spielorten statt. Zeiten und Tickets unterscheiden sich je Programmpunkt; bitte vor Veröffentlichung das offizielle Programm auswählen.",
+      "eventOrganizerName": "Klangspuren Schwaz",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/alle-events/klangspuren-schwaz",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/alle-events/klangspuren-schwaz",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events/klangspuren-schwaz",
+        "title": "Klangspuren Schwaz",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "обрати конкретний програмний пункт або залишити як фестиваль",
+      "звірити час"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-klangspuren.jpg",
+    "imageAlternativeText": "Сучасний камерний концерт у тирольській архітектурній залі"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/volks-und-traditionsfeste#2026-09-12",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Bio-Bergbauernfest у Галлі",
+      "summary": "Органічні продукти тирольських гірських фермерів, музика та програма для дітей.",
+      "details": "12 вересня Hall in Tirol приймає свято органічного гірського фермерства. Заплановані продукти зі 100% органічною якістю, музична програма та активності для дітей. Точний час слід звірити на сторінці організатора перед публікацією.",
+      "city": "Hall in Tirol",
+      "venue": "Marktanger",
+      "address": "Marktanger 1, 6060 Hall in Tirol",
+      "federalState": "tirol",
+      "startDate": "2026-09-12T10:00:00+02:00",
+      "endDate": "2026-09-12T17:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "childrenAndFamily",
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Hall",
+        "біо",
+        "фермери",
+        "сім’я"
+      ],
+      "germanTitle": "Bio-Bergbauernfest Hall in Tirol",
+      "germanSummary": "Bio-Produkte Tiroler Bergbauern, Musik und Kinderprogramm.",
+      "germanDetails": "Am 12. September feiert Hall in Tirol die biologische Berglandwirtschaft mit 100 Prozent Bio-Qualität, Musik und Kinderprogramm. Die genaue Veranstaltungszeit soll vor Veröffentlichung auf der Veranstalterseite geprüft werden.",
+      "eventOrganizerName": "BIO AUSTRIA Tirol",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/volks-und-traditionsfeste",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/volks-und-traditionsfeste",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/volks-und-traditionsfeste",
+        "title": "Bio-Bergbauernfest Hall in Tirol",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "точний час 2026"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-bio-bergbauernfest.jpg",
+    "imageAlternativeText": "Органічний фермерський фестиваль у старому місті Галля"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/kulinarik#2026-09-12",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Genuss-Promenade біля Drachental-See",
+      "summary": "Серія осінніх гастрономічних зустрічей у Вільдшенау з локальними виробниками.",
+      "details": "З 12 вересня до 10 жовтня в Oberau запланована Genuss-Promenade біля Drachental-See. Оскільки це серія дат, перед публікацією потрібно вибрати конкретний термін і звірити години на сторінці організатора.",
+      "city": "Oberau",
+      "venue": "Drachental-See",
+      "address": "Oberau, Wildschönau",
+      "federalState": "tirol",
+      "startDate": "2026-09-12T11:00:00+02:00",
+      "endDate": "2026-09-12T18:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Wildschönau",
+        "кулінарія",
+        "локальні продукти"
+      ],
+      "germanTitle": "Genuss-Promenade am Drachental-See",
+      "germanSummary": "Herbstliche Genuss-Termine in der Wildschönau mit regionalen Produzenten.",
+      "germanDetails": "Vom 12. September bis 10. Oktober ist in Oberau die Genuss-Promenade am Drachental-See angekündigt. Da es sich um eine Terminreihe handelt, bitte vor Veröffentlichung einen konkreten Termin und die Uhrzeit prüfen.",
+      "eventOrganizerName": "Wildschönau Tourismus",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/kulinarik",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/kulinarik",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/kulinarik",
+        "title": "Genuss-Promenade am Drachental-See",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "конкретна дата серії",
+      "точний час"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-genuss-promenade.jpg",
+    "imageAlternativeText": "Осіння гастрономічна променада біля альпійського озера"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/events/e/122227052.html#2026-09-18",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Ринок Kraut & Knolle",
+      "summary": "Осінні овочі, фермерські делікатеси, ремесла та народна музика на Marktplatz.",
+      "details": "18–20 вересня площа Marktplatz присвячена різноманіттю тирольського сільського господарства. На ринку будуть свіжі овочі, фермерські й ремісничі продукти, дегустації та музична програма. Щодня 11:00–18:00.",
+      "city": "Innsbruck",
+      "venue": "Marktplatz",
+      "address": "Marktplatz, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-09-18T11:00:00+02:00",
+      "endDate": "2026-09-18T18:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "music",
+        "childrenAndFamily"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "фермерський ринок",
+        "осінь"
+      ],
+      "germanTitle": "Kraut & Knolle",
+      "germanSummary": "Herbstgemüse, bäuerliche Spezialitäten, Handwerk und Volksmusik am Marktplatz.",
+      "germanDetails": "Vom 18. bis 20. September steht der Marktplatz im Zeichen der Tiroler Landwirtschaft. Geboten werden frisches Gemüse, bäuerliche Spezialitäten, Handwerk, Verkostungen und Musik, täglich 11:00–18:00 Uhr.",
+      "eventOrganizerName": "Innsbruck Marketing GmbH",
+      "organizerURL": "https://www.innsbruck.info/events/e/122227052.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/events/e/122227052.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-19T11:00:00+02:00",
+          "endDate": "2026-09-19T18:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-20T11:00:00+02:00",
+          "endDate": "2026-09-20T18:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/events/e/122227052.html",
+        "title": "Kraut & Knolle",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-kraut-knolle.jpg",
+    "imageAlternativeText": "Осінній овочевий ринок тирольських фермерів"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/alle-events/knoedelfest-st-johann-in-tirol#2026-09-19",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Велике Knödelfest у Санкт-Йоганні",
+      "summary": "Понад 25 видів кнедлів, довгий святковий стіл, жива музика й гастрономічна атмосфера.",
+      "details": "19 вересня центр St. Johann in Tirol перетвориться на велике свято кнедлів: понад 25 видів, десятки тисяч порцій, музика та розважальна програма. Вхідний квиток коштує 12 євро; квитки можуть швидко закінчуватися.",
+      "city": "St. Johann in Tirol",
+      "venue": "Ortszentrum",
+      "address": "6380 St. Johann in Tirol",
+      "federalState": "tirol",
+      "startDate": "2026-09-19T10:00:00+02:00",
+      "endDate": "2026-09-19T18:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "music",
+        "celebration"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "St. Johann",
+        "кнедлі",
+        "фестиваль",
+        "жива музика"
+      ],
+      "germanTitle": "Knödelfest St. Johann in Tirol",
+      "germanSummary": "Mehr als 25 Knödelsorten, lange Festtafel, Live-Musik und Kulinarik.",
+      "germanDetails": "Am 19. September wird das Zentrum von St. Johann zum Knödel-Fest: mehr als 25 Sorten, zehntausende Knödel, Musik und Rahmenprogramm. Der Eintritt kostet 12 Euro; Tickets können rasch ausverkauft sein.",
+      "eventOrganizerName": "TVB Kitzbüheler Alpen",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/alle-events/knoedelfest-st-johann-in-tirol",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/alle-events/knoedelfest-st-johann-in-tirol",
+      "priceKind": "exact",
+      "publicationMode": "now",
+      "price": 12,
+      "priceNote": "Квиток для однієї особи; перевірте наявність."
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events/knoedelfest-st-johann-in-tirol",
+        "title": "Knödelfest St. Johann in Tirol",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "точний час роботи фестивалю"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-knoedelfest.jpg",
+    "imageAlternativeText": "Довгий святковий стіл із тирольськими кнедлями"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-reith-im-alpbachtal#2026-09-19",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Almabtrieb у Reith im Alpbachtal",
+      "summary": "Прикрашені корови повертаються з альпійських пасовищ, ярмарок і традиційна музика.",
+      "details": "19 і 26 вересня Reith im Alpbachtal святкує повернення худоби з гірських пасовищ. У програмі — традиційна хода, регіональні страви, ремісничий ринок і музика. Орієнтовна ціна входу — 8 євро, діти до 12 років безкоштовно.",
+      "city": "Reith im Alpbachtal",
+      "venue": "Ortszentrum",
+      "address": "6235 Reith im Alpbachtal",
+      "federalState": "tirol",
+      "startDate": "2026-09-19T10:00:00+02:00",
+      "endDate": "2026-09-19T18:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "celebration",
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Alpbachtal",
+        "Almabtrieb",
+        "традиції",
+        "ярмарок"
+      ],
+      "germanTitle": "Almabtrieb in Reith im Alpbachtal",
+      "germanSummary": "Geschmückte Kühe, Handwerksmarkt, regionale Küche und traditionelle Musik.",
+      "germanDetails": "Am 19. und 26. September feiert Reith im Alpbachtal die Rückkehr der Tiere von den Almen. Geboten werden Einzug, Handwerksmarkt, regionale Küche und Musik. Der Richtpreis beträgt 8 Euro, Kinder bis 12 Jahre sind frei.",
+      "eventOrganizerName": "Alpbachtal Tourismus",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-reith-im-alpbachtal",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-reith-im-alpbachtal",
+      "priceKind": "exact",
+      "publicationMode": "now",
+      "price": 8,
+      "priceNote": "Діти до 12 років безкоштовно; ціна довідкова.",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-26T10:00:00+02:00",
+          "endDate": "2026-09-26T18:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-reith-im-alpbachtal",
+        "title": "Almabtrieb in Reith im Alpbachtal",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "звірити точний час програми"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-almabtrieb.jpg",
+    "imageAlternativeText": "Прикрашені корови входять до тирольського села"
+  },
+  {
+    "idempotencyKey": "event:almkaeseolympiade-galtuer-2026-09-26",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "32-га Міжнародна олімпіада альпійського сиру",
+      "summary": "Понад 100 альпійських господарств, дегустації та продаж сирів із п’яти країн.",
+      "details": "26 вересня у Sport- und Kulturzentrum Galtür понад 100 виробників представлять альпійські сири з Австрії, Німеччини, Італії, Швейцарії та Ліхтенштейну. Для відвідувачів програма стартує об 11:00: можна дегустувати й купувати продукцію.",
+      "city": "Galtür",
+      "venue": "Sport- und Kulturzentrum Galtür",
+      "address": "6563 Galtür",
+      "federalState": "tirol",
+      "startDate": "2026-09-26T11:00:00+02:00",
+      "endDate": "2026-09-26T18:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Galtür",
+        "сир",
+        "дегустація",
+        "Альпи"
+      ],
+      "germanTitle": "32. Internationale Almkäseolympiade",
+      "germanSummary": "Über 100 Almbetriebe, Verkostung und Verkauf von Käse aus fünf Ländern.",
+      "germanDetails": "Am 26. September präsentieren im Sport- und Kulturzentrum Galtür mehr als 100 Almbetriebe Käse aus fünf Alpenländern. Das Publikumsprogramm startet um 11:00 Uhr; Käse kann verkostet und gekauft werden.",
+      "eventOrganizerName": "Landjugend Galtür",
+      "organizerURL": "https://presse.tirol.at/gipfeltreffen-des-guten-geschmacks-32-internationale-almkaeseolympiade-in-galtuer/295316/",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://presse.tirol.at/gipfeltreffen-des-guten-geschmacks-32-internationale-almkaeseolympiade-in-galtuer/295316/",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://presse.tirol.at/gipfeltreffen-des-guten-geschmacks-32-internationale-almkaeseolympiade-in-galtuer/295316/",
+        "title": "32. Internationale Almkäseolympiade",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "точний час завершення"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-almkaese.jpg",
+    "imageAlternativeText": "Дегустація альпійських сирів у сучасному центрі Гальтюра"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/alle-events#2026-09-26",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Golden Autumn Sounds у Тіролі",
+      "summary": "Осіння серія музичних подій у гірських локаціях із краєвидами та живими концертами.",
+      "details": "Серія Golden Autumn Sounds запланована з 26 вересня до 10 жовтня. Конкретні концерти, місця й час відрізняються, тому цей матеріал залишено для уточнення програми перед публікацією.",
+      "city": "Tirol",
+      "venue": "Mehrere Spielorte",
+      "address": "Tirol",
+      "federalState": "tirol",
+      "startDate": "2026-09-26T18:00:00+02:00",
+      "endDate": "2026-10-10T22:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Тіроль",
+        "музика",
+        "осінь",
+        "концерти"
+      ],
+      "germanTitle": "Golden Autumn Sounds",
+      "germanSummary": "Herbstliche Konzertreihe an Tiroler Bergschauplätzen.",
+      "germanDetails": "Die Reihe Golden Autumn Sounds ist vom 26. September bis 10. Oktober angekündigt. Konkrete Konzerte, Orte und Zeiten unterscheiden sich; vor Veröffentlichung muss ein Programmpunkt ausgewählt werden.",
+      "eventOrganizerName": "Tirol Werbung",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/alle-events",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/alle-events",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events",
+        "title": "Golden Autumn Sounds",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "пряме посилання програми",
+      "конкретний концерт",
+      "точне місце й час"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-herbstklaenge.jpg",
+    "imageAlternativeText": "Живий осінній концерт на тлі тирольських гір"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/forum/makepdf_events.php?kiosk=1#2026-10-06",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Innsbruck Nature Film Festival",
+      "summary": "Міжнародні фільми про природу, довкілля та сталий розвиток у Metropol Kino.",
+      "details": "З 6 до 11 жовтня фестиваль природничого кіно збере документальні стрічки й дискусії про довкілля. Це багатоденна програма; перед публікацією варто вибрати конкретний сеанс або додати актуальне посилання на програму й квитки.",
+      "city": "Innsbruck",
+      "venue": "Metropol Kino",
+      "address": "Innstraße 5, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-10-06T18:00:00+02:00",
+      "endDate": "2026-10-11T22:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "education"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "кіно",
+        "природа",
+        "екологія"
+      ],
+      "germanTitle": "Innsbruck Nature Film Festival",
+      "germanSummary": "Internationale Filme über Natur, Umwelt und Nachhaltigkeit im Metropol Kino.",
+      "germanDetails": "Vom 6. bis 11. Oktober zeigt das Festival Dokumentarfilme und Diskussionen zu Natur und Umwelt. Es handelt sich um ein mehrtägiges Programm; vor Veröffentlichung bitte einen Termin oder den aktuellen Spielplan ergänzen.",
+      "eventOrganizerName": "Innsbruck Nature Film Festival",
+      "organizerURL": "https://www.innsbruck.info/forum/makepdf_events.php?kiosk=1",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/forum/makepdf_events.php?kiosk=1",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/forum/makepdf_events.php?kiosk=1",
+        "title": "Innsbruck Nature Film Festival",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "офіційне посилання програми",
+      "час конкретного сеансу"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-nature-film.jpg",
+    "imageAlternativeText": "Глядачі дивляться природничий фільм у кінотеатрі Інсбрука"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/events/e/122281225.html#2026-10-07",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Innsbrucker Herbstmesse 2026",
+      "summary": "П’ять днів покупок, сімейної програми, концертів, моди й гастрономії.",
+      "details": "7–11 жовтня Messe Innsbruck приймає найбільший осінній сімейний і торговий ярмарок регіону. У програмі — концерти, покази мод, лекції, гастрономія та покупки. Квиток включає громадський транспорт до ярмарку й назад у межах Тіролю.",
+      "city": "Innsbruck",
+      "venue": "Messe Innsbruck",
+      "address": "Ing.-Etzel-Straße, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-10-07T10:00:00+02:00",
+      "endDate": "2026-10-07T18:00:00+02:00",
+      "isAllDay": false,
+      "category": "saleAndPromotion",
+      "additionalCategories": [
+        "childrenAndFamily",
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "ярмарок",
+        "сім’я",
+        "покупки"
+      ],
+      "germanTitle": "Innsbrucker Herbstmesse 2026",
+      "germanSummary": "Fünf Tage Shopping, Familienprogramm, Konzerte, Mode und Kulinarik.",
+      "germanDetails": "Vom 7. bis 11. Oktober findet in der Messe Innsbruck das große Familien- und Shoppingerlebnis statt. Das Programm umfasst Konzerte, Modeschauen, Vorträge, Kulinarik und Einkauf. Die öffentliche An- und Heimreise aus Tirol ist im Ticket enthalten.",
+      "eventOrganizerName": "Congress und Messe Innsbruck GmbH",
+      "organizerURL": "https://www.innsbruck.info/events/e/122281225.html",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/events/e/122281225.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-10-08T10:00:00+02:00",
+          "endDate": "2026-10-08T18:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-10-09T10:00:00+02:00",
+          "endDate": "2026-10-09T18:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-10-10T10:00:00+02:00",
+          "endDate": "2026-10-10T18:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-10-11T10:00:00+02:00",
+          "endDate": "2026-10-11T18:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/events/e/122281225.html",
+        "title": "Innsbrucker Herbstmesse 2026",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-herbstmesse.jpg",
+    "imageAlternativeText": "Сучасний сімейний ярмарок у Messe Innsbruck"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/alle-events/haiminger-markttage#2026-10-10",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Haiminger Markttage — великий урожайний ринок",
+      "summary": "Яблука, гарбузи, овочі, сир, мед і ремісничі продукти безпосередньо від виробників.",
+      "details": "10 і 17 жовтня Haiming проводить великий тирольський урожайний ринок. Головна тема — місцеві сорти яблук, але також продають гарбузи, картоплю, овочі, сир, ковбаси, хліб, мед, джеми, вина й дистиляти.",
+      "city": "Haiming",
+      "venue": "Ortszentrum Haiming",
+      "address": "6425 Haiming",
+      "federalState": "tirol",
+      "startDate": "2026-10-10T09:00:00+02:00",
+      "endDate": "2026-10-10T17:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": [
+        "saleAndPromotion"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Haiming",
+        "яблука",
+        "урожай",
+        "фермерський ринок"
+      ],
+      "germanTitle": "Haiminger Markttage",
+      "germanSummary": "Äpfel, Kürbis, Gemüse, Käse, Honig und Handwerk direkt von Produzenten.",
+      "germanDetails": "Am 10. und 17. Oktober findet in Haiming der große Tiroler Erntemarkt statt. Im Mittelpunkt stehen heimische Äpfel; angeboten werden auch Kürbis, Kartoffeln, Gemüse, Käse, Wurst, Brot, Honig, Marmelade, Wein und Destillate.",
+      "eventOrganizerName": "Haiminger Markttage",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/alle-events/haiminger-markttage",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/alle-events/haiminger-markttage",
+      "priceKind": "unspecified",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-10-17T09:00:00+02:00",
+          "endDate": "2026-10-17T17:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events/haiminger-markttage",
+        "title": "Haiminger Markttage",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "звірити точний час роботи"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-haiminger-markt.jpg",
+    "imageAlternativeText": "Осінній яблучний і фермерський ринок у Хаймінгу"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/events/e/122278030.html#2026-10-23",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "ARTfair Innsbruck 2026",
+      "summary": "Сучасне мистецтво, галереї та міжнародні учасники протягом трьох днів.",
+      "details": "23–25 жовтня ARTfair Innsbruck збере галереї, художників і поціновувачів сучасного мистецтва. У чернетці закладено 11:00–19:00; перед публікацією перевірте години кожного дня й посилання на квитки.",
+      "city": "Innsbruck",
+      "venue": "Olympiaworld Innsbruck",
+      "address": "Olympiastraße 10, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-10-23T11:00:00+02:00",
+      "endDate": "2026-10-23T19:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "saleAndPromotion"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "мистецтво",
+        "галереї"
+      ],
+      "germanTitle": "ARTfair Innsbruck 2026",
+      "germanSummary": "Zeitgenössische Kunst, Galerien und internationale Aussteller an drei Tagen.",
+      "germanDetails": "Vom 23. bis 25. Oktober bringt die ARTfair Innsbruck Galerien, Künstler und Kunstpublikum zusammen. Im Entwurf sind 11:00–19:00 Uhr hinterlegt; bitte Tageszeiten und Ticketlink vor Veröffentlichung prüfen.",
+      "eventOrganizerName": "ARTfair Innsbruck",
+      "organizerURL": "https://www.innsbruck.info/events/e/122278030.html",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/events/e/122278030.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-10-24T11:00:00+02:00",
+          "endDate": "2026-10-24T19:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-10-25T11:00:00+01:00",
+          "endDate": "2026-10-25T19:00:00+01:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/events/e/122278030.html",
+        "title": "ARTfair Innsbruck 2026",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "звірити години та квитки"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-artfair.jpg",
+    "imageAlternativeText": "Відвідувачі сучасного артярмарку в Інсбруку"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/en/events/d/markets.html#2026-11-13",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Різдвяний ярмарок на Marktplatz",
+      "summary": "Сімейний адвент-ярмарок у центрі Інсбрука з вогнями, частуванням і святковою програмою.",
+      "details": "З 13 листопада до 23 грудня Marktplatz перетвориться на різдвяний ярмарок. Це зручний варіант для сімейної прогулянки з сезонними стравами, напоями й святковими декораціями. Щоденний старт зазначений об 11:00; час закриття слід звірити.",
+      "city": "Innsbruck",
+      "venue": "Marktplatz",
+      "address": "Marktplatz, 6020 Innsbruck",
+      "federalState": "tirol",
+      "startDate": "2026-11-13T11:00:00+01:00",
+      "endDate": "2026-11-13T21:00:00+01:00",
+      "isAllDay": false,
+      "category": "celebration",
+      "additionalCategories": [
+        "foodAndMarket",
+        "childrenAndFamily"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "Різдво",
+        "адвент",
+        "ярмарок"
+      ],
+      "germanTitle": "Christkindlmarkt am Marktplatz",
+      "germanSummary": "Familienfreundlicher Adventmarkt in Innsbruck mit Lichtern, Genuss und Programm.",
+      "germanDetails": "Vom 13. November bis 23. Dezember wird der Marktplatz zum Christkindlmarkt. Der Markt eignet sich für Familien und bietet saisonale Speisen, Getränke und festliche Dekoration. Der tägliche Beginn ist mit 11:00 Uhr angegeben; die Schlusszeit bitte prüfen.",
+      "eventOrganizerName": "Innsbruck Marketing GmbH",
+      "organizerURL": "https://www.innsbruck.info/en/events/d/markets.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна сторінка",
+      "externalActionURL": "https://www.innsbruck.info/en/events/d/markets.html",
+      "priceKind": "unspecified",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/en/events/d/markets.html",
+        "title": "Christkindlmarkt am Marktplatz",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце та основні деталі звірені з офіційною сторінкою."
+    ],
+    "missingFields": [
+      "точний час закриття та окремі дні роботи"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-27/event-christmas-market.jpg",
+    "imageAlternativeText": "Освітлений різдвяний ярмарок на Marktplatz в Інсбруку"
+  },
+  {
+    "idempotencyKey": "news:https://www.tirol.gv.at/presse/meldungen/meldung/anhaltende-belastung-der-oetztaler-ache/",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "У Ötztaler Ache продовжили заборону на човни",
+      "summary": "Через бактеріальне забруднення влада радить утриматися також від купання й інших водних видів спорту.",
+      "body": "Земля Тіроль повідомила про тривале бактеріальне навантаження в річці Ötztaler Ache. Заборону на рух човнів продовжено, а людям рекомендують тимчасово не купатися та не займатися іншими водними видами спорту. Якщо ви плануєте відпочинок у районі, перевіряйте актуальні офіційні повідомлення: ситуація може змінюватися після нових лабораторних вимірювань.",
+      "sourceInput": "https://www.tirol.gv.at/presse/meldungen/meldung/anhaltende-belastung-der-oetztaler-ache/",
+      "category": "health",
+      "additionalCategories": [
+        "news"
+      ],
+      "tags": [
+        "Тіроль",
+        "Ötztal",
+        "здоров’я",
+        "попередження"
+      ],
+      "federalState": "tirol",
+      "germanTitle": "Bootsverbot an der Ötztaler Ache verlängert",
+      "germanSummary": "Wegen bakterieller Belastung wird auch vom Baden und anderen Wassersportarten abgeraten.",
+      "germanBody": "Das Land Tirol meldet eine anhaltende bakterielle Belastung der Ötztaler Ache. Das Bootsverbot wurde verlängert; vom Baden und anderen Wassersportarten wird vorübergehend abgeraten. Vor einem Aufenthalt in der Region sollten die aktuellen Behördenhinweise geprüft werden, da sich die Lage nach neuen Messungen ändern kann.",
+      "imageAlternativeText": "Гірська річка Ötztaler Ache з офіційною зоною обмеження",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Читати першоджерело",
+      "externalActionURL": "https://www.tirol.gv.at/presse/meldungen/meldung/anhaltende-belastung-der-oetztaler-ache/",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.gv.at/presse/meldungen/meldung/anhaltende-belastung-der-oetztaler-ache/",
+        "title": "Land Tirol",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата публікації та ключові цифри звірені з офіційним першоджерелом."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/news-oetztaler-ache.jpg",
+    "imageAlternativeText": "Гірська річка Ötztaler Ache з офіційною зоною обмеження"
+  },
+  {
+    "idempotencyKey": "news:https://www.tirol.gv.at/presse/meldungen/meldung/elternberatung-und-fruehe-hilfen-staerken-familien-in-tirol/",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "У Тіролі працюють безкоштовні консультації для батьків",
+      "summary": "91 консультаційний пункт і програма Frühe Hilfen допомагають сім’ям від вагітності до раннього дитинства.",
+      "body": "У Тіролі діє 91 пункт Elternberatung, де сім’ї можуть безкоштовно отримати підтримку з питань розвитку, здоров’я, харчування та повсякденного життя з дитиною. Окремо працює програма Frühe Hilfen для вагітних і сімей із дітьми раннього віку, які опинилися у складній ситуації. За даними землі, консультаціями скористалися близько 6 600 сімей, а Frühe Hilfen підтримали ще приблизно 190 сімей. Звернення добровільне й конфіденційне.",
+      "sourceInput": "https://www.tirol.gv.at/presse/meldungen/meldung/elternberatung-und-fruehe-hilfen-staerken-familien-in-tirol/",
+      "category": "benefitsAndSupport",
+      "additionalCategories": [
+        "health",
+        "education"
+      ],
+      "tags": [
+        "Тіроль",
+        "батьки",
+        "діти",
+        "консультація",
+        "безкоштовно"
+      ],
+      "federalState": "tirol",
+      "germanTitle": "Kostenlose Elternberatung und Frühe Hilfen in Tirol",
+      "germanSummary": "91 Beratungsstellen unterstützen Familien von der Schwangerschaft bis zur frühen Kindheit.",
+      "germanBody": "In Tirol gibt es 91 Stellen der Elternberatung mit kostenloser Unterstützung zu Entwicklung, Gesundheit, Ernährung und Familienalltag. Ergänzend begleiten die Frühen Hilfen Schwangere und Familien mit kleinen Kindern in belastenden Situationen. Laut Land Tirol nutzten rund 6.600 Familien die Beratung; etwa 190 weitere Familien wurden durch Frühe Hilfen begleitet. Die Angebote sind freiwillig und vertraulich.",
+      "imageAlternativeText": "Консультантка спілкується з батьками й маленькою дитиною",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Читати першоджерело",
+      "externalActionURL": "https://www.tirol.gv.at/presse/meldungen/meldung/elternberatung-und-fruehe-hilfen-staerken-familien-in-tirol/",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.gv.at/presse/meldungen/meldung/elternberatung-und-fruehe-hilfen-staerken-familien-in-tirol/",
+        "title": "Land Tirol",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата публікації та ключові цифри звірені з офіційним першоджерелом."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/news-parent-counselling.jpg",
+    "imageAlternativeText": "Консультантка спілкується з батьками й маленькою дитиною"
+  },
+  {
+    "idempotencyKey": "news:https://www.tirol.gv.at/presse/meldungen/meldung/starke-strukturen-fuer-gelingende-integration-in-tirol/",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Тіроль підтримує 56 інтеграційних проєктів",
+      "summary": "На мовні, освітні та громадські ініціативи у 2026 році спрямовано близько 2,2 млн євро.",
+      "body": "Земля Тіроль повідомила про підтримку 56 інтеграційних проєктів загальним обсягом близько 2,2 мільйона євро. Йдеться про мовні й освітні програми, консультації, роботу громад та ініціативи, що допомагають людям брати участь у суспільному житті. Для українців це корисний орієнтир: нові курси, консультації чи локальні програми варто шукати у своїй громаді та в офіційному переліку партнерських організацій.",
+      "sourceInput": "https://www.tirol.gv.at/presse/meldungen/meldung/starke-strukturen-fuer-gelingende-integration-in-tirol/",
+      "category": "communityAndIntegration",
+      "additionalCategories": [
+        "education",
+        "benefitsAndSupport"
+      ],
+      "tags": [
+        "Тіроль",
+        "інтеграція",
+        "мовні курси",
+        "підтримка"
+      ],
+      "federalState": "tirol",
+      "germanTitle": "Tirol fördert 56 Integrationsprojekte",
+      "germanSummary": "Rund 2,2 Millionen Euro fließen 2026 in Sprache, Bildung, Beratung und Teilhabe.",
+      "germanBody": "Das Land Tirol unterstützt 56 Integrationsprojekte mit insgesamt rund 2,2 Millionen Euro. Gefördert werden Sprach- und Bildungsangebote, Beratung, kommunale Arbeit und Projekte zur gesellschaftlichen Teilhabe. Interessierte sollten in ihrer Gemeinde und bei den offiziellen Partnerorganisationen nach konkreten Kursen und Angeboten suchen.",
+      "imageAlternativeText": "Міжнародна група працює разом на інтеграційному семінарі в Інсбруку",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Читати першоджерело",
+      "externalActionURL": "https://www.tirol.gv.at/presse/meldungen/meldung/starke-strukturen-fuer-gelingende-integration-in-tirol/",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.gv.at/presse/meldungen/meldung/starke-strukturen-fuer-gelingende-integration-in-tirol/",
+        "title": "Land Tirol",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата публікації та ключові цифри звірені з офіційним першоджерелом."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/news-integration-projects.jpg",
+    "imageAlternativeText": "Міжнародна група працює разом на інтеграційному семінарі в Інсбруку"
+  },
+  {
+    "idempotencyKey": "news:https://www.innsbruck.gv.at/leben/gesundheit-tiere/vorsorge/impfungen",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Які щеплення дорослі можуть безкоштовно отримати в Інсбруку",
+      "summary": "Місто пропонує дорослим безкоштовні щеплення проти оперізувального лишаю, пневмокока та MMR.",
+      "body": "Міська служба здоров’я Інсбрука повідомляє про безкоштовні програми вакцинації для дорослих проти оперізувального лишаю, пневмококової інфекції та кору-паротиту-краснухи (MMR). Умови залежать від віку, показань і наявності вакцини, тому перед візитом потрібно перевірити актуальні критерії та запис. Вакцинація HPV для людей від 21 року з липня 2026 року знову є платною.",
+      "sourceInput": "https://www.innsbruck.gv.at/leben/gesundheit-tiere/vorsorge/impfungen",
+      "category": "health",
+      "additionalCategories": [
+        "benefitsAndSupport"
+      ],
+      "tags": [
+        "Innsbruck",
+        "вакцинація",
+        "здоров’я",
+        "безкоштовно"
+      ],
+      "federalState": "tirol",
+      "germanTitle": "Kostenlose Impfangebote für Erwachsene in Innsbruck",
+      "germanSummary": "Die Stadt bietet Programme gegen Gürtelrose, Pneumokokken und MMR an.",
+      "germanBody": "Der Gesundheitsdienst der Stadt Innsbruck informiert über kostenlose Impfprogramme für Erwachsene gegen Gürtelrose, Pneumokokken sowie Masern-Mumps-Röteln. Voraussetzungen hängen von Alter, Indikation und Verfügbarkeit ab; aktuelle Kriterien und Terminvereinbarung sollen vorab geprüft werden. Die HPV-Impfung ist für Personen ab 21 Jahren seit Juli 2026 wieder kostenpflichtig.",
+      "imageAlternativeText": "Медична працівниця консультує дорослого пацієнта щодо вакцинації",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Читати першоджерело",
+      "externalActionURL": "https://www.innsbruck.gv.at/leben/gesundheit-tiere/vorsorge/impfungen",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.gv.at/leben/gesundheit-tiere/vorsorge/impfungen",
+        "title": "Stadt Innsbruck",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата публікації та ключові цифри звірені з офіційним першоджерелом."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/news-vaccinations.jpg",
+    "imageAlternativeText": "Медична працівниця консультує дорослого пацієнта щодо вакцинації"
+  },
+  {
+    "idempotencyKey": "news:tirol-einbuergerungen-2026-08-24",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "У Тіролі зросла кількість наданих громадянств",
+      "summary": "У першому півріччі 2026 року громадянство отримали 725 людей — на 24% більше, ніж роком раніше.",
+      "body": "У першому півріччі 2026 року в Тіролі австрійське громадянство отримали 725 людей. Це приблизно на 24 відсотки більше, ніж у той самий період 2025 року. До кінця липня було зареєстровано понад 1 100 заявників. Земля також повідомляє про оптимізацію процедур. Ця новина не змінює законодавчих вимог: умови громадянства потрібно перевіряти за офіційною інформацією для власної ситуації.",
+      "sourceInput": "https://www.tirol.gv.at/presse/meldungen/meldung/lhstv-wohlgemuth-staatsbuergerschaft-steht-am-ende-eines-gelungenen-integrationsprozesses/",
+      "category": "lawAndDocuments",
+      "additionalCategories": [
+        "communityAndIntegration",
+        "news"
+      ],
+      "tags": [
+        "Тіроль",
+        "громадянство",
+        "документи",
+        "інтеграція"
+      ],
+      "federalState": "tirol",
+      "germanTitle": "Mehr Einbürgerungen in Tirol",
+      "germanSummary": "Im ersten Halbjahr 2026 erhielten 725 Personen die Staatsbürgerschaft, 24 Prozent mehr als im Vorjahr.",
+      "germanBody": "Im ersten Halbjahr 2026 wurde in Tirol 725 Personen die österreichische Staatsbürgerschaft verliehen. Das sind rund 24 Prozent mehr als im gleichen Zeitraum 2025. Bis Ende Juli wurden mehr als 1.100 Antragstellende registriert. Das Land berichtet außerdem über optimierte Abläufe. Die gesetzlichen Voraussetzungen ändern sich durch diese Meldung nicht und müssen für den Einzelfall offiziell geprüft werden.",
+      "imageAlternativeText": "Сім’я отримує консультацію щодо офіційних документів у Тіролі",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Читати першоджерело",
+      "externalActionURL": "https://www.tirol.gv.at/presse/meldungen/meldung/lhstv-wohlgemuth-staatsbuergerschaft-steht-am-ende-eines-gelungenen-integrationsprozesses/",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.gv.at/presse/meldungen/meldung/lhstv-wohlgemuth-staatsbuergerschaft-steht-am-ende-eines-gelungenen-integrationsprozesses/",
+        "title": "Land Tirol",
+        "isPrimary": true,
+        "checkedAt": "2026-08-27T21:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата публікації та ключові цифри звірені з офіційним першоджерелом."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-27/news-citizenship.jpg",
+    "imageAlternativeText": "Сім’я отримує консультацію щодо офіційних документів у Тіролі"
+  }
+]
