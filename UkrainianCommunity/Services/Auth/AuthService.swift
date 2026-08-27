@@ -200,7 +200,9 @@ final class AuthService {
                 authState.dismissAuthFlow()
             } catch {
                 guard isCurrentTransition(transition) else { return }
+                #if DEBUG
                 print("Anonymous sign-out error: \(error.localizedDescription)")
+                #endif
                 authState.setSessionUnavailable(
                     userID: sessionUser.uid,
                     email: sessionUser.email,
@@ -278,7 +280,9 @@ final class AuthService {
             authState.setGuestSession()
         } catch {
             guard isCurrentTransition(transition) else { return }
+            #if DEBUG
             print("Auth error: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -297,7 +301,9 @@ final class AuthService {
         } catch {
             guard isCurrentTransition(transition) else { return false }
             reconcileAfterFailedSignOut(error, transition: transition)
+            #if DEBUG
             print("Sign out session check error: \(error.localizedDescription)")
+            #endif
             return false
         }
 
@@ -305,7 +311,9 @@ final class AuthService {
             try await notificationRegistration.prepareForSignOut()
         } catch {
             guard isCurrentTransition(transition) else { return false }
+            #if DEBUG
             print("Push registration cleanup before sign out was deferred: \(error.localizedDescription)")
+            #endif
         }
 
         guard isCurrentTransition(transition) else {
@@ -326,7 +334,9 @@ final class AuthService {
             await notificationRegistration.resumeAfterFailedSignOut()
             guard isCurrentTransition(transition) else { return false }
             reconcileAfterFailedSignOut(error, transition: transition)
+            #if DEBUG
             print("Sign out error: \(error.localizedDescription)")
+            #endif
             return false
         }
     }
@@ -349,7 +359,9 @@ final class AuthService {
             guard isCurrentTransition(transition) else { return false }
             notificationRegistration.completeSignOut()
             reconcileAfterFailedSignOut(error, transition: transition)
+            #if DEBUG
             print("Post-deletion sign out error: \(error.localizedDescription)")
+            #endif
             return false
         }
     }
@@ -372,7 +384,9 @@ final class AuthService {
             guard isCurrentTransition(transition) else { return false }
             notificationRegistration.completeSignOut()
             reconcileAfterFailedSignOut(error, transition: transition)
+            #if DEBUG
             print("Restricted account sign out error: \(error.localizedDescription)")
+            #endif
             return false
         }
     }

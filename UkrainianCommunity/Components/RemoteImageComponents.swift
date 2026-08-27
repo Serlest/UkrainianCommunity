@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import Foundation
+import ImageIO
 
 private enum RemoteImageCache {
     static let shared: NSCache<NSString, UIImage> = {
@@ -12,10 +13,28 @@ private enum RemoteImageCache {
 }
 
 private enum RemoteImageDecoder {
-    static func decode(_ data: Data) async -> UIImage? {
+    static func decode(_ data: Data, maximumPixelSize: CGFloat) async -> UIImage? {
         await Task.detached(priority: .userInitiated) {
-            UIImage(data: data)
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+                return nil
+            }
+
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceShouldCacheImmediately: true,
+                kCGImageSourceThumbnailMaxPixelSize: max(1, Int(maximumPixelSize.rounded(.up)))
+            ]
+            guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+                return nil
+            }
+            return UIImage(cgImage: image)
         }.value
+    }
+
+    static func memoryCost(of image: UIImage) -> Int {
+        guard let cgImage = image.cgImage else { return 0 }
+        return cgImage.bytesPerRow * cgImage.height
     }
 }
 
@@ -55,6 +74,7 @@ struct AdaptiveBannerImage: View {
 
 struct RemoteImageView: View {
     private static let fallbackHeight: CGFloat = 220
+    private static let maximumDecodedPixelSize: CGFloat = 2_048
 
     let imageURL: String?
     let height: CGFloat
@@ -198,7 +218,7 @@ struct RemoteImageView: View {
             return
         }
 
-        let cacheKey = imageURL as NSString
+        let cacheKey = "\(imageURL)#content-\(Int(Self.maximumDecodedPixelSize))" as NSString
         if let cachedImage = RemoteImageCache.shared.object(forKey: cacheKey) {
             loadedImage = cachedImage
             return
@@ -206,12 +226,19 @@ struct RemoteImageView: View {
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            guard let image = await RemoteImageDecoder.decode(data) else {
+            guard let image = await RemoteImageDecoder.decode(
+                data,
+                maximumPixelSize: Self.maximumDecodedPixelSize
+            ) else {
                 loadFailed = true
                 return
             }
 
-            RemoteImageCache.shared.setObject(image, forKey: cacheKey, cost: data.count)
+            RemoteImageCache.shared.setObject(
+                image,
+                forKey: cacheKey,
+                cost: RemoteImageDecoder.memoryCost(of: image)
+            )
             loadedImage = image
         } catch {
             let nsError = error as NSError
@@ -219,7 +246,9 @@ struct RemoteImageView: View {
                 return
             }
             loadFailed = true
+            #if DEBUG
             print("RemoteImageView failed source=\(source) requestedHeight=\(height) resolvedHeight=\(resolvedHeight) code=\(nsError.code) message=\(nsError.localizedDescription)")
+            #endif
         }
     }
 }
@@ -261,6 +290,7 @@ struct RemoteCardImage: View {
 }
 
 struct AvatarArtworkView: View {
+    private static let minimumDecodedPixelSize: CGFloat = 512
     let avatarURL: URL?
     let previewImage: UIImage?
     let initials: String
@@ -377,7 +407,8 @@ struct AvatarArtworkView: View {
             return
         }
 
-        let cacheKey = avatarURLString as NSString
+        let decodedPixelSize = max(Self.minimumDecodedPixelSize, size * 3)
+        let cacheKey = "\(avatarURLString)#avatar-\(Int(decodedPixelSize.rounded(.up)))" as NSString
         if let image = RemoteImageCache.shared.object(forKey: cacheKey) {
             cachedAvatarImage = image
             cachedAvatarURL = avatarURLString
@@ -389,12 +420,19 @@ struct AvatarArtworkView: View {
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            guard let image = await RemoteImageDecoder.decode(data) else {
+            guard let image = await RemoteImageDecoder.decode(
+                data,
+                maximumPixelSize: decodedPixelSize
+            ) else {
                 avatarLoadFailed = true
                 return
             }
 
-            RemoteImageCache.shared.setObject(image, forKey: cacheKey, cost: data.count)
+            RemoteImageCache.shared.setObject(
+                image,
+                forKey: cacheKey,
+                cost: RemoteImageDecoder.memoryCost(of: image)
+            )
             cachedAvatarImage = image
             cachedAvatarURL = avatarURLString
             avatarLoadFailed = false
