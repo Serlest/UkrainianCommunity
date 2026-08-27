@@ -35,6 +35,7 @@ struct EventDetailView: View {
     let eventID: String
     let onEventDeleted: @MainActor @Sendable () -> Void
     let onNavigateBack: (() -> Void)?
+    let analyticsSourceScreen: String
     let organizationRepository: OrganizationRepository
     @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
@@ -56,6 +57,7 @@ struct EventDetailView: View {
     @State var eventRegistrationAttendeesErrorMessage: String?
     @State var loadedEventRegistrationAttendeesEventID: String?
     @State var isShowingRegistrationManagement = false
+    @State var eventRecommendations: [EventContentRecommendation] = []
     @FocusState var isCommentFieldFocused: Bool
     let calendarWriter = EventCalendarWriter()
     let commentsSectionID = "eventCommentsSection"
@@ -67,12 +69,14 @@ struct EventDetailView: View {
         eventID: String,
         onEventDeleted: @escaping @MainActor @Sendable () -> Void,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onNavigateBack: (() -> Void)? = nil
+        onNavigateBack: (() -> Void)? = nil,
+        analyticsSourceScreen: String = "event_detail"
     ) {
         self.viewModel = viewModel
         self.eventID = eventID
         self.onEventDeleted = onEventDeleted
         self.onNavigateBack = onNavigateBack
+        self.analyticsSourceScreen = analyticsSourceScreen
         self.organizationRepository = organizationRepository
     }
 
@@ -303,7 +307,7 @@ struct EventDetailView: View {
               ? viewModel.event(for: eventID)?.id : nil) {
             guard analyticsScenePhase == .active,
                   let event = viewModel.event(for: eventID), !event.isCancelled else { return }
-            await viewModel.trackViewWhileVisible(for: event)
+            await viewModel.trackViewWhileVisible(for: event, sourceScreen: analyticsSourceScreen)
         }
         .task {
             if viewModel.event(for: eventID) == nil {
@@ -312,6 +316,8 @@ struct EventDetailView: View {
             guard let event = viewModel.event(for: eventID) else { return }
             await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
             await loadEventRegistrationAttendeesIfNeeded(for: event)
+            await viewModel.loadRecommendationCandidates()
+            refreshEventRecommendations()
             guard !event.isCancelled else { return }
             await viewModel.loadComments(for: eventID)
             guard !recordedViewKeys.contains(eventViewTaskID) else { return }
@@ -332,6 +338,9 @@ struct EventDetailView: View {
             viewModel.recordView(for: eventID)
             RecentViewRecorder.recordEvent(event)
         }
+        .onChange(of: viewModel.contentVersion) { _, _ in
+            refreshEventRecommendations()
+        }
         .onDisappear {
             viewModel.stopListeningComments(for: eventID)
             guard let pendingRemovalEventID else { return }
@@ -340,6 +349,17 @@ struct EventDetailView: View {
             }
             self.pendingRemovalEventID = nil
         }
+    }
+
+    func refreshEventRecommendations() {
+        guard let event = viewModel.event(for: eventID) else {
+            eventRecommendations = []
+            return
+        }
+        eventRecommendations = ContentRecommendationEngine.eventRecommendations(
+            for: event,
+            candidates: viewModel.events
+        )
     }
 
     func refreshEventDetail() async {

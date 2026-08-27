@@ -351,9 +351,8 @@ extension NewsDetailView {
         }
 
         @ViewBuilder
-        func relatedSection(for post: NewsPost) -> some View {
-            let relatedPosts = relatedNewsPosts(for: post)
-            if !relatedPosts.isEmpty {
+        func relatedSection(for _: NewsPost) -> some View {
+            if !relatedNewsRecommendations.isEmpty {
                 DetailCard {
                     VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                         Text(AppStrings.News.relatedSectionTitle)
@@ -361,19 +360,20 @@ extension NewsDetailView {
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                            ForEach(relatedPosts) { relatedPost in
+                            ForEach(relatedNewsRecommendations) { recommendation in
                                 NavigationLink {
                                     NewsDetailView(
                                         viewModel: viewModel,
-                                        postID: relatedPost.id,
-                                        onNewsDeleted: onNewsDeleted
+                                        postID: recommendation.post.id,
+                                        onNewsDeleted: onNewsDeleted,
+                                        analyticsSourceScreen: "news_recommendation"
                                     )
                                     .environment(\.newsPresentationMode, presentationMode)
                                 } label: {
-                                    relatedNewsCard(relatedPost)
+                                    relatedNewsCard(recommendation)
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityIdentifier("news.related.\(relatedPost.id)")
+                                .accessibilityIdentifier("news.related.\(recommendation.post.id)")
                             }
                         }
                     }
@@ -381,8 +381,9 @@ extension NewsDetailView {
             }
         }
 
-        func relatedNewsCard(_ post: NewsPost) -> some View {
-            SoftContentCard(padding: 10) {
+        func relatedNewsCard(_ recommendation: NewsContentRecommendation) -> some View {
+            let post = recommendation.post
+            return SoftContentCard(padding: 10) {
                 HStack(alignment: .center, spacing: AppTheme.eventsControlGroupSpacing) {
                     relatedNewsThumbnail(for: post)
 
@@ -399,6 +400,14 @@ extension NewsDetailView {
                                 .foregroundStyle(AppTheme.textSecondary)
                                 .lineLimit(2)
                         }
+
+                        Label(
+                            recommendation.primaryReason.title,
+                            systemImage: recommendation.primaryReason.systemImage
+                        )
+                        .font(AppTheme.metadataFont)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+                        .lineLimit(1)
 
                         ViewThatFits(in: .horizontal) {
                             HStack(spacing: AppTheme.eventsMetadataSpacing) {
@@ -439,42 +448,4 @@ extension NewsDetailView {
             }
         }
 
-        func relatedNewsPosts(for post: NewsPost) -> [NewsPost] {
-            viewModel.posts
-                .filter { $0.id != post.id }
-                .sorted { lhs, rhs in
-                    let lhsScore = relatedScore(lhs, to: post)
-                    let rhsScore = relatedScore(rhs, to: post)
-                    if lhsScore != rhsScore {
-                        return lhsScore > rhsScore
-                    }
-                    return lhs.publishedAt > rhs.publishedAt
-                }
-                .prefix(4)
-                .map { $0 }
-        }
-
-        func relatedScore(_ candidate: NewsPost, to post: NewsPost) -> Int {
-            var score = 0
-
-            if candidate.category == post.category
-                || candidate.additionalCategories.contains(post.category)
-                || post.additionalCategories.contains(candidate.category) {
-                score += 4
-            }
-
-            if candidate.federalState != nil && candidate.federalState == post.federalState {
-                score += 3
-            }
-
-            let currentTags = Set(post.tags.map { $0.lowercased() })
-            let candidateTags = Set(candidate.tags.map { $0.lowercased() })
-            score += min(currentTags.intersection(candidateTags).count, 3) * 2
-
-            if candidate.source.organizationId != nil && candidate.source.organizationId == post.source.organizationId {
-                score += 1
-            }
-
-            return score
-        }
 }

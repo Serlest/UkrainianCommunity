@@ -4962,13 +4962,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ähnliche Veranstaltungen"
+            "value" : "Veranstaltungen zum Thema und in der Nähe"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Схожі події"
+            "value" : "Події за темою та поруч"
           }
         }
       }
@@ -15686,13 +15686,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das könnte dich auch interessieren"
+            "value" : "Mehr zum Thema"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Вам також може бути цікаво"
+            "value" : "Ще за темою"
           }
         }
       }
@@ -34641,6 +34641,142 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Минулі події та участь з’являться тут."
+          }
+        }
+      }
+    },
+    "recommendations.reason.nearby" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Nähe"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поруч"
+          }
+        }
+      }
+    },
+    "recommendations.reason.nationwide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Österreichweit"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для всієї Австрії"
+          }
+        }
+      }
+    },
+    "recommendations.reason.nearby_date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demnächst"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найближчим часом"
+          }
+        }
+      }
+    },
+    "recommendations.reason.same_publisher" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Von derselben Organisation"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Від тієї самої організації"
+          }
+        }
+      }
+    },
+    "recommendations.reason.same_region" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In derselben Region"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "У тому самому регіоні"
+          }
+        }
+      }
+    },
+    "recommendations.reason.shared_tags" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gemeinsame Interessen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спільні інтереси"
+          }
+        }
+      }
+    },
+    "recommendations.reason.shared_topic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ähnliches Thema"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Схожа тема"
+          }
+        }
+      }
+    },
+    "recommendations.reason.similar_audience" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für eine ähnliche Zielgruppe"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для схожої аудиторії"
           }
         }
       }

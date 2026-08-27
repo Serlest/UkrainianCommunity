@@ -433,6 +433,17 @@ enum AppStrings {
         static var notifications: String { text("home.notifications", "Notifications") }
     }
 
+    enum Recommendations {
+        static var sharedTopic: String { text("recommendations.reason.shared_topic", "Схожа тема") }
+        static var sharedTags: String { text("recommendations.reason.shared_tags", "Спільні інтереси") }
+        static var nearby: String { text("recommendations.reason.nearby", "Поруч") }
+        static var nationwide: String { text("recommendations.reason.nationwide", "Для всієї Австрії") }
+        static var sameRegion: String { text("recommendations.reason.same_region", "У тому самому регіоні") }
+        static var samePublisher: String { text("recommendations.reason.same_publisher", "Від тієї самої організації") }
+        static var similarAudience: String { text("recommendations.reason.similar_audience", "Для схожої аудиторії") }
+        static var nearbyDate: String { text("recommendations.reason.nearby_date", "Найближчим часом") }
+    }
+
     enum News {
         static var title: String { text("news.title", "News") }
         static var heroTitle: String { text("news.hero.title", "Новини громади") }
@@ -443,7 +454,7 @@ enum AppStrings {
         static var bodySectionTitle: String { text("news.detail.body_section", "Про що йдеться") }
         static var sourceSectionTitle: String { text("news.detail.source", "Source") }
         static var tagsSectionTitle: String { text("news.detail.tags_section", "Теги") }
-        static var relatedSectionTitle: String { text("news.detail.related_section", "Вам також може бути цікаво") }
+        static var relatedSectionTitle: String { text("news.detail.related_section", "Ще за темою") }
         static var relatedSectionAction: String { text("news.detail.related_action", "Дивитися всі") }
         static var empty: String { text("news.empty", "No news available yet.") }
         static var retry: String { text("news.retry", "Retry") }
@@ -661,7 +672,7 @@ enum AppStrings {
         static var organizerContactSectionTitle: String { text("events.detail.organizer_contact", "Organizer and contact") }
         static var detailsSectionTitle: String { text("events.detail.details", "Деталі") }
         static var locationSectionTitle: String { text("events.detail.location", "Місце проведення") }
-        static var similarEvents: String { text("events.detail.similar_events", "Схожі події") }
+        static var similarEvents: String { text("events.detail.similar_events", "Події за темою та поруч") }
         static var addToCalendar: String { text("events.detail.add_to_calendar", "Додати в календар") }
         static var calendarAddedTitle: String { text("events.detail.calendar_added.title", "Додано в календар") }
         static var calendarAddedMessage: String { text("events.detail.calendar_added.message", "Подію збережено у вашому календарі.") }

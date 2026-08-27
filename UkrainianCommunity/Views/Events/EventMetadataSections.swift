@@ -425,10 +425,8 @@ extension EventDetailView {
         }
 
         @ViewBuilder
-        func similarEventsSection(for event: Event) -> some View {
-            let similarEvents = similarEvents(for: event)
-
-            if !similarEvents.isEmpty {
+        func similarEventsSection(for _: Event) -> some View {
+            if !eventRecommendations.isEmpty {
                 DetailCard {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                         Text(AppStrings.Events.similarEvents)
@@ -436,90 +434,25 @@ extension EventDetailView {
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                         VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                            ForEach(similarEvents) { relatedEvent in
+                            ForEach(eventRecommendations) { recommendation in
                                 NavigationLink {
                                     EventDetailView(
                                         viewModel: viewModel,
-                                        eventID: relatedEvent.id,
-                                        onEventDeleted: onEventDeleted
+                                        eventID: recommendation.event.id,
+                                        onEventDeleted: onEventDeleted,
+                                        analyticsSourceScreen: "event_recommendation"
                                     )
                                     .environment(\.eventPresentationMode, presentationMode)
                                 } label: {
-                                    EventSimilarCard(event: relatedEvent)
+                                    EventSimilarCard(recommendation: recommendation)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("events.recommended.\(recommendation.event.id)")
                             }
                         }
                     }
                 }
             }
-        }
-
-        func similarEvents(for event: Event) -> [Event] {
-            let now = Date()
-            return viewModel.events
-                .filter { $0.id != event.id && $0.nextOccurrence(relativeTo: now) != nil }
-                .sorted { lhs, rhs in
-                    let lhsScore = similarEventScore(lhs, comparedTo: event)
-                    let rhsScore = similarEventScore(rhs, comparedTo: event)
-                    if lhsScore != rhsScore {
-                        return lhsScore > rhsScore
-                    }
-
-                    let sourceDate = event.nextOccurrence(relativeTo: now)?.startDate ?? event.startDate
-                    let lhsDate = lhs.nextOccurrence(relativeTo: now)?.startDate ?? lhs.startDate
-                    let rhsDate = rhs.nextOccurrence(relativeTo: now)?.startDate ?? rhs.startDate
-                    let lhsProximity = abs(lhsDate.timeIntervalSince(sourceDate))
-                    let rhsProximity = abs(rhsDate.timeIntervalSince(sourceDate))
-                    if lhsProximity != rhsProximity {
-                        return lhsProximity < rhsProximity
-                    }
-
-                    return lhsDate < rhsDate
-                }
-                .prefix(4)
-                .map { $0 }
-        }
-
-        func similarEventScore(_ candidate: Event, comparedTo event: Event) -> Int {
-            var score = tagOverlap(candidate.tags, event.tags) * 100
-
-            if candidate.category == event.category
-                || candidate.additionalCategories.contains(event.category)
-                || event.additionalCategories.contains(candidate.category) {
-                score += 35
-            }
-
-            if let candidateState = candidate.federalState, candidateState == event.federalState {
-                score += 25
-            } else if candidate.regionScope == event.regionScope {
-                score += 8
-            }
-
-            if let candidateOrganizationID = candidate.source.organizationId,
-               candidateOrganizationID == event.source.organizationId {
-                score += 20
-            } else if normalizedMatch(candidate.organizerName, event.organizerName) {
-                score += 10
-            }
-
-            if normalizedMatch(candidate.city, event.city) {
-                score += 6
-            }
-
-            return score
-        }
-
-        func tagOverlap(_ lhs: [String], _ rhs: [String]) -> Int {
-            let leftTags = Set(lhs.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty })
-            let rightTags = Set(rhs.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty })
-            return leftTags.intersection(rightTags).count
-        }
-
-        func normalizedMatch(_ lhs: String?, _ rhs: String?) -> Bool {
-            let left = lhs?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
-            let right = rhs?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
-            return !left.isEmpty && left == right
         }
 
         func commentsCard(for event: Event) -> some View {
@@ -613,7 +546,9 @@ extension EventDetailView {
         }
 
     struct EventSimilarCard: View {
-        let event: Event
+        let recommendation: EventContentRecommendation
+
+        private var event: Event { recommendation.event }
 
         var body: some View {
             let occurrence = event.nextOccurrence() ?? event.occurrences.first ?? EventOccurrence(
@@ -638,6 +573,14 @@ extension EventDetailView {
                             .font(AppTheme.cardTitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineLimit(2)
+
+                        Label(
+                            recommendation.primaryReason.title,
+                            systemImage: recommendation.primaryReason.systemImage
+                        )
+                        .font(AppTheme.metadataFont)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+                        .lineLimit(1)
 
                         HStack(spacing: AppTheme.eventsMetadataSpacing) {
                             AppMetadataLine(

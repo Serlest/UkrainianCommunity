@@ -466,9 +466,9 @@ final class EventsViewModel: ObservableObject {
         interactionTasks[taskKey] = task
     }
 
-    func trackViewWhileVisible(for event: Event) async {
+    func trackViewWhileVisible(for event: Event, sourceScreen: String = "event_detail") async {
         await analyticsService.observeVisibleView {
-            self.trackViewIfNeeded(for: event)
+            self.trackViewIfNeeded(for: event, sourceScreen: sourceScreen)
         }
     }
 
@@ -762,6 +762,25 @@ final class EventsViewModel: ObservableObject {
     func loadRemainingPagesForSearch() async {
         await loadIfNeeded()
         while hasMorePages, !Task.isCancelled {
+            let previousCount = events.count
+            await loadNextPageIfNeeded()
+            guard events.count > previousCount, error == nil else { return }
+        }
+    }
+
+    /// Loads a bounded but useful candidate window for detail recommendations.
+    /// We stop once enough upcoming events are available instead of downloading
+    /// the entire archive as the catalogue grows.
+    func loadRecommendationCandidates(
+        minimumUpcomingCount: Int = 40,
+        maximumLoadedCount: Int = 180,
+        now: Date = Date()
+    ) async {
+        await loadIfNeeded()
+        while hasMorePages,
+              events.count < maximumLoadedCount,
+              events.lazy.filter({ !$0.isCancelled && $0.nextOccurrence(relativeTo: now) != nil }).prefix(minimumUpcomingCount).count < minimumUpcomingCount,
+              !Task.isCancelled {
             let previousCount = events.count
             await loadNextPageIfNeeded()
             guard events.count > previousCount, error == nil else { return }

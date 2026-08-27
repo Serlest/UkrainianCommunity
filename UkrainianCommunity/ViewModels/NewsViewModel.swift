@@ -217,9 +217,9 @@ final class NewsViewModel: ObservableObject {
         interactionTasks[taskKey] = task
     }
 
-    func trackViewWhileVisible(for post: NewsPost) async {
+    func trackViewWhileVisible(for post: NewsPost, sourceScreen: String = "news_detail") async {
         await analyticsService.observeVisibleView {
-            self.trackViewIfNeeded(for: post)
+            self.trackViewIfNeeded(for: post, sourceScreen: sourceScreen)
         }
     }
 
@@ -547,6 +547,18 @@ final class NewsViewModel: ObservableObject {
     func loadRemainingPagesForSearch() async {
         await loadIfNeeded()
         while hasMorePages, !Task.isCancelled {
+            let previousCount = posts.count
+            await loadNextPageIfNeeded()
+            guard posts.count > previousCount, error == nil else { return }
+        }
+    }
+
+    /// Loads a bounded recent candidate window for detail recommendations.
+    /// This keeps the section useful without turning every detail open into a
+    /// full-catalogue download.
+    func loadRecommendationCandidates(maximumLoadedCount: Int = 90) async {
+        await loadIfNeeded()
+        while hasMorePages, posts.count < maximumLoadedCount, !Task.isCancelled {
             let previousCount = posts.count
             await loadNextPageIfNeeded()
             guard posts.count > previousCount, error == nil else { return }

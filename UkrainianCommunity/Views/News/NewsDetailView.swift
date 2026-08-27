@@ -12,6 +12,7 @@ struct NewsDetailView: View {
     let postID: String
     let onNewsDeleted: () -> Void
     let onNavigateBack: (() -> Void)?
+    let analyticsSourceScreen: String
     let organizationRepository: OrganizationRepository
     @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
@@ -24,6 +25,7 @@ struct NewsDetailView: View {
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var permissionOrganization: Organization?
+    @State var relatedNewsRecommendations: [NewsContentRecommendation] = []
     @FocusState var isCommentFieldFocused: Bool
     let detailImageHeight: CGFloat = 220
     let detailSectionSpacing: CGFloat = AppTheme.detailSectionSpacing
@@ -33,12 +35,14 @@ struct NewsDetailView: View {
         postID: String,
         onNewsDeleted: @escaping () -> Void,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onNavigateBack: (() -> Void)? = nil
+        onNavigateBack: (() -> Void)? = nil,
+        analyticsSourceScreen: String = "news_detail"
     ) {
         self.viewModel = viewModel
         self.postID = postID
         self.onNewsDeleted = onNewsDeleted
         self.onNavigateBack = onNavigateBack
+        self.analyticsSourceScreen = analyticsSourceScreen
         self.organizationRepository = organizationRepository
     }
 
@@ -209,13 +213,15 @@ struct NewsDetailView: View {
         .task(id: analyticsScenePhase == .active ? viewModel.post(for: postID)?.id : nil) {
             guard analyticsScenePhase == .active,
                   let post = viewModel.post(for: postID) else { return }
-            await viewModel.trackViewWhileVisible(for: post)
+            await viewModel.trackViewWhileVisible(for: post, sourceScreen: analyticsSourceScreen)
         }
         .task {
             await viewModel.loadPostIfNeeded(postID: postID)
             guard let post = viewModel.post(for: postID) else { return }
             await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
             await viewModel.loadComments(for: postID)
+            await viewModel.loadRecommendationCandidates()
+            refreshRelatedNewsRecommendations()
             guard !recordedViewKeys.contains(newsViewTaskID) else { return }
             recordedViewKeys.insert(newsViewTaskID)
             viewModel.recordView(for: postID)
@@ -228,6 +234,9 @@ struct NewsDetailView: View {
             viewModel.recordView(for: postID)
             RecentViewRecorder.recordNews(post)
         }
+        .onChange(of: viewModel.contentVersion) { _, _ in
+            refreshRelatedNewsRecommendations()
+        }
         .onDisappear {
             viewModel.stopListeningComments(for: postID)
             guard let pendingRemovalPostID else { return }
@@ -236,6 +245,17 @@ struct NewsDetailView: View {
             }
             self.pendingRemovalPostID = nil
         }
+    }
+
+    func refreshRelatedNewsRecommendations() {
+        guard let post = viewModel.post(for: postID) else {
+            relatedNewsRecommendations = []
+            return
+        }
+        relatedNewsRecommendations = ContentRecommendationEngine.newsRecommendations(
+            for: post,
+            candidates: viewModel.posts
+        )
     }
 
     func refreshNewsDetail() async {
