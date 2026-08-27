@@ -93,8 +93,9 @@ async function main() {
   const version = versions.find((item) => item.attributes?.versionString === "1.0") || versions[0];
   if (!version) throw new Error("No iOS App Store version found.");
 
-  const [build, review, localizations, appInfos, availability, priceSchedule] = await Promise.all([
+  const [build, recentBuilds, review, localizations, appInfos, availability, priceSchedule] = await Promise.all([
     request(token, `/v1/appStoreVersions/${version.id}/build`),
+    request(token, `/v1/builds?filter%5Bapp%5D=${app.id}&sort=-uploadedDate&limit=10`),
     request(token, `/v1/appStoreVersions/${version.id}/appStoreReviewDetail`),
     request(token, `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=20`),
     request(token, `/v1/apps/${app.id}/appInfos?limit=20`),
@@ -159,6 +160,7 @@ async function main() {
     app: {id: app.id, bundleId: app.attributes?.bundleId, name: app.attributes?.name, contentRightsDeclaration: app.attributes?.contentRightsDeclaration},
     version: {id: version.id, ...version.attributes},
     selectedBuild: attributes(build),
+    recentBuilds: attributes(recentBuilds),
     reviewDetail: reviewSummary(review),
     localizations: localizationRows,
     appInfos: infoRows,
