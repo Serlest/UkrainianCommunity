@@ -175,6 +175,7 @@ final class EventEditorViewModel: ObservableObject {
     private let draftRecoveryService: LocalDraftRecoveryService
     private let imageUploadService = ImageUploadService.shared
     private let mode: Mode
+    private let sourceDraftID: String?
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
     private var hasCompletedCreateDraftRecoveryCheck = false
@@ -184,10 +185,12 @@ final class EventEditorViewModel: ObservableObject {
     init(
         repository: EventRepository,
         mode: Mode = .create(),
+        sourceDraft: OwnerContentDraft? = nil,
         draftRecoveryService: LocalDraftRecoveryService? = nil
     ) {
         self.repository = repository
         self.mode = mode
+        self.sourceDraftID = sourceDraft?.id
         self.draftRecoveryService = draftRecoveryService ?? .shared
 
         if case let .create(context) = mode {
@@ -229,6 +232,13 @@ final class EventEditorViewModel: ObservableObject {
             priceNote = existingEvent.pricing.note ?? ""
             priceText = Self.priceText(from: existingEvent.price)
             capacityText = existingEvent.capacity.map(String.init) ?? ""
+        }
+
+        if case .create = mode, let draft = sourceDraft?.eventDraft {
+            applyRecoveredDraft(draft)
+            hasMeaningfulCreateDraftMetadata = true
+            hasCheckedCreateDraftRecovery = true
+            hasCompletedCreateDraftRecoveryCheck = true
         }
     }
 
@@ -1120,6 +1130,10 @@ final class EventEditorViewModel: ObservableObject {
     private var createDraftStorageKey: String {
         guard case .create = mode else {
             return "event-create-edit-ignored"
+        }
+
+        if let sourceDraftID {
+            return "event-owner-content-\(sourceDraftID)"
         }
 
         let organizationID = selectedCreateContext?.organizationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

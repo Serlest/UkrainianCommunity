@@ -21,6 +21,7 @@ export type NotificationType =
   | "reportReviewed"
   | "roleChanged"
   | "systemAnnouncement"
+  | "contentDraftReady"
   | "eventUpdated"
   | "eventCancelled"
   | "eventRegistrationConfirmed";
@@ -37,6 +38,7 @@ export type NotificationActionType =
   | "openOrganization"
   | "openOrganizationRequest"
   | "openProfile"
+  | "openContentPlanning"
   | "openURL";
 
 export type NotificationSourceType =
@@ -46,7 +48,8 @@ export type NotificationSourceType =
   | "legal"
   | "organization"
   | "profile"
-  | "system";
+  | "system"
+  | "contentDraft";
 
 export interface NotificationDataPayloadInput {
   notificationId: string;
@@ -363,6 +366,7 @@ function defaultSeverity(type: NotificationType): NotificationSeverity {
     case "organizationRoleRemoved":
     case "reportReviewed":
     case "roleChanged":
+    case "contentDraftReady":
       return "info";
   }
 }
@@ -398,6 +402,8 @@ function defaultActionType(type: NotificationType): NotificationActionType {
     case "accountStatusChanged":
     case "roleChanged":
       return "openProfile";
+    case "contentDraftReady":
+      return "openContentPlanning";
     case "systemAnnouncement":
       return "none";
   }
@@ -433,6 +439,8 @@ function defaultSourceType(type: NotificationType): NotificationSourceType {
       return "account";
     case "roleChanged":
       return "profile";
+    case "contentDraftReady":
+      return "contentDraft";
     case "systemAnnouncement":
       return "system";
   }
@@ -457,6 +465,8 @@ function defaultRoute(
       return "openOrganizationRequest";
     case "openProfile":
       return "openProfile";
+    case "openContentPlanning":
+      return "openContentPlanning";
     case "openURL":
       return "openURL";
     case "none":
@@ -476,6 +486,8 @@ function defaultRoute(
       return "openProfile";
     case "system":
       return "systemAnnouncement";
+    case "contentDraft":
+      return "openContentPlanning";
     case "legal":
       return "none";
   }

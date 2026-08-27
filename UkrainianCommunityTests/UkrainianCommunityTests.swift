@@ -580,6 +580,20 @@ struct UkrainianCommunityTests {
         #expect(route.notificationId == "submission-1")
     }
 
+    @Test func ownerContentDraftNotificationRoutesToPrivatePlanning() throws {
+        let route = try #require(RemoteNotificationRoute(userInfo: [
+            "type": "contentDraftReady",
+            "notificationId": "contentDraftReady_draft-1",
+            "sourceType": "contentDraft",
+            "sourceId": "draft-1",
+            "actionType": "openContentPlanning",
+            "actionTargetId": "draft-1",
+        ]))
+
+        #expect(route.destination == .openContentPlanning(draftId: "draft-1"))
+        #expect(route.notificationId == "contentDraftReady_draft-1")
+    }
+
     @Test func notificationDetailsPreserveMessageWithoutRequiringDestination() {
         let notification = AppNotification(
             id: "detail", recipientUserId: "user-1", type: .eventUpdated,

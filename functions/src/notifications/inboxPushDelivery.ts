@@ -137,6 +137,7 @@ const notificationTypes = new Set<NotificationType>([
   "reportReviewed",
   "roleChanged",
   "systemAnnouncement",
+  "contentDraftReady",
   "eventUpdated",
   "eventCancelled",
   "eventRegistrationConfirmed",
@@ -152,6 +153,7 @@ const actionTypes = new Set<NotificationActionType>([
   "openOrganization",
   "openOrganizationRequest",
   "openProfile",
+  "openContentPlanning",
   "openURL",
 ]);
 
@@ -163,6 +165,7 @@ const sourceTypes = new Set<NotificationSourceType>([
   "organization",
   "profile",
   "system",
+  "contentDraft",
 ]);
 
 export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
@@ -301,6 +304,7 @@ export function localizedAlertKeys(
     reportReviewed: "notifications.inbox.report_reviewed.title",
     roleChanged: "notifications.inbox.role_changed.title",
     systemAnnouncement: "notifications.inbox.system_announcement.title",
+    contentDraftReady: "content_planning.title",
   };
 
   return {

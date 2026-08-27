@@ -322,6 +322,8 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .warning
         case .legalDocumentsUpdated, .systemAnnouncement:
             .critical
+        case .contentDraftReady:
+            .info
         case .organizationRequestSubmitted, .commentAdded, .contentModerationChanged, .eventParticipationChanged, .feedbackSubmitted, .feedbackReply, .roleChanged, .organizationRoleAssigned, .organizationRoleRemoved, .reportReviewed, .eventUpdated, .eventRegistrationConfirmed, .organizationNewsPublished, .organizationEventPublished, .unknown:
             .info
         }
@@ -345,6 +347,8 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             .openLegalDocuments
         case .accountStatusChanged, .roleChanged:
             .openProfile
+        case .contentDraftReady:
+            .openContentPlanning
         case .commentAdded, .contentModerationChanged, .eventParticipationChanged, .systemAnnouncement, .unknown:
             .none
         }

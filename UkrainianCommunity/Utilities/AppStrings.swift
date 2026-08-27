@@ -1023,6 +1023,34 @@ enum AppStrings {
         static var dismissError: String { text("organizations.dismiss_error", "OK") }
     }
 
+    enum ContentPlanning {
+        static var title: String { text("content_planning.title", "Планування контенту") }
+        static var subtitle: String { text("content_planning.subtitle", "Приватні чернетки, підготовлені з перевірених посилань. Ви обираєте організацію та публікуєте лише після перегляду.") }
+        static var profileSubtitle: String { text("content_planning.profile_subtitle", "Переглянути підготовлені новини та події") }
+        static var filter: String { text("content_planning.filter", "Фільтр") }
+        static var drafts: String { text("content_planning.drafts", "Чернетки") }
+        static var scheduled: String { text("content_planning.scheduled", "Майбутні") }
+        static var attention: String { text("content_planning.attention", "Увага") }
+        static var news: String { text("content_planning.kind.news", "Новина") }
+        static var event: String { text("content_planning.kind.event", "Подія") }
+        static var review: String { text("content_planning.review", "Перевірити й відкрити редактор") }
+        static var moreActions: String { text("content_planning.more_actions", "Більше дій") }
+        static var archive: String { text("content_planning.archive", "Архівувати") }
+        static var archiveTitle: String { text("content_planning.archive.title", "Архівувати чернетку?") }
+        static var archiveMessage: String { text("content_planning.archive.message", "Чернетка зникне з планування, але опублікований контент не буде змінено.") }
+        static var emptyTitle: String { text("content_planning.empty.title", "Тут поки порожньо") }
+        static var emptyMessage: String { text("content_planning.empty.message", "Надішліть посилання асистенту. Після перевірки матеріал з’явиться тут і залишиться приватним до вашої публікації.") }
+        static var loadFailed: String { text("content_planning.error.load", "Не вдалося завантажити планування. Перевірте з’єднання та спробуйте ще раз.") }
+        static var updateFailed: String { text("content_planning.error.update", "Не вдалося оновити чернетку. Спробуйте ще раз.") }
+        static func missingFields(_ count: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "content_planning.missing_fields",
+                defaultValue: "Потрібно уточнити полів: %lld",
+                arguments: [count]
+            )
+        }
+    }
+
     enum OwnerAnalytics {
         static var title: String { text("owner_analytics.title", "Analytics") }
         static var subtitle: String { text("owner_analytics.subtitle", "Views, popular content and regions") }

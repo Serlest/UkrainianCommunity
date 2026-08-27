@@ -505,6 +505,7 @@ struct ContentView: View {
                 featuredBannerCache: container.featuredBannerCache,
                 legalDocumentRepository: container.legalDocumentRepository,
                 ownerAnalyticsRepository: container.ownerAnalyticsRepository,
+                ownerContentDraftRepository: container.ownerContentDraftRepository,
                 analyticsService: container.analyticsService,
                 notificationInboxRepository: container.notificationInboxRepository,
                 notificationInboxViewModel: notificationInboxViewModel,
@@ -761,6 +762,9 @@ struct ContentView: View {
             if !profileNavigationPath.isEmpty {
                 profileNavigationPath.removeAll()
             }
+        case .openContentPlanning:
+            selectTabIfNeeded(.profile)
+            profileNavigationPath = [.contentPlanning]
         case .openURL:
             routeToURL(notification)
         }
@@ -900,6 +904,9 @@ struct ContentView: View {
             if !profileNavigationPath.isEmpty {
                 profileNavigationPath.removeAll()
             }
+        case .openContentPlanning:
+            selectTabIfNeeded(.profile)
+            profileNavigationPath = [.contentPlanning]
         case .openURL(let urlString):
             guard let url = URL(string: urlString) else {
                 showNotificationRouteUnavailable()

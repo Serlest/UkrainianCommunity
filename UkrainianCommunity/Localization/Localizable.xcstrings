@@ -1,6 +1,139 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "content_planning.archive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Archivieren" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Архівувати" } }
+      }
+    },
+    "content_planning.archive.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf verschwindet aus der Planung. Bereits veröffentlichte Inhalte werden nicht geändert." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернетка зникне з планування, але опублікований контент не буде змінено." } }
+      }
+    },
+    "content_planning.archive.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Entwurf archivieren?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Архівувати чернетку?" } }
+      }
+    },
+    "content_planning.attention" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Prüfen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Увага" } }
+      }
+    },
+    "content_planning.drafts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Entwürfe" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернетки" } }
+      }
+    },
+    "content_planning.empty.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sende dem Assistenten einen Link. Nach der Prüfung erscheint der Inhalt hier und bleibt bis zu deiner Veröffentlichung privat." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Надішліть посилання асистенту. Після перевірки матеріал з’явиться тут і залишиться приватним до вашої публікації." } }
+      }
+    },
+    "content_planning.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine Inhalte" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Тут поки порожньо" } }
+      }
+    },
+    "content_planning.error.load" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Inhaltsplanung konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося завантажити планування. Перевірте з’єднання та спробуйте ще раз." } }
+      }
+    },
+    "content_planning.error.update" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf konnte nicht aktualisiert werden. Versuche es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося оновити чернетку. Спробуйте ще раз." } }
+      }
+    },
+    "content_planning.filter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Filter" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Фільтр" } }
+      }
+    },
+    "content_planning.kind.event" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Veranstaltung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Подія" } }
+      }
+    },
+    "content_planning.kind.news" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neuigkeit" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Новина" } }
+      }
+    },
+    "content_planning.missing_fields" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zu klärende Felder: %lld" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Потрібно уточнити полів: %lld" } }
+      }
+    },
+    "content_planning.more_actions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weitere Aktionen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Більше дій" } }
+      }
+    },
+    "content_planning.profile_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Vorbereitete Neuigkeiten und Veranstaltungen prüfen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Переглянути підготовлені новини та події" } }
+      }
+    },
+    "content_planning.review" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Prüfen und Editor öffnen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Перевірити й відкрити редактор" } }
+      }
+    },
+    "content_planning.scheduled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Geplant" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Майбутні" } }
+      }
+    },
+    "content_planning.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Private Entwürfe aus geprüften Links. Du wählst die Organisation und veröffentlichst erst nach deiner Kontrolle." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Приватні чернетки, підготовлені з перевірених посилань. Ви обираєте організацію та публікуєте лише після перегляду." } }
+      }
+    },
+    "content_planning.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhaltsplanung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Планування контенту" } }
+      }
+    },
     "" : {
       "localizations" : {
         "de" : {

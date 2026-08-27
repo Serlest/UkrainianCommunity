@@ -51,6 +51,21 @@ struct NewsEditorView: View {
 
     init(
         repository: NewsRepository,
+        sourceDraft: OwnerContentDraft,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        onPublished: @escaping @MainActor () async -> Void = {}
+    ) {
+        _viewModel = StateObject(wrappedValue: NewsEditorViewModel(
+            repository: repository,
+            mode: .create(),
+            sourceDraft: sourceDraft
+        ))
+        _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
+        self.onPublished = onPublished
+    }
+
+    init(
+        repository: NewsRepository,
         organizationId: String,
         organizationName: String,
         organizationImageURL: String?,

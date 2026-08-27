@@ -2198,6 +2198,26 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Private content-planning drafts are created only by the trusted backend.
+      // The app owner may review them and only move them to terminal states after
+      // publishing or explicitly archiving; payload and provenance stay immutable.
+      match /contentPlanningDrafts/{draftId} {
+        allow read: if isSelf(uid) && isAppOwner();
+
+        allow create, delete: if false;
+
+        allow update: if isSelf(uid)
+          && isAppOwner()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['state', 'updatedAt', 'completedAt'])
+          && request.resource.data.state in ['completed', 'archived']
+          && request.resource.data.updatedAt is timestamp
+          && (
+            request.resource.data.state == 'archived'
+            || request.resource.data.completedAt is timestamp
+          );
+      }
+
       // Sanitized DSA statements are written only by trusted backend code.
       // They intentionally exclude the reporter's identity, contact data and evidence.
       match /dsaStatements/{statementId} {

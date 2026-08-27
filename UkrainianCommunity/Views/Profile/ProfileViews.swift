@@ -18,6 +18,7 @@ enum ProfileNavigationRoute: Hashable {
     case moderationTools
     case userManagement
     case featuredBannerManagement
+    case contentPlanning
     case legalDocumentManagement
     case legalEvidence
     case ownerAnalytics
@@ -46,6 +47,7 @@ struct ProfileView: View {
     private let featuredBannerCache: FeaturedBannerCache
     private let legalDocumentRepository: LegalDocumentRepository
     private let ownerAnalyticsRepository: OwnerAnalyticsRepository
+    private let ownerContentDraftRepository: OwnerContentDraftRepository
     private let analyticsService: AnalyticsTracking
     private let donationConfigRepository: DonationConfigRepository
     private let notificationInboxRepository: NotificationInboxRepository
@@ -106,6 +108,7 @@ struct ProfileView: View {
         featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository(),
         ownerAnalyticsRepository: OwnerAnalyticsRepository = FirestoreOwnerAnalyticsRepository(),
+        ownerContentDraftRepository: OwnerContentDraftRepository = FirestoreOwnerContentDraftRepository(),
         analyticsService: AnalyticsTracking = NoopAnalyticsService(),
         donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
@@ -132,6 +135,7 @@ struct ProfileView: View {
         self.featuredBannerCache = featuredBannerCache
         self.legalDocumentRepository = legalDocumentRepository
         self.ownerAnalyticsRepository = ownerAnalyticsRepository
+        self.ownerContentDraftRepository = ownerContentDraftRepository
         self.analyticsService = analyticsService
         self.donationConfigRepository = donationConfigRepository
         self.notificationInboxRepository = notificationInboxRepository
@@ -641,6 +645,15 @@ struct ProfileView: View {
                 eventRepository: eventRepository,
                 organizationRepository: organizationRepository
             )
+        case .contentPlanning:
+            if PermissionService.isAppOwner(user: permissionUser) {
+                OwnerContentPlanningView(
+                    draftRepository: ownerContentDraftRepository,
+                    newsRepository: newsRepository,
+                    eventRepository: eventRepository,
+                    organizationRepository: organizationRepository
+                )
+            }
         case .legalDocumentManagement:
             LegalDocumentManagementView(repository: legalDocumentRepository)
         case .legalEvidence:
@@ -1223,6 +1236,16 @@ struct ProfileView: View {
                     }
 
                     if PermissionService.isAppOwner(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.contentPlanning) {
+                            ProfileModuleRow(
+                                title: AppStrings.ContentPlanning.title,
+                                subtitle: AppStrings.ContentPlanning.profileSubtitle,
+                                systemImage: "doc.text.magnifyingglass"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.contentPlanning")
+
                         NavigationLink(value: ProfileNavigationRoute.ownerAnalytics) {
                             ProfileModuleRow(
                                 title: AppStrings.OwnerAnalytics.title,

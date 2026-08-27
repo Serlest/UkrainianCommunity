@@ -83,6 +83,18 @@ protocol NotificationPushTokenRepository {
     ) async throws
 }
 
+protocol OwnerContentDraftRepository {
+    func fetchDrafts(userID: String, limit: Int) async throws -> [OwnerContentDraft]
+    func listenDrafts(
+        userID: String,
+        limit: Int,
+        onChange: @escaping @MainActor ([OwnerContentDraft]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener
+    func markCompleted(userID: String, draftID: String) async throws
+    func archive(userID: String, draftID: String) async throws
+}
+
 protocol FeedbackRepository {
     func submitFeedback(_ feedback: FeedbackItem) async throws
     func fetchFeedback() async throws -> [FeedbackItem]

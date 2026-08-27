@@ -8,6 +8,7 @@ struct AppContainer {
     let notificationPreferencesRepository: NotificationPreferencesRepository
     let notificationInboxRepository: NotificationInboxRepository
     let notificationPushTokenRepository: NotificationPushTokenRepository
+    let ownerContentDraftRepository: OwnerContentDraftRepository
     let notificationPermissionService: NotificationPermissionServiceProtocol
     let localEventReminderService: LocalEventReminderServiceProtocol
     let newsRepository: NewsRepository
@@ -28,6 +29,7 @@ struct AppContainer {
             notificationPreferencesRepository: FirestoreNotificationPreferencesRepository(),
             notificationInboxRepository: FirestoreNotificationInboxRepository(),
             notificationPushTokenRepository: FirestoreNotificationPushTokenRepository(),
+            ownerContentDraftRepository: FirestoreOwnerContentDraftRepository(),
             notificationPermissionService: NotificationPermissionService(),
             localEventReminderService: LocalEventReminderService(),
             newsRepository: FirestoreNewsRepository(),
@@ -50,6 +52,7 @@ struct AppContainer {
             notificationPreferencesRepository: MockNotificationPreferencesRepository(),
             notificationInboxRepository: MockNotificationInboxRepository(),
             notificationPushTokenRepository: MockNotificationPushTokenRepository(),
+            ownerContentDraftRepository: MockOwnerContentDraftRepository(),
             notificationPermissionService: MockNotificationPermissionService(),
             localEventReminderService: MockLocalEventReminderService(),
             newsRepository: MockNewsRepository(),

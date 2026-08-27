@@ -1,0 +1,22 @@
+{
+  "name": "ukrainian-community-content-assistant",
+  "version": "0.1.0",
+  "description": "Prepare verified private news and event drafts for the Ukrainian Community owner.",
+  "author": {
+    "name": "Ukrainian Community"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ukrainian Community Content Assistant",
+    "shortDescription": "Turn verified links into private owner drafts.",
+    "longDescription": "Researches a supplied news or event link, checks supporting sources, maps facts into the Ukrainian Community editors, and saves a private owner-only draft for review.",
+    "developerName": "Ukrainian Community",
+    "category": "Productivity",
+    "capabilities": [
+      "Web research with source provenance",
+      "News and event field mapping",
+      "Private owner draft preparation"
+    ],
+    "defaultPrompt": "Prepare a Ukrainian Community news or event draft from my link. Verify the facts, preserve sources, and never publish or choose an organization for me."
+  }
+}

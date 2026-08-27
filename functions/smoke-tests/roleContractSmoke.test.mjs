@@ -108,6 +108,14 @@ test("reviewed reports use a neutral notification route", () => {
   });
 });
 
+test("owner content drafts route directly to private content planning", () => {
+  assert.deepEqual(notificationDefaults("contentDraftReady"), {
+    severity: "info",
+    actionType: "openContentPlanning",
+    sourceType: "contentDraft",
+  });
+});
+
 test("Organization roles stay scoped to organization membership arrays", () => {
   const platformAdmin = user({uid: "platform-admin", globalRole: "admin"});
   const orgOwner = user({uid: "org-owner"});

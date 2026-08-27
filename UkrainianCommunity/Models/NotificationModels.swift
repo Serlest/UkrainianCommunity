@@ -37,6 +37,7 @@ enum AppNotificationType: String, Codable, CaseIterable, Sendable {
     case eventCancelled
     case eventRegistrationConfirmed
     case systemAnnouncement
+    case contentDraftReady
     case unknown
 
     init(from decoder: Decoder) throws {
@@ -58,6 +59,7 @@ enum AppNotificationSourceType: String, Codable, Sendable {
     case profile
     case event
     case system
+    case contentDraft
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -87,6 +89,7 @@ enum AppNotificationActionType: String, Codable, CaseIterable, Sendable {
     case openEvent
     case openLegalDocuments
     case openProfile
+    case openContentPlanning
     case openURL
 
     init(from decoder: Decoder) throws {
@@ -109,6 +112,7 @@ enum RemoteNotificationRouteDestination: Equatable, Sendable {
     case openDsaStatement(statementId: String)
     case openLegalDocuments
     case openProfile
+    case openContentPlanning(draftId: String?)
     case openURL(urlString: String)
     case systemAnnouncement
 }
@@ -223,6 +227,8 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             return .openLegalDocuments
         case "openProfile", "profile":
             return .openProfile
+        case "openContentPlanning", "contentPlanning":
+            return .openContentPlanning(draftId: targetId)
         case "openURL", "url":
             return targetId.map { .openURL(urlString: $0) }
         case "systemAnnouncement", "announcement", "none":
@@ -256,6 +262,8 @@ struct RemoteNotificationRoute: Equatable, Sendable {
             return "openDsaStatement"
         case .openProfile:
             return "openProfile"
+        case .openContentPlanning:
+            return "openContentPlanning"
         case .openURL:
             return "openURL"
         case .openLegalDocuments:
@@ -270,6 +278,8 @@ struct RemoteNotificationRoute: Equatable, Sendable {
                 return "openFeedback"
             case .some(.system):
                 return "systemAnnouncement"
+            case .some(.contentDraft):
+                return "openContentPlanning"
             case .some(.account), .some(.profile):
                 return "openProfile"
             case .some(.legal), .none:
@@ -556,7 +566,7 @@ extension AppNotification {
         case .openNews, .openEvent, .openOrganization, .openDsaStatement:
             return destinationTargetID != nil
         case .openURL: return destinationURL != nil
-        case .openFeedback, .openOrganizationRequest, .openLegalDocuments, .openProfile:
+        case .openFeedback, .openOrganizationRequest, .openLegalDocuments, .openProfile, .openContentPlanning:
             return true
         }
     }
@@ -573,7 +583,7 @@ extension AppNotification {
         switch type {
         case .feedbackSubmitted, .feedbackReply:
             append(payload["messagePreview"] ?? metadata["messagePreview"])
-        case .legalDocumentsUpdated, .reportReviewed, .eventUpdated, .eventCancelled, .systemAnnouncement, .unknown:
+        case .legalDocumentsUpdated, .reportReviewed, .eventUpdated, .eventCancelled, .systemAnnouncement, .contentDraftReady, .unknown:
             append(message ?? metadata["message"] ?? payload["message"])
         default: break
         }
@@ -612,6 +622,12 @@ private enum AppNotificationDisplayResolver {
                 title: firstNonEmpty(notification.title) ?? AppStrings.NotificationInbox.systemAnnouncementTitle,
                 body: firstNonEmpty(notification.message, notification.metadata["message"], notification.payload["message"])
                     ?? AppStrings.NotificationInbox.genericBody
+            )
+        case .contentDraftReady:
+            return AppNotificationDisplayContent(
+                title: firstNonEmpty(notification.title) ?? AppStrings.ContentPlanning.title,
+                body: firstNonEmpty(notification.message, notification.metadata["message"], notification.payload["message"])
+                    ?? AppStrings.ContentPlanning.profileSubtitle
             )
         case .feedbackSubmitted:
             return AppNotificationDisplayContent(

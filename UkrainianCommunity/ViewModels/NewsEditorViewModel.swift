@@ -89,6 +89,7 @@ final class NewsEditorViewModel: ObservableObject {
     private let imageUploadService = ImageUploadService.shared
     private var authState: AuthState?
     private let mode: Mode
+    private let sourceDraftID: String?
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
     private var hasCompletedCreateDraftRecoveryCheck = false
@@ -98,11 +99,13 @@ final class NewsEditorViewModel: ObservableObject {
         repository: NewsRepository,
         authState: AuthState? = nil,
         mode: Mode = .create(),
+        sourceDraft: OwnerContentDraft? = nil,
         draftRecoveryService: LocalDraftRecoveryService? = nil
     ) {
         self.repository = repository
         self.authState = authState
         self.mode = mode
+        self.sourceDraftID = sourceDraft?.id
         self.draftRecoveryService = draftRecoveryService ?? .shared
 
         if case let .create(context) = mode {
@@ -125,6 +128,12 @@ final class NewsEditorViewModel: ObservableObject {
             imageCredit = existingNews.mediaMetadata?.credit ?? ""
             externalActionTitle = existingNews.externalAction?.title ?? ""
             externalActionURL = existingNews.externalAction?.url ?? ""
+        }
+
+        if case .create = mode, let draft = sourceDraft?.newsDraft {
+            applyRecoveredDraft(draft)
+            hasCheckedCreateDraftRecovery = true
+            hasCompletedCreateDraftRecoveryCheck = true
         }
     }
 
@@ -692,6 +701,10 @@ final class NewsEditorViewModel: ObservableObject {
     private var createDraftStorageKey: String {
         guard case .create = mode else {
             return "news-create-edit-ignored"
+        }
+
+        if let sourceDraftID {
+            return "news-owner-content-\(sourceDraftID)"
         }
 
         let organizationID = selectedCreateContext?.organizationId.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
