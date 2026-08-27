@@ -147,7 +147,7 @@ struct ContentView: View {
             handleAuthIdentityChange(for: newKey)
         }
         .onChange(of: notificationInboxViewModel.snapshotVersion) { _, _ in
-            bridgeNotificationInboxSnapshotToPopupCoordinator()
+            handleNotificationInboxSnapshotChange()
         }
         .onChange(of: userBlockingCoordinator.blockedUserIDs) { oldIDs, newIDs in
             applyContentVisibility(blockedUserIDs: newIDs)
@@ -185,6 +185,7 @@ struct ContentView: View {
                 await eventsViewModel.refresh()
                 await organizationsViewModel.refresh()
             }
+            refreshAuthoringOrganizations()
         }
         .sheet(item: $authState.presentedAuthFlow) { destination in
             AuthFlowContainerView(initialDestination: destination)
@@ -811,6 +812,7 @@ struct ContentView: View {
     private func routeToOrganizationRequest(_ notification: AppNotification) {
         switch notification.type {
         case .organizationRequestApproved:
+            refreshAuthoringOrganizations()
             if let organizationID = notificationTargetID(notification) {
                 routeToOrganization(organizationID: organizationID)
             } else {
@@ -888,6 +890,7 @@ struct ContentView: View {
             routeToOrganization(organizationID: organizationId)
         case .openOrganizationRequest(let organizationId):
             if route.type == .organizationRequestApproved, let organizationId {
+                refreshAuthoringOrganizations()
                 routeToOrganization(organizationID: organizationId)
             } else {
                 routeToOrganizationManagement()
@@ -919,6 +922,21 @@ struct ContentView: View {
                 profileNavigationPath = [.notifications]
             }
         }
+    }
+
+    private func refreshAuthoringOrganizations() {
+        let user = authState.isAuthenticated ? authState.user : nil
+        Task { await authoringOrganizations.load(for: user) }
+    }
+
+    private func handleNotificationInboxSnapshotChange() {
+        bridgeNotificationInboxSnapshotToPopupCoordinator()
+        guard notificationInboxViewModel.notifications.contains(where: isUnreadOrganizationApproval) else { return }
+        refreshAuthoringOrganizations()
+    }
+
+    private func isUnreadOrganizationApproval(_ notification: AppNotification) -> Bool {
+        notification.type == .organizationRequestApproved && notification.countsAsUnread
     }
 
     private func notificationTargetID(_ notification: AppNotification) -> String? {

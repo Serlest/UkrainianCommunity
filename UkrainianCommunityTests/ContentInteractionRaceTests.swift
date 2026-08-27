@@ -566,6 +566,24 @@ struct ContentInteractionRaceTests {
         #expect(model.organizations.map(\.id) == [target.id])
     }
 
+    @Test
+    func authoringDiscoveryPicksUpAnOrganizationApprovedAfterTheInitialLoad() async {
+        let repository = ControlledOrganizationRepository()
+        let user = MockContentBuilder.ownerUser()
+        let approvedOrganization = makeOrganization(id: "newly-approved")
+        repository.authoringHandler = { _ in [] }
+        let model = AuthoringOrganizationsViewModel(repository: repository)
+
+        await model.load(for: user)
+        #expect(model.organizations.isEmpty)
+
+        repository.authoringHandler = { _ in [approvedOrganization] }
+        await model.load(for: user)
+
+        #expect(model.organizations.map(\.id) == [approvedOrganization.id])
+        #expect(!model.isLoading && model.error == nil)
+    }
+
     private func makeOrganization(
         id: String,
         likeState: LikeState = .notLiked,
