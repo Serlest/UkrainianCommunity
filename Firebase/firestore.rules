@@ -415,14 +415,6 @@ service cloud.firestore {
       ];
     }
 
-    function commentDocumentFields() {
-      return [
-        'id', 'parentType', 'parentId', 'authorId', 'authorName',
-        'authorPhotoURL', 'text', 'body', 'createdAt', 'updatedAt',
-        'moderationStatus', 'isDeleted'
-      ];
-    }
-
     function validOptionalString(data, field, maximumLength) {
       return !(field in data)
         || data[field] == null
