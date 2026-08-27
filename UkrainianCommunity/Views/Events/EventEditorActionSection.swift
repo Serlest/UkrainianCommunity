@@ -39,6 +39,7 @@ extension EventEditorView {
                 organizerContactCard
                 tagsCard
             case .preview:
+                eventPublicationSettingsCard
                 if let validationMessage = viewModel.validationMessage {
                     editorStatusCard {
                         Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
@@ -48,6 +49,37 @@ extension EventEditorView {
                 }
                 eventPreviewCard
                 publishNoticeCard
+            }
+        }
+
+        var eventPublicationSettingsCard: some View {
+            Group {
+                if !viewModel.isEditing {
+                    editorCard {
+                        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                            editorSectionTitle(AppStrings.ContentPublishing.settingsTitle)
+                            Text(AppStrings.ContentPublishing.timingTitle)
+                                .font(.subheadline.weight(.semibold))
+                            Picker(AppStrings.ContentPublishing.timingTitle, selection: $viewModel.publicationMode) {
+                                Text(AppStrings.ContentPublishing.publishNow).tag(ContentPublicationMode.now)
+                                Text(AppStrings.ContentPublishing.publishLater).tag(ContentPublicationMode.scheduled)
+                            }
+                            .pickerStyle(.segmented)
+
+                            if viewModel.publicationMode == .scheduled {
+                                DatePicker(
+                                    AppStrings.ContentPublishing.scheduledDate,
+                                    selection: $viewModel.scheduledAt,
+                                    in: Date().addingTimeInterval(5 * 60)...,
+                                    displayedComponents: [.date, .hourAndMinute]
+                                )
+                                Text(viewModel.isValidSchedule ? AppStrings.ContentPublishing.scheduleHint : AppStrings.ContentPublishing.invalidSchedule)
+                                    .font(.footnote)
+                                    .foregroundStyle(viewModel.isValidSchedule ? AppTheme.textSecondary : AppTheme.accentDestructiveForeground)
+                            }
+                        }
+                    }
+                }
             }
         }
 

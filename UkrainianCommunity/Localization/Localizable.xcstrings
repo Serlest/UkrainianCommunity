@@ -44487,6 +44487,118 @@
         }
       }
     },
+    "content_publishing.action.review" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zur Prüfung senden" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Надіслати на перевірку" } }
+      }
+    },
+    "content_publishing.action.schedule" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Planen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Запланувати" } }
+      }
+    },
+    "content_publishing.reach.nationwide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ganz Österreich" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "По всій Австрії" } }
+      }
+    },
+    "content_publishing.reach.owner_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Nachricht ist für Leserinnen und Leser in allen Bundesländern sichtbar." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Новина буде доступна читачам у всіх землях Австрії." } }
+      }
+    },
+    "content_publishing.reach.regional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Im eigenen Bundesland" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "У своїй землі" } }
+      }
+    },
+    "content_publishing.reach.review_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Österreichweite Nachrichten werden vor der Veröffentlichung geprüft, damit keine Duplikate entstehen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Загальноавстрійська новина буде перевірена перед публікацією, щоб уникнути повторів." } }
+      }
+    },
+    "content_publishing.reach.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wo soll die Nachricht erscheinen?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Де показати новину" } }
+      }
+    },
+    "content_publishing.schedule.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wähle einen Zeitpunkt mindestens 5 Minuten in der Zukunft. Bis dahin bleibt der Beitrag verborgen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Оберіть час щонайменше через 5 хвилин. До публікації матеріал буде прихований." } }
+      }
+    },
+    "content_publishing.schedule.invalid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wähle einen Zeitpunkt mindestens 5 Minuten in der Zukunft." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Оберіть майбутній час щонайменше через 5 хвилин." } }
+      }
+    },
+    "content_publishing.scheduled_date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Datum und Uhrzeit" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Дата й час" } }
+      }
+    },
+    "content_publishing.settings.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Veröffentlichung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Публікація" } }
+      }
+    },
+    "content_publishing.success.review" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Nachricht wurde zur Prüfung gesendet." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Новину надіслано на перевірку." } }
+      }
+    },
+    "content_publishing.success.scheduled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Veröffentlichung wurde geplant." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Публікацію заплановано." } }
+      }
+    },
+    "content_publishing.timing.later" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Später" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Пізніше" } }
+      }
+    },
+    "content_publishing.timing.now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Jetzt" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Зараз" } }
+      }
+    },
+    "content_publishing.timing.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wann veröffentlichen?" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Коли опублікувати" } }
+      }
+    },
     "Прибрати із закладок" : {
       "comment" : "A label for a button that removes an organization from the user's bookmarks.",
       "extractionState" : "manual",

@@ -144,7 +144,10 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             imageCredit: optionalString(payload["imageCredit"]),
             externalActionTitle: optionalString(payload["externalActionTitle"]),
             externalActionURL: optionalString(payload["externalActionURL"]),
-            generatedImageURL: optionalString(payload["generatedImageURL"])
+            generatedImageURL: optionalString(payload["generatedImageURL"]),
+            regionScope: optionalString(payload["regionScope"]).flatMap(RegionScope.init(rawValue:)),
+            publicationMode: optionalString(payload["publicationMode"]).flatMap(ContentPublicationMode.init(rawValue:)),
+            scheduledAt: date(payload["scheduledAt"])
         )
     }
 
@@ -212,7 +215,9 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             priceKind: priceKind,
             maximumPriceText: decimalString(payload["maximumPrice"]),
             priceNote: optionalString(payload["priceNote"]),
-            generatedImageURL: optionalString(payload["generatedImageURL"])
+            generatedImageURL: optionalString(payload["generatedImageURL"]),
+            publicationMode: optionalString(payload["publicationMode"]).flatMap(ContentPublicationMode.init(rawValue:)),
+            scheduledAt: date(payload["scheduledAt"])
         )
     }
 

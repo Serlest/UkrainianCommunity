@@ -313,6 +313,7 @@ struct FirestoreEventRepository: EventRepository {
             occurrences: event.occurrences,
             createdAt: now,
             updatedAt: now,
+            scheduledAt: event.scheduledAt,
             requiresRegistration: event.requiresRegistration,
             participationMode: event.participationMode,
             externalAction: event.externalAction,
@@ -321,7 +322,7 @@ struct FirestoreEventRepository: EventRepository {
             capacity: event.capacity,
             registeredCount: event.registeredCount,
             comments: event.comments,
-            moderationStatus: .approved,
+            moderationStatus: event.moderationStatus,
             registrationState: event.registrationState,
             likeCount: event.likeCount,
             likeState: event.likeState,
@@ -372,6 +373,9 @@ struct FirestoreEventRepository: EventRepository {
             "visibility": "public",
             "isAllDay": dto.isAllDay as Any
         ]
+        if let scheduledAt = dto.scheduledAt {
+            data["scheduledAt"] = Timestamp(date: scheduledAt)
+        }
 
         if let capacity = dto.capacity {
             data["capacity"] = capacity
@@ -486,6 +490,7 @@ struct FirestoreEventRepository: EventRepository {
             "visibility": "public",
             "isAllDay": event.isAllDay
         ]
+        data["scheduledAt"] = event.scheduledAt.map(Timestamp.init(date:)) ?? FieldValue.delete()
 
         if let capacity = event.capacity {
             data["capacity"] = capacity
@@ -999,6 +1004,7 @@ struct FirestoreEventRepository: EventRepository {
             occurrences: FirestoreContentPublishingCoding.occurrences(from: data["occurrences"]),
             createdAt: createdAt,
             updatedAt: updatedAt,
+            scheduledAt: (data["scheduledAt"] as? Timestamp)?.dateValue(),
             requiresRegistration: data["requiresRegistration"] as? Bool,
             participationMode: data["participationMode"] as? String,
             externalAction: FirestoreContentPublishingCoding.externalAction(from: data["externalAction"]),

@@ -215,6 +215,60 @@ describe("strict client content schemas", () => {
     await assertSucceeds(setDoc(doc(db("org-owner"), "events", "new-event"), event("new-event", "org-owner")));
   });
 
+  test("organization owner can schedule hidden news and events", async () => {
+    const scheduledAt = new Date("2027-01-10T12:00:00Z");
+    await assertSucceeds(setDoc(doc(db("org-owner"), "news", "scheduled-news"), {
+      ...news("scheduled-news", "org-owner"),
+      moderationStatus: "draft",
+      scheduledAt,
+    }));
+    await assertSucceeds(setDoc(doc(db("org-owner"), "events", "scheduled-event"), {
+      ...event("scheduled-event", "org-owner"),
+      moderationStatus: "draft",
+      scheduledAt,
+    }));
+    await assertSucceeds(getDoc(doc(db("org-owner"), "news", "scheduled-news")));
+    await assertFails(getDoc(doc(db("regular-user"), "news", "scheduled-news")));
+  });
+
+  test("nationwide organization news requires moderation unless the app owner publishes it", async () => {
+    const pending = {
+      ...news("national-pending", "org-owner"),
+      regionScope: "austria",
+      federalState: null,
+      moderationStatus: "pendingReview",
+    };
+    await assertSucceeds(setDoc(doc(db("org-owner"), "news", "national-pending"), pending));
+    await assertFails(setDoc(doc(db("org-owner"), "news", "national-approved"), {
+      ...pending,
+      id: "national-approved",
+      moderationStatus: "approved",
+    }));
+    await assertSucceeds(setDoc(doc(db("owner"), "news", "national-owner"), {
+      ...pending,
+      id: "national-owner",
+      authorId: "owner",
+      moderationStatus: "approved",
+    }));
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "news", "national-approved-seed"), {
+        ...pending,
+        id: "national-approved-seed",
+        moderationStatus: "approved",
+      });
+    });
+    await assertFails(updateDoc(doc(db("org-owner"), "news", "national-approved-seed"), {
+      title: "Обхід повторної модерації",
+      updatedAt: new Date(),
+    }));
+    await assertSucceeds(updateDoc(doc(db("org-owner"), "news", "national-approved-seed"), {
+      title: "Оновлена загальноавстрійська новина",
+      moderationStatus: "pendingReview",
+      updatedAt: new Date(),
+    }));
+  });
+
   test("organization owner can create localized news and a multi-occurrence external event", async () => {
     await assertSucceeds(setDoc(doc(db("org-owner"), "news", "localized-news"), localizedNews("localized-news", "org-owner")));
     await assertSucceeds(setDoc(doc(db("org-owner"), "events", "multi-event"), multiOccurrenceEvent("multi-event", "org-owner")));

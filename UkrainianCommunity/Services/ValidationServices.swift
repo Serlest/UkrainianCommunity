@@ -85,6 +85,7 @@ struct NewsValidationInput {
     let body: String
     let hasOrganizer: Bool
     let federalState: AustrianFederalState?
+    let requiresFederalState: Bool
     let sourceInput: String
     let tags: [String]
 
@@ -94,6 +95,7 @@ struct NewsValidationInput {
         body: String,
         hasOrganizer: Bool,
         federalState: AustrianFederalState?,
+        requiresFederalState: Bool = true,
         sourceInput: String = "",
         tags: [String] = []
     ) {
@@ -102,6 +104,7 @@ struct NewsValidationInput {
         self.body = body
         self.hasOrganizer = hasOrganizer
         self.federalState = federalState
+        self.requiresFederalState = requiresFederalState
         self.sourceInput = sourceInput
         self.tags = tags
     }
@@ -171,7 +174,7 @@ struct NewsValidationService {
         if !input.hasOrganizer {
             return .organizationRequired
         }
-        if input.federalState == nil {
+        if input.requiresFederalState, input.federalState == nil {
             return .organizationRegionRequired
         }
         let source = input.sourceInput.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -13,6 +13,7 @@ export * from "./analytics/trackAnalyticsEvent";
 export * from "./content/contentDeletion";
 export * from "./content/contentCoverUpload";
 export * from "./content/legacyContentMediaMigration";
+export * from "./content/scheduledPublishing";
 export * from "./content/storageOrphanCleanup";
 export * from "./contentPlanning/ownerContentDrafts";
 export * from "./events/eventRegistration";

@@ -367,6 +367,25 @@ service cloud.firestore {
       return resource.data.moderationStatus == 'approved';
     }
 
+    function canReadOwnScheduledDraft(data) {
+      return isVerifiedActiveUser()
+        && data.moderationStatus == 'draft'
+        && ('authorId' in data)
+        && data.authorId == request.auth.uid;
+    }
+
+    function hasValidPublicationSchedule(data) {
+      return (
+          data.moderationStatus == 'draft'
+          && ('scheduledAt' in data)
+          && data.scheduledAt is timestamp
+          && data.scheduledAt > request.time
+        ) || (
+          data.moderationStatus != 'draft'
+          && !('scheduledAt' in data)
+        );
+    }
+
     function newsDocumentFields() {
       return [
         'id', 'title', 'subtitle', 'summary', 'regionScope', 'federalState',
@@ -375,7 +394,7 @@ service cloud.firestore {
         'imageURL', 'body', 'authorId', 'authorName', 'publishedAt', 'createdAt',
         'updatedAt', 'moderationStatus', 'likeCount', 'likeState', 'viewCount',
         'commentCount', 'schemaVersion', 'localizations', 'mediaMetadata',
-        'externalAction'
+        'externalAction', 'scheduledAt'
       ];
     }
 
@@ -392,7 +411,7 @@ service cloud.firestore {
         'commentCount', 'category', 'audience', 'minimumAge', 'maximumAge',
         'tags', 'visibility', 'isAllDay', 'cancellationState', 'cancelledAt',
         'cancellationReason', 'schemaVersion', 'localizations', 'occurrences',
-        'participationMode', 'externalAction', 'pricing'
+        'participationMode', 'externalAction', 'pricing', 'scheduledAt'
       ];
     }
 
@@ -440,7 +459,8 @@ service cloud.firestore {
         && data.publishedAt is timestamp
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
-        && data.moderationStatus in ['pendingReview', 'approved', 'rejected', 'archived']
+        && data.moderationStatus in ['draft', 'pendingReview', 'approved', 'rejected', 'archived']
+        && (!('scheduledAt' in data) || data.scheduledAt is timestamp)
         && data.likeCount is int && data.likeCount >= 0
         && data.viewCount is int && data.viewCount >= 0
         && data.commentCount is int && data.commentCount >= 0
@@ -479,7 +499,8 @@ service cloud.firestore {
         && (!('requiresRegistration' in data) || data.requiresRegistration is bool)
         && data.price is number && data.price >= 0
         && data.registeredCount is int && data.registeredCount >= 0
-        && data.moderationStatus in ['pendingReview', 'approved', 'rejected', 'archived']
+        && data.moderationStatus in ['draft', 'pendingReview', 'approved', 'rejected', 'archived']
+        && (!('scheduledAt' in data) || data.scheduledAt is timestamp)
         && data.registrationState is string
         && data.likeCount is int && data.likeCount >= 0
         && data.viewCount is int && data.viewCount >= 0
@@ -2361,13 +2382,27 @@ service cloud.firestore {
 
     match /news/{newsId} {
       allow read: if isApprovedContent()
+        || canReadOwnScheduledDraft(resource.data)
         || canReadModerationQueue('news')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if validNewsDocument(request.resource.data, newsId)
+        && hasValidPublicationSchedule(request.resource.data)
         && canCreateOrganizationContent()
         && request.resource.data.authorId is string
         && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.moderationStatus == 'approved';
+        && (
+          (request.resource.data.moderationStatus == 'draft'
+            && request.resource.data.scheduledAt is timestamp
+            && request.resource.data.scheduledAt > request.time)
+          || (request.resource.data.moderationStatus == 'pendingReview'
+            && request.resource.data.regionScope == 'austria'
+            && !('scheduledAt' in request.resource.data))
+          || (request.resource.data.moderationStatus == 'approved'
+            && !('scheduledAt' in request.resource.data)
+            && (!('regionScope' in request.resource.data)
+              || request.resource.data.regionScope != 'austria'
+              || canUseOrganizationOverride()))
+        );
       allow delete: if false;
       allow update: if onlyModerationStatusChanged()
         ? canModerateAppContent('news')
@@ -2383,7 +2418,20 @@ service cloud.firestore {
             )
           )
           && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.moderationStatus == resource.data.moderationStatus);
+          && (
+            (request.resource.data.moderationStatus == resource.data.moderationStatus
+              && (
+                resource.data.moderationStatus != 'approved'
+                || !('regionScope' in request.resource.data)
+                || request.resource.data.regionScope != 'austria'
+                || canUseOrganizationOverride()
+              ))
+            || (
+              resource.data.moderationStatus == 'approved'
+              && request.resource.data.moderationStatus == 'pendingReview'
+              && request.resource.data.regionScope == 'austria'
+            )
+          ));
 
       match /comments/{commentId} {
         allow read: if get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved'
@@ -2402,15 +2450,23 @@ service cloud.firestore {
 
     match /events/{eventId} {
       allow read: if isApprovedContent()
+        || canReadOwnScheduledDraft(resource.data)
         || canReadCancelledRegisteredEvent(eventId)
         || canReadModerationQueue('events')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if validEventDocument(request.resource.data, eventId)
+        && hasValidPublicationSchedule(request.resource.data)
         && canCreateOrganizationContent()
         && request.resource.data.requiresRegistration is bool
         && (!('authorId' in request.resource.data)
           || request.resource.data.authorId == request.auth.uid)
-        && request.resource.data.moderationStatus == 'approved';
+        && (
+          (request.resource.data.moderationStatus == 'draft'
+            && request.resource.data.scheduledAt is timestamp
+            && request.resource.data.scheduledAt > request.time)
+          || (request.resource.data.moderationStatus == 'approved'
+            && !('scheduledAt' in request.resource.data))
+        );
       allow delete: if false;
       allow update: if onlyModerationStatusChanged()
         ? canModerateAppContent('events')

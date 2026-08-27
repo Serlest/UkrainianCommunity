@@ -177,7 +177,7 @@ extension FeedbackItem {
 }
 
 struct NewsPageCursor: Equatable {
-    let createdAt: Date
+    let publishedAt: Date
     let documentID: String
 }
 
@@ -361,7 +361,7 @@ extension NewsRepository {
         }
 
         let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
-        let nextCursor = pageItems.last.map { NewsPageCursor(createdAt: $0.createdAt, documentID: $0.id) }
+        let nextCursor = pageItems.last.map { NewsPageCursor(publishedAt: $0.publishedAt, documentID: $0.id) }
         return NewsPage(
             items: pageItems,
             nextCursor: nextCursor,

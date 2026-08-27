@@ -160,6 +160,12 @@ final class EventEditorViewModel: ObservableObject {
     @Published var capacityText = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
+    @Published var publicationMode: ContentPublicationMode = .now {
+        didSet { markCreateDraftMetadataChanged() }
+    }
+    @Published var scheduledAt = Date().addingTimeInterval(60 * 60) {
+        didSet { markCreateDraftMetadataChanged() }
+    }
     @Published var isPublishing = false
     @Published var isUploadingImage = false
     @Published var isProcessingImage = false
@@ -233,6 +239,10 @@ final class EventEditorViewModel: ObservableObject {
             priceNote = existingEvent.pricing.note ?? ""
             priceText = Self.priceText(from: existingEvent.price)
             capacityText = existingEvent.capacity.map(String.init) ?? ""
+            if let existingScheduledAt = existingEvent.scheduledAt {
+                publicationMode = .scheduled
+                scheduledAt = existingScheduledAt
+            }
         }
 
         if case .create = mode, let draft = sourceDraft?.eventDraft {
@@ -249,6 +259,7 @@ final class EventEditorViewModel: ObservableObject {
 
     var canPublish: Bool {
         validationIssue == nil
+            && isValidSchedule
             && isValidPublishingMetadata
             && isValidGermanContent
             && !isProcessingImage
@@ -497,7 +508,14 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     var primarySubmitButtonTitle: String {
-        mode.isEditing ? AppStrings.Events.primarySaveChanges : AppStrings.Events.primaryPublish
+        if mode.isEditing { return AppStrings.Events.primarySaveChanges }
+        return publicationMode == .scheduled
+            ? AppStrings.ContentPublishing.scheduleAction
+            : AppStrings.Events.primaryPublish
+    }
+
+    var isValidSchedule: Bool {
+        !isCreateMode || publicationMode == .now || scheduledAt >= Date().addingTimeInterval(5 * 60)
     }
 
     var selectedCoordinate: CLLocationCoordinate2D? {
@@ -709,7 +727,7 @@ final class EventEditorViewModel: ObservableObject {
             existingImageURL = nil
             existingRegisteredCount = 0
             existingComments = []
-            existingModerationStatus = .approved
+            existingModerationStatus = publicationMode == .scheduled ? .draft : .approved
             existingRegistrationState = .notRegistered
             existingLikeCount = 0
             existingLikeState = .notLiked
@@ -783,6 +801,7 @@ final class EventEditorViewModel: ObservableObject {
             occurrences: allOccurrences,
             createdAt: createdAt,
             updatedAt: now,
+            scheduledAt: isCreateMode && publicationMode == .scheduled ? scheduledAt : nil,
             requiresRegistration: participationMode.usesInAppRegistration,
             participationMode: participationMode,
             externalAction: externalAction,
@@ -842,7 +861,9 @@ final class EventEditorViewModel: ObservableObject {
                     isUploadingImage = false
                 }
 
-                successMessage = AppStrings.Events.publishedSuccessfully
+                successMessage = publicationMode == .scheduled
+                    ? AppStrings.ContentPublishing.scheduledSuccessfully
+                    : AppStrings.Events.publishedSuccessfully
             case .edit:
                 var resolvedImageURL = existingImageURL
                 if selectedImageData != nil {
@@ -1231,7 +1252,9 @@ final class EventEditorViewModel: ObservableObject {
             priceKind: priceKind,
             maximumPriceText: maximumPriceText,
             priceNote: priceNote,
-            generatedImageURL: generatedImageURL
+            generatedImageURL: generatedImageURL,
+            publicationMode: publicationMode,
+            scheduledAt: scheduledAt
         )
     }
 
@@ -1285,6 +1308,8 @@ final class EventEditorViewModel: ObservableObject {
         maximumPriceText = draft.maximumPriceText ?? ""
         priceNote = draft.priceNote ?? ""
         generatedImageURL = draft.generatedImageURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        publicationMode = draft.publicationMode ?? .now
+        if let scheduledAt = draft.scheduledAt { self.scheduledAt = scheduledAt }
         hasMeaningfulCreateDraftMetadata = draft.hasMeaningfulMetadata == true
 
         isApplyingRecoveredDraft = false
@@ -1461,6 +1486,7 @@ private extension Event {
             occurrences: occurrences,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            scheduledAt: scheduledAt,
             requiresRegistration: requiresRegistration,
             participationMode: participationMode,
             externalAction: externalAction,

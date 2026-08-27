@@ -113,3 +113,43 @@ test("validates owner content draft identifiers before deletion", () => {
   assert.equal(parseOwnerContentDraftID({draftId: "a".repeat(40)}), "a".repeat(40));
   assert.throws(() => parseOwnerContentDraftID({draftId: "../draft"}));
 });
+
+test("accepts nationwide scheduled news and normalizes its publication time", () => {
+  const scheduledAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const parsed = parseOwnerContentDraftInput({
+    idempotencyKey: "scheduled-national-news",
+    kind: "news",
+    payload: {
+      title: "Новина для всієї Австрії",
+      summary: "Короткий опис.",
+      body: "Повний перевірений текст.",
+      sourceInput: "https://example.org/austria",
+      tags: ["Австрія"],
+      regionScope: "austria",
+      publicationMode: "scheduled",
+      scheduledAt,
+    },
+    sources: [{url: "https://example.org/austria", isPrimary: true}],
+  });
+
+  assert.equal(parsed.payload.regionScope, "austria");
+  assert.equal(parsed.payload.publicationMode, "scheduled");
+  assert.ok(parsed.payload.scheduledAt instanceof Object);
+});
+
+test("rejects scheduled publication less than five minutes ahead", () => {
+  assert.throws(() => parseOwnerContentDraftInput({
+    idempotencyKey: "scheduled-too-soon",
+    kind: "news",
+    payload: {
+      title: "Новина",
+      summary: "Опис.",
+      body: "Текст.",
+      sourceInput: "https://example.org/news",
+      tags: [],
+      publicationMode: "scheduled",
+      scheduledAt: new Date(Date.now() + 60 * 1000).toISOString(),
+    },
+    sources: [{url: "https://example.org/news", isPrimary: true}],
+  }));
+});

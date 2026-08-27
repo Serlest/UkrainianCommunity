@@ -36,6 +36,13 @@ enum RegionScope: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
 }
 
+enum ContentPublicationMode: String, CaseIterable, Codable, Identifiable {
+    case now
+    case scheduled
+
+    var id: String { rawValue }
+}
+
 enum NewsCategory: String, CaseIterable, Codable, Identifiable {
     case news
     case event
@@ -190,6 +197,7 @@ struct NewsPost: Identifiable, Codable {
     let authorId: String?
     let authorName: String
     let publishedAt: Date
+    let scheduledAt: Date?
     let createdAt: Date
     let updatedAt: Date
     var comments: [Comment]
@@ -221,6 +229,7 @@ struct NewsPost: Identifiable, Codable {
         authorId: String? = nil,
         authorName: String,
         publishedAt: Date,
+        scheduledAt: Date? = nil,
         createdAt: Date,
         updatedAt: Date,
         comments: [Comment],
@@ -251,6 +260,7 @@ struct NewsPost: Identifiable, Codable {
         self.authorId = authorId
         self.authorName = authorName
         self.publishedAt = publishedAt
+        self.scheduledAt = scheduledAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.comments = comments
@@ -524,6 +534,7 @@ struct Event: Identifiable, Codable {
     let occurrences: [EventOccurrence]
     let createdAt: Date
     let updatedAt: Date
+    let scheduledAt: Date?
     let requiresRegistration: Bool
     let participationMode: EventParticipationMode
     let externalAction: ExternalContentAction?
@@ -578,6 +589,7 @@ struct Event: Identifiable, Codable {
         occurrences: [EventOccurrence] = [],
         createdAt: Date,
         updatedAt: Date,
+        scheduledAt: Date? = nil,
         requiresRegistration: Bool = true,
         participationMode: EventParticipationMode? = nil,
         externalAction: ExternalContentAction? = nil,
@@ -635,6 +647,7 @@ struct Event: Identifiable, Codable {
         self.endDate = self.occurrences.map(\.endDate).max() ?? endDate
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.scheduledAt = scheduledAt
         self.requiresRegistration = requiresRegistration
         self.participationMode = participationMode ?? (requiresRegistration ? .inAppRegistration : .none)
         self.externalAction = externalAction

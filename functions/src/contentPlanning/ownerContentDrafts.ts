@@ -39,6 +39,7 @@ const newsFields = new Set([
   "title", "summary", "body", "sourceInput", "tags", "federalState",
   "germanTitle", "germanSummary", "germanBody", "imageCaption",
   "imageAlternativeText", "imageCredit", "externalActionTitle", "externalActionURL",
+  "regionScope", "publicationMode", "scheduledAt",
 ]);
 
 const eventFields = new Set([
@@ -49,6 +50,7 @@ const eventFields = new Set([
   "germanTitle", "germanSummary", "germanDetails", "additionalOccurrences",
   "participationMode", "externalActionTitle", "externalActionURL", "priceKind",
   "price", "maximumPrice", "priceNote",
+  "publicationMode", "scheduledAt",
 ]);
 
 export function parseOwnerContentDraftInput(value: unknown): ParsedDraftInput {
@@ -129,7 +131,9 @@ export async function saveOwnerContentDraftForUser(
       missingFields: parsed.missingFields,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
-      scheduledAt: null,
+      scheduledAt: parsed.payload.publicationMode === "scheduled"
+        ? parsed.payload.scheduledAt ?? null
+        : null,
       completedAt: null,
       failureMessage: null,
       generatedImage: parsed.generatedImage ?? null,
@@ -219,6 +223,13 @@ function validatePayload(kind: DraftKind, payload: Record<string, unknown>): voi
   if (kind === "news") {
     requiredString(payload.body, "payload.body", 10_000);
     requiredString(payload.sourceInput, "payload.sourceInput", 2_048);
+    const regionScope = payload.regionScope ?? "federalState";
+    enumValue(regionScope, "payload.regionScope", new Set(["austria", "federalState"]));
+    payload.regionScope = regionScope;
+    if (regionScope === "federalState" && payload.federalState != null) {
+      requiredString(payload.federalState, "payload.federalState", 80);
+    }
+    validatePublicationTiming(payload);
     return;
   }
 
@@ -237,10 +248,27 @@ function validatePayload(kind: DraftKind, payload: Record<string, unknown>): voi
   payload.endDate = Timestamp.fromDate(endDate);
   optionalWebURL(payload.organizerURL, "payload.organizerURL");
   optionalWebURL(payload.contactURL, "payload.contactURL");
+  validatePublicationTiming(payload);
+}
+
+function validatePublicationTiming(payload: Record<string, unknown>): void {
+  const publicationMode = payload.publicationMode ?? "now";
+  enumValue(publicationMode, "payload.publicationMode", new Set(["now", "scheduled"]));
+  payload.publicationMode = publicationMode;
+  if (publicationMode === "scheduled") {
+    const scheduledAt = requiredDate(payload.scheduledAt, "payload.scheduledAt");
+    if (scheduledAt.getTime() < Date.now() + 5 * 60 * 1000) {
+      throw new HttpsError("invalid-argument", "payload.scheduledAt must be at least five minutes in the future.");
+    }
+    payload.scheduledAt = Timestamp.fromDate(scheduledAt);
+  } else {
+    delete payload.scheduledAt;
+  }
 }
 
 function normalizedPayloadValue(key: string, value: unknown): unknown {
   if (value === null || value === undefined) return null;
+  if (key === "scheduledAt") return value;
   if (key === "additionalOccurrences") {
     if (!Array.isArray(value) || value.length > 29) {
       throw new HttpsError("invalid-argument", "additionalOccurrences must contain at most 29 items.");

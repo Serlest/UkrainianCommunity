@@ -1090,6 +1090,25 @@ enum AppStrings {
         }
     }
 
+    enum ContentPublishing {
+        static var settingsTitle: String { text("content_publishing.settings.title", "Публікація") }
+        static var reachTitle: String { text("content_publishing.reach.title", "Де показати новину") }
+        static var regionalReach: String { text("content_publishing.reach.regional", "У своїй землі") }
+        static var nationwideReach: String { text("content_publishing.reach.nationwide", "По всій Австрії") }
+        static var timingTitle: String { text("content_publishing.timing.title", "Коли опублікувати") }
+        static var publishNow: String { text("content_publishing.timing.now", "Зараз") }
+        static var publishLater: String { text("content_publishing.timing.later", "Пізніше") }
+        static var scheduleAction: String { text("content_publishing.action.schedule", "Запланувати") }
+        static var submitForReview: String { text("content_publishing.action.review", "Надіслати на перевірку") }
+        static var scheduledDate: String { text("content_publishing.scheduled_date", "Дата й час") }
+        static var scheduleHint: String { text("content_publishing.schedule.hint", "Оберіть час щонайменше через 5 хвилин. До публікації матеріал буде прихований.") }
+        static var invalidSchedule: String { text("content_publishing.schedule.invalid", "Оберіть майбутній час щонайменше через 5 хвилин.") }
+        static var nationwideReviewHint: String { text("content_publishing.reach.review_hint", "Загальноавстрійська новина буде перевірена перед публікацією, щоб уникнути повторів.") }
+        static var nationwideOwnerHint: String { text("content_publishing.reach.owner_hint", "Новина буде доступна читачам у всіх землях Австрії.") }
+        static var scheduledSuccessfully: String { text("content_publishing.success.scheduled", "Публікацію заплановано.") }
+        static var submittedSuccessfully: String { text("content_publishing.success.review", "Новину надіслано на перевірку.") }
+    }
+
     enum OwnerAnalytics {
         static var title: String { text("owner_analytics.title", "Analytics") }
         static var subtitle: String { text("owner_analytics.subtitle", "Views, popular content and regions") }

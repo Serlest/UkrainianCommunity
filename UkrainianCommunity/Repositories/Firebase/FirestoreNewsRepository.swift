@@ -60,12 +60,12 @@ struct FirestoreNewsRepository: NewsRepository {
         var query: Query = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-            .order(by: "createdAt", descending: true)
+            .order(by: "publishedAt", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
             .limit(to: max(1, limit) + 1)
 
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.documentID])
+            query = query.start(after: [Timestamp(date: cursor.publishedAt), cursor.documentID])
         }
 
         let snapshot = try await query.getDocuments()
@@ -89,7 +89,7 @@ struct FirestoreNewsRepository: NewsRepository {
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("organizationId", isEqualTo: organizationID)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-            .order(by: "createdAt", descending: true)
+            .order(by: "publishedAt", descending: true)
             .limit(to: max(1, limit))
             .getDocuments()
 
@@ -185,6 +185,9 @@ struct FirestoreNewsRepository: NewsRepository {
             "viewCount": dto.viewCount,
             "commentCount": dto.commentCount ?? dto.comments.count
         ]
+        if let scheduledAt = dto.scheduledAt {
+            data["scheduledAt"] = Timestamp(date: scheduledAt)
+        }
         if let sourceName = dto.sourceName {
             data["sourceName"] = sourceName
         }
@@ -252,8 +255,10 @@ struct FirestoreNewsRepository: NewsRepository {
             "organizationImageURL": news.source.organizationImageURL as Any,
             "body": news.body,
             "authorName": news.authorName,
+            "moderationStatus": news.moderationStatus.rawValue,
             "updatedAt": Timestamp(date: news.updatedAt)
         ]
+        data["scheduledAt"] = news.scheduledAt.map(Timestamp.init(date:)) ?? FieldValue.delete()
         if let imageURL = news.imageURL {
             data["imageURL"] = imageURL
         } else {
@@ -667,6 +672,7 @@ struct FirestoreNewsRepository: NewsRepository {
             authorId: (data["authorId"] as? String)?.nilIfEmpty,
             authorName: authorName,
             publishedAt: publishedAt,
+            scheduledAt: (data["scheduledAt"] as? Timestamp)?.dateValue(),
             createdAt: createdAt,
             updatedAt: updatedAt,
             comments: comments,
@@ -680,10 +686,10 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     private func makeNewsPageCursor(from document: QueryDocumentSnapshot) -> NewsPageCursor? {
-        guard let createdAt = (document.data()["createdAt"] as? Timestamp)?.dateValue() else {
+        guard let publishedAt = (document.data()["publishedAt"] as? Timestamp)?.dateValue() else {
             return nil
         }
-        return NewsPageCursor(createdAt: createdAt, documentID: document.documentID)
+        return NewsPageCursor(publishedAt: publishedAt, documentID: document.documentID)
     }
 
     private func likeDocumentID(newsID: String, userID: String) -> String {

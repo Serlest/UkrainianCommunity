@@ -72,6 +72,15 @@ final class NewsEditorViewModel: ObservableObject {
     @Published var selectedFederalState: AustrianFederalState = .tirol {
         didSet { scheduleCreateDraftAutosave() }
     }
+    @Published var selectedRegionScope: RegionScope = .federalState {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var publicationMode: ContentPublicationMode = .now {
+        didSet { scheduleCreateDraftAutosave() }
+    }
+    @Published var scheduledAt = Date().addingTimeInterval(60 * 60) {
+        didSet { scheduleCreateDraftAutosave() }
+    }
     @Published var isPublishing = false
     @Published var isUploadingImage = false
     @Published var isProcessingImage = false
@@ -120,6 +129,7 @@ final class NewsEditorViewModel: ObservableObject {
             sourceInput = existingNews.sourceName ?? existingNews.sourceURL ?? ""
             tagsInput = existingNews.tags.joined(separator: ", ")
             selectedFederalState = existingNews.federalState ?? .tirol
+            selectedRegionScope = existingNews.regionScope == .austria ? .austria : .federalState
             let german = existingNews.localizations[PublishedContentLanguage.german.rawValue]
             germanTitle = german?.title ?? ""
             germanSummary = german?.subtitle ?? ""
@@ -144,6 +154,7 @@ final class NewsEditorViewModel: ObservableObject {
 
     var canPublish: Bool {
         validationIssue == nil
+            && isValidSchedule
             && isValidExternalAction
             && isValidPublishingMetadata
             && isValidGermanContent
@@ -158,7 +169,7 @@ final class NewsEditorViewModel: ObservableObject {
             && trimmedTitle.count <= Self.titleLimit
             && trimmedSummary.count <= Self.summaryLimit
             && hasOrganizerForCreate
-            && resolvedFederalState != nil
+            && (selectedRegionScope == .austria || resolvedFederalState != nil)
             && isValidGermanContent
     }
 
@@ -181,7 +192,8 @@ final class NewsEditorViewModel: ObservableObject {
             localizations: resolvedLocalizations,
             title: trimmedTitle,
             subtitle: trimmedSummary,
-            federalState: resolvedFederalState,
+            regionScope: selectedRegionScope,
+            federalState: selectedRegionScope == .austria ? nil : resolvedFederalState,
             tags: parsedTags,
             source: source,
             sourceName: resolvedArticleSource.sourceName,
@@ -244,11 +256,11 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     var showsRegionPicker: Bool {
-        false
+        true
     }
 
     var requiresOrganizationRegionBeforePublishing: Bool {
-        isOrganizationPost && resolvedFederalState == nil
+        isOrganizationPost && selectedRegionScope != .austria && resolvedFederalState == nil
     }
 
     var existingImageURL: String? {
@@ -301,7 +313,18 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     var primarySubmitButtonTitle: String {
-        mode.isEditing ? AppStrings.NewsEditor.primarySaveChanges : AppStrings.NewsEditor.primaryPublish
+        if mode.isEditing { return AppStrings.NewsEditor.primarySaveChanges }
+        if publicationMode == .scheduled { return AppStrings.ContentPublishing.scheduleAction }
+        if selectedRegionScope == .austria, !isAppOwner { return AppStrings.ContentPublishing.submitForReview }
+        return AppStrings.NewsEditor.primaryPublish
+    }
+
+    var isValidSchedule: Bool {
+        !isCreateMode || publicationMode == .now || scheduledAt >= Date().addingTimeInterval(5 * 60)
+    }
+
+    var nationwideRequiresReview: Bool {
+        isCreateMode && selectedRegionScope == .austria && !isAppOwner
     }
 
     func setSelectedImageData(_ data: Data?) {
@@ -439,7 +462,7 @@ final class NewsEditorViewModel: ObservableObject {
         let existingIsBookmarked: Bool
         let existingCommentCount: Int
         let publishedAt: Date
-        let newsFederalState = resolvedFederalState
+        let newsFederalState = selectedRegionScope == .austria ? nil : resolvedFederalState
         switch mode {
         case .create:
             guard let context = selectedCreateContext, context.isOrganizationPost else {
@@ -488,7 +511,7 @@ final class NewsEditorViewModel: ObservableObject {
             localizations: localizations,
             title: trimmedTitle,
             subtitle: trimmedSummary,
-            regionScope: .federalState,
+            regionScope: selectedRegionScope,
             federalState: newsFederalState,
             city: existingCity,
             category: .news,
@@ -503,10 +526,11 @@ final class NewsEditorViewModel: ObservableObject {
             authorId: existingAuthorID,
             authorName: resolvedAuthorName,
             publishedAt: publishedAt,
+            scheduledAt: isCreateMode && publicationMode == .scheduled ? scheduledAt : nil,
             createdAt: createdAt,
             updatedAt: now,
             comments: existingComments,
-            moderationStatus: existingModerationStatus,
+            moderationStatus: resolvedModerationStatus,
             likeCount: existingLikeCount,
             likeState: existingLikeState,
             viewCount: existingViewCount,
@@ -556,7 +580,13 @@ final class NewsEditorViewModel: ObservableObject {
                     isUploadingImage = false
                 }
 
-                successMessage = AppStrings.NewsEditor.publishedSuccessfully
+                if publicationMode == .scheduled {
+                    successMessage = AppStrings.ContentPublishing.scheduledSuccessfully
+                } else if resolvedModerationStatus == .pendingReview {
+                    successMessage = AppStrings.ContentPublishing.submittedSuccessfully
+                } else {
+                    successMessage = AppStrings.NewsEditor.publishedSuccessfully
+                }
 
             case .edit:
                 var resolvedImageURL = removesExistingImage ? nil : existingImageURL
@@ -772,7 +802,10 @@ final class NewsEditorViewModel: ObservableObject {
             imageCredit: imageCredit,
             externalActionTitle: externalActionTitle,
             externalActionURL: externalActionURL,
-            generatedImageURL: generatedImageURL
+            generatedImageURL: generatedImageURL,
+            regionScope: selectedRegionScope,
+            publicationMode: publicationMode,
+            scheduledAt: scheduledAt
         )
     }
 
@@ -805,6 +838,9 @@ final class NewsEditorViewModel: ObservableObject {
         if let selectedFederalState = draft.selectedFederalState {
             self.selectedFederalState = selectedFederalState
         }
+        selectedRegionScope = draft.regionScope ?? .federalState
+        publicationMode = draft.publicationMode ?? .now
+        if let scheduledAt = draft.scheduledAt { self.scheduledAt = scheduledAt }
 
         isApplyingRecoveredDraft = false
     }
@@ -858,6 +894,25 @@ final class NewsEditorViewModel: ObservableObject {
         return .approved
     }
 
+    private var resolvedModerationStatus: ModerationStatus {
+        if isEditing {
+            if case let .edit(existingNews) = mode,
+               existingNews.moderationStatus == .approved,
+               selectedRegionScope == .austria,
+               !isAppOwner {
+                return .pendingReview
+            }
+            return existingModerationStatus
+        }
+        if publicationMode == .scheduled { return .draft }
+        if selectedRegionScope == .austria, !isAppOwner { return .pendingReview }
+        return .approved
+    }
+
+    private var isAppOwner: Bool {
+        PermissionService.isAppOwner(user: authState?.user)
+    }
+
     private var hasOrganizerForCreate: Bool {
         isEditing || (selectedCreateContext?.isOrganizationPost ?? false)
     }
@@ -870,6 +925,7 @@ final class NewsEditorViewModel: ObservableObject {
                 body: body,
                 hasOrganizer: hasOrganizerForCreate,
                 federalState: resolvedFederalState,
+                requiresFederalState: selectedRegionScope != .austria,
                 sourceInput: sourceInput,
                 tags: parsedTags
             )
@@ -927,6 +983,7 @@ private extension NewsPost {
             authorId: authorId,
             authorName: authorName,
             publishedAt: publishedAt,
+            scheduledAt: scheduledAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
             comments: comments,

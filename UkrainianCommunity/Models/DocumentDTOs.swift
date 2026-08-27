@@ -128,6 +128,7 @@ struct NewsPostDTO: Codable, Identifiable {
     let authorId: String?
     let authorName: String
     let publishedAt: Date
+    let scheduledAt: Date?
     let createdAt: Date
     let updatedAt: Date
     let comments: [CommentDTO]
@@ -171,6 +172,7 @@ struct EventDTO: Codable, Identifiable {
     let occurrences: [EventOccurrence]?
     let createdAt: Date
     let updatedAt: Date
+    let scheduledAt: Date?
     let requiresRegistration: Bool?
     let participationMode: String?
     let externalAction: ExternalContentAction?
@@ -459,6 +461,7 @@ extension NewsPost {
             authorId: dto.authorId,
             authorName: dto.authorName,
             publishedAt: dto.publishedAt,
+            scheduledAt: dto.scheduledAt,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
             comments: dto.comments.map(Comment.init(dto:)),
@@ -496,6 +499,7 @@ extension NewsPost {
             authorId: authorId,
             authorName: authorName,
             publishedAt: publishedAt,
+            scheduledAt: scheduledAt,
             createdAt: createdAt,
             updatedAt: updatedAt,
             comments: comments.map(\.dto),
@@ -545,6 +549,7 @@ extension Event {
             occurrences: dto.occurrences ?? [],
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
+            scheduledAt: dto.scheduledAt,
             requiresRegistration: dto.requiresRegistration ?? true,
             participationMode: dto.participationMode.flatMap(EventParticipationMode.init(rawValue:)),
             externalAction: dto.externalAction,
@@ -605,6 +610,7 @@ extension Event {
             occurrences: occurrences,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            scheduledAt: scheduledAt,
             requiresRegistration: requiresRegistration,
             participationMode: participationMode.rawValue,
             externalAction: externalAction,

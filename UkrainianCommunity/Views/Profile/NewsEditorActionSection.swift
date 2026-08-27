@@ -34,6 +34,7 @@ extension NewsEditorView {
             case .preview:
                 additionalDetailsCard
                 newsExternalActionCard
+                newsPublicationSettingsCard
                 if let validationMessage = viewModel.validationMessage {
                     editorCard {
                         Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
@@ -43,6 +44,56 @@ extension NewsEditorView {
                 }
                 newsPreviewCard
                 publicationNoticeCard
+            }
+        }
+
+        var newsPublicationSettingsCard: some View {
+            editorCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    editorSectionTitle(AppStrings.ContentPublishing.settingsTitle)
+
+                    Text(AppStrings.ContentPublishing.reachTitle)
+                        .font(.subheadline.weight(.semibold))
+                    Picker(AppStrings.ContentPublishing.reachTitle, selection: $viewModel.selectedRegionScope) {
+                        Text(AppStrings.ContentPublishing.regionalReach).tag(RegionScope.federalState)
+                        Text(AppStrings.ContentPublishing.nationwideReach).tag(RegionScope.austria)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if viewModel.selectedRegionScope == .austria {
+                        Label(
+                            viewModel.nationwideRequiresReview
+                                ? AppStrings.ContentPublishing.nationwideReviewHint
+                                : AppStrings.ContentPublishing.nationwideOwnerHint,
+                            systemImage: viewModel.nationwideRequiresReview ? "checkmark.shield" : "map"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    }
+
+                    if !viewModel.isEditing {
+                        Divider()
+                        Text(AppStrings.ContentPublishing.timingTitle)
+                            .font(.subheadline.weight(.semibold))
+                        Picker(AppStrings.ContentPublishing.timingTitle, selection: $viewModel.publicationMode) {
+                            Text(AppStrings.ContentPublishing.publishNow).tag(ContentPublicationMode.now)
+                            Text(AppStrings.ContentPublishing.publishLater).tag(ContentPublicationMode.scheduled)
+                        }
+                        .pickerStyle(.segmented)
+
+                        if viewModel.publicationMode == .scheduled {
+                            DatePicker(
+                                AppStrings.ContentPublishing.scheduledDate,
+                                selection: $viewModel.scheduledAt,
+                                in: Date().addingTimeInterval(5 * 60)...,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            Text(viewModel.isValidSchedule ? AppStrings.ContentPublishing.scheduleHint : AppStrings.ContentPublishing.invalidSchedule)
+                                .font(.footnote)
+                                .foregroundStyle(viewModel.isValidSchedule ? AppTheme.textSecondary : AppTheme.accentDestructiveForeground)
+                        }
+                    }
+                }
             }
         }
 
