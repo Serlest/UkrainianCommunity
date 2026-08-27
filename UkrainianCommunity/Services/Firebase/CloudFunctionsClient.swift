@@ -43,6 +43,7 @@ enum CloudFunctionName: String, CaseIterable {
     case setUserBlocked
     case createOrganizationPhotoMetadata
     case deleteOrganizationPhotoMetadata
+    case uploadOrganizationContentCover
     case deleteNotificationPushRegistration
     case sendTestPushNotification
 }
@@ -409,6 +410,19 @@ struct OrganizationPhotoMutationFunctionResponse: Codable, Equatable {
     let createdAt: String?
 }
 
+struct ContentCoverUploadFunctionRequest: Codable, Equatable {
+    let kind: String
+    let contentId: String
+    let imageBase64: String
+}
+
+struct ContentCoverUploadFunctionResponse: Codable, Equatable {
+    let kind: String
+    let contentId: String
+    let imageURL: String
+    let byteCount: Int
+}
+
 struct ContentDeletionFunctionResponse: Codable, Equatable {
     let status: String
     let deletedAt: String
@@ -697,6 +711,28 @@ final class CloudFunctionsClient {
         )
     }
 
+    func uploadOrganizationContentCover(
+        kind: String,
+        contentId: String,
+        imageData: Data
+    ) async throws -> URL {
+        let response: ContentCoverUploadFunctionResponse = try await call(
+            .uploadOrganizationContentCover,
+            request: ContentCoverUploadFunctionRequest(
+                kind: kind,
+                contentId: contentId,
+                imageBase64: imageData.base64EncodedString()
+            )
+        )
+        guard response.kind == kind,
+              response.contentId == contentId,
+              response.byteCount == imageData.count,
+              let imageURL = URL(string: response.imageURL) else {
+            throw AppError.unknown
+        }
+        return imageURL
+    }
+
     func deleteOwnAccount() async throws -> AccountDeletionFunctionResponse {
         try await call(.deleteOwnAccount, request: AccountDeletionFunctionRequest())
     }
@@ -827,7 +863,8 @@ final class CloudFunctionsClient {
              .unregisterFromEvent,
              .deleteOrganization,
              .createOrganizationPhotoMetadata,
-             .deleteOrganizationPhotoMetadata:
+             .deleteOrganizationPhotoMetadata,
+             .uploadOrganizationContentCover:
             return functionName == .registerForEvent || functionName == .unregisterFromEvent
             ? .event
             : .organization
@@ -893,7 +930,8 @@ final class CloudFunctionsClient {
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
              .createOrganizationPhotoMetadata,
-             .deleteOrganizationPhotoMetadata:
+             .deleteOrganizationPhotoMetadata,
+             .uploadOrganizationContentCover:
             return true
         case .approveOrganization,
              .rejectOrganization,
@@ -981,6 +1019,7 @@ final class CloudFunctionsClient {
              .getManagedUserSecurityMetadata,
              .createOrganizationPhotoMetadata,
              .deleteOrganizationPhotoMetadata,
+             .uploadOrganizationContentCover,
              .deleteNotificationPushRegistration,
              .sendTestPushNotification:
             return nil
@@ -1167,6 +1206,10 @@ final class CloudFunctionsClient {
         } else if let request = request as? OrganizationPhotoDeleteFunctionRequest {
             metadata["organizationId"] = request.organizationId
             metadata["photoId"] = request.photoId
+        } else if let request = request as? ContentCoverUploadFunctionRequest {
+            metadata["contentKind"] = request.kind
+            metadata["contentId"] = request.contentId
+            metadata["byteCount"] = String(Data(base64Encoded: request.imageBase64)?.count ?? 0)
         } else if let request = request as? ContentReportFunctionRequest {
             metadata["reportTargetType"] = request.targetType
             metadata["reportTargetId"] = request.targetId
@@ -1192,6 +1235,9 @@ final class CloudFunctionsClient {
         }
         if let request = request as? OrganizationPhotoDeleteFunctionRequest {
             return request.organizationId
+        }
+        if let request = request as? ContentCoverUploadFunctionRequest {
+            return request.contentId
         }
         if let request = request as? PlatformRoleChangeFunctionRequest {
             return request.targetUserId

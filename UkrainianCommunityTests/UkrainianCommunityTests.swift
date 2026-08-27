@@ -1394,6 +1394,14 @@ struct UkrainianCommunityTests {
         #expect(CloudFunctionName.allCases.contains(.deleteOrganizationPhotoMetadata))
     }
 
+    @Test func organizationContentCoversUseDedicatedServerCallable() {
+        #expect(
+            CloudFunctionName.uploadOrganizationContentCover.rawValue
+                == "uploadOrganizationContentCover"
+        )
+        #expect(CloudFunctionName.allCases.contains(.uploadOrganizationContentCover))
+    }
+
     @Test func mediaStoragePathsAreCanonical() {
         #expect(MediaStoragePath.newsCover(newsID: "news-1") == "news/news-1/cover.jpg")
         #expect(MediaStoragePath.eventCover(eventID: "event-1") == "events/event-1/cover.jpg")

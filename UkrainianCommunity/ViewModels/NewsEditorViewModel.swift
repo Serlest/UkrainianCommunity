@@ -540,7 +540,9 @@ final class NewsEditorViewModel: ObservableObject {
                         } else {
                             throw AppError.validationFailed
                         }
-                        try await repository.updateNewsImageURL(id: newsID, imageURL: downloadURL.absoluteString)
+                        guard !downloadURL.absoluteString.isEmpty else {
+                            throw AppError.unknown
+                        }
                     } catch let uploadError {
                         isUploadingImage = false
                         do {

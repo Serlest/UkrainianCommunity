@@ -25,26 +25,36 @@ final class ImageUploadService {
     private init() {}
 
     func uploadNewsCoverImage(data: Data, newsID: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: MediaStoragePath.newsCover(newsID: newsID))
+        let processedImage = try await prepareImageDataForUpload(from: data)
+        return try await uploadOrganizationContentCover(
+            kind: "news",
+            contentID: newsID,
+            imageData: processedImage.data
+        )
     }
 
     func uploadNewsCoverImage(processedImage: ProcessedImageSelection, newsID: String) async throws -> URL {
-        try await uploadProcessedImage(
-            data: processedImage.data,
-            contentType: processedImage.contentType,
-            storagePath: MediaStoragePath.newsCover(newsID: newsID)
+        try await uploadOrganizationContentCover(
+            kind: "news",
+            contentID: newsID,
+            imageData: processedImage.data
         )
     }
 
     func uploadEventCoverImage(data: Data, eventID: String) async throws -> URL {
-        try await uploadCoverImage(data: data, storagePath: MediaStoragePath.eventCover(eventID: eventID))
+        let processedImage = try await prepareImageDataForUpload(from: data)
+        return try await uploadOrganizationContentCover(
+            kind: "event",
+            contentID: eventID,
+            imageData: processedImage.data
+        )
     }
 
     func uploadEventCoverImage(processedImage: ProcessedImageSelection, eventID: String) async throws -> URL {
-        try await uploadProcessedImage(
-            data: processedImage.data,
-            contentType: processedImage.contentType,
-            storagePath: MediaStoragePath.eventCover(eventID: eventID)
+        try await uploadOrganizationContentCover(
+            kind: "event",
+            contentID: eventID,
+            imageData: processedImage.data
         )
     }
 
@@ -185,6 +195,18 @@ final class ImageUploadService {
             )
             throw error
         }
+    }
+
+    private func uploadOrganizationContentCover(
+        kind: String,
+        contentID: String,
+        imageData: Data
+    ) async throws -> URL {
+        try await CloudFunctionsClient.shared.uploadOrganizationContentCover(
+            kind: kind,
+            contentId: contentID,
+            imageData: imageData
+        )
     }
 
     private func logFeaturedBannerDeletionFailure(

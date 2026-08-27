@@ -826,7 +826,9 @@ final class EventEditorViewModel: ObservableObject {
                         } else {
                             throw AppError.validationFailed
                         }
-                        try await repository.updateEventImageURL(id: eventID, imageURL: downloadURL.absoluteString)
+                        guard !downloadURL.absoluteString.isEmpty else {
+                            throw AppError.unknown
+                        }
                     } catch let uploadError {
                         isUploadingImage = false
                         do {
