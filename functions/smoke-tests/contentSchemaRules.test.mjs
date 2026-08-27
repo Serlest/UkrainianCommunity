@@ -33,6 +33,8 @@ beforeEach(async () => {
       setDoc(doc(db, "organizations", "org-1"), organization()),
       setDoc(doc(db, "news", "seed-news"), news("seed-news", "org-owner")),
       setDoc(doc(db, "events", "seed-event"), event("seed-event", "org-owner")),
+      setDoc(doc(db, "news", "app-news"), appNews("app-news", "owner")),
+      setDoc(doc(db, "events", "app-event"), appEvent("app-event", "owner")),
       setDoc(doc(db, "news", "legacy-news"), (() => {
         const value = news("legacy-news", "org-owner");
         delete value.authorId;
@@ -163,6 +165,20 @@ function event(id, authorId) {
   };
 }
 
+function appNews(id, authorId) {
+  const value = news(id, authorId);
+  value.sourceType = "app";
+  delete value.organizationId;
+  return value;
+}
+
+function appEvent(id, authorId) {
+  const value = event(id, authorId);
+  value.sourceType = "app";
+  delete value.organizationId;
+  return value;
+}
+
 function localizedNews(id, authorId) {
   return {
     ...news(id, authorId),
@@ -231,6 +247,23 @@ describe("strict client content schemas", () => {
     await assertSucceeds(updateDoc(doc(db("org-owner"), "events", "legacy-event"), {
       imageURL: "https://example.com/event.jpg",
       updatedAt: new Date("2026-08-25T12:10:00Z"),
+    }));
+  });
+
+  test("platform owner can update app-owned news and events without opening access to other roles", async () => {
+    await assertSucceeds(updateDoc(doc(db("owner"), "news", "app-news"), {
+      title: "Updated platform news",
+      updatedAt: new Date("2026-08-25T12:10:00Z"),
+    }));
+    await assertSucceeds(updateDoc(doc(db("owner"), "events", "app-event"), {
+      summary: "Updated platform event",
+      updatedAt: new Date("2026-08-25T12:10:00Z"),
+    }));
+    await assertFails(updateDoc(doc(db("app-admin"), "news", "app-news"), {
+      title: "Unauthorized admin rewrite",
+    }));
+    await assertFails(updateDoc(doc(db("regular-user"), "events", "app-event"), {
+      summary: "Unauthorized user rewrite",
     }));
   });
 

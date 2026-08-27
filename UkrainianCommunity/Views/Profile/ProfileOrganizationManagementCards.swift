@@ -58,11 +58,11 @@ struct OrganizationRequestPreviewView: View {
                         )
 
                         VStack(alignment: .leading, spacing: 7) {
-                            AppEditorSectionTitle(title: organization.name)
+                            AppEditorSectionTitle(title: organization.localizedName)
                             Text(organization.moderationStatus.title)
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(AppTheme.accentPrimaryForeground)
-                            Text(organization.shortDescription)
+                            Text(organization.localizedShortDescription)
                                 .font(.subheadline)
                                 .foregroundStyle(AppTheme.textSecondary)
                         }
@@ -70,9 +70,9 @@ struct OrganizationRequestPreviewView: View {
                 }
 
                 previewSection(title: AppStrings.Organizations.aboutSectionTitle) {
-                    previewRow(AppStrings.Moderation.shortDescription, organization.shortDescription)
-                    previewRow(AppStrings.Moderation.fullDescription, organization.fullDescription)
-                    previewRow(AppStrings.Organizations.fieldMissionStatement, organization.missionStatement)
+                    previewRow(AppStrings.Moderation.shortDescription, organization.localizedShortDescription)
+                    previewRow(AppStrings.Moderation.fullDescription, organization.localizedFullDescription)
+                    previewRow(AppStrings.Organizations.fieldMissionStatement, organization.localizedMissionStatement)
                 }
 
                 previewSection(title: AppStrings.Profile.organizationContactsSection) {
@@ -157,7 +157,7 @@ struct OrganizationRequestCard: View {
 
                     VStack(alignment: .leading, spacing: 7) {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(organization.name)
+                            Text(organization.localizedName)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(AppTheme.textPrimary)
                                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
@@ -165,7 +165,7 @@ struct OrganizationRequestCard: View {
                             statusBadge
                         }
 
-                        Text(organization.shortDescription)
+                        Text(organization.localizedShortDescription)
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
@@ -283,7 +283,7 @@ struct ManagedOrganizationCard: View {
                             }
                         }
 
-                        Text(organization.shortDescription)
+                        Text(organization.localizedShortDescription)
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
@@ -314,22 +314,30 @@ struct ManagedOrganizationCard: View {
     @ViewBuilder
     private var organizationActions: some View {
         NavigationLink {
-            OrganizationDetailView(
-                viewModel: organizationsViewModel,
-                organizationID: organization.id
-            )
-        } label: {
-            managedOrganizationActionLabel(title: AppStrings.Profile.organizationOpen, systemImage: "arrow.up.right")
-        }
-        .buttonStyle(.plain)
-
-        NavigationLink {
             ManagedOrganizationView(
                 organization: organization,
                 organizationsViewModel: organizationsViewModel
             )
         } label: {
-            managedOrganizationActionLabel(title: AppStrings.Profile.organizationManage, systemImage: "slider.horizontal.3")
+            managedOrganizationActionLabel(
+                title: AppStrings.Profile.organizationManage,
+                systemImage: "slider.horizontal.3",
+                isPrimary: true
+            )
+        }
+        .buttonStyle(.plain)
+
+        NavigationLink {
+            OrganizationDetailView(
+                viewModel: organizationsViewModel,
+                organizationID: organization.id
+            )
+        } label: {
+            managedOrganizationActionLabel(
+                title: AppStrings.Profile.organizationOpen,
+                systemImage: "arrow.up.right",
+                isPrimary: false
+            )
         }
         .buttonStyle(.plain)
     }
@@ -348,7 +356,7 @@ struct ManagedOrganizationCard: View {
     }
 
     private var organizationName: some View {
-        Text(organization.name)
+        Text(organization.localizedName)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppTheme.textPrimary)
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
@@ -410,17 +418,24 @@ struct ManagedOrganizationCard: View {
         )
     }
 
-    private func managedOrganizationActionLabel(title: String, systemImage: String) -> some View {
+    private func managedOrganizationActionLabel(
+        title: String,
+        systemImage: String,
+        isPrimary: Bool
+    ) -> some View {
         Label(title, systemImage: systemImage)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.accentPrimaryForeground)
+            .foregroundStyle(isPrimary ? Color.white : AppTheme.accentPrimaryForeground)
             .frame(maxWidth: .infinity)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, 10)
-            .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(
+                isPrimary ? AppTheme.accentPrimary : AppTheme.accentPrimarySoft,
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(AppTheme.accentPrimary.opacity(0.18))
+                    .strokeBorder(AppTheme.accentPrimary.opacity(isPrimary ? 0.34 : 0.18))
             )
             .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())

@@ -126,9 +126,6 @@ struct NewsDetailView: View {
                     actionsCard(for: post)
                         .onTapGesture { isCommentFieldFocused = false }
 
-                    managementCard(for: post)
-                        .onTapGesture { isCommentFieldFocused = false }
-
                     commentsSection(for: post)
                 }
             } else {

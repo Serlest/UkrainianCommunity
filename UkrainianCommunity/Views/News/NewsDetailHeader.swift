@@ -26,11 +26,19 @@ extension NewsDetailView {
                     url: safeShareURL(post.sourceURL)
                 )
 
-                DetailHeaderSafetyMenu(
+                DetailHeaderActionsMenu(
+                    onEdit: canEditNews
+                        ? { isShowingEditSheet = true }
+                        : nil,
                     onReport: post.authorId != authState.user?.id || !authState.isAuthenticated
                         ? { presentContentReport(.news(post)) }
                         : nil,
-                    onBlock: newsBlockAction(for: post)
+                    onBlock: newsBlockAction(for: post),
+                    destructiveTitle: canDeleteNews ? AppStrings.Action.delete : nil,
+                    onDestructive: canDeleteNews
+                        ? { showDeleteConfirmation = true }
+                        : nil,
+                    isDestructiveDisabled: isDeleting
                 )
             }
         }
@@ -285,50 +293,6 @@ extension NewsDetailView {
                     publisherLine(for: post)
                 }
             }
-        }
-
-        @ViewBuilder
-        func managementCard(for post: NewsPost) -> some View {
-            if canEditNews || canDeleteNews {
-                detailGlassCard(padding: 9) {
-                    AppGlassEffectGroup(spacing: AppTheme.eventsControlGroupSpacing) {
-                        HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                            if canEditNews {
-                                managementActionButton(systemImage: "pencil", title: AppStrings.Action.edit) {
-                                    isShowingEditSheet = true
-                                }
-                                .accessibilityHint(AppStrings.News.detailTitle)
-                            }
-
-                            if canDeleteNews {
-                                managementActionButton(systemImage: "trash", title: AppStrings.Action.delete, role: .destructive) {
-                                    showDeleteConfirmation = true
-                                }
-                                .disabled(isDeleting)
-                                .accessibilityHint(AppStrings.News.detailTitle)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        func managementActionButton(
-            systemImage: String,
-            title: String,
-            role: ButtonRole? = nil,
-            action: @escaping () -> Void
-        ) -> some View {
-            Button(role: role, action: action) {
-                Label(title, systemImage: systemImage)
-                    .font(AppTheme.metadataStrongFont)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                    .appGlassActionSurface(role == .destructive ? .destructive : .regular)
-            }
-            .buttonStyle(AppPressFeedbackButtonStyle())
-            .contentShape(Rectangle())
-            .accessibilityLabel(title)
         }
 
         func detailMetricButton(

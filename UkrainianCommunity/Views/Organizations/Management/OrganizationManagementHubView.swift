@@ -281,6 +281,7 @@ struct OrganizationManagementHubView: View {
         organizationContentStats = organizationContentStats.filter { organizationIDs.contains($0.key) }
         loadingContentStatOrganizationIDs = loadingContentStatOrganizationIDs.intersection(organizationIDs)
 
+        var organizationIDsToLoad: [String] = []
         for organizationID in organizationIDs.sorted() {
             if !force && organizationContentStats[organizationID] != nil {
                 continue
@@ -294,19 +295,45 @@ struct OrganizationManagementHubView: View {
             }
 
             loadingContentStatOrganizationIDs.insert(organizationID)
-            do {
-                async let newsCount = RefreshRequest.run { [self] in try await newsRepository.fetchOrganizationNewsCount(organizationID: organizationID) }
-                async let eventCount = RefreshRequest.run { [self] in try await eventRepository.fetchOrganizationEventCount(organizationID: organizationID) }
-                let stats = ManagedOrganizationContentStats(
-                    newsCount: try await newsCount,
-                    eventCount: try await eventCount
-                )
-                organizationContentStats[organizationID] = stats
-                OrganizationManagementContentStatsCache.store(stats, for: organizationID)
-            } catch {
-                organizationContentStats[organizationID] = nil
+            organizationIDsToLoad.append(organizationID)
+        }
+
+        // Start a small batch at a time. Network work can overlap while the cap
+        // prevents the platform-owner account from issuing an unbounded burst.
+        for batchStart in stride(from: 0, to: organizationIDsToLoad.count, by: 4) {
+            let batchEnd = min(batchStart + 4, organizationIDsToLoad.count)
+            let batch = organizationIDsToLoad[batchStart..<batchEnd]
+            let tasks = batch.map { organizationID in
+                Task { @MainActor in
+                    (organizationID, await fetchContentStats(for: organizationID))
+                }
             }
-            loadingContentStatOrganizationIDs.remove(organizationID)
+
+            for task in tasks {
+                let (organizationID, stats) = await task.value
+                organizationContentStats[organizationID] = stats
+                if let stats {
+                    OrganizationManagementContentStatsCache.store(stats, for: organizationID)
+                }
+                loadingContentStatOrganizationIDs.remove(organizationID)
+            }
+        }
+    }
+
+    private func fetchContentStats(for organizationID: String) async -> ManagedOrganizationContentStats? {
+        do {
+            async let newsCount = RefreshRequest.run { [self] in
+                try await newsRepository.fetchOrganizationNewsCount(organizationID: organizationID)
+            }
+            async let eventCount = RefreshRequest.run { [self] in
+                try await eventRepository.fetchOrganizationEventCount(organizationID: organizationID)
+            }
+            return ManagedOrganizationContentStats(
+                newsCount: try await newsCount,
+                eventCount: try await eventCount
+            )
+        } catch {
+            return nil
         }
     }
 }

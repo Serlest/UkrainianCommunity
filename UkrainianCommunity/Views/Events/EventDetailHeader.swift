@@ -26,11 +26,19 @@ extension EventDetailView {
                     url: eventShareURL(for: event)
                 )
 
-                DetailHeaderSafetyMenu(
+                DetailHeaderActionsMenu(
+                    onEdit: canEditEvent(event)
+                        ? { isShowingEditSheet = true }
+                        : nil,
                     onReport: event.authorId != authState.user?.id || !authState.isAuthenticated
                         ? { presentContentReport(.event(event)) }
                         : nil,
-                    onBlock: eventBlockAction(for: event)
+                    onBlock: eventBlockAction(for: event),
+                    destructiveTitle: canDeleteEvent(event) ? eventDestructiveActionTitle(for: event) : nil,
+                    onDestructive: canDeleteEvent(event)
+                        ? { showDeleteConfirmation = true }
+                        : nil,
+                    isDestructiveDisabled: isDeleting
                 )
             }
         }

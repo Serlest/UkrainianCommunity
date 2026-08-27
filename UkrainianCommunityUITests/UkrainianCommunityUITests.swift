@@ -880,7 +880,47 @@ final class UkrainianCommunityUITests: XCTestCase {
             assertRootScreen(screenIdentifier: "screen.home", tabLabel: "Start", in: app)
             cardID = "home.card.news-news-1"
         }
-        let card = app.descendants(matching: .any).matching(identifier: cardID).firstMatch
+        var card = app.descendants(matching: .any).matching(identifier: cardID).firstMatch
+        if kind == "news", !card.waitForExistence(timeout: 2) {
+            // The owner fixture can have a different regional home feed than
+            // the regular-user fixture. Open the first visible news card
+            // instead of coupling this shared-detail test to one region.
+            card = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.card.news-"))
+                .firstMatch
+            if !card.waitForExistence(timeout: 2) {
+                let regionFilter = app.buttons["home.filter.region"].firstMatch
+                XCTAssertTrue(regionFilter.waitForExistence(timeout: 5))
+                regionFilter.tap()
+                let allAustria = app.buttons["Ganz Österreich"].firstMatch
+                XCTAssertTrue(allAustria.waitForExistence(timeout: 5))
+                allAustria.tap()
+            }
+        } else if kind == "events", !card.waitForExistence(timeout: 2) {
+            card = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier BEGINSWITH %@", "event.card."))
+                .firstMatch
+            if !card.waitForExistence(timeout: 2) {
+                let regionFilter = app.buttons["events.filter.region"].firstMatch
+                XCTAssertTrue(regionFilter.waitForExistence(timeout: 5))
+                regionFilter.tap()
+                let allAustria = app.buttons["Ganz Österreich"].firstMatch
+                XCTAssertTrue(allAustria.waitForExistence(timeout: 5))
+                allAustria.tap()
+            }
+        } else if kind == "organizations", !card.waitForExistence(timeout: 2) {
+            card = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier BEGINSWITH %@", "organization.card."))
+                .firstMatch
+            if !card.waitForExistence(timeout: 2) {
+                let regionFilter = app.buttons["organizations.filter.region"].firstMatch
+                XCTAssertTrue(regionFilter.waitForExistence(timeout: 5))
+                regionFilter.tap()
+                let allAustria = app.buttons["Ganz Österreich"].firstMatch
+                XCTAssertTrue(allAustria.waitForExistence(timeout: 5))
+                allAustria.tap()
+            }
+        }
         scrollToElement(card, in: app, maxSwipes: 10)
         XCTAssertTrue(card.waitForExistence(timeout: 15), "Missing \(kind) card")
         card.tap()
@@ -999,6 +1039,28 @@ final class UkrainianCommunityUITests: XCTestCase {
         moreActions.tap()
         XCTAssertTrue(app.buttons["Melden"].waitForExistence(timeout: 5))
         attachScreenshot(named: "organization-header-safety-menu", from: app)
+    }
+
+    @MainActor
+    func testOwnerManagementActionsUseTheSharedDetailMenu() throws {
+        for kind in ["news", "events", "organizations"] {
+            let app = launchOwnerApp()
+            openComments(kind, in: app)
+
+            let moreActions = app.buttons.matching(identifier: "detail.header.more-actions").firstMatch
+            XCTAssertTrue(moreActions.waitForExistence(timeout: 10), "Missing More menu for \(kind)")
+            moreActions.tap()
+
+            XCTAssertTrue(app.buttons["Bearbeiten"].waitForExistence(timeout: 5), "Missing Edit for \(kind)")
+            let destructiveAction = app.buttons["Löschen"].firstMatch
+            let cancelEventAction = app.buttons["Veranstaltung absagen"].firstMatch
+            XCTAssertTrue(
+                destructiveAction.waitForExistence(timeout: 2) || cancelEventAction.waitForExistence(timeout: 2),
+                "Missing destructive action for \(kind)"
+            )
+            attachScreenshot(named: "owner-detail-menu-\(kind)", from: app)
+            app.terminate()
+        }
     }
 
     @MainActor

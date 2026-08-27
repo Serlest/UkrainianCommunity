@@ -581,15 +581,57 @@ struct DetailHeaderShareButton: View {
     }
 }
 
-/// Keeps infrequent safety actions available without competing with the
-/// primary save and share commands in a compact detail header.
-struct DetailHeaderSafetyMenu: View {
+/// Keeps contextual management and safety actions available without competing
+/// with the primary save and share commands in a compact detail header.
+struct DetailHeaderActionsMenu: View {
+    let onEdit: (() -> Void)?
     let onReport: (() -> Void)?
     let onBlock: (() -> Void)?
+    let destructiveTitle: String?
+    let onDestructive: (() -> Void)?
+    let isDestructiveDisabled: Bool
+
+    init(
+        onEdit: (() -> Void)? = nil,
+        onReport: (() -> Void)? = nil,
+        onBlock: (() -> Void)? = nil,
+        destructiveTitle: String? = nil,
+        onDestructive: (() -> Void)? = nil,
+        isDestructiveDisabled: Bool = false
+    ) {
+        self.onEdit = onEdit
+        self.onReport = onReport
+        self.onBlock = onBlock
+        self.destructiveTitle = destructiveTitle
+        self.onDestructive = onDestructive
+        self.isDestructiveDisabled = isDestructiveDisabled
+    }
+
+    private var hasManagementActions: Bool {
+        onEdit != nil
+    }
+
+    private var hasSafetyActions: Bool {
+        onReport != nil || onBlock != nil
+    }
+
+    private var hasDestructiveAction: Bool {
+        destructiveTitle != nil && onDestructive != nil
+    }
 
     var body: some View {
-        if onReport != nil || onBlock != nil {
+        if hasManagementActions || hasSafetyActions || hasDestructiveAction {
             Menu {
+                if let onEdit {
+                    Button(action: onEdit) {
+                        Label(AppStrings.Action.edit, systemImage: "pencil")
+                    }
+                }
+
+                if hasManagementActions && hasSafetyActions {
+                    Divider()
+                }
+
                 if let onReport {
                     Button(action: onReport) {
                         Label(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble")
@@ -603,6 +645,19 @@ struct DetailHeaderSafetyMenu: View {
                 if let onBlock {
                     Button(role: .destructive, action: onBlock) {
                         Label(AppStrings.Safety.blockAction, systemImage: "person.slash")
+                    }
+                }
+
+                if hasDestructiveAction {
+                    if hasManagementActions || hasSafetyActions {
+                        Divider()
+                    }
+
+                    if let destructiveTitle, let onDestructive {
+                        Button(role: .destructive, action: onDestructive) {
+                            Label(destructiveTitle, systemImage: "trash")
+                        }
+                        .disabled(isDestructiveDisabled)
                     }
                 }
             } label: {

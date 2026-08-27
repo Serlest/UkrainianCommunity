@@ -50,7 +50,7 @@ struct ManagedOrganizationView: View {
 
     var body: some View {
         ProfileDestinationLayout(
-            title: currentOrganization.name,
+            title: currentOrganization.localizedName,
             introSubtitle: AppStrings.Profile.organizationManagementSubtitle
         ) {
             organizationSummaryCard
@@ -178,7 +178,7 @@ struct ManagedOrganizationView: View {
                     )
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(currentOrganization.name)
+                        Text(currentOrganization.localizedName)
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(AppTheme.textPrimary)
                             .lineLimit(2)
@@ -194,7 +194,7 @@ struct ManagedOrganizationView: View {
                             )
                         }
 
-                        Text(currentOrganization.shortDescription)
+                        Text(currentOrganization.localizedShortDescription)
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(3)

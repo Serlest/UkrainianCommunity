@@ -586,42 +586,6 @@ extension EventDetailView {
             authState.isAuthenticated && comment.authorId != nil && comment.authorId != authState.user?.id
         }
 
-        @ViewBuilder
-        var managementCard: some View {
-            if let event = viewModel.event(for: eventID), canEditEvent(event) || canDeleteEvent(event) {
-                detailGlassCard(padding: 9) {
-                    AppGlassEffectGroup(spacing: AppTheme.eventsControlGroupSpacing) {
-                        HStack(spacing: AppTheme.eventsControlGroupSpacing) {
-                            if canEditEvent(event) {
-                                eventManagementButton(title: AppStrings.Action.edit, systemImage: "pencil") {
-                                    isShowingEditSheet = true
-                                }
-                            }
-
-                            if canDeleteEvent(event) {
-                                eventManagementButton(title: eventDestructiveActionTitle(for: event), systemImage: "trash", role: .destructive) {
-                                    showDeleteConfirmation = true
-                                }
-                                .disabled(isDeleting)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        func eventManagementButton(title: String, systemImage: String, role: ButtonRole? = nil, action: @escaping () -> Void) -> some View {
-            Button(role: role, action: action) {
-                Label(title, systemImage: systemImage)
-                    .font(AppTheme.metadataStrongFont)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                    .appGlassActionSurface(role == .destructive ? .destructive : .regular)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(title)
-        }
-
         func canDeleteComment(_ comment: Comment) -> Bool {
             guard let user = authState.user else { return false }
             if PermissionService.canModerate(section: .comments, user: user) || PermissionService.canModerate(section: .events, user: user) {

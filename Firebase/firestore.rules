@@ -419,7 +419,7 @@ service cloud.firestore {
     function validNewsDocument(data, newsId) {
       return data.keys().hasOnly(newsDocumentFields())
         && data.keys().hasAll([
-          'id', 'title', 'subtitle', 'body', 'sourceType', 'organizationId',
+          'id', 'title', 'subtitle', 'body', 'sourceType',
           'authorName', 'publishedAt', 'createdAt', 'updatedAt',
           'moderationStatus', 'likeCount', 'likeState', 'viewCount', 'commentCount'
         ])
@@ -427,8 +427,13 @@ service cloud.firestore {
         && data.title is string && data.title.size() > 0 && data.title.size() <= 180
         && data.subtitle is string && data.subtitle.size() <= 500
         && data.body is string && data.body.size() > 0 && data.body.size() <= 50000
-        && data.sourceType == 'organization'
-        && data.organizationId is string && data.organizationId.size() > 0
+        && data.sourceType in ['organization', 'app']
+        && (
+          (data.sourceType == 'organization'
+            && data.organizationId is string
+            && data.organizationId.size() > 0)
+          || (data.sourceType == 'app' && !('organizationId' in data))
+        )
         && (!('authorId' in data)
           || (data.authorId is string && data.authorId.size() > 0 && data.authorId.size() <= 128))
         && data.authorName is string && data.authorName.size() <= 160
@@ -449,7 +454,7 @@ service cloud.firestore {
     function validEventDocument(data, eventId) {
       return data.keys().hasOnly(eventDocumentFields())
         && data.keys().hasAll([
-          'id', 'title', 'summary', 'details', 'sourceType', 'organizationId',
+          'id', 'title', 'summary', 'details', 'sourceType',
           'city', 'venue', 'startDate', 'endDate', 'createdAt', 'updatedAt',
           'price', 'registeredCount', 'moderationStatus',
           'registrationState', 'likeCount', 'likeState', 'viewCount',
@@ -459,8 +464,13 @@ service cloud.firestore {
         && data.title is string && data.title.size() > 0 && data.title.size() <= 180
         && data.summary is string && data.summary.size() <= 500
         && data.details is string && data.details.size() > 0 && data.details.size() <= 50000
-        && data.sourceType == 'organization'
-        && data.organizationId is string && data.organizationId.size() > 0
+        && data.sourceType in ['organization', 'app']
+        && (
+          (data.sourceType == 'organization'
+            && data.organizationId is string
+            && data.organizationId.size() > 0)
+          || (data.sourceType == 'app' && !('organizationId' in data))
+        )
         && data.city is string && data.city.size() <= 160
         && data.venue is string && data.venue.size() <= 240
         && data.startDate is timestamp && data.endDate is timestamp
@@ -1922,6 +1932,15 @@ service cloud.firestore {
         && (canUseOrganizationOverride() || canEditOrganizationContent(resource.data.organizationId));
     }
 
+    function canUpdateAppContent() {
+      return isOwner()
+        && ('sourceType' in resource.data)
+        && resource.data.sourceType == 'app'
+        && ('sourceType' in request.resource.data)
+        && request.resource.data.sourceType == 'app'
+        && aggregateCountersArePreservedOnUpdate();
+    }
+
     function canModerateNewsComment(newsId) {
       return canModerateAppContent('news')
         || (
@@ -2333,7 +2352,7 @@ service cloud.firestore {
       allow update: if onlyModerationStatusChanged()
         ? canModerateAppContent('news')
         : (validNewsDocument(request.resource.data, newsId)
-          && canUpdateOrganizationContent()
+          && (canUpdateOrganizationContent() || canUpdateAppContent())
           && request.resource.data.id == resource.data.id
           && (
             (!('authorId' in resource.data) && !('authorId' in request.resource.data))
@@ -2376,7 +2395,7 @@ service cloud.firestore {
       allow update: if onlyModerationStatusChanged()
         ? canModerateAppContent('events')
         : (validEventDocument(request.resource.data, eventId)
-          && canUpdateOrganizationContent()
+          && (canUpdateOrganizationContent() || canUpdateAppContent())
           && request.resource.data.id == resource.data.id
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.moderationStatus == resource.data.moderationStatus);

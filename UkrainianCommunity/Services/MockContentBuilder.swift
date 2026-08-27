@@ -87,7 +87,9 @@ enum MockContentBuilder {
             role: .owner,
             globalRole: .owner,
             blockState: .active,
-            selectedFederalState: .wien,
+            // Keep the owner UI-test session aligned with the seeded catalog
+            // so management paths are visible without hidden fixture coupling.
+            selectedFederalState: .tirol,
             acceptedTermsAt: calendar.date(byAdding: .year, value: -1, to: .now),
             acceptedPrivacyAt: calendar.date(byAdding: .year, value: -1, to: .now),
             acceptedTermsVersion: AuthService.currentTermsVersion,

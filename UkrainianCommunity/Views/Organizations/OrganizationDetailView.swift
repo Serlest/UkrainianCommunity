@@ -310,6 +310,7 @@ struct OrganizationDetailView: View {
     let onNavigateBack: (() -> Void)?
     @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
+    @State var isShowingEditSheet = false
     @State var deleteErrorMessage: String?
     @State var pendingRemovalOrganizationID: String?
     @State var guestAccessAction: GuestAccessAction?
@@ -518,6 +519,21 @@ struct OrganizationDetailView: View {
         ))
         .appErrorDialog(deleteErrorDialog)
         .appErrorDialog(commentDeleteErrorDialog)
+        .sheet(isPresented: $isShowingEditSheet) {
+            if let organization = viewModel.organization(for: organizationID) {
+                NavigationStack {
+                    OrganizationEditorView(
+                        organizationsViewModel: viewModel,
+                        organization: organization,
+                        onSaved: {
+                            await onOrganizationSaved()
+                            await refreshOrganizationDetail(for: organization)
+                        }
+                    )
+                }
+                .environmentObject(authState)
+            }
+        }
         .guestAccessAlert($guestAccessAction)
         .appErrorDialog(Binding(
             get: {

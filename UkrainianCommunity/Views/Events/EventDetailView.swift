@@ -179,9 +179,6 @@ struct EventDetailView: View {
 
                     engagementCard(for: event, scrollProxy: scrollProxy)
 
-                    managementCard
-                        .onTapGesture { isCommentFieldFocused = false }
-
                     commentsCard(for: event)
                         .id(commentsSectionID)
                 }

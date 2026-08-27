@@ -304,6 +304,18 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canDeleteNews(user: owner))
         #expect(PermissionService.canDeleteEvent(user: owner))
         #expect(PermissionService.canDeleteOrganization(user: owner))
+        #expect(PermissionService.canEditNews(user: owner))
+        #expect(PermissionService.canEditEvent(user: owner))
+
+        let appEvent = makeEvent(
+            id: "app-event",
+            startDate: Date(timeIntervalSince1970: 1_800_000_000),
+            endDate: Date(timeIntervalSince1970: 1_800_003_600)
+        )
+        #expect(PermissionService.canEditEvent(appEvent, user: owner))
+        #expect(PermissionService.canDeleteEvent(appEvent, user: owner))
+        #expect(PermissionService.canEditEvent(appEvent, user: platformAdmin) == false)
+        #expect(PermissionService.canDeleteEvent(appEvent, user: platformAdmin) == false)
 
         #expect(PermissionService.canAccessContentManagement(user: ordinaryUser) == false)
         #expect(PermissionService.canAccessOrganizationManagement(user: ordinaryUser) == false)

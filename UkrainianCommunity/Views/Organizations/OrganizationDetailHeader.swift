@@ -23,7 +23,14 @@ extension OrganizationDetailView {
                 || !authState.isAuthenticated
                 ? { presentContentReport(.organization(organization)) }
                 : nil,
-            onBlock: organizationBlockAction(for: organization)
+            onBlock: organizationBlockAction(for: organization),
+            onEdit: PermissionService.canEditOrganizationInfo(organization, user: authState.user)
+                ? { isShowingEditSheet = true }
+                : nil,
+            onDelete: PermissionService.canDeleteOrganization(organization, user: authState.user)
+                ? { showDeleteConfirmation = true }
+                : nil,
+            isDeleteDisabled: isDeletingCurrentOrganization
         )
     }
 
@@ -237,6 +244,9 @@ private struct OrganizationDetailHeaderActions: View {
     let onBookmark: () -> Void
     let onReport: (() -> Void)?
     let onBlock: (() -> Void)?
+    let onEdit: (() -> Void)?
+    let onDelete: (() -> Void)?
+    let isDeleteDisabled: Bool
 
     var body: some View {
         Group {
@@ -255,7 +265,14 @@ private struct OrganizationDetailHeaderActions: View {
                 url: shareURL
             )
 
-            DetailHeaderSafetyMenu(onReport: onReport, onBlock: onBlock)
+            DetailHeaderActionsMenu(
+                onEdit: onEdit,
+                onReport: onReport,
+                onBlock: onBlock,
+                destructiveTitle: onDelete == nil ? nil : AppStrings.Organizations.delete,
+                onDestructive: onDelete,
+                isDestructiveDisabled: isDeleteDisabled
+            )
         }
     }
 }

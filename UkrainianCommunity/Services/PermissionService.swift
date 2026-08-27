@@ -513,7 +513,7 @@ struct PermissionService {
     }
 
     static func canEditNews(user: AppUser?) -> Bool {
-        false
+        Self.isOwner(user)
     }
 
     static func canModerateNews(_ news: NewsPost, user: AppUser?) -> Bool {
@@ -558,10 +558,7 @@ struct PermissionService {
 
     static func canEditEvent(_ event: Event, user: AppUser?) -> Bool {
         guard let user else { return false }
-        if event.source.organizationId != nil {
-            return Self.isOwner(user)
-        }
-        return false
+        return Self.isOwner(user)
     }
 
     static func canDeleteEvent(user: AppUser?) -> Bool {
@@ -577,10 +574,7 @@ struct PermissionService {
 
     static func canDeleteEvent(_ event: Event, user: AppUser?) -> Bool {
         guard let user else { return false }
-        if event.source.organizationId != nil {
-            return Self.isOwner(user)
-        }
-        return false
+        return Self.isOwner(user)
     }
 
     static func canModerateEvent(_ event: Event, user: AppUser?) -> Bool {
