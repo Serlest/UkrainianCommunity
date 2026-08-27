@@ -70,7 +70,7 @@ Baseline rollback tag: `checkpoint/build-37-pre-content-editor-v2-20260826`
 - [x] Run isolated Debug and Release builds.
 - [ ] Verify Simulator UI in Ukrainian/German, Dynamic Type, VoiceOver, portrait, and landscape.
 - [ ] Verify a physical device separately.
-- [ ] Deploy backward-compatible indexes/Functions/Rules only after explicit preflight evidence.
+- [x] Deploy backward-compatible Functions/Rules only after explicit preflight evidence; no index change was required.
 - [ ] Verify build 37 against the updated backend before uploading the next TestFlight build.
 - [x] Commit logical checkpoints; push them before any production deployment.
 
@@ -83,3 +83,11 @@ Baseline rollback tag: `checkpoint/build-37-pre-content-editor-v2-20260826`
 - Roll back Rules to the recorded production ruleset; read back and verify after deployment.
 - Extra indexes may remain because they do not mutate content.
 - New documents always dual-write Ukrainian legacy fields so build 37 can render them.
+
+## Production rollout evidence
+
+- Firebase project: `ukrainiancommunity-dbd5f`.
+- Functions deployed in `europe-west3`: `cancelEvent`, `notifyEventUpdatedOnUpdate`, and `notifyEventCancelledOnDelete`.
+- Active Firestore ruleset: `5e0f7b6c-e530-4dd4-9fdb-2a5928c8e440`.
+- Active/local Firestore Rules SHA-256: `ea74d25a1a433c4d271ae0878a187c7bf8d853e2a46d95c99d2564f09a7b4f4d`.
+- No Storage Rules, indexes, hosting, production documents, or unrelated Functions were changed.
