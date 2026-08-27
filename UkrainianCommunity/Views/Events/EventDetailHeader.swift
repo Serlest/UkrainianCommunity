@@ -26,26 +26,22 @@ extension EventDetailView {
                     url: eventShareURL(for: event)
                 )
 
-                if event.authorId != authState.user?.id || !authState.isAuthenticated {
-                    DetailHeaderActionButton(
-                        systemImage: "exclamationmark.bubble",
-                        accessibilityLabel: AppStrings.Safety.reportAction
-                    ) {
-                        presentContentReport(.event(event))
-                    }
-                }
-
-                if authState.isAuthenticated,
-                   let target = UserBlockTarget.event(event),
-                   target.userId != authState.user?.id {
-                    DetailHeaderActionButton(
-                        systemImage: "person.crop.circle.badge.xmark",
-                        accessibilityLabel: AppStrings.Safety.blockAction
-                    ) {
-                        userBlockingPresentation.present(target)
-                    }
-                }
+                DetailHeaderSafetyMenu(
+                    onReport: event.authorId != authState.user?.id || !authState.isAuthenticated
+                        ? { presentContentReport(.event(event)) }
+                        : nil,
+                    onBlock: eventBlockAction(for: event)
+                )
             }
+        }
+
+        func eventBlockAction(for event: Event) -> (() -> Void)? {
+            guard authState.isAuthenticated,
+                  let target = UserBlockTarget.event(event),
+                  target.userId != authState.user?.id else {
+                return nil
+            }
+            return { userBlockingPresentation.present(target) }
         }
 
         func presentContentReport(_ target: ContentReportTarget) {

@@ -983,6 +983,25 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOrganizationHeaderPrioritizesSaveShareAndMoreActions() throws {
+        let app = launchAuthenticatedApp()
+        assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
+
+        let card = app.descendants(matching: .any).matching(identifier: "organization.card.org-1").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+
+        let moreActions = app.buttons.matching(identifier: "detail.header.more-actions").firstMatch
+        XCTAssertTrue(moreActions.waitForExistence(timeout: 10))
+        XCTAssertTrue(moreActions.isHittable)
+        attachScreenshot(named: "organization-header-primary-actions", from: app)
+
+        moreActions.tap()
+        XCTAssertTrue(app.buttons["Melden"].waitForExistence(timeout: 5))
+        attachScreenshot(named: "organization-header-safety-menu", from: app)
+    }
+
+    @MainActor
     func testPublicOrganizationsScreenDoesNotExposeManagementControls() throws {
         let app = launchApp()
         assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)

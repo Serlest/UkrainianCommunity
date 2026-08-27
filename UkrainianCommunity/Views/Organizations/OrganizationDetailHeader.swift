@@ -255,23 +255,7 @@ private struct OrganizationDetailHeaderActions: View {
                 url: shareURL
             )
 
-            if let onReport {
-                DetailHeaderActionButton(
-                    systemImage: "exclamationmark.bubble",
-                    accessibilityLabel: AppStrings.Safety.reportAction
-                ) {
-                    onReport()
-                }
-            }
-
-            if let onBlock {
-                DetailHeaderActionButton(
-                    systemImage: "person.crop.circle.badge.xmark",
-                    accessibilityLabel: AppStrings.Safety.blockAction
-                ) {
-                    onBlock()
-                }
-            }
+            DetailHeaderSafetyMenu(onReport: onReport, onBlock: onBlock)
         }
     }
 }

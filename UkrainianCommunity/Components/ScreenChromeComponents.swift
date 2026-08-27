@@ -581,6 +581,51 @@ struct DetailHeaderShareButton: View {
     }
 }
 
+/// Keeps infrequent safety actions available without competing with the
+/// primary save and share commands in a compact detail header.
+struct DetailHeaderSafetyMenu: View {
+    let onReport: (() -> Void)?
+    let onBlock: (() -> Void)?
+
+    var body: some View {
+        if onReport != nil || onBlock != nil {
+            Menu {
+                if let onReport {
+                    Button(action: onReport) {
+                        Label(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble")
+                    }
+                }
+
+                if onReport != nil, onBlock != nil {
+                    Divider()
+                }
+
+                if let onBlock {
+                    Button(role: .destructive, action: onBlock) {
+                        Label(AppStrings.Safety.blockAction, systemImage: "person.slash")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(AppTheme.glassIconButtonIconFont)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
+                    .appGlassSurface(
+                        cornerRadius: AppTheme.glassIconButtonCornerRadius,
+                        isInteractive: true,
+                        fallbackRole: .control,
+                        shadowRadius: AppTheme.glassIconButtonShadowRadius,
+                        shadowY: AppTheme.glassIconButtonShadowY
+                    )
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .accessibilityLabel(AppStrings.Safety.moreActions)
+            .accessibilityIdentifier("detail.header.more-actions")
+        }
+    }
+}
+
 /// Admin and management shell with optional filter/search/metrics areas.
 ///
 /// Admin screens should not show the app logo. The tab bar is hidden by

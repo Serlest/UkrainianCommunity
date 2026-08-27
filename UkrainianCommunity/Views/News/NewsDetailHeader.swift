@@ -26,26 +26,22 @@ extension NewsDetailView {
                     url: safeShareURL(post.sourceURL)
                 )
 
-                if post.authorId != authState.user?.id || !authState.isAuthenticated {
-                    DetailHeaderActionButton(
-                        systemImage: "exclamationmark.bubble",
-                        accessibilityLabel: AppStrings.Safety.reportAction
-                    ) {
-                        presentContentReport(.news(post))
-                    }
-                }
-
-                if authState.isAuthenticated,
-                   let target = UserBlockTarget.news(post),
-                   target.userId != authState.user?.id {
-                    DetailHeaderActionButton(
-                        systemImage: "person.crop.circle.badge.xmark",
-                        accessibilityLabel: AppStrings.Safety.blockAction
-                    ) {
-                        userBlockingPresentation.present(target)
-                    }
-                }
+                DetailHeaderSafetyMenu(
+                    onReport: post.authorId != authState.user?.id || !authState.isAuthenticated
+                        ? { presentContentReport(.news(post)) }
+                        : nil,
+                    onBlock: newsBlockAction(for: post)
+                )
             }
+        }
+
+        func newsBlockAction(for post: NewsPost) -> (() -> Void)? {
+            guard authState.isAuthenticated,
+                  let target = UserBlockTarget.news(post),
+                  target.userId != authState.user?.id else {
+                return nil
+            }
+            return { userBlockingPresentation.present(target) }
         }
 
         func presentContentReport(_ target: ContentReportTarget) {
