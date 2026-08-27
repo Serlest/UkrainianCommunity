@@ -9,7 +9,11 @@ extension EventEditorView {
                     ForEach(Array(viewModel.additionalOccurrences.enumerated()), id: \.element.id) { index, occurrence in
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Label("\(ContentPublishingStrings.multipleDates) \(index + 2)", systemImage: "calendar.badge.clock")
+                                Label {
+                                    Text(verbatim: "\(ContentPublishingStrings.multipleDates) \(index + 2)")
+                                } icon: {
+                                    Image(systemName: "calendar.badge.clock")
+                                }
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(AppTheme.textPrimary)
                                 Spacer()

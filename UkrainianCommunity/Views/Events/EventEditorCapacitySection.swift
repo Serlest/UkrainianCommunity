@@ -75,7 +75,12 @@ extension EventEditorView {
                         .eventEditorCompactInputStyle(minHeight: compactInputHeight)
                 }
                 editorField(title: "URL", counterText: "\(viewModel.externalActionURL.count)/\(EventEditorViewModel.externalActionURLLimit)") {
-                    TextField("https://", text: $viewModel.externalActionURL)
+                    TextField(
+                        text: $viewModel.externalActionURL,
+                        prompt: Text(verbatim: "https://")
+                    ) {
+                        Text(verbatim: "URL")
+                    }
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()

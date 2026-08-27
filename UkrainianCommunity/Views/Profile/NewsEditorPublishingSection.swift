@@ -62,7 +62,12 @@ extension NewsEditorView {
                         .newsEditorCompactInputStyle(minHeight: compactInputHeight)
                 }
                 editorField(title: "URL", counterText: counterText(viewModel.externalActionURL.count, limit: NewsEditorViewModel.externalActionURLLimit)) {
-                    TextField("https://", text: $viewModel.externalActionURL)
+                    TextField(
+                        text: $viewModel.externalActionURL,
+                        prompt: Text(verbatim: "https://")
+                    ) {
+                        Text(verbatim: "URL")
+                    }
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
