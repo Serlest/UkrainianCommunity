@@ -114,21 +114,33 @@ async function main() {
         screenshotCount: screenshots.data?.length || 0,
       });
     }
-    localizationRows.push({locale: localization.attributes?.locale, screenshotSets});
+    const value = localization.attributes || {};
+    localizationRows.push({
+      locale: value.locale,
+      hasDescription: Boolean(value.description),
+      descriptionLength: typeof value.description === "string" ? value.description.length : 0,
+      hasKeywords: Boolean(value.keywords),
+      hasPromotionalText: Boolean(value.promotionalText),
+      supportUrl: value.supportUrl || null,
+      marketingUrl: value.marketingUrl || null,
+      screenshotSets,
+    });
   }
 
   const infoRows = [];
   for (const info of appInfos.data || []) {
-    const [primaryCategory, secondaryCategory, ageRating] = await Promise.all([
+    const [primaryCategory, secondaryCategory, ageRating, infoLocalizations] = await Promise.all([
       request(token, `/v1/appInfos/${info.id}/primaryCategory`),
       request(token, `/v1/appInfos/${info.id}/secondaryCategory`),
       request(token, `/v1/appInfos/${info.id}/ageRatingDeclaration`),
+      request(token, `/v1/appInfos/${info.id}/appInfoLocalizations?limit=20`),
     ]);
     infoRows.push({
       state: info.attributes?.appStoreState,
       primaryCategory: attributes(primaryCategory),
       secondaryCategory: attributes(secondaryCategory),
       ageRating: attributes(ageRating),
+      localizations: attributes(infoLocalizations),
     });
   }
 
