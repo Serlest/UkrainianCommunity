@@ -99,15 +99,15 @@ struct FeaturedBannerActionTargetItem: Identifiable, Hashable {
     init(organization: Organization) {
         id = organization.id
         kind = .organization
-        title = organization.name
-        subtitle = Self.nonEmpty(organization.shortDescription)
+        title = organization.localizedName
+        subtitle = Self.nonEmpty(organization.localizedShortDescription)
         metadata = Self.joined([
             Self.nonEmpty(organization.organizationType),
             Self.nonEmpty(organization.city)
         ])
         searchText = Self.searchText([
-            organization.name,
-            organization.shortDescription,
+            organization.localizedName,
+            organization.localizedShortDescription,
             organization.city,
             organization.organizationType,
             organization.id

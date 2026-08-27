@@ -9,7 +9,7 @@ extension OrganizationDetailView {
 
             directoryProfileCards(for: organization)
 
-            if let missionStatement = organization.missionStatement?.trimmingCharacters(in: .whitespacesAndNewlines), !missionStatement.isEmpty {
+            if let missionStatement = organization.localizedMissionStatement?.trimmingCharacters(in: .whitespacesAndNewlines), !missionStatement.isEmpty {
                 DetailCard {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                         Text(AppStrings.Organizations.detailMissionStatementTitle)
@@ -300,8 +300,8 @@ extension OrganizationDetailView {
     }
 
     func meaningfulAboutText(for organization: Organization) -> String? {
-        let fullDescription = organization.fullDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        let shortDescription = organization.shortDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fullDescription = organization.localizedFullDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shortDescription = organization.localizedShortDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         if !fullDescription.isEmpty {
             return fullDescription
         }

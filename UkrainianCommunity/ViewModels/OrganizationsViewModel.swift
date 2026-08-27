@@ -850,6 +850,7 @@ final class OrganizationsViewModel: ObservableObject {
 
             let organizationToSave = Organization(
                 id: organization.id,
+                localizations: organization.localizations,
                 name: organization.name,
                 description: organization.description,
                 shortDescription: organization.shortDescription,
@@ -1052,6 +1053,7 @@ private extension Organization {
     func settingOrganizationImageURL(_ imageURL: String?) -> Organization {
         Organization(
             id: id,
+            localizations: localizations,
             name: name,
             description: description,
             shortDescription: shortDescription,

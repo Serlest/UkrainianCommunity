@@ -117,6 +117,11 @@ extension OrganizationServiceMode {
     }
 }
 
+private struct OrganizationServiceSuggestion {
+    let ukrainian: String
+    let german: String
+}
+
 @MainActor
 final class OrganizationEditorViewModel: ObservableObject {
     enum Mode {
@@ -149,6 +154,15 @@ final class OrganizationEditorViewModel: ObservableObject {
             scheduleCreateDraftAutosave()
         }
     }
+    @Published var germanName = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanShortDescription = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanFullDescription = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanMissionStatement = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanServiceArea = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanSpecialHoursNote = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanServices = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanCurrentOfferTitle = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var germanCurrentOfferDetails = "" { didSet { scheduleCreateDraftAutosave() } }
     @Published var city = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
@@ -284,6 +298,16 @@ final class OrganizationEditorViewModel: ObservableObject {
             name = existingOrganization.name
             shortDescription = Self.limitedShortDescription(existingOrganization.shortDescription)
             fullDescription = Self.limitedFullDescription(existingOrganization.fullDescription)
+            let german = existingOrganization.localizations[PublishedContentLanguage.german.rawValue]
+            germanName = german?.name ?? ""
+            germanShortDescription = german?.shortDescription ?? ""
+            germanFullDescription = german?.fullDescription ?? ""
+            germanMissionStatement = german?.missionStatement ?? ""
+            germanServiceArea = german?.serviceArea ?? ""
+            germanSpecialHoursNote = german?.specialHoursNote ?? ""
+            germanServices = german?.services.joined(separator: ", ") ?? ""
+            germanCurrentOfferTitle = german?.currentOfferTitle ?? ""
+            germanCurrentOfferDetails = german?.currentOfferDetails ?? ""
             city = existingOrganization.city
             address = existingOrganization.address ?? ""
             selectedFederalState = existingOrganization.federalState
@@ -402,6 +426,30 @@ final class OrganizationEditorViewModel: ObservableObject {
         }
     }
 
+    func suggestedServices(language: PublishedContentLanguage) -> [String] {
+        serviceSuggestions.map { language == .german ? $0.german : $0.ukrainian }
+    }
+
+    func isSuggestedServiceSelected(_ value: String, language: PublishedContentLanguage) -> Bool {
+        let source = language == .german ? germanServices : services
+        return source.commaSeparatedValues.contains { $0.localizedCaseInsensitiveCompare(value) == .orderedSame }
+    }
+
+    func toggleSuggestedService(_ value: String, language: PublishedContentLanguage) {
+        let source = language == .german ? germanServices : services
+        var values = source.commaSeparatedValues
+        if let index = values.firstIndex(where: { $0.localizedCaseInsensitiveCompare(value) == .orderedSame }) {
+            values.remove(at: index)
+        } else if values.count < OrganizationDirectoryProfile.maximumServiceCount {
+            values.append(value)
+        }
+        if language == .german {
+            germanServices = values.joined(separator: ", ")
+        } else {
+            services = values.joined(separator: ", ")
+        }
+    }
+
     func setHours(_ value: String, for weekday: String) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         regularHours[weekday] = trimmed.isEmpty ? "closed" : trimmed
@@ -484,6 +532,7 @@ final class OrganizationEditorViewModel: ObservableObject {
             let isOwnerCreate = isPlatformOwner(user)
             organization = Organization(
                 id: createOrganizationID,
+                localizations: resolvedLocalizations,
                 name: trimmedName,
                 description: trimmedShortDescription,
                 shortDescription: trimmedShortDescription,
@@ -527,6 +576,7 @@ final class OrganizationEditorViewModel: ObservableObject {
             let shouldResubmit = shouldResubmitRequest(user: user)
             organization = Organization(
                 id: existing.id,
+                localizations: resolvedLocalizations,
                 name: trimmedName,
                 description: trimmedShortDescription,
                 shortDescription: trimmedShortDescription,
@@ -721,6 +771,89 @@ final class OrganizationEditorViewModel: ObservableObject {
         )
     }
 
+    private var serviceSuggestions: [OrganizationServiceSuggestion] {
+        switch OrganizationEditorCategory(rawValue: organizationType) {
+        case .foodAndDrink:
+            return [
+                .init(ukrainian: "Доставка", german: "Lieferung"),
+                .init(ukrainian: "Самовивіз", german: "Abholung"),
+                .init(ukrainian: "Бронювання столика", german: "Tischreservierung"),
+                .init(ukrainian: "Кейтеринг", german: "Catering")
+            ]
+        case .legalAndFinance:
+            return [
+                .init(ukrainian: "Юридична консультація", german: "Rechtsberatung"),
+                .init(ukrainian: "Податкова консультація", german: "Steuerberatung"),
+                .init(ukrainian: "Допомога з документами", german: "Hilfe bei Dokumenten"),
+                .init(ukrainian: "Онлайн-консультація", german: "Online-Beratung")
+            ]
+        case .education:
+            return [
+                .init(ukrainian: "Мовні курси", german: "Sprachkurse"),
+                .init(ukrainian: "Репетиторство", german: "Nachhilfe"),
+                .init(ukrainian: "Онлайн-навчання", german: "Online-Unterricht"),
+                .init(ukrainian: "Підготовка до іспитів", german: "Prüfungsvorbereitung")
+            ]
+        case .beautyAndHealth:
+            return [
+                .init(ukrainian: "Консультація", german: "Beratung"),
+                .init(ukrainian: "Запис онлайн", german: "Online-Termin"),
+                .init(ukrainian: "Виїзд додому", german: "Hausbesuch"),
+                .init(ukrainian: "Подарунковий сертифікат", german: "Gutschein")
+            ]
+        case .support, .integration, .childrenAndFamily:
+            return [
+                .init(ukrainian: "Безкоштовна консультація", german: "Kostenlose Beratung"),
+                .init(ukrainian: "Допомога з документами", german: "Hilfe bei Dokumenten"),
+                .init(ukrainian: "Підтримка сімей", german: "Familienhilfe"),
+                .init(ukrainian: "Онлайн-підтримка", german: "Online-Unterstützung")
+            ]
+        default:
+            return [
+                .init(ukrainian: "Консультація", german: "Beratung"),
+                .init(ukrainian: "Запис онлайн", german: "Online-Termin"),
+                .init(ukrainian: "Доставка", german: "Lieferung"),
+                .init(ukrainian: "Виїзд", german: "Vor-Ort-Service")
+            ]
+        }
+    }
+
+    private var hasGermanContent: Bool {
+        [
+            germanName, germanShortDescription, germanFullDescription, germanMissionStatement,
+            germanServiceArea, germanSpecialHoursNote, germanServices,
+            germanCurrentOfferTitle, germanCurrentOfferDetails
+        ].contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    private var resolvedLocalizations: [String: OrganizationLocalizedContent] {
+        var result = [PublishedContentLanguage.ukrainian.rawValue: OrganizationLocalizedContent(
+            name: trimmedName,
+            shortDescription: trimmedShortDescription,
+            fullDescription: trimmedFullDescription.nilIfEmpty ?? trimmedShortDescription,
+            missionStatement: trimmedMissionStatement.nilIfEmpty,
+            serviceArea: serviceArea.trimmed.nilIfEmpty,
+            specialHoursNote: specialHoursNote.trimmed.nilIfEmpty,
+            services: services.commaSeparatedValues,
+            currentOfferTitle: currentOfferTitle.trimmed.nilIfEmpty,
+            currentOfferDetails: currentOfferDetails.trimmed.nilIfEmpty
+        )]
+        if hasGermanContent {
+            result[PublishedContentLanguage.german.rawValue] = OrganizationLocalizedContent(
+                name: germanName.organizationTrimmedOrFallback(trimmedName),
+                shortDescription: germanShortDescription.organizationTrimmedOrFallback(trimmedShortDescription),
+                fullDescription: germanFullDescription.organizationTrimmedOrFallback(trimmedFullDescription.nilIfEmpty ?? trimmedShortDescription),
+                missionStatement: germanMissionStatement.trimmed.nilIfEmpty ?? trimmedMissionStatement.nilIfEmpty,
+                serviceArea: germanServiceArea.trimmed.nilIfEmpty ?? serviceArea.trimmed.nilIfEmpty,
+                specialHoursNote: germanSpecialHoursNote.trimmed.nilIfEmpty ?? specialHoursNote.trimmed.nilIfEmpty,
+                services: germanServices.commaSeparatedValues.isEmpty ? services.commaSeparatedValues : germanServices.commaSeparatedValues,
+                currentOfferTitle: germanCurrentOfferTitle.trimmed.nilIfEmpty ?? currentOfferTitle.trimmed.nilIfEmpty,
+                currentOfferDetails: germanCurrentOfferDetails.trimmed.nilIfEmpty ?? currentOfferDetails.trimmed.nilIfEmpty
+            )
+        }
+        return result
+    }
+
     private var parsedSocialLinks: [String: String] {
         legacySocialLinks.filter { key, _ in
             let lowercasedKey = key.lowercased()
@@ -782,6 +915,15 @@ final class OrganizationEditorViewModel: ObservableObject {
             name: name,
             shortDescription: shortDescription,
             fullDescription: fullDescription,
+            germanName: germanName,
+            germanShortDescription: germanShortDescription,
+            germanFullDescription: germanFullDescription,
+            germanMissionStatement: germanMissionStatement,
+            germanServiceArea: germanServiceArea,
+            germanSpecialHoursNote: germanSpecialHoursNote,
+            germanServices: germanServices,
+            germanCurrentOfferTitle: germanCurrentOfferTitle,
+            germanCurrentOfferDetails: germanCurrentOfferDetails,
             city: city,
             address: address,
             selectedFederalState: selectedFederalState,
@@ -824,6 +966,15 @@ final class OrganizationEditorViewModel: ObservableObject {
         name = draft.name
         shortDescription = Self.limitedShortDescription(draft.shortDescription)
         fullDescription = Self.limitedFullDescription(draft.fullDescription)
+        germanName = draft.germanName ?? ""
+        germanShortDescription = draft.germanShortDescription ?? ""
+        germanFullDescription = draft.germanFullDescription ?? ""
+        germanMissionStatement = draft.germanMissionStatement ?? ""
+        germanServiceArea = draft.germanServiceArea ?? ""
+        germanSpecialHoursNote = draft.germanSpecialHoursNote ?? ""
+        germanServices = draft.germanServices ?? ""
+        germanCurrentOfferTitle = draft.germanCurrentOfferTitle ?? ""
+        germanCurrentOfferDetails = draft.germanCurrentOfferDetails ?? ""
         city = draft.city
         address = draft.address
         selectedFederalState = draft.selectedFederalState
@@ -903,6 +1054,15 @@ final class OrganizationEditorViewModel: ObservableObject {
         name = ""
         shortDescription = ""
         fullDescription = ""
+        germanName = ""
+        germanShortDescription = ""
+        germanFullDescription = ""
+        germanMissionStatement = ""
+        germanServiceArea = ""
+        germanSpecialHoursNote = ""
+        germanServices = ""
+        germanCurrentOfferTitle = ""
+        germanCurrentOfferDetails = ""
         city = ""
         address = ""
         selectedFederalState = nil
@@ -1135,6 +1295,15 @@ final class OrganizationEditorViewModel: ObservableObject {
 }
 
 private extension String {
+    var trimmed: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func organizationTrimmedOrFallback(_ fallback: String) -> String {
+        let value = trimmed
+        return value.isEmpty ? fallback : value
+    }
+
     var nilIfEmpty: String? {
         isEmpty ? nil : self
     }

@@ -554,7 +554,7 @@ final class EventEditorViewModel: ObservableObject {
         guard case .create = mode else { return }
         selectedCreateContext = CreateContext(
             organizationId: organization.id,
-            organizationName: organization.name,
+            organizationName: organization.localizedName,
             organizationImageURL: organization.imageURL,
             organizationFederalState: organization.federalState
         )

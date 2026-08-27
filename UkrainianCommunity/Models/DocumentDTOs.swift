@@ -200,6 +200,7 @@ struct EventDTO: Codable, Identifiable {
 
 struct OrganizationDTO: Codable, Identifiable {
     let id: String
+    let localizations: [String: OrganizationLocalizedContent]?
     let name: String
     let description: String
     let shortDescription: String?
@@ -635,14 +636,24 @@ extension Event {
 
 extension Organization {
     init(dto: OrganizationDTO) {
+        let localizations = dto.localizations ?? [:]
+        let regionScope = dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .city
+        let federalState = dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol
+        let languages = dto.languages ?? []
+        let socialLinks = dto.socialLinks ?? [:]
+        let sourceType = dto.sourceType.flatMap(ContentSourceType.init(rawValue:))
+        let moderationStatus = ModerationStatus(rawValue: dto.moderationStatus) ?? .draft
+        let likeState = LikeState(rawValue: dto.likeState) ?? .notLiked
+
         self.init(
             id: dto.id,
+            localizations: localizations,
             name: dto.name,
             description: dto.description,
             shortDescription: dto.shortDescription,
             fullDescription: dto.fullDescription,
-            regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .city,
-            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
+            regionScope: regionScope,
+            federalState: federalState,
             city: dto.city,
             imageURL: dto.imageURL,
             logoURL: dto.logoURL,
@@ -658,8 +669,8 @@ extension Organization {
             directoryProfile: dto.directoryProfile,
             foundedYear: dto.foundedYear,
             foundedMonth: dto.foundedMonth,
-            languages: dto.languages ?? [],
-            socialLinks: dto.socialLinks ?? [:],
+            languages: languages,
+            socialLinks: socialLinks,
             telegramURL: dto.telegramURL,
             donationURL: dto.donationURL,
             facebookURL: dto.facebookURL,
@@ -677,7 +688,7 @@ extension Organization {
             adminIds: dto.adminIds,
             moderatorIds: dto.moderatorIds,
             isSystemManaged: dto.isSystemManaged,
-            sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)),
+            sourceType: sourceType,
             pinnedNewsId: dto.pinnedNewsId,
             pinnedEventId: dto.pinnedEventId,
             submittedByUserId: dto.submittedByUserId,
@@ -689,9 +700,9 @@ extension Organization {
             rejectionReason: dto.rejectionReason,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,
-            moderationStatus: ModerationStatus(rawValue: dto.moderationStatus) ?? .draft,
+            moderationStatus: moderationStatus,
             likeCount: dto.likeCount,
-            likeState: LikeState(rawValue: dto.likeState) ?? .notLiked,
+            likeState: likeState,
             isSubscribed: dto.isSubscribed,
             isBookmarked: dto.isBookmarked
         )
@@ -700,6 +711,7 @@ extension Organization {
     var dto: OrganizationDTO {
         OrganizationDTO(
             id: id,
+            localizations: localizations,
             name: name,
             description: description,
             shortDescription: shortDescription,

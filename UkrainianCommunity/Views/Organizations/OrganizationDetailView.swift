@@ -607,8 +607,8 @@ struct OrganizationDetailView: View {
             return ""
         }
         return pendingSubscriptionConfirmation.isUnsubscribe
-        ? AppStrings.Organizations.confirmUnsubscribeMessage(organization.name)
-        : AppStrings.Organizations.confirmSubscribeMessage(organization.name)
+        ? AppStrings.Organizations.confirmUnsubscribeMessage(organization.localizedName)
+        : AppStrings.Organizations.confirmSubscribeMessage(organization.localizedName)
     }
 
     func confirmPendingSubscriptionChange() {

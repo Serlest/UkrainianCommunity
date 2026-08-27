@@ -26,6 +26,18 @@ struct EventLocalizedContent: Codable, Equatable {
     let details: String
 }
 
+struct OrganizationLocalizedContent: Codable, Equatable {
+    let name: String
+    let shortDescription: String
+    let fullDescription: String
+    let missionStatement: String?
+    let serviceArea: String?
+    let specialHoursNote: String?
+    let services: [String]
+    let currentOfferTitle: String?
+    let currentOfferDetails: String?
+}
+
 struct ExternalContentAction: Codable, Equatable {
     let title: String?
     let url: String
@@ -149,6 +161,12 @@ extension Dictionary where Key == String, Value == NewsLocalizedContent {
 
 extension Dictionary where Key == String, Value == EventLocalizedContent {
     nonisolated func resolved(for language: AppLanguage) -> EventLocalizedContent? {
+        self[language.rawValue] ?? self[PublishedContentLanguage.ukrainian.rawValue] ?? values.first
+    }
+}
+
+extension Dictionary where Key == String, Value == OrganizationLocalizedContent {
+    nonisolated func resolved(for language: AppLanguage) -> OrganizationLocalizedContent? {
         self[language.rawValue] ?? self[PublishedContentLanguage.ukrainian.rawValue] ?? values.first
     }
 }

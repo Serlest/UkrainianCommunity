@@ -13,7 +13,7 @@ extension OrganizationDetailView {
         OrganizationDetailHeaderActions(
             isBookmarked: organization.isBookmarked,
             isBookmarkPending: viewModel.pendingOrganizationBookmarkIDs.contains(organization.id),
-            shareTitle: organization.name,
+            shareTitle: organization.localizedName,
             shareMessage: organizationShareText(for: organization),
             shareURL: organizationWebsiteURL(for: organization),
             onBookmark: {
@@ -125,7 +125,7 @@ extension OrganizationDetailView {
                 }
             }
 
-            Text(organization.name)
+            Text(organization.localizedName)
                 .font(AppTheme.screenTitleFont)
                 .foregroundStyle(AppTheme.textPrimary)
                 .lineSpacing(1)
@@ -223,7 +223,7 @@ extension OrganizationDetailView {
     }
 
     func heroDescription(for organization: Organization) -> String? {
-        let shortDescription = organization.shortDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shortDescription = organization.localizedShortDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         return shortDescription.isEmpty ? nil : shortDescription
     }
 }

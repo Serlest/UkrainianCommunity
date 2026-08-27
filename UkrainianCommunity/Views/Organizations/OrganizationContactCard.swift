@@ -379,7 +379,7 @@ private struct OrganizationContactMapPreview: View {
                 span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
             )
             Map(initialPosition: .region(region)) {
-                Marker(organization.name, coordinate: coordinate)
+                Marker(organization.localizedName, coordinate: coordinate)
             }
             .allowsHitTesting(false)
             .frame(height: 96)

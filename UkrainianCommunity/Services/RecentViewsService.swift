@@ -269,8 +269,8 @@ enum RecentViewRecorder {
         record(RecentViewItem(
             itemId: organization.id,
             itemType: .organization,
-            title: organization.name,
-            subtitle: organization.shortDescription.isEmpty ? organization.city : organization.shortDescription,
+            title: organization.localizedName,
+            subtitle: organization.localizedShortDescription.isEmpty ? organization.city : organization.localizedShortDescription,
             imageURL: organization.logoURL ?? organization.imageURL ?? organization.coverURL,
             viewedAt: Date()
         ))

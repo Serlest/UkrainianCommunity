@@ -6,6 +6,7 @@ enum ContentPublishingStrings {
     static var ukrainianRequired: String { isUkrainian ? "Українська версія" : "Ukrainische Version" }
     static var germanOptional: String { isUkrainian ? "Німецька версія (необов’язково)" : "Deutsche Version (optional)" }
     static var germanFallbackHint: String { isUkrainian ? "Порожні поля автоматично покажуть український текст." : "Leere Felder zeigen automatisch den ukrainischen Text." }
+    static var serviceSuggestions: String { isUkrainian ? "Популярні варіанти" : "Beliebte Vorschläge" }
     static var addGermanVersion: String { isUkrainian ? "Додати німецьку версію" : "Deutsche Version hinzufügen" }
     static var hideGermanVersion: String { isUkrainian ? "Сховати німецьку версію" : "Deutsche Version ausblenden" }
     static var multipleDates: String { isUkrainian ? "Дати та сеанси" : "Termine und Zeiten" }

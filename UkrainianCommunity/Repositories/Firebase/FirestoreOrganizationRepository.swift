@@ -66,7 +66,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         }
 
         return organizations.sorted {
-            let result = LocalizationStore.compareForSorting($0.name, $1.name)
+            let result = LocalizationStore.compareForSorting($0.localizedName, $1.localizedName)
             return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
         }
     }
@@ -95,7 +95,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         }
 
         return organizations.sorted {
-            let result = LocalizationStore.compareForSorting($0.name, $1.name)
+            let result = LocalizationStore.compareForSorting($0.localizedName, $1.localizedName)
             return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
         }
     }
@@ -279,6 +279,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
     private func makeSafeOrganizationInfoUpdateData(from organization: Organization) -> [String: Any] {
         var data: [String: Any] = [
+            "localizations": FirestoreContentPublishingCoding.organizationLocalizationsData(organization.localizations),
             "name": organization.name,
             "description": organization.description,
             "shortDescription": organization.shortDescription,
@@ -840,6 +841,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
         return OrganizationDTO(
             id: data["id"] as? String ?? documentID,
+            localizations: FirestoreContentPublishingCoding.organizationLocalizations(from: data["localizations"]),
             name: name,
             description: description,
             shortDescription: data["shortDescription"] as? String,
@@ -930,6 +932,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
         return Organization(
             id: organization.id,
+            localizations: organization.localizations,
             name: organization.name,
             description: organization.description,
             shortDescription: organization.shortDescription,
@@ -993,6 +996,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     private func makeOrganizationData(from organization: Organization) -> [String: Any] {
         var data: [String: Any] = [
             "id": organization.id,
+            "localizations": FirestoreContentPublishingCoding.organizationLocalizationsData(organization.localizations),
             "name": organization.name,
             "description": organization.description,
             "shortDescription": organization.shortDescription,

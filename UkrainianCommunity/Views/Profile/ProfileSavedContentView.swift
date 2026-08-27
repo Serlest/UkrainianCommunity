@@ -66,7 +66,7 @@ private enum SavedContentItem: Identifiable {
         switch self {
         case let .news(post): post.localizedTitle
         case let .event(event): event.localizedTitle
-        case let .organization(organization): organization.name
+        case let .organization(organization): organization.localizedName
         }
     }
 }
@@ -645,12 +645,12 @@ struct ProfileOrganizationListCard: View {
                 .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(organization.name)
+                    Text(organization.localizedName)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
 
-                    Text(organization.shortDescription)
+                    Text(organization.localizedShortDescription)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)

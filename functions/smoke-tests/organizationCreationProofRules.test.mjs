@@ -93,6 +93,22 @@ async function seedProof(id, overrides = {}) {
 function populatedRequest(id) {
   return {
     ...request(id),
+    localizations: {
+      uk: {
+        name: "Ukrainian Shop", shortDescription: "Українські товари у Відні",
+        fullDescription: "Повний опис українською", missionStatement: "Підтримуємо громаду",
+        serviceArea: "Вся Австрія", specialHoursNote: "За домовленістю",
+        services: ["Доставка", "Самовивіз"], currentOfferTitle: "Знижка",
+        currentOfferDetails: "Діє цього тижня",
+      },
+      de: {
+        name: "Ukrainischer Shop", shortDescription: "Ukrainische Produkte in Wien",
+        fullDescription: "Vollständige Beschreibung auf Deutsch", missionStatement: "Wir unterstützen die Community",
+        serviceArea: "Ganz Österreich", specialHoursNote: "Nach Vereinbarung",
+        services: ["Lieferung", "Abholung"], currentOfferTitle: "Rabatt",
+        currentOfferDetails: "Diese Woche gültig",
+      },
+    },
     shortDescription: "Італійський одяг на щодень 🇮🇹",
     fullDescription: "A fully populated organization request",
     regionScope: "federalState",

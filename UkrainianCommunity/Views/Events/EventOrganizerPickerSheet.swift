@@ -56,13 +56,13 @@ struct OrganizerPickerSheet: View {
                 )
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(organization.name)
+                    Text(organization.localizedName)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
 
-                    if !organization.shortDescription.isEmpty {
-                        Text(organization.shortDescription)
+                    if !organization.localizedShortDescription.isEmpty {
+                        Text(organization.localizedShortDescription)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(2)

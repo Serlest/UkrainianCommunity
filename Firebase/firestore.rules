@@ -1402,6 +1402,7 @@ service cloud.firestore {
     function organizationSafeInfoFields() {
       return [
         'name',
+        'localizations',
         'description',
         'shortDescription',
         'fullDescription',
@@ -1492,6 +1493,7 @@ service cloud.firestore {
     function organizationRequestCreateFields() {
       return [
         'name',
+        'localizations',
         'description',
         'shortDescription',
         'fullDescription',
@@ -1553,6 +1555,7 @@ service cloud.firestore {
     function organizationRequestUpdateFields() {
       return [
         'name',
+        'localizations',
         'description',
         'shortDescription',
         'fullDescription',

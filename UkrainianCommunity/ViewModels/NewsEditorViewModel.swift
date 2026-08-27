@@ -339,7 +339,7 @@ final class NewsEditorViewModel: ObservableObject {
         let previousDraftKey = createDraftStorageKey
         selectedCreateContext = CreateContext(
             organizationId: organization.id,
-            organizationName: organization.name,
+            organizationName: organization.localizedName,
             organizationImageURL: organization.imageURL,
             organizationFederalState: organization.federalState
         )

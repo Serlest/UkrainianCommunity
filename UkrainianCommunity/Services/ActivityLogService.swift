@@ -354,8 +354,8 @@ enum ActivityLogRecorder {
             actionType: actionType,
             targetId: organization.id,
             targetType: .organization,
-            title: organization.name,
-            subtitle: organization.shortDescription.isEmpty ? organization.city : organization.shortDescription,
+            title: organization.localizedName,
+            subtitle: organization.localizedShortDescription.isEmpty ? organization.city : organization.localizedShortDescription,
             imageURL: organization.logoURL ?? organization.imageURL ?? organization.coverURL,
             createdAt: Date()
         ))

@@ -213,7 +213,7 @@ extension OrganizationDetailView {
     }
 
     func organizationInitials(for organization: Organization) -> String {
-        let words = organization.name
+        let words = organization.localizedName
             .split(separator: " ")
             .prefix(2)
             .compactMap { $0.first }

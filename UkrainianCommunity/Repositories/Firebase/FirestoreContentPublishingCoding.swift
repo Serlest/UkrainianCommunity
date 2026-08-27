@@ -2,6 +2,44 @@ import Foundation
 import FirebaseFirestore
 
 enum FirestoreContentPublishingCoding {
+    static func organizationLocalizationsData(_ values: [String: OrganizationLocalizedContent]) -> [String: Any] {
+        values.mapValues { value in
+            var data: [String: Any] = [
+                "name": value.name,
+                "shortDescription": value.shortDescription,
+                "fullDescription": value.fullDescription,
+                "services": value.services
+            ]
+            data["missionStatement"] = value.missionStatement
+            data["serviceArea"] = value.serviceArea
+            data["specialHoursNote"] = value.specialHoursNote
+            data["currentOfferTitle"] = value.currentOfferTitle
+            data["currentOfferDetails"] = value.currentOfferDetails
+            return data.compactMapValues { $0 }
+        }
+    }
+
+    static func organizationLocalizations(from value: Any?) -> [String: OrganizationLocalizedContent] {
+        guard let entries = value as? [String: Any] else { return [:] }
+        return entries.reduce(into: [:]) { result, entry in
+            guard let data = entry.value as? [String: Any],
+                  let name = data["name"] as? String,
+                  let shortDescription = data["shortDescription"] as? String,
+                  let fullDescription = data["fullDescription"] as? String else { return }
+            result[entry.key] = OrganizationLocalizedContent(
+                name: name,
+                shortDescription: shortDescription,
+                fullDescription: fullDescription,
+                missionStatement: data["missionStatement"] as? String,
+                serviceArea: data["serviceArea"] as? String,
+                specialHoursNote: data["specialHoursNote"] as? String,
+                services: data["services"] as? [String] ?? [],
+                currentOfferTitle: data["currentOfferTitle"] as? String,
+                currentOfferDetails: data["currentOfferDetails"] as? String
+            )
+        }
+    }
+
     static func newsLocalizationsData(_ values: [String: NewsLocalizedContent]) -> [String: Any] {
         values.mapValues { ["title": $0.title, "subtitle": $0.subtitle, "body": $0.body] }
     }

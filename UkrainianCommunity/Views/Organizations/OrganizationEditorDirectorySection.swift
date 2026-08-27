@@ -55,6 +55,8 @@ extension OrganizationEditorView {
                 .textInputAutocapitalization(.sentences)
                 .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
 
+                serviceSuggestionRow(language: .ukrainian)
+
                 openingHoursEditor
             }
         }
@@ -180,9 +182,82 @@ extension OrganizationEditorView {
         }
     }
 
+    var organizationDirectoryLocalizationCard: some View {
+        editorCard {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: editorCardSpacing) {
+                    Text(ContentPublishingStrings.germanFallbackHint)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+
+                    iconTextField(
+                        systemImage: "map",
+                        placeholder: AppStrings.Organizations.serviceAreaPlaceholder,
+                        text: $viewModel.germanServiceArea
+                    )
+
+                    TextField(AppStrings.Organizations.servicesPlaceholder, text: $viewModel.germanServices, axis: .vertical)
+                        .lineLimit(2...4)
+                        .textInputAutocapitalization(.sentences)
+                        .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
+
+                    serviceSuggestionRow(language: .german)
+
+                    iconTextField(
+                        systemImage: "calendar.badge.exclamationmark",
+                        placeholder: AppStrings.Organizations.specialHoursPlaceholder,
+                        text: $viewModel.germanSpecialHoursNote
+                    )
+
+                    iconTextField(
+                        systemImage: "tag",
+                        placeholder: AppStrings.Organizations.offerTitlePlaceholder,
+                        text: $viewModel.germanCurrentOfferTitle
+                    )
+
+                    TextField(AppStrings.Organizations.offerDetailsPlaceholder, text: $viewModel.germanCurrentOfferDetails, axis: .vertical)
+                        .lineLimit(2...4)
+                        .textInputAutocapitalization(.sentences)
+                        .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
+                }
+                .padding(.top, editorCardSpacing)
+            } label: {
+                Label(ContentPublishingStrings.germanOptional, systemImage: "globe.europe.africa")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+            .accessibilityIdentifier("organization.editor.directory.localization.german")
+        }
+    }
+
     private func hasOpeningHours(for day: OrganizationWeekday) -> Bool {
         guard let value = viewModel.regularHours[day.rawValue] else { return false }
         return value != "closed"
+    }
+
+    private func serviceSuggestionRow(language: PublishedContentLanguage) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(ContentPublishingStrings.serviceSuggestions)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+
+            AppHorizontalChipRow(spacing: 6) {
+                ForEach(viewModel.suggestedServices(language: language), id: \.self) { suggestion in
+                    Button {
+                        viewModel.toggleSuggestedService(suggestion, language: language)
+                    } label: {
+                        AppInfoChip(
+                            title: suggestion,
+                            systemImage: viewModel.isSuggestedServiceSelected(suggestion, language: language) ? "checkmark" : "plus",
+                            tint: viewModel.isSuggestedServiceSelected(suggestion, language: language) ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary,
+                            fill: viewModel.isSuggestedServiceSelected(suggestion, language: language) ? AppTheme.accentPrimary.opacity(0.14) : AppTheme.surfaceControl,
+                            size: .small
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     private func isWorkingDayBinding(_ day: OrganizationWeekday) -> Binding<Bool> {
@@ -219,12 +294,12 @@ extension OrganizationEditorView {
             ?? Date()
     }
 
-    private static var timeFormatter: DateFormatter {
+    private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "HH:mm"
         return formatter
-    }
+    }()
 }
 
 enum OrganizationWeekday: String, CaseIterable, Identifiable {
@@ -239,10 +314,15 @@ enum OrganizationWeekday: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
-        let formatter = DateFormatter()
-        formatter.locale = LocalizationStore.locale
-        let mondayFirstIndices = [1, 2, 3, 4, 5, 6, 0]
-        guard let index = Self.allCases.firstIndex(of: self) else { return rawValue }
-        return formatter.shortStandaloneWeekdaySymbols[mondayFirstIndices[index]].capitalized
+        let ukrainian = LocalizationStore.language == .ukrainian
+        return switch self {
+        case .monday: ukrainian ? "Понеділок" : "Montag"
+        case .tuesday: ukrainian ? "Вівторок" : "Dienstag"
+        case .wednesday: ukrainian ? "Середа" : "Mittwoch"
+        case .thursday: ukrainian ? "Четвер" : "Donnerstag"
+        case .friday: ukrainian ? "П’ятниця" : "Freitag"
+        case .saturday: ukrainian ? "Субота" : "Samstag"
+        case .sunday: ukrainian ? "Неділя" : "Sonntag"
+        }
     }
 }

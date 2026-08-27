@@ -113,7 +113,7 @@ struct EventCreateDraft: Codable, Equatable {
 }
 
 struct OrganizationCreateDraft: Codable, Equatable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     let version: Int
     let hasMeaningfulMetadata: Bool?
@@ -121,6 +121,15 @@ struct OrganizationCreateDraft: Codable, Equatable {
     let name: String
     let shortDescription: String
     let fullDescription: String
+    let germanName: String?
+    let germanShortDescription: String?
+    let germanFullDescription: String?
+    let germanMissionStatement: String?
+    let germanServiceArea: String?
+    let germanSpecialHoursNote: String?
+    let germanServices: String?
+    let germanCurrentOfferTitle: String?
+    let germanCurrentOfferDetails: String?
     let city: String
     let address: String
     let selectedFederalState: AustrianFederalState?
@@ -160,6 +169,15 @@ struct OrganizationCreateDraft: Codable, Equatable {
             name,
             shortDescription,
             fullDescription,
+            germanName ?? "",
+            germanShortDescription ?? "",
+            germanFullDescription ?? "",
+            germanMissionStatement ?? "",
+            germanServiceArea ?? "",
+            germanSpecialHoursNote ?? "",
+            germanServices ?? "",
+            germanCurrentOfferTitle ?? "",
+            germanCurrentOfferDetails ?? "",
             city,
             address,
             email,

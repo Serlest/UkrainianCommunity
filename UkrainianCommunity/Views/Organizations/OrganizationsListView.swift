@@ -454,18 +454,18 @@ struct OrganizationsListView: View {
         LocalSearchMatcher.matches(
             query: searchText,
             values: [
-                organization.name,
-                organization.shortDescription,
+                organization.localizedName,
+                organization.localizedShortDescription,
                 organization.description,
-                organization.fullDescription,
+                organization.localizedFullDescription,
                 organization.city,
                 organization.organizationType,
                 selectedCategoryTitle(for: organization.organizationType),
                 organization.contactPerson,
-                organization.missionStatement,
-                organization.directoryProfile?.serviceArea,
-                organization.directoryProfile?.services.joined(separator: " "),
-                organization.directoryProfile?.currentOfferTitle
+                organization.localizedMissionStatement,
+                organization.localizedDirectoryProfile?.serviceArea,
+                organization.localizedDirectoryProfile?.services.joined(separator: " "),
+                organization.localizedDirectoryProfile?.currentOfferTitle
             ]
         )
     }
@@ -560,13 +560,13 @@ private struct OrganizationCard: View {
 
     private var organizationDetails: some View {
         VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingDense) {
-            Text(organization.name)
+            Text(organization.localizedName)
                 .font(AppTheme.cardTitleFont)
                 .foregroundStyle(AppTheme.textPrimary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(organization.shortDescription)
+            Text(organization.localizedShortDescription)
                 .font(AppTheme.cardSubtitleFont)
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
@@ -621,8 +621,8 @@ private struct OrganizationCard: View {
 
     private var accessibilitySummary: String {
         [
-            organization.name,
-            organization.shortDescription,
+            organization.localizedName,
+            organization.localizedShortDescription,
             regionText ?? organization.city,
             organizationCategoryText
         ]

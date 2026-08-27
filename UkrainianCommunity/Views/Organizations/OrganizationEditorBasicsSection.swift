@@ -158,6 +158,52 @@ extension OrganizationEditorView {
             }
         }
     }
+
+    var organizationLocalizationCard: some View {
+        editorCard {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: editorCardSpacing) {
+                    Text(ContentPublishingStrings.germanFallbackHint)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+
+                    editorField(title: AppStrings.Organizations.fieldName, counterText: "\(viewModel.germanName.count)/100") {
+                        TextField(AppStrings.Organizations.fieldNamePlaceholder, text: $viewModel.germanName)
+                            .textInputAutocapitalization(.words)
+                            .organizationEditorCompactInputStyle(minHeight: compactInputHeight)
+                            .accessibilityIdentifier("organization.editor.german.name")
+                    }
+
+                    editorField(title: AppStrings.Organizations.fieldDescription, counterText: "\(viewModel.germanShortDescription.count)/\(OrganizationEditorViewModel.shortDescriptionLimit)") {
+                        TextField(AppStrings.Organizations.fieldDescriptionPlaceholder, text: $viewModel.germanShortDescription, axis: .vertical)
+                            .lineLimit(3...6)
+                            .textInputAutocapitalization(.sentences)
+                            .organizationEditorCompactInputStyle(minHeight: summaryInputHeight)
+                    }
+
+                    editorField(title: AppStrings.Organizations.fieldMissionStatement, counterText: "") {
+                        TextField(AppStrings.Organizations.fieldMissionStatementPlaceholder, text: $viewModel.germanMissionStatement, axis: .vertical)
+                            .lineLimit(2...4)
+                            .textInputAutocapitalization(.sentences)
+                            .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
+                    }
+
+                    editorField(title: AppStrings.Organizations.fieldFullDescription, counterText: "\(viewModel.germanFullDescription.count)/\(OrganizationEditorViewModel.fullDescriptionLimit)") {
+                        TextField(AppStrings.Organizations.fieldFullDescriptionPlaceholder, text: $viewModel.germanFullDescription, axis: .vertical)
+                            .lineLimit(6...12)
+                            .textInputAutocapitalization(.sentences)
+                            .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
+                    }
+                }
+                .padding(.top, editorCardSpacing)
+            } label: {
+                Label(ContentPublishingStrings.germanOptional, systemImage: "globe.europe.africa")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+            .accessibilityIdentifier("organization.editor.localization.german")
+        }
+    }
 }
 
 private struct OrganizationEditorChoiceGrid<Content: View>: View {

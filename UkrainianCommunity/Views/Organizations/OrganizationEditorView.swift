@@ -165,12 +165,14 @@ struct OrganizationEditorView: View {
             mainInfoCard
             possibleDuplicateCard
             aboutCard
+            organizationLocalizationCard
         case .location:
             locationCard
             contactCard
         case .features:
             directoryFeaturesCard
             directoryActionsCard
+            organizationDirectoryLocalizationCard
         case .preview:
             organizationPreviewCard
             moderationNoticeCard
@@ -194,7 +196,7 @@ struct OrganizationEditorView: View {
                         .foregroundStyle(AppTheme.textSecondary)
 
                     ForEach(possibleDuplicateOrganizations.prefix(3)) { organization in
-                        Label(organization.name, systemImage: "building.2")
+                        Label(organization.localizedName, systemImage: "building.2")
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
                     }

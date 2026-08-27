@@ -796,6 +796,7 @@ struct OrganizationDirectoryProfile: Codable, Equatable {
 
 struct Organization: Identifiable, Codable {
     let id: String
+    let localizations: [String: OrganizationLocalizedContent]
     let name: String
     let description: String
     let shortDescription: String
@@ -856,6 +857,7 @@ struct Organization: Identifiable, Codable {
 
     nonisolated init(
         id: String,
+        localizations: [String: OrganizationLocalizedContent] = [:],
         name: String,
         description: String,
         shortDescription: String? = nil,
@@ -915,6 +917,7 @@ struct Organization: Identifiable, Codable {
         isBookmarked: Bool = false
     ) {
         self.id = id
+        self.localizations = localizations
         self.name = name
         self.description = description
         self.shortDescription = Self.normalizedOptionalString(shortDescription) ?? description
@@ -987,6 +990,46 @@ extension Organization {
 
     var isSystemOrganization: Bool {
         isSystemManaged == true || id == Self.systemOrganizationID
+    }
+
+    nonisolated var localizedContent: OrganizationLocalizedContent {
+        localizations.resolved(for: LocalizationStore.language)
+            ?? OrganizationLocalizedContent(
+                name: name,
+                shortDescription: shortDescription,
+                fullDescription: fullDescription,
+                missionStatement: missionStatement,
+                serviceArea: directoryProfile?.serviceArea,
+                specialHoursNote: directoryProfile?.specialHoursNote,
+                services: directoryProfile?.services ?? [],
+                currentOfferTitle: directoryProfile?.currentOfferTitle,
+                currentOfferDetails: directoryProfile?.currentOfferDetails
+            )
+    }
+
+    nonisolated var localizedName: String { localizedContent.name }
+    nonisolated var localizedShortDescription: String { localizedContent.shortDescription }
+    nonisolated var localizedFullDescription: String { localizedContent.fullDescription }
+    nonisolated var localizedMissionStatement: String? { localizedContent.missionStatement }
+
+    nonisolated var localizedDirectoryProfile: OrganizationDirectoryProfile? {
+        guard let profile = directoryProfile else { return nil }
+        let content = localizedContent
+        return OrganizationDirectoryProfile(
+            profileKind: profile.profileKind,
+            secondaryCategories: profile.secondaryCategories,
+            serviceModes: profile.serviceModes,
+            serviceArea: content.serviceArea,
+            regularHours: profile.regularHours,
+            specialHoursNote: content.specialHoursNote,
+            services: content.services,
+            orderURL: profile.orderURL,
+            bookingURL: profile.bookingURL,
+            currentOfferTitle: content.currentOfferTitle,
+            currentOfferDetails: content.currentOfferDetails,
+            currentOfferURL: profile.currentOfferURL,
+            currentOfferValidUntil: profile.currentOfferValidUntil
+        )
     }
 }
 
@@ -1128,8 +1171,8 @@ struct HomeFeedItem: Identifiable, Equatable {
         id = "organization-\(organization.id)"
         sourceType = .organization
         itemType = .organization
-        title = organization.name
-        summary = organization.description
+        title = organization.localizedName
+        summary = organization.localizedShortDescription
         imageURL = organization.imageURL
         publishedAt = organization.createdAt
         regionScope = organization.regionScope
@@ -1139,7 +1182,7 @@ struct HomeFeedItem: Identifiable, Equatable {
         eventEndDate = nil
         eventVenue = nil
         organizationId = organization.id
-        organizationName = organization.name
+        organizationName = organization.localizedName
         organizationType = organization.organizationType
         authorName = nil
         isSaved = false
@@ -1178,8 +1221,8 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     init(profile organization: Organization) {
         id = "organization-profile-\(organization.id)"
         itemType = .organizationProfile
-        title = organization.name
-        summary = organization.description
+        title = organization.localizedName
+        summary = organization.localizedShortDescription
         imageURL = organization.imageURL
         publishedAt = organization.updatedAt
         city = organization.city
@@ -1192,7 +1235,7 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         eventMaximumAge = nil
         isBookmarked = false
         organizationId = organization.id
-        organizationName = organization.name
+        organizationName = organization.localizedName
         destination = nil
     }
 

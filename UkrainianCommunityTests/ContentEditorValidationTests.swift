@@ -166,6 +166,38 @@ struct ContentEditorValidationTests {
         #expect(["uk": values["uk"]!].resolved(for: .german)?.title == "Українська")
     }
 
+    @Test func organizationLocalizedContentResolvesEveryPublicTextField() {
+        let ukrainian = OrganizationLocalizedContent(
+            name: "Український центр", shortDescription: "Коротко", fullDescription: "Повний опис",
+            missionStatement: "Місія", serviceArea: "Вся Австрія", specialHoursNote: "За домовленістю",
+            services: ["Консультація"], currentOfferTitle: "Пропозиція", currentOfferDetails: "Умови"
+        )
+        let german = OrganizationLocalizedContent(
+            name: "Ukrainisches Zentrum", shortDescription: "Kurz", fullDescription: "Vollständiger Text",
+            missionStatement: "Mission", serviceArea: "Ganz Österreich", specialHoursNote: "Nach Vereinbarung",
+            services: ["Beratung"], currentOfferTitle: "Angebot", currentOfferDetails: "Bedingungen"
+        )
+        let values = ["uk": ukrainian, "de": german]
+
+        #expect(values.resolved(for: .german) == german)
+        #expect(values.resolved(for: .ukrainian) == ukrainian)
+        #expect(["uk": ukrainian].resolved(for: .german) == ukrainian)
+    }
+
+    @Test func organizationServiceSuggestionsRemainOptionalAndRespectTheLimit() {
+        let editor = OrganizationEditorViewModel(mode: .create)
+        editor.organizationType = OrganizationEditorCategory.foodAndDrink.rawValue
+        let suggestions = editor.suggestedServices(language: .ukrainian)
+        #expect(suggestions.contains("Доставка"))
+
+        for suggestion in suggestions {
+            editor.toggleSuggestedService(suggestion, language: .ukrainian)
+        }
+        #expect(editor.services.contains("Доставка"))
+        editor.toggleSuggestedService("Доставка", language: .ukrainian)
+        #expect(!editor.services.contains("Доставка"))
+    }
+
     @Test func legacyNewsDraftDecodesWithoutVersionTwoOptionalFields() throws {
         let draft = NewsCreateDraft(
             version: 1,
@@ -207,6 +239,39 @@ struct ContentEditorValidationTests {
         #expect(decoded.title == draft.title)
         #expect(decoded.germanTitle == nil)
         #expect(decoded.externalActionURL == nil)
+    }
+
+    @Test func legacyOrganizationDraftDecodesWithoutLocalizedFields() throws {
+        let legacy: [String: Any] = [
+            "version": 1,
+            "updatedAt": "2026-08-27T06:00:00Z",
+            "name": "Стара організація",
+            "shortDescription": "Короткий опис організації",
+            "fullDescription": "Повний опис організації",
+            "city": "Wien",
+            "address": "",
+            "email": "",
+            "phone": "",
+            "website": "",
+            "telegramURL": "",
+            "donationURL": "",
+            "missionStatement": "",
+            "contactPerson": "",
+            "organizationType": "support",
+            "foundedYear": "",
+            "languages": "Українська",
+            "socialLinks": ""
+        ]
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let draft = try decoder.decode(
+            OrganizationCreateDraft.self,
+            from: JSONSerialization.data(withJSONObject: legacy)
+        )
+
+        #expect(draft.name == "Стара організація")
+        #expect(draft.germanName == nil)
+        #expect(draft.germanServices == nil)
     }
 
     @Test func eventOccurrencesAreSortedAndResolveTheNextActiveSession() {

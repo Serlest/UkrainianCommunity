@@ -291,6 +291,15 @@ enum MockContentBuilder {
     }
 
     nonisolated private static func localized(_ key: String, _ defaultValue: String) -> String {
-        LocalizationStore.localizedString(key, defaultValue: defaultValue)
+        // Mock repositories are constructed before LocalizationStore applies the
+        // launch language. Resolve UI-test fixtures from the requested bundle so
+        // their content never mixes languages during the first render.
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           let language = ProcessInfo.processInfo.environment["UITestAppLanguage"],
+           let bundlePath = Bundle.main.path(forResource: language, ofType: "lproj"),
+           let bundle = Bundle(path: bundlePath) {
+            return bundle.localizedString(forKey: key, value: defaultValue, table: nil)
+        }
+        return LocalizationStore.localizedString(key, defaultValue: defaultValue)
     }
 }

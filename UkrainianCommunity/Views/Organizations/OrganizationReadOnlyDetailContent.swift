@@ -11,7 +11,7 @@ struct OrganizationReadOnlyDetailContent: View {
             previewHero
             supportCard
             OrganizationDirectorySection(
-                profile: organization.directoryProfile,
+                profile: organization.localizedDirectoryProfile,
                 moderationStatus: organization.moderationStatus,
                 usesPublicDetailStyle: false
             )
@@ -74,12 +74,12 @@ struct OrganizationReadOnlyDetailContent: View {
                             )
                         }
 
-                        Text(organization.name)
+                        Text(organization.localizedName)
                             .font(AppTheme.detailTitleFont)
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        if let shortDescription = trimmed(organization.shortDescription) {
+                        if let shortDescription = trimmed(organization.localizedShortDescription) {
                             Text(shortDescription)
                                 .font(.footnote.weight(.medium))
                                 .foregroundStyle(AppTheme.textSecondary)
@@ -107,7 +107,7 @@ struct OrganizationReadOnlyDetailContent: View {
                 RoundedRectangle(cornerRadius: AppTheme.imageRadius, style: .continuous)
                     .fill(cardSurface)
                     .overlay(
-                        Text(initials(for: organization.name))
+                        Text(initials(for: organization.localizedName))
                             .font(AppTheme.detailTitleFont)
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
                     )
@@ -163,7 +163,7 @@ struct OrganizationReadOnlyDetailContent: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 AppEditorSectionTitle(title: AppStrings.Organizations.aboutSectionTitle)
-                Text(trimmed(organization.fullDescription) ?? trimmed(organization.description) ?? AppStrings.Organizations.aboutEmptyMessage)
+                Text(trimmed(organization.localizedFullDescription) ?? trimmed(organization.localizedShortDescription) ?? AppStrings.Organizations.aboutEmptyMessage)
                     .font(.body)
                     .foregroundStyle(AppTheme.textSecondary)
                     .lineSpacing(4)
@@ -175,7 +175,7 @@ struct OrganizationReadOnlyDetailContent: View {
 
     @ViewBuilder
     private var missionSection: some View {
-        if let missionStatement = trimmed(organization.missionStatement) {
+        if let missionStatement = trimmed(organization.localizedMissionStatement) {
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     AppEditorSectionTitle(title: AppStrings.Organizations.detailMissionStatementTitle)

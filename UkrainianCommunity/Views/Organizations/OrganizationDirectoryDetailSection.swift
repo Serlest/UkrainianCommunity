@@ -2,7 +2,7 @@ import SwiftUI
 
 extension OrganizationDetailView {
     func directoryProfileCards(for organization: Organization) -> some View {
-        OrganizationDirectorySection(profile: organization.directoryProfile, moderationStatus: organization.moderationStatus)
+        OrganizationDirectorySection(profile: organization.localizedDirectoryProfile, moderationStatus: organization.moderationStatus)
     }
 }
 

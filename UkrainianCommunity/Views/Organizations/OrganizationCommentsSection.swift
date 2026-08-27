@@ -44,7 +44,7 @@ extension OrganizationDetailView {
                 }
             }
             if canReportComment(comment),
-               let target = ContentReportTarget.comment(comment, parentTitle: organization.name, parentType: .organization, parentId: organization.id) {
+               let target = ContentReportTarget.comment(comment, parentTitle: organization.localizedName, parentType: .organization, parentId: organization.id) {
                 Button(AppStrings.Safety.reportAction, systemImage: "exclamationmark.bubble") {
                     presentContentReport(target)
                 }
