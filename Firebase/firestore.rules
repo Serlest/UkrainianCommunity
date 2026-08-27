@@ -538,25 +538,6 @@ service cloud.firestore {
         && validContentRegion(data);
     }
 
-    function validCommentCreate(parentType, parentId, commentId) {
-      return request.resource.data.keys().hasOnly(commentDocumentFields())
-        && request.resource.data.id == commentId
-        && request.resource.data.parentType == parentType
-        && request.resource.data.parentId == parentId
-        && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.authorName is string
-        && request.resource.data.authorName.size() <= 160
-        && validOptionalString(request.resource.data, 'authorPhotoURL', 2048)
-        && request.resource.data.text is string
-        && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 1000
-        && request.resource.data.body == request.resource.data.text
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.isDeleted == false
-        && (!('moderationStatus' in request.resource.data)
-          || request.resource.data.moderationStatus == 'approved');
-    }
-
     function userSelfEditableFields() {
       return ['fullName', 'displayName', 'telegramUsername', 'city', 'bio', 'email', 'selectedFederalState', 'avatarURL', 'updatedAt'];
     }
@@ -1351,14 +1332,6 @@ service cloud.firestore {
 
     function isOrganizationOwner(organizationId) {
       return hasOrganizationRole(organizationId, 'communityOwner');
-    }
-
-    function isOrganizationAdmin(organizationId) {
-      return hasOrganizationRole(organizationId, 'communityAdmin');
-    }
-
-    function isOrganizationModerator(organizationId) {
-      return hasOrganizationRole(organizationId, 'communityModerator');
     }
 
     function canEditOrganizationContent(organizationId) {
