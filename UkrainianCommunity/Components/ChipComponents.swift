@@ -141,8 +141,8 @@ struct AppFilterChip: View {
             trailingSystemImage: trailingSystemImage,
             size: .regular,
             glassTint: isSelected ? AppTheme.accentPrimary : nil,
-            isInteractive: true,
-            usesNativeGlass: true
+            isInteractive: false,
+            usesNativeGlass: false
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

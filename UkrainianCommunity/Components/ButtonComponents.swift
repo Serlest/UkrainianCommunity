@@ -19,6 +19,7 @@ extension View {
                 .appGlassSurface(
                     cornerRadius: AppTheme.iconButtonRadius,
                     isInteractive: isInteractive && isEnabled,
+                    usesNativeGlass: false,
                     fallbackRole: .control,
                     shadowRadius: AppTheme.glassIconButtonShadowRadius,
                     shadowY: AppTheme.glassIconButtonShadowY
@@ -30,6 +31,7 @@ extension View {
                     cornerRadius: AppTheme.iconButtonRadius,
                     tint: isEnabled ? AppTheme.accentPrimary : AppTheme.surfaceControl,
                     isInteractive: isInteractive && isEnabled,
+                    usesNativeGlass: false,
                     fallbackSurface: isEnabled ? AppTheme.accentPrimary : AppTheme.surfaceControl,
                     fallbackUsesMaterial: false,
                     borderOpacity: 0.42,
@@ -42,6 +44,7 @@ extension View {
                     cornerRadius: AppTheme.iconButtonRadius,
                     tint: AppTheme.accentDestructive.opacity(isEnabled ? 0.18 : 0.08),
                     isInteractive: isInteractive && isEnabled,
+                    usesNativeGlass: false,
                     borderOpacity: 0.72,
                     shadowRadius: AppTheme.glassIconButtonShadowRadius,
                     shadowY: AppTheme.glassIconButtonShadowY
@@ -76,6 +79,7 @@ struct AppGlassIconButton: View {
     let role: ButtonRole?
     let isPlaceholder: Bool
     let action: () -> Void
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(
         systemImage: String,
@@ -92,15 +96,40 @@ struct AppGlassIconButton: View {
     }
 
     var body: some View {
+        Group {
+            if #available(iOS 26.0, *), !reduceTransparency {
+                nativeGlassButton
+            } else {
+                fallbackButton
+            }
+        }
+        .contentShape(Rectangle())
+        .disabled(isPlaceholder)
+        .opacity(isPlaceholder ? AppTheme.glassIconButtonPlaceholderOpacity : 1)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
+    }
+
+    @available(iOS 26.0, *)
+    private var nativeGlassButton: some View {
         Button(role: role, action: action) {
             Image(systemName: systemImage)
                 .font(AppTheme.glassIconButtonIconFont)
                 .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
-                .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.roundedRectangle(radius: AppTheme.glassIconButtonCornerRadius))
+        .controlSize(.regular)
+    }
+
+    private var fallbackButton: some View {
+        Button(role: role, action: action) {
+            icon
                 .appGlassSurface(
                     cornerRadius: AppTheme.glassIconButtonCornerRadius,
                     tint: role == .destructive ? AppTheme.accentDestructive.opacity(0.18) : nil,
-                    isInteractive: !isPlaceholder,
+                    isInteractive: false,
+                    usesNativeGlass: false,
                     fallbackMaterial: AppTheme.glassIconButtonMaterial,
                     fallbackRole: .control,
                     shadowRadius: AppTheme.glassIconButtonShadowRadius,
@@ -108,11 +137,13 @@ struct AppGlassIconButton: View {
                 )
         }
         .buttonStyle(.plain)
-        .contentShape(Rectangle())
-        .disabled(isPlaceholder)
-        .opacity(isPlaceholder ? AppTheme.glassIconButtonPlaceholderOpacity : 1)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
+    }
+
+    private var icon: some View {
+        Image(systemName: systemImage)
+            .font(AppTheme.glassIconButtonIconFont)
+            .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
+            .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
     }
 }
 

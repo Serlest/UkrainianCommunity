@@ -109,7 +109,7 @@ extension View {
         cornerRadius: CGFloat,
         tint: Color? = nil,
         isInteractive: Bool = false,
-        usesNativeGlass: Bool = true,
+        usesNativeGlass: Bool = false,
         fallbackMaterial: Material = .ultraThinMaterial,
         fallbackRole: AppGlassFallbackRole = .surface,
         fallbackSurface: Color? = nil,

@@ -28,7 +28,7 @@ extension View {
         cornerRadius: CGFloat = AppTheme.cardRadius,
         material: Material = .ultraThinMaterial,
         surface: Color? = nil,
-        usesNativeGlass: Bool = true,
+        usesNativeGlass: Bool = false,
         borderOpacity: Double = AppTheme.glassCardBorderOpacity,
         shadowRadius: CGFloat = AppTheme.glassCardShadowRadius,
         shadowY: CGFloat = AppTheme.glassCardShadowY
@@ -62,7 +62,7 @@ struct AppGlassCard<Content: View>: View {
         spacing: CGFloat = AppTheme.appGlassCardDefaultSpacing,
         cornerRadius: CGFloat = AppTheme.cardRadius,
         material: Material = AppTheme.appGlassCardMaterial,
-        usesNativeGlass: Bool = true,
+        usesNativeGlass: Bool = false,
         shadowRadius: CGFloat = AppTheme.glassCardShadowRadius,
         shadowY: CGFloat = AppTheme.glassCardShadowY,
         @ViewBuilder content: () -> Content

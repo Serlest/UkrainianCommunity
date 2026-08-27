@@ -82,7 +82,7 @@ struct AppHeroBanner<FooterContent: View>: View {
         }
         .appGlassSurface(
             cornerRadius: AppTheme.heroRadius,
-            usesNativeGlass: imageSource == .none,
+            usesNativeGlass: false,
             shadowRadius: 14,
             shadowY: 7
         )
