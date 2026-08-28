@@ -538,6 +538,64 @@ final class UkrainianCommunityUITests: XCTestCase {
         }
     }
 
+    /// Captures the public production-backed guest experience used for App Store assets.
+    /// This stays opt-in so the regular UI suite never depends on live Firebase content.
+    @MainActor
+    func testLiveAppStoreScreenshotSet() throws {
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["CAPTURE_APPSTORE_SCREENSHOTS"] == "1",
+            "Set CAPTURE_APPSTORE_SCREENSHOTS=1 to capture live App Store screenshots."
+        )
+
+        let language = ProcessInfo.processInfo.environment["APPSTORE_SCREENSHOT_LANGUAGE"] ?? "uk"
+        let app = XCUIApplication()
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = language
+        app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launch()
+
+        XCTAssertTrue(app.otherElements["screen.home"].waitForExistence(timeout: 30))
+        sleep(5)
+        attachScreenshot(named: "appstore-live-\(language)-01-home", from: app)
+
+        openRootTab(rootTabs[1], in: app, timeout: 30)
+        sleep(5)
+        attachScreenshot(named: "appstore-live-\(language)-02-events", from: app)
+
+        let firstEvent = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "event.card."))
+            .firstMatch
+        if firstEvent.waitForExistence(timeout: 20) {
+            firstEvent.tap()
+            sleep(4)
+            attachScreenshot(named: "appstore-live-\(language)-03-event-detail", from: app)
+            let back = app.buttons["navigation.back"].firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 10))
+            back.tap()
+        }
+
+        openRootTab(rootTabs[2], in: app, timeout: 30)
+        sleep(5)
+        attachScreenshot(named: "appstore-live-\(language)-04-organizations", from: app)
+
+        let firstOrganization = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "organization.card."))
+            .element(boundBy: 2)
+        if firstOrganization.waitForExistence(timeout: 20) {
+            firstOrganization.tap()
+            sleep(4)
+            attachScreenshot(named: "appstore-live-\(language)-05-organization-detail", from: app)
+            let back = app.buttons["navigation.back"].firstMatch
+            XCTAssertTrue(back.waitForExistence(timeout: 10))
+            back.tap()
+        }
+
+        openRootTab(rootTabs[3], in: app, timeout: 30)
+        sleep(3)
+        attachScreenshot(named: "appstore-live-\(language)-06-profile", from: app)
+        app.terminate()
+    }
+
     private func assertRootScreen(
         screenIdentifier: String,
         tabLabel: String,
@@ -553,6 +611,22 @@ final class UkrainianCommunityUITests: XCTestCase {
         }
 
         tapRootTab(tab, in: app, file: file, line: line)
+    }
+
+    private func openRootTab(
+        _ tab: MainTabSpec,
+        in app: XCUIApplication,
+        timeout: TimeInterval
+    ) {
+        if app.tabBars.firstMatch.waitForExistence(timeout: 2) {
+            tapRootTab(tab, in: app, timeout: timeout)
+            return
+        }
+
+        let adaptiveTab = app.buttons[tab.tabIdentifier].firstMatch
+        XCTAssertTrue(adaptiveTab.waitForExistence(timeout: timeout))
+        adaptiveTab.tap()
+        XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout))
     }
 
     private func tapRootTab(
