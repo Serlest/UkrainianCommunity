@@ -118,7 +118,7 @@ struct ContentView: View {
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .environment(\.quickCreationActions, quickCreationActions)
         .task(id: authoringIdentityKey) {
-            await authoringOrganizations.load(for: authState.isAuthenticated ? authState.user : nil)
+            await authoringOrganizations.prepareForQuickCreation(for: authState.isAuthenticated ? authState.user : nil)
         }
         .onReceive(authState.appLock.protectionChanges) { _ in
             if let userID = authState.appLock.userID, userID == authState.user?.id {
@@ -177,7 +177,7 @@ struct ContentView: View {
                 await configureRemoteNotifications(for: notificationInboxUserID)
                 await notificationInboxViewModel.refreshBadge()
             }
-            Task { await authoringOrganizations.load(for: authState.isAuthenticated ? authState.user : nil) }
+            Task { await authoringOrganizations.prepareForQuickCreation(for: authState.isAuthenticated ? authState.user : nil) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in
             Task {
@@ -185,7 +185,7 @@ struct ContentView: View {
                 await eventsViewModel.refresh()
                 await organizationsViewModel.refresh()
             }
-            refreshAuthoringOrganizations()
+            refreshAuthoringOrganizations(force: true)
         }
         .sheet(item: $authState.presentedAuthFlow) { destination in
             AuthFlowContainerView(initialDestination: destination)
@@ -397,10 +397,11 @@ struct ContentView: View {
 
     private var quickCreationActions: QuickCreationActions {
         let user = authState.isAuthenticated ? authState.user : nil
-        let canCreateNews = authoringOrganizations.organizations.contains {
+        let ownerCanCreate = user.map { PermissionService.isAppOwner(user: $0) } == true
+        let canCreateNews = ownerCanCreate || authoringOrganizations.organizations.contains {
             PermissionService.canCreateOrganizationNews($0, user: user)
         }
-        let canCreateEvent = authoringOrganizations.organizations.contains {
+        let canCreateEvent = ownerCanCreate || authoringOrganizations.organizations.contains {
             PermissionService.canCreateOrganizationEvent($0, user: user)
         }
         return QuickCreationActions(
@@ -924,15 +925,21 @@ struct ContentView: View {
         }
     }
 
-    private func refreshAuthoringOrganizations() {
+    private func refreshAuthoringOrganizations(force: Bool = false) {
         let user = authState.isAuthenticated ? authState.user : nil
-        Task { await authoringOrganizations.load(for: user) }
+        Task {
+            if user.map({ PermissionService.isAppOwner(user: $0) }) == true {
+                await authoringOrganizations.prepareForQuickCreation(for: user)
+            } else {
+                await authoringOrganizations.load(for: user, force: force)
+            }
+        }
     }
 
     private func handleNotificationInboxSnapshotChange() {
         bridgeNotificationInboxSnapshotToPopupCoordinator()
         guard notificationInboxViewModel.notifications.contains(where: isUnreadOrganizationApproval) else { return }
-        refreshAuthoringOrganizations()
+        refreshAuthoringOrganizations(force: true)
     }
 
     private func isUnreadOrganizationApproval(_ notification: AppNotification) -> Bool {

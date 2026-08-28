@@ -9,6 +9,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  documentId,
   getDoc,
   getDocs,
   query,
@@ -165,6 +166,10 @@ describe("organization subscriber privacy", () => {
     await assertSucceeds(getDocs(query(
       collection(db, "likes"),
       where("userId", "==", SUBSCRIBER_ID)
+    )));
+    await assertSucceeds(getDocs(query(
+      collection(db, "likes"),
+      where(documentId(), "in", [SUBSCRIPTION_ID])
     )));
     await assertFails(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
   });

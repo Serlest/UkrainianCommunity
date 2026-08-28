@@ -25,11 +25,13 @@ struct FirestoreEventRepository: EventRepository {
     func fetchBookmarkedEvents() async throws -> [Event] {
         let bookmarkedIDs = try await fetchBookmarkedEventIDs()
         guard !bookmarkedIDs.isEmpty else { return [] }
-        let likedIDs = try await fetchLikedEventIDs()
-        let registeredIDs = try await fetchRegisteredEventIDs()
+        let bookmarkedIDList = Array(bookmarkedIDs)
+        async let liked = fetchLikedEventIDs(for: bookmarkedIDList)
+        async let registered = fetchRegisteredEventIDs(for: bookmarkedIDList)
+        let (likedIDs, registeredIDs) = try await (liked, registered)
         var events: [Event] = []
 
-        for chunk in Array(bookmarkedIDs).chunked(into: 10) {
+        for chunk in bookmarkedIDList.chunked(into: 10) {
             let snapshot = try await collection
                 .whereField(FieldPath.documentID(), in: Array(chunk))
                 .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
@@ -63,9 +65,11 @@ struct FirestoreEventRepository: EventRepository {
 
         let snapshot = try await query.getDocuments()
         let documents = Array(snapshot.documents.prefix(max(1, limit)))
-        let likedEventIDs = try await fetchLikedEventIDs()
-        let registeredEventIDs = try await fetchRegisteredEventIDs()
-        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+        let documentIDs = documents.map(\.documentID)
+        async let liked = fetchLikedEventIDs(for: documentIDs)
+        async let registered = fetchRegisteredEventIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
+        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
         let items = try documents
             .map { document in
                 try Event(dto: makeEventDTO(
@@ -84,12 +88,22 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func fetchEvent(id: String) async throws -> Event {
-        let likedEventIDs = try await fetchLikedEventIDs()
-        let registeredEventIDs = try await fetchRegisteredEventIDs()
-        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
         let snapshot = try await collection.document(id).getDocument()
         guard snapshot.exists else {
             throw AppError.notFound
+        }
+
+        var likedEventIDs = Set<String>()
+        var registeredEventIDs = Set<String>()
+        var bookmarkedEventIDs = Set<String>()
+        if let uid = Auth.auth().currentUser?.uid {
+            async let like = likesCollection.document(likeDocumentID(eventID: id, userID: uid)).getDocument()
+            async let registration = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid)).getDocument()
+            async let bookmark = eventBookmarkReference(eventID: id, userID: uid).getDocument()
+            let (likeDocument, registrationDocument, bookmarkDocument) = try await (like, registration, bookmark)
+            if likeDocument.exists { likedEventIDs.insert(id) }
+            if registrationDocument.exists { registeredEventIDs.insert(id) }
+            if bookmarkDocument.exists { bookmarkedEventIDs.insert(id) }
         }
 
         return try Event(dto: makeEventDTO(
@@ -109,9 +123,11 @@ struct FirestoreEventRepository: EventRepository {
             .limit(to: max(1, limit))
             .getDocuments()
 
-        let likedEventIDs = try await fetchLikedEventIDs()
-        let registeredEventIDs = try await fetchRegisteredEventIDs()
-        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedEventIDs(for: documentIDs)
+        async let registered = fetchRegisteredEventIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
+        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
 
         return try snapshot.documents
             .map { document in
@@ -136,8 +152,9 @@ struct FirestoreEventRepository: EventRepository {
             return []
         }
 
-        let likedEventIDs = try await fetchLikedEventIDs()
-        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+        async let liked = fetchLikedEventIDs(for: registeredEventIDs)
+        async let bookmarked = fetchBookmarkedEventIDs(for: registeredEventIDs)
+        let (likedEventIDs, bookmarkedEventIDs) = try await (liked, bookmarked)
         var registeredEvents: [Event] = []
 
         for chunk in registeredEventIDs.chunked(into: 10) {
@@ -221,11 +238,14 @@ struct FirestoreEventRepository: EventRepository {
         let snapshot = try await collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        let likedEventIDs = try await fetchLikedEventIDs()
-        let registeredEventIDs = try await fetchRegisteredEventIDs()
-        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedEventIDs(for: documentIDs)
+        async let registered = fetchRegisteredEventIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
+        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
 
         return try snapshot.documents
             .map { document in
@@ -245,11 +265,14 @@ struct FirestoreEventRepository: EventRepository {
             .whereField("organizationId", isEqualTo: organizationID)
             .whereField("moderationStatus", in: organizationModerationStatusValues)
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        let likedEventIDs = try await fetchLikedEventIDs()
-        let registeredEventIDs = try await fetchRegisteredEventIDs()
-        let bookmarkedEventIDs = try await fetchBookmarkedEventIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedEventIDs(for: documentIDs)
+        async let registered = fetchRegisteredEventIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
+        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
 
         return try snapshot.documents.map { document in
             try Event(dto: makeEventDTO(
@@ -897,21 +920,17 @@ struct FirestoreEventRepository: EventRepository {
         }
     }
 
-    private func fetchLikedEventIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            return []
+    private func fetchLikedEventIDs(for eventIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !eventIDs.isEmpty else { return [] }
+        var result = Set<String>()
+        for chunk in eventIDs.chunked(into: 30) {
+            let documentIDs = chunk.map { likeDocumentID(eventID: $0, userID: uid) }
+            let snapshot = try await likesCollection
+                .whereField(FieldPath.documentID(), in: documentIDs)
+                .getDocuments()
+            result.formUnion(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
         }
-        if let cached = await sessionDataCache.cachedLikedEventIDs(for: uid) {
-            return cached
-        }
-
-        let snapshot = try await likesCollection
-            .whereField("userId", isEqualTo: uid)
-            .getDocuments()
-
-        let ids = Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
-        await sessionDataCache.storeLikedEventIDs(ids, for: uid)
-        return ids
+        return result
     }
 
     private func fetchRegisteredEventIDs() async throws -> Set<String> {
@@ -931,6 +950,20 @@ struct FirestoreEventRepository: EventRepository {
         return ids
     }
 
+    private func fetchRegisteredEventIDs(for eventIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !eventIDs.isEmpty else { return [] }
+        var result = Set<String>()
+        for chunk in eventIDs.chunked(into: 30) {
+            let documentIDs = chunk.map { registrationDocumentID(eventID: $0, userID: uid) }
+            let snapshot = try await registrationsCollection
+                .whereField("userId", isEqualTo: uid)
+                .whereField(FieldPath.documentID(), in: documentIDs)
+                .getDocuments()
+            result.formUnion(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
+        }
+        return result
+    }
+
     private func fetchBookmarkedEventIDs() async throws -> Set<String> {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
@@ -948,6 +981,19 @@ struct FirestoreEventRepository: EventRepository {
         let ids = Set(snapshot.documents.compactMap { $0.data()["eventId"] as? String })
         await sessionDataCache.storeBookmarkedEventIDs(ids, for: uid)
         return ids
+    }
+
+    private func fetchBookmarkedEventIDs(for eventIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !eventIDs.isEmpty else { return [] }
+        let collection = Firestore.firestore().collection("users").document(uid).collection("eventBookmarks")
+        var result = Set<String>()
+        for chunk in eventIDs.chunked(into: 30) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .getDocuments()
+            result.formUnion(snapshot.documents.map(\.documentID))
+        }
+        return result
     }
 
     private func makeEventDTO(
@@ -1203,10 +1249,11 @@ struct FirestoreEventRepository: EventRepository {
         let snapshot = try await collection.document(eventID)
             .collection("comments")
             .whereField("isDeleted", isEqualTo: false)
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        return snapshot.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
+        return snapshot.documents.reversed().compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
     }
 
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {
@@ -1276,7 +1323,8 @@ extension FirestoreEventRepository: EventRealtimeRepository {
         let registration = collection.document(eventID)
             .collection("comments")
             .whereField("isDeleted", isEqualTo: false)
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logListenerFailure(error, eventID: eventID)
@@ -1284,7 +1332,7 @@ extension FirestoreEventRepository: EventRealtimeRepository {
                     return
                 }
 
-                let comments = snapshot?.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
+                let comments = snapshot?.documents.reversed().compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
                 Task { @MainActor in onChange(comments) }
             }
         return FirebaseRealtimeListener(registration)

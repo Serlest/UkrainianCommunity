@@ -5,7 +5,9 @@ import {requireVerifiedAuth, requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
 import {assertCanManageUsers, isActiveUser, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 
-export const presenceLeaseMs = 90_000;
+// The client heartbeats every 90 seconds. A two-interval lease absorbs a
+// transient failed call without returning to the previous 30-second write rate.
+export const presenceLeaseMs = 180_000;
 const sessionRetentionMs = 10 * 60_000;
 const maxSessions = 32;
 

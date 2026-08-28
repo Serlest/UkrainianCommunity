@@ -221,7 +221,7 @@ struct EventEditorView: View {
             locationSearch.clear()
         }
         .task(id: authState.user?.id) {
-            await organizerOrganizationsViewModel.load(for: authState.user)
+            await organizerOrganizationsViewModel.load(for: authState.user, force: false)
             applyDefaultOrganizerIfNeeded()
             await loadRecoverableDraftIfNeeded()
         }

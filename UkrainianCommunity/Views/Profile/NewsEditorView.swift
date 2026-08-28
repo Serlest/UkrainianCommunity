@@ -200,7 +200,7 @@ struct NewsEditorView: View {
         .task(id: authState.user?.id) {
             viewModel.setAuthState(authState)
             guard !viewModel.isEditing else { return }
-            await organizerOrganizationsViewModel.load(for: authState.user)
+            await organizerOrganizationsViewModel.load(for: authState.user, force: false)
             applyDefaultOrganizerIfNeeded()
             await loadRecoverableDraftIfNeeded()
         }

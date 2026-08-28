@@ -21,9 +21,9 @@ final class NotificationInboxViewModel: ObservableObject {
 
     private let repository: NotificationInboxRepository
     private let badgeUpdater: (any NotificationBadgeUpdating)?
-    private var unreadListener: AppRealtimeListener?
     private var unreadRevision = 0
     private var listener: AppRealtimeListener?
+    private var badgeRefreshTask: Task<Void, Never>?
     private var currentUserID: String?
     private let notificationLimit = 50
 
@@ -36,7 +36,6 @@ final class NotificationInboxViewModel: ObservableObject {
         if currentUserID == userID {
             if let userID {
                 if listener == nil { startListening(userID: userID) }
-                if unreadListener == nil { startUnreadListening(userID: userID) }
             } else {
                 badgeUpdater?.setCount(0)
             }
@@ -46,9 +45,9 @@ final class NotificationInboxViewModel: ObservableObject {
         // Do not erase a valid APNs badge during a cold-start fetch for the same
         // restored session. Logout/account switching must clear the previous user.
         if currentUserID != nil || userID == nil { badgeUpdater?.setCount(0) }
-        unreadListener?.cancel()
-        unreadListener = nil
         unreadRevision += 1
+        badgeRefreshTask?.cancel()
+        badgeRefreshTask = nil
         listener?.cancel()
         listener = nil
         currentUserID = userID
@@ -63,7 +62,6 @@ final class NotificationInboxViewModel: ObservableObject {
 
         guard let userID else { return }
         startListening(userID: userID)
-        startUnreadListening(userID: userID)
     }
 
     var filteredNotifications: [AppNotification] {
@@ -82,7 +80,6 @@ final class NotificationInboxViewModel: ObservableObject {
 
     func refreshBadge() async {
         guard let userID = currentUserID else { return }
-        if unreadListener == nil { startUnreadListening(userID: userID) }
         let session = sessionVersion
         unreadRevision += 1
         let revision = unreadRevision
@@ -102,20 +99,6 @@ final class NotificationInboxViewModel: ObservableObject {
     private func setUnreadCount(_ count: Int) {
         unreadCount = max(0, count)
         badgeUpdater?.setCount(unreadCount)
-    }
-
-    private func startUnreadListening(userID: String) {
-        let session = sessionVersion
-        unreadListener = repository.listenUnreadCount(userID: userID, onChange: { [weak self] count in
-            guard let self, self.sessionVersion == session else { return }
-            self.unreadRevision += 1
-            self.setUnreadCount(count)
-        }, onError: { [weak self] error in
-            guard let self, self.sessionVersion == session else { return }
-            self.unreadListener?.cancel()
-            self.unreadListener = nil
-            self.error = error
-        })
     }
 
     private func refresh(clearErrorOnSuccess: Bool) async {
@@ -272,12 +255,24 @@ final class NotificationInboxViewModel: ObservableObject {
                 self.snapshotVersion += 1
                 self.isLoading = false
                 self.error = nil
+                self.scheduleBadgeRefresh()
             },
             onError: { [weak self] appError in
                 guard let self, self.sessionVersion == session else { return }
                 self.handleListenerError(appError)
             }
         )
+    }
+
+    private func scheduleBadgeRefresh() {
+        badgeRefreshTask?.cancel()
+        badgeRefreshTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled, let self else { return }
+            await self.refreshBadge()
+            guard !Task.isCancelled else { return }
+            self.badgeRefreshTask = nil
+        }
     }
 
     private func handleListenerError(_ appError: AppError) {

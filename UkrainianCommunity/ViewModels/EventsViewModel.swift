@@ -759,9 +759,10 @@ final class EventsViewModel: ObservableObject {
         nextPageTask = nil
     }
 
-    func loadRemainingPagesForSearch() async {
+    func loadRemainingPagesForSearch(maximumLoadedCount: Int = 120) async {
         await loadIfNeeded()
-        while hasMorePages, !Task.isCancelled {
+        // Keep local search useful without turning a query into a full export.
+        while hasMorePages, events.count < maximumLoadedCount, !Task.isCancelled {
             let previousCount = events.count
             await loadNextPageIfNeeded()
             guard events.count > previousCount, error == nil else { return }

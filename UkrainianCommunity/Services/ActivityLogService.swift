@@ -163,7 +163,11 @@ struct FirestoreActivityLogRepository: ActivityLogRepository {
             "createdAt": Timestamp(date: item.createdAt)
         ])
 
-        try await pruneActivityLog(in: collection)
+        // Do not scan up to 150 records after every interaction. Retention is
+        // best-effort maintenance and is sufficient once per account/day.
+        if await FirestoreMaintenanceThrottle.shared.shouldRun(key: "activityLog:\(uid)") {
+            try? await pruneActivityLog(in: collection)
+        }
     }
 
     func clearActivityLog() async throws {

@@ -13,6 +13,7 @@
     "analytics:cutover": "node scripts/migrateAnalyticsSchemaV2.mjs",
     "counters:reconcile": "npm run build && node scripts/reconcileCounterAggregation.mjs",
     "system-logs:visibility": "node scripts/backfillSystemLogVisibility.mjs",
+    "notifications:normalize-inbox": "node scripts/backfillNotificationInboxInvariant.mjs",
     "test:unit": "npm run build && npm run test:unit:compiled",
     "test:unit:compiled": "node --test lib/analytics/*.test.js lib/auth/*.test.js lib/content/*.test.js lib/contentPlanning/*.test.js lib/counters/*.test.js lib/events/*.test.js lib/featured/*.test.js lib/legal/*.test.js lib/notifications/*.test.js lib/organizations/*.test.js lib/retention/*.test.js lib/safety/*.test.js lib/users/*.test.js scripts/*.test.mjs",
     "test:retention": "node --test lib/retention/dataRetention.test.js",

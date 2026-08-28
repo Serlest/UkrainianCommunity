@@ -44,37 +44,13 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
         return FirebaseRealtimeListener(registration)
     }
 
-    // Independent of the 50-row inbox page: the badge represents the whole inbox.
-    func listenUnreadCount(
-        userID: String,
-        onChange: @escaping @MainActor (Int) -> Void,
-        onError: @escaping @MainActor (AppError) -> Void
-    ) -> AppRealtimeListener {
-        let registration = inboxCollection(userID: userID)
-            .whereField("isRead", isEqualTo: false)
-            .addSnapshotListener(includeMetadataChanges: true) { snapshot, error in
-                if let error {
-                    Self.logListenerFailure(error, listenerName: "notificationUnreadCount", userID: userID)
-                    Task { @MainActor in onError(Self.appError(from: error)) }
-                    return
-                }
-                // A partial offline cache must not replace the authoritative APNs total.
-                guard let snapshot, !snapshot.metadata.isFromCache else { return }
-                let count = snapshot.documents.map(makeNotification).filter(\.countsAsUnread).count
-                Task { @MainActor in onChange(count) }
-            }
-        return FirebaseRealtimeListener(registration)
-    }
-
     func fetchUnreadCount(userID: String) async throws -> Int {
-        let snapshot = try await inboxCollection(userID: userID)
+        let query = inboxCollection(userID: userID)
             .whereField("isRead", isEqualTo: false)
-            .getDocuments(source: .server)
-
-        return snapshot.documents
-            .map(makeNotification)
-            .filter(\.countsAsUnread)
-            .count
+            .whereField("archivedAt", isEqualTo: NSNull())
+            .whereField("deletedAt", isEqualTo: NSNull())
+        let snapshot = try await query.count.getAggregation(source: .server)
+        return snapshot.count.intValue
     }
 
     func markNotificationRead(userID: String, notificationID: String) async throws {
@@ -121,13 +97,17 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
 
     func archiveNotification(userID: String, notificationID: String) async throws {
         try await inboxCollection(userID: userID).document(notificationID).updateData([
-            "archivedAt": FieldValue.serverTimestamp()
+            "archivedAt": FieldValue.serverTimestamp(),
+            "isRead": true,
+            "readAt": FieldValue.serverTimestamp()
         ])
     }
 
     func deleteNotification(userID: String, notificationID: String) async throws {
         try await inboxCollection(userID: userID).document(notificationID).updateData([
-            "deletedAt": FieldValue.serverTimestamp()
+            "deletedAt": FieldValue.serverTimestamp(),
+            "isRead": true,
+            "readAt": FieldValue.serverTimestamp()
         ])
     }
 
@@ -142,7 +122,11 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             let batch = database.batch()
             for document in visibleDocuments[chunkStart..<chunkEnd] {
                 batch.updateData(
-                    ["deletedAt": FieldValue.serverTimestamp()],
+                    [
+                        "deletedAt": FieldValue.serverTimestamp(),
+                        "isRead": true,
+                        "readAt": FieldValue.serverTimestamp()
+                    ],
                     forDocument: document.reference
                 )
             }

@@ -576,11 +576,15 @@ struct EventsListView: View {
             LoadingStateCard(title: AppStrings.Search.searching)
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredEvents.isEmpty {
-            EmptyStateCard(
+            UnifiedEmptyStateCard(
                 systemImage: hasActiveSearch ? "magnifyingglass" : filteredEventsEmptySystemImage,
                 title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Events.title,
                 message: filteredEventsEmptyMessage
-            )
+            ) {
+                if hasActiveSearch, viewModel.hasMorePages {
+                    searchLoadMoreButton
+                }
+            }
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             let content = discoveryContent
@@ -591,8 +595,28 @@ struct EventsListView: View {
                 if !content.pastEvents.isEmpty {
                     pastContent(content)
                 }
+
+                if hasActiveSearch, viewModel.hasMorePages {
+                    searchLoadMoreButton
+                }
             }
         }
+    }
+
+    private var searchLoadMoreButton: some View {
+        PrimaryActionButton(
+            title: AppStrings.Search.loadMoreResults,
+            loadingTitle: AppStrings.Search.loadingMoreResults,
+            isLoading: isLoadingSearchPages,
+            systemImage: "ellipsis.circle"
+        ) {
+            Task {
+                isLoadingSearchPages = true
+                defer { isLoadingSearchPages = false }
+                await viewModel.loadRemainingPagesForSearch(maximumLoadedCount: viewModel.events.count + 60)
+            }
+        }
+        .accessibilityIdentifier("events.search.loadMore")
     }
 
     private var filteredEventsEmptySystemImage: String {

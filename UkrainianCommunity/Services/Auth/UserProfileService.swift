@@ -423,6 +423,7 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     func fetchFeedback() async throws -> [FeedbackItem] {
         let snapshot = try await collection
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
         return snapshot.documents.map { document in
@@ -433,6 +434,8 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     func fetchFeedback(userID: String) async throws -> [FeedbackItem] {
         let snapshot = try await collection
             .whereField("userId", isEqualTo: userID)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 50)
             .getDocuments()
 
         return snapshot.documents
@@ -450,10 +453,11 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
         let snapshot = try await collection.document(feedback.id)
             .collection("messages")
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        let storedMessages = snapshot.documents.map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) }
+        let storedMessages = snapshot.documents.reversed().map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) }
         return mergedFeedbackMessages(storedMessages: storedMessages, feedback: feedback)
     }
 
@@ -775,6 +779,8 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
     ) -> AppRealtimeListener {
         let registration = collection
             .whereField("userId", isEqualTo: userID)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 50)
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logListenerFailure(
@@ -802,6 +808,7 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
     ) -> AppRealtimeListener {
         let registration = collection
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logListenerFailure(
@@ -828,7 +835,8 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
     ) -> AppRealtimeListener {
         let registration = collection.document(feedback.id)
             .collection("messages")
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logListenerFailure(
@@ -842,7 +850,7 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
                     return
                 }
 
-                let storedMessages = snapshot?.documents.map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) } ?? []
+                let storedMessages = snapshot?.documents.reversed().map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) } ?? []
                 let messages = mergedFeedbackMessages(storedMessages: storedMessages, feedback: feedback)
                 Task { @MainActor in onChange(messages) }
             }

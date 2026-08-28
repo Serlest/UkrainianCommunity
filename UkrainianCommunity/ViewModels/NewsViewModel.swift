@@ -544,9 +544,11 @@ final class NewsViewModel: ObservableObject {
         nextPageTask = nil
     }
 
-    func loadRemainingPagesForSearch() async {
+    func loadRemainingPagesForSearch(maximumLoadedCount: Int = 120) async {
         await loadIfNeeded()
-        while hasMorePages, !Task.isCancelled {
+        // Local search is intentionally bounded. Downloading the entire growing
+        // catalogue for each search makes cost and latency linear in all posts.
+        while hasMorePages, posts.count < maximumLoadedCount, !Task.isCancelled {
             let previousCount = posts.count
             await loadNextPageIfNeeded()
             guard posts.count > previousCount, error == nil else { return }

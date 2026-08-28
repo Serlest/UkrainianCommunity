@@ -89,7 +89,13 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
             "viewedAt": Timestamp(date: item.viewedAt)
         ], merge: true)
 
-        try await pruneRecentViews(in: collection)
+        // Retention is maintenance, not part of the user-visible write. Running
+        // this query after every detail open multiplied one action into as many
+        // as 60 document reads. Once-per-day best-effort maintenance keeps the
+        // collection bounded without delaying or overcharging every view.
+        if await FirestoreMaintenanceThrottle.shared.shouldRun(key: "recentViews:\(uid)") {
+            try? await pruneRecentViews(in: collection)
+        }
     }
 
     func clearRecentViews() async throws {

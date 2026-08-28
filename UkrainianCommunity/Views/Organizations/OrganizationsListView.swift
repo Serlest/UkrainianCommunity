@@ -365,11 +365,15 @@ struct OrganizationsListView: View {
             LoadingStateCard(title: AppStrings.Search.searching)
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredOrganizations.isEmpty {
-            EmptyStateCard(
+            UnifiedEmptyStateCard(
                 systemImage: hasActiveSearch ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
                 title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Organizations.title,
                 message: filteredEmptyMessage
-            )
+            ) {
+                if hasActiveSearch, viewModel.hasMorePages {
+                    searchLoadMoreButton
+                }
+            }
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
             VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
@@ -398,8 +402,28 @@ struct OrganizationsListView: View {
                 ) { organization in
                     organizationLink(for: organization)
                 }
+
+                if hasActiveSearch, viewModel.hasMorePages {
+                    searchLoadMoreButton
+                }
             }
         }
+    }
+
+    private var searchLoadMoreButton: some View {
+        PrimaryActionButton(
+            title: AppStrings.Search.loadMoreResults,
+            loadingTitle: AppStrings.Search.loadingMoreResults,
+            isLoading: isLoadingSearchPages,
+            systemImage: "ellipsis.circle"
+        ) {
+            Task {
+                isLoadingSearchPages = true
+                defer { isLoadingSearchPages = false }
+                await viewModel.loadRemainingPagesForSearch(maximumLoadedCount: viewModel.organizations.count + 60)
+            }
+        }
+        .accessibilityIdentifier("organizations.search.loadMore")
     }
 
     private var filteredOrganizations: [Organization] {

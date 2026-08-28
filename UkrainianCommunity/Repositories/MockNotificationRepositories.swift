@@ -38,15 +38,6 @@ struct MockNotificationInboxRepository: NotificationInboxRepository {
         return MockRealtimeListener()
     }
 
-    func listenUnreadCount(
-        userID: String,
-        onChange: @escaping @MainActor (Int) -> Void,
-        onError: @escaping @MainActor (AppError) -> Void
-    ) -> AppRealtimeListener {
-        Task { onChange(await store.unreadNotificationCount(userID: userID)) }
-        return MockRealtimeListener()
-    }
-
     func fetchUnreadCount(userID: String) async throws -> Int {
         await store.unreadNotificationCount(userID: userID)
     }

@@ -25,7 +25,7 @@ struct ManagedUserPresenceSnapshot {
         lastSeenAt = response.lastSeenAt.map { Date(timeIntervalSince1970: $0 / 1_000) }
         // Anchor expiry to monotonic local time, conservatively including request latency.
         // A wrong phone clock must not keep someone online or erase their activity date.
-        let remaining = min(90, max(0, ((response.onlineUntil ?? response.serverTime) - response.serverTime) / 1_000))
+        let remaining = min(180, max(0, ((response.onlineUntil ?? response.serverTime) - response.serverTime) / 1_000))
         onlineDeadline = requestStartedAt.advanced(by: .seconds(remaining))
     }
 
@@ -71,7 +71,7 @@ final class UserPresenceService {
     private var active = false
     private var heartbeatTask: Task<Void, Never>?
 
-    init(interval: Duration = .seconds(30), send: @escaping Sender = UserPresenceAPI.send) {
+    init(interval: Duration = .seconds(90), send: @escaping Sender = UserPresenceAPI.send) {
         self.interval = interval
         self.send = send
     }

@@ -75,6 +75,38 @@
       ]
     },
     {
+      "collectionGroup": "notificationInbox",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isRead",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "archivedAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "deletedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
@@ -345,6 +377,20 @@
       ]
     },
     {
+      "collectionGroup": "comments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isDeleted",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "systemLogs",
       "queryScope": "COLLECTION",
       "fields": [
@@ -607,6 +653,81 @@
           "queryScope": "COLLECTION_GROUP"
         }
       ]
+    },
+    {
+      "collectionGroup": "news",
+      "fieldPath": "body",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "news",
+      "fieldPath": "localizations",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events",
+      "fieldPath": "details",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events",
+      "fieldPath": "localizations",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "organizations",
+      "fieldPath": "description",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "organizations",
+      "fieldPath": "localizations",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "organizations",
+      "fieldPath": "directoryProfile",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "organizations",
+      "fieldPath": "socialLinks",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notificationInbox",
+      "fieldPath": "message",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notificationInbox",
+      "fieldPath": "metadata",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "notificationInbox",
+      "fieldPath": "payload",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "feedback",
+      "fieldPath": "message",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "messages",
+      "fieldPath": "text",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "activityLog",
+      "fieldPath": "subtitle",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "recentViews",
+      "fieldPath": "subtitle",
+      "indexes": []
     }
   ]
 }

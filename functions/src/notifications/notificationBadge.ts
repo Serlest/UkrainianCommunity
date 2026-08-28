@@ -8,6 +8,10 @@ export function countsAsUnread(data: Record<string, unknown>): boolean {
 
 export async function unreadNotificationCount(userId: string): Promise<number> {
   const snapshot = await db.collection("users").doc(userId)
-    .collection("notificationInbox").where("isRead", "==", false).get();
-  return snapshot.docs.filter((document) => countsAsUnread(document.data())).length;
+    .collection("notificationInbox")
+    .where("isRead", "==", false)
+    .where("archivedAt", "==", null)
+    .where("deletedAt", "==", null)
+    .count().get();
+  return snapshot.data().count;
 }

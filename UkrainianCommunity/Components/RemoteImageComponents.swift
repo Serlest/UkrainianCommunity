@@ -12,6 +12,42 @@ private enum RemoteImageCache {
     }()
 }
 
+private actor RemoteImageDataLoader {
+    static let shared = RemoteImageDataLoader()
+
+    private let session: URLSession
+    private var inFlight: [URL: Task<Data, Error>] = [:]
+
+    init() {
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,
+            diskCapacity: 300 * 1024 * 1024
+        )
+        // Respect HTTP cache headers and revalidation so a reused Storage URL
+        // can refresh instead of being served stale indefinitely.
+        configuration.requestCachePolicy = .useProtocolCachePolicy
+        session = URLSession(configuration: configuration)
+    }
+
+    func data(from url: URL) async throws -> Data {
+        if let task = inFlight[url] { return try await task.value }
+
+        let session = session
+        let task = Task<Data, Error> {
+            let (data, response) = try await session.data(from: url)
+            if let response = response as? HTTPURLResponse,
+               !(200...299).contains(response.statusCode) {
+                throw URLError(.badServerResponse)
+            }
+            return data
+        }
+        inFlight[url] = task
+        defer { inFlight[url] = nil }
+        return try await task.value
+    }
+}
+
 private enum RemoteImageDecoder {
     static func decode(_ data: Data, maximumPixelSize: CGFloat) async -> UIImage? {
         await Task.detached(priority: .userInitiated) {
@@ -225,7 +261,7 @@ struct RemoteImageView: View {
         }
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let data = try await RemoteImageDataLoader.shared.data(from: url)
             guard let image = await RemoteImageDecoder.decode(
                 data,
                 maximumPixelSize: Self.maximumDecodedPixelSize
@@ -419,7 +455,7 @@ struct AvatarArtworkView: View {
         avatarLoadFailed = false
 
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let data = try await RemoteImageDataLoader.shared.data(from: url)
             guard let image = await RemoteImageDecoder.decode(
                 data,
                 maximumPixelSize: decodedPixelSize

@@ -714,9 +714,11 @@ final class OrganizationsViewModel: ObservableObject {
         nextPageTask = nil
     }
 
-    func loadRemainingPagesForSearch() async {
+    func loadRemainingPagesForSearch(maximumLoadedCount: Int = 120) async {
         await loadIfNeeded()
-        while hasMorePages, !Task.isCancelled {
+        // Bound local search reads until a dedicated indexed search endpoint is
+        // introduced; never download an unbounded organization catalogue.
+        while hasMorePages, organizations.count < maximumLoadedCount, !Task.isCancelled {
             let previousCount = organizations.count
             await loadNextPageIfNeeded()
             guard organizations.count > previousCount, error == nil else { return }

@@ -36719,6 +36719,40 @@
         }
       }
     },
+    "search.load_more_results" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Ergebnisse anzeigen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показати більше результатів"
+          }
+        }
+      }
+    },
+    "search.loading_more_results" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Ergebnisse werden geladen…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантажуємо більше результатів…"
+          }
+        }
+      }
+    },
     "search.no_results.message" : {
       "extractionState" : "manual",
       "localizations" : {

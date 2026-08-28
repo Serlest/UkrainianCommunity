@@ -44,11 +44,13 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     func fetchBookmarkedOrganizations() async throws -> [Organization] {
         let bookmarkedIDs = try await fetchBookmarkedOrganizationIDs()
         guard !bookmarkedIDs.isEmpty else { return [] }
-        let likedIDs = try await fetchLikedOrganizationIDs()
-        let subscribedIDs = try await fetchSubscribedOrganizationIDs()
+        let bookmarkedIDList = Array(bookmarkedIDs)
+        async let liked = fetchLikedOrganizationIDs(for: bookmarkedIDList)
+        async let subscribed = fetchSubscribedOrganizationIDs(for: bookmarkedIDList)
+        let (likedIDs, subscribedIDs) = try await (liked, subscribed)
         var organizations: [Organization] = []
 
-        for chunk in Array(bookmarkedIDs).chunked(into: 10) {
+        for chunk in bookmarkedIDList.chunked(into: 10) {
             let snapshot = try await collection
                 .whereField(FieldPath.documentID(), in: Array(chunk))
                 .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
@@ -74,11 +76,13 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     func fetchSubscribedOrganizations() async throws -> [Organization] {
         let subscribedIDs = try await fetchSubscribedOrganizationIDs()
         guard !subscribedIDs.isEmpty else { return [] }
-        let likedIDs = try await fetchLikedOrganizationIDs()
-        let bookmarkedIDs = try await fetchBookmarkedOrganizationIDs()
+        let subscribedIDList = Array(subscribedIDs)
+        async let liked = fetchLikedOrganizationIDs(for: subscribedIDList)
+        async let bookmarked = fetchBookmarkedOrganizationIDs(for: subscribedIDList)
+        let (likedIDs, bookmarkedIDs) = try await (liked, bookmarked)
         var organizations: [Organization] = []
 
-        for chunk in Array(subscribedIDs).chunked(into: 10) {
+        for chunk in subscribedIDList.chunked(into: 10) {
             let snapshot = try await collection
                 .whereField(FieldPath.documentID(), in: Array(chunk))
                 .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
@@ -113,9 +117,11 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
         let snapshot = try await query.getDocuments()
         let documents = Array(snapshot.documents.prefix(max(1, limit)))
-        let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
-        let subscribedOrganizationIDs = try await fetchSubscribedOrganizationIDs()
-        let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
+        let documentIDs = documents.map(\.documentID)
+        async let liked = fetchLikedOrganizationIDs(for: documentIDs)
+        async let subscribed = fetchSubscribedOrganizationIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedOrganizationIDs(for: documentIDs)
+        let (likedOrganizationIDs, subscribedOrganizationIDs, bookmarkedOrganizationIDs) = try await (liked, subscribed, bookmarked)
         let items = try documents.map { document in
             try Organization(dto: makeOrganizationDTO(
                 from: document,
@@ -143,9 +149,18 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let document = try await collection.document(id).getDocument()
         guard document.exists else { throw AppError.notFound }
 
-        let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
-        let subscribedOrganizationIDs = try await fetchSubscribedOrganizationIDs()
-        let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
+        var likedOrganizationIDs = Set<String>()
+        var subscribedOrganizationIDs = Set<String>()
+        var bookmarkedOrganizationIDs = Set<String>()
+        if let uid = Auth.auth().currentUser?.uid {
+            async let like = likesCollection.document(likeDocumentID(organizationID: id, userID: uid)).getDocument()
+            async let subscription = likesCollection.document(subscriptionDocumentID(organizationID: id, userID: uid)).getDocument()
+            async let bookmark = organizationBookmarkReference(organizationID: id, userID: uid).getDocument()
+            let (likeDocument, subscriptionDocument, bookmarkDocument) = try await (like, subscription, bookmark)
+            if likeDocument.exists { likedOrganizationIDs.insert(id) }
+            if subscriptionDocument.exists { subscribedOrganizationIDs.insert(id) }
+            if bookmarkDocument.exists { bookmarkedOrganizationIDs.insert(id) }
+        }
         return try Organization(dto: makeOrganizationDTO(
             from: document,
             likedOrganizationIDs: likedOrganizationIDs,
@@ -158,11 +173,14 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let snapshot = try await collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
-        let subscribedOrganizationIDs = try await fetchSubscribedOrganizationIDs()
-        let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedOrganizationIDs(for: documentIDs)
+        async let subscribed = fetchSubscribedOrganizationIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedOrganizationIDs(for: documentIDs)
+        let (likedOrganizationIDs, subscribedOrganizationIDs, bookmarkedOrganizationIDs) = try await (liked, subscribed, bookmarked)
 
         return try snapshot.documents.map { document in
             try Organization(dto: makeOrganizationDTO(
@@ -184,11 +202,14 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .whereField("submittedByUserId", isEqualTo: submittedByUserID)
             .whereField("moderationStatus", in: requestStatuses)
             .order(by: "submittedAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        let likedOrganizationIDs = try await fetchLikedOrganizationIDs()
-        let subscribedOrganizationIDs = try await fetchSubscribedOrganizationIDs()
-        let bookmarkedOrganizationIDs = try await fetchBookmarkedOrganizationIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedOrganizationIDs(for: documentIDs)
+        async let subscribed = fetchSubscribedOrganizationIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedOrganizationIDs(for: documentIDs)
+        let (likedOrganizationIDs, subscribedOrganizationIDs, bookmarkedOrganizationIDs) = try await (liked, subscribed, bookmarked)
 
         return try snapshot.documents.map { document in
             try Organization(dto: makeOrganizationDTO(
@@ -627,10 +648,11 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let snapshot = try await collection.document(organizationID)
             .collection("comments")
             .whereField("isDeleted", isEqualTo: false)
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        return snapshot.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
+        return snapshot.documents.reversed().compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
     }
 
     func addOrganizationComment(organizationID: String, text: String, author: AppUser) async throws -> Comment {
@@ -753,21 +775,17 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         )
     }
 
-    private func fetchLikedOrganizationIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            return []
+    private func fetchLikedOrganizationIDs(for organizationIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !organizationIDs.isEmpty else { return [] }
+        var result = Set<String>()
+        for chunk in organizationIDs.chunked(into: 30) {
+            let documentIDs = chunk.map { likeDocumentID(organizationID: $0, userID: uid) }
+            let snapshot = try await likesCollection
+                .whereField(FieldPath.documentID(), in: documentIDs)
+                .getDocuments()
+            result.formUnion(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
         }
-        if let cached = await sessionDataCache.cachedLikedOrganizationIDs(for: uid) {
-            return cached
-        }
-
-        let snapshot = try await likesCollection
-            .whereField("userId", isEqualTo: uid)
-            .getDocuments()
-
-        let ids = Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
-        await sessionDataCache.storeLikedOrganizationIDs(ids, for: uid)
-        return ids
+        return result
     }
 
     private func fetchSubscribedOrganizationIDs() async throws -> Set<String> {
@@ -781,10 +799,22 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let snapshot = try await likesCollection
             .whereField("userId", isEqualTo: uid)
             .getDocuments()
-
         let ids = Set(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
         await sessionDataCache.storeSubscribedOrganizationIDs(ids, for: uid)
         return ids
+    }
+
+    private func fetchSubscribedOrganizationIDs(for organizationIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !organizationIDs.isEmpty else { return [] }
+        var result = Set<String>()
+        for chunk in organizationIDs.chunked(into: 30) {
+            let documentIDs = chunk.map { subscriptionDocumentID(organizationID: $0, userID: uid) }
+            let snapshot = try await likesCollection
+                .whereField(FieldPath.documentID(), in: documentIDs)
+                .getDocuments()
+            result.formUnion(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
+        }
+        return result
     }
 
     func fetchBookmarkedOrganizationIDs() async throws -> Set<String> {
@@ -804,6 +834,19 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let ids = Set(snapshot.documents.compactMap { $0.data()["organizationId"] as? String })
         await sessionDataCache.storeBookmarkedOrganizationIDs(ids, for: uid)
         return ids
+    }
+
+    private func fetchBookmarkedOrganizationIDs(for organizationIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !organizationIDs.isEmpty else { return [] }
+        let collection = Firestore.firestore().collection("users").document(uid).collection("organizationBookmarks")
+        var result = Set<String>()
+        for chunk in organizationIDs.chunked(into: 30) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .getDocuments()
+            result.formUnion(snapshot.documents.map(\.documentID))
+        }
+        return result
     }
 
     private func makeOrganizationDTO(
@@ -1215,7 +1258,8 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
         let registration = collection.document(organizationID)
             .collection("comments")
             .whereField("isDeleted", isEqualTo: false)
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logListenerFailure(
@@ -1230,7 +1274,7 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
                     return
                 }
 
-                let comments = snapshot?.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
+                let comments = snapshot?.documents.reversed().compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
                 Task { @MainActor in onChange(comments) }
             }
         return FirebaseRealtimeListener(registration)
@@ -1250,6 +1294,7 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
             .whereField("submittedByUserId", isEqualTo: userID)
             .whereField("moderationStatus", in: requestStatuses)
             .order(by: "submittedAt", descending: true)
+            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 handleOrganizationRequestSnapshot(
                     snapshot,
@@ -1270,6 +1315,7 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
         let registration = collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 handleOrganizationRequestSnapshot(
                     snapshot,

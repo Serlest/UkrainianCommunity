@@ -164,7 +164,12 @@ test("APNs badge counts all unread records, preserves alert, retries with latest
   await user.collection("notificationPushTokens").doc("one").set({token: "badge-test-token"});
   const batchWrite = db.batch();
   for (let i = 0; i < 65; i++) {
-    batchWrite.set(inbox(badgeUser).doc(`unread-${i}`), {isRead: false, createdAt: Timestamp.now()});
+    batchWrite.set(inbox(badgeUser).doc(`unread-${i}`), {
+      isRead: false,
+      archivedAt: null,
+      deletedAt: null,
+      createdAt: Timestamp.now(),
+    });
   }
   batchWrite.set(inbox(badgeUser).doc("read"), {isRead: true});
   batchWrite.set(inbox(badgeUser).doc("archived"), {isRead: false, archivedAt: Timestamp.now()});

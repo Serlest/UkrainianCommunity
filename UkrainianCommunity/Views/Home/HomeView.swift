@@ -260,29 +260,62 @@ struct HomeView: View {
             LoadingStateCard(title: AppStrings.Search.searching)
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else if visibleFeedItems.isEmpty {
-            EmptyStateCard(
+            UnifiedEmptyStateCard(
                 systemImage: emptyStateSystemImage,
                 title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Tabs.home,
                 message: emptyStateMessage
-            )
+            ) {
+                if hasActiveSearch, hasMoreSearchPages {
+                    searchLoadMoreButton
+                }
+            }
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
-            DashboardFeedContainer(
-                items: visibleFeedItems,
-                spacing: AppTheme.feedRowSpacing,
-                onItemAppear: loadNextPageIfNeeded(for:)
-            ) { item in
-                NavigationLink(value: item.destination) {
-                    HomeFeedCard(item: item)
+            VStack(spacing: AppTheme.feedRowSpacing) {
+                DashboardFeedContainer(
+                    items: visibleFeedItems,
+                    spacing: AppTheme.feedRowSpacing,
+                    onItemAppear: loadNextPageIfNeeded(for:)
+                ) { item in
+                    NavigationLink(value: item.destination) {
+                        HomeFeedCard(item: item)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.card.\(item.id)")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("home.card.\(item.id)")
+
+                if hasActiveSearch, hasMoreSearchPages {
+                    searchLoadMoreButton
+                }
             }
         }
     }
 
     private var hasActiveSearch: Bool {
         LocalSearchMatcher.hasQuery(searchText)
+    }
+
+    private var hasMoreSearchPages: Bool {
+        newsViewModel.hasMorePages || eventsViewModel.hasMorePages || organizationsViewModel.hasMorePages
+    }
+
+    private var searchLoadMoreButton: some View {
+        PrimaryActionButton(
+            title: AppStrings.Search.loadMoreResults,
+            loadingTitle: AppStrings.Search.loadingMoreResults,
+            isLoading: isLoadingSearchPages,
+            systemImage: "ellipsis.circle"
+        ) {
+            Task {
+                isLoadingSearchPages = true
+                defer { isLoadingSearchPages = false }
+                async let news: Void = newsViewModel.loadRemainingPagesForSearch(maximumLoadedCount: newsViewModel.posts.count + 60)
+                async let events: Void = eventsViewModel.loadRemainingPagesForSearch(maximumLoadedCount: eventsViewModel.events.count + 60)
+                async let organizations: Void = organizationsViewModel.loadRemainingPagesForSearch(maximumLoadedCount: organizationsViewModel.organizations.count + 60)
+                _ = await (news, events, organizations)
+            }
+        }
+        .accessibilityIdentifier("home.search.loadMore")
     }
 
     private func rebuildVisibleFeedItems() {

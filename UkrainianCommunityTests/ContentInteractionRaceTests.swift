@@ -584,6 +584,21 @@ struct ContentInteractionRaceTests {
         #expect(!model.isLoading && model.error == nil)
     }
 
+    @Test
+    func ownerQuickCreationDoesNotDownloadTheEntireOrganizationCatalog() async {
+        let repository = ControlledOrganizationRepository()
+        repository.authoringHandler = { _ in
+            Issue.record("Owner quick-create eligibility must not fetch every organization")
+            return []
+        }
+        let model = AuthoringOrganizationsViewModel(repository: repository)
+
+        await model.prepareForQuickCreation(for: MockContentBuilder.ownerUser())
+
+        #expect(model.organizations.isEmpty)
+        #expect(!model.isLoading && model.error == nil)
+    }
+
     private func makeOrganization(
         id: String,
         likeState: LikeState = .notLiked,

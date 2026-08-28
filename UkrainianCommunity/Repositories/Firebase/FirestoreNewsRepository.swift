@@ -18,8 +18,15 @@ struct FirestoreNewsRepository: NewsRepository {
     func fetchNews(id: String) async throws -> NewsPost {
         let document = try await collection.document(id).getDocument()
         guard document.exists else { throw AppError.notFound }
-        let likedIDs = try await fetchLikedNewsIDs()
-        let bookmarkedIDs = try await fetchBookmarkedNewsIDs()
+        var likedIDs = Set<String>()
+        var bookmarkedIDs = Set<String>()
+        if let uid = Auth.auth().currentUser?.uid {
+            async let like = likesCollection.document(likeDocumentID(newsID: id, userID: uid)).getDocument()
+            async let bookmark = bookmarkReference(newsID: id, userID: uid).getDocument()
+            let (likeDocument, bookmarkDocument) = try await (like, bookmark)
+            if likeDocument.exists { likedIDs.insert(id) }
+            if bookmarkDocument.exists { bookmarkedIDs.insert(id) }
+        }
         let post = try NewsPost(dto: makeNewsPostDTO(
             from: document,
             likedNewsIDs: likedIDs,
@@ -34,10 +41,11 @@ struct FirestoreNewsRepository: NewsRepository {
     func fetchBookmarkedNews() async throws -> [NewsPost] {
         let bookmarkedIDs = try await fetchBookmarkedNewsIDs()
         guard !bookmarkedIDs.isEmpty else { return [] }
-        let likedIDs = try await fetchLikedNewsIDs()
+        let bookmarkedIDList = Array(bookmarkedIDs)
+        let likedIDs = try await fetchLikedNewsIDs(for: bookmarkedIDList)
         var posts: [NewsPost] = []
 
-        for chunk in Array(bookmarkedIDs).chunked(into: 10) {
+        for chunk in bookmarkedIDList.chunked(into: 10) {
             let snapshot = try await collection
                 .whereField(FieldPath.documentID(), in: Array(chunk))
                 .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
@@ -70,8 +78,10 @@ struct FirestoreNewsRepository: NewsRepository {
 
         let snapshot = try await query.getDocuments()
         let documents = Array(snapshot.documents.prefix(max(1, limit)))
-        let likedNewsIDs = try await fetchLikedNewsIDs()
-        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
+        let documentIDs = documents.map(\.documentID)
+        async let liked = fetchLikedNewsIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedNewsIDs(for: documentIDs)
+        let (likedNewsIDs, bookmarkedNewsIDs) = try await (liked, bookmarked)
         let items = try documents
             .map { document in
                 try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
@@ -93,8 +103,10 @@ struct FirestoreNewsRepository: NewsRepository {
             .limit(to: max(1, limit))
             .getDocuments()
 
-        let likedNewsIDs = try await fetchLikedNewsIDs()
-        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedNewsIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedNewsIDs(for: documentIDs)
+        let (likedNewsIDs, bookmarkedNewsIDs) = try await (liked, bookmarked)
 
         return try snapshot.documents
             .map { document in
@@ -107,10 +119,13 @@ struct FirestoreNewsRepository: NewsRepository {
         let snapshot = try await collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        let likedNewsIDs = try await fetchLikedNewsIDs()
-        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedNewsIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedNewsIDs(for: documentIDs)
+        let (likedNewsIDs, bookmarkedNewsIDs) = try await (liked, bookmarked)
 
         return try snapshot.documents
             .map { document in
@@ -125,10 +140,13 @@ struct FirestoreNewsRepository: NewsRepository {
             .whereField("organizationId", isEqualTo: organizationID)
             .whereField("moderationStatus", in: organizationModerationStatusValues)
             .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        let likedNewsIDs = try await fetchLikedNewsIDs()
-        let bookmarkedNewsIDs = try await fetchBookmarkedNewsIDs()
+        let documentIDs = snapshot.documents.map(\.documentID)
+        async let liked = fetchLikedNewsIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedNewsIDs(for: documentIDs)
+        let (likedNewsIDs, bookmarkedNewsIDs) = try await (liked, bookmarked)
 
         return try snapshot.documents.map { document in
             try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedNewsIDs, bookmarkedNewsIDs: bookmarkedNewsIDs))
@@ -594,21 +612,17 @@ struct FirestoreNewsRepository: NewsRepository {
         await sessionDataCache.updateBookmarkedNewsID(id, isBookmarked: false, for: uid)
     }
 
-    private func fetchLikedNewsIDs() async throws -> Set<String> {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            return []
+    private func fetchLikedNewsIDs(for newsIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !newsIDs.isEmpty else { return [] }
+        var result = Set<String>()
+        for chunk in newsIDs.chunked(into: 30) {
+            let documentIDs = chunk.map { likeDocumentID(newsID: $0, userID: uid) }
+            let snapshot = try await likesCollection
+                .whereField(FieldPath.documentID(), in: documentIDs)
+                .getDocuments()
+            result.formUnion(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
         }
-        if let cached = await sessionDataCache.cachedLikedNewsIDs(for: uid) {
-            return cached
-        }
-
-        let snapshot = try await likesCollection
-            .whereField("userId", isEqualTo: uid)
-            .getDocuments()
-
-        let ids = Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
-        await sessionDataCache.storeLikedNewsIDs(ids, for: uid)
-        return ids
+        return result
     }
 
     private func fetchBookmarkedNewsIDs() async throws -> Set<String> {
@@ -628,6 +642,19 @@ struct FirestoreNewsRepository: NewsRepository {
         let ids = Set(snapshot.documents.compactMap { $0.data()["newsId"] as? String })
         await sessionDataCache.storeBookmarkedNewsIDs(ids, for: uid)
         return ids
+    }
+
+    private func fetchBookmarkedNewsIDs(for newsIDs: [String]) async throws -> Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid, !newsIDs.isEmpty else { return [] }
+        let collection = Firestore.firestore().collection("users").document(uid).collection("newsBookmarks")
+        var result = Set<String>()
+        for chunk in newsIDs.chunked(into: 30) {
+            let snapshot = try await collection
+                .whereField(FieldPath.documentID(), in: Array(chunk))
+                .getDocuments()
+            result.formUnion(snapshot.documents.map(\.documentID))
+        }
+        return result
     }
 
     private func makeNewsPostDTO(from document: DocumentSnapshot, likedNewsIDs: Set<String>, bookmarkedNewsIDs: Set<String>) throws -> NewsPostDTO {
@@ -734,10 +761,11 @@ struct FirestoreNewsRepository: NewsRepository {
         let snapshot = try await collection.document(newsID)
             .collection("comments")
             .whereField("isDeleted", isEqualTo: false)
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .getDocuments()
 
-        return snapshot.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
+        return snapshot.documents.reversed().compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) }
     }
 
     private func makeCommentData(from dto: CommentDTO) -> [String: Any] {
@@ -807,7 +835,8 @@ extension FirestoreNewsRepository: NewsRealtimeRepository {
         let registration = collection.document(newsID)
             .collection("comments")
             .whereField("isDeleted", isEqualTo: false)
-            .order(by: "createdAt", descending: false)
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 if let error {
                     Self.logListenerFailure(error, newsID: newsID)
@@ -815,7 +844,7 @@ extension FirestoreNewsRepository: NewsRealtimeRepository {
                     return
                 }
 
-                let comments = snapshot?.documents.compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
+                let comments = snapshot?.documents.reversed().compactMap { makeCommentDTO(from: $0.data()).map(Comment.init(dto:)) } ?? []
                 Task { @MainActor in onChange(comments) }
             }
         return FirebaseRealtimeListener(registration)

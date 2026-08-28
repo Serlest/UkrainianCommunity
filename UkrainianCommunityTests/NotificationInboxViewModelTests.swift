@@ -15,7 +15,8 @@ struct NotificationInboxViewModelTests {
         let model = NotificationInboxViewModel(repository: repository)
         await model.configure(userID: "user-1")
         let item = notification("first")
-        repository.emit([item])
+        await repository.emit([item])
+        await model.refreshBadge()
         model.selectedFilter = .unread
         await model.markRead(item)
         #expect(model.filteredNotifications.isEmpty)
@@ -29,7 +30,8 @@ struct NotificationInboxViewModelTests {
         let model = NotificationInboxViewModel(repository: repository)
         await model.configure(userID: "user-1")
         let item = notification("first")
-        repository.emit([item])
+        await repository.emit([item])
+        await model.refreshBadge()
         repository.deleteFails = true
         #expect(await model.delete(item) == false)
         #expect(model.notifications == [item])
@@ -47,8 +49,12 @@ struct NotificationInboxViewModelTests {
         let model = NotificationInboxViewModel(repository: repository)
         await model.configure(userID: "user-1")
         let first = notification("first"), second = notification("second")
-        repository.emit([first, second])
-        repository.beforeDeleteReturns = { repository.emit([second]) }
+        await repository.emit([first, second])
+        await model.refreshBadge()
+        repository.beforeDeleteReturns = {
+            await repository.emit([second])
+            await model.refreshBadge()
+        }
         #expect(await model.delete(first))
         #expect(model.notifications == [second])
         #expect(model.unreadCount == 1)
@@ -64,7 +70,8 @@ struct NotificationInboxViewModelTests {
         await model.configure(userID: "user-2")
         await model.configure(userID: "user-1")
         let current = notification("current")
-        repository.emit([current])
+        await repository.emit([current])
+        await model.refreshBadge()
         oldCallback([notification("stale")])
         oldError(.unknown)
         #expect(model.notifications == [current])
@@ -77,11 +84,13 @@ struct NotificationInboxViewModelTests {
         let model = NotificationInboxViewModel(repository: repository)
         await model.configure(userID: "user-1")
         let old = notification("same-id")
-        repository.emit([old])
+        await repository.emit([old])
+        await model.refreshBadge()
         let current = notification("same-id", user: "user-2")
         repository.beforeDeleteReturns = {
             await model.configure(userID: "user-2")
-            repository.emit([current])
+            await repository.emit([current])
+            await model.refreshBadge()
         }
         #expect(await model.delete(old) == false)
         #expect(model.notifications == [current])
@@ -97,7 +106,8 @@ struct NotificationInboxViewModelTests {
         #expect(badge.counts.isEmpty) // Cold start must not erase an existing APNs badge.
         repository.additionalUnread = 75
         let item = notification("visible")
-        repository.emit([item])
+        await repository.emit([item])
+        await model.refreshBadge()
         #expect(model.unreadCount == 76)
         #expect(badge.counts.last == 76)
         await model.markRead(item)
@@ -110,7 +120,8 @@ struct NotificationInboxViewModelTests {
         #expect(badge.counts.last == 75)
         await model.markAllRead()
         #expect(badge.counts.last == 0)
-        repository.emit([notification("new")])
+        await repository.emit([notification("new")])
+        await model.refreshBadge()
         await model.clearAll()
         #expect(badge.counts.last == 0)
     }
@@ -119,18 +130,18 @@ struct NotificationInboxViewModelTests {
         let repository = InboxTestRepository(), badge = BadgeRecorder()
         let model = NotificationInboxViewModel(repository: repository, badgeUpdater: badge)
         await model.configure(userID: "user-1")
-        repository.emit([notification("first")])
-        let oldCount = repository.unreadCallbacks[0]
+        await repository.emit([notification("first")])
+        await model.refreshBadge()
         repository.countFails = true
         await model.refreshBadge()
         #expect(badge.counts.last == 1)
         await model.configure(userID: "user-2")
         #expect(badge.counts.last == 0)
-        repository.emit([notification("second", user: "user-2")])
-        oldCount(99)
+        repository.countFails = false
+        await repository.emit([notification("second", user: "user-2")])
+        await model.refreshBadge()
         #expect(badge.counts.last == 1)
         await model.configure(userID: nil)
-        repository.unreadCallbacks.last?(99)
         #expect(badge.counts.last == 0)
     }
 
@@ -138,16 +149,19 @@ struct NotificationInboxViewModelTests {
         let repository = InboxTestRepository(), badge = BadgeRecorder()
         let model = NotificationInboxViewModel(repository: repository, badgeUpdater: badge)
         await model.configure(userID: "user-1")
-        repository.emit([notification("first")])
+        await repository.emit([notification("first")])
+        await model.refreshBadge()
         var pending: CheckedContinuation<Int, Never>?
         repository.fetchCount = { await withCheckedContinuation { pending = $0 } }
         let refresh = Task { await model.refreshBadge() }
         while pending == nil { await Task.yield() }
-        repository.unreadCallbacks.last?(8)
+        repository.fetchCount = { 8 }
+        await model.refreshBadge()
         pending?.resume(returning: 1)
         await refresh.value
         #expect(badge.counts.last == 8)
         pending = nil
+        repository.fetchCount = { await withCheckedContinuation { pending = $0 } }
         let oldSessionRefresh = Task { await model.refreshBadge() }
         while pending == nil { await Task.yield() }
         await model.configure(userID: nil)
@@ -162,7 +176,6 @@ struct NotificationInboxViewModelTests {
 private final class InboxTestRepository: NotificationInboxRepository {
     var callbacks: [@MainActor ([AppNotification]) -> Void] = []
     var errors: [@MainActor (AppError) -> Void] = []
-    var unreadCallbacks: [@MainActor (Int) -> Void] = []
     var items: [AppNotification] = []
     var additionalUnread = 0
     var countFails = false
@@ -170,16 +183,15 @@ private final class InboxTestRepository: NotificationInboxRepository {
     var deleteFails = false
     var deleteCount = 0
     var beforeDeleteReturns: (@MainActor () async -> Void)?
+    var badgeFetchCount = 0
 
-    func emit(_ notifications: [AppNotification]) {
+    func emit(_ notifications: [AppNotification]) async {
+        let previousFetchCount = badgeFetchCount
         items = notifications
         callbacks.last?(notifications)
-        unreadCallbacks.last?(items.filter(\.countsAsUnread).count + additionalUnread)
-    }
-    func listenUnreadCount(userID: String, onChange: @escaping @MainActor (Int) -> Void,
-        onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener {
-        unreadCallbacks.append(onChange)
-        return InboxTestListener()
+        // Production schedules an aggregation refresh from the bounded inbox
+        // listener. Wait for the mock aggregation to observe this snapshot.
+        while badgeFetchCount == previousFetchCount { await Task.yield() }
     }
     func listenNotifications(userID: String, limit: Int,
         onChange: @escaping @MainActor ([AppNotification]) -> Void,
@@ -196,6 +208,7 @@ private final class InboxTestRepository: NotificationInboxRepository {
     }
     func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification] { [] }
     func fetchUnreadCount(userID: String) async throws -> Int {
+        badgeFetchCount += 1
         if countFails { throw AppError.network }
         if let fetchCount { return try await fetchCount() }
         return items.filter(\.countsAsUnread).count + additionalUnread

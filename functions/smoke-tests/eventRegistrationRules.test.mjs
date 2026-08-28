@@ -5,7 +5,18 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {deleteDoc, doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  documentId,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 import {readFileSync} from "node:fs";
 
 const PROJECT_ID = "ukrainian-community-event-registration-rules";
@@ -123,6 +134,11 @@ describe("server-owned event registration invariant", () => {
       auth("other-user"),
       "registrations",
       "event_event-1_registered-user"
+    )));
+    await assertSucceeds(getDocs(query(
+      collection(auth("registered-user"), "registrations"),
+      where("userId", "==", "registered-user"),
+      where(documentId(), "in", ["event_event-1_registered-user"])
     )));
   });
 

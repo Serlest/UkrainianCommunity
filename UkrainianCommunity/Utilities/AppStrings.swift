@@ -197,6 +197,8 @@ enum AppStrings {
         static var close: String { text("search.close", "Close search") }
         static var clear: String { text("search.clear", "Clear search") }
         static var searching: String { text("search.searching", "Searching all available content…") }
+        static var loadMoreResults: String { text("search.load_more_results", "Show more results") }
+        static var loadingMoreResults: String { text("search.loading_more_results", "Loading more results…") }
         static var noResultsTitle: String { text("search.no_results.title", "Nothing found") }
         static var noResultsMessage: String { text("search.no_results.message", "Try a different search term or adjust the current filters.") }
         static var homePlaceholder: String { text("search.placeholder.home", "Search updates, events, and organizations") }
