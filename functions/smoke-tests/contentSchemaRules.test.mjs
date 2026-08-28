@@ -29,6 +29,12 @@ beforeEach(async () => {
       setDoc(doc(db, "users", "owner"), user("owner", "owner")),
       setDoc(doc(db, "users", "app-admin"), user("app-admin", "admin")),
       setDoc(doc(db, "users", "org-owner"), user("org-owner")),
+      setDoc(doc(db, "users", "org-admin"), user("org-admin")),
+      setDoc(doc(db, "users", "org-moderator"), user("org-moderator")),
+      setDoc(doc(db, "users", "inactive-owner"), {
+        ...user("inactive-owner"),
+        accountStatus: "blocked",
+      }),
       setDoc(doc(db, "users", "regular-user"), user("regular-user")),
       setDoc(doc(db, "organizations", "org-1"), organization()),
       setDoc(doc(db, "news", "seed-news"), news("seed-news", "org-owner")),
@@ -100,8 +106,8 @@ function organization() {
     description: "Canonical organization document",
     city: "Vienna",
     ownerId: "org-owner",
-    adminIds: [],
-    moderatorIds: [],
+    adminIds: ["org-admin"],
+    moderatorIds: ["org-moderator"],
     moderationStatus: "approved",
     subscriberCount: 0,
     eventsHeldCount: 0,
@@ -213,6 +219,19 @@ describe("strict client content schemas", () => {
   test("organization owner can create canonical news and events", async () => {
     await assertSucceeds(setDoc(doc(db("org-owner"), "news", "new-news"), news("new-news", "org-owner")));
     await assertSucceeds(setDoc(doc(db("org-owner"), "events", "new-event"), event("new-event", "org-owner")));
+  });
+
+  test("organization content mutations use the complete active role matrix", async () => {
+    await assertSucceeds(setDoc(doc(db("owner"), "events", "app-owner-event"), event("app-owner-event", "owner")));
+    await assertSucceeds(setDoc(doc(db("org-owner"), "events", "org-owner-event"), event("org-owner-event", "org-owner")));
+    await assertSucceeds(setDoc(doc(db("org-admin"), "events", "org-admin-event"), event("org-admin-event", "org-admin")));
+    await assertSucceeds(setDoc(doc(db("org-moderator"), "events", "org-moderator-event"), event("org-moderator-event", "org-moderator")));
+    await assertFails(setDoc(doc(db("regular-user"), "events", "outsider-event"), event("outsider-event", "regular-user")));
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "organizations", "org-1"), {ownerId: "inactive-owner"});
+    });
+    await assertFails(setDoc(doc(db("inactive-owner"), "events", "inactive-owner-event"), event("inactive-owner-event", "inactive-owner")));
   });
 
   test("content accepts at most two known additional categories distinct from the primary", async () => {

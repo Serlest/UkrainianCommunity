@@ -1923,11 +1923,48 @@ service cloud.firestore {
         && (!('registeredCount' in resource.data) || request.resource.data.registeredCount == resource.data.registeredCount);
     }
 
+    function canWriteOrganizationContent(organizationId) {
+      // Keep this mutation check self-contained. Chaining canUseOrganizationOverride()
+      // and canEditOrganizationContent() repeats the verified-user lookup before the
+      // organization-role lookup and has produced false permission denials in the
+      // production Rules evaluator for otherwise valid organization owners.
+      let actor = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let organization = get(/databases/$(database)/documents/organizations/$(organizationId)).data;
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && organizationId is string
+        && organizationId.size() > 0
+        && (
+          !('accountStatus' in actor)
+          || actor.accountStatus == 'active'
+          || actor.accountStatus == 'warned'
+        )
+        && (
+          !('blockState' in actor)
+          || actor.blockState == 'active'
+          || actor.blockState == 'warned'
+        )
+        && (
+          (('globalRole' in actor) && actor.globalRole == 'owner')
+          || (('ownerId' in organization) && organization.ownerId == request.auth.uid)
+          || (
+            ('adminIds' in organization)
+            && organization.adminIds is list
+            && organization.adminIds.hasAny([request.auth.uid])
+          )
+          || (
+            ('moderatorIds' in organization)
+            && organization.moderatorIds is list
+            && organization.moderatorIds.hasAny([request.auth.uid])
+          )
+        );
+    }
+
     function canCreateOrganizationContent() {
       // Current policy: organization team members create approved content within their organization.
       return isOrganizationContent(request.resource.data)
         && aggregateCountersAreZeroOnCreate(request.resource.data)
-        && (canUseOrganizationOverride() || canEditOrganizationContent(request.resource.data.organizationId));
+        && canWriteOrganizationContent(request.resource.data.organizationId);
     }
 
     function canUpdateOrganizationContent() {
@@ -1936,7 +1973,7 @@ service cloud.firestore {
         && request.resource.data.sourceType == resource.data.sourceType
         && request.resource.data.organizationId == resource.data.organizationId
         && aggregateCountersArePreservedOnUpdate()
-        && (canUseOrganizationOverride() || canEditOrganizationContent(resource.data.organizationId));
+        && canWriteOrganizationContent(resource.data.organizationId);
     }
 
     function canUpdateAppContent() {
