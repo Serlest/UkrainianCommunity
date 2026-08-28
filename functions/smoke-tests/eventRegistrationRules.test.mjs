@@ -142,6 +142,24 @@ describe("server-owned event registration invariant", () => {
     )));
   });
 
+  test("the event feed can batch-check a full page of the user's registration IDs", async () => {
+    const registrationIDs = [
+      "event_event-1_registered-user",
+      ...Array.from({length: 29}, (_, index) =>
+        `event_missing-${index + 1}_registered-user`),
+    ];
+
+    await assertSucceeds(getDocs(query(
+      collection(auth("registered-user"), "registrations"),
+      where("userId", "==", "registered-user"),
+      where(documentId(), "in", registrationIDs)
+    )));
+    await assertFails(getDocs(query(
+      collection(auth("other-user"), "registrations"),
+      where(documentId(), "in", registrationIDs)
+    )));
+  });
+
   test("verified users and platform owners cannot directly create registrations", async () => {
     for (const uid of ["other-user", "platform-owner"]) {
       await assertFails(setDoc(

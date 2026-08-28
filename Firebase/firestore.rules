@@ -1743,6 +1743,16 @@ service cloud.firestore {
         && likeId.matches('^.+_' + request.auth.uid + '$');
     }
 
+    function ownRegistrationDocumentRead(registrationId) {
+      // Registration documents are server-owned and use the canonical
+      // event_<eventId>_<userId> identifier. Authorizing the personal feed by
+      // that immutable identifier keeps batched document-ID queries within the
+      // Rules access-call budget instead of evaluating every managed-event
+      // authorization branch for every requested ID.
+      return isVerifiedActiveUser()
+        && registrationId.matches('^event_.+_' + request.auth.uid + '$');
+    }
+
     function ownDocumentDelete() {
       return isVerifiedActiveUser()
         && resource.data.userId == request.auth.uid;
@@ -2553,7 +2563,8 @@ service cloud.firestore {
     }
 
     match /registrations/{registrationId} {
-      allow read: if ownDocumentRead()
+      allow read: if ownRegistrationDocumentRead(registrationId)
+        || ownDocumentRead()
         || canReadManagedEventRegistration()
         || isOwner();
 
