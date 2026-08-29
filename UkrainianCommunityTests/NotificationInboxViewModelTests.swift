@@ -25,6 +25,21 @@ struct NotificationInboxViewModelTests {
         #expect(model.unreadCount == 0)
     }
 
+    @Test func destinationOpenedOutsideInboxMarksNotificationByIdentifier() async {
+        let repository = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repository)
+        await model.configure(userID: "user-1")
+        let item = notification("contentDraftReady_draft-1")
+        await repository.emit([item])
+        await model.refreshBadge()
+
+        await model.markRead(notificationID: item.id)
+
+        #expect(repository.markReadIDs == [item.id])
+        #expect(model.notifications.first?.isRead == true)
+        #expect(model.unreadCount == 0)
+    }
+
     @Test func failedDeleteKeepsNotificationAndAllowsRetry() async {
         let repository = InboxTestRepository()
         let model = NotificationInboxViewModel(repository: repository)
@@ -184,6 +199,7 @@ private final class InboxTestRepository: NotificationInboxRepository {
     var deleteCount = 0
     var beforeDeleteReturns: (@MainActor () async -> Void)?
     var badgeFetchCount = 0
+    var markReadIDs: [String] = []
 
     func emit(_ notifications: [AppNotification]) async {
         let previousFetchCount = badgeFetchCount
@@ -214,6 +230,7 @@ private final class InboxTestRepository: NotificationInboxRepository {
         return items.filter(\.countsAsUnread).count + additionalUnread
     }
     func markNotificationRead(userID: String, notificationID: String) async throws {
+        markReadIDs.append(notificationID)
         items = items.map { $0.id == notificationID ? $0.updatingReadState(isRead: true, readAt: .now) : $0 }
     }
     func markNotificationUnread(userID: String, notificationID: String) async throws {

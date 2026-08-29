@@ -112,6 +112,7 @@ async function seed() {
       user("app-admin", {globalRole: "admin"}),
       user("app-owner", {globalRole: "owner"}),
       user("new-subscriber"),
+      user("suspended-user", {accountStatus: "suspendedUntil", blockState: "suspendedUntil"}),
     ];
     await Promise.all(users.map((value) =>
       setDoc(doc(db, "users", value.id), value)
@@ -152,14 +153,15 @@ describe("organization subscriber privacy", () => {
     await assertFails(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
   });
 
-  test("unrelated verified user cannot read subscriber identities", async () => {
+  test("unrelated verified active user can read approved organization subscribers", async () => {
     const db = auth("unrelated-user");
 
-    await assertFails(getDoc(doc(db, "likes", SUBSCRIPTION_ID)));
-    await assertFails(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
+    await assertSucceeds(getDoc(doc(db, "likes", SUBSCRIPTION_ID)));
+    await assertSucceeds(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
+    await assertSucceeds(getDocs(subscriptionsFor(db, OTHER_ORGANIZATION_ID)));
   });
 
-  test("subscriber can read only their own subscription records", async () => {
+  test("subscriber can read their own records and approved organization community", async () => {
     const db = auth(SUBSCRIBER_ID);
 
     await assertSucceeds(getDoc(doc(db, "likes", SUBSCRIPTION_ID)));
@@ -171,31 +173,36 @@ describe("organization subscriber privacy", () => {
       collection(db, "likes"),
       where(documentId(), "in", [SUBSCRIPTION_ID])
     )));
-    await assertFails(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
+    await assertSucceeds(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
   });
 
-  test("organization owner can query that organization's subscribers only", async () => {
+  test("organization owner can query every approved organization community", async () => {
     const db = auth("organization-owner");
 
     await assertSucceeds(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
     await assertFails(getDocs(collection(db, "likes")));
-    await assertFails(getDocs(subscriptionsFor(db, OTHER_ORGANIZATION_ID)));
+    await assertSucceeds(getDocs(subscriptionsFor(db, OTHER_ORGANIZATION_ID)));
   });
 
-  test("organization admin and moderator cannot query subscriber identities", async () => {
-    await assertFails(getDocs(subscriptionsFor(
+  test("organization admin and moderator can browse subscriber identities", async () => {
+    await assertSucceeds(getDocs(subscriptionsFor(
       auth("organization-admin"),
       ORGANIZATION_ID
     )));
-    await assertFails(getDocs(subscriptionsFor(
+    await assertSucceeds(getDocs(subscriptionsFor(
       auth("organization-moderator"),
       ORGANIZATION_ID
     )));
   });
 
-  test("App Admin has no organization override", async () => {
+  test("App Admin has the same registered community visibility", async () => {
     const db = auth("app-admin");
-    await assertFails(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
+    await assertSucceeds(getDocs(subscriptionsFor(db, ORGANIZATION_ID)));
+  });
+
+  test("unverified and suspended accounts cannot read subscriber identities", async () => {
+    await assertFails(getDocs(subscriptionsFor(auth("unrelated-user", false), ORGANIZATION_ID)));
+    await assertFails(getDocs(subscriptionsFor(auth("suspended-user"), ORGANIZATION_ID)));
   });
 
   test("App Owner retains the platform override", async () => {

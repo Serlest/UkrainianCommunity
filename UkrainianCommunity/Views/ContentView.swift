@@ -882,6 +882,15 @@ struct ContentView: View {
     private func handleRemoteNotificationRoute(_ route: RemoteNotificationRoute) {
         isShowingNotificationInbox = false
 
+        // Tapping a delivered inbox push is equivalent to opening that inbox
+        // item. Diagnostic pushes intentionally have no Firestore inbox record.
+        if let notificationID = route.notificationId,
+           !notificationID.hasPrefix("pushTest_") {
+            Task {
+                await notificationInboxViewModel.markRead(notificationID: notificationID)
+            }
+        }
+
         switch route.destination {
         case .openNews(let newsId):
             routeToNews(newsID: newsId)

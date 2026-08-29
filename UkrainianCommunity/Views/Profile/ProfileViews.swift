@@ -651,7 +651,14 @@ struct ProfileView: View {
                     draftRepository: ownerContentDraftRepository,
                     newsRepository: newsRepository,
                     eventRepository: eventRepository,
-                    organizationRepository: organizationRepository
+                    organizationRepository: organizationRepository,
+                    onDraftOpened: { draft in
+                        Task {
+                            await notificationInboxViewModel.markRead(
+                                notificationID: "contentDraftReady_\(draft.id)"
+                            )
+                        }
+                    }
                 )
             }
         case .legalDocumentManagement:

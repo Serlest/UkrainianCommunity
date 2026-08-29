@@ -27,17 +27,20 @@ struct OwnerContentPlanningView: View {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     private let organizationRepository: OrganizationRepository
+    private let onDraftOpened: (OwnerContentDraft) -> Void
 
     init(
         draftRepository: OwnerContentDraftRepository,
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository
+        organizationRepository: OrganizationRepository,
+        onDraftOpened: @escaping (OwnerContentDraft) -> Void = { _ in }
     ) {
         _viewModel = StateObject(wrappedValue: OwnerContentPlanningViewModel(repository: draftRepository))
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
+        self.onDraftOpened = onDraftOpened
     }
 
     var body: some View {
@@ -72,7 +75,10 @@ struct OwnerContentPlanningView: View {
                         ForEach(filteredDrafts) { draft in
                             OwnerContentDraftCard(
                                 draft: draft,
-                                openAction: { selectedDraft = draft },
+                                openAction: {
+                                    onDraftOpened(draft)
+                                    selectedDraft = draft
+                                },
                                 archiveAction: { pendingArchiveDraft = draft },
                                 deleteAction: { pendingDeleteDraft = draft }
                             )

@@ -399,7 +399,7 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canDeleteOrganization(approved, user: submitter) == false)
     }
 
-    @Test func subscriberIdentityVisibilityMatchesBackendOwnerContract() {
+    @Test func subscriberIdentityVisibilityAllowsEveryUsableRegisteredAccount() {
         let appOwner = makeUser(id: "app-owner", globalRole: .owner)
         let appAdmin = makeUser(id: "app-admin", globalRole: .admin)
         let organizationOwner = makeUser(id: "organization-owner")
@@ -420,21 +420,10 @@ struct UkrainianCommunityTests {
 
         #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: appOwner))
         #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: organizationOwner))
-        #expect(
-            PermissionService.canViewOrganizationSubscriberIdentities(organization, user: appAdmin) == false
-        )
-        #expect(
-            PermissionService.canViewOrganizationSubscriberIdentities(organization, user: organizationAdmin) == false
-        )
-        #expect(
-            PermissionService.canViewOrganizationSubscriberIdentities(
-                organization,
-                user: organizationModerator
-            ) == false
-        )
-        #expect(
-            PermissionService.canViewOrganizationSubscriberIdentities(organization, user: unrelatedUser) == false
-        )
+        #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: appAdmin))
+        #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: organizationAdmin))
+        #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: organizationModerator))
+        #expect(PermissionService.canViewOrganizationSubscriberIdentities(organization, user: unrelatedUser))
         #expect(
             PermissionService.canViewOrganizationSubscriberIdentities(
                 organization,

@@ -126,12 +126,22 @@ final class NotificationInboxViewModel: ObservableObject {
 
     func markRead(_ notification: AppNotification) async {
         guard let userID = currentUserID, notification.recipientUserId == userID, !notification.isRead else { return }
+        await markRead(notificationID: notification.id)
+    }
+
+    /// Marks an inbox record viewed when its destination was opened outside the
+    /// inbox list (for example from an APNs route or the content-planning screen).
+    func markRead(notificationID: String) async {
+        guard let userID = currentUserID, !notificationID.isEmpty else { return }
+        if let notification = notifications.first(where: { $0.id == notificationID }), notification.isRead {
+            return
+        }
         let session = sessionVersion
 
         do {
-            try await repository.markNotificationRead(userID: userID, notificationID: notification.id)
+            try await repository.markNotificationRead(userID: userID, notificationID: notificationID)
             guard sessionVersion == session else { return }
-            applyReadState(notificationID: notification.id, isRead: true, readAt: Date())
+            applyReadState(notificationID: notificationID, isRead: true, readAt: Date())
             error = nil
             await refreshBadge()
         } catch let appError as AppError {

@@ -361,13 +361,14 @@ struct PermissionService {
         false
     }
 
-    // Subscriber lists expose private relationship data. Keep this semantic
-    // permission separate even while it intentionally matches role management.
+    // The community surface exposes only sanitized public profiles and follow
+    // timestamps. Keep the permission semantic and aligned with Firestore Rules:
+    // every active signed-in account may browse an approved organization's community.
     static func canViewOrganizationSubscriberIdentities(
         _ organization: Organization,
         user: AppUser?
     ) -> Bool {
-        hasOrganizationOwnerAuthority(organization, user: user)
+        hasUsableAccount(user)
     }
 
     @available(

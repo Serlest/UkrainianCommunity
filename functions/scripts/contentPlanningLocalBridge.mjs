@@ -6,6 +6,8 @@ import {createRequire} from "node:module";
 import {readFile} from "node:fs/promises";
 import {extname, join, resolve} from "node:path";
 
+import {buildContentDraftNotificationDocument} from "./contentPlanningNotificationDocument.mjs";
+
 const projectId = process.env.UAC_FIREBASE_PROJECT_ID ?? "ukrainiancommunity-dbd5f";
 const storageBucket = process.env.UAC_FIREBASE_STORAGE_BUCKET ?? `${projectId}.firebasestorage.app`;
 const firestoreBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)`;
@@ -168,24 +170,14 @@ async function saveDraft(ownerUserId, item) {
   };
   const notificationId = `contentDraftReady_${draftId}`;
   const notificationName = `projects/${projectId}/databases/(default)/documents/users/${ownerUserId}/notificationInbox/${notificationId}`;
-  const notificationFields = {
-    id: notificationId,
-    userId: ownerUserId,
-    type: "contentDraftReady",
-    title: item.kind === "news" ? "Нова чернетка новини" : "Нова чернетка події",
-    message: item.payload.title,
-    severity: state === "needsAttention" ? "warning" : "info",
-    actionType: "openContentPlanning",
-    actionTargetId: draftId,
-    sourceType: "contentDraft",
-    sourceId: draftId,
-    dedupeKey: `contentDraftReady:${draftId}`,
-    isRead: false,
-    isArchived: false,
-    createdAt: now,
-    updatedAt: now,
-    metadata: {kind: item.kind, state},
-  };
+  const notificationFields = buildContentDraftNotificationDocument({
+    ownerUserId,
+    draftId,
+    kind: item.kind,
+    state,
+    title: item.payload.title,
+    now,
+  });
   const response = await authorizedFetch(`${firestoreBase}/documents:commit`, {
     method: "POST",
     body: JSON.stringify({writes: [

@@ -1835,11 +1835,12 @@ service cloud.firestore {
     }
 
     function canReadOrganizationSubscription() {
-      // Subscriber identities are private. Organization owners may query their
-      // own subscriber list; users and App Owner retain the own/override paths.
+      // Community pages expose only the subscription relationship plus a
+      // separately sanitized public profile. Private user documents remain denied.
       return ('subscribedOrganizationId' in resource.data)
         && resource.data.subscribedOrganizationId is string
-        && isOrganizationOwner(resource.data.subscribedOrganizationId);
+        && isVerifiedActiveUser()
+        && approvedOrganizationTargetExists(resource.data.subscribedOrganizationId);
     }
 
     function validLikeCreate(likeId) {
