@@ -214,6 +214,8 @@ jobs:
           -destination "generic/platform=iOS Simulator"
           -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
           CODE_SIGNING_ALLOWED=NO
+          ARCHS=arm64
+          ONLY_ACTIVE_ARCH=YES
           build
 
       - name: Build Release configuration
@@ -226,6 +228,8 @@ jobs:
           -destination "generic/platform=iOS Simulator"
           -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityReleaseDerivedData"
           CODE_SIGNING_ALLOWED=NO
+          ARCHS=arm64
+          ONLY_ACTIVE_ARCH=YES
           build
 
       - name: Run Swift unit tests
