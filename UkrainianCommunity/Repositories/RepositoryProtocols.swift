@@ -86,6 +86,11 @@ protocol OwnerContentDraftRepository {
         onChange: @escaping @MainActor ([OwnerContentDraft]) -> Void,
         onError: @escaping @MainActor (AppError) -> Void
     ) -> AppRealtimeListener
+    func markScheduled(
+        userID: String,
+        draftID: String,
+        publication: ContentPlanningPublicationResult
+    ) async throws
     func markCompleted(userID: String, draftID: String) async throws
     func archive(userID: String, draftID: String) async throws
     func delete(userID: String, draftID: String) async throws
@@ -253,6 +258,11 @@ protocol NewsRepository {
     func fetchNews(id: String) async throws -> NewsPost
     func fetchBookmarkedNews() async throws -> [NewsPost]
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage
+    func fetchNewsPage(
+        limit: Int,
+        after cursor: NewsPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> NewsPage
     func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost]
     func fetchPendingNews() async throws -> [NewsPost]
     func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost]
@@ -277,6 +287,11 @@ protocol EventRepository: EventRegistrationMutating {
     func fetchEvents() async throws -> [Event]
     func fetchBookmarkedEvents() async throws -> [Event]
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage
+    func fetchEventsPage(
+        limit: Int,
+        after cursor: EventPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> EventPage
     func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
     func fetchRegisteredEvents() async throws -> [Event]
@@ -306,6 +321,11 @@ protocol OrganizationRepository {
     func fetchBookmarkedOrganizations() async throws -> [Organization]
     func fetchSubscribedOrganizations() async throws -> [Organization]
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage
+    func fetchOrganizationsPage(
+        limit: Int,
+        after cursor: OrganizationPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> OrganizationPage
     func fetchOrganization(id: String) async throws -> Organization
     func fetchPendingOrganizations() async throws -> [Organization]
     func fetchOrganizationRequests(submittedByUserID: String) async throws -> [Organization]
@@ -364,6 +384,41 @@ extension NewsRepository {
         )
     }
 
+    func fetchNewsPage(
+        limit: Int,
+        after cursor: NewsPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> NewsPage {
+        let sortedItems = try await fetchNews()
+            .filter {
+                RegionVisibilityMatcher.isVisible(
+                    regionScope: $0.regionScope,
+                    federalState: $0.federalState,
+                    selectedFederalState: federalState
+                )
+            }
+            .sorted {
+                $0.publishedAt == $1.publishedAt
+                    ? $0.id > $1.id
+                    : $0.publishedAt > $1.publishedAt
+            }
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {
+            startIndex = sortedItems.index(after: cursorIndex)
+        } else {
+            startIndex = sortedItems.startIndex
+        }
+
+        let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
+        let nextCursor = pageItems.last.map { NewsPageCursor(publishedAt: $0.publishedAt, documentID: $0.id) }
+        return NewsPage(
+            items: pageItems,
+            nextCursor: nextCursor,
+            hasMore: sortedItems.count > startIndex + pageItems.count
+        )
+    }
+
     func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost] {
         Array(try await fetchNews()
             .filter { $0.source.organizationId == organizationID }
@@ -378,6 +433,41 @@ extension EventRepository {
 
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
         let sortedItems = try await fetchEvents()
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {
+            startIndex = sortedItems.index(after: cursorIndex)
+        } else {
+            startIndex = sortedItems.startIndex
+        }
+
+        let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
+        let nextCursor = pageItems.last.map { EventPageCursor(startDate: $0.startDate, documentID: $0.id) }
+        return EventPage(
+            items: pageItems,
+            nextCursor: nextCursor,
+            hasMore: sortedItems.count > startIndex + pageItems.count
+        )
+    }
+
+    func fetchEventsPage(
+        limit: Int,
+        after cursor: EventPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> EventPage {
+        let sortedItems = try await fetchEvents()
+            .filter {
+                RegionVisibilityMatcher.isVisible(
+                    regionScope: $0.regionScope,
+                    federalState: $0.federalState,
+                    selectedFederalState: federalState
+                )
+            }
+            .sorted {
+                $0.startDate == $1.startDate
+                    ? $0.id < $1.id
+                    : $0.startDate < $1.startDate
+            }
         let startIndex: Int
         if let cursor,
            let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {
@@ -473,6 +563,41 @@ extension OrganizationRepository {
 
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage {
         let sortedItems = try await fetchOrganizations()
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {
+            startIndex = sortedItems.index(after: cursorIndex)
+        } else {
+            startIndex = sortedItems.startIndex
+        }
+
+        let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
+        let nextCursor = pageItems.last.map { OrganizationPageCursor(createdAt: $0.createdAt, documentID: $0.id) }
+        return OrganizationPage(
+            items: pageItems,
+            nextCursor: nextCursor,
+            hasMore: sortedItems.count > startIndex + pageItems.count
+        )
+    }
+
+    func fetchOrganizationsPage(
+        limit: Int,
+        after cursor: OrganizationPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> OrganizationPage {
+        let sortedItems = try await fetchOrganizations()
+            .filter {
+                RegionVisibilityMatcher.isVisible(
+                    regionScope: $0.regionScope,
+                    federalState: $0.federalState,
+                    selectedFederalState: federalState
+                )
+            }
+            .sorted {
+                $0.createdAt == $1.createdAt
+                    ? $0.id > $1.id
+                    : $0.createdAt > $1.createdAt
+            }
         let startIndex: Int
         if let cursor,
            let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.documentID }) {

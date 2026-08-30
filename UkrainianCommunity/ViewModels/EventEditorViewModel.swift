@@ -179,6 +179,7 @@ final class EventEditorViewModel: ObservableObject {
     @Published var isUploadingImage = false
     @Published var isProcessingImage = false
     @Published var successMessage: String?
+    @Published private(set) var lastPublicationResult: ContentPlanningPublicationResult?
     @Published var errorMessage: String?
     @Published var selectedImageData: Data?
     @Published private(set) var pendingRecoveryDraft: EventCreateDraft?
@@ -716,6 +717,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     func publish() async -> Bool {
+        lastPublicationResult = nil
         guard !isPublishing else { return false }
 
         successMessage = nil
@@ -911,6 +913,11 @@ final class EventEditorViewModel: ObservableObject {
             }
 
             AppContentChangeBus.postEventsChanged(organizationID: newEvent.source.organizationId)
+            lastPublicationResult = ContentPlanningPublicationResult(
+                kind: .event,
+                contentID: newEvent.id,
+                scheduledAt: isCreateMode && publicationMode == .scheduled ? scheduledAt : nil
+            )
             if isCreateMode {
                 draftAutosaveTask?.cancel()
                 try? await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)

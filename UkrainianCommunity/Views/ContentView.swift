@@ -30,6 +30,8 @@ struct ContentView: View {
     @StateObject private var userBlockingCoordinator: UserBlockingCoordinator
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
+    @State private var selectedPublicFederalState: AustrianFederalState?
+    @State private var didManuallySelectPublicRegion = false
     @State private var isShowingNotificationInbox = false
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
     @State private var eventsNavigationPath: [EventNavigationRoute] = []
@@ -146,6 +148,17 @@ struct ContentView: View {
         .onChange(of: authIdentityResetKey, initial: true) { _, newKey in
             handleAuthIdentityChange(for: newKey)
         }
+        .onChange(of: authState.user?.id, initial: true) { oldUserID, newUserID in
+            if oldUserID != newUserID {
+                didManuallySelectPublicRegion = false
+            }
+            guard !didManuallySelectPublicRegion else { return }
+            selectedPublicFederalState = authState.user?.selectedFederalState
+        }
+        .onChange(of: authState.user?.selectedFederalState, initial: true) { _, newRegion in
+            guard !didManuallySelectPublicRegion else { return }
+            selectedPublicFederalState = newRegion
+        }
         .onChange(of: notificationInboxViewModel.snapshotVersion) { _, _ in
             handleNotificationInboxSnapshotChange()
         }
@@ -195,12 +208,14 @@ struct ContentView: View {
             NavigationStack {
                 switch kind {
                 case .news:
-                    NewsEditorView(repository: container.newsRepository, organizationRepository: container.organizationRepository) {
+                    NewsEditorView(repository: container.newsRepository, organizationRepository: container.organizationRepository) { _ in
                         await newsViewModel.refresh()
+                        return true
                     }
                 case .event:
-                    EventEditorView(repository: container.eventRepository, organizationRepository: container.organizationRepository) {
+                    EventEditorView(repository: container.eventRepository, organizationRepository: container.organizationRepository) { _ in
                         await eventsViewModel.refresh()
+                        return true
                     }
                 }
             }
@@ -410,6 +425,16 @@ struct ContentView: View {
         )
     }
 
+    private var publicRegionBinding: Binding<AustrianFederalState?> {
+        Binding(
+            get: { selectedPublicFederalState },
+            set: { newRegion in
+                didManuallySelectPublicRegion = true
+                selectedPublicFederalState = newRegion
+            }
+        )
+    }
+
     @ViewBuilder
     private var rootTabs: some View {
         homeTab
@@ -431,7 +456,9 @@ struct ContentView: View {
                 navigationPath: $homeNavigationPath,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 scrollResetToken: homeScrollResetToken,
-                searchResetToken: homeSearchResetToken
+                searchResetToken: homeSearchResetToken,
+                isActive: selectedTab == .home,
+                selectedFederalState: publicRegionBinding
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -455,7 +482,9 @@ struct ContentView: View {
                 onEventDeleted: {},
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 scrollResetToken: eventsScrollResetToken,
-                searchResetToken: eventsSearchResetToken
+                searchResetToken: eventsSearchResetToken,
+                isActive: selectedTab == .events,
+                selectedFederalState: publicRegionBinding
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -480,7 +509,9 @@ struct ContentView: View {
                 onOrganizationDeleted: {},
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 scrollResetToken: organizationsScrollResetToken,
-                searchResetToken: organizationsSearchResetToken
+                searchResetToken: organizationsSearchResetToken,
+                isActive: selectedTab == .organizations,
+                selectedFederalState: publicRegionBinding
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)

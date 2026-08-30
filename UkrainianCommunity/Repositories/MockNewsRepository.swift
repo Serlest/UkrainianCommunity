@@ -2,9 +2,19 @@ import Foundation
 
 struct MockNewsRepository: NewsRepository {
     private let store = MockRepositoryStore.shared
+    private let seededNews: [NewsPost]?
+
+    init(seededNews: [NewsPost]? = nil) {
+        self.seededNews = seededNews
+    }
 
     func fetchNews() async throws -> [NewsPost] {
-        await store.news
+        if let seededNews {
+            return seededNews
+                .filter { $0.moderationStatus == .approved }
+                .sorted { $0.createdAt > $1.createdAt }
+        }
+        return await store.news
             .filter { $0.moderationStatus == .approved }
             .sorted { $0.createdAt > $1.createdAt }
     }

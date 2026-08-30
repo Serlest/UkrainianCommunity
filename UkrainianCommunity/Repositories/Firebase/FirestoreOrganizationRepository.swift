@@ -105,11 +105,26 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage {
+        try await fetchOrganizationsPage(limit: limit, after: cursor, federalState: nil)
+    }
+
+    func fetchOrganizationsPage(
+        limit: Int,
+        after cursor: OrganizationPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> OrganizationPage {
         var query: Query = collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
             .order(by: "createdAt", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
             .limit(to: max(1, limit) + 1)
+
+        if let federalState {
+            query = query.whereFilter(Filter.orFilter([
+                Filter.whereField("regionScope", isEqualTo: RegionScope.austria.rawValue),
+                Filter.whereField("federalState", isEqualTo: federalState.rawValue)
+            ]))
+        }
 
         if let cursor {
             query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.documentID])

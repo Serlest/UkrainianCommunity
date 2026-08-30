@@ -27,7 +27,7 @@ struct EventEditorView: View {
     @State var isShowingDraftCloseConfirmation = false
     @State var currentStep = EventEditorStep.basics
 
-    let onPublished: @MainActor () async -> Void
+    let onPublished: @MainActor (ContentPlanningPublicationResult) async -> Bool
     let sourceAttentionMessages: [String]
     let editorSectionSpacing: CGFloat = 8
     let editorCardSpacing: CGFloat = 8
@@ -43,7 +43,7 @@ struct EventEditorView: View {
     init(
         repository: EventRepository,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create()))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
@@ -55,7 +55,7 @@ struct EventEditorView: View {
         repository: EventRepository,
         sourceDraft: OwnerContentDraft,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(
             repository: repository,
@@ -74,7 +74,7 @@ struct EventEditorView: View {
         organizationImageURL: String?,
         organizationFederalState: AustrianFederalState? = nil,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(
             repository: repository,
@@ -94,7 +94,7 @@ struct EventEditorView: View {
         repository: EventRepository,
         event: Event,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .edit(existing: event)))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))

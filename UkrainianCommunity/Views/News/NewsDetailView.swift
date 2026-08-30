@@ -81,8 +81,9 @@ struct NewsDetailView: View {
     var editSheetContent: some View {
         if let post = viewModel.post(for: postID) {
             NavigationStack {
-                NewsEditorView(repository: viewModel.editorRepository, news: post) {
+                NewsEditorView(repository: viewModel.editorRepository, news: post) { _ in
                     await viewModel.refresh()
+                    return true
                 }
             }
             .environmentObject(authState)

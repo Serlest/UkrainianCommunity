@@ -64,6 +64,28 @@ final class OwnerContentPlanningViewModel: ObservableObject {
         }
     }
 
+    func finishPublishing(
+        _ draft: OwnerContentDraft,
+        publication: ContentPlanningPublicationResult
+    ) async {
+        guard let activeUserID else { return }
+        do {
+            if publication.isScheduled {
+                try await repository.markScheduled(
+                    userID: activeUserID,
+                    draftID: draft.id,
+                    publication: publication
+                )
+            } else {
+                try await repository.markCompleted(userID: activeUserID, draftID: draft.id)
+                drafts.removeAll { $0.id == draft.id }
+            }
+            errorMessage = nil
+        } catch {
+            errorMessage = AppStrings.ContentPlanning.updateFailed
+        }
+    }
+
     func archive(_ draft: OwnerContentDraft) async {
         guard let activeUserID else { return }
         do {

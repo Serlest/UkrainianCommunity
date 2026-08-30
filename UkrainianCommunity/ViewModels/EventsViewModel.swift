@@ -34,6 +34,7 @@ final class EventsViewModel: ObservableObject {
     private var hasLoaded = false
     private var lastLoadedAt: Date?
     private var nextPageCursor: EventPageCursor?
+    private var activeFederalState: AustrianFederalState?
     private var trackedEventViewIDs = Set<String>()
     private var visibilityPolicy = ContentVisibilityPolicy()
     private var registrationTasks: [String: Task<Void, Never>] = [:]
@@ -63,8 +64,28 @@ final class EventsViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
+        await loadIfNeeded(federalState: activeFederalState, initialLimit: publicFeedPageSize)
+    }
+
+    func loadIfNeeded(
+        federalState: AustrianFederalState?,
+        initialLimit: Int = publicFeedPageSize
+    ) async {
+        prepareFeedIfRegionChanged(to: federalState)
         guard !hasLoaded else { return }
-        await startLoad(force: false)
+        await startLoad(force: false, limit: initialLimit)
+    }
+
+    func ensureLoaded(
+        minimumCount: Int,
+        federalState: AustrianFederalState?
+    ) async {
+        await loadIfNeeded(federalState: federalState, initialLimit: minimumCount)
+        while events.count < minimumCount, hasMorePages, !Task.isCancelled {
+            let previousCount = events.count
+            await loadNextPage(pageSize: max(1, minimumCount - events.count))
+            guard events.count > previousCount, error == nil else { return }
+        }
     }
 
     func reload() {
@@ -74,7 +95,15 @@ final class EventsViewModel: ObservableObject {
     }
 
     func refresh() async {
-        await startLoad(force: true)
+        await startLoad(force: true, limit: publicFeedPageSize)
+    }
+
+    func refresh(
+        federalState: AustrianFederalState?,
+        limit: Int
+    ) async {
+        prepareFeedIfRegionChanged(to: federalState)
+        await startLoad(force: true, limit: limit)
     }
 
     func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
@@ -90,6 +119,22 @@ final class EventsViewModel: ObservableObject {
 
         guard Date().timeIntervalSince(lastLoadedAt) > maxAge else { return }
         await refresh()
+    }
+
+    func refreshIfStale(
+        federalState: AustrianFederalState?,
+        limit: Int,
+        maxAge: TimeInterval = defaultRefreshStaleInterval
+    ) async {
+        prepareFeedIfRegionChanged(to: federalState)
+        guard hasLoaded else {
+            await loadIfNeeded(federalState: federalState, initialLimit: limit)
+            return
+        }
+        guard let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) <= maxAge else {
+            await refresh(federalState: federalState, limit: limit)
+            return
+        }
     }
 
     func resetForAuthChange() {
@@ -123,6 +168,7 @@ final class EventsViewModel: ObservableObject {
         hasLoaded = false
         lastLoadedAt = nil
         nextPageCursor = nil
+        activeFederalState = nil
     }
 
     var bookmarkedEvents: [Event] {
@@ -713,7 +759,7 @@ final class EventsViewModel: ObservableObject {
         contentVersion &+= 1
     }
 
-    private func startLoad(force: Bool) async {
+    private func startLoad(force: Bool, limit: Int) async {
         let generation = sessionGeneration
         guard force || !hasLoaded else { return }
         if force {
@@ -729,7 +775,7 @@ final class EventsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad(generation: generation)
+            await self.performLoad(generation: generation, limit: limit)
         }
         loadTask = task
         await task.value
@@ -751,7 +797,26 @@ final class EventsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoadNextPage(generation: generation)
+            await self.performLoadNextPage(generation: generation, limit: publicFeedPageSize)
+        }
+        nextPageTask = task
+        await task.value
+        guard isCurrentSession(generation) else { return }
+        nextPageTask = nil
+    }
+
+    func loadNextPage(pageSize: Int = publicFeedPageSize) async {
+        let generation = sessionGeneration
+        guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
+
+        if let nextPageTask {
+            await nextPageTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoadNextPage(generation: generation, limit: pageSize)
         }
         nextPageTask = task
         await task.value
@@ -788,7 +853,7 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
-    private func performLoad(generation: Int) async {
+    private func performLoad(generation: Int, limit: Int) async {
         guard isCurrentSession(generation) else { return }
         isLoading = true
         defer {
@@ -798,7 +863,14 @@ final class EventsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nil) }
+            let federalState = activeFederalState
+            let page = try await RefreshRequest.run { [repository] in
+                try await repository.fetchEventsPage(
+                    limit: max(1, limit),
+                    after: nil,
+                    federalState: federalState
+                )
+            }
             guard !Task.isCancelled, isCurrentSession(generation) else { return }
             feedRevision &+= 1
             events = visibilityPolicy.visibleEvents(page.items).deduplicatedEventsByID()
@@ -818,7 +890,7 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
-    private func performLoadNextPage(generation: Int) async {
+    private func performLoadNextPage(generation: Int, limit: Int) async {
         guard isCurrentSession(generation) else { return }
         guard let nextPageCursor else { return }
         isLoadingNextPage = true
@@ -829,7 +901,14 @@ final class EventsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await RefreshRequest.run { [repository, publicFeedPageSize, nextPageCursor] in try await repository.fetchEventsPage(limit: publicFeedPageSize, after: nextPageCursor) }
+            let federalState = activeFederalState
+            let page = try await RefreshRequest.run { [repository, nextPageCursor] in
+                try await repository.fetchEventsPage(
+                    limit: max(1, limit),
+                    after: nextPageCursor,
+                    federalState: federalState
+                )
+            }
             guard !Task.isCancelled, isCurrentSession(generation) else { return }
             feedRevision &+= 1
             appendUniqueEvents(page.items)
@@ -853,6 +932,26 @@ final class EventsViewModel: ObservableObject {
         events.append(contentsOf: visibilityPolicy.visibleEvents(newEvents).filter {
             seenIDs.insert($0.id).inserted
         })
+    }
+
+    private func prepareFeedIfRegionChanged(to federalState: AustrianFederalState?) {
+        guard activeFederalState != federalState else { return }
+        sessionGeneration &+= 1
+        feedRevision &+= 1
+        loadTask?.cancel()
+        nextPageTask?.cancel()
+        loadTask = nil
+        nextPageTask = nil
+        events = []
+        isLoading = false
+        isLoadingNextPage = false
+        hasMorePages = false
+        error = nil
+        nextPageCursor = nil
+        hasLoaded = false
+        lastLoadedAt = nil
+        activeFederalState = federalState
+        contentVersion &+= 1
     }
 
     private func rollbackBookmark(

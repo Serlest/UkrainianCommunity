@@ -15,6 +15,14 @@ enum OwnerContentDraftState: String, CaseIterable, Codable {
     case archived
 }
 
+struct ContentPlanningPublicationResult: Equatable, Sendable {
+    let kind: OwnerContentDraftKind
+    let contentID: String
+    let scheduledAt: Date?
+
+    var isScheduled: Bool { scheduledAt != nil }
+}
+
 struct OwnerContentSourceReference: Codable, Equatable, Identifiable {
     let url: String
     let title: String?

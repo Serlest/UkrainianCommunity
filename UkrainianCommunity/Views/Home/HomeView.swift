@@ -21,23 +21,21 @@ struct HomeView: View {
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
     let scrollResetToken: Int
     let searchResetToken: Int
+    let isActive: Bool
+    @Binding var selectedFederalState: AustrianFederalState?
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var selectedContentType: HomeContentTypeFilter = .all
     @State private var selectedFeedFilter: HomeFeedFilter = .all
-    @State private var selectedFederalState: AustrianFederalState?
-    @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
     @State private var isSearchPresented = false
     @State private var searchText = ""
-    @State private var isLoadingSearchPages = false
     @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
     @State private var pendingContentRefreshTask: Task<Void, Never>?
     @State private var visibleFeedItems: [HomeFeedItem] = []
-    @State private var seenPaginationItems: Set<String> = []
-    private let paginationTriggerWindow = 6
+    @State private var isLoadingNextPage = false
 
     private var featuredBannerLoadKey: String {
-        selectedFederalState?.rawValue ?? "allAustria"
+        "\(selectedFederalState?.rawValue ?? "allAustria"):\(isActive)"
     }
 
     init(
@@ -51,7 +49,9 @@ struct HomeView: View {
         navigationPath: Binding<[HomeFeedDestinationReference]>,
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
         scrollResetToken: Int = 0,
-        searchResetToken: Int = 0
+        searchResetToken: Int = 0,
+        isActive: Bool = true,
+        selectedFederalState: Binding<AustrianFederalState?> = .constant(nil)
     ) {
         self.viewModel = viewModel
         self.newsViewModel = newsViewModel
@@ -61,6 +61,8 @@ struct HomeView: View {
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
         self.searchResetToken = searchResetToken
+        self.isActive = isActive
+        _selectedFederalState = selectedFederalState
         _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
             repository: featuredBannerRepository,
             cache: featuredBannerCache
@@ -133,41 +135,23 @@ struct HomeView: View {
         .appRefreshable {
             await refreshContentWhenAuthIsReady(force: true)
         }
-        .task(id: authBootstrapKey) {
+        .task(id: contentLoadKey) {
             await loadContentWhenAuthIsReady()
         }
         .task(id: featuredBannerLoadKey) {
-            guard isAuthBootstrapReady else { return }
+            guard isActive, isAuthBootstrapReady else { return }
             await loadFeaturedBannersIfNeeded()
         }
-        .task(id: searchText) {
-            let queryKey = LocalSearchMatcher.normalized(searchText)
-            isLoadingSearchPages = false
-            guard !queryKey.isEmpty else { return }
-            try? await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled else { return }
-            isLoadingSearchPages = true
-            defer {
-                if LocalSearchMatcher.normalized(searchText) == queryKey {
-                    isLoadingSearchPages = false
-                }
-            }
-            async let newsSearch: Void = newsViewModel.loadRemainingPagesForSearch()
-            async let eventsSearch: Void = eventsViewModel.loadRemainingPagesForSearch()
-            async let organizationsSearch: Void = organizationsViewModel.loadRemainingPagesForSearch()
-            _ = await (newsSearch, eventsSearch, organizationsSearch)
-        }
-        .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
-            guard !didManuallyChangeRegion else { return }
-            selectedFederalState = newRegion
-        }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in
+            guard isActive else { return }
             scheduleContentRefresh(for: .news)
         }
         .onReceive(NotificationCenter.default.publisher(for: .eventsChanged)) { _ in
+            guard isActive else { return }
             scheduleContentRefresh(for: .events)
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
+            guard isActive else { return }
             scheduleContentRefresh(for: .organizations)
         }
         .onChange(of: newsViewModel.contentVersion) { _, _ in
@@ -256,17 +240,14 @@ struct HomeView: View {
                 message: AppStrings.Common.noItems
             )
             .frame(maxWidth: .infinity, minHeight: 180)
-        } else if visibleFeedItems.isEmpty, isLoadingSearchPages {
-            LoadingStateCard(title: AppStrings.Search.searching)
-                .frame(maxWidth: .infinity, minHeight: 180)
         } else if visibleFeedItems.isEmpty {
             UnifiedEmptyStateCard(
                 systemImage: emptyStateSystemImage,
                 title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Tabs.home,
                 message: emptyStateMessage
             ) {
-                if hasActiveSearch, hasMoreSearchPages {
-                    searchLoadMoreButton
+                if hasMoreVisiblePages {
+                    loadMoreButton
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 180)
@@ -274,8 +255,7 @@ struct HomeView: View {
             VStack(spacing: AppTheme.feedRowSpacing) {
                 DashboardFeedContainer(
                     items: visibleFeedItems,
-                    spacing: AppTheme.feedRowSpacing,
-                    onItemAppear: loadNextPageIfNeeded(for:)
+                    spacing: AppTheme.feedRowSpacing
                 ) { item in
                     NavigationLink(value: item.destination) {
                         HomeFeedCard(item: item)
@@ -284,8 +264,8 @@ struct HomeView: View {
                     .accessibilityIdentifier("home.card.\(item.id)")
                 }
 
-                if hasActiveSearch, hasMoreSearchPages {
-                    searchLoadMoreButton
+                if hasMoreVisiblePages {
+                    loadMoreButton
                 }
             }
         }
@@ -295,27 +275,33 @@ struct HomeView: View {
         LocalSearchMatcher.hasQuery(searchText)
     }
 
-    private var hasMoreSearchPages: Bool {
-        newsViewModel.hasMorePages || eventsViewModel.hasMorePages || organizationsViewModel.hasMorePages
+    private var hasMoreVisiblePages: Bool {
+        switch selectedContentType {
+        case .all:
+            return newsViewModel.hasMorePages
+                || eventsViewModel.hasMorePages
+                || organizationsViewModel.hasMorePages
+        case .news:
+            return newsViewModel.hasMorePages
+        case .events:
+            return eventsViewModel.hasMorePages
+        case .organizations:
+            return organizationsViewModel.hasMorePages
+        }
     }
 
-    private var searchLoadMoreButton: some View {
+    private var loadMoreButton: some View {
         PrimaryActionButton(
-            title: AppStrings.Search.loadMoreResults,
-            loadingTitle: AppStrings.Search.loadingMoreResults,
-            isLoading: isLoadingSearchPages,
+            title: hasActiveSearch ? AppStrings.Search.loadMoreResults : AppStrings.Search.loadMoreContent,
+            loadingTitle: hasActiveSearch ? AppStrings.Search.loadingMoreResults : AppStrings.Search.loadingMoreContent,
+            isLoading: isLoadingNextPage,
             systemImage: "ellipsis.circle"
         ) {
             Task {
-                isLoadingSearchPages = true
-                defer { isLoadingSearchPages = false }
-                async let news: Void = newsViewModel.loadRemainingPagesForSearch(maximumLoadedCount: newsViewModel.posts.count + 60)
-                async let events: Void = eventsViewModel.loadRemainingPagesForSearch(maximumLoadedCount: eventsViewModel.events.count + 60)
-                async let organizations: Void = organizationsViewModel.loadRemainingPagesForSearch(maximumLoadedCount: organizationsViewModel.organizations.count + 60)
-                _ = await (news, events, organizations)
+                await loadNextVisiblePage()
             }
         }
-        .accessibilityIdentifier("home.search.loadMore")
+        .accessibilityIdentifier("home.feed.loadMore")
     }
 
     private func rebuildVisibleFeedItems() {
@@ -341,10 +327,6 @@ struct HomeView: View {
             visibleFeedItems = rebuiltItems
         }
 
-        // Preserve pagination guards for cards that remain on screen. Clearing
-        // the entire set on every child-model publication could repeatedly
-        // trigger the same page load while the home feed was settling.
-        seenPaginationItems.formIntersection(Set(rebuiltItems.map(\.id)))
     }
 
     private func toggleFeedFilter(_ filter: HomeFeedFilter) {
@@ -353,12 +335,6 @@ struct HomeView: View {
 
     private func selectRegion(_ federalState: AustrianFederalState?) {
         selectedFederalState = federalState
-        didManuallyChangeRegion = true
-    }
-
-    private func applyDefaultRegion() {
-        guard !didManuallyChangeRegion else { return }
-        selectedFederalState = authState.user?.selectedFederalState
     }
 
     private var authBootstrapKey: String {
@@ -382,9 +358,12 @@ struct HomeView: View {
         authState.sessionState != .restoring && authState.sessionState != .authenticating
     }
 
+    private var contentLoadKey: String {
+        "\(authBootstrapKey):\(selectedFederalState?.rawValue ?? "allAustria"):\(isActive)"
+    }
+
     private func loadContentWhenAuthIsReady() async {
-        guard isAuthBootstrapReady else { return }
-        applyDefaultRegion()
+        guard isActive, isAuthBootstrapReady else { return }
         await loadContentIfNeeded()
         await refreshContentIfStale()
     }
@@ -436,9 +415,18 @@ struct HomeView: View {
     private func loadContentIfNeeded() async {
         synchronizeHomeFeed(isLoading: true)
         async let featuredBannerLoad: Void = loadFeaturedBannersIfNeeded()
-        async let newsLoad: Void = newsViewModel.loadIfNeeded()
-        async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
-        async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
+        async let newsLoad: Void = newsViewModel.loadIfNeeded(
+            federalState: selectedFederalState,
+            initialLimit: homeNewsPageSize
+        )
+        async let eventsLoad: Void = eventsViewModel.loadIfNeeded(
+            federalState: selectedFederalState,
+            initialLimit: homeEventPageSize
+        )
+        async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded(
+            federalState: selectedFederalState,
+            initialLimit: homeOrganizationPageSize
+        )
         _ = await (featuredBannerLoad, newsLoad, eventsLoad, organizationsLoad)
         synchronizeHomeFeed()
     }
@@ -446,9 +434,18 @@ struct HomeView: View {
     private func refreshContentIfStale() async {
         synchronizeHomeFeed(isLoading: true)
         async let featuredBannerRefresh: Void = refreshFeaturedBannersIfStale()
-        async let newsRefresh: Void = newsViewModel.refreshIfStale()
-        async let eventsRefresh: Void = eventsViewModel.refreshIfStale()
-        async let organizationsRefresh: Void = organizationsViewModel.refreshIfStale()
+        async let newsRefresh: Void = newsViewModel.refreshIfStale(
+            federalState: selectedFederalState,
+            limit: homeNewsPageSize
+        )
+        async let eventsRefresh: Void = eventsViewModel.refreshIfStale(
+            federalState: selectedFederalState,
+            limit: homeEventPageSize
+        )
+        async let organizationsRefresh: Void = organizationsViewModel.refreshIfStale(
+            federalState: selectedFederalState,
+            limit: homeOrganizationPageSize
+        )
         _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
         synchronizeHomeFeed()
     }
@@ -456,38 +453,40 @@ struct HomeView: View {
     private func refreshAllContent() async {
         synchronizeHomeFeed(isLoading: true)
         async let featuredBannerRefresh: Void = refreshFeaturedBanners()
-        async let newsRefresh: Void = newsViewModel.refresh()
-        async let eventsRefresh: Void = eventsViewModel.refresh()
-        async let organizationsRefresh: Void = organizationsViewModel.refresh()
+        async let newsRefresh: Void = newsViewModel.refresh(
+            federalState: selectedFederalState,
+            limit: homeNewsPageSize
+        )
+        async let eventsRefresh: Void = eventsViewModel.refresh(
+            federalState: selectedFederalState,
+            limit: homeEventPageSize
+        )
+        async let organizationsRefresh: Void = organizationsViewModel.refresh(
+            federalState: selectedFederalState,
+            limit: homeOrganizationPageSize
+        )
         _ = await (featuredBannerRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
         synchronizeHomeFeed()
     }
 
-    private func loadNextPageIfNeeded(for item: HomeFeedItem) {
-        guard shouldLoadNextPage(for: item) else { return }
+    private func loadNextVisiblePage() async {
+        guard !isLoadingNextPage else { return }
+        isLoadingNextPage = true
+        defer { isLoadingNextPage = false }
 
-        Task {
-            switch item.destination {
-            case .news(let id):
-                await newsViewModel.loadNextPageIfNeeded(currentItemID: id)
-            case .event(let id):
-                await eventsViewModel.loadNextPageIfNeeded(currentItemID: id)
-            case .organization(let id):
-                await organizationsViewModel.loadNextPageIfNeeded(currentItemID: id)
-            }
+        switch selectedContentType {
+        case .all:
+            async let news: Void = newsViewModel.loadNextPage(pageSize: homeNewsPageSize)
+            async let events: Void = eventsViewModel.loadNextPage(pageSize: homeEventPageSize)
+            async let organizations: Void = organizationsViewModel.loadNextPage(pageSize: homeOrganizationPageSize)
+            _ = await (news, events, organizations)
+        case .news:
+            await newsViewModel.loadNextPage()
+        case .events:
+            await eventsViewModel.loadNextPage()
+        case .organizations:
+            await organizationsViewModel.loadNextPage()
         }
-    }
-
-    private func shouldLoadNextPage(for item: HomeFeedItem) -> Bool {
-        guard !seenPaginationItems.contains(item.id) else { return false }
-
-        guard let itemIndex = visibleFeedItems.firstIndex(where: { $0.id == item.id }) else { return false }
-        let triggerIndex = max(visibleFeedItems.count - paginationTriggerWindow, 0)
-
-        guard itemIndex >= triggerIndex else { return false }
-
-        seenPaginationItems.insert(item.id)
-        return true
     }
 
     private func scheduleContentRefresh(for reason: HomeContentRefreshReason) {

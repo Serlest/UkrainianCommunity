@@ -2,7 +2,10 @@ import Foundation
 
 nonisolated let defaultRefreshStaleInterval: TimeInterval = 300
 nonisolated let organizationRefreshStaleInterval: TimeInterval = 600
-nonisolated let publicFeedPageSize = 30
+nonisolated let publicFeedPageSize = 15
+nonisolated let homeNewsPageSize = 6
+nonisolated let homeEventPageSize = 6
+nonisolated let homeOrganizationPageSize = 3
 
 extension Array where Element == NewsPost {
     func deduplicatedNewsByID() -> [NewsPost] {

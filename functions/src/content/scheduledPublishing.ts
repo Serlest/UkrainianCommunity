@@ -1,4 +1,9 @@
-import {FieldValue, Timestamp, type DocumentData} from "firebase-admin/firestore";
+import {
+  FieldValue,
+  Timestamp,
+  type DocumentData,
+  type DocumentReference,
+} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
@@ -61,10 +66,11 @@ async function publishCandidate(
   if (!candidate.exists || !data || data.moderationStatus !== "draft") return "skipped";
   const scheduledAt = data.scheduledAt;
   if (!(scheduledAt instanceof Timestamp) || scheduledAt.toMillis() > now.toMillis()) return "skipped";
+  const planningReference = await linkedPlanningDraft(collection, documentId);
 
   const authorId = stringValue(data.authorId);
   const organizationId = stringValue(data.organizationId);
-  if (!authorId || !organizationId) return moveToReview(reference, now);
+  if (!authorId || !organizationId) return moveToReview(reference, planningReference, now);
 
   const [user, organization] = await Promise.all([
     db.collection("users").doc(authorId).get(),
@@ -72,42 +78,89 @@ async function publishCandidate(
   ]);
   const permissions = userPermissionSnapshotFromData(authorId, user.data());
   if (!user.exists || !isActiveUser(permissions) || !organization.exists) {
-    return moveToReview(reference, now);
+    return moveToReview(reference, planningReference, now);
   }
 
   const organizationData = organization.data() ?? {};
   const isAppOwner = permissions.globalRole === "owner";
   const canPublishForOrganization = isAppOwner || hasOrganizationRole(organizationData, authorId);
   if (!canPublishForOrganization || organizationData.moderationStatus !== "approved") {
-    return moveToReview(reference, now);
+    return moveToReview(reference, planningReference, now);
   }
 
   if (await hasExactDuplicate(collection, documentId, data)) {
-    return moveToReview(reference, now);
+    return moveToReview(reference, planningReference, now);
   }
 
   const nextStatus = collection === "news" && data.regionScope === "austria" && !isAppOwner
     ? "pendingReview"
     : "approved";
-  await reference.update({
+  const batch = db.batch();
+  batch.update(reference, {
     moderationStatus: nextStatus,
     publishedAt: collection === "news" ? now : data.publishedAt ?? FieldValue.delete(),
     scheduledAt: FieldValue.delete(),
     updatedAt: now,
   });
+  if (planningReference) {
+    if (nextStatus === "approved") {
+      batch.update(planningReference, {
+        state: "completed",
+        completedAt: now,
+        failureMessage: null,
+        updatedAt: now,
+      });
+    } else {
+      batch.update(planningReference, attentionUpdate(
+        "Поле «Статус публікації»: матеріал передано на модерацію замість автоматичної публікації.",
+        now
+      ));
+    }
+  }
+  await batch.commit();
   return nextStatus;
 }
 
 async function moveToReview(
-  reference: FirebaseFirestore.DocumentReference,
+  reference: DocumentReference,
+  planningReference: DocumentReference | undefined,
   now: Timestamp
 ): Promise<"pendingReview"> {
-  await reference.update({
+  const batch = db.batch();
+  batch.update(reference, {
     moderationStatus: "pendingReview",
     scheduledAt: FieldValue.delete(),
     updatedAt: now,
   });
+  if (planningReference) {
+    batch.update(planningReference, attentionUpdate(
+      "Поле «Статус публікації»: автоматична публікація не виконана; перевірте права організації або можливий дублікат.",
+      now
+    ));
+  }
+  await batch.commit();
   return "pendingReview";
+}
+
+async function linkedPlanningDraft(
+  collection: ScheduledCollection,
+  contentId: string
+): Promise<DocumentReference | undefined> {
+  const kind = collection === "news" ? "news" : "event";
+  const snapshot = await db.collectionGroup("contentPlanningDrafts")
+    .where("publishedContentId", "==", contentId)
+    .limit(5)
+    .get();
+  return snapshot.docs.find((draft) => draft.get("publishedContentKind") === kind)?.ref;
+}
+
+function attentionUpdate(message: string, now: Timestamp): DocumentData {
+  return {
+    state: "needsAttention",
+    missingFields: [message],
+    failureMessage: message,
+    updatedAt: now,
+  };
 }
 
 async function hasExactDuplicate(

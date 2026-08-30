@@ -51,17 +51,16 @@ struct OrganizationsListView: View {
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
     let scrollResetToken: Int
     let searchResetToken: Int
+    let isActive: Bool
+    @Binding var selectedFederalState: AustrianFederalState?
     @State private var pendingDeleteOrganizationID: String?
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
     @State private var selectedCategory: OrganizationCategoryFilter = .all
-    @State private var selectedFederalState: AustrianFederalState?
     @State private var savedFilterMode: OrganizationSavedFilterMode = .none
-    @State private var didManuallyChangeRegion = false
     @State private var isRegionPickerPresented = false
     @State private var isSearchPresented = false
     @State private var searchText = ""
-    @State private var isLoadingSearchPages = false
     @State private var isShowingCreateOrganization = false
 
     init(
@@ -78,7 +77,9 @@ struct OrganizationsListView: View {
         presentationMode: OrganizationPresentationMode = .public,
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
         scrollResetToken: Int = 0,
-        searchResetToken: Int = 0
+        searchResetToken: Int = 0,
+        isActive: Bool = true,
+        selectedFederalState: Binding<AustrianFederalState?> = .constant(nil)
     ) {
         self.viewModel = viewModel
         _newsViewModel = StateObject(wrappedValue: newsViewModel ?? NewsViewModel(repository: newsRepository))
@@ -89,6 +90,8 @@ struct OrganizationsListView: View {
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
         self.searchResetToken = searchResetToken
+        self.isActive = isActive
+        _selectedFederalState = selectedFederalState
         _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
             repository: featuredBannerRepository,
             cache: featuredBannerCache
@@ -97,7 +100,7 @@ struct OrganizationsListView: View {
     }
 
     private var featuredBannerLoadKey: String {
-        selectedFederalState?.rawValue ?? "allAustria"
+        "\(selectedFederalState?.rawValue ?? "allAustria"):\(isActive)"
     }
 
     private var errorText: String {
@@ -175,37 +178,32 @@ struct OrganizationsListView: View {
             .environment(\.organizationPresentationMode, presentationMode)
         }
         .task(id: featuredBannerLoadKey) {
-            applyDefaultRegion()
-            await viewModel.loadIfNeeded()
-            await viewModel.refreshIfStale()
+            guard isActive else { return }
+            await viewModel.ensureLoaded(
+                minimumCount: publicFeedPageSize,
+                federalState: selectedFederalState
+            )
+            await viewModel.refreshIfStale(
+                federalState: selectedFederalState,
+                limit: publicFeedPageSize
+            )
             await refreshFeaturedBannersIfStale()
         }
-        .task(id: searchText) {
-            let queryKey = LocalSearchMatcher.normalized(searchText)
-            isLoadingSearchPages = false
-            guard !queryKey.isEmpty else { return }
-            try? await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled else { return }
-            isLoadingSearchPages = true
-            defer {
-                if LocalSearchMatcher.normalized(searchText) == queryKey {
-                    isLoadingSearchPages = false
-                }
-            }
-            await viewModel.loadRemainingPagesForSearch()
-        }
         .appRefreshable {
-            async let content: Void = viewModel.refresh()
+            async let content: Void = viewModel.refresh(
+                federalState: selectedFederalState,
+                limit: publicFeedPageSize
+            )
             async let banners: Void = refreshFeaturedBanners()
             _ = await (content, banners)
         }
-        .onChange(of: authState.user?.selectedFederalState) { _, newRegion in
-            guard !didManuallyChangeRegion else { return }
-            selectedFederalState = newRegion
-        }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
+            guard isActive else { return }
             Task {
-                await viewModel.refresh()
+                await viewModel.refresh(
+                    federalState: selectedFederalState,
+                    limit: publicFeedPageSize
+                )
             }
         }
         .appErrorDialog(Binding(
@@ -361,17 +359,14 @@ struct OrganizationsListView: View {
                 message: AppStrings.Organizations.empty
             )
             .frame(maxWidth: .infinity, minHeight: 180)
-        } else if filteredOrganizations.isEmpty, isLoadingSearchPages {
-            LoadingStateCard(title: AppStrings.Search.searching)
-                .frame(maxWidth: .infinity, minHeight: 180)
         } else if filteredOrganizations.isEmpty {
             UnifiedEmptyStateCard(
                 systemImage: hasActiveSearch ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
                 title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Organizations.title,
                 message: filteredEmptyMessage
             ) {
-                if hasActiveSearch, viewModel.hasMorePages {
-                    searchLoadMoreButton
+                if viewModel.hasMorePages {
+                    loadMoreButton
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 180)
@@ -393,37 +388,30 @@ struct OrganizationsListView: View {
 
                 DashboardFeedContainer(
                     items: filteredOrganizations,
-                    spacing: AppTheme.feedRowSpacing,
-                    onItemAppear: { organization in
-                        Task {
-                            await viewModel.loadNextPageIfNeeded(currentItemID: organization.id)
-                        }
-                    }
+                    spacing: AppTheme.feedRowSpacing
                 ) { organization in
                     organizationLink(for: organization)
                 }
 
-                if hasActiveSearch, viewModel.hasMorePages {
-                    searchLoadMoreButton
+                if viewModel.hasMorePages {
+                    loadMoreButton
                 }
             }
         }
     }
 
-    private var searchLoadMoreButton: some View {
+    private var loadMoreButton: some View {
         PrimaryActionButton(
-            title: AppStrings.Search.loadMoreResults,
-            loadingTitle: AppStrings.Search.loadingMoreResults,
-            isLoading: isLoadingSearchPages,
+            title: hasActiveSearch ? AppStrings.Search.loadMoreResults : AppStrings.Search.loadMoreContent,
+            loadingTitle: hasActiveSearch ? AppStrings.Search.loadingMoreResults : AppStrings.Search.loadingMoreContent,
+            isLoading: viewModel.isLoadingNextPage,
             systemImage: "ellipsis.circle"
         ) {
             Task {
-                isLoadingSearchPages = true
-                defer { isLoadingSearchPages = false }
-                await viewModel.loadRemainingPagesForSearch(maximumLoadedCount: viewModel.organizations.count + 60)
+                await viewModel.loadNextPage()
             }
         }
-        .accessibilityIdentifier("organizations.search.loadMore")
+        .accessibilityIdentifier("organizations.feed.loadMore")
     }
 
     private var filteredOrganizations: [Organization] {
@@ -505,12 +493,6 @@ struct OrganizationsListView: View {
 
     private func selectRegion(_ federalState: AustrianFederalState?) {
         selectedFederalState = federalState
-        didManuallyChangeRegion = true
-    }
-
-    private func applyDefaultRegion() {
-        guard !didManuallyChangeRegion else { return }
-        selectedFederalState = authState.user?.selectedFederalState
     }
 
     private func organizationLink(for organization: Organization) -> some View {

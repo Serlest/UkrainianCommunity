@@ -2,7 +2,11 @@ import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
 
-import {parseOwnerContentDraftID, parseOwnerContentDraftInput} from "./ownerContentDrafts";
+import {
+  parseOwnerContentDraftID,
+  parseOwnerContentDraftInput,
+  parseScheduledPublicationInput,
+} from "./ownerContentDrafts";
 
 test("parses a verified news draft without organization assignment", () => {
   const parsed = parseOwnerContentDraftInput({
@@ -161,6 +165,30 @@ test("accepts generated original image metadata and maps its URL into the editor
 test("validates owner content draft identifiers before deletion", () => {
   assert.equal(parseOwnerContentDraftID({draftId: "a".repeat(40)}), "a".repeat(40));
   assert.throws(() => parseOwnerContentDraftID({draftId: "../draft"}));
+});
+
+test("parses the link between a planning draft and scheduled content", () => {
+  const scheduledAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const parsed = parseScheduledPublicationInput({
+    draftId: "a".repeat(40),
+    contentId: "scheduled-content-id",
+    kind: "event",
+    scheduledAt,
+  });
+
+  assert.equal(parsed.draftId, "a".repeat(40));
+  assert.equal(parsed.contentId, "scheduled-content-id");
+  assert.equal(parsed.kind, "event");
+  assert.equal(parsed.scheduledAt.toISOString(), scheduledAt);
+});
+
+test("rejects an invalid scheduled planning link", () => {
+  assert.throws(() => parseScheduledPublicationInput({
+    draftId: "invalid",
+    contentId: "scheduled-content-id",
+    kind: "post",
+    scheduledAt: "2026-09-10T10:00:00+02:00",
+  }));
 });
 
 test("accepts nationwide scheduled news and normalizes its publication time", () => {

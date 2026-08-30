@@ -52,12 +52,27 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
+        try await fetchEventsPage(limit: limit, after: cursor, federalState: nil)
+    }
+
+    func fetchEventsPage(
+        limit: Int,
+        after cursor: EventPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> EventPage {
         var query: Query = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
             .order(by: "startDate", descending: false)
             .order(by: FieldPath.documentID(), descending: false)
             .limit(to: max(1, limit) + 1)
+
+        if let federalState {
+            query = query.whereFilter(Filter.orFilter([
+                Filter.whereField("regionScope", isEqualTo: RegionScope.austria.rawValue),
+                Filter.whereField("federalState", isEqualTo: federalState.rawValue)
+            ]))
+        }
 
         if let cursor {
             query = query.start(after: [Timestamp(date: cursor.startDate), cursor.documentID])

@@ -65,12 +65,27 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
+        try await fetchNewsPage(limit: limit, after: cursor, federalState: nil)
+    }
+
+    func fetchNewsPage(
+        limit: Int,
+        after cursor: NewsPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> NewsPage {
         var query: Query = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
             .order(by: "publishedAt", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
             .limit(to: max(1, limit) + 1)
+
+        if let federalState {
+            query = query.whereFilter(Filter.orFilter([
+                Filter.whereField("regionScope", isEqualTo: RegionScope.austria.rawValue),
+                Filter.whereField("federalState", isEqualTo: federalState.rawValue)
+            ]))
+        }
 
         if let cursor {
             query = query.start(after: [Timestamp(date: cursor.publishedAt), cursor.documentID])

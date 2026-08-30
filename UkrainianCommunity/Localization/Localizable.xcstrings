@@ -36770,6 +36770,23 @@
         }
       }
     },
+    "search.load_more_content" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere 15 anzeigen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показати ще 15"
+          }
+        }
+      }
+    },
     "search.load_more_results" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36783,6 +36800,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показати більше результатів"
+          }
+        }
+      }
+    },
+    "search.loading_more_content" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Inhalte werden geladen…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантажуємо ще…"
           }
         }
       }

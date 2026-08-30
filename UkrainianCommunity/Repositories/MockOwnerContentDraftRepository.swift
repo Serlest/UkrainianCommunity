@@ -17,6 +17,11 @@ struct MockOwnerContentDraftRepository: OwnerContentDraftRepository {
         return MockOwnerContentDraftListener()
     }
 
+    func markScheduled(
+        userID: String,
+        draftID: String,
+        publication: ContentPlanningPublicationResult
+    ) async throws {}
     func markCompleted(userID: String, draftID: String) async throws {}
     func archive(userID: String, draftID: String) async throws {}
     func delete(userID: String, draftID: String) async throws {}

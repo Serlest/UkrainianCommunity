@@ -100,8 +100,9 @@ struct EventDetailView: View {
     var editSheetContent: some View {
         if let event = viewModel.event(for: eventID) {
             NavigationStack {
-                EventEditorView(repository: viewModel.editorRepository, event: event) {
+                EventEditorView(repository: viewModel.editorRepository, event: event) { _ in
                     await viewModel.refresh()
+                    return true
                 }
             }
         }

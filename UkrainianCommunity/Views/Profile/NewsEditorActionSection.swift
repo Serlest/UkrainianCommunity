@@ -159,7 +159,11 @@ extension NewsEditorView {
             Task {
                 let didPublish = await viewModel.publish()
                 guard didPublish else { return }
-                await onPublished()
+                guard let result = viewModel.lastPublicationResult else { return }
+                guard await onPublished(result) else {
+                    viewModel.errorMessage = AppStrings.ContentPlanning.updateFailed
+                    return
+                }
                 dismiss()
             }
         }

@@ -10,6 +10,7 @@ import {writeUserNotification} from "../notifications/notificationPayloads";
 
 type DraftKind = "news" | "event";
 type DraftState = "readyForReview" | "needsAttention";
+type PublicationDraftKind = "news" | "event";
 
 const newsCategories = new Set([
   "news", "event", "lawAndDocuments", "benefitsAndSupport",
@@ -232,6 +233,88 @@ export const deleteOwnerContentDraft = onCall(
     const actor = await requireVerifiedActiveUser(request);
     assertOwner(actor.permissions);
     return deleteOwnerContentDraftForUser(actor.uid, parseOwnerContentDraftID(request.data));
+  }
+);
+
+interface ScheduledPublicationInput {
+  draftId: string;
+  contentId: string;
+  kind: PublicationDraftKind;
+  scheduledAt: Date;
+}
+
+export function parseScheduledPublicationInput(value: unknown): ScheduledPublicationInput {
+  const input = record(value, "request");
+  const draftId = parseOwnerContentDraftID({draftId: input.draftId});
+  const contentId = requiredString(input.contentId, "contentId", 160);
+  const kind = enumValue(
+    input.kind,
+    "kind",
+    new Set<PublicationDraftKind>(["news", "event"])
+  );
+  return {
+    draftId,
+    contentId,
+    kind,
+    scheduledAt: requiredDate(input.scheduledAt, "scheduledAt"),
+  };
+}
+
+export async function scheduleOwnerContentDraftForUser(
+  ownerUserId: string,
+  input: ScheduledPublicationInput
+): Promise<{scheduled: boolean}> {
+  const draftReference = db.collection("users").doc(ownerUserId)
+    .collection("contentPlanningDrafts").doc(input.draftId);
+  const collection = input.kind === "news" ? "news" : "events";
+  const contentReference = db.collection(collection).doc(input.contentId);
+
+  await db.runTransaction(async (transaction) => {
+    const [draftSnapshot, contentSnapshot] = await Promise.all([
+      transaction.get(draftReference),
+      transaction.get(contentReference),
+    ]);
+    if (!draftSnapshot.exists) {
+      throw new HttpsError("not-found", "Content planning draft was not found.");
+    }
+    if (!contentSnapshot.exists) {
+      throw new HttpsError("failed-precondition", "Scheduled content was not created.");
+    }
+    if (draftSnapshot.get("kind") !== input.kind) {
+      throw new HttpsError("failed-precondition", "Draft and published content kinds do not match.");
+    }
+    if (!["readyForReview", "needsAttention"].includes(draftSnapshot.get("state"))) {
+      throw new HttpsError("failed-precondition", "Draft is no longer available for scheduling.");
+    }
+    const contentScheduledAt = contentSnapshot.get("scheduledAt");
+    if (contentSnapshot.get("authorId") !== ownerUserId ||
+        contentSnapshot.get("moderationStatus") !== "draft" ||
+        !(contentScheduledAt instanceof Timestamp) ||
+        Math.abs(contentScheduledAt.toMillis() - input.scheduledAt.getTime()) > 1000) {
+      throw new HttpsError("failed-precondition", "Scheduled content does not match the draft publication.");
+    }
+
+    transaction.update(draftReference, {
+      state: "scheduled",
+      scheduledAt: contentScheduledAt,
+      publishedContentId: input.contentId,
+      publishedContentKind: input.kind,
+      failureMessage: null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+  return {scheduled: true};
+}
+
+export const scheduleOwnerContentDraft = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const actor = await requireVerifiedActiveUser(request);
+    assertOwner(actor.permissions);
+    return scheduleOwnerContentDraftForUser(
+      actor.uid,
+      parseScheduledPublicationInput(request.data)
+    );
   }
 );
 

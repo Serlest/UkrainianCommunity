@@ -42,6 +42,31 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
         ])
     }
 
+    func markScheduled(
+        userID: String,
+        draftID: String,
+        publication: ContentPlanningPublicationResult
+    ) async throws {
+        guard let scheduledAt = publication.scheduledAt else {
+            throw AppError.validationFailed
+        }
+        struct Request: Encodable {
+            let draftId: String
+            let contentId: String
+            let kind: String
+            let scheduledAt: String
+        }
+        struct Response: Decodable { let scheduled: Bool }
+
+        let callable: Callable<Request, Response> = functions.httpsCallable("scheduleOwnerContentDraft")
+        _ = try await callable.call(Request(
+            draftId: draftID,
+            contentId: publication.contentID,
+            kind: publication.kind.rawValue,
+            scheduledAt: ISO8601DateFormatter().string(from: scheduledAt)
+        ))
+    }
+
     func archive(userID: String, draftID: String) async throws {
         try await collection(userID: userID).document(draftID).updateData([
             "state": OwnerContentDraftState.archived.rawValue,

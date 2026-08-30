@@ -23,6 +23,7 @@ final class NewsViewModel: ObservableObject {
     private var hasLoaded = false
     private var lastLoadedAt: Date?
     private var nextPageCursor: NewsPageCursor?
+    private var activeFederalState: AustrianFederalState?
     private var trackedNewsViewIDs = Set<String>()
     private var visibilityPolicy = ContentVisibilityPolicy()
     private var authGeneration: UInt = 0
@@ -37,8 +38,28 @@ final class NewsViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
+        await loadIfNeeded(federalState: activeFederalState, initialLimit: publicFeedPageSize)
+    }
+
+    func loadIfNeeded(
+        federalState: AustrianFederalState?,
+        initialLimit: Int = publicFeedPageSize
+    ) async {
+        prepareFeedIfRegionChanged(to: federalState)
         guard !hasLoaded else { return }
-        await startLoad(force: false)
+        await startLoad(force: false, limit: initialLimit)
+    }
+
+    func ensureLoaded(
+        minimumCount: Int,
+        federalState: AustrianFederalState?
+    ) async {
+        await loadIfNeeded(federalState: federalState, initialLimit: minimumCount)
+        while posts.count < minimumCount, hasMorePages, !Task.isCancelled {
+            let previousCount = posts.count
+            await loadNextPage(pageSize: max(1, minimumCount - posts.count))
+            guard posts.count > previousCount, error == nil else { return }
+        }
     }
 
     func reload() {
@@ -48,7 +69,15 @@ final class NewsViewModel: ObservableObject {
     }
 
     func refresh() async {
-        await startLoad(force: true)
+        await startLoad(force: true, limit: publicFeedPageSize)
+    }
+
+    func refresh(
+        federalState: AustrianFederalState?,
+        limit: Int
+    ) async {
+        prepareFeedIfRegionChanged(to: federalState)
+        await startLoad(force: true, limit: limit)
     }
 
     func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
@@ -64,6 +93,22 @@ final class NewsViewModel: ObservableObject {
 
         guard Date().timeIntervalSince(lastLoadedAt) > maxAge else { return }
         await refresh()
+    }
+
+    func refreshIfStale(
+        federalState: AustrianFederalState?,
+        limit: Int,
+        maxAge: TimeInterval = defaultRefreshStaleInterval
+    ) async {
+        prepareFeedIfRegionChanged(to: federalState)
+        guard hasLoaded else {
+            await loadIfNeeded(federalState: federalState, initialLimit: limit)
+            return
+        }
+        guard let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) <= maxAge else {
+            await refresh(federalState: federalState, limit: limit)
+            return
+        }
     }
 
     func resetForAuthChange() {
@@ -92,6 +137,7 @@ final class NewsViewModel: ObservableObject {
         hasLoaded = false
         lastLoadedAt = nil
         nextPageCursor = nil
+        activeFederalState = nil
     }
 
     var bookmarkedPosts: [NewsPost] {
@@ -536,7 +582,26 @@ final class NewsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoadNextPage(generation: generation)
+            await self.performLoadNextPage(generation: generation, limit: publicFeedPageSize)
+        }
+        nextPageTask = task
+        await task.value
+        guard isCurrentAuthGeneration(generation) else { return }
+        nextPageTask = nil
+    }
+
+    func loadNextPage(pageSize: Int = publicFeedPageSize) async {
+        let generation = authGeneration
+        guard hasLoaded, hasMorePages, !isLoading, !isLoadingNextPage else { return }
+
+        if let nextPageTask {
+            await nextPageTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoadNextPage(generation: generation, limit: pageSize)
         }
         nextPageTask = task
         await task.value
@@ -567,7 +632,7 @@ final class NewsViewModel: ObservableObject {
         }
     }
 
-    private func startLoad(force: Bool) async {
+    private func startLoad(force: Bool, limit: Int) async {
         let generation = authGeneration
         guard force || !hasLoaded else { return }
         if force {
@@ -583,7 +648,7 @@ final class NewsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad(generation: generation)
+            await self.performLoad(generation: generation, limit: limit)
         }
         loadTask = task
         await task.value
@@ -591,7 +656,7 @@ final class NewsViewModel: ObservableObject {
         self.loadTask = nil
     }
 
-    private func performLoad(generation: UInt) async {
+    private func performLoad(generation: UInt, limit: Int) async {
         guard isCurrentAuthGeneration(generation) else { return }
         isLoading = true
         defer {
@@ -601,7 +666,14 @@ final class NewsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await RefreshRequest.run { [repository, publicFeedPageSize] in try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nil) }
+            let federalState = activeFederalState
+            let page = try await RefreshRequest.run { [repository] in
+                try await repository.fetchNewsPage(
+                    limit: max(1, limit),
+                    after: nil,
+                    federalState: federalState
+                )
+            }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             feedRevision &+= 1
             posts = visibilityPolicy.visibleNews(page.items).deduplicatedNewsByID()
@@ -621,7 +693,7 @@ final class NewsViewModel: ObservableObject {
         }
     }
 
-    private func performLoadNextPage(generation: UInt) async {
+    private func performLoadNextPage(generation: UInt, limit: Int) async {
         guard isCurrentAuthGeneration(generation) else { return }
         guard let nextPageCursor else { return }
         isLoadingNextPage = true
@@ -632,7 +704,14 @@ final class NewsViewModel: ObservableObject {
         }
 
         do {
-            let page = try await RefreshRequest.run { [repository, publicFeedPageSize, nextPageCursor] in try await repository.fetchNewsPage(limit: publicFeedPageSize, after: nextPageCursor) }
+            let federalState = activeFederalState
+            let page = try await RefreshRequest.run { [repository, nextPageCursor] in
+                try await repository.fetchNewsPage(
+                    limit: max(1, limit),
+                    after: nextPageCursor,
+                    federalState: federalState
+                )
+            }
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return }
             appendUniquePosts(page.items)
             self.nextPageCursor = page.nextCursor
@@ -655,6 +734,26 @@ final class NewsViewModel: ObservableObject {
         posts.append(contentsOf: visibilityPolicy.visibleNews(newPosts).filter {
             seenIDs.insert($0.id).inserted
         })
+    }
+
+    private func prepareFeedIfRegionChanged(to federalState: AustrianFederalState?) {
+        guard activeFederalState != federalState else { return }
+        authGeneration &+= 1
+        feedRevision &+= 1
+        loadTask?.cancel()
+        nextPageTask?.cancel()
+        loadTask = nil
+        nextPageTask = nil
+        posts = []
+        isLoading = false
+        isLoadingNextPage = false
+        hasMorePages = false
+        error = nil
+        nextPageCursor = nil
+        hasLoaded = false
+        lastLoadedAt = nil
+        activeFederalState = federalState
+        contentVersion &+= 1
     }
 
     private func rollbackBookmark(

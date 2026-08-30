@@ -21,7 +21,7 @@ struct NewsEditorView: View {
     @State var isShowingDraftCloseConfirmation = false
     @State var currentStep = NewsEditorStep.basics
     @FocusState var focusedField: NewsEditorFocusField?
-    let onPublished: @MainActor () async -> Void
+    let onPublished: @MainActor (ContentPlanningPublicationResult) async -> Bool
     let sourceAttentionMessages: [String]
 
     let titleLimit = NewsEditorViewModel.titleLimit
@@ -43,7 +43,7 @@ struct NewsEditorView: View {
     init(
         repository: NewsRepository,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create()))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
@@ -55,7 +55,7 @@ struct NewsEditorView: View {
         repository: NewsRepository,
         sourceDraft: OwnerContentDraft,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(
             repository: repository,
@@ -74,7 +74,7 @@ struct NewsEditorView: View {
         organizationImageURL: String?,
         organizationFederalState: AustrianFederalState? = nil,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(
             repository: repository,
@@ -94,7 +94,7 @@ struct NewsEditorView: View {
         repository: NewsRepository,
         news: NewsPost,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        onPublished: @escaping @MainActor () async -> Void = {}
+        onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .edit(existing: news)))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
@@ -372,7 +372,7 @@ enum NewsEditorFocusField: Hashable {
 
 #Preview {
     NavigationStack {
-        NewsEditorView(repository: MockNewsRepository(), onPublished: {})
+        NewsEditorView(repository: MockNewsRepository(), onPublished: { _ in true })
     }
     .environmentObject(AuthState())
 }

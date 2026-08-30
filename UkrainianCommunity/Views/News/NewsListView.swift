@@ -152,7 +152,10 @@ struct NewsListView: View {
         }
         .sheet(isPresented: $isShowingCreateSheet) {
             NavigationStack {
-                NewsEditorView(repository: newsRepository, onPublished: onNewsPublished)
+                NewsEditorView(repository: newsRepository) { _ in
+                    await onNewsPublished()
+                    return true
+                }
             }
         }
     }
@@ -182,7 +185,23 @@ struct NewsListView: View {
             )
             .frame(maxWidth: .infinity, minHeight: 180)
         } else {
-            newsGrid
+            VStack(spacing: AppTheme.feedRowSpacing) {
+                newsGrid
+
+                if viewModel.hasMorePages {
+                    PrimaryActionButton(
+                        title: AppStrings.Search.loadMoreContent,
+                        loadingTitle: AppStrings.Search.loadingMoreContent,
+                        isLoading: viewModel.isLoadingNextPage,
+                        systemImage: "ellipsis.circle"
+                    ) {
+                        Task {
+                            await viewModel.loadNextPage()
+                        }
+                    }
+                    .accessibilityIdentifier("news.feed.loadMore")
+                }
+            }
         }
     }
 
@@ -208,11 +227,6 @@ struct NewsListView: View {
             .modifier(NewsDeleteSwipeActions(isEnabled: canDeleteNews) {
                 pendingDeletePostID = post.id
             })
-            .onAppear {
-                Task {
-                    await viewModel.loadNextPageIfNeeded(currentItemID: post.id)
-                }
-            }
         }
         .padding(AppTheme.homeFeedPlanePadding)
     }

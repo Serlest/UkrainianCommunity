@@ -162,21 +162,28 @@ struct OwnerContentPlanningView: View {
                 repository: newsRepository,
                 sourceDraft: draft,
                 organizationRepository: organizationRepository,
-                onPublished: { await finishPublishing(draft) }
+                onPublished: { publication in await finishPublishing(draft, publication: publication) }
             )
         case .event:
             EventEditorView(
                 repository: eventRepository,
                 sourceDraft: draft,
                 organizationRepository: organizationRepository,
-                onPublished: { await finishPublishing(draft) }
+                onPublished: { publication in await finishPublishing(draft, publication: publication) }
             )
         }
     }
 
-    private func finishPublishing(_ draft: OwnerContentDraft) async {
-        await viewModel.markCompleted(draft)
-        selectedDraft = nil
+    private func finishPublishing(
+        _ draft: OwnerContentDraft,
+        publication: ContentPlanningPublicationResult
+    ) async -> Bool {
+        await viewModel.finishPublishing(draft, publication: publication)
+        if viewModel.errorMessage == nil {
+            selectedDraft = nil
+            return true
+        }
+        return false
     }
 }
 
@@ -220,6 +227,18 @@ private struct OwnerContentDraftCard: View {
                         Text(draft.updatedAt.formatted(date: .abbreviated, time: .shortened))
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
+                        if let scheduledAt = draft.scheduledAt,
+                           draft.state == .scheduled || draft.state == .publishing {
+                            Label(
+                                scheduledAt.formatted(date: .abbreviated, time: .shortened),
+                                systemImage: "calendar.badge.clock"
+                            )
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
+                            .accessibilityLabel(
+                                "\(AppStrings.ContentPublishing.scheduledDate): \(scheduledAt.formatted(date: .long, time: .shortened))"
+                            )
+                        }
                     }
 
                     Spacer(minLength: 0)
@@ -250,11 +269,13 @@ private struct OwnerContentDraftCard: View {
                         .lineLimit(2)
                 }
 
-                Button(action: openAction) {
-                    Label(AppStrings.ContentPlanning.review, systemImage: "square.and.pencil")
-                        .frame(maxWidth: .infinity)
+                if draft.state != .scheduled && draft.state != .publishing {
+                    Button(action: openAction) {
+                        Label(AppStrings.ContentPlanning.review, systemImage: "square.and.pencil")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .appActionButtonStyle(.primary)
                 }
-                .appActionButtonStyle(.primary)
             }
         }
         .accessibilityElement(children: .contain)
