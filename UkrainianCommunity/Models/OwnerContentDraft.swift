@@ -54,6 +54,20 @@ struct OwnerContentDraft: Identifiable, Equatable {
         state == .needsAttention || state == .failed || !missingFields.isEmpty
     }
 
+    var attentionMessages: [String] {
+        let fields = missingFields
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if !fields.isEmpty {
+            return fields
+        }
+        if let failureMessage = failureMessage?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !failureMessage.isEmpty {
+            return [failureMessage]
+        }
+        return requiresAttention ? [AppStrings.ContentPlanning.attentionReasonMissing] : []
+    }
+
     var primarySourceURL: String? {
         sourceReferences.first(where: \OwnerContentSourceReference.isPrimary)?.url
             ?? sourceReferences.first?.url

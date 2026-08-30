@@ -120,6 +120,34 @@
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Увага" } }
       }
     },
+    "content_planning.attention.additional_fields" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Weitere Felder: %lld" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Ще полів: %lld" } }
+      }
+    },
+    "content_planning.attention.editor_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Prüfe vor der Veröffentlichung genau diese Felder:" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Перед публікацією перевірте саме ці поля:" } }
+      }
+    },
+    "content_planning.attention.reason_missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Grund fehlt. Der Entwurf muss erneut vorbereitet werden." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Причину не вказано. Чернетку потрібно підготувати повторно." } }
+      }
+    },
+    "content_planning.attention.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bitte prüfen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Потрібно перевірити" } }
+      }
+    },
     "content_planning.drafts" : {
       "extractionState" : "manual",
       "localizations" : {

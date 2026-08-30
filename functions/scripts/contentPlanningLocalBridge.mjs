@@ -204,6 +204,13 @@ function validateDraft(item) {
   if (!Array.isArray(item.sources) || item.sources.filter((source) => source.isPrimary).length !== 1) {
     fail("Each draft requires sources with exactly one primary source.");
   }
+  const missingFields = item.missingFields ?? [];
+  if (!Array.isArray(missingFields) || missingFields.some((field) => typeof field !== "string" || !field.trim())) {
+    fail("missingFields must contain only concrete non-empty field descriptions.");
+  }
+  if (item.state === "needsAttention" && missingFields.length === 0) {
+    fail("needsAttention requires at least one concrete missingFields entry.");
+  }
   const allowedCategories = item.kind === "news" ? newsCategories : eventCategories;
   const category = item.payload.category;
   if (category != null && (!allowedCategories.has(category))) fail("payload.category is invalid.");

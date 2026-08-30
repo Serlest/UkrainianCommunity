@@ -219,3 +219,57 @@ struct InlineMessageCard: View {
         )
     }
 }
+
+struct ContentPlanningAttentionCard: View {
+    let messages: [String]
+    var compact = false
+
+    private var visibleMessages: ArraySlice<String> {
+        messages.prefix(compact ? 3 : messages.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(AppStrings.ContentPlanning.attentionTitle, systemImage: "exclamationmark.triangle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accentWarningForeground)
+
+            if !compact {
+                Text(AppStrings.ContentPlanning.attentionEditorHint)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ForEach(Array(visibleMessages.enumerated()), id: \.offset) { index, message in
+                HStack(alignment: .top, spacing: 9) {
+                    Text("\(index + 1)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(AppTheme.accentWarningForeground)
+                        .frame(width: 22, height: 22)
+                        .background(AppTheme.accentWarningForeground.opacity(0.12), in: Circle())
+
+                    Text(message)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if compact, messages.count > visibleMessages.count {
+                Text(AppStrings.ContentPlanning.additionalAttentionFields(messages.count - visibleMessages.count))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.accentWarningForeground.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppTheme.accentWarningForeground.opacity(0.22))
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("contentPlanning.attentionDetails")
+    }
+}

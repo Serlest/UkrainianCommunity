@@ -1097,6 +1097,9 @@ enum AppStrings {
         static var drafts: String { text("content_planning.drafts", "Чернетки") }
         static var scheduled: String { text("content_planning.scheduled", "Майбутні") }
         static var attention: String { text("content_planning.attention", "Увага") }
+        static var attentionTitle: String { text("content_planning.attention.title", "Потрібно перевірити") }
+        static var attentionEditorHint: String { text("content_planning.attention.editor_hint", "Перед публікацією перевірте саме ці поля:") }
+        static var attentionReasonMissing: String { text("content_planning.attention.reason_missing", "Причину не вказано. Чернетку потрібно підготувати повторно.") }
         static var news: String { text("content_planning.kind.news", "Новина") }
         static var event: String { text("content_planning.kind.event", "Подія") }
         static var review: String { text("content_planning.review", "Перевірити й відкрити редактор") }
@@ -1116,6 +1119,13 @@ enum AppStrings {
             LocalizationStore.localizedFormat(
                 "content_planning.missing_fields",
                 defaultValue: "Потрібно уточнити полів: %lld",
+                arguments: [count]
+            )
+        }
+        static func additionalAttentionFields(_ count: Int) -> String {
+            LocalizationStore.localizedFormat(
+                "content_planning.attention.additional_fields",
+                defaultValue: "Ще полів: %lld",
                 arguments: [count]
             )
         }

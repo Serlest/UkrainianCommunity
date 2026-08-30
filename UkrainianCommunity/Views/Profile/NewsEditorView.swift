@@ -22,6 +22,7 @@ struct NewsEditorView: View {
     @State var currentStep = NewsEditorStep.basics
     @FocusState var focusedField: NewsEditorFocusField?
     let onPublished: @MainActor () async -> Void
+    let sourceAttentionMessages: [String]
 
     let titleLimit = NewsEditorViewModel.titleLimit
     let summaryLimit = NewsEditorViewModel.summaryLimit
@@ -47,6 +48,7 @@ struct NewsEditorView: View {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create()))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = []
     }
 
     init(
@@ -62,6 +64,7 @@ struct NewsEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = sourceDraft.attentionMessages
     }
 
     init(
@@ -84,6 +87,7 @@ struct NewsEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = []
     }
 
     init(
@@ -95,6 +99,7 @@ struct NewsEditorView: View {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .edit(existing: news)))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = []
     }
 
     var body: some View {
@@ -105,6 +110,10 @@ struct NewsEditorView: View {
             closeAction: requestClose
         ) {
             statusContent
+
+            if !sourceAttentionMessages.isEmpty {
+                ContentPlanningAttentionCard(messages: sourceAttentionMessages)
+            }
 
             if showsNoOrganizerAccessState {
                 noOrganizerAccessCard

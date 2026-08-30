@@ -87,6 +87,12 @@ export function parseOwnerContentDraftInput(value: unknown): ParsedDraftInput {
   const requestedState = input.state === undefined
     ? undefined
     : enumValue(input.state, "state", new Set<DraftState>(["readyForReview", "needsAttention"]));
+  if (requestedState === "needsAttention" && missingFields.length === 0) {
+    throw new HttpsError(
+      "invalid-argument",
+      "needsAttention requires at least one concrete missingFields entry."
+    );
+  }
   const sources = sourceArray(input.sources);
   const generatedImage = optionalGeneratedImage(input.generatedImage);
   if (generatedImage) {

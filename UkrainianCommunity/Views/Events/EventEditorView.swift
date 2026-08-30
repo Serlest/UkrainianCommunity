@@ -28,6 +28,7 @@ struct EventEditorView: View {
     @State var currentStep = EventEditorStep.basics
 
     let onPublished: @MainActor () async -> Void
+    let sourceAttentionMessages: [String]
     let editorSectionSpacing: CGFloat = 8
     let editorCardSpacing: CGFloat = 8
     let editorCardPadding: CGFloat = 10
@@ -47,6 +48,7 @@ struct EventEditorView: View {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create()))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = []
     }
 
     init(
@@ -62,6 +64,7 @@ struct EventEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = sourceDraft.attentionMessages
     }
 
     init(
@@ -84,6 +87,7 @@ struct EventEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = []
     }
 
     init(
@@ -95,6 +99,7 @@ struct EventEditorView: View {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .edit(existing: event)))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.sourceAttentionMessages = []
     }
 
     var body: some View {
@@ -105,6 +110,9 @@ struct EventEditorView: View {
             closeAction: requestClose
         ) {
             statusContent
+            if !sourceAttentionMessages.isEmpty {
+                ContentPlanningAttentionCard(messages: sourceAttentionMessages)
+            }
             editorProgress
             editorStepContent
                 .id(currentStep)

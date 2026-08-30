@@ -239,10 +239,8 @@ private struct OwnerContentDraftCard: View {
                     .accessibilityLabel(AppStrings.ContentPlanning.moreActions)
                 }
 
-                if !draft.missingFields.isEmpty {
-                    Label(AppStrings.ContentPlanning.missingFields(draft.missingFields.count), systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(AppTheme.accentWarningForeground)
+                if draft.requiresAttention {
+                    ContentPlanningAttentionCard(messages: draft.attentionMessages, compact: true)
                 }
 
                 if let source = draft.sourceReferences.first {

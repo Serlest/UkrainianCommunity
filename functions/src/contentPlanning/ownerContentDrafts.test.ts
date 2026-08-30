@@ -47,6 +47,27 @@ test("marks a draft as needing attention when fields are missing", () => {
   assert.equal(parsed.state, "needsAttention");
 });
 
+test("rejects a vague needs-attention draft without a concrete field", () => {
+  assert.throws(() => parseOwnerContentDraftInput({
+    idempotencyKey: "event-vague-attention",
+    kind: "event",
+    state: "needsAttention",
+    payload: {
+      title: "Зустріч",
+      summary: "Зустріч громади.",
+      details: "Деталі зустрічі.",
+      city: "Innsbruck",
+      venue: "Saal",
+      federalState: "tirol",
+      startDate: "2026-10-10T18:00:00+02:00",
+      hasExplicitEndDate: false,
+      tags: [],
+    },
+    sources: [{url: "https://example.org/event", isPrimary: true}],
+    missingFields: [],
+  }), /needsAttention requires at least one concrete missingFields entry/);
+});
+
 test("accepts an event without an explicit end and normalizes every open occurrence", () => {
   const parsed = parseOwnerContentDraftInput({
     idempotencyKey: "event-open-ended",
