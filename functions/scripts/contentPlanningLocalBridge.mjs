@@ -141,6 +141,14 @@ async function saveDraft(ownerUserId, item) {
     ? await uploadGeneratedImage(ownerUserId, draftId, item.imagePath, item.imageAlternativeText)
     : item.generatedImage;
   const payload = {...item.payload};
+  if (item.kind === "event") {
+    payload.hasExplicitEndDate ??= typeof payload.endDate === "string";
+    payload.endDate ??= payload.startDate;
+    payload.additionalOccurrences = (payload.additionalOccurrences ?? []).map((occurrence) => ({
+      ...occurrence,
+      endDate: occurrence.endDate ?? occurrence.startDate,
+    }));
+  }
   if (generatedImage?.url) {
     payload.generatedImageURL = generatedImage.url;
     if (item.kind === "news") {

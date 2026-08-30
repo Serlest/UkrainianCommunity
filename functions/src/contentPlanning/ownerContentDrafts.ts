@@ -59,7 +59,7 @@ const newsFields = new Set([
 const eventFields = new Set([
   "title", "summary", "details", "city", "venue", "address", "locationNote",
   "latitude", "longitude", "eventOrganizerName", "organizerURL", "contactPhone",
-  "contactEmail", "contactURL", "federalState", "startDate", "endDate", "isAllDay",
+  "contactEmail", "contactURL", "federalState", "startDate", "endDate", "hasExplicitEndDate", "isAllDay",
   "category", "additionalCategories", "audience", "minimumAge", "maximumAge", "tags", "capacity",
   "germanTitle", "germanSummary", "germanDetails", "additionalOccurrences",
   "participationMode", "externalActionTitle", "externalActionURL", "priceKind",
@@ -275,12 +275,19 @@ function validatePayload(kind: DraftKind, payload: Record<string, unknown>): voi
     throw new HttpsError("invalid-argument", "Event payload requires venue or address.");
   }
   const startDate = requiredDate(payload.startDate, "payload.startDate");
-  const endDate = requiredDate(payload.endDate, "payload.endDate");
-  if (endDate.getTime() <= startDate.getTime()) {
+  const hasExplicitEndDate = payload.hasExplicitEndDate !== false;
+  const endDate = hasExplicitEndDate
+    ? requiredDate(payload.endDate, "payload.endDate")
+    : payload.endDate == null ? startDate : requiredDate(payload.endDate, "payload.endDate");
+  if (hasExplicitEndDate && endDate.getTime() <= startDate.getTime()) {
     throw new HttpsError("invalid-argument", "Event endDate must be later than startDate.");
   }
+  if (!hasExplicitEndDate && endDate.getTime() < startDate.getTime()) {
+    throw new HttpsError("invalid-argument", "Event endDate cannot be earlier than startDate.");
+  }
   payload.startDate = Timestamp.fromDate(startDate);
-  payload.endDate = Timestamp.fromDate(endDate);
+  payload.endDate = Timestamp.fromDate(hasExplicitEndDate ? endDate : startDate);
+  payload.hasExplicitEndDate = hasExplicitEndDate;
   optionalWebURL(payload.organizerURL, "payload.organizerURL");
   optionalWebURL(payload.contactURL, "payload.contactURL");
   validatePublicationTiming(payload);
@@ -311,9 +318,11 @@ function normalizedPayloadValue(key: string, value: unknown): unknown {
     return value.map((item, index) => {
       const occurrence = record(item, `additionalOccurrences[${index}]`);
       const start = requiredDate(occurrence.startDate, `additionalOccurrences[${index}].startDate`);
-      const end = requiredDate(occurrence.endDate, `additionalOccurrences[${index}].endDate`);
-      if (end.getTime() <= start.getTime()) {
-        throw new HttpsError("invalid-argument", "Occurrence endDate must be later than startDate.");
+      const end = occurrence.endDate == null
+        ? start
+        : requiredDate(occurrence.endDate, `additionalOccurrences[${index}].endDate`);
+      if (end.getTime() < start.getTime()) {
+        throw new HttpsError("invalid-argument", "Occurrence endDate cannot be earlier than startDate.");
       }
       return {
         startDate: Timestamp.fromDate(start),

@@ -742,6 +742,7 @@ enum AppStrings {
         static var chooseOnMap: String { text("events.editor.choose_on_map", "Вибрати на карті") }
         static var fieldStartDate: String { text("events.editor.field.start_date", "Дата") }
         static var startTime: String { text("events.editor.start_time", "Початок") }
+        static var hasEndDate: String { text("events.editor.has_end_date", "Вказати завершення") }
         static var fieldEndDate: String { text("events.editor.field.end_date", "Закінчення") }
         static var endTime: String { text("events.editor.end_time", "Завершення") }
         static var editorPublisherSectionTitle: String { text("events.editor.publisher_section", "Publishing organization") }

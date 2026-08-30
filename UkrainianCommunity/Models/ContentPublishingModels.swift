@@ -102,7 +102,7 @@ struct EventOccurrence: Codable, Equatable, Identifiable {
     }
 
     nonisolated var isValid: Bool {
-        endDate > startDate
+        endDate >= startDate
     }
 }
 

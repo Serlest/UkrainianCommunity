@@ -157,12 +157,14 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
         let title = string(payload["title"])
         guard !title.isEmpty,
               let startDate = date(payload["startDate"]),
-              let endDate = date(payload["endDate"]),
               let federalStateRaw = optionalString(payload["federalState"]),
               let federalState = AustrianFederalState(rawValue: federalStateRaw) else { return nil }
+        let explicitEndDate = date(payload["endDate"])
+        let endDate = explicitEndDate ?? startDate
 
         let occurrences = (payload["additionalOccurrences"] as? [[String: Any]] ?? []).compactMap { occurrence -> EventOccurrence? in
-            guard let start = date(occurrence["startDate"]), let end = date(occurrence["endDate"]) else { return nil }
+            guard let start = date(occurrence["startDate"]) else { return nil }
+            let end = date(occurrence["endDate"]) ?? start
             return EventOccurrence(
                 startDate: start,
                 endDate: end,
@@ -197,6 +199,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             selectedFederalState: federalState,
             startDate: startDate,
             endDate: endDate,
+            hasExplicitEndDate: payload["hasExplicitEndDate"] as? Bool ?? (explicitEndDate != nil && endDate > startDate),
             isAllDay: payload["isAllDay"] as? Bool ?? false,
             selectedCategory: optionalString(payload["category"]).flatMap(EventCategory.init(rawValue:)) ?? .other,
             additionalCategories: stringArray(payload["additionalCategories"]).compactMap(EventCategory.init(rawValue:)),

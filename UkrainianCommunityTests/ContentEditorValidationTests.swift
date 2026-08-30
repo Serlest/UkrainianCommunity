@@ -31,6 +31,7 @@ struct ContentEditorValidationTests {
         #expect(eventValidator.firstIssue(in: eventInput(city: "")) == .cityRequired)
         #expect(eventValidator.firstIssue(in: eventInput(venue: "", address: "")) == .venueRequired)
         #expect(eventValidator.firstIssue(in: eventInput(endDate: referenceDate)) == .invalidDateOrder)
+        #expect(eventValidator.firstIssue(in: eventInput(endDate: referenceDate, hasExplicitEndDate: false)) == nil)
         #expect(
             eventValidator.firstIssue(
                 in: eventInput(
@@ -355,6 +356,40 @@ struct ContentEditorValidationTests {
         #expect(normalized.endDate > normalized.startDate)
     }
 
+    @Test func eventEditorAllowsPrimaryAndAdditionalDatesWithoutAnExplicitEnd() {
+        let viewModel = EventEditorViewModel(
+            repository: MockEventRepository(),
+            mode: .create(context: .init(
+                organizationId: "organization-1",
+                organizationName: "Community",
+                organizationImageURL: nil,
+                organizationFederalState: .tirol
+            ))
+        )
+        viewModel.title = "Подія"
+        viewModel.summary = "Короткий опис"
+        viewModel.details = "Повний опис"
+        viewModel.city = "Innsbruck"
+        viewModel.venue = "Community Center"
+        viewModel.startDate = Date().addingTimeInterval(86_400)
+        viewModel.endDate = viewModel.startDate.addingTimeInterval(3_600)
+        viewModel.hasExplicitEndDate = false
+
+        #expect(viewModel.canAdvanceSchedule)
+        #expect(viewModel.allOccurrences[0].endDate == viewModel.allOccurrences[0].startDate)
+
+        viewModel.addOccurrence()
+        let occurrence = viewModel.additionalOccurrences[0]
+        viewModel.updateOccurrence(
+            id: occurrence.id,
+            endDate: occurrence.startDate,
+            hasExplicitEndDate: false
+        )
+        #expect(viewModel.additionalOccurrences[0].isValid)
+        #expect(viewModel.additionalOccurrences[0].endDate == viewModel.additionalOccurrences[0].startDate)
+        #expect(viewModel.canAdvanceSchedule)
+    }
+
     @Test func editorsRejectOversizedOptionalPublishingFields() {
         let news = NewsEditorViewModel(
             repository: MockNewsRepository(),
@@ -439,6 +474,7 @@ struct ContentEditorValidationTests {
         address: String = "",
         startDate: Date? = nil,
         endDate: Date? = nil,
+        hasExplicitEndDate: Bool = true,
         isAllDay: Bool = false,
         isEditing: Bool = false,
         hasOrganizer: Bool = true,
@@ -458,6 +494,7 @@ struct ContentEditorValidationTests {
             address: address,
             startDate: startDate ?? referenceDate.addingTimeInterval(3_600),
             endDate: endDate ?? referenceDate.addingTimeInterval(7_200),
+            hasExplicitEndDate: hasExplicitEndDate,
             isAllDay: isAllDay,
             isEditing: isEditing,
             hasOrganizer: hasOrganizer,

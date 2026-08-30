@@ -37,7 +37,7 @@ struct NewsCreateDraft: Codable, Equatable {
 }
 
 struct EventCreateDraft: Codable, Equatable {
-    static let currentVersion = 5
+    static let currentVersion = 6
 
     let version: Int
     let hasMeaningfulMetadata: Bool?
@@ -63,6 +63,7 @@ struct EventCreateDraft: Codable, Equatable {
     let selectedFederalState: AustrianFederalState
     let startDate: Date
     let endDate: Date
+    var hasExplicitEndDate: Bool? = nil
     let isAllDay: Bool
     let selectedCategory: EventCategory
     var additionalCategories: [EventCategory]? = nil

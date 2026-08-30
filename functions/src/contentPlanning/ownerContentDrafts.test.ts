@@ -1,5 +1,6 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
+import {Timestamp} from "firebase-admin/firestore";
 
 import {parseOwnerContentDraftID, parseOwnerContentDraftInput} from "./ownerContentDrafts";
 
@@ -44,6 +45,33 @@ test("marks a draft as needing attention when fields are missing", () => {
   });
 
   assert.equal(parsed.state, "needsAttention");
+});
+
+test("accepts an event without an explicit end and normalizes every open occurrence", () => {
+  const parsed = parseOwnerContentDraftInput({
+    idempotencyKey: "event-open-ended",
+    kind: "event",
+    payload: {
+      title: "Відкрита подія",
+      summary: "Подія без оголошеного часу завершення.",
+      details: "Організатор опублікував лише час початку.",
+      city: "Innsbruck",
+      venue: "Saal",
+      federalState: "tirol",
+      startDate: "2026-10-10T18:00:00+02:00",
+      hasExplicitEndDate: false,
+      additionalOccurrences: [{startDate: "2026-10-11T18:00:00+02:00"}],
+      tags: [],
+    },
+    sources: [{url: "https://example.org/open-event", isPrimary: true}],
+  });
+
+  const start = parsed.payload.startDate as Timestamp;
+  const end = parsed.payload.endDate as Timestamp;
+  const occurrences = parsed.payload.additionalOccurrences as Array<{startDate: Timestamp; endDate: Timestamp}>;
+  assert.equal(parsed.payload.hasExplicitEndDate, false);
+  assert.equal(end.toMillis(), start.toMillis());
+  assert.equal(occurrences[0].endDate.toMillis(), occurrences[0].startDate.toMillis());
 });
 
 test("rejects event dates without an explicit time zone", () => {

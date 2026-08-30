@@ -118,6 +118,9 @@ final class EventEditorViewModel: ObservableObject {
     @Published var endDate = Date().addingTimeInterval(60 * 60) {
         didSet { markCreateDraftMetadataChanged() }
     }
+    @Published var hasExplicitEndDate = true {
+        didSet { markCreateDraftMetadataChanged() }
+    }
     @Published var additionalOccurrences: [EventOccurrence] = [] { didSet { scheduleCreateDraftAutosave() } }
     @Published var selectedCategory: EventCategory = .meetups {
         didSet {
@@ -229,6 +232,7 @@ final class EventEditorViewModel: ObservableObject {
             let primaryOccurrence = existingEvent.occurrences.first
             startDate = primaryOccurrence?.startDate ?? existingEvent.startDate
             endDate = primaryOccurrence?.endDate ?? existingEvent.endDate
+            hasExplicitEndDate = endDate > startDate
             additionalOccurrences = Array(existingEvent.occurrences.dropFirst())
             selectedCategory = existingEvent.category
             additionalCategories = existingEvent.additionalCategories
@@ -292,7 +296,10 @@ final class EventEditorViewModel: ObservableObject {
         }
 
         let primaryIsValid: Bool
-        if isAllDay {
+        if !hasExplicitEndDate {
+            let start = isAllDay ? Calendar.current.startOfDay(for: startDate) : startDate
+            primaryIsValid = isEditing || start >= (isAllDay ? Calendar.current.startOfDay(for: Date()) : Date().addingTimeInterval(-60))
+        } else if isAllDay {
             let start = Calendar.current.startOfDay(for: startDate)
             let end = Calendar.current.startOfDay(for: endDate)
             primaryIsValid = end >= start && (isEditing || start >= Calendar.current.startOfDay(for: Date()))
@@ -412,16 +419,26 @@ final class EventEditorViewModel: ObservableObject {
         additionalOccurrences.append(EventOccurrence(startDate: nextStart, endDate: nextEnd, isAllDay: previous.isAllDay))
     }
 
-    func updateOccurrence(id: String, startDate: Date? = nil, endDate: Date? = nil, isAllDay: Bool? = nil) {
+    func updateOccurrence(
+        id: String,
+        startDate: Date? = nil,
+        endDate: Date? = nil,
+        hasExplicitEndDate: Bool? = nil,
+        isAllDay: Bool? = nil
+    ) {
         guard let index = additionalOccurrences.firstIndex(where: { $0.id == id }) else { return }
         let current = additionalOccurrences[index]
         let resolvedIsAllDay = isAllDay ?? current.isAllDay
+        let resolvedHasExplicitEndDate = hasExplicitEndDate ?? (endDate.map { $0 > (startDate ?? current.startDate) } ?? (current.endDate > current.startDate))
         var resolvedStart = startDate ?? current.startDate
-        var resolvedEnd = endDate ?? current.endDate
-        if resolvedIsAllDay {
+        var resolvedEnd = resolvedHasExplicitEndDate ? (endDate ?? current.endDate) : resolvedStart
+        if resolvedIsAllDay && resolvedHasExplicitEndDate {
             resolvedStart = Calendar.current.startOfDay(for: resolvedStart)
             let endDay = Calendar.current.startOfDay(for: resolvedEnd)
             resolvedEnd = Calendar.current.date(byAdding: .day, value: 1, to: max(resolvedStart, endDay)) ?? resolvedEnd
+        } else if resolvedIsAllDay {
+            resolvedStart = Calendar.current.startOfDay(for: resolvedStart)
+            resolvedEnd = resolvedStart
         }
         let replacement = EventOccurrence(
             id: current.id,
@@ -920,6 +937,7 @@ final class EventEditorViewModel: ObservableObject {
             selectedProcessedImage = nil
             startDate = now
             endDate = now.addingTimeInterval(60 * 60)
+            hasExplicitEndDate = true
             additionalOccurrences = []
             selectedCategory = .meetups
             additionalCategories = []
@@ -1112,6 +1130,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private var normalizedEnd: Date {
+        guard hasExplicitEndDate else { return normalizedStart }
         guard isAllDay else { return endDate }
         return Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate)) ?? endDate
     }
@@ -1131,6 +1150,7 @@ final class EventEditorViewModel: ObservableObject {
                 address: address,
                 startDate: startDate,
                 endDate: endDate,
+                hasExplicitEndDate: hasExplicitEndDate,
                 isAllDay: isAllDay,
                 isEditing: isEditing,
                 hasOrganizer: hasOrganizerForCreate,
@@ -1242,6 +1262,7 @@ final class EventEditorViewModel: ObservableObject {
             selectedFederalState: selectedFederalState,
             startDate: startDate,
             endDate: endDate,
+            hasExplicitEndDate: hasExplicitEndDate,
             isAllDay: isAllDay,
             selectedCategory: selectedCategory,
             additionalCategories: additionalCategories,
@@ -1298,6 +1319,7 @@ final class EventEditorViewModel: ObservableObject {
         selectedFederalState = draft.selectedFederalState
         startDate = draft.startDate
         endDate = draft.endDate
+        hasExplicitEndDate = draft.hasExplicitEndDate ?? (draft.endDate > draft.startDate)
         isAllDay = draft.isAllDay
         selectedCategory = draft.selectedCategory
         additionalCategories = normalizedAdditionalCategories(draft.additionalCategories ?? [])

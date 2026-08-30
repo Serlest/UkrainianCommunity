@@ -211,6 +211,7 @@ struct EventValidationInput {
     let address: String
     let startDate: Date
     let endDate: Date
+    let hasExplicitEndDate: Bool
     let isAllDay: Bool
     let isEditing: Bool
     let hasOrganizer: Bool
@@ -231,6 +232,7 @@ struct EventValidationInput {
         address: String,
         startDate: Date,
         endDate: Date,
+        hasExplicitEndDate: Bool = true,
         isAllDay: Bool,
         isEditing: Bool,
         hasOrganizer: Bool,
@@ -250,6 +252,7 @@ struct EventValidationInput {
         self.address = address
         self.startDate = startDate
         self.endDate = endDate
+        self.hasExplicitEndDate = hasExplicitEndDate
         self.isAllDay = isAllDay
         self.isEditing = isEditing
         self.hasOrganizer = hasOrganizer
@@ -335,7 +338,11 @@ struct EventValidationService {
         let normalizedStart: Date
         let normalizedEnd: Date
         let isChronological: Bool
-        if input.isAllDay {
+        if !input.hasExplicitEndDate {
+            normalizedStart = input.isAllDay ? calendar.startOfDay(for: input.startDate) : input.startDate
+            normalizedEnd = normalizedStart
+            isChronological = true
+        } else if input.isAllDay {
             normalizedStart = calendar.startOfDay(for: input.startDate)
             normalizedEnd = calendar.date(
                 byAdding: .day,
@@ -349,7 +356,7 @@ struct EventValidationService {
             isChronological = input.endDate > input.startDate
         }
 
-        if normalizedEnd <= normalizedStart || !isChronological {
+        if (input.hasExplicitEndDate && normalizedEnd <= normalizedStart) || !isChronological {
             return .invalidDateOrder
         }
         if !input.isEditing, normalizedStart < input.now.addingTimeInterval(-60) {

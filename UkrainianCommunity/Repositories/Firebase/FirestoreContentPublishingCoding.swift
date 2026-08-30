@@ -119,7 +119,7 @@ enum FirestoreContentPublishingCoding {
         return rows.compactMap { data in
             guard let startDate = (data["startDate"] as? Timestamp)?.dateValue(),
                   let endDate = (data["endDate"] as? Timestamp)?.dateValue(),
-                  endDate > startDate else { return nil }
+                  endDate >= startDate else { return nil }
             return EventOccurrence(
                 id: data["id"] as? String ?? UUID().uuidString,
                 startDate: startDate,

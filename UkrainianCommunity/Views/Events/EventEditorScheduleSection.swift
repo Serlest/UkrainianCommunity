@@ -31,12 +31,15 @@ extension EventEditorView {
                                 selection: occurrenceStartBinding(occurrence),
                                 displayedComponents: occurrence.isAllDay ? [.date] : [.date, .hourAndMinute]
                             )
-                            DatePicker(
-                                AppStrings.Events.fieldEndDate,
-                                selection: occurrenceEndBinding(occurrence),
-                                in: occurrence.startDate...,
-                                displayedComponents: occurrence.isAllDay ? [.date] : [.date, .hourAndMinute]
-                            )
+                            Toggle(AppStrings.Events.hasEndDate, isOn: occurrenceHasEndBinding(occurrence))
+                            if occurrence.endDate > occurrence.startDate {
+                                DatePicker(
+                                    AppStrings.Events.fieldEndDate,
+                                    selection: occurrenceEndBinding(occurrence),
+                                    in: occurrence.startDate...,
+                                    displayedComponents: occurrence.isAllDay ? [.date] : [.date, .hourAndMinute]
+                                )
+                            }
                             Toggle(AppStrings.Events.allDay, isOn: occurrenceAllDayBinding(occurrence))
                         }
                         .padding(.vertical, 6)
@@ -69,7 +72,28 @@ extension EventEditorView {
                 get: { viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id })?.startDate ?? occurrence.startDate },
                 set: { newValue in
                     let duration = occurrence.endDate.timeIntervalSince(occurrence.startDate)
-                    viewModel.updateOccurrence(id: occurrence.id, startDate: newValue, endDate: newValue.addingTimeInterval(max(60, duration)))
+                    let newEndDate = duration > 0 ? newValue.addingTimeInterval(duration) : newValue
+                    viewModel.updateOccurrence(id: occurrence.id, startDate: newValue, endDate: newEndDate)
+                }
+            )
+        }
+
+        func occurrenceHasEndBinding(_ occurrence: EventOccurrence) -> Binding<Bool> {
+            Binding(
+                get: {
+                    let current = viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id }) ?? occurrence
+                    return current.endDate > current.startDate
+                },
+                set: { hasEndDate in
+                    let current = viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id }) ?? occurrence
+                    let endDate = hasEndDate
+                        ? Calendar.current.date(byAdding: .hour, value: 1, to: current.startDate) ?? current.startDate
+                        : current.startDate
+                    viewModel.updateOccurrence(
+                        id: occurrence.id,
+                        endDate: endDate,
+                        hasExplicitEndDate: hasEndDate
+                    )
                 }
             )
         }
@@ -102,19 +126,42 @@ extension EventEditorView {
                         }
                     }
                     editorDivider
-                    EventDatePickerRow(systemImage: "calendar", title: AppStrings.Events.fieldEndDate, value: dateValue(viewModel.endDate)) {
-                        activeDatePicker = .endDate
-                    }
-                    if !viewModel.isAllDay {
+                    explicitEndDateRow
+                    if viewModel.hasExplicitEndDate {
                         editorDivider
-                        EventDatePickerRow(systemImage: "clock", title: AppStrings.Events.endTime, value: timeValue(viewModel.endDate)) {
-                            activeDatePicker = .endTime
+                        EventDatePickerRow(systemImage: "calendar", title: AppStrings.Events.fieldEndDate, value: dateValue(viewModel.endDate)) {
+                            activeDatePicker = .endDate
+                        }
+                        if !viewModel.isAllDay {
+                            editorDivider
+                            EventDatePickerRow(systemImage: "clock", title: AppStrings.Events.endTime, value: timeValue(viewModel.endDate)) {
+                                activeDatePicker = .endTime
+                            }
                         }
                     }
                     editorDivider
                     allDayRow
                 }
             }
+        }
+
+        var explicitEndDateRow: some View {
+            HStack(spacing: AppTheme.dashboardSpacing) {
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
+
+                Text(AppStrings.Events.hasEndDate)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                Toggle("", isOn: $viewModel.hasExplicitEndDate)
+                    .labelsHidden()
+            }
+            .frame(minHeight: 48)
         }
 
         var allDayRow: some View {
