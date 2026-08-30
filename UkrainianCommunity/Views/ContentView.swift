@@ -100,6 +100,10 @@ struct ContentView: View {
     }
 
     var body: some View {
+        presentedContent
+    }
+
+    private var baseContent: some View {
         TabView(selection: tabSelection) {
             rootTabs
         }
@@ -119,6 +123,10 @@ struct ContentView: View {
         .environment(\.locale, Locale(identifier: selectedLanguageCode))
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .environment(\.quickCreationActions, quickCreationActions)
+    }
+
+    private var lifecycleContent: some View {
+        baseContent
         .task(id: authoringIdentityKey) {
             await authoringOrganizations.prepareForQuickCreation(for: authState.isAuthenticated ? authState.user : nil)
         }
@@ -145,6 +153,10 @@ struct ContentView: View {
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.user)
         }
+    }
+
+    private var observationContent: some View {
+        lifecycleContent
         .onChange(of: authIdentityResetKey, initial: true) { _, newKey in
             handleAuthIdentityChange(for: newKey)
         }
@@ -200,6 +212,10 @@ struct ContentView: View {
             }
             refreshAuthoringOrganizations(force: true)
         }
+    }
+
+    private var editorPresentationContent: some View {
+        observationContent
         .sheet(item: $authState.presentedAuthFlow) { destination in
             AuthFlowContainerView(initialDestination: destination)
                 .environmentObject(authState)
@@ -225,6 +241,10 @@ struct ContentView: View {
             ContentReportSheet(target: target, coordinator: contentReportCoordinator)
                 .presentationDetents([.large])
         }
+    }
+
+    private var blockingPresentationContent: some View {
+        editorPresentationContent
         .confirmationDialog(
             AppStrings.Safety.blockConfirmationTitle,
             isPresented: Binding(
@@ -269,6 +289,10 @@ struct ContentView: View {
         } message: {
             Text(userBlockingCoordinator.errorMessage ?? AppStrings.Safety.blockErrorUnknown)
         }
+    }
+
+    private var presentedContent: some View {
+        blockingPresentationContent
         .fullScreenCover(isPresented: $isShowingNotificationInbox) {
             NotificationInboxView(
                 viewModel: notificationInboxViewModel,
