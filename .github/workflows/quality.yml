@@ -193,8 +193,17 @@ jobs:
     if: needs.changes.outputs.ios == 'true'
     runs-on: macos-15
     timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      IOS_TEST_DESTINATION: platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2
     steps:
       - uses: actions/checkout@v7
+
+      - name: Verify pinned Xcode and simulator
+        run: |
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+          xcrun simctl list devices available | grep -F "iPhone 17 Pro"
 
       - name: Build app target
         run: >
@@ -226,7 +235,7 @@ jobs:
           -project UkrainianCommunity.xcodeproj
           -scheme UkrainianCommunity
           -configuration Debug
-          -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5"
+          -destination "$IOS_TEST_DESTINATION"
           -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
           CODE_SIGNING_ALLOWED=NO
           test
@@ -239,7 +248,7 @@ jobs:
           -project UkrainianCommunity.xcodeproj
           -scheme UkrainianCommunity
           -configuration Debug
-          -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5"
+          -destination "$IOS_TEST_DESTINATION"
           -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
           -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityUI.xcresult"
           CODE_SIGNING_ALLOWED=NO
@@ -257,7 +266,7 @@ jobs:
         with:
           name: UkrainianCommunityUI-${{ github.run_attempt }}
           path: ${{ runner.temp }}/UkrainianCommunityUI.xcresult
-          if-no-files-found: warn
+          if-no-files-found: ignore
           retention-days: 14
 
   ios:
