@@ -6,6 +6,12 @@ import Testing
 
 @MainActor
 struct AuthUIIntegrationTests {
+    private func recordPNG(_ image: UIImage, named name: String) throws {
+        let data = try #require(image.pngData())
+        let filename = name.hasSuffix(".png") ? name : "\(name).png"
+        Attachment.record([UInt8](data), named: filename)
+    }
+
     @Test(arguments: [320.0, 390.0], [false, true])
     func registrationAnalyticsConsentRendersCompleteDisclosure(width: Double, accessibilityText: Bool) throws {
         let previousLanguage = LocalizationStore.language
@@ -36,7 +42,7 @@ struct AuthUIIntegrationTests {
             }
             #expect(didDraw)
             #expect(image.cgImage?.width == Int(width))
-            Attachment.record(image, named: "registration-analytics-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
+            try recordPNG(image, named: "registration-analytics-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
         }
     }
 
@@ -71,7 +77,7 @@ struct AuthUIIntegrationTests {
                 let renderer = ImageRenderer(content: content)
                 renderer.scale = 1
                 let image = try #require(renderer.uiImage)
-                Attachment.record(image, named: "organization-logo-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")-\(selected ? "selected" : "empty")")
+                try recordPNG(image, named: "organization-logo-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")-\(selected ? "selected" : "empty")")
             }
         }
     }
@@ -98,7 +104,7 @@ struct AuthUIIntegrationTests {
             renderer.scale = 1
             let image = try #require(renderer.uiImage)
             #expect(image.cgImage?.width == Int(width))
-            Attachment.record(image, named: "comments-\(current.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
+            try recordPNG(image, named: "comments-\(current.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
         }
     }
 
@@ -184,7 +190,7 @@ struct AuthUIIntegrationTests {
         renderer.scale = 1
         let image = try #require(renderer.uiImage)
         #expect(image.cgImage?.width == Int(width))
-        Attachment.record(image, named: "presence-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
+        try recordPNG(image, named: "presence-\(language.rawValue)-\(Int(width))-\(accessibilityText ? "large" : "standard")")
         }
     }
 
@@ -313,7 +319,7 @@ struct AuthUIIntegrationTests {
         renderer.scale = 1
         let image = try #require(renderer.uiImage)
         #expect(image.cgImage?.width == Int(width))
-        Attachment.record(image, named: "managed-users-\(Int(width))-\(accessibilityText ? "large-text" : "standard").png")
+        try recordPNG(image, named: "managed-users-\(Int(width))-\(accessibilityText ? "large-text" : "standard").png")
     }
 
     @Test func accountStatusUpdatePreservesAuthoritativeProfileFields() {
