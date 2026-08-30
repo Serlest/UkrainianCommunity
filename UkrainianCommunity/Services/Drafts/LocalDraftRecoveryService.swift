@@ -176,7 +176,7 @@ struct OrganizationCreateDraft: Codable, Equatable {
     let socialLinks: String
 
     var hasMeaningfulContent: Bool {
-        [
+        let localizedText = [
             name,
             shortDescription,
             fullDescription,
@@ -188,7 +188,9 @@ struct OrganizationCreateDraft: Codable, Equatable {
             germanSpecialHoursNote ?? "",
             germanServices ?? "",
             germanCurrentOfferTitle ?? "",
-            germanCurrentOfferDetails ?? "",
+            germanCurrentOfferDetails ?? ""
+        ]
+        let contactText = [
             city,
             address,
             email,
@@ -202,7 +204,9 @@ struct OrganizationCreateDraft: Codable, Equatable {
             youtubeURL ?? "",
             linkedinURL ?? "",
             missionStatement,
-            contactPerson,
+            contactPerson
+        ]
+        let serviceText = [
             serviceArea ?? "",
             specialHoursNote ?? "",
             services ?? "",
@@ -215,8 +219,16 @@ struct OrganizationCreateDraft: Codable, Equatable {
             languages,
             socialLinks
         ]
-        .contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-        || hasMeaningfulMetadata == true
+        let hasText = localizedText.containsMeaningfulDraftText
+            || contactText.containsMeaningfulDraftText
+            || serviceText.containsMeaningfulDraftText
+        return hasText || hasMeaningfulMetadata == true
+    }
+}
+
+private extension Collection where Element == String {
+    var containsMeaningfulDraftText: Bool {
+        contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 }
 
