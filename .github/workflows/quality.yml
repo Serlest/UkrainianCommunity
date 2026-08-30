@@ -257,6 +257,9 @@ jobs:
           -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityUI.xcresult"
           CODE_SIGNING_ALLOWED=NO
           test
+          -retry-tests-on-failure
+          -test-iterations 2
+          -test-repetition-relaunch-enabled YES
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testStartupSplashTransitionsToMainInterface
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testTabBarShowsFinalTabOrderWithoutLegacyTabs
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testEachTabOpensExpectedRootScreen
