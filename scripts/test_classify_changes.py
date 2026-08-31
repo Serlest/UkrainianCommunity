@@ -112,6 +112,21 @@ class ClassifyChangesTests(unittest.TestCase):
         self.assertTrue(lanes.firebase)
         self.assertTrue(lanes.ios_release)
 
+    def test_local_ios_validation_contract_runs_full_ci(self) -> None:
+        paths = [
+            "scripts/ios_validation_config.json",
+            "scripts/run_ios_validation.py",
+            "scripts/test_run_ios_validation.py",
+        ]
+
+        for path in paths:
+            with self.subTest(path=path):
+                lanes = classify([path])
+                self.assertTrue(lanes.full)
+                self.assertTrue(lanes.ios_unit)
+                self.assertTrue(lanes.ios_ui_required)
+                self.assertTrue(lanes.ios_release)
+
     def test_force_full_enables_every_lane(self) -> None:
         lanes = classify([], force_full=True)
         self.assertTrue(all(vars(lanes).values()))

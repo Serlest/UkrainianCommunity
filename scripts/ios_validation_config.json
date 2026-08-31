@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "developerDir": "/Applications/Xcode.app/Contents/Developer",
+  "expectedXcodeVersion": "26.6",
+  "expectedXcodeBuild": "17F113",
+  "project": "UkrainianCommunity.xcodeproj",
+  "scheme": "UkrainianCommunity",
+  "configuration": "Debug",
+  "simulator": {
+    "name": "UAC Test iPhone 17 Pro",
+    "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
+    "runtimeIdentifier": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+    "expectedRuntimeVersion": "26.5",
+    "expectedRuntimeBuild": "23F77"
+  },
+  "unitTestTarget": "UkrainianCommunityTests",
+  "uiSmokeTests": [
+    "UkrainianCommunityUITests/UkrainianCommunityUITests/testStartupSplashTransitionsToMainInterface",
+    "UkrainianCommunityUITests/UkrainianCommunityUITests/testTabBarShowsFinalTabOrderWithoutLegacyTabs",
+    "UkrainianCommunityUITests/UkrainianCommunityUITests/testEachTabOpensExpectedRootScreen",
+    "UkrainianCommunityUITests/UkrainianCommunityUITests/testGuestProfileShowsAuthEntryPoints",
+    "UkrainianCommunityUITests/UkrainianCommunityUITests/testOwnerAnalyticsSearchPeriodAndDetailJourney",
+    "UkrainianCommunityUITests/UkrainianCommunityUITests/testOwnerAnalyticsSupportsDarkUkrainianAccessibilityText"
+  ],
+  "testTimeouts": {
+    "defaultSeconds": 180,
+    "maximumSeconds": 300
+  }
+}

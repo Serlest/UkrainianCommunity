@@ -29,3 +29,6 @@ ukrainiancommunity-dbd5f-*.json
 # Python tooling caches
 __pycache__/
 *.py[cod]
+
+# Local validation and release evidence
+/outputs/

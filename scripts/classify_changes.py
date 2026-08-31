@@ -61,7 +61,10 @@ IOS_RELEASE_PATHS = (
 FULL_CI_PATHS = (
     ".github/workflows/quality.yml",
     "scripts/classify_changes.py",
+    "scripts/ios_validation_config.json",
+    "scripts/run_ios_validation.py",
     "scripts/test_classify_changes.py",
+    "scripts/test_run_ios_validation.py",
 )
 SECURITY_CRITICAL_ROOTS = (
     "functions/src/auth/",
