@@ -6,11 +6,8 @@ struct AppStartupGate: View {
 
     @EnvironmentObject private var authState: AuthState
     @State private var isShowingSplash = true
-    @State private var minimumSplashDurationElapsed = false
-    @State private var minimumSplashTask: Task<Void, Never>?
 
-    private let minimumSplashDuration: UInt64 = 4_000_000_000
-    private let transitionDuration = 0.45
+    private let transitionDuration = 0.25
 
     private var reduceMotionEnabled: Bool {
         UIAccessibility.isReduceMotionEnabled
@@ -31,43 +28,15 @@ struct AppStartupGate: View {
         }
         .background(AppLockShield(authState: authState).frame(width: 0, height: 0))
         .onAppear {
-            startMinimumSplashTimer()
             evaluateStartupState()
-        }
-        .onDisappear {
-            minimumSplashTask?.cancel()
-            minimumSplashTask = nil
         }
         .onChange(of: authState.isRestoring) { _, _ in
             evaluateStartupState()
         }
     }
 
-    private func startMinimumSplashTimer() {
-        minimumSplashTask?.cancel()
-
-        minimumSplashTask = Task {
-            do {
-                try await Task.sleep(nanoseconds: minimumSplashDuration)
-                await MainActor.run {
-                    minimumSplashDurationElapsed = true
-                    evaluateStartupState()
-                }
-            } catch {
-                await MainActor.run {
-                    minimumSplashDurationElapsed = true
-                    evaluateStartupState()
-                }
-            }
-        }
-    }
-
     private func evaluateStartupState() {
         guard isShowingSplash else {
-            return
-        }
-
-        guard minimumSplashDurationElapsed else {
             return
         }
 

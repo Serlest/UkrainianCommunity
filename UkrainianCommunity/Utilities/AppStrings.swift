@@ -1,6 +1,10 @@
 import Foundation
 
 enum AppStrings {
+    enum Startup {
+        static var loading: String { text("startup.loading", "Завантаження UAC…") }
+    }
+
     enum AppLock {
         static var registrationTitle: String { text("app_lock.registration_title", "Увімкнути Face ID / Touch ID") }
         static var registrationHelp: String { text("app_lock.registration_help", "Необов’язково. Підтвердьте захист через Face ID, Touch ID або код пристрою. Він увімкнеться для цього акаунта на цьому пристрої після успішної реєстрації. Згодом його можна ввімкнути або вимкнути в налаштуваннях профілю. Звичайний вхід з email і паролем залишається доступним.") }

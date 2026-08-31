@@ -42105,6 +42105,23 @@
         }
       }
     },
+    "startup.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UAC wird geladen …"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження UAC…"
+          }
+        }
+      }
+    },
     "tab.events" : {
       "extractionState" : "manual",
       "localizations" : {

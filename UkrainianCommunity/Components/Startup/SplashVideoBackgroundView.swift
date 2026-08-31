@@ -29,6 +29,7 @@ struct SplashVideoBackgroundView: View {
                 } else {
                     SplashVideoFirstFrameView(videoURL: videoURL)
                         .ignoresSafeArea()
+                        .splashBackgroundReadabilityOverlay(for: colorScheme)
                 }
             } else {
                 fallbackBackground
@@ -56,9 +57,9 @@ private struct LoopingSplashVideoView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .center) {
-                LoopingVideoLayerView(
+                SplashVideoFirstFrameView(
                     videoURL: videoURL,
-                    videoGravity: .resizeAspectFill
+                    contentMode: .fill
                 )
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
                 .blur(radius: 24)
@@ -185,6 +186,7 @@ private struct SplashVideoFirstFrameView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let videoURL: URL
+    var contentMode: ContentMode = .fit
     @State private var firstFrame: UIImage?
     @State private var didFail = false
 
@@ -196,11 +198,10 @@ private struct SplashVideoFirstFrameView: View {
 
                     Image(uiImage: firstFrame)
                         .resizable()
-                        .scaledToFit()
+                        .aspectRatio(contentMode: contentMode)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .clipped()
                 }
-                .splashBackgroundReadabilityOverlay(for: colorScheme)
                 .ignoresSafeArea()
             } else if didFail {
                 fallbackBackground
@@ -219,7 +220,6 @@ private struct SplashVideoFirstFrameView: View {
 
     private var fallbackBackground: some View {
         AppTheme.glassFallbackSurface(for: colorScheme)
-            .splashBackgroundReadabilityOverlay(for: colorScheme)
             .ignoresSafeArea()
     }
 
