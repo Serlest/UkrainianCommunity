@@ -172,6 +172,11 @@ jobs:
         working-directory: functions
         run: npm run test:comments:integration
 
+      - name: Run system log management integration test
+        if: needs.changes.outputs.functions == 'true'
+        working-directory: functions
+        run: npm run test:system-logs:integration
+
       - name: Run organization moderation integration tests
         if: needs.changes.outputs.functions == 'true'
         working-directory: functions

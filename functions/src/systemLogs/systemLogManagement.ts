@@ -82,24 +82,36 @@ export const deleteSystemLog = onCall(
     const logId = requireLogId(request.data);
     const actor = await requireVerifiedActiveUser(request);
     assertOwner(actor.permissions);
-    const logReference = db.collection("systemLogs").doc(logId);
-    const snapshot = await logReference.get();
+    return deleteSystemLogRecord(logId, actor.uid);
+  }
+);
+
+export async function deleteSystemLogRecord(
+  logId: string,
+  actorUserId: string
+): Promise<{deletedCount: number}> {
+  const logReference = db.collection("systemLogs").doc(logId);
+  const completionAuditReference = auditLogRef();
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(logReference);
     if (!snapshot.exists) {
       throw new HttpsError("not-found", "System log record was not found.");
     }
 
-    await logReference.delete();
-    await auditLogRef().set(buildAuditLog({
+    transaction.delete(logReference);
+    transaction.set(completionAuditReference, buildAuditLog({
       actionType: "systemLogDeleted",
-      targetUserId: actor.uid,
-      performedBy: actor.uid,
+      targetUserId: actorUserId,
+      performedBy: actorUserId,
       reason: "Owner deleted one system journal record.",
       previousValue: {systemLogId: logId},
       newValue: {status: "deleted"},
     }));
-    return {deletedCount: 1};
-  }
-);
+  });
+
+  return {deletedCount: 1};
+}
 
 export function isEmptyRequest(value: unknown): boolean {
   return value === undefined
