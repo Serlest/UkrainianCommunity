@@ -14,6 +14,7 @@ struct NewsDetailView: View {
     let onNavigateBack: (() -> Void)?
     let analyticsSourceScreen: String
     let organizationRepository: OrganizationRepository
+    @State private var detailLoadState: ContentDetailLoadState = .loading
     @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
     @State var deleteErrorMessage: String?
@@ -134,12 +135,12 @@ struct NewsDetailView: View {
                     commentsSection(for: post)
                 }
             } else {
-                ZStack {
-                    AppBackgroundView()
-                        .allowsHitTesting(false)
-
-                    EmptyStateView(title: AppStrings.Common.noItems)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                DetailScreenShell(backAction: navigateBack) {
+                    ContentDetailLoadStateCard(
+                        state: unresolvedDetailLoadState,
+                        accessibilityPrefix: "news.detail.state",
+                        retryAction: retryNewsDetail
+                    )
                 }
             }
         }
@@ -216,27 +217,14 @@ struct NewsDetailView: View {
                   let post = viewModel.post(for: postID) else { return }
             await viewModel.trackViewWhileVisible(for: post, sourceScreen: analyticsSourceScreen)
         }
-        .task {
-            await viewModel.loadPostIfNeeded(postID: postID)
-            guard let post = viewModel.post(for: postID) else { return }
-            await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
-            await viewModel.loadComments(for: postID)
-            await viewModel.loadRecommendationCandidates()
-            refreshRelatedNewsRecommendations()
-            guard !recordedViewKeys.contains(newsViewTaskID) else { return }
-            recordedViewKeys.insert(newsViewTaskID)
-            viewModel.recordView(for: postID)
-            RecentViewRecorder.recordNews(post)
-        }
-        .onChange(of: authState.user?.id) { _, _ in
-            guard let post = viewModel.post(for: postID) else { return }
-            guard !recordedViewKeys.contains(newsViewTaskID) else { return }
-            recordedViewKeys.insert(newsViewTaskID)
-            viewModel.recordView(for: postID)
-            RecentViewRecorder.recordNews(post)
+        .task(id: newsViewTaskID) {
+            await loadNewsDetail(force: false, loadsRecommendations: true)
         }
         .onChange(of: viewModel.contentVersion) { _, _ in
             refreshRelatedNewsRecommendations()
+            if viewModel.post(for: postID) == nil, detailLoadState == .content {
+                detailLoadState = .failed(.notFound)
+            }
         }
         .onDisappear {
             viewModel.stopListeningComments(for: postID)
@@ -260,14 +248,56 @@ struct NewsDetailView: View {
     }
 
     func refreshNewsDetail() async {
+        await loadNewsDetail(force: true, loadsRecommendations: false)
+    }
+
+    private var unresolvedDetailLoadState: ContentDetailLoadState {
+        guard viewModel.post(for: postID) == nil else { return .content }
+        return detailLoadState == .content ? .loading : detailLoadState
+    }
+
+    private func retryNewsDetail() {
+        Task {
+            await loadNewsDetail(force: true, loadsRecommendations: true)
+        }
+    }
+
+    @MainActor
+    private func loadNewsDetail(force: Bool, loadsRecommendations: Bool) async {
+        if viewModel.post(for: postID) == nil {
+            detailLoadState = .loading
+        }
         refreshError = nil
-        guard await viewModel.loadPostIfNeeded(postID: postID, force: true) else {
-            refreshError = viewModel.error
+
+        let outcome = await viewModel.loadPostDetail(postID: postID, force: force)
+        guard !Task.isCancelled else { return }
+
+        switch outcome {
+        case .loaded:
+            detailLoadState = .content
+        case .failed(let error):
+            if viewModel.post(for: postID) != nil {
+                detailLoadState = .content
+                refreshError = error
+            } else {
+                detailLoadState = .failed(error)
+            }
+            return
+        case .cancelled:
             return
         }
+
         guard let post = viewModel.post(for: postID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
-        await viewModel.loadComments(for: postID, forceRefresh: true)
+        await viewModel.loadComments(for: postID, forceRefresh: force)
+        if loadsRecommendations {
+            await viewModel.loadRecommendationCandidates()
+            refreshRelatedNewsRecommendations()
+        }
+        guard !recordedViewKeys.contains(newsViewTaskID) else { return }
+        recordedViewKeys.insert(newsViewTaskID)
+        viewModel.recordView(for: postID)
+        RecentViewRecorder.recordNews(post)
     }
 
     func organizationForPermissions(organizationID: String) -> Organization? {

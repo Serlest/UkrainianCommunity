@@ -103,30 +103,44 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func fetchEvent(id: String) async throws -> Event {
-        let snapshot = try await collection.document(id).getDocument()
-        guard snapshot.exists else {
-            throw AppError.notFound
-        }
+        do {
+            let snapshot = try await collection.document(id).getDocument()
+            guard snapshot.exists else {
+                throw AppError.notFound
+            }
 
-        var likedEventIDs = Set<String>()
-        var registeredEventIDs = Set<String>()
-        var bookmarkedEventIDs = Set<String>()
-        if let uid = Auth.auth().currentUser?.uid {
-            async let like = likesCollection.document(likeDocumentID(eventID: id, userID: uid)).getDocument()
-            async let registration = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid)).getDocument()
-            async let bookmark = eventBookmarkReference(eventID: id, userID: uid).getDocument()
-            let (likeDocument, registrationDocument, bookmarkDocument) = try await (like, registration, bookmark)
-            if likeDocument.exists { likedEventIDs.insert(id) }
-            if registrationDocument.exists { registeredEventIDs.insert(id) }
-            if bookmarkDocument.exists { bookmarkedEventIDs.insert(id) }
-        }
+            var likedEventIDs = Set<String>()
+            var registeredEventIDs = Set<String>()
+            var bookmarkedEventIDs = Set<String>()
+            if let uid = Auth.auth().currentUser?.uid {
+                async let like = likesCollection.document(likeDocumentID(eventID: id, userID: uid)).getDocument()
+                async let registration = registrationsCollection.document(registrationDocumentID(eventID: id, userID: uid)).getDocument()
+                async let bookmark = eventBookmarkReference(eventID: id, userID: uid).getDocument()
+                let (likeDocument, registrationDocument, bookmarkDocument) = try await (like, registration, bookmark)
+                if likeDocument.exists { likedEventIDs.insert(id) }
+                if registrationDocument.exists { registeredEventIDs.insert(id) }
+                if bookmarkDocument.exists { bookmarkedEventIDs.insert(id) }
+            }
 
-        return try Event(dto: makeEventDTO(
-            from: snapshot,
-            likedEventIDs: likedEventIDs,
-            registeredEventIDs: registeredEventIDs,
-            bookmarkedEventIDs: bookmarkedEventIDs
-        ))
+            let event = try Event(dto: makeEventDTO(
+                from: snapshot,
+                likedEventIDs: likedEventIDs,
+                registeredEventIDs: registeredEventIDs,
+                bookmarkedEventIDs: bookmarkedEventIDs
+            ))
+            let isRegisteredCancellation = event.moderationStatus == .archived
+                && event.isCancelled
+                && event.registrationState == .registered
+            guard event.isOrganizationEvent,
+                  event.moderationStatus == .approved || isRegisteredCancellation else {
+                throw AppError.notFound
+            }
+            return event
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw FirebaseReadErrorMapper.map(error)
+        }
     }
 
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event] {

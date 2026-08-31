@@ -514,27 +514,40 @@ final class NewsViewModel: ObservableObject {
 
     @discardableResult
     func loadPostIfNeeded(postID: String, force: Bool = false) async -> Bool {
-        guard force || post(for: postID) == nil else { return true }
+        if case .loaded = await loadPostDetail(postID: postID, force: force) {
+            return true
+        }
+        return false
+    }
+
+    func loadPostDetail(postID: String, force: Bool = false) async -> ContentDetailLoadOutcome {
+        guard force || post(for: postID) == nil else { return .loaded }
         let generation = authGeneration
         do {
             let post = try await RefreshRequest.run { [repository] in try await repository.fetchNews(id: postID) }
-            guard isCurrentAuthGeneration(generation) else { return false }
-            if let index = posts.firstIndex(where: { $0.id == post.id }) {
-                posts[index] = post
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return .cancelled }
+            guard let visiblePost = visibilityPolicy.visibleNews([post]).first else {
+                removeCachedPostForUnavailableDetail(postID)
+                error = .notFound
+                return .failed(.notFound)
+            }
+            if let index = posts.firstIndex(where: { $0.id == visiblePost.id }) {
+                posts[index] = visiblePost
             } else {
-                posts.append(post)
+                posts.append(visiblePost)
             }
             contentVersion &+= 1
             error = nil
-            return true
-        } catch let appError as AppError {
-            guard isCurrentAuthGeneration(generation) else { return false }
-            error = appError
+            return .loaded
+        } catch is CancellationError {
+            return .cancelled
         } catch {
-            guard isCurrentAuthGeneration(generation) else { return false }
-            self.error = .unknown
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return .cancelled }
+            let mappedError = FirebaseReadErrorMapper.map(error)
+            removeCachedPostIfAccessWasLost(postID: postID, error: mappedError)
+            self.error = mappedError
+            return .failed(mappedError)
         }
-        return false
     }
 
     var editorRepository: NewsRepository {
@@ -565,6 +578,17 @@ final class NewsViewModel: ObservableObject {
 
     func removeDeletedNews(id: String) {
         posts.removeAll { $0.id == id }
+        contentVersion &+= 1
+    }
+
+    private func removeCachedPostIfAccessWasLost(postID: String, error: AppError) {
+        guard error == .notFound || error == .permissionDenied else { return }
+        removeCachedPostForUnavailableDetail(postID)
+    }
+
+    private func removeCachedPostForUnavailableDetail(_ postID: String) {
+        guard posts.contains(where: { $0.id == postID }) else { return }
+        posts.removeAll { $0.id == postID }
         contentVersion &+= 1
     }
 

@@ -16,26 +16,32 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func fetchNews(id: String) async throws -> NewsPost {
-        let document = try await collection.document(id).getDocument()
-        guard document.exists else { throw AppError.notFound }
-        var likedIDs = Set<String>()
-        var bookmarkedIDs = Set<String>()
-        if let uid = Auth.auth().currentUser?.uid {
-            async let like = likesCollection.document(likeDocumentID(newsID: id, userID: uid)).getDocument()
-            async let bookmark = bookmarkReference(newsID: id, userID: uid).getDocument()
-            let (likeDocument, bookmarkDocument) = try await (like, bookmark)
-            if likeDocument.exists { likedIDs.insert(id) }
-            if bookmarkDocument.exists { bookmarkedIDs.insert(id) }
+        do {
+            let document = try await collection.document(id).getDocument()
+            guard document.exists else { throw AppError.notFound }
+            var likedIDs = Set<String>()
+            var bookmarkedIDs = Set<String>()
+            if let uid = Auth.auth().currentUser?.uid {
+                async let like = likesCollection.document(likeDocumentID(newsID: id, userID: uid)).getDocument()
+                async let bookmark = bookmarkReference(newsID: id, userID: uid).getDocument()
+                let (likeDocument, bookmarkDocument) = try await (like, bookmark)
+                if likeDocument.exists { likedIDs.insert(id) }
+                if bookmarkDocument.exists { bookmarkedIDs.insert(id) }
+            }
+            let post = try NewsPost(dto: makeNewsPostDTO(
+                from: document,
+                likedNewsIDs: likedIDs,
+                bookmarkedNewsIDs: bookmarkedIDs
+            ))
+            guard post.moderationStatus == .approved, post.isOrganizationNews else {
+                throw AppError.notFound
+            }
+            return post
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw FirebaseReadErrorMapper.map(error)
         }
-        let post = try NewsPost(dto: makeNewsPostDTO(
-            from: document,
-            likedNewsIDs: likedIDs,
-            bookmarkedNewsIDs: bookmarkedIDs
-        ))
-        guard post.moderationStatus == .approved, post.isOrganizationNews else {
-            throw AppError.notFound
-        }
-        return post
     }
 
     func fetchBookmarkedNews() async throws -> [NewsPost] {

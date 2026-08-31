@@ -37,6 +37,7 @@ struct EventDetailView: View {
     let onNavigateBack: (() -> Void)?
     let analyticsSourceScreen: String
     let organizationRepository: OrganizationRepository
+    @State private var detailLoadState: ContentDetailLoadState = .loading
     @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
     @State var deleteErrorMessage: String?
@@ -188,12 +189,12 @@ struct EventDetailView: View {
                         .id(commentsSectionID)
                 }
             } else {
-                ZStack {
-                    AppBackgroundView()
-                        .allowsHitTesting(false)
-
-                    EmptyStateView(title: AppStrings.Common.noItems)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                DetailScreenShell(backAction: navigateBack) {
+                    ContentDetailLoadStateCard(
+                        state: unresolvedDetailLoadState,
+                        accessibilityPrefix: "event.detail.state",
+                        retryAction: retryEventDetail
+                    )
                 }
             }
         }
@@ -310,37 +311,16 @@ struct EventDetailView: View {
                   let event = viewModel.event(for: eventID), !event.isCancelled else { return }
             await viewModel.trackViewWhileVisible(for: event, sourceScreen: analyticsSourceScreen)
         }
-        .task {
-            if viewModel.event(for: eventID) == nil {
-                await viewModel.loadEventIfNeeded(eventID: eventID)
-            }
-            guard let event = viewModel.event(for: eventID) else { return }
-            await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
-            await loadEventRegistrationAttendeesIfNeeded(for: event)
-            await viewModel.loadRecommendationCandidates()
-            refreshEventRecommendations()
-            guard !event.isCancelled else { return }
-            await viewModel.loadComments(for: eventID)
-            guard !recordedViewKeys.contains(eventViewTaskID) else { return }
-            recordedViewKeys.insert(eventViewTaskID)
-            viewModel.recordView(for: eventID)
-            RecentViewRecorder.recordEvent(event)
-        }
-        .onChange(of: authState.user?.id) { _, _ in
+        .task(id: eventViewTaskID) {
             eventRegistrationAttendees = []
             loadedEventRegistrationAttendeesEventID = nil
-            guard let event = viewModel.event(for: eventID) else { return }
-            Task {
-                await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
-                await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
-            }
-            guard !recordedViewKeys.contains(eventViewTaskID) else { return }
-            recordedViewKeys.insert(eventViewTaskID)
-            viewModel.recordView(for: eventID)
-            RecentViewRecorder.recordEvent(event)
+            await loadEventDetail(force: false, loadsRecommendations: true)
         }
         .onChange(of: viewModel.contentVersion) { _, _ in
             refreshEventRecommendations()
+            if viewModel.event(for: eventID) == nil, detailLoadState == .content {
+                detailLoadState = .failed(.notFound)
+            }
         }
         .onDisappear {
             viewModel.stopListeningComments(for: eventID)
@@ -364,16 +344,58 @@ struct EventDetailView: View {
     }
 
     func refreshEventDetail() async {
+        await loadEventDetail(force: true, loadsRecommendations: false)
+    }
+
+    private var unresolvedDetailLoadState: ContentDetailLoadState {
+        guard viewModel.event(for: eventID) == nil else { return .content }
+        return detailLoadState == .content ? .loading : detailLoadState
+    }
+
+    private func retryEventDetail() {
+        Task {
+            await loadEventDetail(force: true, loadsRecommendations: true)
+        }
+    }
+
+    @MainActor
+    private func loadEventDetail(force: Bool, loadsRecommendations: Bool) async {
+        if viewModel.event(for: eventID) == nil {
+            detailLoadState = .loading
+        }
         refreshError = nil
-        guard await viewModel.loadEventIfNeeded(eventID: eventID, force: true) else {
-            refreshError = viewModel.error
+
+        let outcome = await viewModel.loadEventDetail(eventID: eventID, force: force)
+        guard !Task.isCancelled else { return }
+
+        switch outcome {
+        case .loaded:
+            detailLoadState = .content
+        case .failed(let error):
+            if viewModel.event(for: eventID) != nil {
+                detailLoadState = .content
+                refreshError = error
+            } else {
+                detailLoadState = .failed(error)
+            }
+            return
+        case .cancelled:
             return
         }
+
         guard let event = viewModel.event(for: eventID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
-        await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
+        await loadEventRegistrationAttendeesIfNeeded(for: event, force: force)
+        if loadsRecommendations {
+            await viewModel.loadRecommendationCandidates()
+            refreshEventRecommendations()
+        }
         guard !event.isCancelled else { return }
-        await viewModel.loadComments(for: eventID, forceRefresh: true)
+        await viewModel.loadComments(for: eventID, forceRefresh: force)
+        guard !recordedViewKeys.contains(eventViewTaskID) else { return }
+        recordedViewKeys.insert(eventViewTaskID)
+        viewModel.recordView(for: eventID)
+        RecentViewRecorder.recordEvent(event)
     }
 
     var eventRegistrationConfirmationTitle: String {

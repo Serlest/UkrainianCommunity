@@ -4,7 +4,7 @@ import Testing
 
 @MainActor
 struct ContentInteractionRaceTests {
-    @Test func forcedNewsDetailRefreshPreservesOtherCachedPages() async {
+    @Test func forcedNewsDetailRefreshRemovesOnlyUnavailableCachedPost() async {
         let repository = ControlledNewsRepository()
         let model = NewsViewModel(repository: repository)
         let old = makeNewsPost(id: "older-page", likeCount: 1)
@@ -16,8 +16,40 @@ struct ContentInteractionRaceTests {
         #expect(model.post(for: old.id)?.likeCount == 8)
         repository.news = []
         #expect(!(await model.loadPostIfNeeded(postID: old.id, force: true)))
-        #expect(model.post(for: old.id)?.likeCount == 8)
-        #expect(model.error != nil)
+        #expect(model.posts.map(\.id) == [other.id])
+        #expect(model.error == .notFound)
+    }
+
+    @Test func forcedNewsDetailRefreshKeepsCachedPostDuringNetworkFailure() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let cached = makeNewsPost(id: "cached-news", likeCount: 8)
+        model.posts = [cached]
+        repository.detailFetchError = .network
+
+        #expect(await model.loadPostDetail(postID: cached.id, force: true) == .failed(.network))
+        #expect(model.post(for: cached.id)?.likeCount == 8)
+        #expect(model.error == .network)
+    }
+
+    @Test func newsDetailDoesNotRestoreContentFromBlockedAuthor() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let blocked = makeNewsPost(id: "blocked-news", authorID: "blocked-user")
+        repository.news = [blocked]
+        model.applyContentVisibility(ContentVisibilityPolicy(blockedUserIDs: ["blocked-user"]))
+
+        #expect(await model.loadPostDetail(postID: blocked.id) == .failed(.notFound))
+        #expect(model.post(for: blocked.id) == nil)
+    }
+
+    @Test func cancelledNewsDetailLoadDoesNotPublishAnError() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        repository.detailFetchIsCancelled = true
+
+        #expect(await model.loadPostDetail(postID: "cancelled-news") == .cancelled)
+        #expect(model.error == nil)
     }
 
     @Test func forcedOrganizationDetailRefreshBypassesCacheWithoutReplacingFeed() async {
@@ -467,6 +499,7 @@ struct ContentInteractionRaceTests {
 
     private func makeNewsPost(
         id: String,
+        authorID: String? = nil,
         likeState: LikeState = .notLiked,
         likeCount: Int = 0,
         viewCount: Int = 0,
@@ -480,6 +513,7 @@ struct ContentInteractionRaceTests {
             subtitle: "Subtitle",
             city: "Vienna",
             body: "Body",
+            authorId: authorID,
             authorName: "Author",
             publishedAt: .now,
             createdAt: .now,
@@ -631,6 +665,8 @@ struct ContentInteractionRaceTests {
 @MainActor
 private final class ControlledNewsRepository: NewsRepository {
     var commentFailure: AppError?
+    var detailFetchError: AppError?
+    var detailFetchIsCancelled = false
 
     var news: [NewsPost] = []
     private(set) var likeRequestCount = 0
@@ -643,7 +679,11 @@ private final class ControlledNewsRepository: NewsRepository {
     private var bookmarkContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
     private var commentDeleteContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
 
-    func fetchNews() async throws -> [NewsPost] { news }
+    func fetchNews() async throws -> [NewsPost] {
+        if detailFetchIsCancelled { throw CancellationError() }
+        if let detailFetchError { throw detailFetchError }
+        return news
+    }
     func fetchPendingNews() async throws -> [NewsPost] { [] }
     func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost] { [] }
     func fetchOrganizationNewsCount(organizationID: String) async throws -> Int { 0 }

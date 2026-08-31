@@ -5,6 +5,20 @@ enum AppStrings {
         static var loading: String { text("startup.loading", "Завантаження UAC…") }
     }
 
+    enum DetailState {
+        static var loading: String { text("detail_state.loading", "Завантаження матеріалу…") }
+        static var networkTitle: String { text("detail_state.network.title", "Немає з’єднання") }
+        static var networkMessage: String { text("detail_state.network.message", "Перевірте з’єднання з інтернетом і спробуйте ще раз.") }
+        static var permissionTitle: String { text("detail_state.permission.title", "Немає доступу") }
+        static var permissionMessage: String { text("detail_state.permission.message", "Ваш обліковий запис не має доступу до цього матеріалу.") }
+        static var unavailableTitle: String { text("detail_state.unavailable.title", "Матеріал недоступний") }
+        static var unavailableMessage: String { text("detail_state.unavailable.message", "Матеріал більше недоступний. Можливо, його видалено або знято з публікації.") }
+        static var invalidTitle: String { text("detail_state.invalid.title", "Не вдалося відкрити матеріал") }
+        static var invalidMessage: String { text("detail_state.invalid.message", "Дані матеріалу пошкоджені або мають непідтримуваний формат.") }
+        static var unknownTitle: String { text("detail_state.unknown.title", "Не вдалося завантажити") }
+        static var unknownMessage: String { text("detail_state.unknown.message", "Сталася неочікувана помилка. Спробуйте ще раз.") }
+    }
+
     enum AppLock {
         static var registrationTitle: String { text("app_lock.registration_title", "Увімкнути Face ID / Touch ID") }
         static var registrationHelp: String { text("app_lock.registration_help", "Необов’язково. Підтвердьте захист через Face ID, Touch ID або код пристрою. Він увімкнеться для цього акаунта на цьому пристрої після успішної реєстрації. Згодом його можна ввімкнути або вимкнути в налаштуваннях профілю. Звичайний вхід з email і паролем залишається доступним.") }

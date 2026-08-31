@@ -693,30 +693,45 @@ final class EventsViewModel: ObservableObject {
 
     @discardableResult
     func loadEventIfNeeded(eventID: String, force: Bool = false) async -> Bool {
-        guard force || event(for: eventID) == nil else { return true }
-        let generation = sessionGeneration
-
-        do {
-            let event = try await RefreshRequest.run { [repository] in try await repository.fetchEvent(id: eventID) }
-            guard isCurrentSession(generation) else { return false }
-            cacheEvent(event)
-            error = nil
+        if case .loaded = await loadEventDetail(eventID: eventID, force: force) {
             return true
-        } catch let appError as AppError {
-            guard isCurrentSession(generation) else { return false }
-            error = appError
-        } catch {
-            guard isCurrentSession(generation) else { return false }
-            self.error = .unknown
         }
         return false
     }
 
-    func cacheEvent(_ event: Event) {
+    func loadEventDetail(eventID: String, force: Bool = false) async -> ContentDetailLoadOutcome {
+        guard force || event(for: eventID) == nil else { return .loaded }
+        let generation = sessionGeneration
+
+        do {
+            let event = try await RefreshRequest.run { [repository] in try await repository.fetchEvent(id: eventID) }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return .cancelled }
+            guard cacheEvent(event) else {
+                error = .notFound
+                return .failed(.notFound)
+            }
+            error = nil
+            return .loaded
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            guard !Task.isCancelled, isCurrentSession(generation) else { return .cancelled }
+            let mappedError = FirebaseReadErrorMapper.map(error)
+            removeCachedEventIfAccessWasLost(eventID: eventID, error: mappedError)
+            self.error = mappedError
+            return .failed(mappedError)
+        }
+    }
+
+    @discardableResult
+    func cacheEvent(_ event: Event) -> Bool {
         feedRevision &+= 1
         guard let visibleEvent = visibilityPolicy.visibleEvents([event]).first else {
-            events.removeAll { $0.id == event.id }
-            return
+            if events.contains(where: { $0.id == event.id }) {
+                events.removeAll { $0.id == event.id }
+                contentVersion &+= 1
+            }
+            return false
         }
         if let index = events.firstIndex(where: { $0.id == visibleEvent.id }) {
             events[index] = visibleEvent
@@ -724,6 +739,7 @@ final class EventsViewModel: ObservableObject {
             events.append(visibleEvent)
         }
         contentVersion &+= 1
+        return true
     }
 
     var editorRepository: EventRepository {
@@ -756,6 +772,14 @@ final class EventsViewModel: ObservableObject {
     func removeDeletedEvent(id: String) {
         feedRevision &+= 1
         events.removeAll { $0.id == id }
+        contentVersion &+= 1
+    }
+
+    private func removeCachedEventIfAccessWasLost(eventID: String, error: AppError) {
+        guard error == .notFound || error == .permissionDenied else { return }
+        guard events.contains(where: { $0.id == eventID }) else { return }
+        feedRevision &+= 1
+        events.removeAll { $0.id == eventID }
         contentVersion &+= 1
     }
 

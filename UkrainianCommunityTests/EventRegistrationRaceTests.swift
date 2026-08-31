@@ -16,6 +16,51 @@ struct EventRegistrationRaceTests {
         #expect(model.event(for: old.id)?.registeredCount == 8)
     }
 
+    @Test func eventDetailRemovesUnavailableCacheButPreservesOtherPages() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let missing = makeEvent(id: "missing-event")
+        let other = makeEvent(id: "other-event")
+        model.events = [other, missing]
+        repository.detailFetchError = .notFound
+
+        #expect(await model.loadEventDetail(eventID: missing.id, force: true) == .failed(.notFound))
+        #expect(model.events.map(\.id) == [other.id])
+        #expect(model.error == .notFound)
+    }
+
+    @Test func eventDetailKeepsCachedEventDuringNetworkFailure() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let cached = makeEvent(id: "cached-event", registeredCount: 8)
+        model.events = [cached]
+        repository.detailFetchError = .network
+
+        #expect(await model.loadEventDetail(eventID: cached.id, force: true) == .failed(.network))
+        #expect(model.event(for: cached.id)?.registeredCount == 8)
+        #expect(model.error == .network)
+    }
+
+    @Test func eventDetailDoesNotRestoreContentFromBlockedAuthor() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let blocked = makeEvent(id: "blocked-event", authorID: "blocked-user")
+        repository.events = [blocked]
+        model.applyContentVisibility(ContentVisibilityPolicy(blockedUserIDs: ["blocked-user"]))
+
+        #expect(await model.loadEventDetail(eventID: blocked.id) == .failed(.notFound))
+        #expect(model.event(for: blocked.id) == nil)
+    }
+
+    @Test func cancelledEventDetailLoadDoesNotPublishAnError() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        repository.detailFetchIsCancelled = true
+
+        #expect(await model.loadEventDetail(eventID: "cancelled-event") == .cancelled)
+        #expect(model.error == nil)
+    }
+
     @Test func registrationRejectsDoubleTapAndUsesAuthoritativeResponse() async {
         let repository = ControlledEventRepository()
         let viewModel = EventsViewModel(repository: repository)
@@ -305,6 +350,7 @@ struct EventRegistrationRaceTests {
 
     private func makeEvent(
         id: String,
+        authorID: String? = nil,
         registrationState: EventRegistrationState = .notRegistered,
         registeredCount: Int = 0,
         likeState: LikeState = .notLiked,
@@ -318,6 +364,7 @@ struct EventRegistrationRaceTests {
             title: id,
             summary: "Summary",
             details: "Details",
+            authorId: authorID,
             city: "Vienna",
             venue: "Venue",
             startDate: .now.addingTimeInterval(86_400),
@@ -393,6 +440,8 @@ struct EventRegistrationRaceTests {
 @MainActor
 private final class ControlledEventRepository: @MainActor EventRepository {
     var events: [Event] = []
+    var detailFetchError: AppError?
+    var detailFetchIsCancelled = false
     private(set) var registrationRequestCount = 0
     private(set) var completedRegistrationRequestCount = 0
     private(set) var likeRequestCount = 0
@@ -415,6 +464,8 @@ private final class ControlledEventRepository: @MainActor EventRepository {
 
     func fetchEvents() async throws -> [Event] { events }
     func fetchEvent(id: String) async throws -> Event {
+        if detailFetchIsCancelled { throw CancellationError() }
+        if let detailFetchError { throw detailFetchError }
         guard let event = events.first(where: { $0.id == id }) else { throw AppError.notFound }
         return event
     }
