@@ -1,4 +1,4 @@
-import { FieldPath, FieldValue } from "firebase-admin/firestore";
+import { FieldPath, Timestamp } from "firebase-admin/firestore";
 import type { Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import {
   onDocumentCreated,
@@ -18,17 +18,23 @@ const triggerOptions = {
 
 const followerPageSize = 250;
 const concurrentRecipientWrites = 50;
+// Delayed Eventarc retries still belong in Inbox, but an old publication must
+// not arrive as an immediate push after a recovery or deployment.
+export const followerImmediatePushWindowMs = 60 * 60 * 1000;
 
 type PublishedContentKind = "news" | "event";
 type NotificationLanguage = "uk" | "de" | "en";
+export type FollowerPushDelivery = "central" | "recoveryInboxOnly";
 
-interface PublishedOrganizationContent {
+export interface PublishedOrganizationContent {
   kind: PublishedContentKind;
   contentId: string;
   organizationId: string;
   organizationName: string;
   title: string;
   excludedUserIds: string[];
+  publicationEventAt: Timestamp;
+  pushDelivery: FollowerPushDelivery;
 }
 
 interface CreatedRecipientNotification {
@@ -47,7 +53,8 @@ export const notifyOrganizationFollowersForNewsCreated = onDocumentCreated(
     const content = publishedOrganizationContent(
       "news",
       event.params.newsId,
-      event.data?.data()
+      event.data?.data(),
+      event.time
     );
     if (!content) {
       return;
@@ -63,12 +70,14 @@ export const notifyOrganizationFollowersForNewsPublished = onDocumentUpdated(
     const before = publishedOrganizationContent(
       "news",
       event.params.newsId,
-      event.data?.before.data()
+      event.data?.before.data(),
+      event.time
     );
     const after = publishedOrganizationContent(
       "news",
       event.params.newsId,
-      event.data?.after.data()
+      event.data?.after.data(),
+      event.time
     );
     if (before || !after) {
       return;
@@ -84,7 +93,8 @@ export const notifyOrganizationFollowersForEventCreated = onDocumentCreated(
     const content = publishedOrganizationContent(
       "event",
       event.params.eventId,
-      event.data?.data()
+      event.data?.data(),
+      event.time
     );
     if (!content) {
       return;
@@ -100,12 +110,14 @@ export const notifyOrganizationFollowersForEventPublished = onDocumentUpdated(
     const before = publishedOrganizationContent(
       "event",
       event.params.eventId,
-      event.data?.before.data()
+      event.data?.before.data(),
+      event.time
     );
     const after = publishedOrganizationContent(
       "event",
       event.params.eventId,
-      event.data?.after.data()
+      event.data?.after.data(),
+      event.time
     );
     if (before || !after) {
       return;
@@ -115,7 +127,9 @@ export const notifyOrganizationFollowersForEventPublished = onDocumentUpdated(
   }
 );
 
-async function notifyOrganizationFollowers(content: PublishedOrganizationContent): Promise<void> {
+export async function notifyOrganizationFollowers(
+  content: PublishedOrganizationContent
+): Promise<void> {
   const excludedUserIds = new Set(content.excludedUserIds);
   let lastDocument: QueryDocumentSnapshot | undefined;
 
@@ -209,11 +223,12 @@ function followerNotificationDocument(
     ? "organizationNewsPublished"
     : "organizationEventPublished";
   const metadata = {
-    pushDelivery: "central",
+    pushDelivery: content.pushDelivery,
     organizationId: content.organizationId,
     organizationName: content.organizationName,
     contentId: content.contentId,
     contentTitle: content.title,
+    publicationEventAt: content.publicationEventAt,
     route,
     routeTargetId: content.contentId,
   };
@@ -240,7 +255,7 @@ function followerNotificationDocument(
     payload: metadata,
     dedupeKey: notificationId,
     isRead: false,
-    createdAt: FieldValue.serverTimestamp(),
+    createdAt: content.publicationEventAt,
   };
 }
 
@@ -255,7 +270,8 @@ function isAlreadyExistsError(error: unknown): boolean {
 function publishedOrganizationContent(
   kind: PublishedContentKind,
   contentId: string,
-  data?: FirebaseFirestore.DocumentData
+  data: FirebaseFirestore.DocumentData | undefined,
+  eventTime: string
 ): PublishedOrganizationContent | undefined {
   if (!data || !isPublicOrganizationContent(kind, data)) {
     return undefined;
@@ -265,6 +281,8 @@ function publishedOrganizationContent(
   if (!organizationId) {
     return undefined;
   }
+
+  const publicationEventAt = followerPublicationEventTimestamp(eventTime);
 
   return {
     kind,
@@ -280,7 +298,31 @@ function publishedOrganizationContent(
       stringField(data, "updatedBy"),
       stringField(data, "updatedByUserId"),
     ].filter((userId): userId is string => userId !== undefined),
+    publicationEventAt,
+    pushDelivery: followerPushDelivery(publicationEventAt.toMillis(), Date.now()),
   };
+}
+
+export function followerPushDelivery(
+  publicationEventAtMillis: number,
+  processedAtMillis: number
+): FollowerPushDelivery {
+  if (!Number.isFinite(publicationEventAtMillis) || !Number.isFinite(processedAtMillis)) {
+    throw new Error("Follower notification timestamps must be finite numbers.");
+  }
+
+  const deliveryDelayMs = Math.max(0, processedAtMillis - publicationEventAtMillis);
+  return deliveryDelayMs <= followerImmediatePushWindowMs
+    ? "central"
+    : "recoveryInboxOnly";
+}
+
+function followerPublicationEventTimestamp(eventTime: string): Timestamp {
+  const eventAtMillis = Date.parse(eventTime);
+  if (!Number.isFinite(eventAtMillis)) {
+    throw new Error("Follower notification event time is invalid.");
+  }
+  return Timestamp.fromMillis(eventAtMillis);
 }
 
 function isPublicOrganizationContent(

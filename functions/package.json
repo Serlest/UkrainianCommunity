@@ -19,6 +19,7 @@
     "test:retention": "node --test lib/retention/dataRetention.test.js",
     "test:retention:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-retention --only firestore \"node --test lib/retention/analyticsActivityRetention.integration.test.js\"",
     "test:notifications:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-push-registration --only firestore \"node --test lib/notifications/pushRegistrationMutations.integration.test.js\"",
+    "test:notifications:followers:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-follower-notifications --only firestore \"node --test lib/notifications/organizationFollowerNotifications.integration.test.js\"",
     "test:comments:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-comments --only firestore \"node --test lib/safety/commentModeration.integration.test.js\"",
     "test:organizations:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-organization-review --only firestore \"node --test lib/organizations/*.integration.test.js\"",
     "test:counters:integration": "npm run build && firebase emulators:exec --project demo-ukrainian-community-counter-migration --only firestore \"node --test scripts/counterAggregationMigration.integration.mjs\"",
