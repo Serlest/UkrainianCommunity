@@ -268,9 +268,39 @@ jobs:
           -configuration Debug
           -destination "$IOS_TEST_DESTINATION"
           -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
+          -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityUnitTests.xcresult"
           CODE_SIGNING_ALLOWED=NO
           test
           -only-testing:UkrainianCommunityTests
+
+      - name: Verify Swift unit tests were discovered
+        if: ${{ always() && needs.changes.outputs.ios_unit == 'true' }}
+        env:
+          RESULT_BUNDLE: ${{ runner.temp }}/UkrainianCommunityUnitTests.xcresult
+          RESULT_SUMMARY: ${{ runner.temp }}/UkrainianCommunityUnitTests-summary.json
+        run: |
+          test -d "$RESULT_BUNDLE"
+          xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE" > "$RESULT_SUMMARY"
+          python3 - "$RESULT_SUMMARY" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as summary_file:
+              summary = json.load(summary_file)
+          test_count = summary.get("totalTestCount")
+          if not isinstance(test_count, int) or test_count < 1:
+              raise SystemExit(f"Expected at least one Swift unit test, found {test_count!r}")
+          print(f"Verified {test_count} discovered Swift unit tests")
+          PY
+
+      - name: Preserve Swift test diagnostics
+        if: ${{ failure() && needs.changes.outputs.ios_unit == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-unit-xcresult-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/UkrainianCommunityUnitTests.xcresult
+          if-no-files-found: warn
+          retention-days: 14
 
   ios:
     name: iOS build and unit tests

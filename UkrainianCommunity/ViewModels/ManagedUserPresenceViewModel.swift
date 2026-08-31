@@ -8,12 +8,17 @@ final class ManagedUserPresenceViewModel: ObservableObject {
     @Published private(set) var isRefreshing = false
 
     private let load: (String) async throws -> ManagedUserPresenceSnapshot
+    private let onRequestCoalesced: () -> Void
     private var key: String?
     private var revision = 0
     private var request: Task<Void, Never>?
 
-    init(load: @escaping (String) async throws -> ManagedUserPresenceSnapshot = UserPresenceAPI.load) {
+    init(
+        load: @escaping (String) async throws -> ManagedUserPresenceSnapshot = UserPresenceAPI.load,
+        onRequestCoalesced: @escaping () -> Void = {}
+    ) {
         self.load = load
+        self.onRequestCoalesced = onRequestCoalesced
     }
 
     func refresh(userID: String, actor: AppUser?) async {
@@ -27,7 +32,11 @@ final class ManagedUserPresenceViewModel: ObservableObject {
         }
         guard allowed else { return }
         // Polling and a manual pull share the same real request and both await it.
-        if let request { await request.value; return }
+        if let request {
+            onRequestCoalesced()
+            await request.value
+            return
+        }
         let current = revision
         isRefreshing = true
         let task = Task { [self, load] in

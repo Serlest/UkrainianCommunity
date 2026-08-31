@@ -128,13 +128,18 @@ struct PullToRefreshTests {
 
     @Test func presenceCoalescesPollAndPullAndPublishesBeforeBothFinish() async {
         let gate = ReadGate<ManagedUserPresenceSnapshot>()
+        let coalesced = ReadGate<Void>()
         var count = 0
-        let model = ManagedUserPresenceViewModel { _ in count += 1; return await gate.wait() }
+        let model = ManagedUserPresenceViewModel(
+            load: { _ in count += 1; return await gate.wait() },
+            onRequestCoalesced: { coalesced.complete(()) }
+        )
         let actor = MockContentBuilder.ownerUser()
         let poll = Task { await model.refresh(userID: "member", actor: actor) }
         await gate.waitUntilStarted()
         let pull = Task { await model.refresh(userID: "member", actor: actor) }
-        for _ in 0..<10 { await Task.yield() }
+        let didCoalesce = await coalesced.waitForCompletion(timeout: .seconds(5))
+        #expect(didCoalesce, "The pull refresh did not join the pending presence request")
         #expect(count == 1)
         #expect(model.isRefreshing)
         gate.complete(Self.presence(online: true))
@@ -142,15 +147,16 @@ struct PullToRefreshTests {
         #expect(model.snapshot?.isOnline() == true)
         #expect(!model.isRefreshing)
         await poll.value
+        #expect(count == 1)
     }
 
     @Test func presenceRefreshShowsOfflineAndRecoversAfterFailure() async {
         var fail = false
         var online = true
-        let model = ManagedUserPresenceViewModel { _ in
+        let model = ManagedUserPresenceViewModel(load: { _ in
             if fail { throw AppError.network }
             return Self.presence(online: online)
-        }
+        })
         let actor = MockContentBuilder.ownerUser()
         await model.refresh(userID: "member", actor: actor)
         #expect(model.snapshot?.isOnline() == true)
@@ -177,26 +183,53 @@ struct PullToRefreshTests {
 
 @MainActor
 private final class ReadGate<Value> {
-    private var continuation: CheckedContinuation<Value, Never>?
+    private enum State {
+        case pending
+        case completed(Value)
+    }
+
+    private var continuations: [CheckedContinuation<Value, Never>] = []
+    private var state = State.pending
     private var hasStarted = false
     private var startWaiters: [CheckedContinuation<Void, Never>] = []
 
     func wait() async -> Value {
-        await withCheckedContinuation { continuation in
-            self.continuation = continuation
-            hasStarted = true
-            let waiters = startWaiters
-            startWaiters.removeAll()
-            waiters.forEach { $0.resume() }
+        hasStarted = true
+        let waiters = startWaiters
+        startWaiters.removeAll()
+        waiters.forEach { $0.resume() }
+        if case .completed(let value) = state {
+            return value
+        }
+        return await withCheckedContinuation { continuation in
+            continuations.append(continuation)
         }
     }
 
-    func complete(_ value: Value) { continuation?.resume(returning: value); continuation = nil }
+    func complete(_ value: Value) {
+        guard case .pending = state else { return }
+        state = .completed(value)
+        let waiters = continuations
+        continuations.removeAll()
+        waiters.forEach { $0.resume(returning: value) }
+    }
 
     func waitUntilStarted() async {
         guard !hasStarted else { return }
         await withCheckedContinuation { continuation in
             startWaiters.append(continuation)
+        }
+    }
+}
+
+private extension ReadGate where Value == Void {
+    func waitForCompletion(timeout: Duration) async -> Bool {
+        do {
+            _ = try await RefreshRequest.run(timeout: timeout) { await self.wait() }
+            return true
+        } catch {
+            complete(())
+            return false
         }
     }
 }
