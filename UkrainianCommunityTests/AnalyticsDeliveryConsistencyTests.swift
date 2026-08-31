@@ -616,20 +616,30 @@ struct AnalyticsDeliveryConsistencyTests {
         #expect(await delivery.snapshot() == ["transient", "healthy"])
         #expect(await firstOutbox.pendingEntryCount() == 1)
 
+        // Model a process restart by invalidating the old synchronous
+        // authorization fence while leaving the persisted entry untouched.
+        // Otherwise the old outbox's scheduled retry can race the restored
+        // outbox and make this test depend on wall-clock scheduling.
+        _ = authorization.transition(principalID: nil, consentID: nil)
+        let restoredAuthorization = AnalyticsDeliveryAuthorization()
+        let restoredSession = restoredAuthorization.transition(
+            principalID: "user-a",
+            consentID: "consent-a"
+        )
         let restoredOutbox = AnalyticsAggregationOutbox(
             delivery: delivery,
-            authorization: authorization,
+            authorization: restoredAuthorization,
             userDefaults: defaults,
             now: { clock.now() }
         )
-        await restoredOutbox.transition(to: session)
-        await restoredOutbox.waitForDrain(toCompleteFor: session)
+        await restoredOutbox.transition(to: restoredSession)
+        await restoredOutbox.waitForDrain(toCompleteFor: restoredSession)
         #expect(await delivery.snapshot() == ["transient", "healthy"])
 
         await delivery.setShouldFail(false)
         clock.advance(by: 3)
-        await restoredOutbox.transition(to: session)
-        await restoredOutbox.waitForDrain(toCompleteFor: session)
+        await restoredOutbox.transition(to: restoredSession)
+        await restoredOutbox.waitForDrain(toCompleteFor: restoredSession)
         #expect(await delivery.snapshot() == ["transient", "healthy", "transient"])
         #expect(await restoredOutbox.pendingEntryCount() == 0)
     }

@@ -178,14 +178,26 @@ struct PullToRefreshTests {
 @MainActor
 private final class ReadGate<Value> {
     private var continuation: CheckedContinuation<Value, Never>?
-    func wait() async -> Value { await withCheckedContinuation { continuation = $0 } }
-    func complete(_ value: Value) { continuation?.resume(returning: value); continuation = nil }
-    func waitUntilStarted() async {
-        for _ in 0..<10_000 {
-            if continuation != nil { return }
-            await Task.yield()
+    private var hasStarted = false
+    private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async -> Value {
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+            hasStarted = true
+            let waiters = startWaiters
+            startWaiters.removeAll()
+            waiters.forEach { $0.resume() }
         }
-        Issue.record("Read did not start")
+    }
+
+    func complete(_ value: Value) { continuation?.resume(returning: value); continuation = nil }
+
+    func waitUntilStarted() async {
+        guard !hasStarted else { return }
+        await withCheckedContinuation { continuation in
+            startWaiters.append(continuation)
+        }
     }
 }
 
