@@ -233,6 +233,35 @@ class IOSValidationRunnerTests(unittest.TestCase):
 
         self.assertEqual(context.exception.exit_code, EXIT_TEST)
 
+    def test_successful_command_ignores_debugger_snapshot_warning(self) -> None:
+        result = CommandResult(
+            command=["xcodebuild"],
+            returncode=0,
+            duration_seconds=1.0,
+            timed_out=False,
+            output=(
+                "IDELaunchParametersSnapshot: The operation couldn’t be completed. "
+                "(DebuggerLLDB.DebuggerVersionStore.StoreError error 0.)\n"
+                "** TEST EXECUTE SUCCEEDED **"
+            ),
+        )
+
+        require_successful_test_command(result, {"failedTests": 0})
+
+    def test_nonzero_command_with_infrastructure_wording_still_fails(self) -> None:
+        result = CommandResult(
+            command=["xcodebuild"],
+            returncode=65,
+            duration_seconds=1.0,
+            timed_out=False,
+            output="Lost connection to testmanagerd",
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            require_successful_test_command(result, {"failedTests": 0})
+
+        self.assertEqual(context.exception.exit_code, EXIT_INFRASTRUCTURE)
+
     def test_exact_selected_set_passes(self) -> None:
         validate_test_result(
             {

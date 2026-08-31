@@ -689,13 +689,18 @@ def require_successful_test_command(
 ) -> None:
     if summary and summary.get("failedTests", 0):
         raise ValidationError("One or more iOS tests failed", EXIT_TEST)
-    if result.timed_out or output_has_infrastructure_failure(result.output):
+    if result.timed_out:
         raise ValidationError(
             "The iOS test infrastructure failed; inspect the saved log",
             EXIT_INFRASTRUCTURE,
         )
     if result.returncode == 0:
         return
+    if output_has_infrastructure_failure(result.output):
+        raise ValidationError(
+            "The iOS test infrastructure failed; inspect the saved log",
+            EXIT_INFRASTRUCTURE,
+        )
     raise ValidationError(
         "The iOS test command failed without a product-test failure",
         EXIT_INFRASTRUCTURE,
