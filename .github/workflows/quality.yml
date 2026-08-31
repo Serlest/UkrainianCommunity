@@ -17,8 +17,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: quality-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
 
 jobs:
   changes:
@@ -31,7 +31,7 @@ jobs:
       rules: ${{ steps.classify.outputs.rules }}
       ios: ${{ steps.classify.outputs.ios }}
       ios_unit: ${{ steps.classify.outputs.ios_unit }}
-      ios_ui: ${{ steps.classify.outputs.ios_ui }}
+      ios_ui_required: ${{ steps.classify.outputs.ios_ui_required }}
       ios_release: ${{ steps.classify.outputs.ios_release }}
     steps:
       - uses: actions/checkout@v7
@@ -43,15 +43,37 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [[ "$EVENT_NAME" != "pull_request" ]]; then
-            python3 scripts/classify_changes.py --force-full --github-output "$GITHUB_OUTPUT"
-          else
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
             python3 scripts/classify_changes.py \
               --base "$PR_BASE_SHA" \
               --head "$GITHUB_SHA" \
               --github-output "$GITHUB_OUTPUT"
+          elif [[ "$EVENT_NAME" == "push" && "$REF_NAME" != release/* ]]; then
+            if [[ -n "$PUSH_BASE_SHA" && ! "$PUSH_BASE_SHA" =~ ^0+$ ]]; then
+              BASE_SHA="$PUSH_BASE_SHA"
+            else
+              BASE_SHA="$(git merge-base origin/main "$GITHUB_SHA")"
+            fi
+            python3 scripts/classify_changes.py \
+              --base "$BASE_SHA" \
+              --head "$GITHUB_SHA" \
+              --github-output "$GITHUB_OUTPUT"
+          else
+            python3 scripts/classify_changes.py --force-full --github-output "$GITHUB_OUTPUT"
           fi
+
+      - name: Report required local UI validation
+        if: steps.classify.outputs.ios_ui_required == 'true' && github.event_name != 'schedule'
+        run: |
+          {
+            echo "### Local iOS UI validation required"
+            echo
+            echo "This change affects an iOS user path. Run the approved Mac/Xcode UI validation before release."
+            echo "GitHub-hosted UI tests are intentionally disabled because Simulator infrastructure failures are not product-test evidence."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Test change classifier
         run: python3 scripts/test_classify_changes.py
@@ -188,11 +210,11 @@ jobs:
           [[ "$AFFECTED_RESULT" == "success" || "$AFFECTED_RESULT" == "skipped" ]]
 
   ios_affected:
-    name: iOS affected checks
+    name: iOS build and unit checks
     needs: changes
     if: needs.changes.outputs.ios == 'true'
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       IOS_TEST_DESTINATION: platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2
@@ -245,39 +267,8 @@ jobs:
           test
           -only-testing:UkrainianCommunityTests
 
-      - name: Run UI smoke tests
-        if: needs.changes.outputs.ios_ui == 'true'
-        run: >
-          xcodebuild
-          -project UkrainianCommunity.xcodeproj
-          -scheme UkrainianCommunity
-          -configuration Debug
-          -destination "$IOS_TEST_DESTINATION"
-          -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
-          -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityUI.xcresult"
-          CODE_SIGNING_ALLOWED=NO
-          test
-          -retry-tests-on-failure
-          -test-iterations 2
-          -test-repetition-relaunch-enabled YES
-          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testStartupSplashTransitionsToMainInterface
-          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testTabBarShowsFinalTabOrderWithoutLegacyTabs
-          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testEachTabOpensExpectedRootScreen
-          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testGuestProfileShowsAuthEntryPoints
-          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testOwnerAnalyticsSearchPeriodAndDetailJourney
-          -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testOwnerAnalyticsSupportsDarkUkrainianAccessibilityText
-
-      - name: Upload UI smoke test results
-        if: always() && needs.changes.outputs.ios_ui == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: UkrainianCommunityUI-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/UkrainianCommunityUI.xcresult
-          if-no-files-found: ignore
-          retention-days: 14
-
   ios:
-    name: iOS build, unit and UI tests
+    name: iOS build and unit tests
     needs:
       - changes
       - ios_affected

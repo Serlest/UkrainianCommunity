@@ -21,7 +21,7 @@ class Lanes:
     rules: bool = False
     ios: bool = False
     ios_unit: bool = False
-    ios_ui: bool = False
+    ios_ui_required: bool = False
     ios_release: bool = False
     full: bool = False
 
@@ -31,7 +31,7 @@ class Lanes:
         self.rules = True
         self.ios = True
         self.ios_unit = True
-        self.ios_ui = True
+        self.ios_ui_required = True
         self.ios_release = True
         self.full = True
 
@@ -122,14 +122,14 @@ def classify(paths: list[str], force_full: bool = False) -> Lanes:
         if path.startswith(IOS_RELEASE_PATHS):
             lanes.ios = True
             lanes.ios_unit = True
-            lanes.ios_ui = True
+            lanes.ios_ui_required = True
             lanes.ios_release = True
             continue
 
         if is_localization(path) or is_analytics_ios_path(path):
             lanes.ios = True
             lanes.ios_unit = True
-            lanes.ios_ui = True
+            lanes.ios_ui_required = True
             continue
 
         if is_static_only(path):
@@ -157,7 +157,7 @@ def classify(paths: list[str], force_full: bool = False) -> Lanes:
 
         if is_ios_ui_path(path):
             lanes.ios = True
-            lanes.ios_ui = True
+            lanes.ios_ui_required = True
             if path.endswith(".swift"):
                 lanes.ios_unit = True
             continue
@@ -195,11 +195,11 @@ def default_base() -> str:
 
 def changed_paths(base: str, head: str, include_worktree: bool) -> list[str]:
     paths = git_lines(
-        ["diff", "--name-only", "--diff-filter=ACMRTUXB", base, head]
+        ["diff", "--name-only", "--diff-filter=ACDMRTUXB", base, head]
     )
     if include_worktree:
         paths.extend(
-            git_lines(["diff", "--name-only", "--diff-filter=ACMRTUXB", "HEAD"])
+            git_lines(["diff", "--name-only", "--diff-filter=ACDMRTUXB", "HEAD"])
         )
         paths.extend(git_lines(["ls-files", "--others", "--exclude-standard"]))
     return sorted(set(paths))
