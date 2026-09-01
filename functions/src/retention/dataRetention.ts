@@ -216,7 +216,7 @@ export function isContentRetentionEligible(
   return value instanceof Timestamp && value.toMillis() <= cutoff.getTime();
 }
 
-async function cleanupExpiredDeletedNotifications(now: Date): Promise<number> {
+export async function cleanupExpiredDeletedNotifications(now: Date): Promise<number> {
   const cutoff = subtractUtcDays(now, deletedNotificationRetentionDays);
   const query = db.collectionGroup("notificationInbox")
     .where("deletedAt", "<=", Timestamp.fromDate(cutoff));

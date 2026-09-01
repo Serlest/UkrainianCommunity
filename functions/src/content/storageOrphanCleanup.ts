@@ -6,6 +6,7 @@ import {cleanupDeletedContentReferences} from "./contentDeletion";
 import {
   type ContentKind,
   contentStoragePrefixes,
+  firebaseStorageDownloadURL,
 } from "./contentDeletionPolicy";
 
 const region = "europe-west3";
@@ -129,6 +130,10 @@ export interface OrphanContentObjectIdentity {
   contentId: string;
 }
 
+export interface OrphanOrganizationLogoIdentity {
+  organizationId: string;
+}
+
 export function orphanContentObjectIdentity(
   objectName: string
 ): OrphanContentObjectIdentity | undefined {
@@ -148,7 +153,40 @@ export function orphanContentObjectIdentity(
       contentId: legacy[2],
     };
   }
+
+  const originalEditor = /^organizations\/[^/]+\/(news|events)\/([^/]+)\/[^/]+\.png$/
+    .exec(objectName);
+  if (originalEditor) {
+    return {
+      kind: originalEditor[1] as ContentKind,
+      contentId: originalEditor[2],
+    };
+  }
   return undefined;
+}
+
+export function orphanOrganizationLogoIdentity(
+  objectName: string
+): OrphanOrganizationLogoIdentity | undefined {
+  const match = /^organizations\/([^/]+)\/logo\.jpg$/.exec(objectName);
+  return match ? {organizationId: match[1]} : undefined;
+}
+
+export function firebaseDownloadURLsForStorageObject(
+  bucketName: string,
+  objectPath: string,
+  customMetadata: unknown
+): string[] {
+  const metadata = customMetadata && typeof customMetadata === "object" &&
+      !Array.isArray(customMetadata)
+    ? customMetadata as Record<string, unknown>
+    : undefined;
+  const value = metadata?.firebaseStorageDownloadTokens;
+  if (typeof value !== "string") return [];
+  return Array.from(new Set(value.split(",")
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0)))
+    .map((token) => firebaseStorageDownloadURL(bucketName, objectPath, token));
 }
 
 async function cleanupDeletedContentLifecycle(
@@ -192,7 +230,14 @@ async function cleanupOrphanContentPrefix(prefix: string): Promise<{
         ? [{file, identity}]
         : [];
     });
-    candidates += staleFiles.length;
+    const staleOrganizationLogos = files.flatMap((file) => {
+      const identity = orphanOrganizationLogoIdentity(file.name);
+      const createdAt = Date.parse(file.metadata.timeCreated ?? "");
+      return identity && isStaleOrphan(createdAt, now)
+        ? [{file, identity}]
+        : [];
+    });
+    candidates += staleFiles.length + staleOrganizationLogos.length;
 
     const grouped = new Map<string, typeof staleFiles>();
     for (const candidate of staleFiles) {
@@ -208,13 +253,128 @@ async function cleanupOrphanContentPrefix(prefix: string): Promise<{
         continue;
       }
       for (const candidate of group) {
-        await candidate.file.delete({ignoreNotFound: true});
+        if (await deleteListedGeneration(candidate.file.name, candidate.file.metadata.generation)) {
+          deleted += 1;
+        }
+      }
+    }
+
+    for (const candidate of staleOrganizationLogos) {
+      const organizationReference = db.collection("organizations")
+        .doc(candidate.identity.organizationId);
+      if ((await organizationReference.get()).exists ||
+          await organizationLogoHasLiveReference(
+            candidate.file.name,
+            candidate.identity.organizationId,
+            candidate.file.metadata.generation
+          )) {
+        continue;
+      }
+
+      // Re-read directly before touching Storage. This intentionally retains
+      // the object if a new organization or content reference appeared while
+      // the scheduled scan was running.
+      if ((await organizationReference.get()).exists ||
+          await organizationLogoHasLiveReference(
+            candidate.file.name,
+            candidate.identity.organizationId,
+            candidate.file.metadata.generation
+          )) {
+        continue;
+      }
+      if (await deleteListedGeneration(
+        candidate.file.name,
+        candidate.file.metadata.generation
+      )) {
         deleted += 1;
       }
     }
   } while (pageToken);
 
   return {scanned, candidates, deleted};
+}
+
+async function organizationLogoHasLiveReference(
+  objectPath: string,
+  organizationId: string,
+  generationValue: string | number | undefined
+): Promise<boolean> {
+  const [newsByOrganization, eventsByOrganization] = await Promise.all([
+    db.collection("news").where("organizationId", "==", organizationId).limit(1).get(),
+    db.collection("events").where("organizationId", "==", organizationId).limit(1).get(),
+  ]);
+  if (!newsByOrganization.empty || !eventsByOrganization.empty) return true;
+
+  const generation = storageGeneration(generationValue);
+  if (generation === undefined) {
+    console.error("Preserved orphan Storage candidate with an invalid generation.", {
+      objectPath,
+    });
+    return true;
+  }
+
+  let metadata;
+  try {
+    [metadata] = await adminStorage.bucket().file(objectPath, {generation})
+      .getMetadata();
+  } catch (error) {
+    // The listed generation may have been deleted or replaced while the scan
+    // was running. There is then nothing from this scan that may be deleted.
+    if (isNotFound(error)) return true;
+    throw error;
+  }
+  const downloadURLs = firebaseDownloadURLsForStorageObject(
+    adminStorage.bucket().name,
+    objectPath,
+    metadata.metadata
+  );
+  // A Firebase object without a verifiable token may still be referenced by a
+  // URL shape that cannot be queried exactly. Preserve it for manual review.
+  if (downloadURLs.length === 0) return true;
+
+  for (const downloadURL of downloadURLs) {
+    const snapshots = await Promise.all([
+      db.collection("news").where("imageURL", "==", downloadURL).limit(1).get(),
+      db.collection("news").where("organizationImageURL", "==", downloadURL).limit(1).get(),
+      db.collection("events").where("imageURL", "==", downloadURL).limit(1).get(),
+      db.collection("events").where("organizationImageURL", "==", downloadURL).limit(1).get(),
+      db.collection("organizations").where("imageURL", "==", downloadURL).limit(1).get(),
+      db.collection("organizations").where("logoURL", "==", downloadURL).limit(1).get(),
+      db.collection("organizations").where("coverURL", "==", downloadURL).limit(1).get(),
+      db.collection("featuredBanners").where("imageURL", "==", downloadURL).limit(1).get(),
+      db.collection("users").where("avatarURL", "==", downloadURL).limit(1).get(),
+    ]);
+    if (snapshots.some((snapshot) => !snapshot.empty)) return true;
+  }
+  return false;
+}
+
+async function deleteListedGeneration(
+  objectPath: string,
+  generationValue: string | number | undefined
+): Promise<boolean> {
+  const generation = storageGeneration(generationValue);
+  if (generation === undefined) {
+    console.error("Skipped orphan Storage deletion with an invalid generation.", {
+      objectPath,
+    });
+    return false;
+  }
+  await adminStorage.bucket().file(objectPath, {generation})
+    .delete({ignoreNotFound: true});
+  return true;
+}
+
+function storageGeneration(value: string | number | undefined): number | undefined {
+  const generation = Number(value);
+  return Number.isSafeInteger(generation) && generation > 0
+    ? generation
+    : undefined;
+}
+
+function isNotFound(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && "code" in error &&
+    (error as {code?: number}).code === 404);
 }
 
 async function deletePrefix(prefix: string): Promise<void> {
