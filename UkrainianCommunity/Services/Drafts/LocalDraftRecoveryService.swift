@@ -93,7 +93,7 @@ struct EventCreateDraft: Codable, Equatable {
     var scheduledAt: Date? = nil
 
     var hasMeaningfulContent: Bool {
-        [
+        let primaryText: [String] = [
             title,
             summary,
             details,
@@ -108,7 +108,9 @@ struct EventCreateDraft: Codable, Equatable {
             contactURL,
             tagInput,
             priceText,
-            capacityText,
+            capacityText
+        ]
+        let localizedAndMediaText: [String] = [
             germanTitle ?? "",
             germanSummary ?? "",
             germanDetails ?? "",
@@ -120,12 +122,14 @@ struct EventCreateDraft: Codable, Equatable {
             maximumPriceText ?? "",
             priceNote ?? ""
         ]
-        .contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-        || !tags.isEmpty
-        || latitude != nil
-        || longitude != nil
-        || !(additionalOccurrences ?? []).isEmpty
-        || hasMeaningfulMetadata == true
+        let hasText = primaryText.containsMeaningfulDraftText
+            || localizedAndMediaText.containsMeaningfulDraftText
+        return hasText
+            || !tags.isEmpty
+            || latitude != nil
+            || longitude != nil
+            || !(additionalOccurrences ?? []).isEmpty
+            || hasMeaningfulMetadata == true
     }
 }
 
