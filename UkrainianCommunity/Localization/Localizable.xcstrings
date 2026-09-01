@@ -17,6 +17,754 @@
         }
       }
     },
+    "account_security.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontosicherheit"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Безпека акаунта"
+          }
+        }
+      }
+    },
+    "account_security.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwalten Sie die Passwortwiederherstellung und den Schutz mit einer Authenticator-App."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Керуйте відновленням пароля та захистом за допомогою застосунку-автентифікатора."
+          }
+        }
+      }
+    },
+    "account_security.password.section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пароль"
+          }
+        }
+      }
+    },
+    "account_security.password.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir senden einen sicheren Link zum Ändern des Passworts an Ihre bestätigte E-Mail-Adresse."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ми надішлемо безпечне посилання для зміни пароля на вашу підтверджену email-адресу."
+          }
+        }
+      }
+    },
+    "account_security.password.send_link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link zum Ändern des Passworts senden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надіслати посилання для зміни пароля"
+          }
+        }
+      }
+    },
+    "account_security.password.sending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gesendet…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надсилання…"
+          }
+        }
+      }
+    },
+    "account_security.password.sent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Link zum Ändern des Passworts wurde an Ihre E-Mail-Adresse gesendet."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посилання для зміни пароля надіслано на вашу email-адресу."
+          }
+        }
+      }
+    },
+    "account_security.password.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Link konnte nicht gesendet werden. Versuchen Sie es später erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося надіслати посилання. Спробуйте пізніше."
+          }
+        }
+      }
+    },
+    "account_security.mfa.section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticator-App"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Застосунок-автентифікатор"
+          }
+        }
+      }
+    },
+    "account_security.mfa.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein wechselnder sechsstelliger Code schützt privilegierte Zugriffe auch dann, wenn das Passwort kompromittiert wurde."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Змінний шестизначний код захищає привілейований доступ, навіть якщо пароль було скомпрометовано."
+          }
+        }
+      }
+    },
+    "account_security.mfa.enabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zwei-Faktor-Schutz ist aktiviert."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Двофакторний захист увімкнено."
+          }
+        }
+      }
+    },
+    "account_security.mfa.disabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zwei-Faktor-Schutz ist noch nicht aktiviert."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Двофакторний захист ще не увімкнено."
+          }
+        }
+      }
+    },
+    "account_security.mfa.enable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticator-App einrichten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налаштувати застосунок-автентифікатор"
+          }
+        }
+      }
+    },
+    "account_security.mfa.enabling" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird vorbereitet…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підготовка…"
+          }
+        }
+      }
+    },
+    "account_security.mfa.remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticator entfernen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити автентифікатор"
+          }
+        }
+      }
+    },
+    "account_security.mfa.remove_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwei-Faktor-Schutz entfernen?"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалити двофакторний захист?"
+          }
+        }
+      }
+    },
+    "account_security.mfa.remove_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Konto verwendet danach nur das Passwort, bis ein neuer Faktor hinzugefügt wird."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Після цього для входу використовуватиметься лише пароль, доки не буде додано новий фактор."
+          }
+        }
+      }
+    },
+    "account_security.mfa.removing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird entfernt…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалення…"
+          }
+        }
+      }
+    },
+    "account_security.mfa.enrollment.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticator verbinden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підключити автентифікатор"
+          }
+        }
+      }
+    },
+    "account_security.mfa.enrollment.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scannen Sie den QR-Code oder geben Sie den Schlüssel manuell ein. Bestätigen Sie danach mit dem aktuellen sechsstelligen Code."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відскануйте QR-код або введіть ключ вручну, а потім підтвердьте поточним шестизначним кодом."
+          }
+        }
+      }
+    },
+    "account_security.mfa.open_authenticator" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authenticator-App öffnen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкрити застосунок-автентифікатор"
+          }
+        }
+      }
+    },
+    "account_security.mfa.manual_secret" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüssel für die manuelle Einrichtung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ для ручного налаштування"
+          }
+        }
+      }
+    },
+    "account_security.mfa.copy_secret" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einrichtungsschlüssel kopieren"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Копіювати ключ налаштування"
+          }
+        }
+      }
+    },
+    "account_security.mfa.secret_copied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einrichtungsschlüssel kopiert."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ налаштування скопійовано."
+          }
+        }
+      }
+    },
+    "account_security.mfa.confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwei-Faktor-Schutz bestätigen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердити двофакторний захист"
+          }
+        }
+      }
+    },
+    "account_security.mfa.confirming" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird bestätigt…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердження…"
+          }
+        }
+      }
+    },
+    "account_security.mfa.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zwei-Faktor-Schutz ist jetzt aktiviert."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Двофакторний захист увімкнено."
+          }
+        }
+      }
+    },
+    "account_security.mfa.removal_success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zwei-Faktor-Schutz wurde entfernt."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Двофакторний захист видалено."
+          }
+        }
+      }
+    },
+    "account_security.mfa.load_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Sicherheitsstatus konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити стан безпеки. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "account_security.mfa.operation_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Sicherheitsänderung konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завершити зміну безпеки. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "account_security.mfa.recent_login" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melden Sie sich aus Sicherheitsgründen ab und erneut an, bevor Sie den Zwei-Faktor-Schutz ändern."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "З міркувань безпеки вийдіть і увійдіть знову перед зміною двофакторного захисту."
+          }
+        }
+      }
+    },
+    "account_security.mfa.already_enrolled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit diesem Konto ist bereits ein Authenticator verbunden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "До цього акаунта вже підключено автентифікатор."
+          }
+        }
+      }
+    },
+    "account_security.mfa.recovery_notice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UAC erstellt keine Wiederherstellungscodes. Wenn Sie den Zugriff auf den Authenticator verlieren, wenden Sie sich zur Identitätsprüfung und Kontowiederherstellung an den Support."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UAC не створює кодів відновлення. Якщо ви втратите доступ до автентифікатора, зверніться до підтримки для перевірки особи та відновлення акаунта."
+          }
+        }
+      }
+    },
+    "auth.mfa.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwei-Faktor-Bestätigung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Двофакторне підтвердження"
+          }
+        }
+      }
+    },
+    "auth.mfa.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geben Sie den sechsstelligen Code aus Ihrer Authenticator-App ein, um die Anmeldung abzuschließen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введіть шестизначний код із застосунку-автентифікатора, щоб завершити вхід."
+          }
+        }
+      }
+    },
+    "auth.mfa.code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sechsstelliger Code"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шестизначний код"
+          }
+        }
+      }
+    },
+    "auth.mfa.verify" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigen und anmelden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердити та увійти"
+          }
+        }
+      }
+    },
+    "auth.mfa.verifying" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird bestätigt…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевірка…"
+          }
+        }
+      }
+    },
+    "auth.mfa.invalid_code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code ist ungültig oder abgelaufen. Geben Sie den aktuellen sechsstelligen Code ein."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Код неправильний або прострочений. Введіть актуальний шестизначний код."
+          }
+        }
+      }
+    },
+    "auth.mfa.resolve_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Zwei-Faktor-Bestätigung konnte nicht abgeschlossen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завершити двофакторне підтвердження. Перевірте з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "auth.mfa.challenge_expired" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Anmeldeversuch ist abgelaufen. Melden Sie sich erneut mit Ihrem Passwort an."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Термін цієї спроби входу минув. Увійдіть з паролем ще раз."
+          }
+        }
+      }
+    },
+    "validation.auth.password_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Passwort ist erforderlich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введіть пароль."
+          }
+        }
+      }
+    },
+    "validation.auth.password_too_long" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Passwort darf höchstens 128 Zeichen lang sein."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пароль має містити не більше 128 символів."
+          }
+        }
+      }
+    },
+    "account_security.mfa.rollout_pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Einrichtung des Authenticators wird verfügbar, sobald der serverseitige Schutz aktiviert ist."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налаштування автентифікатора стане доступним після активації серверного захисту."
+          }
+        }
+      }
+    },
     "—" : {
       "comment" : "A placeholder for an empty field.",
       "isCommentAutoGenerated" : true
@@ -2182,13 +2930,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte wählen Sie ein stärkeres Passwort mit mindestens 8 Zeichen."
+            "value" : "Bitte wählen Sie ein stärkeres Passwort mit mindestens 10 Zeichen."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Оберіть сильніший пароль щонайменше з 8 символів."
+            "value" : "Оберіть сильніший пароль щонайменше з 10 символів."
           }
         }
       }
@@ -33949,13 +34697,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Weitere Sicherheitseinstellungen folgen später."
+            "value" : "Passwort und Zwei-Faktor-Schutz für Ihr Konto."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Додаткові параметри безпеки з’являться пізніше."
+            "value" : "Пароль і двофакторний захист акаунта."
           }
         }
       }
@@ -43811,13 +44559,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Passwort muss mindestens 8 Zeichen lang sein."
+            "value" : "Das Passwort muss mindestens 10 Zeichen lang sein."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пароль має містити щонайменше 8 символів."
+            "value" : "Пароль має містити щонайменше 10 символів."
           }
         }
       }

@@ -90,6 +90,17 @@ struct ProfilePreferencesView: View {
                             .accessibilityElement(children: .combine)
                         }
 
+                        NavigationLink(value: ProfileNavigationRoute.accountSecurity) {
+                            ProfileModuleRow(
+                                title: AppStrings.Profile.accountSecurity,
+                                subtitle: AppStrings.Profile.accountSecuritySubtitle,
+                                systemImage: "lock.shield",
+                                status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.settings.accountSecurity")
+
                         if PermissionService.canAccessBlockedUsersSettings(user: currentUser) {
                             NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
                                 ProfileModuleRow(

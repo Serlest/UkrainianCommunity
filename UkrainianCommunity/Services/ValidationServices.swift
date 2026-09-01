@@ -1,20 +1,17 @@
 import Foundation
 
 struct AuthValidationService {
-    private let minimumPasswordLength = 8
+    private let passwordPolicy: AuthPasswordPolicy
+
+    init(passwordPolicy: AuthPasswordPolicy = .current) {
+        self.passwordPolicy = passwordPolicy
+    }
 
     func validateLogin(email: String, password: String) -> [String] {
-        var errors = [String]()
-        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        var errors = validateEmail(email)
 
-        if trimmedEmail.isEmpty {
-            errors.append(AppStrings.Validation.authEmailRequired)
-        } else if !isValidEmail(trimmedEmail) {
-            errors.append(AppStrings.Validation.authEmailInvalid)
-        }
-
-        if password.count < minimumPasswordLength {
-            errors.append(AppStrings.Validation.authPasswordTooShort)
+        if password.isEmpty {
+            errors.append(AppStrings.Validation.authPasswordRequired)
         }
 
         return errors
@@ -30,7 +27,11 @@ struct AuthValidationService {
         acceptedPrivacy: Bool,
         confirmedMinimumAge: Bool
     ) -> [String] {
-        var errors = validateLogin(email: email, password: password)
+        var errors = validateEmail(email)
+
+        if let passwordError = passwordPolicy.validationError(for: password) {
+            errors.append(passwordError)
+        }
 
         if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             errors.append(AppStrings.Validation.authDisplayNameRequired)
@@ -60,6 +61,20 @@ struct AuthValidationService {
     }
 
     func validatePasswordReset(email: String) -> [String] {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedEmail.isEmpty {
+            return [AppStrings.Validation.authEmailRequired]
+        }
+
+        if !isValidEmail(trimmedEmail) {
+            return [AppStrings.Validation.authEmailInvalid]
+        }
+
+        return []
+    }
+
+    private func validateEmail(_ email: String) -> [String] {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmedEmail.isEmpty {

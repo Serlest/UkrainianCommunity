@@ -7,7 +7,7 @@ struct AuthFlowContainerView: View {
 
     private var requiresResolvedSession: Bool {
         switch initialDestination {
-        case .emailVerification, .sessionRecovery:
+        case .emailVerification, .sessionRecovery, .multiFactorChallenge:
             return true
         case .landing, .login, .register, .passwordReset:
             return false
@@ -45,11 +45,15 @@ struct AuthFlowContainerView: View {
             SessionRecoveryView()
         case .passwordReset:
             PasswordResetView()
+        case .multiFactorChallenge:
+            MultiFactorSignInView(
+                coordinator: AuthService.shared.multiFactorSignIn
+            )
         }
     }
 }
 
-private struct AuthScreenScaffold<Content: View>: View {
+struct AuthScreenScaffold<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -201,6 +205,11 @@ struct LoginView: View {
                         password: password
                     )
                 } catch {
+                    if error as? AuthMultiFactorFlowError == .secondFactorRequired {
+                        errorMessage = nil
+                        return
+                    }
+
                     if let verificationError = error as? AuthVerificationError {
                         switch verificationError {
                         case .emailNotVerified:

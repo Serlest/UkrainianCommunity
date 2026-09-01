@@ -1787,7 +1787,7 @@ enum AppStrings {
         static var regionSettingsSubtitle: String { text("profile.settings.region.subtitle", "Регіон використовується для локального контенту.") }
         static var privacySettingsSubtitle: String { text("profile.settings.privacy.subtitle", "Політика приватності та обробка даних.") }
         static var accountSecurity: String { text("profile.settings.account_security", "Безпека акаунта") }
-        static var accountSecuritySubtitle: String { text("profile.settings.account_security.subtitle", "Додаткові параметри безпеки з’являться пізніше.") }
+        static var accountSecuritySubtitle: String { text("profile.settings.account_security.subtitle", "Пароль і двофакторний захист акаунта.") }
         static var deleteAccount: String { text("profile.settings.delete_account", "Видалити акаунт") }
         static var criticalActions: String { text("profile.settings.critical_actions", "Критичні дії") }
         static var deleteAccountSubtitle: String { text("profile.settings.delete_account.subtitle", "Видалення акаунта та очищення особистих даних.") }
@@ -2615,7 +2615,9 @@ enum AppStrings {
     enum Validation {
         static var authEmailRequired: String { text("validation.auth.email_required", "Email is required.") }
         static var authEmailInvalid: String { text("validation.auth.email_invalid", "Enter a valid email address.") }
-        static var authPasswordTooShort: String { text("validation.auth.password_too_short", "Password must be at least 8 characters.") }
+        static var authPasswordRequired: String { text("validation.auth.password_required", "Password is required.") }
+        static var authPasswordTooShort: String { text("validation.auth.password_too_short", "Password must be at least 10 characters.") }
+        static var authPasswordTooLong: String { text("validation.auth.password_too_long", "Password must not exceed 128 characters.") }
         static var authPasswordMismatch: String { text("validation.auth.password_mismatch", "Passwords do not match.") }
         static var authDisplayNameRequired: String { text("validation.auth.display_name_required", "Display name is required.") }
         static var authFederalStateRequired: String { text("validation.auth.federal_state_required", "Оберіть федеральну землю для реєстрації.") }
@@ -2704,7 +2706,7 @@ enum AppStrings {
         static var registrationFailed: String { text("auth.registration_failed", "We couldn’t create your account right now.") }
         static var registrationInvalidEmail: String { text("auth.registration.invalid_email", "Please enter a valid email address.") }
         static var registrationEmailAlreadyInUse: String { text("auth.registration.email_in_use", "This email address is already in use.") }
-        static var registrationWeakPassword: String { text("auth.registration.weak_password", "Choose a stronger password with at least 8 characters.") }
+        static var registrationWeakPassword: String { text("auth.registration.weak_password", "Choose a stronger password with at least 10 characters.") }
         static var registrationNetworkError: String { text("auth.registration.network_error", "We couldn’t reach the server. Check your connection and try again.") }
         static var registrationOperationNotAllowed: String { text("auth.registration.operation_not_allowed", "Email registration is not enabled right now.") }
         static var registrationUnknownError: String { text("auth.registration.unknown_error", "We couldn’t finish registration right now. Please try again.") }
@@ -2713,6 +2715,51 @@ enum AppStrings {
         static var registrationProfileUnknownError: String { text("auth.registration.profile_unknown", "Your account was created, but the profile setup could not be completed. Please try again later.") }
         static var resetPasswordFailed: String { text("auth.reset_password.failed", "We couldn’t send a reset link right now.") }
         static var loadUserProfileFailed: String { text("auth.load_user_profile.failed", "Failed to load user profile.") }
+        static var multiFactorTitle: String { text("auth.mfa.title", "Two-factor verification") }
+        static var multiFactorSubtitle: String { text("auth.mfa.subtitle", "Enter the six-digit code from your authenticator app to finish signing in.") }
+        static var multiFactorCode: String { text("auth.mfa.code", "Six-digit code") }
+        static var multiFactorVerify: String { text("auth.mfa.verify", "Verify and sign in") }
+        static var multiFactorVerifying: String { text("auth.mfa.verifying", "Verifying…") }
+        static var multiFactorInvalidCode: String { text("auth.mfa.invalid_code", "The code is invalid or has expired. Enter the current six-digit code.") }
+        static var multiFactorResolveFailed: String { text("auth.mfa.resolve_failed", "Two-factor verification could not be completed. Check your connection and try again.") }
+        static var multiFactorChallengeExpired: String { text("auth.mfa.challenge_expired", "This sign-in attempt has expired. Sign in with your password again.") }
+    }
+
+    enum AccountSecurity {
+        static var title: String { text("account_security.title", "Account security") }
+        static var subtitle: String { text("account_security.subtitle", "Manage password recovery and protection with an authenticator app.") }
+        static var passwordSection: String { text("account_security.password.section", "Password") }
+        static var passwordSubtitle: String { text("account_security.password.subtitle", "We will send a secure password-change link to your verified email address.") }
+        static var sendPasswordLink: String { text("account_security.password.send_link", "Send password-change link") }
+        static var sendingPasswordLink: String { text("account_security.password.sending", "Sending…") }
+        static var passwordLinkSent: String { text("account_security.password.sent", "The password-change link was sent to your email address.") }
+        static var passwordLinkFailed: String { text("account_security.password.failed", "The password-change link could not be sent. Try again later.") }
+        static var multiFactorSection: String { text("account_security.mfa.section", "Authenticator app") }
+        static var multiFactorSubtitle: String { text("account_security.mfa.subtitle", "A changing six-digit code protects privileged access even if the password is compromised.") }
+        static var multiFactorEnabled: String { text("account_security.mfa.enabled", "Two-factor protection is enabled.") }
+        static var multiFactorDisabled: String { text("account_security.mfa.disabled", "Two-factor protection is not enabled yet.") }
+        static var multiFactorRolloutPending: String { text("account_security.mfa.rollout_pending", "Authenticator setup will become available after server-side protection is activated.") }
+        static var enableMultiFactor: String { text("account_security.mfa.enable", "Set up authenticator app") }
+        static var enablingMultiFactor: String { text("account_security.mfa.enabling", "Preparing…") }
+        static var removeMultiFactor: String { text("account_security.mfa.remove", "Remove authenticator") }
+        static var removeTitle: String { text("account_security.mfa.remove_title", "Remove two-factor protection?") }
+        static var removeMessage: String { text("account_security.mfa.remove_message", "The account will return to password-only sign-in until another factor is added.") }
+        static var removingMultiFactor: String { text("account_security.mfa.removing", "Removing…") }
+        static var enrollmentTitle: String { text("account_security.mfa.enrollment.title", "Connect authenticator") }
+        static var enrollmentSubtitle: String { text("account_security.mfa.enrollment.subtitle", "Scan the QR code or enter the secret manually, then confirm with the current six-digit code.") }
+        static var openAuthenticator: String { text("account_security.mfa.open_authenticator", "Open authenticator app") }
+        static var manualSecret: String { text("account_security.mfa.manual_secret", "Manual setup key") }
+        static var copySecret: String { text("account_security.mfa.copy_secret", "Copy setup key") }
+        static var secretCopied: String { text("account_security.mfa.secret_copied", "Setup key copied.") }
+        static var confirmEnrollment: String { text("account_security.mfa.confirm", "Confirm two-factor protection") }
+        static var confirmingEnrollment: String { text("account_security.mfa.confirming", "Confirming…") }
+        static var enrollmentSucceeded: String { text("account_security.mfa.success", "Two-factor protection is now enabled.") }
+        static var removalSucceeded: String { text("account_security.mfa.removal_success", "Two-factor protection was removed.") }
+        static var loadFailed: String { text("account_security.mfa.load_failed", "Security status could not be loaded. Check your connection and try again.") }
+        static var operationFailed: String { text("account_security.mfa.operation_failed", "The security change could not be completed. Try again.") }
+        static var requiresRecentLogin: String { text("account_security.mfa.recent_login", "For security, sign out and sign in again before changing two-factor protection.") }
+        static var alreadyEnrolled: String { text("account_security.mfa.already_enrolled", "An authenticator is already connected to this account.") }
+        static var recoveryNotice: String { text("account_security.mfa.recovery_notice", "UAC does not generate recovery codes. If you lose access to the authenticator, contact support for identity verification and account recovery.") }
     }
 
     static func homeHighlightNews(_ count: Int) -> String {

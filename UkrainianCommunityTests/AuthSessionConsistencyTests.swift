@@ -892,6 +892,153 @@ struct AuthSessionConsistencyTests {
         #expect(lock.isLocked)
     }
 
+    @Test
+    func secondFactorRequirementKeepsPendingAuthenticationAndPresentsChallenge() async {
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend()
+        let challenge = FakeMultiFactorChallenge()
+        backend.signInError = FakeAuthError.expected
+        backend.multiFactorChallenge = challenge
+        let service = makeService(
+            state: state,
+            backend: backend,
+            profiles: FakeAuthProfileProvider()
+        )
+
+        do {
+            _ = try await service.signIn(email: "owner@example.com", password: "password")
+            Issue.record("Expected a second factor challenge")
+        } catch AuthMultiFactorFlowError.secondFactorRequired {
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        #expect(state.sessionState == .authenticating)
+        #expect(state.presentedAuthFlow == .multiFactorChallenge)
+        #expect(service.multiFactorSignIn.phase == .awaitingCode)
+        #expect(service.multiFactorSignIn.selectedFactorID == challenge.factors.first?.id)
+        #expect(backend.signOutCallCount == 0)
+    }
+
+    @Test
+    func validSecondFactorCompletesTheOriginalSignInTransaction() async throws {
+        let appUser = makeUser(id: "owner-a")
+        let sessionUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend()
+        let challenge = FakeMultiFactorChallenge()
+        backend.signInError = FakeAuthError.expected
+        backend.multiFactorChallenge = challenge
+        challenge.resolveHandler = { _, _ in
+            backend.currentSessionUser = sessionUser
+            return sessionUser
+        }
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        do {
+            _ = try await service.signIn(email: appUser.email, password: "password")
+        } catch AuthMultiFactorFlowError.secondFactorRequired {
+        }
+
+        let signedInUser = try await service.resolveMultiFactorSignIn(
+            oneTimeCode: "123456",
+            factorID: challenge.factors[0].id
+        )
+
+        #expect(signedInUser.id == appUser.id)
+        #expect(state.sessionState == .authenticated)
+        #expect(state.presentedAuthFlow == nil)
+        #expect(service.multiFactorSignIn.phase == .idle)
+        #expect(challenge.resolveCallCount == 1)
+    }
+
+    @Test
+    func invalidSecondFactorCodeIsRecoverableWithoutRepeatingPassword() async throws {
+        let appUser = makeUser(id: "owner-a")
+        let sessionUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend()
+        let challenge = FakeMultiFactorChallenge()
+        backend.signInError = FakeAuthError.expected
+        backend.multiFactorChallenge = challenge
+        challenge.resolveError = NSError(
+            domain: "FIRAuthErrorDomain",
+            code: 17044
+        )
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        do {
+            _ = try await service.signIn(email: appUser.email, password: "password")
+        } catch AuthMultiFactorFlowError.secondFactorRequired {
+        }
+
+        do {
+            _ = try await service.resolveMultiFactorSignIn(
+                oneTimeCode: "000000",
+                factorID: challenge.factors[0].id
+            )
+            Issue.record("Expected an invalid code error")
+        } catch AuthMultiFactorFlowError.invalidCode {
+        }
+
+        #expect(state.sessionState == .authenticating)
+        #expect(state.presentedAuthFlow == .multiFactorChallenge)
+        #expect(service.multiFactorSignIn.phase == .failed)
+
+        challenge.resolveError = nil
+        challenge.resolveHandler = { _, _ in
+            backend.currentSessionUser = sessionUser
+            return sessionUser
+        }
+        _ = try await service.resolveMultiFactorSignIn(
+            oneTimeCode: "123456",
+            factorID: challenge.factors[0].id
+        )
+
+        #expect(state.sessionState == .authenticated)
+        #expect(challenge.resolveCallCount == 2)
+    }
+
+    @Test
+    func cancellingSecondFactorClearsChallengeAndReturnsToGuest() async {
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend()
+        backend.signInError = FakeAuthError.expected
+        backend.multiFactorChallenge = FakeMultiFactorChallenge()
+        let service = makeService(
+            state: state,
+            backend: backend,
+            profiles: FakeAuthProfileProvider()
+        )
+
+        do {
+            _ = try await service.signIn(email: "owner@example.com", password: "password")
+        } catch AuthMultiFactorFlowError.secondFactorRequired {
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+
+        await service.cancelMultiFactorSignIn()
+
+        #expect(state.sessionState == .guest)
+        #expect(state.presentedAuthFlow == nil)
+        #expect(service.multiFactorSignIn.phase == .idle)
+    }
+
     private func makeService(
         state: AuthState,
         backend: FakeAuthBackend,
@@ -1023,6 +1170,7 @@ private final class FakeAuthBackend: AuthBackendProviding {
     var anonymousSignInError: Error?
     var passwordResetError: Error?
     var signOutError: Error?
+    var multiFactorChallenge: (any AuthMultiFactorSignInChallengeProviding)?
     private(set) var signOutCallCount = 0
 
     init(
@@ -1068,6 +1216,35 @@ private final class FakeAuthBackend: AuthBackendProviding {
         signOutCallCount += 1
         if let signOutError { throw signOutError }
         currentSessionUser = nil
+    }
+
+    func multiFactorSignInChallenge(
+        from error: Error
+    ) -> (any AuthMultiFactorSignInChallengeProviding)? {
+        multiFactorChallenge
+    }
+}
+
+private final class FakeMultiFactorChallenge: AuthMultiFactorSignInChallengeProviding {
+    let factors = [
+        AuthMultiFactorFactor(
+            id: "totp-factor-1",
+            displayName: "Test Authenticator",
+            enrollmentDate: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+    ]
+    var resolveError: Error?
+    var resolveHandler: ((String, String) async throws -> any AuthSessionUserProviding)?
+    private(set) var resolveCallCount = 0
+
+    func resolve(
+        factorID: String,
+        oneTimeCode: String
+    ) async throws -> any AuthSessionUserProviding {
+        resolveCallCount += 1
+        if let resolveError { throw resolveError }
+        guard let resolveHandler else { throw FakeAuthError.expected }
+        return try await resolveHandler(factorID, oneTimeCode)
     }
 }
 

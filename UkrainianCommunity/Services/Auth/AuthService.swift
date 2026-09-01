@@ -58,6 +58,9 @@ protocol AuthSessionUserProviding: AnyObject {
 protocol AuthBackendProviding: AnyObject {
     var currentSessionUser: (any AuthSessionUserProviding)? { get }
 
+    func multiFactorSignInChallenge(
+        from error: Error
+    ) -> (any AuthMultiFactorSignInChallengeProviding)?
     func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding
     func signInAnonymously() async throws -> any AuthSessionUserProviding
@@ -101,7 +104,7 @@ extension User: AuthSessionUserProviding {
 extension UserProfileService: AuthProfileProviding {}
 extension RemoteNotificationRegistrationService: AuthNotificationRegistrationProviding {}
 
-private final class FirebaseAuthBackend: AuthBackendProviding {
+final class FirebaseAuthBackend: AuthBackendProviding {
     var currentSessionUser: (any AuthSessionUserProviding)? {
         Auth.auth().currentUser
     }
@@ -139,17 +142,24 @@ final class AuthService {
     nonisolated static let currentMinimumAgeVersion = "14+"
 
     let authState: AuthState
+    let multiFactorSignIn = AuthMultiFactorSignInCoordinator()
 
     private let backend: any AuthBackendProviding
     private let profileProvider: any AuthProfileProviding
     private let notificationRegistration: (any AuthNotificationRegistrationProviding)?
     private let analyticsConsent: any AnalyticsConsentProviding
     @MainActor private var transitionGeneration: UInt = 0
+    @MainActor private var pendingMultiFactorSignIn: PendingMultiFactorSignIn?
     // Firebase user and session calls cannot be cancelled once started.
     // Serializing them lets a newer transition replace any stale backend result
     // before it publishes app state.
     @MainActor private var isBackendSessionAccessInFlight = false
     @MainActor private var backendSessionAccessWaiters: [CheckedContinuation<Void, Never>] = []
+
+    private struct PendingMultiFactorSignIn {
+        let transition: UInt
+        let challenge: any AuthMultiFactorSignInChallengeProviding
+    }
 
     var currentUser: User? { Auth.auth().currentUser }
     var isAuthenticated: Bool { authState.isAuthenticated }
@@ -405,10 +415,106 @@ final class AuthService {
             authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email)
         } catch {
             guard isCurrentTransition(transition) else { throw error }
+
+            if let challenge = backend.multiFactorSignInChallenge(from: error) {
+                pendingMultiFactorSignIn = PendingMultiFactorSignIn(
+                    transition: transition,
+                    challenge: challenge
+                )
+                multiFactorSignIn.begin(factors: challenge.factors)
+                authState.beginAuthenticatingSession(email: email)
+                authState.presentAuthFlow(.multiFactorChallenge)
+                throw AuthMultiFactorFlowError.secondFactorRequired
+            }
+
             reconcileAfterFailedAuthenticationStart(error, transition: transition)
             throw error
         }
 
+        return try await finishInteractiveSignIn(
+            sessionUser,
+            transition: transition
+        )
+    }
+
+    @MainActor
+    func resolveMultiFactorSignIn(
+        oneTimeCode: String,
+        factorID: String
+    ) async throws -> AppUser {
+        guard let pending = pendingMultiFactorSignIn,
+              pending.transition == transitionGeneration else {
+            throw AuthMultiFactorFlowError.challengeUnavailable
+        }
+
+        let code = AuthMultiFactorService.normalizedCode(oneTimeCode)
+        guard AuthMultiFactorService.isValidCode(code) else {
+            multiFactorSignIn.fail(message: AppStrings.Auth.multiFactorInvalidCode)
+            throw AuthMultiFactorFlowError.invalidCode
+        }
+
+        multiFactorSignIn.beginResolving()
+
+        let sessionUser: any AuthSessionUserProviding
+        do {
+            sessionUser = try await performSynchronizedBackendSessionOperation(
+                transition: pending.transition
+            ) {
+                try await pending.challenge.resolve(
+                    factorID: factorID,
+                    oneTimeCode: code
+                )
+            }
+        } catch {
+            guard isCurrentTransition(pending.transition) else { throw error }
+
+            if isRecoverableMultiFactorCodeError(error) {
+                multiFactorSignIn.fail(message: AppStrings.Auth.multiFactorInvalidCode)
+                throw AuthMultiFactorFlowError.invalidCode
+            }
+
+            if isExpiredMultiFactorChallenge(error) {
+                clearPendingMultiFactorSignIn()
+                authState.setGuestSession()
+                authState.presentAuthFlow(.login)
+                throw AuthMultiFactorFlowError.challengeUnavailable
+            }
+
+            multiFactorSignIn.fail(message: AppStrings.Auth.multiFactorResolveFailed)
+            throw error
+        }
+
+        clearPendingMultiFactorSignIn()
+        authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email)
+        return try await finishInteractiveSignIn(
+            sessionUser,
+            transition: pending.transition
+        )
+    }
+
+    @MainActor
+    func cancelMultiFactorSignIn() async {
+        let transition = beginTransition()
+
+        do {
+            if backend.currentSessionUser != nil {
+                try await performSynchronizedBackendSessionOperation(transition: transition) {
+                    try backend.signOut()
+                }
+            }
+            authState.setGuestSession()
+            authState.dismissAuthFlow()
+        } catch {
+            guard isCurrentTransition(transition) else { return }
+            reconcileAfterFailedSignOut(error, transition: transition)
+        }
+    }
+
+    @MainActor
+    private func finishInteractiveSignIn(
+        _ sessionUser: any AuthSessionUserProviding,
+        transition: UInt
+    ) async throws -> AppUser {
         do {
             let isEmailVerified = try await isCurrentUserEmailVerified(
                 sessionUser,
@@ -936,8 +1042,15 @@ final class AuthService {
 
     @MainActor
     private func beginTransition() -> UInt {
+        clearPendingMultiFactorSignIn()
         transitionGeneration &+= 1
         return transitionGeneration
+    }
+
+    @MainActor
+    private func clearPendingMultiFactorSignIn() {
+        pendingMultiFactorSignIn = nil
+        multiFactorSignIn.reset()
     }
 
     @MainActor
@@ -950,6 +1063,17 @@ final class AuthService {
         guard isCurrentTransition(transition) else {
             throw AuthSessionTransitionError.backendSessionChanged
         }
+    }
+
+    private func isRecoverableMultiFactorCodeError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        guard let code = AuthErrorCode(rawValue: nsError.code) else { return false }
+        return code == .invalidVerificationCode || code == .missingVerificationCode
+    }
+
+    private func isExpiredMultiFactorChallenge(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return AuthErrorCode(rawValue: nsError.code) == .sessionExpired
     }
 
     private func readableSessionFailure(_ error: Error) -> String {

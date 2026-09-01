@@ -20,6 +20,7 @@ enum AuthFlowDestination: String, Identifiable {
     case passwordReset
     case emailVerification
     case sessionRecovery
+    case multiFactorChallenge
 
     var id: String { rawValue }
 }

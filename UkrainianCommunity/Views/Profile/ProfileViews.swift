@@ -11,6 +11,7 @@ enum ProfileNavigationRoute: Hashable {
     case recentViews
     case activityHistory
     case profileSettings
+    case accountSecurity
     case feedbackComposer
     case supportProject
     case blockedUsers
@@ -519,6 +520,8 @@ struct ProfileView: View {
                 isAnalyticsCollectionEnabled: $isAnalyticsCollectionEnabled,
                 currentUser: displayUser
             )
+        case .accountSecurity:
+            AccountSecurityView()
         case .feedbackComposer:
             if let user = displayUser {
                 ProfileFeedbackComposerView(
