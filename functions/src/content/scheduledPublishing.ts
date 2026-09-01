@@ -5,6 +5,7 @@ import {
   Timestamp,
   type DocumentData,
   type DocumentReference,
+  type DocumentSnapshot,
   type Transaction,
 } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
@@ -13,11 +14,52 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {db} from "../firebase/admin";
 import {isActiveUser, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 
-type ScheduledCollection = "news" | "events";
+export type ScheduledCollection = "news" | "events";
+export type ScheduledPublicationOutcome = "approved" | "pendingReview" | "skipped";
+export type ScheduledCandidatePublisher = (
+  collection: ScheduledCollection,
+  documentId: string,
+  now: Timestamp
+) => Promise<ScheduledPublicationOutcome>;
+
+export interface ScheduledCandidateDependencies {
+  planningDraftLookup?: (
+    collection: ScheduledCollection,
+    contentId: string,
+    authorId: string | undefined
+  ) => Promise<DocumentReference | undefined>;
+}
+
+export interface ScheduledCollectionResult {
+  found: number;
+  published: number;
+  review: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface ScheduledMaintenanceResult {
+  found: number;
+  changed: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface ScheduledPublishingCycleResult {
+  expiredSchedulerLeases: ScheduledMaintenanceResult;
+  expiredPlanningPublications: ScheduledMaintenanceResult;
+  news: ScheduledCollectionResult;
+  events: ScheduledCollectionResult;
+}
 
 const batchSize = 100;
 const leaseCollection = "scheduledPublicationLeases";
 const leaseDurationMilliseconds = 3 * 60 * 1000;
+const planningTimestampToleranceMilliseconds = 1_000;
+const planningRecoveryMessage =
+  "Поле «Статус публікації»: попередня спроба не була завершена. Перевірте матеріал і повторіть публікацію.";
+const planningMismatchMessage =
+  "Поле «Статус публікації»: запланований матеріал більше не відповідає запису планування.";
 
 export const publishScheduledContent = onSchedule(
   {
@@ -27,58 +69,140 @@ export const publishScheduledContent = onSchedule(
     timeoutSeconds: 120,
     memory: "256MiB",
     retryCount: 3,
+    maxInstances: 2,
+    concurrency: 1,
   },
   async () => {
-    const now = Timestamp.now();
-    const results = await Promise.all([
-      processScheduledCollection("news", now),
-      processScheduledCollection("events", now),
-    ]);
-    logger.info("Scheduled content publishing completed.", {
-      news: results[0],
-      events: results[1],
-    });
+    const result = await runScheduledPublishingCycle();
+    logger.info("Scheduled content publishing completed.", result);
+    const failures = result.expiredSchedulerLeases.failed +
+      result.expiredPlanningPublications.failed +
+      result.news.failed +
+      result.events.failed;
+    if (failures > 0) {
+      throw new Error(`Scheduled publishing completed with ${failures} failed operation(s).`);
+    }
   }
 );
 
-async function processScheduledCollection(collection: ScheduledCollection, now: Timestamp) {
-  const snapshot = await db.collection(collection)
-    .where("scheduledAt", "<=", now)
-    .orderBy("scheduledAt", "asc")
-    .limit(batchSize)
-    .get();
-
-  let published = 0;
-  let review = 0;
-  let skipped = 0;
-  for (const document of snapshot.docs) {
-    const outcome = await publishCandidate(collection, document.id, now);
-    if (outcome === "approved") published += 1;
-    else if (outcome === "pendingReview") review += 1;
-    else skipped += 1;
-  }
-  return {published, review, skipped};
+export async function runScheduledPublishingCycle(
+  now = Timestamp.now()
+): Promise<ScheduledPublishingCycleResult> {
+  const [expiredSchedulerLeases, expiredPlanningPublications] = await Promise.all([
+    cleanupExpiredScheduledPublicationLeases(now),
+    recoverExpiredPlanningPublications(now),
+  ]);
+  const [news, events] = await Promise.all([
+    processScheduledCollection("news", now),
+    processScheduledCollection("events", now),
+  ]);
+  return {
+    expiredSchedulerLeases,
+    expiredPlanningPublications,
+    news,
+    events,
+  };
 }
 
-async function publishCandidate(
+export async function processScheduledCollection(
+  collection: ScheduledCollection,
+  now = Timestamp.now()
+): Promise<ScheduledCollectionResult> {
+  let snapshot;
+  try {
+    snapshot = await db.collection(collection)
+      .where("moderationStatus", "==", "draft")
+      .where("scheduledAt", "<=", now)
+      .orderBy("scheduledAt", "asc")
+      .limit(batchSize)
+      .get();
+  } catch (error) {
+    logger.error("Scheduled content query failed.", {collection, error});
+    return {found: 0, published: 0, review: 0, skipped: 0, failed: 1};
+  }
+
+  const result = await processScheduledCandidateIds(
+    collection,
+    snapshot.docs.map((document) => document.id),
+    now
+  );
+  return {found: snapshot.size, ...result};
+}
+
+export async function processScheduledCandidateIds(
+  collection: ScheduledCollection,
+  documentIds: string[],
+  now: Timestamp,
+  publish: ScheduledCandidatePublisher = publishScheduledCandidate
+): Promise<Omit<ScheduledCollectionResult, "found">> {
+  const result = {published: 0, review: 0, skipped: 0, failed: 0};
+  for (const documentId of documentIds) {
+    try {
+      const outcome = await publish(collection, documentId, now);
+      if (outcome === "approved") result.published += 1;
+      else if (outcome === "pendingReview") result.review += 1;
+      else result.skipped += 1;
+    } catch (error) {
+      result.failed += 1;
+      logger.error("Scheduled content candidate failed.", {
+        collection,
+        documentId,
+        error,
+      });
+    }
+  }
+  return result;
+}
+
+interface CandidateClaim {
+  leaseId: string;
+  authorId: string | undefined;
+  scheduledAt: Timestamp;
+}
+
+export async function publishScheduledCandidate(
   collection: ScheduledCollection,
   documentId: string,
-  now: Timestamp
-): Promise<"approved" | "pendingReview" | "skipped"> {
+  now = Timestamp.now(),
+  dependencies: ScheduledCandidateDependencies = {}
+): Promise<ScheduledPublicationOutcome> {
   const reference = db.collection(collection).doc(documentId);
   const leaseReference = db.collection(leaseCollection).doc(`${collection}_${documentId}`);
-  const leaseId = await claimCandidate(reference, leaseReference, collection, documentId, now);
-  if (!leaseId) return "skipped";
-  const planningReference = await linkedPlanningDraft(collection, documentId);
-  return finalizeClaimedCandidate({
-    collection,
-    documentId,
-    reference,
-    leaseReference,
-    leaseId,
-    planningReference,
-    now,
-  });
+  let claim: CandidateClaim | undefined;
+  try {
+    claim = await claimCandidate(reference, leaseReference, collection, documentId, now);
+    if (!claim) return "skipped";
+    const planningDraftLookup = dependencies.planningDraftLookup ?? linkedPlanningDraft;
+    const planningReference = await planningDraftLookup(
+      collection,
+      documentId,
+      claim.authorId
+    );
+    return await finalizeClaimedCandidate({
+      collection,
+      documentId,
+      reference,
+      leaseReference,
+      leaseId: claim.leaseId,
+      planningReference,
+      scheduledAt: claim.scheduledAt,
+      now,
+    });
+  } catch (error) {
+    if (claim) {
+      try {
+        await releaseCandidateLease(leaseReference, claim.leaseId);
+      } catch (releaseError) {
+        logger.error("Scheduled publication lease release failed.", {
+          collection,
+          documentId,
+          leaseId: claim.leaseId,
+          releaseError,
+        });
+      }
+    }
+    throw error;
+  }
 }
 
 async function claimCandidate(
@@ -87,7 +211,7 @@ async function claimCandidate(
   collection: ScheduledCollection,
   documentId: string,
   now: Timestamp
-): Promise<string | undefined> {
+): Promise<CandidateClaim | undefined> {
   return db.runTransaction(async (transaction) => {
     const [candidate, existingLease] = await Promise.all([
       transaction.get(reference),
@@ -95,7 +219,9 @@ async function claimCandidate(
     ]);
     const existingExpiry = existingLease.get("expiresAt");
     const data = candidate.data();
-    if (!candidate.exists || !isScheduledCandidateClaimable(data, existingExpiry, now)) return undefined;
+    if (!candidate.exists || !isScheduledCandidateClaimable(data, existingExpiry, now)) {
+      return undefined;
+    }
     const scheduledAt = data?.scheduledAt as Timestamp;
     const leaseId = randomUUID();
     transaction.set(leaseReference, {
@@ -106,7 +232,7 @@ async function claimCandidate(
       claimedAt: now,
       expiresAt: Timestamp.fromMillis(now.toMillis() + leaseDurationMilliseconds),
     });
-    return leaseId;
+    return {leaseId, scheduledAt, authorId: stringValue(data?.authorId)};
   });
 }
 
@@ -117,20 +243,24 @@ interface ClaimedCandidate {
   leaseReference: DocumentReference;
   leaseId: string;
   planningReference: DocumentReference | undefined;
+  scheduledAt: Timestamp;
   now: Timestamp;
 }
 
-async function finalizeClaimedCandidate(input: ClaimedCandidate): Promise<"approved" | "pendingReview" | "skipped"> {
+async function finalizeClaimedCandidate(
+  input: ClaimedCandidate
+): Promise<ScheduledPublicationOutcome> {
   return db.runTransaction(async (transaction) => {
     const [candidate, lease] = await Promise.all([
       transaction.get(input.reference),
       transaction.get(input.leaseReference),
     ]);
-    if (!lease.exists || lease.get("leaseId") !== input.leaseId) return "skipped";
+    if (!isOwnedSchedulerLease(lease, input)) return "skipped";
     const data = candidate.data();
     const scheduledAt = data?.scheduledAt;
     if (!candidate.exists || !data || data.moderationStatus !== "draft" ||
-        !(scheduledAt instanceof Timestamp) || scheduledAt.toMillis() > input.now.toMillis()) {
+        !(scheduledAt instanceof Timestamp) || scheduledAt.toMillis() > input.now.toMillis() ||
+        scheduledAt.toMillis() !== input.scheduledAt.toMillis()) {
       transaction.delete(input.leaseReference);
       return "skipped";
     }
@@ -141,16 +271,26 @@ async function finalizeClaimedCandidate(input: ClaimedCandidate): Promise<"appro
     if (planning && (!planning.exists || !isCurrentScheduledPlanningLink(
       planning.data(),
       input.collection,
-      input.documentId
+      input.documentId,
+      scheduledAt
     ))) {
-      transaction.delete(input.leaseReference);
+      if (planning.exists && isActivePlanningPublication(planning.data(), input.now)) {
+        transaction.delete(input.leaseReference);
+        return "skipped";
+      }
+      applyPlanningMismatch(transaction, input, planning);
       return "skipped";
     }
 
     const authorId = stringValue(data.authorId);
     const organizationId = stringValue(data.organizationId);
-    if (!authorId || !organizationId) {
-      applyReviewOutcome(transaction, input, "Поле «Статус публікації»: не вказано автора або організацію.");
+    if (!authorId || !organizationId ||
+        !isDocumentId(authorId) || !isDocumentId(organizationId)) {
+      applyReviewOutcome(
+        transaction,
+        input,
+        "Поле «Статус публікації»: не вказано автора або організацію."
+      );
       return "pendingReview";
     }
 
@@ -164,7 +304,11 @@ async function finalizeClaimedCandidate(input: ClaimedCandidate): Promise<"appro
     const canPublishForOrganization = isAppOwner || hasOrganizationRole(organizationData, authorId);
     if (!user.exists || !isActiveUser(permissions) || !organization.exists ||
         !canPublishForOrganization || organizationData.moderationStatus !== "approved") {
-      applyReviewOutcome(transaction, input, "Поле «Статус публікації»: перевірте права або статус організації.");
+      applyReviewOutcome(
+        transaction,
+        input,
+        "Поле «Статус публікації»: перевірте права або статус організації."
+      );
       return "pendingReview";
     }
 
@@ -174,7 +318,11 @@ async function finalizeClaimedCandidate(input: ClaimedCandidate): Promise<"appro
       input.documentId,
       data
     )) {
-      applyReviewOutcome(transaction, input, "Поле «Статус публікації»: знайдено можливий дублікат.");
+      applyReviewOutcome(
+        transaction,
+        input,
+        "Поле «Статус публікації»: знайдено можливий дублікат."
+      );
       return "pendingReview";
     }
 
@@ -189,17 +337,14 @@ async function finalizeClaimedCandidate(input: ClaimedCandidate): Promise<"appro
     });
     if (input.planningReference) {
       if (nextStatus === "approved") {
-        transaction.update(input.planningReference, {
-          state: "completed",
-          completedAt: input.now,
-          publicationOutcome: "approved",
-          publishedContentId: input.documentId,
-          publishedContentKind: input.collection === "news" ? "news" : "event",
-          publishedOrganizationId: organizationId,
-          publishedOrganizationName: stringValue(data.organizationName) ?? null,
-          failureMessage: null,
-          updatedAt: input.now,
-        });
+        transaction.update(input.planningReference, completedPlanningUpdate({
+          now: input.now,
+          outcome: "approved",
+          contentId: input.documentId,
+          kind: input.collection === "news" ? "news" : "event",
+          organizationId,
+          organizationName: stringValue(data.organizationName),
+        }));
       } else {
         transaction.update(input.planningReference, attentionUpdate(
           "Поле «Статус публікації»: матеріал передано на модерацію замість автоматичної публікації.",
@@ -209,6 +354,142 @@ async function finalizeClaimedCandidate(input: ClaimedCandidate): Promise<"appro
     }
     transaction.delete(input.leaseReference);
     return nextStatus;
+  });
+}
+
+export async function cleanupExpiredScheduledPublicationLeases(
+  now = Timestamp.now()
+): Promise<ScheduledMaintenanceResult> {
+  let snapshot;
+  try {
+    snapshot = await db.collection(leaseCollection)
+      .where("expiresAt", "<=", now)
+      .orderBy("expiresAt", "asc")
+      .limit(batchSize)
+      .get();
+  } catch (error) {
+    logger.error("Expired scheduled publication lease query failed.", {error});
+    return {found: 0, changed: 0, skipped: 0, failed: 1};
+  }
+
+  let changed = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const document of snapshot.docs) {
+    try {
+      const removed = await db.runTransaction(async (transaction) => {
+        const current = await transaction.get(document.ref);
+        const expiresAt = current.get("expiresAt");
+        if (!current.exists || !(expiresAt instanceof Timestamp) ||
+            expiresAt.toMillis() > now.toMillis()) {
+          return false;
+        }
+        transaction.delete(document.ref);
+        return true;
+      });
+      if (removed) changed += 1;
+      else skipped += 1;
+    } catch (error) {
+      failed += 1;
+      logger.error("Expired scheduled publication lease cleanup failed.", {
+        leasePath: document.ref.path,
+        error,
+      });
+    }
+  }
+  return {found: snapshot.size, changed, skipped, failed};
+}
+
+export async function recoverExpiredPlanningPublications(
+  now = Timestamp.now()
+): Promise<ScheduledMaintenanceResult> {
+  let snapshot;
+  try {
+    snapshot = await db.collectionGroup("contentPlanningDrafts")
+      .where("state", "==", "publishing")
+      .where("publicationLeaseExpiresAt", "<=", now)
+      .orderBy("publicationLeaseExpiresAt", "asc")
+      .limit(batchSize)
+      .get();
+  } catch (error) {
+    logger.error("Publishing planning record query failed.", {error});
+    return {found: 0, changed: 0, skipped: 0, failed: 1};
+  }
+
+  let changed = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const document of snapshot.docs) {
+    if (isActivePlanningPublication(document.data(), now)) {
+      skipped += 1;
+      continue;
+    }
+    try {
+      const outcome = await recoverExpiredPlanningPublication(document.ref, now);
+      if (outcome === "changed") changed += 1;
+      else skipped += 1;
+    } catch (error) {
+      failed += 1;
+      logger.error("Publishing planning record recovery failed.", {
+        planningPath: document.ref.path,
+        error,
+      });
+    }
+  }
+  return {found: snapshot.size, changed, skipped, failed};
+}
+
+async function recoverExpiredPlanningPublication(
+  planningReference: DocumentReference,
+  now: Timestamp
+): Promise<"changed" | "skipped"> {
+  return db.runTransaction(async (transaction) => {
+    const planning = await transaction.get(planningReference);
+    const data = planning.data();
+    if (!planning.exists || !data || data.state !== "publishing" ||
+        isActivePlanningPublication(data, now)) {
+      return "skipped";
+    }
+
+    const kind = data.publishedContentKind === "news" || data.publishedContentKind === "event"
+      ? data.publishedContentKind
+      : data.kind === "news" || data.kind === "event" ? data.kind : undefined;
+    const contentId = stringValue(data.publishedContentId);
+    const ownerUserId = planningReference.parent.parent?.id;
+    const collection = kind === "news" ? "news" : kind === "event" ? "events" : undefined;
+    const contentReference = collection && contentId && isDocumentId(contentId)
+      ? db.collection(collection).doc(contentId)
+      : undefined;
+    const content = contentReference
+      ? await transaction.get(contentReference)
+      : undefined;
+    const contentData = content?.data();
+    const moderationStatus = stringValue(contentData?.moderationStatus);
+    const ownsContent = Boolean(
+      content?.exists && ownerUserId && stringValue(contentData?.authorId) === ownerUserId
+    );
+
+    if (ownsContent && contentId && kind &&
+        (moderationStatus === "approved" || moderationStatus === "pendingReview")) {
+      transaction.update(planningReference, completedPlanningUpdate({
+        now,
+        outcome: moderationStatus,
+        contentId,
+        kind,
+        organizationId: stringValue(contentData?.organizationId),
+        organizationName: stringValue(contentData?.organizationName),
+      }));
+      return "changed";
+    }
+
+    if (ownsContent && contentReference && moderationStatus === "draft") {
+      transaction.update(contentReference, {
+        scheduledAt: FieldValue.delete(),
+        updatedAt: now,
+      });
+    }
+    transaction.update(planningReference, attentionUpdate(planningRecoveryMessage, now));
+    return "changed";
   });
 }
 
@@ -227,11 +508,66 @@ export function isScheduledCandidateClaimable(
 export function isCurrentScheduledPlanningLink(
   data: DocumentData | undefined,
   collection: ScheduledCollection,
-  documentId: string
+  documentId: string,
+  contentScheduledAt: Timestamp
 ): boolean {
+  const planningScheduledAt = data?.scheduledAt;
   return data?.state === "scheduled" &&
     data.publishedContentId === documentId &&
-    data.publishedContentKind === (collection === "news" ? "news" : "event");
+    data.publishedContentKind === (collection === "news" ? "news" : "event") &&
+    planningScheduledAt instanceof Timestamp &&
+    Math.abs(planningScheduledAt.toMillis() - contentScheduledAt.toMillis()) <=
+      planningTimestampToleranceMilliseconds;
+}
+
+export function isActivePlanningPublication(
+  data: DocumentData | undefined,
+  now: Timestamp
+): boolean {
+  const expiresAt = data?.publicationLeaseExpiresAt;
+  return data?.state === "publishing" &&
+    typeof data.publicationLeaseId === "string" &&
+    data.publicationLeaseId.length > 0 &&
+    expiresAt instanceof Timestamp &&
+    expiresAt.toMillis() > now.toMillis();
+}
+
+function isOwnedSchedulerLease(
+  lease: DocumentSnapshot,
+  input: ClaimedCandidate
+): boolean {
+  return lease.exists &&
+    lease.get("leaseId") === input.leaseId &&
+    lease.get("collection") === input.collection &&
+    lease.get("documentId") === input.documentId;
+}
+
+async function releaseCandidateLease(
+  leaseReference: DocumentReference,
+  leaseId: string
+): Promise<void> {
+  await db.runTransaction(async (transaction) => {
+    const lease = await transaction.get(leaseReference);
+    if (lease.exists && lease.get("leaseId") === leaseId) {
+      transaction.delete(leaseReference);
+    }
+  });
+}
+
+function applyPlanningMismatch(
+  transaction: Transaction,
+  input: ClaimedCandidate,
+  planning: DocumentSnapshot
+): void {
+  transaction.update(input.reference, {
+    scheduledAt: FieldValue.delete(),
+    updatedAt: input.now,
+  });
+  const state = planning.get("state");
+  if (planning.exists && state !== "completed" && state !== "archived") {
+    transaction.update(planning.ref, attentionUpdate(planningMismatchMessage, input.now));
+  }
+  transaction.delete(input.leaseReference);
 }
 
 function applyReviewOutcome(
@@ -252,21 +588,60 @@ function applyReviewOutcome(
 
 async function linkedPlanningDraft(
   collection: ScheduledCollection,
-  contentId: string
+  contentId: string,
+  authorId: string | undefined
 ): Promise<DocumentReference | undefined> {
   const kind = collection === "news" ? "news" : "event";
   const snapshot = await db.collectionGroup("contentPlanningDrafts")
     .where("publishedContentId", "==", contentId)
-    .limit(5)
+    .limit(10)
     .get();
-  return snapshot.docs.find((draft) => draft.get("publishedContentKind") === kind)?.ref;
+  const matchingKind = snapshot.docs.filter((draft) => draft.get("publishedContentKind") === kind);
+  const matchingOwner = authorId
+    ? matchingKind.filter((draft) => draft.ref.parent.parent?.id === authorId)
+    : [];
+  const candidates = matchingOwner.length > 0 ? matchingOwner : matchingKind;
+  return candidates.find((draft) => draft.get("state") === "scheduled")?.ref ??
+    candidates.find((draft) => draft.get("state") === "publishing")?.ref ??
+    candidates[0]?.ref;
+}
+
+interface CompletedPlanningInput {
+  now: Timestamp;
+  outcome: "approved" | "pendingReview";
+  contentId: string;
+  kind: "news" | "event";
+  organizationId: string | undefined;
+  organizationName: string | undefined;
+}
+
+function completedPlanningUpdate(input: CompletedPlanningInput): DocumentData {
+  return {
+    state: "completed",
+    scheduledAt: null,
+    completedAt: input.now,
+    publicationOutcome: input.outcome,
+    publishedContentId: input.contentId,
+    publishedContentKind: input.kind,
+    publishedOrganizationId: input.organizationId ?? null,
+    publishedOrganizationName: input.organizationName ?? null,
+    failureMessage: null,
+    publicationAttemptId: FieldValue.delete(),
+    publicationLeaseId: FieldValue.delete(),
+    publicationLeaseExpiresAt: FieldValue.delete(),
+    updatedAt: input.now,
+  };
 }
 
 function attentionUpdate(message: string, now: Timestamp): DocumentData {
   return {
     state: "needsAttention",
+    scheduledAt: null,
     missingFields: [message],
     failureMessage: message,
+    publicationAttemptId: FieldValue.delete(),
+    publicationLeaseId: FieldValue.delete(),
+    publicationLeaseExpiresAt: FieldValue.delete(),
     updatedAt: now,
   };
 }
@@ -307,6 +682,10 @@ function hasOrganizationRole(data: DocumentData, userId: string): boolean {
     if (values.includes(userId)) return true;
   }
   return false;
+}
+
+function isDocumentId(value: string): boolean {
+  return value.length > 0 && !value.includes("/");
 }
 
 function normalizeText(value: string | undefined): string {
