@@ -42,6 +42,8 @@ final class EventsViewModel: ObservableObject {
     private var interactionTasks: [String: Task<Void, Never>] = [:]
     private var sessionGeneration = 0
     private var feedRevision: UInt = 0
+    private var recommendationCandidateCache: [String: [Event]] = [:]
+    private var recommendationCandidateTasks: [String: Task<[Event], Never>] = [:]
 
     init(
         repository: EventRepository,
@@ -142,9 +144,12 @@ final class EventsViewModel: ObservableObject {
         feedRevision &+= 1
         registrationTasks.values.forEach { $0.cancel() }
         interactionTasks.values.forEach { $0.cancel() }
+        recommendationCandidateTasks.values.forEach { $0.cancel() }
         registrationTasks = [:]
         registrationOperationIDs = [:]
         interactionTasks = [:]
+        recommendationCandidateTasks = [:]
+        recommendationCandidateCache = [:]
         loadTask?.cancel()
         nextPageTask?.cancel()
         loadTask = nil
@@ -179,6 +184,7 @@ final class EventsViewModel: ObservableObject {
         visibilityPolicy = policy
         feedRevision &+= 1
         events = policy.visibleEvents(events)
+        recommendationCandidateCache.removeAll()
         contentVersion &+= 1
     }
 
@@ -858,23 +864,38 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
-    /// Loads a bounded but useful candidate window for detail recommendations.
-    /// We stop once enough upcoming events are available instead of downloading
-    /// the entire archive as the catalogue grows.
-    func loadRecommendationCandidates(
-        minimumUpcomingCount: Int = 40,
-        maximumLoadedCount: Int = 180,
-        now: Date = Date()
-    ) async {
-        await loadIfNeeded()
-        while hasMorePages,
-              events.count < maximumLoadedCount,
-              events.lazy.filter({ !$0.isCancelled && $0.nextOccurrence(relativeTo: now) != nil }).prefix(minimumUpcomingCount).count < minimumUpcomingCount,
-              !Task.isCancelled {
-            let previousCount = events.count
-            await loadNextPageIfNeeded()
-            guard events.count > previousCount, error == nil else { return }
+    func recommendationCandidates(for source: Event, limit: Int = 12) async -> [Event] {
+        let boundedLimit = min(max(1, limit), 12)
+        if let cached = recommendationCandidateCache[source.id] {
+            return Array(cached.prefix(boundedLimit))
         }
+        if let existingTask = recommendationCandidateTasks[source.id] {
+            return Array((await existingTask.value).prefix(boundedLimit))
+        }
+
+        let generation = sessionGeneration
+        let fallback = Array(events
+            .filter { $0.id != source.id && $0.category == source.category }
+            .prefix(boundedLimit))
+        let task = Task { [repository] in
+            do {
+                return try await repository.fetchEventRecommendationCandidates(
+                    for: source,
+                    limit: boundedLimit
+                )
+            } catch {
+                return fallback
+            }
+        }
+        recommendationCandidateTasks[source.id] = task
+        let fetched = await task.value
+        guard !Task.isCancelled, isCurrentSession(generation) else { return [] }
+        recommendationCandidateTasks[source.id] = nil
+        let visible = visibilityPolicy.visibleEvents(fetched)
+            .filter { $0.id != source.id }
+            .deduplicatedEventsByID()
+        recommendationCandidateCache[source.id] = visible
+        return Array(visible.prefix(boundedLimit))
     }
 
     private func performLoad(generation: Int, limit: Int) async {

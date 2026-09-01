@@ -102,6 +102,33 @@ struct FirestoreEventRepository: EventRepository {
         )
     }
 
+    func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
+        let boundedLimit = min(max(1, limit), 12)
+        let snapshot = try await collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+            .whereField("category", isEqualTo: source.category.rawValue)
+            .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: boundedLimit)
+            .getDocuments()
+        let documents = snapshot.documents.filter { $0.documentID != source.id }
+        let documentIDs = documents.map(\.documentID)
+        async let liked = fetchLikedEventIDs(for: documentIDs)
+        async let registered = fetchRegisteredEventIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
+        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
+
+        return try documents.map { document in
+            try Event(dto: makeEventDTO(
+                from: document,
+                likedEventIDs: likedEventIDs,
+                registeredEventIDs: registeredEventIDs,
+                bookmarkedEventIDs: bookmarkedEventIDs
+            ))
+        }
+    }
+
     func fetchEvent(id: String) async throws -> Event {
         do {
             let snapshot = try await collection.document(id).getDocument()

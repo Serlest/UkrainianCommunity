@@ -4,6 +4,21 @@ import Testing
 
 @MainActor
 struct ContentInteractionRaceTests {
+    @Test func newsRecommendationCandidatesAreBoundedAndCachedForTheSession() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let source = makeNewsPost(id: "recommendation-source")
+        repository.recommendationCandidates = (0..<20).map { makeNewsPost(id: "recommendation-\($0)") }
+
+        let first = await model.recommendationCandidates(for: source, limit: 99)
+        let second = await model.recommendationCandidates(for: source, limit: 99)
+
+        #expect(repository.recommendationRequestCount == 1)
+        #expect(repository.lastRecommendationLimit == 12)
+        #expect(first.count == 12)
+        #expect(second.map(\.id) == first.map(\.id))
+    }
+
     @Test func forcedNewsDetailRefreshRemovesOnlyUnavailableCachedPost() async {
         let repository = ControlledNewsRepository()
         let model = NewsViewModel(repository: repository)
@@ -669,6 +684,9 @@ private final class ControlledNewsRepository: NewsRepository {
     var detailFetchIsCancelled = false
 
     var news: [NewsPost] = []
+    var recommendationCandidates: [NewsPost] = []
+    private(set) var recommendationRequestCount = 0
+    private(set) var lastRecommendationLimit: Int?
     private(set) var likeRequestCount = 0
     private(set) var completedLikeRequestCount = 0
     private(set) var viewRequestCount = 0
@@ -683,6 +701,11 @@ private final class ControlledNewsRepository: NewsRepository {
         if detailFetchIsCancelled { throw CancellationError() }
         if let detailFetchError { throw detailFetchError }
         return news
+    }
+    func fetchNewsRecommendationCandidates(for source: NewsPost, limit: Int) async throws -> [NewsPost] {
+        recommendationRequestCount += 1
+        lastRecommendationLimit = limit
+        return Array(recommendationCandidates.filter { $0.id != source.id }.prefix(limit))
     }
     func fetchPendingNews() async throws -> [NewsPost] { [] }
     func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost] { [] }

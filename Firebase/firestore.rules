@@ -1300,32 +1300,6 @@ service cloud.firestore {
       return canModerateSection(section);
     }
 
-    function hasOrganizationRole(organizationId, role) {
-      return isVerifiedActiveUser()
-        && organizationId is string
-        && (
-          (
-            role == 'communityOwner'
-            && ('ownerId' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
-            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.ownerId == request.auth.uid
-          )
-          || (
-            role == 'communityAdmin'
-            && ('adminIds' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
-            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.adminIds.hasAny([request.auth.uid])
-          )
-          || (
-            role == 'communityModerator'
-            && ('moderatorIds' in get(/databases/$(database)/documents/organizations/$(organizationId)).data)
-            && get(/databases/$(database)/documents/organizations/$(organizationId)).data.moderatorIds.hasAny([request.auth.uid])
-          )
-        );
-    }
-
-    function isOrganizationOwner(organizationId) {
-      return hasOrganizationRole(organizationId, 'communityOwner');
-    }
-
     function canEditOrganizationContent(organizationId) {
       let organization = get(/databases/$(database)/documents/organizations/$(organizationId)).data;
       return isVerifiedActiveUser()

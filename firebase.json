@@ -15,6 +15,9 @@
     ],
     "ignore": [
       "node_modules",
+      "content-planning",
+      "scripts",
+      "smoke-tests",
       ".git",
       "firebase-debug.log",
       "firebase-debug.*.log",

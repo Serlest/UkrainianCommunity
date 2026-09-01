@@ -58,6 +58,7 @@ struct EventDetailView: View {
     @State var eventRegistrationAttendeesErrorMessage: String?
     @State var loadedEventRegistrationAttendeesEventID: String?
     @State var isShowingRegistrationManagement = false
+    @State var eventRecommendationCandidates: [Event] = []
     @State var eventRecommendations: [EventContentRecommendation] = []
     @FocusState var isCommentFieldFocused: Bool
     let calendarWriter = EventCalendarWriter()
@@ -339,7 +340,7 @@ struct EventDetailView: View {
         }
         eventRecommendations = ContentRecommendationEngine.eventRecommendations(
             for: event,
-            candidates: viewModel.events
+            candidates: eventRecommendationCandidates
         )
     }
 
@@ -387,7 +388,7 @@ struct EventDetailView: View {
         await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
         await loadEventRegistrationAttendeesIfNeeded(for: event, force: force)
         if loadsRecommendations {
-            await viewModel.loadRecommendationCandidates()
+            eventRecommendationCandidates = await viewModel.recommendationCandidates(for: event)
             refreshEventRecommendations()
         }
         guard !event.isCancelled else { return }

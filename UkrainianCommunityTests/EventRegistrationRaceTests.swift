@@ -4,6 +4,21 @@ import Testing
 
 @MainActor
 struct EventRegistrationRaceTests {
+    @Test func eventRecommendationCandidatesAreBoundedAndCachedForTheSession() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let source = makeEvent(id: "recommendation-source")
+        repository.recommendationCandidates = (0..<20).map { makeEvent(id: "recommendation-\($0)") }
+
+        let first = await model.recommendationCandidates(for: source, limit: 99)
+        let second = await model.recommendationCandidates(for: source, limit: 99)
+
+        #expect(repository.recommendationRequestCount == 1)
+        #expect(repository.lastRecommendationLimit == 12)
+        #expect(first.count == 12)
+        #expect(second.map(\.id) == first.map(\.id))
+    }
+
     @Test func forcedEventDetailRefreshPreservesOtherCachedPages() async {
         let repository = ControlledEventRepository()
         let model = EventsViewModel(repository: repository)
@@ -440,6 +455,9 @@ struct EventRegistrationRaceTests {
 @MainActor
 private final class ControlledEventRepository: @MainActor EventRepository {
     var events: [Event] = []
+    var recommendationCandidates: [Event] = []
+    private(set) var recommendationRequestCount = 0
+    private(set) var lastRecommendationLimit: Int?
     var detailFetchError: AppError?
     var detailFetchIsCancelled = false
     private(set) var registrationRequestCount = 0
@@ -463,6 +481,11 @@ private final class ControlledEventRepository: @MainActor EventRepository {
     private var commentDeleteContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
 
     func fetchEvents() async throws -> [Event] { events }
+    func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
+        recommendationRequestCount += 1
+        lastRecommendationLimit = limit
+        return Array(recommendationCandidates.filter { $0.id != source.id }.prefix(limit))
+    }
     func fetchEvent(id: String) async throws -> Event {
         if detailFetchIsCancelled { throw CancellationError() }
         if let detailFetchError { throw detailFetchError }

@@ -29,6 +29,8 @@ final class NewsViewModel: ObservableObject {
     private var authGeneration: UInt = 0
     private var feedRevision: UInt = 0
     private var interactionTasks: [String: Task<Void, Never>] = [:]
+    private var recommendationCandidateCache: [String: [NewsPost]] = [:]
+    private var recommendationCandidateTasks: [String: Task<[NewsPost], Never>] = [:]
 
     init(repository: NewsRepository, analyticsService: AnalyticsTracking = NoopAnalyticsService()) {
         self.repository = repository
@@ -117,9 +119,12 @@ final class NewsViewModel: ObservableObject {
         loadTask?.cancel()
         nextPageTask?.cancel()
         interactionTasks.values.forEach { $0.cancel() }
+        recommendationCandidateTasks.values.forEach { $0.cancel() }
         loadTask = nil
         nextPageTask = nil
         interactionTasks.removeAll()
+        recommendationCandidateTasks.removeAll()
+        recommendationCandidateCache.removeAll()
         posts = []
         isLoading = false
         isLoadingNextPage = false
@@ -147,6 +152,7 @@ final class NewsViewModel: ObservableObject {
     func applyContentVisibility(_ policy: ContentVisibilityPolicy) {
         visibilityPolicy = policy
         posts = policy.visibleNews(posts)
+        recommendationCandidateCache.removeAll()
         contentVersion &+= 1
     }
 
@@ -644,16 +650,38 @@ final class NewsViewModel: ObservableObject {
         }
     }
 
-    /// Loads a bounded recent candidate window for detail recommendations.
-    /// This keeps the section useful without turning every detail open into a
-    /// full-catalogue download.
-    func loadRecommendationCandidates(maximumLoadedCount: Int = 90) async {
-        await loadIfNeeded()
-        while hasMorePages, posts.count < maximumLoadedCount, !Task.isCancelled {
-            let previousCount = posts.count
-            await loadNextPageIfNeeded()
-            guard posts.count > previousCount, error == nil else { return }
+    func recommendationCandidates(for source: NewsPost, limit: Int = 12) async -> [NewsPost] {
+        let boundedLimit = min(max(1, limit), 12)
+        if let cached = recommendationCandidateCache[source.id] {
+            return Array(cached.prefix(boundedLimit))
         }
+        if let existingTask = recommendationCandidateTasks[source.id] {
+            return Array((await existingTask.value).prefix(boundedLimit))
+        }
+
+        let generation = authGeneration
+        let fallback = Array(posts
+            .filter { $0.id != source.id && $0.category == source.category }
+            .prefix(boundedLimit))
+        let task = Task { [repository] in
+            do {
+                return try await repository.fetchNewsRecommendationCandidates(
+                    for: source,
+                    limit: boundedLimit
+                )
+            } catch {
+                return fallback
+            }
+        }
+        recommendationCandidateTasks[source.id] = task
+        let fetched = await task.value
+        guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return [] }
+        recommendationCandidateTasks[source.id] = nil
+        let visible = visibilityPolicy.visibleNews(fetched)
+            .filter { $0.id != source.id }
+            .deduplicatedNewsByID()
+        recommendationCandidateCache[source.id] = visible
+        return Array(visible.prefix(boundedLimit))
     }
 
     private func startLoad(force: Bool, limit: Int) async {

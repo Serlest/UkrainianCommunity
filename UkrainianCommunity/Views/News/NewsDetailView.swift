@@ -26,6 +26,7 @@ struct NewsDetailView: View {
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
     @State var permissionOrganization: Organization?
+    @State var relatedNewsCandidates: [NewsPost] = []
     @State var relatedNewsRecommendations: [NewsContentRecommendation] = []
     @FocusState var isCommentFieldFocused: Bool
     let detailImageHeight: CGFloat = 220
@@ -243,7 +244,7 @@ struct NewsDetailView: View {
         }
         relatedNewsRecommendations = ContentRecommendationEngine.newsRecommendations(
             for: post,
-            candidates: viewModel.posts
+            candidates: relatedNewsCandidates
         )
     }
 
@@ -291,7 +292,7 @@ struct NewsDetailView: View {
         await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
         await viewModel.loadComments(for: postID, forceRefresh: force)
         if loadsRecommendations {
-            await viewModel.loadRecommendationCandidates()
+            relatedNewsCandidates = await viewModel.recommendationCandidates(for: post)
             refreshRelatedNewsRecommendations()
         }
         guard !recordedViewKeys.contains(newsViewTaskID) else { return }

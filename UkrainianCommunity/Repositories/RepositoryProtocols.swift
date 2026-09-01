@@ -273,6 +273,7 @@ protocol NewsRepository {
         after cursor: NewsPageCursor?,
         federalState: AustrianFederalState?
     ) async throws -> NewsPage
+    func fetchNewsRecommendationCandidates(for source: NewsPost, limit: Int) async throws -> [NewsPost]
     func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost]
     func fetchPendingNews() async throws -> [NewsPost]
     func fetchOrganizationModerationNews(organizationID: String) async throws -> [NewsPost]
@@ -303,6 +304,7 @@ protocol EventRepository: EventRegistrationMutating {
         after cursor: EventPageCursor?,
         federalState: AustrianFederalState?
     ) async throws -> EventPage
+    func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event]
     func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
     func fetchRegisteredEvents() async throws -> [Event]
@@ -448,6 +450,12 @@ extension NewsRepository {
             .filter { $0.source.organizationId == organizationID }
             .prefix(max(1, limit)))
     }
+
+    func fetchNewsRecommendationCandidates(for source: NewsPost, limit: Int) async throws -> [NewsPost] {
+        Array(try await fetchNews()
+            .filter { $0.id != source.id && $0.category == source.category }
+            .prefix(min(max(1, limit), 12)))
+    }
 }
 
 extension EventRepository {
@@ -513,6 +521,12 @@ extension EventRepository {
         Array(try await fetchEvents()
             .filter { $0.source.organizationId == organizationID }
             .prefix(max(1, limit)))
+    }
+
+    func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
+        Array(try await fetchEvents()
+            .filter { $0.id != source.id && $0.category == source.category }
+            .prefix(min(max(1, limit), 12)))
     }
 }
 
