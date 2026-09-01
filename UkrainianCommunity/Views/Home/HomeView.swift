@@ -868,7 +868,11 @@ private struct HomeFeedCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.homeFeedCardPadding) {
+        SoftContentCard(
+            padding: AppTheme.homeFeedCardPadding,
+            shadowRadius: 0,
+            shadowY: 0
+        ) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                     HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
@@ -965,7 +969,10 @@ private struct HomeFeedCard: View {
             systemImage: itemTypeSystemImage,
             tint: itemTypeTint,
             fill: itemTypeFill,
-            size: .small
+            size: .small,
+            fallbackUsesMaterial: false,
+            shadowRadius: 0,
+            shadowY: 0
         )
     }
 

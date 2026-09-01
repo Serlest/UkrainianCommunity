@@ -10,7 +10,13 @@ extension OrganizationDetailView {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     sectionHeader(title: AppStrings.Organizations.tabTeam, systemImage: "person.3")
 
-                    if communityMembers.isEmpty {
+                    if let communityLoadErrorMessage {
+                        communityLoadErrorState(message: communityLoadErrorMessage)
+                    } else if isLoadingCommunityPage, communityMembers.isEmpty {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, minHeight: 64)
+                            .accessibilityLabel(AppStrings.Startup.loading)
+                    } else if communityMembers.isEmpty {
                         communityEmptyState
                     } else {
                         VStack(spacing: 0) {
@@ -47,6 +53,25 @@ extension OrganizationDetailView {
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    func communityLoadErrorState(message: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.accentDestructiveForeground)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(AppStrings.Organizations.retry) {
+                guard let organization = viewModel.organization(for: organizationID) else { return }
+                Task {
+                    await reloadCommunityMembers(for: organization)
+                }
+            }
+            .font(.footnote.weight(.semibold))
+            .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

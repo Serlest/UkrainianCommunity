@@ -1380,6 +1380,49 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testAccountDeletionConfirmationStaysOnSettingsScreen() throws {
+        let app = launchAuthenticatedApp()
+        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        scrollToElement(settings, in: app, maxSwipes: 24)
+        XCTAssertTrue(settings.isHittable)
+        settings.tap()
+
+        let preferencesScreen = element("screen.profile.preferences", in: app)
+        XCTAssertTrue(preferencesScreen.waitForExistence(timeout: 10))
+
+        let deleteAccount = app.buttons["profile.delete_account.button"].firstMatch
+        scrollToElement(deleteAccount, in: app, maxSwipes: 24)
+        XCTAssertTrue(deleteAccount.isHittable)
+        deleteAccount.tap()
+
+        let confirmation = app.textFields["profile.delete_account.confirmation"].firstMatch
+        let finalAction = app.buttons["profile.delete_account.confirm"].firstMatch
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 10))
+        XCTAssertTrue(finalAction.waitForExistence(timeout: 10))
+        XCTAssertFalse(finalAction.isEnabled)
+        XCTAssertTrue(confirmation.isHittable)
+        XCTAssertTrue(finalAction.frame.intersects(app.frame))
+
+        confirmation.tap()
+        confirmation.typeText("LÖSCHEN")
+        expectation(
+            for: NSPredicate(format: "enabled == true"),
+            evaluatedWith: finalAction
+        )
+        waitForExpectations(timeout: 5)
+        attachScreenshot(named: "account-deletion-confirmation-on-settings", from: app)
+
+        let cancel = app.buttons["Abbrechen"].firstMatch
+        XCTAssertTrue(cancel.isHittable)
+        cancel.tap()
+
+        XCTAssertTrue(confirmation.waitForNonExistence(timeout: 10))
+        XCTAssertTrue(preferencesScreen.exists)
+    }
+
+    @MainActor
     func testLanguageChangeKeepsSettingsNavigationAndUpdatesVisibleText() throws {
         let app = launchApp()
 

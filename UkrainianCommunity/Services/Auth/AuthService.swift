@@ -68,6 +68,7 @@ protocol AuthBackendProviding: AnyObject {
 protocol AuthProfileProviding: AnyObject {
     func createRegisteredUserDocument(for uid: String, draft: RegistrationProfileDraft) async throws
     func fetchExistingUserProfile(uid: String) async throws -> AppUser
+    func ensurePublicProfile(for user: AppUser) async throws
 }
 
 @MainActor
@@ -641,7 +642,15 @@ final class AuthService {
     }
 
     private func loadExistingUserProfile(uid: String) async throws -> AppUser {
-        try await profileProvider.fetchExistingUserProfile(uid: uid)
+        let user = try await profileProvider.fetchExistingUserProfile(uid: uid)
+
+        // A public profile is a recoverable projection of the private account.
+        // It must only be synchronized after Firebase has refreshed a verified
+        // session token. A transient projection failure must not lock the user
+        // out of their account; the provider records it and every later verified
+        // authentication path retries the repair.
+        try? await profileProvider.ensurePublicProfile(for: user)
+        return user
     }
 
     @MainActor

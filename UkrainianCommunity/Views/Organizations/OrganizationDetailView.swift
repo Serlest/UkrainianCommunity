@@ -327,6 +327,7 @@ struct OrganizationDetailView: View {
     @State var communitySubscriberCursor: OrganizationSubscriberCursor?
     @State var hasMoreCommunitySubscribers = false
     @State var isLoadingCommunityPage = false
+    @State var communityLoadErrorMessage: String?
     @State var loadedCommunityOrganizationID: String?
     @State var pendingCommentDeleteID: String?
     @State var commentDeleteErrorMessage: String?
@@ -723,6 +724,7 @@ struct OrganizationDetailView: View {
         communitySubscriberReferences = []
         communitySubscriberCursor = nil
         hasMoreCommunitySubscribers = false
+        communityLoadErrorMessage = nil
         await loadCommunityMembersPage(for: organization, reset: true)
     }
 
@@ -734,6 +736,9 @@ struct OrganizationDetailView: View {
     @MainActor
     func loadCommunityMembersPage(for organization: Organization, reset: Bool) async {
         guard !isLoadingCommunityPage else { return }
+        if reset {
+            communityLoadErrorMessage = nil
+        }
         isLoadingCommunityPage = true
         defer { isLoadingCommunityPage = false }
 
@@ -801,23 +806,12 @@ struct OrganizationDetailView: View {
 
             members.append(contentsOf: missingRoleMembers)
             communityMembers = members.sorted(by: communityMemberSort)
+            communityLoadErrorMessage = nil
         } catch {
-            communityMembers = roleByUserID.map { userID, role in
-                OrganizationCommunityMember(
-                    profile: PublicUserProfile(
-                        id: userID,
-                        displayName: AppStrings.Organizations.communityProfileUnavailable,
-                        avatarURL: nil,
-                        city: "",
-                        federalState: nil,
-                        updatedAt: nil
-                    ),
-                    role: role,
-                    followedAt: nil,
-                    isPlaceholder: true
-                )
+            if reset {
+                communityMembers = []
             }
-            .sorted(by: communityMemberSort)
+            communityLoadErrorMessage = AppStrings.Organizations.communityLoadFailed
         }
     }
 

@@ -46,11 +46,105 @@ struct AuthSessionConsistencyTests {
         #expect(backend.currentSessionUser?.uid == "user-a")
         #expect(backend.signOutCallCount == 0)
         #expect(profiles.fetchCallCount == 0)
+        #expect(profiles.ensurePublicProfileCallCount == 0)
         #expect(state.sessionState == .verificationPending)
         #expect(state.pendingSessionUserID == "user-a")
         #expect(state.pendingVerificationEmail == "a@example.com")
         #expect(state.presentedAuthFlow == .emailVerification)
         #expect(state.user == nil)
+    }
+
+    @Test
+    func verifiedSignInRepairsPublicProfileProjection() async throws {
+        let appUser = makeUser(id: "user-a")
+        let state = AuthState()
+        state.setGuestSession()
+        let firebaseUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let backend = FakeAuthBackend(signInUser: firebaseUser)
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        let signedInUser = try await service.signIn(
+            email: appUser.email,
+            password: "password"
+        )
+
+        #expect(signedInUser.id == appUser.id)
+        #expect(profiles.ensurePublicProfileCallCount == 1)
+        #expect(profiles.ensuredPublicProfileUserIDs == [appUser.id])
+        #expect(state.sessionState == .authenticated)
+    }
+
+    @Test
+    func verifiedSessionRestoreRepairsPublicProfileProjection() async {
+        let appUser = makeUser(id: "user-a")
+        let state = AuthState()
+        let firebaseUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let backend = FakeAuthBackend(currentUser: firebaseUser)
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        await service.restoreSession()
+
+        #expect(profiles.ensurePublicProfileCallCount == 1)
+        #expect(profiles.ensuredPublicProfileUserIDs == [appUser.id])
+        #expect(state.sessionState == .authenticated)
+    }
+
+    @Test
+    func publicProfileRepairFailureDoesNotLockUserOut() async throws {
+        let appUser = makeUser(id: "user-a")
+        let state = AuthState()
+        state.setGuestSession()
+        let firebaseUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let backend = FakeAuthBackend(signInUser: firebaseUser)
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        profiles.ensurePublicProfileError = AppError.network
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        let signedInUser = try await service.signIn(
+            email: appUser.email,
+            password: "password"
+        )
+
+        #expect(signedInUser.id == appUser.id)
+        #expect(profiles.ensurePublicProfileCallCount == 1)
+        #expect(state.sessionState == .authenticated)
+        #expect(backend.currentSessionUser?.uid == appUser.id)
+    }
+
+    @Test
+    func emailVerificationCompletionRepairsPublicProfileProjection() async throws {
+        let appUser = makeUser(id: "user-a")
+        let state = AuthState()
+        state.setVerificationPendingSession(userID: appUser.id, email: appUser.email)
+        let firebaseUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let backend = FakeAuthBackend(currentUser: firebaseUser)
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        let verifiedUser = try await service.verifyEmailAndAuthenticate()
+
+        #expect(verifiedUser.id == appUser.id)
+        #expect(profiles.ensurePublicProfileCallCount == 1)
+        #expect(profiles.ensuredPublicProfileUserIDs == [appUser.id])
+        #expect(state.sessionState == .authenticated)
     }
 
     @Test
@@ -983,8 +1077,11 @@ private final class FakeAuthProfileProvider: AuthProfileProviding {
     var createError: Error?
     var createHandler: (() async throws -> Void)?
     var fetchHandler: ((String) async throws -> AppUser)?
+    var ensurePublicProfileError: Error?
     private(set) var fetchCallCount = 0
     private(set) var createCallCount = 0
+    private(set) var ensurePublicProfileCallCount = 0
+    private(set) var ensuredPublicProfileUserIDs: [String] = []
 
     init(
         profiles: [String: AppUser] = [:],
@@ -1010,6 +1107,12 @@ private final class FakeAuthProfileProvider: AuthProfileProviding {
         if let fetchError { throw fetchError }
         guard let profile = profiles[uid] else { throw AppError.notFound }
         return profile
+    }
+
+    func ensurePublicProfile(for user: AppUser) async throws {
+        ensurePublicProfileCallCount += 1
+        ensuredPublicProfileUserIDs.append(user.id)
+        if let ensurePublicProfileError { throw ensurePublicProfileError }
     }
 }
 

@@ -52,6 +52,9 @@ struct AppInfoChip: View {
     let glassTint: Color?
     let isInteractive: Bool
     let usesNativeGlass: Bool
+    let fallbackUsesMaterial: Bool
+    let shadowRadius: CGFloat
+    let shadowY: CGFloat
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
@@ -64,7 +67,10 @@ struct AppInfoChip: View {
         size: Size = .regular,
         glassTint: Color? = nil,
         isInteractive: Bool = false,
-        usesNativeGlass: Bool = false
+        usesNativeGlass: Bool = false,
+        fallbackUsesMaterial: Bool = true,
+        shadowRadius: CGFloat = 5,
+        shadowY: CGFloat = 2
     ) {
         self.title = title
         self.systemImage = systemImage
@@ -76,6 +82,9 @@ struct AppInfoChip: View {
         self.glassTint = glassTint
         self.isInteractive = isInteractive
         self.usesNativeGlass = usesNativeGlass
+        self.fallbackUsesMaterial = fallbackUsesMaterial
+        self.shadowRadius = shadowRadius
+        self.shadowY = shadowY
     }
 
     var body: some View {
@@ -105,10 +114,11 @@ struct AppInfoChip: View {
             isInteractive: isInteractive,
             usesNativeGlass: usesNativeGlass,
             fallbackSurface: fill,
+            fallbackUsesMaterial: fallbackUsesMaterial,
             fallbackBorder: border,
             borderOpacity: border == nil ? 0 : 1,
-            shadowRadius: 5,
-            shadowY: 2
+            shadowRadius: shadowRadius,
+            shadowY: shadowY
         )
     }
 }

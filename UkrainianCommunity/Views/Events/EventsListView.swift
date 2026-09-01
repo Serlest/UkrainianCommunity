@@ -354,15 +354,13 @@ struct EventsListView: View {
                         selectedAudience: selectedAudience,
                         selectedAge: selectedAge,
                         selectedFeedScope: selectedFeedScope,
-                        hasSearchQuery: hasActiveSearch,
                         onSelectPeriod: { selectedFilter = $0 },
                         onSelectCategory: { selectedCategory = $0 },
                         onSelectAudience: { selectedAudience = $0 },
                         onSelectAge: { selectedAge = $0 },
                         onSelectRegion: { isRegionPickerPresented = true },
                         onSelectSaved: { selectedFeedScope = selectedFeedScope == .saved ? .all : .saved },
-                        onSelectRegistered: { selectedFeedScope = selectedFeedScope == .registered ? .all : .registered },
-                        onResetFilters: resetFilters
+                        onSelectRegistered: { selectedFeedScope = selectedFeedScope == .registered ? .all : .registered }
                     )
                     .padding(.bottom, AppTheme.homeSectionSpacing)
 
@@ -583,8 +581,18 @@ struct EventsListView: View {
                 title: hasActiveSearch ? AppStrings.Search.noResultsTitle : AppStrings.Events.title,
                 message: filteredEventsEmptyMessage
             ) {
-                if viewModel.hasMorePages {
-                    loadMoreButton
+                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    Button(AppStrings.Events.showAllEvents) {
+                        resetFilters()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .buttonStyle(.bordered)
+                    .tint(AppTheme.accentPrimaryForeground)
+                    .accessibilityIdentifier("events.filters.showAll")
+
+                    if viewModel.hasMorePages {
+                        loadMoreButton
+                    }
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 180)
@@ -770,7 +778,6 @@ private struct EventFilterRow: View {
     let selectedAudience: EventAudienceFilter
     let selectedAge: EventAgeFilter
     let selectedFeedScope: EventFeedScope
-    let hasSearchQuery: Bool
     let onSelectPeriod: (EventDiscoveryFilter) -> Void
     let onSelectCategory: (EventCategoryFilter) -> Void
     let onSelectAudience: (EventAudienceFilter) -> Void
@@ -778,28 +785,15 @@ private struct EventFilterRow: View {
     let onSelectRegion: () -> Void
     let onSelectSaved: () -> Void
     let onSelectRegistered: () -> Void
-    let onResetFilters: () -> Void
 
     private enum Filter: String {
-        case period, category, audience, age, region, registered, saved, reset
-    }
-
-    private var hasActiveFilters: Bool {
-        selectedPeriod != .all
-            || selectedCategory != .all
-            || selectedAudience != .all
-            || selectedAge != .any
-            || selectedFederalState != nil
-            || selectedFeedScope != .all
-            || hasSearchQuery
+        case period, category, audience, age, region, registered, saved
     }
 
     var body: some View {
         AppPrioritizedFilterRow(
             pinned: [.period, .region],
-            filters: hasActiveFilters
-                ? [.reset, .category, .audience, .age, .registered, .saved]
-                : [.category, .audience, .age, .registered, .saved],
+            filters: [.category, .audience, .age, .registered, .saved],
             isActive: isActive
         ) { filter in
             filterControl(filter)
@@ -817,7 +811,6 @@ private struct EventFilterRow: View {
         case .region: selectedFederalState != nil
         case .registered: selectedFeedScope == .registered
         case .saved: selectedFeedScope == .saved
-        case .reset: hasActiveFilters
         }
     }
 
@@ -920,16 +913,6 @@ private struct EventFilterRow: View {
                 )
             }
             .buttonStyle(.plain)
-        case .reset:
-            Button(action: onResetFilters) {
-                AppFilterChip(
-                    title: AppStrings.Events.resetFilters,
-                    systemImage: "arrow.counterclockwise",
-                    isSelected: true
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("events.filters.reset")
         }
     }
 }

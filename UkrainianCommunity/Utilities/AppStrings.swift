@@ -614,7 +614,7 @@ enum AppStrings {
         static var filterToday: String { text("events.filter.today", "Today") }
         static var filterThisWeek: String { text("events.filter.this_week", "This week") }
         static var filterRegistered: String { text("events.filter.registered", "Зареєстровані") }
-        static var resetFilters: String { text("events.filter.reset", "Скинути фільтри") }
+        static var showAllEvents: String { text("events.filter.show_all", "Show all events") }
         static var allCategories: String { text("events.filter.all_categories", "Усі категорії") }
         static var categoryEducation: String { text("events.category.education", "Освіта") }
         static var categoryCulture: String { text("events.category.culture", "Культура") }
@@ -1097,9 +1097,10 @@ enum AppStrings {
         static var tabPhoto: String { text("organizations.detail.tab_photo", "Фото") }
         static var tabTeam: String { text("organizations.detail.tab_team", "Спільнота") }
         static var communityEmpty: String { text("organizations.community.empty", "Поки немає учасників спільноти.") }
+        static var communityLoadFailed: String { text("organizations.community.load_failed", "Не вдалося завантажити учасників спільноти.") }
         static var communityLoadMore: String { text("organizations.community.load_more", "Показати ще") }
-        static var communityPlaceholderProfileMessage: String { text("organizations.community.placeholder_profile_message", "Публічний профіль створиться після наступного входу користувача.") }
-        static var communityProfileUnavailable: String { text("organizations.community.profile_unavailable", "Профіль ще не доступний") }
+        static var communityPlaceholderProfileMessage: String { text("organizations.community.placeholder_profile_message", "Не вдалося знайти публічні дані цього користувача.") }
+        static var communityProfileUnavailable: String { text("organizations.community.profile_unavailable", "Дані користувача недоступні") }
         static var communityOwner: String { text("organizations.community.role.owner", "Власник") }
         static var communityAdmin: String { text("organizations.community.role.admin", "Адмін") }
         static var communityModerator: String { text("organizations.community.role.moderator", "Модератор") }

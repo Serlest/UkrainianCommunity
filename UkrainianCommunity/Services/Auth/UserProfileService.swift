@@ -80,13 +80,6 @@ final class UserProfileService {
 
         do {
             try await document.setData(payload.firestoreData)
-            try? await upsertPublicProfile(
-                uid: uid,
-                displayName: draft.displayName,
-                avatarURL: nil,
-                city: "",
-                federalState: draft.selectedFederalState
-            )
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -190,6 +183,38 @@ final class UserProfileService {
         )
     }
 
+    func ensurePublicProfile(for user: AppUser) async throws {
+        do {
+            guard let authenticatedUser = Auth.auth().currentUser,
+                  authenticatedUser.uid == user.id,
+                  authenticatedUser.isEmailVerified else {
+                throw AppError.permissionDenied
+            }
+
+            let document = Firestore.firestore()
+                .collection("publicProfiles")
+                .document(user.id)
+            let snapshot = try await document.getDocument()
+
+            guard !Self.publicProfile(snapshot.data(), matches: user) else {
+                return
+            }
+
+            try await upsertPublicProfile(for: user)
+        } catch {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Profile",
+                    operationName: "ensurePublicProfile",
+                    targetType: .userProfile,
+                    targetId: user.id
+                )
+            )
+            throw error
+        }
+    }
+
     private func upsertPublicProfile(
         uid: String,
         displayName: String,
@@ -220,6 +245,24 @@ final class UserProfileService {
             .collection("publicProfiles")
             .document(uid)
             .setData(data, merge: true)
+    }
+
+    private static func publicProfile(_ data: [String: Any]?, matches user: AppUser) -> Bool {
+        guard let data else { return false }
+
+        let displayName = (data["displayName"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let city = (data["city"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let avatarURL = (data["avatarURL"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let federalState = data["federalState"] as? String
+
+        return (data["id"] as? String) == user.id
+            && displayName == user.preferredDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            && city == user.city.trimmingCharacters(in: .whitespacesAndNewlines)
+            && avatarURL?.nilIfEmpty == user.avatarURL?.absoluteString
+            && federalState == user.selectedFederalState?.rawValue
     }
 
     private func mapFirestoreReadError(_ error: Error) -> Error {

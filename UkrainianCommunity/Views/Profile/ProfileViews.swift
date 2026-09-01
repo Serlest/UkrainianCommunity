@@ -89,10 +89,6 @@ struct ProfileView: View {
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isShowingLogoutConfirmation = false
     @State private var logoutErrorMessage: String?
-    @State private var isShowingDeleteAccountConfirmation = false
-    @State private var isShowingDeleteAccountSheet = false
-    @State private var deleteAccountConfirmationText = ""
-    @State private var deleteAccountErrorMessage: String?
     @State private var isAnalyticsCollectionEnabled: Bool
     @Binding var navigationPath: [ProfileNavigationRoute]
     let scrollResetToken: Int
@@ -448,38 +444,6 @@ struct ProfileView: View {
         } message: {
             Text(logoutErrorMessage ?? "")
         }
-        .confirmationDialog(
-            AppStrings.Profile.deleteAccountConfirmTitle,
-            isPresented: $isShowingDeleteAccountConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.Profile.deleteAccount, role: .destructive) {
-                deleteAccountConfirmationText = ""
-                isShowingDeleteAccountSheet = true
-            }
-
-            Button(AppStrings.Common.cancel, role: .cancel) {}
-        } message: {
-            Text(AppStrings.Profile.deleteAccountConfirmMessage)
-        }
-        .sheet(isPresented: $isShowingDeleteAccountSheet) {
-            deleteAccountConfirmationSheet
-                .presentationDragIndicator(.visible)
-        }
-        .alert(AppStrings.Profile.deleteAccount, isPresented: Binding(
-            get: { deleteAccountErrorMessage != nil },
-            set: { newValue in
-                if !newValue {
-                    deleteAccountErrorMessage = nil
-                }
-            }
-        )) {
-            Button(AppStrings.Common.ok, role: .cancel) {
-                deleteAccountErrorMessage = nil
-            }
-        } message: {
-            Text(deleteAccountErrorMessage ?? "")
-        }
         .guestAccessAlert($guestAccessAction)
         .observesKeyboardDismissTaps()
     }
@@ -553,8 +517,7 @@ struct ProfileView: View {
                 userBlockingCoordinator: userBlockingCoordinator,
                 analyticsService: analyticsService,
                 isAnalyticsCollectionEnabled: $isAnalyticsCollectionEnabled,
-                currentUser: displayUser,
-                onDeleteAccount: { isShowingDeleteAccountConfirmation = true }
+                currentUser: displayUser
             )
         case .feedbackComposer:
             if let user = displayUser {
@@ -673,65 +636,6 @@ struct ProfileView: View {
         case let .legal(document):
             LegalDocumentView(document: document, repository: legalDocumentRepository)
         }
-    }
-
-    private var deleteAccountConfirmationSheet: some View {
-        NavigationStack {
-            ZStack {
-                AppBackgroundView()
-                    .allowsHitTesting(false)
-
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    SectionHeaderBlock(
-                        title: AppStrings.Profile.deleteAccountConfirmTitle,
-                        subtitle: AppStrings.Profile.deleteAccountConfirmMessage
-                    )
-
-                    AppEditorSectionCard {
-                        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                            Text(AppStrings.Profile.deleteAccountTypePrompt)
-                                .font(AppTheme.buttonLabelFont)
-                                .foregroundStyle(AppTheme.textPrimary)
-
-                            TextField(AppStrings.Profile.deleteAccountConfirmationKeyword, text: $deleteAccountConfirmationText)
-                                .textInputAutocapitalization(.characters)
-                                .autocorrectionDisabled()
-                                .appEditorInputStyle()
-
-                            Button(role: .destructive) {
-                                Task {
-                                    await performAccountDeletion()
-                                }
-                            } label: {
-                                if viewModel.isDeletingAccount {
-                                    Label(AppStrings.Profile.deleteAccountInProgress, systemImage: "hourglass")
-                                } else {
-                                    Label(AppStrings.Profile.deleteAccountFinalAction, systemImage: "trash")
-                                }
-                            }
-                            .appActionButtonStyle(.primary)
-                            .tint(AppTheme.accentDestructive)
-                            .disabled(!canConfirmAccountDeletion || viewModel.isDeletingAccount)
-                        }
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(AppTheme.pageHorizontal)
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(AppStrings.Common.cancel) {
-                        isShowingDeleteAccountSheet = false
-                    }
-                }
-            }
-            .observesKeyboardDismissTaps()
-        }
-    }
-
-    private var canConfirmAccountDeletion: Bool {
-        deleteAccountConfirmationText.trimmingCharacters(in: .whitespacesAndNewlines) == AppStrings.Profile.deleteAccountConfirmationKeyword
     }
 
     private var editProfileContent: some View {
@@ -1308,18 +1212,6 @@ struct ProfileView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    private func performAccountDeletion() async {
-        guard let user = displayUser else { return }
-        let message = await viewModel.deleteAccount(currentUser: user)
-
-        if let message {
-            deleteAccountErrorMessage = message
-        } else {
-            deleteAccountConfirmationText = ""
-            isShowingDeleteAccountSheet = false
-        }
     }
 
     private func communityRoleTitle(_ role: CommunityRole) -> String {

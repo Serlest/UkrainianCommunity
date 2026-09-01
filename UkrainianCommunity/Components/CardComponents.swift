@@ -107,11 +107,20 @@ struct AppGlassCard<Content: View>: View {
 
 struct SoftContentCard<Content: View>: View {
     let padding: CGFloat
+    let shadowRadius: CGFloat
+    let shadowY: CGFloat
     @ViewBuilder let content: Content
     @Environment(\.colorScheme) private var colorScheme
 
-    init(padding: CGFloat = AppTheme.dashboardCardPadding, @ViewBuilder content: () -> Content) {
+    init(
+        padding: CGFloat = AppTheme.dashboardCardPadding,
+        shadowRadius: CGFloat = AppTheme.localCardShadowSmallRadius,
+        shadowY: CGFloat = AppTheme.localCardShadowSmallY,
+        @ViewBuilder content: () -> Content
+    ) {
         self.padding = padding
+        self.shadowRadius = shadowRadius
+        self.shadowY = shadowY
         self.content = content()
     }
 
@@ -122,8 +131,8 @@ struct SoftContentCard<Content: View>: View {
             surface: AppTheme.glassFallbackSurface(for: colorScheme),
             usesNativeGlass: false,
             fallbackUsesMaterial: false,
-            shadowRadius: AppTheme.localCardShadowSmallRadius,
-            shadowY: AppTheme.localCardShadowSmallY
+            shadowRadius: shadowRadius,
+            shadowY: shadowY
         ) {
             content
         }

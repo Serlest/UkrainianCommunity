@@ -18,6 +18,21 @@ enum AppGlassFallbackRole {
     }
 }
 
+private struct AppGlassShadowStyle: ViewModifier {
+    let color: Color
+    let radius: CGFloat
+    let y: CGFloat
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if radius > 0 || y != 0 {
+            content.shadow(color: color, radius: radius, y: y)
+        } else {
+            content
+        }
+    }
+}
+
 /// Shared Liquid Glass surface for custom app components.
 ///
 /// iOS 26 uses the native effect. Earlier systems and Reduce Transparency use
@@ -96,10 +111,12 @@ struct AppGlassSurfaceStyle: ViewModifier {
                         .opacity(borderOpacity)
                 )
             }
-            .shadow(
-                color: AppTheme.glassShadow(for: colorScheme),
-                radius: shadowRadius,
-                y: shadowY
+            .modifier(
+                AppGlassShadowStyle(
+                    color: AppTheme.glassShadow(for: colorScheme),
+                    radius: shadowRadius,
+                    y: shadowY
+                )
             )
     }
 }
