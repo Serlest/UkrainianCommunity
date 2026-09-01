@@ -198,7 +198,7 @@ struct NewsPage {
 }
 
 struct EventPageCursor: Equatable {
-    let startDate: Date
+    let endDate: Date
     let documentID: String
 }
 
@@ -304,6 +304,10 @@ protocol EventRepository: EventRegistrationMutating {
         after cursor: EventPageCursor?,
         federalState: AustrianFederalState?
     ) async throws -> EventPage
+    func fetchRecentPastEvents(
+        limit: Int,
+        federalState: AustrianFederalState?
+    ) async throws -> [Event]
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event]
     func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
@@ -474,7 +478,7 @@ extension EventRepository {
         }
 
         let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
-        let nextCursor = pageItems.last.map { EventPageCursor(startDate: $0.startDate, documentID: $0.id) }
+        let nextCursor = pageItems.last.map { EventPageCursor(endDate: $0.endDate, documentID: $0.id) }
         return EventPage(
             items: pageItems,
             nextCursor: nextCursor,
@@ -509,12 +513,19 @@ extension EventRepository {
         }
 
         let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
-        let nextCursor = pageItems.last.map { EventPageCursor(startDate: $0.startDate, documentID: $0.id) }
+        let nextCursor = pageItems.last.map { EventPageCursor(endDate: $0.endDate, documentID: $0.id) }
         return EventPage(
             items: pageItems,
             nextCursor: nextCursor,
             hasMore: sortedItems.count > startIndex + pageItems.count
         )
+    }
+
+    func fetchRecentPastEvents(
+        limit: Int,
+        federalState: AustrianFederalState?
+    ) async throws -> [Event] {
+        []
     }
 
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event] {

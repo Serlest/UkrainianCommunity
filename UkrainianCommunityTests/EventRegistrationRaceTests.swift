@@ -4,6 +4,33 @@ import Testing
 
 @MainActor
 struct EventRegistrationRaceTests {
+    @Test func initialEventFeedIncludesBoundedRecentHistory() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let upcoming = makeEvent(id: "upcoming-event")
+        let recentPast = makeEvent(id: "recent-past-event")
+        repository.events = [upcoming]
+        repository.recentPastEvents = [recentPast]
+
+        await model.loadIfNeeded(federalState: nil, initialLimit: 15)
+
+        #expect(model.events.map(\.id) == [upcoming.id, recentPast.id])
+        #expect(repository.lastRecentPastLimit == 3)
+    }
+
+    @Test func recentHistoryFailureDoesNotHideUpcomingEvents() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let upcoming = makeEvent(id: "upcoming-event")
+        repository.events = [upcoming]
+        repository.recentPastError = .network
+
+        await model.loadIfNeeded(federalState: nil, initialLimit: 15)
+
+        #expect(model.events.map(\.id) == [upcoming.id])
+        #expect(model.error == nil)
+    }
+
     @Test func eventRecommendationCandidatesAreBoundedAndCachedForTheSession() async {
         let repository = ControlledEventRepository()
         let model = EventsViewModel(repository: repository)
@@ -455,6 +482,9 @@ struct EventRegistrationRaceTests {
 @MainActor
 private final class ControlledEventRepository: @MainActor EventRepository {
     var events: [Event] = []
+    var recentPastEvents: [Event] = []
+    var recentPastError: AppError?
+    private(set) var lastRecentPastLimit: Int?
     var recommendationCandidates: [Event] = []
     private(set) var recommendationRequestCount = 0
     private(set) var lastRecommendationLimit: Int?
@@ -481,6 +511,14 @@ private final class ControlledEventRepository: @MainActor EventRepository {
     private var commentDeleteContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
 
     func fetchEvents() async throws -> [Event] { events }
+    func fetchRecentPastEvents(
+        limit: Int,
+        federalState: AustrianFederalState?
+    ) async throws -> [Event] {
+        lastRecentPastLimit = limit
+        if let recentPastError { throw recentPastError }
+        return Array(recentPastEvents.prefix(limit))
+    }
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
         recommendationRequestCount += 1
         lastRecommendationLimit = limit

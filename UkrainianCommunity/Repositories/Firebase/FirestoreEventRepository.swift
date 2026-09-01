@@ -19,7 +19,9 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func fetchEvents() async throws -> [Event] {
-        try await fetchEventsPage(limit: 30, after: nil).items
+        async let upcomingPage = fetchEventsPage(limit: 30, after: nil)
+        async let recentPast = fetchRecentPastEvents(limit: 3, federalState: nil)
+        return try await (upcomingPage.items + recentPast)
     }
 
     func fetchBookmarkedEvents() async throws -> [Event] {
@@ -60,12 +62,14 @@ struct FirestoreEventRepository: EventRepository {
         after cursor: EventPageCursor?,
         federalState: AustrianFederalState?
     ) async throws -> EventPage {
+        let boundedLimit = max(1, limit)
         var query: Query = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-            .order(by: "startDate", descending: false)
+            .whereField("endDate", isGreaterThanOrEqualTo: Timestamp(date: Date()))
+            .order(by: "endDate", descending: false)
             .order(by: FieldPath.documentID(), descending: false)
-            .limit(to: max(1, limit) + 1)
+            .limit(to: boundedLimit + 1)
 
         if let federalState {
             query = query.whereFilter(Filter.orFilter([
@@ -75,31 +79,41 @@ struct FirestoreEventRepository: EventRepository {
         }
 
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.startDate), cursor.documentID])
+            query = query.start(after: [Timestamp(date: cursor.endDate), cursor.documentID])
         }
 
         let snapshot = try await query.getDocuments()
-        let documents = Array(snapshot.documents.prefix(max(1, limit)))
-        let documentIDs = documents.map(\.documentID)
-        async let liked = fetchLikedEventIDs(for: documentIDs)
-        async let registered = fetchRegisteredEventIDs(for: documentIDs)
-        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
-        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
-        let items = try documents
-            .map { document in
-                try Event(dto: makeEventDTO(
-                    from: document,
-                    likedEventIDs: likedEventIDs,
-                    registeredEventIDs: registeredEventIDs,
-                    bookmarkedEventIDs: bookmarkedEventIDs
-                ))
-            }
+        let documents = Array(snapshot.documents.prefix(boundedLimit))
+        let items = try await makePublicEvents(from: documents)
 
         return EventPage(
             items: items,
             nextCursor: documents.last.flatMap(makeEventPageCursor),
-            hasMore: snapshot.documents.count > max(1, limit)
+            hasMore: snapshot.documents.count > boundedLimit
         )
+    }
+
+    func fetchRecentPastEvents(
+        limit: Int,
+        federalState: AustrianFederalState?
+    ) async throws -> [Event] {
+        var query: Query = collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+            .whereField("endDate", isLessThan: Timestamp(date: Date()))
+            .order(by: "endDate", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: max(1, limit))
+
+        if let federalState {
+            query = query.whereFilter(Filter.orFilter([
+                Filter.whereField("regionScope", isEqualTo: RegionScope.austria.rawValue),
+                Filter.whereField("federalState", isEqualTo: federalState.rawValue)
+            ]))
+        }
+
+        let snapshot = try await query.getDocuments()
+        return try await makePublicEvents(from: snapshot.documents)
     }
 
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
@@ -1169,10 +1183,27 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     private func makeEventPageCursor(from document: QueryDocumentSnapshot) -> EventPageCursor? {
-        guard let startDate = (document.data()["startDate"] as? Timestamp)?.dateValue() else {
+        guard let endDate = (document.data()["endDate"] as? Timestamp)?.dateValue() else {
             return nil
         }
-        return EventPageCursor(startDate: startDate, documentID: document.documentID)
+        return EventPageCursor(endDate: endDate, documentID: document.documentID)
+    }
+
+    private func makePublicEvents(from documents: [QueryDocumentSnapshot]) async throws -> [Event] {
+        let documentIDs = documents.map(\.documentID)
+        async let liked = fetchLikedEventIDs(for: documentIDs)
+        async let registered = fetchRegisteredEventIDs(for: documentIDs)
+        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
+        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
+
+        return try documents.map { document in
+            try Event(dto: makeEventDTO(
+                from: document,
+                likedEventIDs: likedEventIDs,
+                registeredEventIDs: registeredEventIDs,
+                bookmarkedEventIDs: bookmarkedEventIDs
+            ))
+        }
     }
 
     private func likeDocumentID(eventID: String, userID: String) -> String {

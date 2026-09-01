@@ -2,6 +2,8 @@ import Combine
 import FirebaseAuth
 import Foundation
 
+private nonisolated let recentPastEventPreviewSize = 3
+
 struct EventRegistrationPresentationError: Equatable {
     let eventID: String
     let reason: EventRegistrationMutationError
@@ -909,16 +911,24 @@ final class EventsViewModel: ObservableObject {
 
         do {
             let federalState = activeFederalState
-            let page = try await RefreshRequest.run { [repository] in
+            async let pageRequest = RefreshRequest.run { [repository] in
                 try await repository.fetchEventsPage(
                     limit: max(1, limit),
                     after: nil,
                     federalState: federalState
                 )
             }
+            async let recentPastRequest = RefreshRequest.run { [repository] in
+                try await repository.fetchRecentPastEvents(
+                    limit: recentPastEventPreviewSize,
+                    federalState: federalState
+                )
+            }
+            let page = try await pageRequest
+            let recentPastEvents = (try? await recentPastRequest) ?? []
             guard !Task.isCancelled, isCurrentSession(generation) else { return }
             feedRevision &+= 1
-            events = visibilityPolicy.visibleEvents(page.items).deduplicatedEventsByID()
+            events = visibilityPolicy.visibleEvents(page.items + recentPastEvents).deduplicatedEventsByID()
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
             contentVersion &+= 1
