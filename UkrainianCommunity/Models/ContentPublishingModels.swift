@@ -170,3 +170,9 @@ extension Dictionary where Key == String, Value == OrganizationLocalizedContent 
         self[language.rawValue] ?? self[PublishedContentLanguage.ukrainian.rawValue] ?? values.first
     }
 }
+
+extension Dictionary where Key == String, Value == FeaturedBannerLocalizedContent {
+    nonisolated func resolved(for language: AppLanguage) -> FeaturedBannerLocalizedContent? {
+        self[language.rawValue] ?? self[PublishedContentLanguage.ukrainian.rawValue] ?? values.first
+    }
+}

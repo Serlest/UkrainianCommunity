@@ -99,7 +99,35 @@ struct FeaturedBannerEditingTests {
 
         #expect(payload.title == nil)
         #expect(payload.subtitle == nil)
+        #expect(payload.localizations.isEmpty)
         #expect(payload.imageURL == "https://example.com/new-image.jpg")
+    }
+
+    @Test func localizedBannerUsesSelectedLanguageAndFallsBackToUkrainian() {
+        let banner = makeBanner(
+            title: "Заголовок",
+            subtitle: "Підзаголовок",
+            imageURL: "https://example.com/banner.jpg",
+            localizations: [
+                "uk": FeaturedBannerLocalizedContent(title: "Українською", subtitle: "Опис"),
+                "de": FeaturedBannerLocalizedContent(title: "Auf Deutsch", subtitle: "Beschreibung"),
+            ]
+        )
+        #expect(banner.localizations.resolved(for: .german)?.title == "Auf Deutsch")
+        #expect(banner.localizations.resolved(for: .german)?.subtitle == "Beschreibung")
+        #expect(banner.localizations.resolved(for: .ukrainian)?.title == "Українською")
+        #expect(banner.localizations.resolved(for: .ukrainian)?.subtitle == "Опис")
+    }
+
+    @Test func legacyBannerStillProvidesLocalizedText() {
+        let banner = makeBanner(
+            title: "Legacy title",
+            subtitle: "Legacy subtitle",
+            imageURL: "https://example.com/banner.jpg"
+        )
+
+        #expect(banner.localizedTitle == "Legacy title")
+        #expect(banner.localizedSubtitle == "Legacy subtitle")
     }
 
     @Test func successfulEditReplacesImageAndDeletesOnlyPreviousAsset() async throws {
@@ -165,6 +193,7 @@ struct FeaturedBannerEditingTests {
         let copy = try #require(repository.updatedBanner)
         #expect(copy.id != source.id)
         #expect(copy.title == source.title)
+        #expect(copy.localizations["uk"]?.title == source.title)
         #expect(copy.imageURL == source.imageURL)
         #expect(copy.isActive == false)
         #expect(images.deletedURLs.isEmpty)
@@ -173,11 +202,13 @@ struct FeaturedBannerEditingTests {
     private func makeBanner(
         title: String,
         subtitle: String?,
-        imageURL: String
+        imageURL: String,
+        localizations: [String: FeaturedBannerLocalizedContent] = [:]
     ) -> FeaturedBanner {
         FeaturedBanner(
             id: "banner-1",
             internalName: "Campaign",
+            localizations: localizations,
             title: title,
             subtitle: subtitle,
             imageURL: imageURL,

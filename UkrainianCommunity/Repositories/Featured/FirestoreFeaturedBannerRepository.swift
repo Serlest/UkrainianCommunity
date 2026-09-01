@@ -6,6 +6,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     private enum Field: String, CaseIterable {
         case id
         case internalName
+        case localizations
         case title
         case subtitle
         case imageURL
@@ -225,9 +226,11 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         let federalState = (data[Field.federalState.rawValue] as? String).flatMap(AustrianFederalState.init(rawValue:))
         let storedID = data[Field.id.rawValue] as? String
         let hasUnknownFields = !Set(data.keys).isSubset(of: Set(Field.allCases.map(\.rawValue)))
+        let localizations = try localizedContent(from: data[Field.localizations.rawValue])
         let banner = FeaturedBanner(
             id: documentID,
             internalName: data[Field.internalName.rawValue] as? String,
+            localizations: localizations,
             title: data[Field.title.rawValue] as? String ?? "",
             subtitle: data[Field.subtitle.rawValue] as? String,
             imageURL: data[Field.imageURL.rawValue] as? String,
@@ -275,6 +278,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         return FeaturedBanner(
             id: documentID,
             internalName: data[Field.internalName.rawValue] as? String,
+            localizations: (try? localizedContent(from: data[Field.localizations.rawValue])) ?? [:],
             title: data[Field.title.rawValue] as? String ?? "",
             subtitle: data[Field.subtitle.rawValue] as? String,
             imageURL: data[Field.imageURL.rawValue] as? String,
@@ -301,6 +305,26 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             updatedBy: data[Field.updatedBy.rawValue] as? String,
             requiresDataRepair: true
         )
+    }
+
+    private func localizedContent(from value: Any?) throws -> [String: FeaturedBannerLocalizedContent] {
+        guard let value else { return [:] }
+        guard let rawLocalizations = value as? [String: Any] else {
+            throw AppError.validationFailed
+        }
+
+        var result: [String: FeaturedBannerLocalizedContent] = [:]
+        for (language, rawContent) in rawLocalizations {
+            guard PublishedContentLanguage(rawValue: language) != nil,
+                  let content = rawContent as? [String: Any],
+                  Set(content.keys).isSubset(of: ["title", "subtitle"]),
+                  let title = content["title"] as? String,
+                  let subtitle = content["subtitle"] as? String else {
+                throw AppError.validationFailed
+            }
+            result[language] = FeaturedBannerLocalizedContent(title: title, subtitle: subtitle)
+        }
+        return result
     }
 
     private func intValue(_ value: Any?) -> Int? {

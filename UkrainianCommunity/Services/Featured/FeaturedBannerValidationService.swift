@@ -27,6 +27,15 @@ struct FeaturedBannerValidationService {
             throw AppError.validationFailed
         }
 
+
+        guard banner.localizations.keys.allSatisfy({ PublishedContentLanguage(rawValue: $0) != nil }),
+              banner.localizations.values.allSatisfy({
+                  trimmed($0.title).count <= Self.titleMaxLength
+                      && trimmed($0.subtitle).count <= Self.subtitleMaxLength
+              }) else {
+            throw AppError.validationFailed
+        }
+
         if requiresActionTarget(banner.actionType) {
             guard !trimmed(banner.actionTargetID).isEmpty else {
                 throw AppError.validationFailed

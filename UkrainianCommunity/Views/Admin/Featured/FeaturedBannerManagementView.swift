@@ -190,6 +190,8 @@ struct FeaturedBannerManagementView: View {
                     banner.internalName,
                     banner.title,
                     banner.subtitle,
+                    banner.localizations.values.map(\.title).joined(separator: " "),
+                    banner.localizations.values.map(\.subtitle).joined(separator: " "),
                     banner.id,
                     banner.federalState?.rawValue,
                     banner.actionTargetID
@@ -217,7 +219,7 @@ struct FeaturedBannerManagementView: View {
         if let internalName = nonEmpty(banner.internalName) {
             return internalName
         }
-        if let title = nonEmpty(banner.title) {
+        if let title = nonEmpty(banner.localizedTitle) {
             return title
         }
         return AppStrings.FeaturedManagement.fallbackBannerName(banner.id, date: banner.createdAt)

@@ -9,10 +9,17 @@ type FeaturedBannerSaveMode = "create" | "update";
 type FeaturedBannerActionType = "none" | "news" | "event" | "organization" | "externalURL";
 type FeaturedBannerRegionScope = "allAustria" | "federalState";
 type FeaturedBannerVisibleSection = "home" | "events" | "organizations";
+type FeaturedBannerLanguage = "uk" | "de";
+
+interface FeaturedBannerLocalizedContent {
+  title: string;
+  subtitle: string;
+}
 
 interface FeaturedBannerDraft {
   id: string;
   internalName?: string;
+  localizations?: Partial<Record<FeaturedBannerLanguage, FeaturedBannerLocalizedContent>>;
   title?: string;
   subtitle?: string;
   imageURL: string;
@@ -84,6 +91,7 @@ const visibleSections = new Set<FeaturedBannerVisibleSection>([
   "events",
   "organizations",
 ]);
+const featuredBannerLanguages = new Set<FeaturedBannerLanguage>(["uk", "de"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -183,6 +191,52 @@ function parseVisibleSections(value: unknown): FeaturedBannerVisibleSection[] {
   return Array.from(new Set(parsed)).sort();
 }
 
+function parseLocalizations(
+  value: unknown
+): Partial<Record<FeaturedBannerLanguage, FeaturedBannerLocalizedContent>> | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (!isRecord(value)) {
+    throw new HttpsError("invalid-argument", "localizations must be an object.");
+  }
+
+  const result: Partial<Record<FeaturedBannerLanguage, FeaturedBannerLocalizedContent>> = {};
+  for (const [language, rawContent] of Object.entries(value)) {
+    if (!featuredBannerLanguages.has(language as FeaturedBannerLanguage)) {
+      throw new HttpsError("invalid-argument", `localizations.${language} is not supported.`);
+    }
+    if (!isRecord(rawContent)) {
+      throw new HttpsError("invalid-argument", `localizations.${language} must be an object.`);
+    }
+    const unknownFields = Object.keys(rawContent).filter(
+      (field) => field !== "title" && field !== "subtitle"
+    );
+    if (unknownFields.length > 0) {
+      throw new HttpsError(
+        "invalid-argument",
+        `localizations.${language} contains unsupported fields.`
+      );
+    }
+
+    result[language as FeaturedBannerLanguage] = {
+      title: optionalString(rawContent.title, `localizations.${language}.title`, 120) ?? "",
+      subtitle: optionalString(rawContent.subtitle, `localizations.${language}.subtitle`, 240) ?? "",
+    };
+  }
+  return result;
+}
+
+function storedLocalizations(
+  value: unknown
+): Partial<Record<FeaturedBannerLanguage, FeaturedBannerLocalizedContent>> | undefined {
+  try {
+    return parseLocalizations(value);
+  } catch {
+    return undefined;
+  }
+}
+
 export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
   if (!isRecord(value)) {
     throw new HttpsError("invalid-argument", "banner must be an object.");
@@ -217,6 +271,7 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
   return {
     id: safeDocumentID(value.id),
     internalName: optionalString(value.internalName, "internalName", 120),
+    localizations: parseLocalizations(value.localizations),
     title: optionalString(value.title, "title", 120),
     subtitle: optionalString(value.subtitle, "subtitle", 240),
     imageURL: webURL(value.imageURL, "imageURL"),
@@ -275,10 +330,13 @@ export function canonicalFeaturedBannerData(
     && existingData.createdBy.trim().length > 0
     ? existingData.createdBy
     : actorID;
+  const resolvedLocalizations = banner.localizations
+    ?? storedLocalizations(existingData?.localizations);
 
   return {
     id: banner.id,
     ...(banner.internalName ? { internalName: banner.internalName } : {}),
+    ...(resolvedLocalizations ? { localizations: resolvedLocalizations } : {}),
     ...(banner.title ? { title: banner.title } : {}),
     ...(banner.subtitle ? { subtitle: banner.subtitle } : {}),
     imageURL: banner.imageURL,
@@ -307,6 +365,7 @@ function storedDraft(id: string, data: DocumentData): Record<string, unknown> {
   return {
     id,
     internalName: data.internalName,
+    localizations: data.localizations,
     title: data.title,
     subtitle: data.subtitle,
     imageURL: data.imageURL,

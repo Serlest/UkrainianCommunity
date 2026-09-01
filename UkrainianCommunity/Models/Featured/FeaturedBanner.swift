@@ -72,11 +72,17 @@ enum FeaturedBannerLifecycleState: Equatable {
     case expired
 }
 
+struct FeaturedBannerLocalizedContent: Codable, Equatable {
+    let title: String
+    let subtitle: String
+}
+
 struct FeaturedBanner: Identifiable, Equatable {
     static let collectionPath = "featuredBanners"
 
     let id: String
     let internalName: String?
+    let localizations: [String: FeaturedBannerLocalizedContent]
     let title: String
     let subtitle: String?
     let imageURL: String?
@@ -104,6 +110,14 @@ struct FeaturedBanner: Identifiable, Equatable {
     var supportedVisibleSections: Set<FeaturedBannerVisibleSection> {
         Set(visibleSections.filter(\.isSupported))
     }
+
+    var localizedContent: FeaturedBannerLocalizedContent {
+        localizations.resolved(for: LocalizationStore.language)
+            ?? FeaturedBannerLocalizedContent(title: title, subtitle: subtitle ?? "")
+    }
+
+    var localizedTitle: String { localizedContent.title }
+    var localizedSubtitle: String { localizedContent.subtitle }
 
     func lifecycleState(at date: Date = Date()) -> FeaturedBannerLifecycleState {
         if hasUnsupportedLegacyConfiguration {
@@ -145,6 +159,7 @@ struct FeaturedBanner: Identifiable, Equatable {
     init(
         id: String,
         internalName: String? = nil,
+        localizations: [String: FeaturedBannerLocalizedContent] = [:],
         title: String,
         subtitle: String? = nil,
         imageURL: String? = nil,
@@ -167,6 +182,7 @@ struct FeaturedBanner: Identifiable, Equatable {
     ) {
         self.id = id
         self.internalName = internalName
+        self.localizations = localizations
         self.title = title
         self.subtitle = subtitle
         self.imageURL = imageURL

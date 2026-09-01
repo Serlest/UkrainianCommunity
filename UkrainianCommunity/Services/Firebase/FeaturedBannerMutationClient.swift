@@ -8,6 +8,7 @@ enum FeaturedBannerSaveFunctionMode: String, Codable, Equatable {
 struct FeaturedBannerMutationPayload: Codable, Equatable {
     let id: String
     let internalName: String?
+    let localizations: [String: FeaturedBannerLocalizedContent]
     let title: String?
     let subtitle: String?
     let imageURL: String
@@ -30,6 +31,7 @@ struct FeaturedBannerMutationPayload: Codable, Equatable {
 
         id = banner.id
         internalName = Self.nonEmpty(banner.internalName)
+        localizations = banner.localizations
         title = Self.nonEmpty(banner.title)
         subtitle = Self.nonEmpty(banner.subtitle)
         self.imageURL = imageURL

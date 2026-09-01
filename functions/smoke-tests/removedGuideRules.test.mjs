@@ -318,6 +318,46 @@ describe("removed Guide management values", () => {
     ));
   });
 
+  test("owner can save bilingual featured-banner content", async () => {
+    const db = auth("owner");
+    const localizedBannerRef = doc(db, "featuredBanners", "localized-banner");
+    await assertSucceeds(setDoc(
+      localizedBannerRef,
+      featuredBanner("localized-banner", {
+        title: "Український заголовок",
+        subtitle: "Український опис",
+        localizations: {
+          uk: {title: "Український заголовок", subtitle: "Український опис"},
+          de: {title: "Deutsche Überschrift", subtitle: "Deutsche Beschreibung"},
+        },
+      }),
+    ));
+
+    await assertFails(setDoc(
+      localizedBannerRef,
+      featuredBanner("localized-banner", {
+        updatedAt: new Date("2026-08-22T12:00:00Z"),
+        updatedBy: "owner",
+      }),
+    ));
+  });
+
+  test("featured-banner localizations reject unknown languages and fields", async () => {
+    const db = auth("owner");
+    await assertFails(setDoc(
+      doc(db, "featuredBanners", "unknown-language"),
+      featuredBanner("unknown-language", {
+        localizations: {en: {title: "English", subtitle: ""}},
+      }),
+    ));
+    await assertFails(setDoc(
+      doc(db, "featuredBanners", "unknown-localized-field"),
+      featuredBanner("unknown-localized-field", {
+        localizations: {uk: {title: "Заголовок", subtitle: "", body: "Unexpected"}},
+      }),
+    ));
+  });
+
   test("owner can deactivate, migrate, and reactivate a legacy Guide banner", async () => {
     const db = auth("owner");
     const bannerRef = doc(db, "featuredBanners", "legacy-guide-banner");

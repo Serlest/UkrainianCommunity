@@ -33,6 +33,10 @@ struct FeaturedBannerEditorBasicsSection: View {
                     systemImage: "tag",
                     counterText: "\(viewModel.internalName.count)/\(FeaturedBannerValidationService.internalNameMaxLength)"
                 )
+
+                Label(PublishedContentLanguage.ukrainian.title, systemImage: "globe.europe.africa")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
                 EditorTextField(
                     AppStrings.FeaturedEditor.titleField,
                     text: $viewModel.title,
@@ -44,6 +48,31 @@ struct FeaturedBannerEditorBasicsSection: View {
                     text: $viewModel.subtitle,
                     counterText: "\(viewModel.subtitle.count)/\(FeaturedBannerValidationService.subtitleMaxLength)"
                 )
+
+                DisclosureGroup {
+                    VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                        Text(ContentPublishingStrings.germanFallbackHint)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        EditorTextField(
+                            AppStrings.FeaturedEditor.titleField,
+                            text: $viewModel.germanTitle,
+                            systemImage: "textformat",
+                            counterText: "\(viewModel.germanTitle.count)/\(FeaturedBannerValidationService.titleMaxLength)"
+                        )
+                        EditorTextArea(
+                            AppStrings.FeaturedEditor.subtitleField,
+                            text: $viewModel.germanSubtitle,
+                            counterText: "\(viewModel.germanSubtitle.count)/\(FeaturedBannerValidationService.subtitleMaxLength)"
+                        )
+                    }
+                    .padding(.top, AppTheme.dashboardSpacing)
+                } label: {
+                    Label(ContentPublishingStrings.germanOptional, systemImage: "character.book.closed")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                }
 
                 Toggle(isOn: $viewModel.isActive) {
                     Text(AppStrings.FeaturedManagement.activeToggle)

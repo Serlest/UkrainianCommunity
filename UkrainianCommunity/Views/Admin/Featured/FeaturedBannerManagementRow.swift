@@ -247,15 +247,15 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
         if let internalName = nonEmpty(banner.internalName) {
             return internalName
         }
-        if let title = nonEmpty(banner.title) {
+        if let title = nonEmpty(banner.localizedTitle) {
             return title
         }
         return AppStrings.FeaturedManagement.fallbackBannerName(banner.id, date: banner.createdAt)
     }
 
     private var publicHeadlineText: String? {
-        let title = nonEmpty(banner.title)
-        let subtitle = nonEmpty(banner.subtitle)
+        let title = nonEmpty(banner.localizedTitle)
+        let subtitle = nonEmpty(banner.localizedSubtitle)
 
         if nonEmpty(banner.internalName) != nil {
             return title ?? subtitle

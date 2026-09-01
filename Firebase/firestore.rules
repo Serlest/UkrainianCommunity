@@ -938,6 +938,7 @@ service cloud.firestore {
       return [
         'id',
         'internalName',
+        'localizations',
         'title',
         'subtitle',
         'imageURL',
@@ -1044,6 +1045,7 @@ service cloud.firestore {
         && data.id is string
         && (!('internalName' in data) || data.internalName == null || (data.internalName is string && data.internalName.size() <= 120))
         && (!('title' in data) || data.title == null || (data.title is string && data.title.size() <= 120))
+        && featuredBannerLocalizationsValid(data)
         && data.imageURL is string
         && data.imageURL.size() > 0
         && data.imageURL.size() <= 2048
@@ -1075,6 +1077,24 @@ service cloud.firestore {
           || !('endsAt' in data)
           || data.endsAt == null
           || data.startsAt < data.endsAt
+        );
+    }
+
+    function featuredBannerLocalizedContentValid(content) {
+      return content is map
+        && content.keys().hasOnly(['title', 'subtitle'])
+        && (!('title' in content) || (content.title is string && content.title.size() <= 120))
+        && (!('subtitle' in content) || (content.subtitle is string && content.subtitle.size() <= 240));
+    }
+
+    function featuredBannerLocalizationsValid(data) {
+      return !('localizations' in data)
+        || data.localizations == null
+        || (
+          data.localizations is map
+          && data.localizations.keys().hasOnly(['uk', 'de'])
+          && (!('uk' in data.localizations) || featuredBannerLocalizedContentValid(data.localizations.uk))
+          && (!('de' in data.localizations) || featuredBannerLocalizedContentValid(data.localizations.de))
         );
     }
 
@@ -1145,6 +1165,10 @@ service cloud.firestore {
           || (
             featuredBannerStructurallyValid(request.resource.data, bannerId)
             && featuredBannerMigrationIdentityFieldsAreValid(bannerId)
+            && (
+              !('localizations' in resource.data)
+              || ('localizations' in request.resource.data)
+            )
           )
         );
     }

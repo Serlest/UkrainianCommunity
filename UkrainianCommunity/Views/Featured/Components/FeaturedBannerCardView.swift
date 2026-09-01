@@ -141,11 +141,11 @@ struct FeaturedBannerCardView: View {
     }
 
     private var titleText: String? {
-        nonEmpty(banner.title)
+        nonEmpty(banner.localizedTitle)
     }
 
     private var subtitleText: String? {
-        nonEmpty(banner.subtitle)
+        nonEmpty(banner.localizedSubtitle)
     }
 
     private var hasTextContent: Bool {

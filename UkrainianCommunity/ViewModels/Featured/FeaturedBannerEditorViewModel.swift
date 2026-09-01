@@ -5,8 +5,10 @@ import Foundation
 final class FeaturedBannerEditorViewModel: ObservableObject {
     private struct DraftSignature: Equatable {
         let title: String
+        let germanTitle: String
         let internalName: String
         let subtitle: String
+        let germanSubtitle: String
         let imageURL: String
         let regionScope: FeaturedBannerRegionScope
         let federalState: AustrianFederalState?
@@ -40,8 +42,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     @Published var title: String
+    @Published var germanTitle: String
     @Published var internalName: String
     @Published var subtitle: String
+    @Published var germanSubtitle: String
     @Published var imageURL: String
     @Published var regionScope: FeaturedBannerRegionScope
     @Published var federalState: AustrianFederalState?
@@ -104,7 +108,9 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             bannerID = UUID().uuidString
             internalName = ""
             title = ""
+            germanTitle = ""
             subtitle = ""
+            germanSubtitle = ""
             imageURL = ""
             regionScope = .allAustria
             federalState = nil
@@ -128,8 +134,12 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             let now = Date()
             bannerID = UUID().uuidString
             internalName = existing.internalName ?? ""
-            title = existing.title
-            subtitle = existing.subtitle ?? ""
+            let ukrainian = existing.localizations[PublishedContentLanguage.ukrainian.rawValue]
+            let german = existing.localizations[PublishedContentLanguage.german.rawValue]
+            title = ukrainian?.title ?? existing.title
+            germanTitle = german?.title ?? ""
+            subtitle = ukrainian?.subtitle ?? existing.subtitle ?? ""
+            germanSubtitle = german?.subtitle ?? ""
             imageURL = existing.imageURL ?? ""
             regionScope = existing.regionScope
             federalState = existing.federalState
@@ -156,8 +166,12 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         case let .edit(existing):
             bannerID = existing.id
             internalName = existing.internalName ?? ""
-            title = existing.title
-            subtitle = existing.subtitle ?? ""
+            let ukrainian = existing.localizations[PublishedContentLanguage.ukrainian.rawValue]
+            let german = existing.localizations[PublishedContentLanguage.german.rawValue]
+            title = ukrainian?.title ?? existing.title
+            germanTitle = german?.title ?? ""
+            subtitle = ukrainian?.subtitle ?? existing.subtitle ?? ""
+            germanSubtitle = german?.subtitle ?? ""
             imageURL = existing.imageURL ?? ""
             regionScope = existing.regionScope
             federalState = existing.federalState
@@ -213,6 +227,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         FeaturedBanner(
             id: bannerID,
             internalName: nonEmpty(internalName),
+            localizations: resolvedLocalizations,
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             subtitle: nonEmpty(subtitle),
             imageURL: nonEmpty(imageURL),
@@ -255,7 +270,9 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
 
         if internalName.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.internalNameMaxLength
             || title.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.titleMaxLength
-            || subtitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.subtitleMaxLength {
+            || germanTitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.titleMaxLength
+            || subtitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.subtitleMaxLength
+            || germanSubtitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.subtitleMaxLength {
             return AppStrings.FeaturedEditor.validationTextLength
         }
 
@@ -447,6 +464,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             let banner = FeaturedBanner(
                 id: bannerID,
                 internalName: nonEmpty(internalName),
+                localizations: resolvedLocalizations,
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 subtitle: nonEmpty(subtitle),
                 imageURL: resolvedImageURLString,
@@ -518,8 +536,10 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     private var draftSignature: DraftSignature {
         DraftSignature(
             title: title,
+            germanTitle: germanTitle,
             internalName: internalName,
             subtitle: subtitle,
+            germanSubtitle: germanSubtitle,
             imageURL: imageURL,
             regionScope: regionScope,
             federalState: federalState,
@@ -584,6 +604,25 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     private func nonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private var resolvedLocalizations: [String: FeaturedBannerLocalizedContent] {
+        let ukrainianTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ukrainianSubtitle = subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        var result = [PublishedContentLanguage.ukrainian.rawValue: FeaturedBannerLocalizedContent(
+            title: ukrainianTitle,
+            subtitle: ukrainianSubtitle
+        )]
+
+        if [germanTitle, germanSubtitle].contains(where: {
+            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }) {
+            result[PublishedContentLanguage.german.rawValue] = FeaturedBannerLocalizedContent(
+                title: germanTitle.trimmedOrFallback(ukrainianTitle),
+                subtitle: germanSubtitle.trimmedOrFallback(ukrainianSubtitle)
+            )
+        }
+        return result
     }
 
     private func errorText(_ error: AppError) -> String {

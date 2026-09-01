@@ -13,6 +13,10 @@ function validDraft(overrides: Record<string, unknown> = {}): Record<string, unk
   return {
     id: "banner-1",
     internalName: " Summer campaign ",
+    localizations: {
+      uk: { title: " День громади ", subtitle: " Зустріч у Відні " },
+      de: { title: " Gemeinschaftstag ", subtitle: " Treffen in Wien " },
+    },
     title: " Community day ",
     subtitle: " Meet in Vienna ",
     imageURL: "https://example.com/new-hero.jpg",
@@ -41,6 +45,19 @@ test("normalizes cleared text and stale conditional fields", () => {
   assert.equal(parsed.externalURL, undefined);
   assert.equal(parsed.federalState, undefined);
   assert.deepEqual(parsed.visibleSections, ["home", "organizations"]);
+  assert.deepEqual(parsed.localizations, {
+    uk: { title: "День громади", subtitle: "Зустріч у Відні" },
+    de: { title: "Gemeinschaftstag", subtitle: "Treffen in Wien" },
+  });
+});
+
+test("rejects unsupported languages and malformed localized fields", () => {
+  assert.throws(() => parseFeaturedBannerDraft(validDraft({
+    localizations: { en: { title: "English", subtitle: "" } },
+  })));
+  assert.throws(() => parseFeaturedBannerDraft(validDraft({
+    localizations: { uk: { title: "Заголовок", subtitle: "", body: "unexpected" } },
+  })));
 });
 
 test("canonical update preserves identity and removes cleared or legacy fields", () => {
@@ -67,6 +84,36 @@ test("canonical update preserves identity and removes cleared or legacy fields",
   assert.equal(data.createdBy, "original-owner");
   assert.equal(data.updatedAt, committedAt);
   assert.equal(data.updatedBy, "current-owner");
+});
+
+test("legacy client update preserves stored translations", () => {
+  const committedAt = Timestamp.fromMillis(1_800_000_000_000);
+  const legacyDraft = validDraft();
+  delete legacyDraft.localizations;
+  const parsed = parseFeaturedBannerDraft(legacyDraft);
+  const stored = {
+    uk: { title: "Збережено", subtitle: "Українською" },
+    de: { title: "Gespeichert", subtitle: "Auf Deutsch" },
+  };
+
+  const data = canonicalFeaturedBannerData(parsed, "current-owner", committedAt, {
+    localizations: stored,
+  });
+
+  assert.deepEqual(data.localizations, stored);
+});
+
+test("new client update replaces stored translations", () => {
+  const committedAt = Timestamp.fromMillis(1_800_000_000_000);
+  const parsed = parseFeaturedBannerDraft(validDraft({
+    localizations: { uk: { title: "Нове", subtitle: "" } },
+  }));
+
+  const data = canonicalFeaturedBannerData(parsed, "current-owner", committedAt, {
+    localizations: { de: { title: "Alt", subtitle: "" } },
+  });
+
+  assert.deepEqual(data.localizations, { uk: { title: "Нове", subtitle: "" } });
 });
 
 test("save request requires an explicit create or update mode", () => {
