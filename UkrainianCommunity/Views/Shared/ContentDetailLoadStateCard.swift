@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct ContentDetailLoadStateCard: View {
     let state: ContentDetailLoadState
@@ -22,12 +21,6 @@ struct ContentDetailLoadStateCard: View {
                     retryAction: retryAction
                 )
                 .accessibilityIdentifier("\(accessibilityPrefix).\(identifier(for: error))")
-                .onAppear {
-                    UIAccessibility.post(
-                        notification: .announcement,
-                        argument: "\(title(for: error)). \(message(for: error))"
-                    )
-                }
             case .content:
                 EmptyView()
             }

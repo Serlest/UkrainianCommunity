@@ -2558,6 +2558,7 @@ enum AppStrings {
         static var cancel: String { text("common.cancel", "Cancel") }
         static var back: String { text("common.back", "Back") }
         static var likes: String { text("common.likes", "Likes") }
+        static var loading: String { text("common.loading", "Завантаження…") }
         static var comments: String { text("common.comments", "Comments") }
         static var city: String { text("common.city", "City") }
         static var venue: String { text("common.venue", "Venue") }

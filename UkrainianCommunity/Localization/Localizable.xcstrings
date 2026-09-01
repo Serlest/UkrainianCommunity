@@ -3009,6 +3009,23 @@
         }
       }
     },
+    "common.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird geladen…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження…"
+          }
+        }
+      }
+    },
     "common.needs_revision" : {
       "extractionState" : "manual",
       "localizations" : {

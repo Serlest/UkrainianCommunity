@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private enum UnifiedEmptyStateMetrics {
     static let minHeight: CGFloat = 180
@@ -76,6 +77,13 @@ struct EmptyStateView: View {
 struct LoadingStateCard: View {
     let title: String?
 
+    private var accessibilityTitle: String {
+        guard let title, !title.isEmpty else {
+            return AppStrings.Common.loading
+        }
+        return title
+    }
+
     var body: some View {
         CommunityCard {
             HStack(spacing: 12) {
@@ -89,6 +97,12 @@ struct LoadingStateCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 6)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityTitle)
+        }
+        .onAppear {
+            guard UIAccessibility.isVoiceOverRunning else { return }
+            UIAccessibility.post(notification: .announcement, argument: accessibilityTitle)
         }
     }
 }
@@ -134,6 +148,7 @@ struct ErrorStateCard: View {
                 Image(systemName: systemImage)
                     .font(.system(size: 30))
                     .foregroundStyle(AppTheme.textSecondary)
+                    .accessibilityHidden(true)
 
                 Text(title)
                     .font(AppTheme.emptyStateTitleFont)
@@ -151,6 +166,10 @@ struct ErrorStateCard: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
+        }
+        .onAppear {
+            guard UIAccessibility.isVoiceOverRunning else { return }
+            UIAccessibility.post(notification: .announcement, argument: "\(title). \(message)")
         }
     }
 }
