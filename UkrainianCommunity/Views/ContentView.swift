@@ -107,11 +107,6 @@ struct ContentView: View {
         TabView(selection: tabSelection) {
             rootTabs
         }
-        // Most app strings are resolved to `String` through AppStrings rather
-        // than kept as LocalizedStringKey values. Recreate the visible view
-        // hierarchy on a language change so already-open screens, menus and
-        // cached Picker labels cannot keep text from the previous locale.
-        .id(selectedLanguageCode)
         .background {
             ActiveTabReselectionObserver {
                 handleActiveTabReselection()
@@ -188,10 +183,6 @@ struct ContentView: View {
             LocalizationStore.language = newLanguage
             selectedLanguageCode = newLanguage.rawValue
             UserSettings.stored = profileViewModel.settings
-            newsViewModel.reload()
-            eventsViewModel.reload()
-            organizationsViewModel.reload()
-            profileViewModel.reload()
         }
         .onChange(of: profileViewModel.settings.appearance) { _, newAppearance in
             selectedAppearanceCode = newAppearance.rawValue

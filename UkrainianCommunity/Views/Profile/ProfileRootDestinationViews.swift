@@ -24,11 +24,14 @@ struct ProfilePreferencesView: View {
                     ) {
                         Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
                             ForEach(AppLanguage.allCases) { language in
-                                Text(language.title).tag(language)
+                                Text(language.title)
+                                    .tag(language)
+                                    .accessibilityIdentifier("profile.settings.language.\(language.rawValue)")
                             }
                         }
                         .labelsHidden()
                         .id(locale.identifier)
+                        .accessibilityIdentifier("profile.settings.language")
                     }
 
                     ProfileSettingsPickerRow(
@@ -153,6 +156,7 @@ struct ProfilePreferencesView: View {
                 }
             }
         }
+        .accessibilityIdentifier("screen.profile.preferences")
         .task(id: currentUser?.id) {
             guard let userID = currentUser?.id else { return }
             await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)

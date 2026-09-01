@@ -1340,6 +1340,31 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testLanguageChangeKeepsSettingsNavigationAndUpdatesVisibleText() throws {
+        let app = launchApp()
+        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        scrollToElement(settings, in: app)
+        XCTAssertTrue(settings.isHittable)
+        settings.tap()
+
+        let preferencesScreen = element("screen.profile.preferences", in: app)
+        XCTAssertTrue(preferencesScreen.waitForExistence(timeout: 10))
+        let languagePicker = element("profile.settings.language", in: app)
+        XCTAssertTrue(languagePicker.waitForExistence(timeout: 10))
+        XCTAssertTrue(languagePicker.isHittable)
+        languagePicker.tap()
+
+        let ukrainian = element("profile.settings.language.uk", in: app)
+        XCTAssertTrue(ukrainian.waitForExistence(timeout: 5))
+        ukrainian.tap()
+
+        XCTAssertTrue(preferencesScreen.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Налаштування"].waitForExistence(timeout: 10))
+        XCTAssertTrue(element("profile.settings.language", in: app).exists)
+    }
+
+    @MainActor
     func testProfileLogoutRowRespondsAcrossItsFullWidth() throws {
         let app = launchAuthenticatedApp()
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
