@@ -847,6 +847,22 @@ private struct HomeFilterRow: View {
     }
 }
 
+@MainActor
+private enum HomeFeedRelativeDateFormatter {
+    private static let formatter = RelativeDateTimeFormatter()
+    private static var configuredLocaleIdentifier: String?
+
+    static func string(for date: Date, relativeTo referenceDate: Date = Date()) -> String {
+        let locale = LocalizationStore.locale
+        if configuredLocaleIdentifier != locale.identifier {
+            formatter.locale = locale
+            formatter.unitsStyle = .short
+            configuredLocaleIdentifier = locale.identifier
+        }
+        return formatter.localizedString(for: date, relativeTo: referenceDate)
+    }
+}
+
 private struct HomeFeedCard: View {
     let item: HomeFeedItem
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -1052,10 +1068,7 @@ private struct HomeFeedCard: View {
     }
 
     private var publishedDateText: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = LocalizationStore.locale
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: item.publishedAt, relativeTo: Date())
+        HomeFeedRelativeDateFormatter.string(for: item.publishedAt)
     }
 
     private var primaryMetadataText: String {

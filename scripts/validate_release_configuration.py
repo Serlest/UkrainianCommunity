@@ -217,6 +217,11 @@ def main() -> int:
     info_plist = load_plist(INFO_PLIST)
     if info_plist.get("ITSAppUsesNonExemptEncryption") is not False:
         failures.append("Info.plist must declare ITSAppUsesNonExemptEncryption as false")
+    if info_plist.get("CADisableMinimumFrameDurationOnPhone") is not True:
+        failures.append(
+            "Info.plist must enable CADisableMinimumFrameDurationOnPhone "
+            "for full ProMotion frame-rate access"
+        )
     if info_plist.get("FirebaseMessagingInstallationIdEnabled") is not True:
         failures.append(
             "Info.plist must enable FirebaseMessagingInstallationIdEnabled"

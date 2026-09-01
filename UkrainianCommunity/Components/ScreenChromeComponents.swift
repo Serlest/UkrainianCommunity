@@ -1055,6 +1055,7 @@ struct AppGroupedContentPlane<Content: View>: View {
             material: AppTheme.groupedContentMaterial,
             surface: AppTheme.groupedPlaneSurface(for: colorScheme),
             usesNativeGlass: false,
+            fallbackUsesMaterial: false,
             borderOpacity: AppTheme.groupedContentBorderOpacity,
             shadowRadius: AppTheme.groupedContentShadowRadius,
             shadowY: AppTheme.groupedContentShadowY

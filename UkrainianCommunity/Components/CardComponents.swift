@@ -5,6 +5,7 @@ struct AppGlassCardStyle: ViewModifier {
     let material: Material
     let surface: Color?
     let usesNativeGlass: Bool
+    let fallbackUsesMaterial: Bool
     let borderOpacity: Double
     let shadowRadius: CGFloat
     let shadowY: CGFloat
@@ -16,6 +17,7 @@ struct AppGlassCardStyle: ViewModifier {
                 usesNativeGlass: usesNativeGlass,
                 fallbackMaterial: material,
                 fallbackSurface: surface,
+                fallbackUsesMaterial: fallbackUsesMaterial,
                 borderOpacity: borderOpacity,
                 shadowRadius: shadowRadius,
                 shadowY: shadowY
@@ -29,6 +31,7 @@ extension View {
         material: Material = .ultraThinMaterial,
         surface: Color? = nil,
         usesNativeGlass: Bool = false,
+        fallbackUsesMaterial: Bool = true,
         borderOpacity: Double = AppTheme.glassCardBorderOpacity,
         shadowRadius: CGFloat = AppTheme.glassCardShadowRadius,
         shadowY: CGFloat = AppTheme.glassCardShadowY
@@ -39,6 +42,7 @@ extension View {
                 material: material,
                 surface: surface,
                 usesNativeGlass: usesNativeGlass,
+                fallbackUsesMaterial: fallbackUsesMaterial,
                 borderOpacity: borderOpacity,
                 shadowRadius: shadowRadius,
                 shadowY: shadowY
@@ -52,7 +56,9 @@ struct AppGlassCard<Content: View>: View {
     let spacing: CGFloat
     let cornerRadius: CGFloat
     let material: Material
+    let surface: Color?
     let usesNativeGlass: Bool
+    let fallbackUsesMaterial: Bool
     let shadowRadius: CGFloat
     let shadowY: CGFloat
     @ViewBuilder let content: Content
@@ -62,7 +68,9 @@ struct AppGlassCard<Content: View>: View {
         spacing: CGFloat = AppTheme.appGlassCardDefaultSpacing,
         cornerRadius: CGFloat = AppTheme.cardRadius,
         material: Material = AppTheme.appGlassCardMaterial,
+        surface: Color? = nil,
         usesNativeGlass: Bool = false,
+        fallbackUsesMaterial: Bool = true,
         shadowRadius: CGFloat = AppTheme.glassCardShadowRadius,
         shadowY: CGFloat = AppTheme.glassCardShadowY,
         @ViewBuilder content: () -> Content
@@ -71,7 +79,9 @@ struct AppGlassCard<Content: View>: View {
         self.spacing = spacing
         self.cornerRadius = cornerRadius
         self.material = material
+        self.surface = surface
         self.usesNativeGlass = usesNativeGlass
+        self.fallbackUsesMaterial = fallbackUsesMaterial
         self.shadowRadius = shadowRadius
         self.shadowY = shadowY
         self.content = content()
@@ -86,7 +96,9 @@ struct AppGlassCard<Content: View>: View {
         .appGlassCard(
             cornerRadius: cornerRadius,
             material: material,
+            surface: surface,
             usesNativeGlass: usesNativeGlass,
+            fallbackUsesMaterial: fallbackUsesMaterial,
             shadowRadius: shadowRadius,
             shadowY: shadowY
         )
@@ -96,6 +108,7 @@ struct AppGlassCard<Content: View>: View {
 struct SoftContentCard<Content: View>: View {
     let padding: CGFloat
     @ViewBuilder let content: Content
+    @Environment(\.colorScheme) private var colorScheme
 
     init(padding: CGFloat = AppTheme.dashboardCardPadding, @ViewBuilder content: () -> Content) {
         self.padding = padding
@@ -106,9 +119,11 @@ struct SoftContentCard<Content: View>: View {
         AppGlassCard(
             padding: padding,
             spacing: AppTheme.softContentCardSpacing,
+            surface: AppTheme.glassFallbackSurface(for: colorScheme),
             usesNativeGlass: false,
-            shadowRadius: AppTheme.softContentCardShadowRadius,
-            shadowY: AppTheme.softContentCardShadowY
+            fallbackUsesMaterial: false,
+            shadowRadius: AppTheme.localCardShadowSmallRadius,
+            shadowY: AppTheme.localCardShadowSmallY
         ) {
             content
         }

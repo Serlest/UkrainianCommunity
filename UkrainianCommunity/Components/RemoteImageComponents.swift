@@ -12,6 +12,30 @@ private enum RemoteImageCache {
     }()
 }
 
+enum RemoteImageDecodePolicy {
+    static let minimumPixelSize: CGFloat = 128
+    static let maximumPixelSize: CGFloat = 2_048
+    static let pixelBucketSize: CGFloat = 64
+
+    static func pixelSize(
+        forMaximumDisplayDimension maximumDisplayDimension: CGFloat,
+        displayScale: CGFloat
+    ) -> CGFloat {
+        guard maximumDisplayDimension.isFinite, displayScale.isFinite else {
+            return maximumPixelSize
+        }
+
+        let requestedPixelSize = max(0, maximumDisplayDimension) * max(1, displayScale)
+        let bucketedPixelSize = ceil(requestedPixelSize / pixelBucketSize) * pixelBucketSize
+        return min(max(bucketedPixelSize, minimumPixelSize), maximumPixelSize)
+    }
+}
+
+private struct RemoteImageLoadKey: Hashable {
+    let imageURL: String?
+    let maximumPixelSize: Int
+}
+
 private actor RemoteImageDataLoader {
     static let shared = RemoteImageDataLoader()
 
@@ -110,7 +134,6 @@ struct AdaptiveBannerImage: View {
 
 struct RemoteImageView: View {
     private static let fallbackHeight: CGFloat = 220
-    private static let maximumDecodedPixelSize: CGFloat = 2_048
 
     let imageURL: String?
     let height: CGFloat
@@ -120,6 +143,7 @@ struct RemoteImageView: View {
     let presentationStyle: RemoteImagePresentationStyle
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.displayScale) private var displayScale
     @State private var loadedImage: UIImage?
     @State private var loadFailed = false
 
@@ -140,25 +164,27 @@ struct RemoteImageView: View {
     }
 
     var body: some View {
-        Group {
-            if let loadedImage {
-                loadedImageContent(loadedImage)
-            } else if loadFailed {
-                unavailablePlaceholder
-                    .frame(maxWidth: .infinity)
-                    .frame(height: resolvedHeight)
-                    .clipped()
-            } else {
-                loadingPlaceholder
-                    .frame(maxWidth: .infinity)
-                    .frame(height: resolvedHeight)
-                    .clipped()
+        GeometryReader { proxy in
+            let loadKey = loadKey(for: proxy.size)
+
+            Group {
+                if let loadedImage {
+                    loadedImageContent(loadedImage)
+                } else if loadFailed {
+                    unavailablePlaceholder
+                } else {
+                    loadingPlaceholder
+                }
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+            .task(id: loadKey) {
+                await loadImage(maximumPixelSize: CGFloat(loadKey.maximumPixelSize))
             }
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: resolvedHeight)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .task(id: imageURL) {
-            await loadImage()
-        }
     }
 
     private var resolvedHeight: CGFloat {
@@ -167,6 +193,18 @@ struct RemoteImageView: View {
 
     static func normalizedHeight(for height: CGFloat) -> CGFloat {
         height > 0 ? height : fallbackHeight
+    }
+
+    private func loadKey(for size: CGSize) -> RemoteImageLoadKey {
+        let maximumDisplayDimension = max(max(size.width, size.height), resolvedHeight)
+        let maximumPixelSize = RemoteImageDecodePolicy.pixelSize(
+            forMaximumDisplayDimension: maximumDisplayDimension,
+            displayScale: displayScale
+        )
+        return RemoteImageLoadKey(
+            imageURL: imageURL,
+            maximumPixelSize: Int(maximumPixelSize.rounded(.up))
+        )
     }
 
     @ViewBuilder
@@ -246,7 +284,7 @@ struct RemoteImageView: View {
     }
 
     @MainActor
-    private func loadImage() async {
+    private func loadImage(maximumPixelSize: CGFloat) async {
         loadedImage = nil
         loadFailed = false
 
@@ -254,7 +292,7 @@ struct RemoteImageView: View {
             return
         }
 
-        let cacheKey = "\(imageURL)#content-\(Int(Self.maximumDecodedPixelSize))" as NSString
+        let cacheKey = "\(imageURL)#content-\(Int(maximumPixelSize))" as NSString
         if let cachedImage = RemoteImageCache.shared.object(forKey: cacheKey) {
             loadedImage = cachedImage
             return
@@ -262,13 +300,15 @@ struct RemoteImageView: View {
 
         do {
             let data = try await RemoteImageDataLoader.shared.data(from: url)
+            guard !Task.isCancelled else { return }
             guard let image = await RemoteImageDecoder.decode(
                 data,
-                maximumPixelSize: Self.maximumDecodedPixelSize
+                maximumPixelSize: maximumPixelSize
             ) else {
                 loadFailed = true
                 return
             }
+            guard !Task.isCancelled else { return }
 
             RemoteImageCache.shared.setObject(
                 image,
@@ -277,6 +317,7 @@ struct RemoteImageView: View {
             )
             loadedImage = image
         } catch {
+            guard !Task.isCancelled else { return }
             let nsError = error as NSError
             if nsError.code == NSURLErrorCancelled {
                 return
