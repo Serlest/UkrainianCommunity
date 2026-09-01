@@ -4,8 +4,9 @@ import {createHash, randomUUID} from "node:crypto";
 import {execFileSync} from "node:child_process";
 import {createRequire} from "node:module";
 import {readFile} from "node:fs/promises";
-import {extname, join, resolve} from "node:path";
+import {join, resolve} from "node:path";
 
+import {prepareCanonicalContentCover} from "./contentCoverImageProcessing.mjs";
 import {buildContentDraftNotificationDocument} from "./contentPlanningNotificationDocument.mjs";
 
 const projectId = process.env.UAC_FIREBASE_PROJECT_ID ?? "ukrainiancommunity-dbd5f";
@@ -231,19 +232,16 @@ function validateDraft(item) {
 
 async function uploadGeneratedImage(ownerUserId, draftId, imagePath, alternativeText) {
   const absolutePath = resolve(imagePath);
-  const bytes = await readFile(absolutePath);
-  if (bytes.length > 15_000_000) fail(`Image is larger than 15 MB: ${absolutePath}`);
-  const extension = extname(absolutePath).toLowerCase();
-  const contentType = extension === ".png" ? "image/png" : extension === ".webp" ? "image/webp" : "image/jpeg";
-  const storagePath = `users/${ownerUserId}/contentPlanningDraftImages/${draftId}/cover${extension || ".jpg"}`;
+  const preparedImage = await prepareCanonicalContentCover(absolutePath);
+  const storagePath = `users/${ownerUserId}/contentPlanningDraftImages/${draftId}/cover${preparedImage.extension}`;
   const token = randomUUID();
   const uploadURL = new URL(`https://storage.googleapis.com/upload/storage/v1/b/${storageBucket}/o`);
   uploadURL.searchParams.set("uploadType", "media");
   uploadURL.searchParams.set("name", storagePath);
   const response = await fetch(uploadURL, {
     method: "POST",
-    headers: {Authorization: `Bearer ${accessToken}`, "Content-Type": contentType},
-    body: bytes,
+    headers: {Authorization: `Bearer ${accessToken}`, "Content-Type": preparedImage.contentType},
+    body: preparedImage.bytes,
   });
   if (!response.ok) throw new Error(`Image upload failed (${response.status}): ${await response.text()}`);
   const objectURL = `https://storage.googleapis.com/storage/v1/b/${storageBucket}/o/${encodeURIComponent(storagePath)}`;
