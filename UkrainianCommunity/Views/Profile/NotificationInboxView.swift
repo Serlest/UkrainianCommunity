@@ -40,6 +40,7 @@ struct NotificationInboxView: View {
             headerControls
             inboxContent
         }
+        .accessibilityIdentifier("screen.notificationInbox")
         .appRefreshable {
             await viewModel.refresh()
         }

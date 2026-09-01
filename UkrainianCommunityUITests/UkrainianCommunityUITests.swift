@@ -1358,6 +1358,19 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testProfileNotificationRowOpensInbox() throws {
+        let app = launchAuthenticatedApp()
+        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+
+        let inbox = element("profile.notifications.open", in: app)
+        scrollToElement(inbox, in: app, maxSwipes: 14)
+        XCTAssertTrue(inbox.isHittable)
+        inbox.tap()
+
+        XCTAssertTrue(element("screen.notificationInbox", in: app).waitForExistence(timeout: 10))
+    }
+
+    @MainActor
     func testOwnerAnalyticsSearchPeriodAndDetailJourney() throws {
         let app = launchOwnerApp()
         openOwnerAnalytics(in: app)

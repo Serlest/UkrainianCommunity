@@ -153,6 +153,10 @@ struct ProfilePreferencesView: View {
                 }
             }
         }
+        .task(id: currentUser?.id) {
+            guard let userID = currentUser?.id else { return }
+            await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)
+        }
     }
 }
 

@@ -195,23 +195,6 @@ struct ProfileView: View {
         PermissionService.canManageFeaturedBanners(user: permissionUser)
     }
 
-    private var canShowOrganizationManagement: Bool {
-        guard let user = permissionUser else { return false }
-        if PermissionService.canManageOrganizations(user: user) {
-            return true
-        }
-        if PermissionService.canCreateOrganization(user: user) {
-            return true
-        }
-        if !PermissionService.manageableOrganizations(
-            from: organizationsViewModel.organizations,
-            user: user
-        ).isEmpty {
-            return true
-        }
-        return false
-    }
-
     private var displayUser: AppUser? {
         guard authState.isAuthenticated else {
             return nil
@@ -380,76 +363,39 @@ struct ProfileView: View {
             profileDestination(for: route)
                 .id(locale.identifier)
         }
-        .task {
+        .task(id: authState.user?.id) {
             isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
-            await viewModel.loadIfNeeded()
-            await donationConfigViewModel.loadIfNeeded()
+            async let profile: Void = viewModel.loadIfNeeded()
+            async let donation: Void = donationConfigViewModel.loadIfNeeded()
             if authState.isAuthenticated {
-                await registrationsViewModel.loadIfNeeded()
-                await registrationsViewModel.refreshIfStale()
-                if let userID = authState.user?.id {
-                    await myFeedbackViewModel.loadIfNeeded(userID: userID)
-                    await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)
-                }
-                await organizationsViewModel.loadIfNeeded()
-                await organizationsViewModel.refreshIfStale()
                 await loadOwnerVisibilityIfAllowed()
             } else {
                 registrationsViewModel.resetForGuest()
                 myFeedbackViewModel.reset()
                 ownerVisibilityViewModel.reset()
             }
-        }
-        .onChange(of: authState.user?.id) {
-            // Consent is scoped to the active principal. Never leave the
-            // previous account's switch value visible after an account change.
-            isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
+            _ = await (profile, donation)
         }
         .appRefreshable {
             async let profile: Void = viewModel.refresh()
             async let donation: Void = donationConfigViewModel.load()
-            if authState.isAuthenticated, let userID = authState.user?.id {
-                async let registrations: Void = registrationsViewModel.refresh()
-                async let feedback: Void = myFeedbackViewModel.refresh(userID: userID)
+            if authState.isAuthenticated {
                 async let notifications: Void = notificationInboxViewModel.refresh()
-                async let preferences: Void = viewModel.refreshNotificationPreferences(userID: userID)
-                async let organizations: Void = organizationsViewModel.refresh()
                 async let owner: Void = refreshOwnerVisibilityIfAllowed()
-                _ = await (registrations, feedback, notifications, preferences, organizations, owner)
+                _ = await (notifications, owner)
             }
             _ = await (profile, donation)
         }
-        .onChange(of: authState.isAuthenticated) { _, isAuthenticated in
-            Task {
-                if isAuthenticated {
-                    await registrationsViewModel.refresh()
-                    if let userID = authState.user?.id {
-                        await myFeedbackViewModel.refresh(userID: userID)
-                        await viewModel.refreshNotificationPreferences(userID: userID)
-                    }
-                    await organizationsViewModel.refresh()
-                    await refreshOwnerVisibilityIfAllowed()
-                } else {
-                    registrationsViewModel.resetForGuest()
-                    myFeedbackViewModel.reset()
-                    ownerVisibilityViewModel.reset()
-                    feedbackMessage = ""
-                    selectedFeedbackType = .question
-                }
-            }
-        }
         .onChange(of: authState.user?.id) { _, newUserID in
+            // Consent and child caches are scoped to the active principal.
             viewModel.clearFeedbackSuccessMessage()
-            Task {
-                registrationsViewModel.resetForAuthChange()
-                myFeedbackViewModel.reset()
-                ownerVisibilityViewModel.reset()
-                guard let newUserID else { return }
-                await registrationsViewModel.refresh()
-                await myFeedbackViewModel.refresh(userID: newUserID)
-                await viewModel.refreshNotificationPreferences(userID: newUserID)
-                await organizationsViewModel.refresh()
-                await refreshOwnerVisibilityIfAllowed()
+            isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
+            registrationsViewModel.resetForAuthChange()
+            myFeedbackViewModel.reset()
+            ownerVisibilityViewModel.reset()
+            if newUserID == nil {
+                feedbackMessage = ""
+                selectedFeedbackType = .question
             }
         }
         .onChange(of: eventsViewModel.contentVersion) { _, _ in
@@ -459,7 +405,6 @@ struct ProfileView: View {
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             guard authState.isAuthenticated else { return }
             Task {
-                await organizationsViewModel.refresh()
                 await refreshOwnerVisibilityIfAllowed()
             }
         }
@@ -1085,16 +1030,28 @@ struct ProfileView: View {
             title: AppStrings.Profile.settingsSection,
             subtitle: AppStrings.Settings.preferencesSubtitle
         ) {
-            NavigationLink(value: ProfileNavigationRoute.profileSettings) {
-                ProfileModuleRow(
-                    title: AppStrings.Profile.settingsAndPrivacyTitle,
-                    subtitle: AppStrings.Profile.settingsAndPrivacySubtitle,
-                    systemImage: "gearshape",
-                    countBadge: notificationInboxViewModel.unreadCount
-                )
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                NavigationLink(value: ProfileNavigationRoute.notifications) {
+                    ProfileModuleRow(
+                        title: AppStrings.NotificationInbox.title,
+                        subtitle: AppStrings.NotificationInbox.subtitle,
+                        systemImage: "tray.full",
+                        countBadge: notificationInboxViewModel.unreadCount
+                    )
+                }
+                .accessibilityIdentifier("profile.notifications.open")
+                .buttonStyle(.plain)
+
+                NavigationLink(value: ProfileNavigationRoute.profileSettings) {
+                    ProfileModuleRow(
+                        title: AppStrings.Profile.settingsAndPrivacyTitle,
+                        subtitle: AppStrings.Profile.settingsAndPrivacySubtitle,
+                        systemImage: "gearshape"
+                    )
+                }
+                .accessibilityIdentifier("profile.settings.open")
+                .buttonStyle(.plain)
             }
-            .accessibilityIdentifier("profile.settings.open")
-            .buttonStyle(.plain)
         }
     }
 
