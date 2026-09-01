@@ -56,6 +56,7 @@ struct ProfileDestinationLayout<Content: View>: View {
 }
 
 struct ProfileDestinationEmptyStateCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let systemImage: String
     let title: String
     let message: String
@@ -74,14 +75,14 @@ struct ProfileDestinationEmptyStateCard: View {
                         .font(AppTheme.emptyStateTitleFont)
                         .foregroundStyle(AppTheme.textPrimary)
                         .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(message)
                         .font(AppTheme.emptyStateMessageFont)
                         .foregroundStyle(AppTheme.textSecondary)
                         .multilineTextAlignment(.center)
-                        .lineLimit(3)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
