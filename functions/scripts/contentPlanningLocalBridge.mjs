@@ -6,6 +6,8 @@ import {createRequire} from "node:module";
 import {readFile} from "node:fs/promises";
 import {join, resolve} from "node:path";
 
+import {writeContentPlanningBridgeOutput} from "./contentPlanningBridgeOutput.mjs";
+import {buildContentPlanningSummary} from "./contentPlanningBridgeSummary.mjs";
 import {prepareCanonicalContentCover} from "./contentCoverImageProcessing.mjs";
 import {buildContentDraftNotificationDocument} from "./contentPlanningNotificationDocument.mjs";
 
@@ -35,25 +37,24 @@ const owner = await resolveOwner();
 
 if (command === "list") {
   const [drafts, news, events] = await Promise.all([
-    listDocuments(`users/${owner.id}/contentPlanningDrafts`, 500),
-    listDocuments("news", 500),
-    listDocuments("events", 500),
+    listDocuments(`users/${owner.id}/contentPlanningDrafts`),
+    listDocuments("news"),
+    listDocuments("events"),
   ]);
-  console.log(JSON.stringify({
+  await writeContentPlanningBridgeOutput({
     owner: {id: owner.id, email: owner.email},
-    drafts: drafts.map(contentSummary),
-    news: news.map(contentSummary),
-    events: events.map(contentSummary),
-  }, null, 2));
-  process.exit(0);
+    drafts: drafts.map((document) => contentSummary(document)),
+    news: news.map((document) => contentSummary(document, "news")),
+    events: events.map((document) => contentSummary(document, "event")),
+  });
+} else {
+  if (!argument) fail("The save command requires a manifest JSON path.");
+  const manifest = JSON.parse(await readFile(resolve(argument), "utf8"));
+  const items = Array.isArray(manifest) ? manifest : [manifest];
+  const results = [];
+  for (const item of items) results.push(await saveDraft(owner.id, item));
+  await writeContentPlanningBridgeOutput({owner: {id: owner.id, email: owner.email}, results});
 }
-
-if (!argument) fail("The save command requires a manifest JSON path.");
-const manifest = JSON.parse(await readFile(resolve(argument), "utf8"));
-const items = Array.isArray(manifest) ? manifest : [manifest];
-const results = [];
-for (const item of items) results.push(await saveDraft(owner.id, item));
-console.log(JSON.stringify({owner: {id: owner.id, email: owner.email}, results}, null, 2));
 
 async function firebaseAccessToken() {
   const output = execFileSync("firebase", ["login:list", "--json"], {encoding: "utf8"});
@@ -95,7 +96,7 @@ async function resolveOwner() {
   return {id: documents[0].name.split("/").at(-1), email: decodeValue(documents[0].fields?.email)};
 }
 
-async function listDocuments(collectionPath, pageSize) {
+async function listDocuments(collectionPath, maxDocuments = Number.POSITIVE_INFINITY) {
   const separator = collectionPath.lastIndexOf("/");
   const parent = separator < 0 ? "" : `/${collectionPath.slice(0, separator)}`;
   const collectionId = separator < 0 ? collectionPath : collectionPath.slice(separator + 1);
@@ -103,27 +104,23 @@ async function listDocuments(collectionPath, pageSize) {
   const documents = [];
   do {
     const url = new URL(`${firestoreBase}/documents${parent}/${collectionId}`);
-    url.searchParams.set("pageSize", String(Math.min(pageSize, 500)));
+    url.searchParams.set("pageSize", String(Math.min(maxDocuments - documents.length, 500)));
     if (pageToken) url.searchParams.set("pageToken", pageToken);
     const response = await authorizedFetch(url);
     const payload = await response.json();
     documents.push(...(payload.documents ?? []));
     pageToken = payload.nextPageToken;
-  } while (pageToken && documents.length < pageSize);
-  return documents.slice(0, pageSize);
+  } while (pageToken && documents.length < maxDocuments);
+  return documents.slice(0, maxDocuments);
 }
 
-function contentSummary(document) {
+function contentSummary(document, defaultKind) {
   const fields = Object.fromEntries(Object.entries(document.fields ?? {}).map(([key, value]) => [key, decodeValue(value)]));
-  const payload = fields.payload && typeof fields.payload === "object" ? fields.payload : {};
-  return {
+  return buildContentPlanningSummary({
     id: document.name.split("/").at(-1),
-    kind: fields.kind,
-    state: fields.state ?? fields.moderationStatus,
-    title: fields.title ?? payload.title,
-    sourceURL: fields.sourceURL ?? payload.sourceInput,
-    startDate: fields.startDate ?? payload.startDate,
-  };
+    defaultKind,
+    fields,
+  });
 }
 
 async function saveDraft(ownerUserId, item) {
