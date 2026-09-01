@@ -530,7 +530,7 @@ enum EventCategory: String, CaseIterable, Codable, Identifiable {
         case .businessAndNetworking:
             "briefcase"
         case .volunteering:
-            "heart.hand"
+            "hands.sparkles"
         case .supportAndIntegration:
             "person.2.wave.2"
         case .celebration:

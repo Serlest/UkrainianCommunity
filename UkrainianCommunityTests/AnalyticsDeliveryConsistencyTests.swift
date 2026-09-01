@@ -426,8 +426,8 @@ struct AnalyticsDeliveryConsistencyTests {
         let task = Task { await model.trackViewWhileVisible(for: organization) }
         await analytics.waitForScopeReads(1)
         task.cancel()
-        await task.value
         analytics.confirmConsentSynchronization()
+        await task.value
         #expect(analytics.allTrackedEvents.isEmpty)
     }
 

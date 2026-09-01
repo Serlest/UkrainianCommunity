@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import UkrainianCommunity
 
 @MainActor
@@ -208,6 +209,15 @@ struct ContentEditorValidationTests {
         #expect(try decoder.decode([NewsCategory].self, from: encoder.encode(newsCategories)) == newsCategories)
         #expect(try decoder.decode([EventCategory].self, from: encoder.encode(eventCategories)) == eventCategories)
         #expect(Set(EventCategory.allCases).isSuperset(of: Set(eventCategories)))
+    }
+
+    @Test func everyEventCategoryUsesAnAvailableSystemImage() {
+        for category in EventCategory.allCases {
+            #expect(
+                UIImage(systemName: category.systemImage) != nil,
+                "Missing SF Symbol for event category: \(category.rawValue)"
+            )
+        }
     }
 
     @Test func organizationLocalizedContentResolvesEveryPublicTextField() {
