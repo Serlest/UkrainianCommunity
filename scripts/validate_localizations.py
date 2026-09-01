@@ -11,6 +11,8 @@ from pathlib import Path
 CATALOG = Path("UkrainianCommunity/Localization/Localizable.xcstrings")
 SOURCE_ROOT = Path("UkrainianCommunity")
 REQUIRED_LANGUAGES = ("de", "uk")
+SOURCE_LANGUAGE = "de"
+SUPPORTED_LANGUAGES = frozenset(REQUIRED_LANGUAGES)
 LOCALIZATION_KEY = r"([A-Za-z0-9_.-]+)"
 DIRECT_KEY_PATTERNS = (
     re.compile(rf'String\(localized:\s*"{LOCALIZATION_KEY}"'),
@@ -114,6 +116,12 @@ def main() -> int:
 
     failures: list[str] = []
 
+    if catalog.get("sourceLanguage") != SOURCE_LANGUAGE:
+        failures.append(
+            f"catalog sourceLanguage must be {SOURCE_LANGUAGE!r}, "
+            f"found {catalog.get('sourceLanguage')!r}"
+        )
+
     missing_references = sorted(referenced_localization_keys() - strings.keys())
     for key in missing_references:
         failures.append(f"{key!r}: referenced by Swift but missing from catalog")
@@ -121,10 +129,15 @@ def main() -> int:
     failures.extend(raw_user_facing_literals(set(strings)))
 
     for key, entry in strings.items():
+        localizations = entry.get("localizations", {})
+        unsupported_languages = sorted(set(localizations) - SUPPORTED_LANGUAGES)
+        if unsupported_languages:
+            failures.append(
+                f"{key!r}: unsupported localizations {unsupported_languages}"
+            )
         if is_locale_invariant(key):
             continue
 
-        localizations = entry.get("localizations", {})
         translated_values: dict[str, str] = {}
         for language in REQUIRED_LANGUAGES:
             unit = localizations.get(language, {}).get("stringUnit", {})

@@ -248,10 +248,9 @@
 				};
 			};
 			buildConfigurationList = F34749072FA0CF7400ED704A /* Build configuration list for PBXProject "UkrainianCommunity" */;
-			developmentRegion = en;
+			developmentRegion = de;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
 				uk,
 				de,
