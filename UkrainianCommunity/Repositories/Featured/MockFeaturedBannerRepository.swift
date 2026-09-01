@@ -54,6 +54,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         banners[index] = FeaturedBanner(
             id: existingBanner.id,
             internalName: existingBanner.internalName,
+            localizations: existingBanner.localizations,
             title: existingBanner.title,
             subtitle: existingBanner.subtitle,
             imageURL: existingBanner.imageURL,
@@ -88,6 +89,16 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             FeaturedBanner(
                 id: "featured-emergency-support",
                 internalName: "Emergency support hero",
+                localizations: [
+                    AppLanguage.german.rawValue: FeaturedBannerLocalizedContent(
+                        title: "Schnelle Hilfe in Österreich",
+                        subtitle: "Wichtige Kontakte und Unterstützung auf einen Blick."
+                    ),
+                    AppLanguage.ukrainian.rawValue: FeaturedBannerLocalizedContent(
+                        title: "Швидка допомога в Австрії",
+                        subtitle: "Важливі контакти та підтримка в одному місці."
+                    ),
+                ],
                 title: "Emergency support contacts",
                 subtitle: "Fast access to urgent help and community support resources.",
                 imageURL: "https://example.com/featured/emergency-support.jpg",
@@ -105,6 +116,16 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             FeaturedBanner(
                 id: "featured-tirol-event",
                 internalName: "Tirol meetup event promo",
+                localizations: [
+                    AppLanguage.german.rawValue: FeaturedBannerLocalizedContent(
+                        title: "Community-Treffen in Tirol",
+                        subtitle: "Ein regionales Treffen für Familien und Freiwillige."
+                    ),
+                    AppLanguage.ukrainian.rawValue: FeaturedBannerLocalizedContent(
+                        title: "Зустріч громади в Тіролі",
+                        subtitle: "Регіональна зустріч для родин і волонтерів."
+                    ),
+                ],
                 title: "Community meetup in Tirol",
                 subtitle: "A regional gathering for families, volunteers, and local organizations.",
                 imageURL: "https://example.com/featured/tirol-event.jpg",

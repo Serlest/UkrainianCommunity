@@ -177,7 +177,7 @@ struct DonationSettingsView: View {
 
 enum DonationLocalization {
     static func language(from locale: Locale = LocalizationStore.locale) -> AppLanguage {
-        locale.identifier.lowercased().hasPrefix(AppLanguage.ukrainian.rawValue) ? .ukrainian : .german
+        AppLanguage.resolved(from: locale)
     }
 
     static func publicSectionTitle(for language: AppLanguage = LocalizationStore.language) -> String {

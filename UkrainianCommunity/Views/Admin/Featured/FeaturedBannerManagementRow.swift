@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: View>: View {
+    @Environment(\.locale) private var locale
     let banner: FeaturedBanner
     let isUpdating: Bool
     let canDelete: Bool
@@ -247,20 +248,24 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
         if let internalName = nonEmpty(banner.internalName) {
             return internalName
         }
-        if let title = nonEmpty(banner.localizedTitle) {
+        if let title = nonEmpty(banner.localizedTitle(for: appLanguage)) {
             return title
         }
         return AppStrings.FeaturedManagement.fallbackBannerName(banner.id, date: banner.createdAt)
     }
 
     private var publicHeadlineText: String? {
-        let title = nonEmpty(banner.localizedTitle)
-        let subtitle = nonEmpty(banner.localizedSubtitle)
+        let title = nonEmpty(banner.localizedTitle(for: appLanguage))
+        let subtitle = nonEmpty(banner.localizedSubtitle(for: appLanguage))
 
         if nonEmpty(banner.internalName) != nil {
             return title ?? subtitle
         }
         return subtitle
+    }
+
+    private var appLanguage: AppLanguage {
+        AppLanguage.resolved(from: locale)
     }
 
     private func nonEmpty(_ value: String?) -> String? {

@@ -146,6 +146,15 @@ struct FeaturedBannerEditingTests {
         #expect(banner.localizations.resolved(for: .german)?.subtitle == "Beschreibung")
         #expect(banner.localizations.resolved(for: .ukrainian)?.title == "Українською")
         #expect(banner.localizations.resolved(for: .ukrainian)?.subtitle == "Опис")
+        #expect(banner.localizedTitle(for: .german) == "Auf Deutsch")
+        #expect(banner.localizedSubtitle(for: .german) == "Beschreibung")
+        #expect(banner.localizedTitle(for: .ukrainian) == "Українською")
+        #expect(banner.localizedSubtitle(for: .ukrainian) == "Опис")
+    }
+
+    @Test func appLanguageResolvesFromTheLiveSwiftUILocale() {
+        #expect(AppLanguage.resolved(from: Locale(identifier: "de_AT")) == .german)
+        #expect(AppLanguage.resolved(from: Locale(identifier: "uk_UA")) == .ukrainian)
     }
 
     @Test func legacyBannerStillProvidesLocalizedText() {

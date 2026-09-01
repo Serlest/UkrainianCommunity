@@ -1382,6 +1382,11 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testLanguageChangeKeepsSettingsNavigationAndUpdatesVisibleText() throws {
         let app = launchApp()
+
+        let firstGermanBanner = element("featuredBanner.card.featured-emergency-support", in: app)
+        XCTAssertTrue(firstGermanBanner.waitForExistence(timeout: 15))
+        XCTAssertTrue(firstGermanBanner.label.contains("Schnelle Hilfe in Österreich"))
+
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
         let settings = app.buttons["profile.settings.open"].firstMatch
         scrollToElement(settings, in: app)
@@ -1402,6 +1407,16 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(preferencesScreen.waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Налаштування"].waitForExistence(timeout: 10))
         XCTAssertTrue(element("profile.settings.language", in: app).exists)
+
+        tapRootTab(rootTabs[0], in: app, timeout: 10)
+        let firstUkrainianBanner = element("featuredBanner.card.featured-emergency-support", in: app)
+        XCTAssertTrue(firstUkrainianBanner.waitForExistence(timeout: 10))
+        XCTAssertTrue(firstUkrainianBanner.label.contains("Швидка допомога в Австрії"))
+
+        firstUkrainianBanner.swipeLeft()
+        let secondUkrainianBanner = element("featuredBanner.card.featured-tirol-event", in: app)
+        XCTAssertTrue(secondUkrainianBanner.waitForExistence(timeout: 10))
+        XCTAssertTrue(secondUkrainianBanner.label.contains("Зустріч громади в Тіролі"))
     }
 
     @MainActor

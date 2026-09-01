@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeaturedBannerManagementView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.locale) private var locale
     @StateObject private var viewModel: FeaturedBannerManagementViewModel
     @State private var deleteCandidate: FeaturedBanner?
     @State private var searchText = ""
@@ -219,10 +220,14 @@ struct FeaturedBannerManagementView: View {
         if let internalName = nonEmpty(banner.internalName) {
             return internalName
         }
-        if let title = nonEmpty(banner.localizedTitle) {
+        if let title = nonEmpty(banner.localizedTitle(for: appLanguage)) {
             return title
         }
         return AppStrings.FeaturedManagement.fallbackBannerName(banner.id, date: banner.createdAt)
+    }
+
+    private var appLanguage: AppLanguage {
+        AppLanguage.resolved(from: locale)
     }
 
     private func nonEmpty(_ value: String?) -> String? {

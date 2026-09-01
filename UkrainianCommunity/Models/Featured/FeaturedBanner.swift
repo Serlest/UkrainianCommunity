@@ -112,12 +112,24 @@ struct FeaturedBanner: Identifiable, Equatable {
     }
 
     var localizedContent: FeaturedBannerLocalizedContent {
-        localizations.resolved(for: LocalizationStore.language)
+        localizedContent(for: LocalizationStore.language)
+    }
+
+    func localizedContent(for language: AppLanguage) -> FeaturedBannerLocalizedContent {
+        localizations.resolved(for: language)
             ?? FeaturedBannerLocalizedContent(title: title, subtitle: subtitle ?? "")
     }
 
     var localizedTitle: String { localizedContent.title }
     var localizedSubtitle: String { localizedContent.subtitle }
+
+    func localizedTitle(for language: AppLanguage) -> String {
+        localizedContent(for: language).title
+    }
+
+    func localizedSubtitle(for language: AppLanguage) -> String {
+        localizedContent(for: language).subtitle
+    }
 
     func lifecycleState(at date: Date = Date()) -> FeaturedBannerLifecycleState {
         if hasUnsupportedLegacyConfiguration {

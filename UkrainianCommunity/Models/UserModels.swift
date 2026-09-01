@@ -178,6 +178,10 @@ enum AppLanguage: String, CaseIterable, Codable, Identifiable {
     nonisolated var id: String { rawValue }
     nonisolated var localeIdentifier: String { rawValue }
 
+    nonisolated static func resolved(from locale: Locale) -> AppLanguage {
+        locale.identifier.lowercased().hasPrefix(ukrainian.rawValue) ? .ukrainian : .german
+    }
+
     /// Language pickers use autonyms so the selected value stays recognizable
     /// while the surrounding interface changes language.
     nonisolated var title: String {

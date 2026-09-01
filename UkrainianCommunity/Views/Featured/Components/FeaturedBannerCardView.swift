@@ -6,6 +6,7 @@ struct FeaturedBannerCardView: View {
     let previewImage: UIImage?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
 
     init(banner: FeaturedBanner, previewImage: UIImage? = nil) {
         self.banner = banner
@@ -29,6 +30,7 @@ struct FeaturedBannerCardView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(isActionable ? AppStrings.Action.open : "")
+        .accessibilityIdentifier("featuredBanner.card.\(banner.id)")
     }
 
     @ViewBuilder
@@ -141,11 +143,15 @@ struct FeaturedBannerCardView: View {
     }
 
     private var titleText: String? {
-        nonEmpty(banner.localizedTitle)
+        nonEmpty(banner.localizedTitle(for: appLanguage))
     }
 
     private var subtitleText: String? {
-        nonEmpty(banner.localizedSubtitle)
+        nonEmpty(banner.localizedSubtitle(for: appLanguage))
+    }
+
+    private var appLanguage: AppLanguage {
+        AppLanguage.resolved(from: locale)
     }
 
     private var hasTextContent: Bool {
