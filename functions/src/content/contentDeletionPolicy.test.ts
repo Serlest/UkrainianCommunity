@@ -9,9 +9,11 @@ import {
   contentStoragePrefixes,
   eventBlocksOrganizationDeletion,
   firebaseStorageDownloadURL,
+  featuredBannerActionType,
   legacyDraftStoragePath,
   normalizedResourceId,
   organizationStoragePrefix,
+  referenceDataMatchesPolicy,
   storageObjectPathFromDownloadURL,
 } from "./contentDeletionPolicy";
 
@@ -37,13 +39,59 @@ test("reference policies include every interaction owned by news and events", ()
     {source: "collection", collectionId: "likes", field: "newsId"},
     {source: "collectionGroup", collectionId: "newsBookmarks", field: "newsId"},
     {source: "collectionGroup", collectionId: "newsViews", field: "newsId"},
+    {
+      source: "collectionGroup",
+      collectionId: "recentViews",
+      field: "itemId",
+      filters: {itemType: "news"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "activityLog",
+      field: "targetId",
+      filters: {targetType: "news"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "notificationInbox",
+      field: "actionTargetId",
+      filters: {actionType: "openNews"},
+    },
   ]);
   assert.deepEqual(contentReferencePoliciesFor("events"), [
     {source: "collection", collectionId: "likes", field: "eventId"},
     {source: "collection", collectionId: "registrations", field: "eventId"},
     {source: "collectionGroup", collectionId: "eventBookmarks", field: "eventId"},
     {source: "collectionGroup", collectionId: "eventViews", field: "eventId"},
+    {
+      source: "collectionGroup",
+      collectionId: "recentViews",
+      field: "itemId",
+      filters: {itemType: "event"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "activityLog",
+      field: "targetId",
+      filters: {targetType: "event"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "notificationInbox",
+      field: "actionTargetId",
+      filters: {actionType: "openEvent"},
+    },
   ]);
+});
+
+test("typed references cannot delete another content kind with the same ID", () => {
+  const recentPolicy = contentReferencePoliciesFor("news")
+    .find((policy) => policy.collectionId === "recentViews");
+  assert.ok(recentPolicy);
+  assert.equal(referenceDataMatchesPolicy({itemType: "news"}, recentPolicy), true);
+  assert.equal(referenceDataMatchesPolicy({itemType: "event"}, recentPolicy), false);
+  assert.equal(featuredBannerActionType("news"), "news");
+  assert.equal(featuredBannerActionType("events"), "event");
 });
 
 test("Firebase and Google Storage URLs resolve to their object paths", () => {

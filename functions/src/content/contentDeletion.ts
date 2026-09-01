@@ -1,4 +1,11 @@
-import {type DocumentData, type Query} from "firebase-admin/firestore";
+import {
+  FieldPath,
+  FieldValue,
+  Timestamp,
+  type DocumentData,
+  type Query,
+  type QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
@@ -13,8 +20,10 @@ import {
   contentStoragePrefixes,
   canDiscardOrganizationRequest,
   eventBlocksOrganizationDeletion,
+  featuredBannerActionType,
   normalizedResourceId,
   organizationStoragePrefix,
+  referenceDataMatchesPolicy,
 } from "./contentDeletionPolicy";
 
 interface DeletionResponse {
@@ -157,18 +166,33 @@ async function deleteContentDocument(
   const data = knownData ?? (await reference.get()).data();
   const organizationId = optionalResourceId(data?.organizationId);
 
+  await cleanupDeletedContentReferences(kind, contentId);
+  await db.recursiveDelete(reference);
+
+  // Firestore is the publishing source of truth. Storage is deliberately
+  // removed last so a transient Storage failure can leave only an invisible
+  // orphan, never a visible content document with a broken cover.
   for (const prefix of contentStoragePrefixes(kind, contentId, organizationId)) {
     await deleteStoragePrefix(prefix);
   }
+}
 
+export async function cleanupDeletedContentReferences(
+  kind: ContentKind,
+  contentIdValue: string
+): Promise<void> {
+  const contentId = safeResourceId(contentIdValue, "contentId");
   for (const policy of contentReferencePoliciesFor(kind)) {
     const collection = policy.source === "collection"
       ? db.collection(policy.collectionId)
       : db.collectionGroup(policy.collectionId);
-    await deleteQuery(collection.where(policy.field, "==", contentId));
+    await deletePolicyQuery(
+      collection.where(policy.field, "==", contentId),
+      (document) => referenceDataMatchesPolicy(document.data(), policy)
+    );
   }
 
-  await db.recursiveDelete(reference);
+  await disableFeaturedBanners(kind, contentId);
 }
 
 async function deleteOrganizationContent(
@@ -270,6 +294,63 @@ async function deleteQuery(query: Query<DocumentData>): Promise<void> {
     }
     await writer.close();
   }
+}
+
+async function deletePolicyQuery(
+  query: Query<DocumentData>,
+  shouldDelete: (document: QueryDocumentSnapshot<DocumentData>) => boolean
+): Promise<void> {
+  let cursor: QueryDocumentSnapshot<DocumentData> | undefined;
+  while (true) {
+    let pageQuery = query.orderBy(FieldPath.documentId()).limit(relatedBatchSize);
+    if (cursor) {
+      pageQuery = pageQuery.startAfter(cursor);
+    }
+    const snapshot = await pageQuery.get();
+    if (snapshot.empty) {
+      return;
+    }
+
+    const matchingDocuments = snapshot.docs.filter(shouldDelete);
+    if (matchingDocuments.length > 0) {
+      const writer = db.bulkWriter();
+      for (const document of matchingDocuments) {
+        writer.delete(document.ref);
+      }
+      await writer.close();
+    }
+
+    cursor = snapshot.docs.at(-1);
+    if (snapshot.size < relatedBatchSize) {
+      return;
+    }
+  }
+}
+
+async function disableFeaturedBanners(kind: ContentKind, contentId: string): Promise<void> {
+  const actionType = featuredBannerActionType(kind);
+  const snapshot = await db.collection("featuredBanners")
+    .where("actionTargetID", "==", contentId)
+    .get();
+  const matchingBanners = snapshot.docs.filter(
+    (document) => document.get("actionType") === actionType
+  );
+  if (matchingBanners.length === 0) {
+    return;
+  }
+
+  const writer = db.bulkWriter();
+  const updatedAt = Timestamp.now();
+  for (const banner of matchingBanners) {
+    writer.update(banner.ref, {
+      isActive: false,
+      actionType: "none",
+      actionTargetID: FieldValue.delete(),
+      updatedAt,
+      updatedBy: "system-content-lifecycle",
+    });
+  }
+  await writer.close();
 }
 
 async function deleteStoragePrefix(prefix: string): Promise<void> {

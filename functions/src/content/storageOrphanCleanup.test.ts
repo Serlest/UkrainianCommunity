@@ -4,6 +4,7 @@ import {test} from "node:test";
 import {
   featuredBannerIdFromObjectName,
   isStaleOrphan,
+  orphanContentObjectIdentity,
 } from "./storageOrphanCleanup";
 
 test("featured banner orphan cleanup accepts only canonical image paths", () => {
@@ -27,4 +28,24 @@ test("orphan cleanup preserves uploads during a 24 hour save grace period", () =
   assert.equal(isStaleOrphan(now - 23 * 60 * 60 * 1000, now), false);
   assert.equal(isStaleOrphan(now - 24 * 60 * 60 * 1000, now), true);
   assert.equal(isStaleOrphan(Number.NaN, now), false);
+});
+
+test("content orphan parser accepts only owned canonical and legacy paths", () => {
+  assert.deepEqual(orphanContentObjectIdentity("news/news-1/cover.jpg"), {
+    kind: "news",
+    contentId: "news-1",
+  });
+  assert.deepEqual(orphanContentObjectIdentity("events/event-1/cover.jpg"), {
+    kind: "events",
+    contentId: "event-1",
+  });
+  assert.deepEqual(orphanContentObjectIdentity(
+    "organizations/org-1/draftUploads/news/news-legacy_cover.jpg"
+  ), {
+    kind: "news",
+    contentId: "news-legacy",
+  });
+  assert.equal(orphanContentObjectIdentity("organizations/org-1/logo.jpg"), undefined);
+  assert.equal(orphanContentObjectIdentity("users/user-1/avatar.jpg"), undefined);
+  assert.equal(orphanContentObjectIdentity("featuredBanners/banner-1/hero.jpg"), undefined);
 });

@@ -4,6 +4,7 @@ export interface ContentReferencePolicy {
   source: "collection" | "collectionGroup";
   collectionId: string;
   field: string;
+  filters?: Readonly<Record<string, string>>;
 }
 
 const contentReferencePolicies: Record<ContentKind, readonly ContentReferencePolicy[]> = {
@@ -11,14 +12,63 @@ const contentReferencePolicies: Record<ContentKind, readonly ContentReferencePol
     {source: "collection", collectionId: "likes", field: "newsId"},
     {source: "collectionGroup", collectionId: "newsBookmarks", field: "newsId"},
     {source: "collectionGroup", collectionId: "newsViews", field: "newsId"},
+    {
+      source: "collectionGroup",
+      collectionId: "recentViews",
+      field: "itemId",
+      filters: {itemType: "news"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "activityLog",
+      field: "targetId",
+      filters: {targetType: "news"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "notificationInbox",
+      field: "actionTargetId",
+      filters: {actionType: "openNews"},
+    },
   ],
   events: [
     {source: "collection", collectionId: "likes", field: "eventId"},
     {source: "collection", collectionId: "registrations", field: "eventId"},
     {source: "collectionGroup", collectionId: "eventBookmarks", field: "eventId"},
     {source: "collectionGroup", collectionId: "eventViews", field: "eventId"},
+    {
+      source: "collectionGroup",
+      collectionId: "recentViews",
+      field: "itemId",
+      filters: {itemType: "event"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "activityLog",
+      field: "targetId",
+      filters: {targetType: "event"},
+    },
+    {
+      source: "collectionGroup",
+      collectionId: "notificationInbox",
+      field: "actionTargetId",
+      filters: {actionType: "openEvent"},
+    },
   ],
 };
+
+export function featuredBannerActionType(kind: ContentKind): "news" | "event" {
+  return kind === "news" ? "news" : "event";
+}
+
+export function referenceDataMatchesPolicy(
+  data: Record<string, unknown>,
+  policy: ContentReferencePolicy
+): boolean {
+  return Object.entries(policy.filters ?? {}).every(
+    ([field, expected]) => data[field] === expected
+  );
+}
 
 export function normalizedResourceId(value: string, field: string): string {
   const normalized = value.trim();

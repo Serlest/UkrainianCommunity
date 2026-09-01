@@ -25,6 +25,7 @@ const maxContentDocumentsPerRun = 200;
 const maxLogDocumentsPerPolicy = 400;
 const maxFeedbackDocumentsPerRun = 200;
 const maxAuditLogDocumentsPerRun = 400;
+const maxNotificationDocumentsPerRun = 400;
 export const analyticsCleanupPageSize = 500;
 export const maxAnalyticsCleanupPagesPerRun = 20;
 const mutableCleanupConcurrency = 40;
@@ -32,6 +33,8 @@ const mutableCleanupConcurrency = 40;
 export const contentRetentionMonths = 6;
 export const closedFeedbackRetentionMonths = 6;
 export const auditLogRetentionDays = 1_095;
+export const deletedNotificationRetentionDays = 30;
+export const contentRetentionStatuses = ["approved", "archived"] as const;
 
 export const systemLogRetentionDays = {
   technicalError: 90,
@@ -54,6 +57,7 @@ type CleanupSummary = {
   analyticsUserRegistrationEvents: number;
   analyticsDeletedUserEvents: number;
   organizationCreationProofs: number;
+  deletedNotifications: number;
   dsaCases: number;
   dsaPortalRateLimits: number;
 };
@@ -96,6 +100,7 @@ export const cleanupExpiredData = onSchedule(
         now,
       ),
       organizationCreationProofs: await cleanupExpiredOrganizationCreationProofs(now),
+      deletedNotifications: await cleanupExpiredDeletedNotifications(now),
       dsaCases: await cleanupExpiredDsaCases(now),
       dsaPortalRateLimits: await deleteLimitedQuery(
         db.collection("dsaPortalRateLimits").where("expiresAt", "<=", Timestamp.fromDate(now)),
@@ -161,11 +166,21 @@ async function cleanupExpiredContent(
   let deleted = 0;
 
   const snapshot = await db.collection(kind)
+    .where("moderationStatus", "in", [...contentRetentionStatuses])
     .where(cutoffField, "<=", Timestamp.fromDate(cutoff))
+    .orderBy(cutoffField)
     .limit(maxContentDocumentsPerRun)
     .get();
 
   for (const document of snapshot.docs) {
+    if (!isContentRetentionEligible(kind, document.data(), cutoff)) {
+      logger.warn("Skipped an unsafe content retention candidate.", {
+        kind,
+        contentId: document.id,
+        moderationStatus: document.get("moderationStatus"),
+      });
+      continue;
+    }
     try {
       if (kind === "news") {
         await deleteNewsContent(document.id, document.data());
@@ -183,6 +198,29 @@ async function cleanupExpiredContent(
   }
 
   return deleted;
+}
+
+export function isContentRetentionEligible(
+  kind: ContentKind,
+  data: DocumentData,
+  cutoff: Date
+): boolean {
+  if (!contentRetentionStatuses.includes(
+    data.moderationStatus as typeof contentRetentionStatuses[number]
+  )) {
+    return false;
+  }
+
+  const cutoffField = kind === "news" ? "publishedAt" : "endDate";
+  const value = data[cutoffField];
+  return value instanceof Timestamp && value.toMillis() <= cutoff.getTime();
+}
+
+async function cleanupExpiredDeletedNotifications(now: Date): Promise<number> {
+  const cutoff = subtractUtcDays(now, deletedNotificationRetentionDays);
+  const query = db.collectionGroup("notificationInbox")
+    .where("deletedAt", "<=", Timestamp.fromDate(cutoff));
+  return deleteLimitedQuery(query, maxNotificationDocumentsPerRun);
 }
 
 async function cleanupExpiredSystemLogs(now: Date): Promise<number> {
