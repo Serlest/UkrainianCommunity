@@ -775,11 +775,32 @@ final class UkrainianCommunityUITests: XCTestCase {
                 XCTAssertEqual(actual, names.map { "\(namespace).filter.\($0)" })
             }
             func reveal(_ button: XCUIElement) {
-                for _ in 0..<8 {
+                for _ in 0..<12 {
                     if button.isHittable { break }
-                    row.swipeLeft()
+                    let rowFrame = row.frame
+                    let buttonFrame = button.frame
+                    let startX = buttonFrame.maxX <= rowFrame.minX ? 0.3 : 0.7
+                    let endX = buttonFrame.maxX <= rowFrame.minX ? 0.7 : 0.3
+                    row.coordinate(withNormalizedOffset: CGVector(dx: startX, dy: 0.5))
+                        .press(
+                            forDuration: 0.05,
+                            thenDragTo: row.coordinate(
+                                withNormalizedOffset: CGVector(dx: endX, dy: 0.5)
+                            )
+                        )
                 }
-                XCTAssertTrue(button.isHittable)
+                XCTAssertTrue(button.isHittable, button.debugDescription)
+            }
+            if namespace == "events" {
+                let initialReset = chip("reset")
+                if initialReset.exists {
+                    reveal(initialReset)
+                    initialReset.tap()
+                    XCTAssertTrue(
+                        initialReset.waitForNonExistence(timeout: 5),
+                        "Reset chip should clear the persisted event region"
+                    )
+                }
             }
             expectOrder(configuration.order)
             let first = chip(configuration.order[0])
@@ -792,7 +813,16 @@ final class UkrainianCommunityUITests: XCTestCase {
             let saved = chip(savedName)
             reveal(saved)
             saved.tap()
-            let promoted = Array(configuration.order.prefix(2)) + [savedName] + configuration.order.dropFirst(2).dropLast()
+            let promoted: [String]
+            if namespace == "events" {
+                promoted = Array(configuration.order.prefix(2))
+                    + ["reset", savedName]
+                    + configuration.order.dropFirst(2).dropLast()
+            } else {
+                promoted = Array(configuration.order.prefix(2))
+                    + [savedName]
+                    + configuration.order.dropFirst(2).dropLast()
+            }
             expectOrder(promoted)
             XCTAssertTrue(first.isHittable, "Row should return to its leading controls after reordering")
             XCTAssertTrue(region.isHittable)
@@ -803,16 +833,26 @@ final class UkrainianCommunityUITests: XCTestCase {
                 reveal(audience)
                 audience.tap()
                 app.buttons["Für Familien"].tap()
-                expectOrder(["period", "region", "audience", "saved", "category", "age", "registered"])
+                expectOrder(["period", "region", "reset", "audience", "saved", "category", "age", "registered"])
                 XCTAssertTrue(first.isHittable)
+                attachScreenshot(named: "events-audience-active-before-reveal", from: app)
                 reveal(audience)
                 audience.tap()
                 app.buttons["Für alle"].tap()
                 expectOrder(promoted)
-            }
 
-            reveal(saved)
-            saved.tap()
+                let reset = chip("reset")
+                reveal(reset)
+                XCTAssertTrue(reset.isHittable)
+                reset.tap()
+                XCTAssertTrue(
+                    reset.waitForNonExistence(timeout: 5),
+                    "Reset chip should disappear after all event filters are cleared"
+                )
+            } else {
+                reveal(saved)
+                saved.tap()
+            }
             expectOrder(configuration.order)
             XCTAssertTrue(first.isHittable)
             XCTAssertTrue(region.isHittable)
