@@ -3541,7 +3541,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gultig bis"
+            "value" : "Gültig bis"
           }
         },
         "uk" : {
@@ -3598,7 +3598,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Eintrage verfugbar."
+            "value" : "Keine Einträge verfügbar."
           }
         },
         "uk" : {
@@ -3615,7 +3615,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nicht verfugbar"
+            "value" : "Nicht verfügbar"
           }
         },
         "uk" : {
@@ -7061,7 +7061,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch keine Veranstaltungen verfugbar."
+            "value" : "Noch keine Veranstaltungen verfügbar."
           }
         },
         "uk" : {
@@ -7197,7 +7197,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veranstaltungen konnten nicht geladen werden. Bitte uberprufen Sie Ihre Verbindung und versuchen Sie es erneut."
+            "value" : "Veranstaltungen konnten nicht geladen werden. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -14452,7 +14452,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein Abend fur Netzwerken, Ankundigungen und praktische Orientierung fur Familien in Tirol. Tee, Kinderbereich und sprachliche Unterstutzung sind verfugbar."
+            "value" : "Ein Abend zum Netzwerken, mit Neuigkeiten und praktischer Orientierung für Familien in Tirol. Tee, Kinderbereich und sprachliche Unterstützung sind verfügbar."
           }
         },
         "uk" : {
@@ -14520,7 +14520,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lokale Mentoren uberprufen Lebenslaufe, erklaren Erwartungen an Bewerbungen und teilen praktische Tipps zur Jobsuche in Tirol."
+            "value" : "Lokale Mentorinnen und Mentoren überprüfen Lebensläufe, erklären Erwartungen an Bewerbungen und teilen praktische Tipps zur Jobsuche in Tirol."
           }
         },
         "uk" : {
@@ -14588,7 +14588,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ab dieser Woche stehen ehrenamtliche Berater jeden Donnerstagabend in Innsbruck zur Verfugung. Das Format ist offen und richtet sich an ukrainische Familien, die Orientierung in alltaglichen Rechtsfragen brauchen."
+            "value" : "Ab dieser Woche stehen ehrenamtliche Beratende jeden Donnerstagabend in Innsbruck zur Verfügung. Das Format ist offen und richtet sich an ukrainische Familien, die Orientierung in alltäglichen Rechtsfragen brauchen."
           }
         },
         "uk" : {
@@ -14673,7 +14673,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktualisierter Leitfaden zur Schulanmeldung fur Neuankommende"
+            "value" : "Aktualisierter Leitfaden zur Schulanmeldung für Neuankommende"
           }
         },
         "uk" : {
@@ -14827,7 +14827,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hilft neu angekommenen Familien, Veranstaltungen, Unterstutzung und vertrauenswurdige lokale Angebote in Tirol zu finden."
+            "value" : "Hilft neu angekommenen Familien, Veranstaltungen, Unterstützung und vertrauenswürdige lokale Angebote in Tirol zu finden."
           }
         },
         "uk" : {
@@ -14941,7 +14941,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Moderationsstatus konnte nicht aktualisiert werden. Prufen Sie Ihre Verbindung und versuchen Sie es erneut."
+            "value" : "Der Moderationsstatus konnte nicht aktualisiert werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -15009,7 +15009,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ausstehende Inhalte konnten nicht geladen werden. Prufen Sie Ihre Verbindung und versuchen Sie es erneut."
+            "value" : "Ausstehende Inhalte konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -16206,7 +16206,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loschen"
+            "value" : "Löschen"
           }
         },
         "uk" : {
@@ -16223,7 +16223,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loschen fehlgeschlagen"
+            "value" : "Löschen fehlgeschlagen"
           }
         },
         "uk" : {
@@ -16240,7 +16240,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Diesen Nachrichtenbeitrag loschen?"
+            "value" : "Diesen Nachrichtenbeitrag löschen?"
           }
         },
         "uk" : {
@@ -16988,7 +16988,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das ausgewahlte Bild konnte nicht geladen werden."
+            "value" : "Das ausgewählte Bild konnte nicht geladen werden."
           }
         },
         "uk" : {
@@ -17005,7 +17005,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das ausgewahlte Bild konnte nicht verarbeitet werden."
+            "value" : "Das ausgewählte Bild konnte nicht verarbeitet werden."
           }
         },
         "uk" : {
@@ -17022,7 +17022,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Bild ist zu gross. Bitte wahlen Sie ein kleineres Foto."
+            "value" : "Das Bild ist zu groß. Bitte wählen Sie ein kleineres Foto."
           }
         },
         "uk" : {
@@ -17260,7 +17260,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wird veroffentlicht..."
+            "value" : "Wird veröffentlicht …"
           }
         },
         "uk" : {
@@ -17464,7 +17464,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nachricht wurde erfolgreich veroffentlicht."
+            "value" : "Nachricht wurde erfolgreich veröffentlicht."
           }
         },
         "uk" : {
@@ -17787,7 +17787,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch keine Neuigkeiten verfugbar."
+            "value" : "Noch keine Neuigkeiten verfügbar."
           }
         },
         "uk" : {
@@ -17804,7 +17804,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der ausgewahlte Nachrichtenbeitrag wurde nicht gefunden."
+            "value" : "Der ausgewählte Nachrichtenbeitrag wurde nicht gefunden."
           }
         },
         "uk" : {
@@ -17872,7 +17872,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nachrichten konnten nicht geladen werden. Bitte uberprufen Sie Ihre Verbindung und versuchen Sie es erneut."
+            "value" : "Nachrichten konnten nicht geladen werden. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -27901,7 +27901,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veranstaltung fur die Organisation erstellen"
+            "value" : "Veranstaltung für die Organisation erstellen"
           }
         },
         "uk" : {
@@ -27918,7 +27918,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nachricht fur die Organisation erstellen"
+            "value" : "Nachricht für die Organisation erstellen"
           }
         },
         "uk" : {
@@ -33927,7 +33927,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ausstehende Inhalte prufen"
+            "value" : "Ausstehende Inhalte prüfen"
           }
         },
         "uk" : {
@@ -43277,7 +43277,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Probleme fur das Rollen-Backfill gefunden."
+            "value" : "Keine Probleme für das Rollen-Backfill gefunden."
           }
         },
         "uk" : {
@@ -43566,7 +43566,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Benutzerdiagnosen konnen derzeit nicht geladen werden."
+            "value" : "Benutzerdiagnosen können derzeit nicht geladen werden."
           }
         },
         "uk" : {
