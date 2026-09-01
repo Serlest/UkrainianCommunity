@@ -4,6 +4,7 @@ import {test} from "node:test";
 import {
   classifyPlanningHistoryDraft,
   normalizeSourceURL,
+  parseContentPlanningHistoryBackfillOptions,
   publicationOutcomeForContent,
   summarizeHistoryClassifications,
 } from "./contentPlanningHistoryBackfillCore.mjs";
@@ -114,6 +115,89 @@ test("requires exact title and start date when only an event organization URL ma
   assert.equal(classifyPlanningHistoryDraft(eventDraft, [candidate]).status, "unresolved");
   candidate.data.title = "Зустріч громади";
   assert.equal(classifyPlanningHistoryDraft(eventDraft, [candidate]).status, "matched");
+});
+
+test("disambiguates repeated event source URLs only by exact title and start date", () => {
+  const eventDraft = draft({
+    kind: "event",
+    title: "Зустріч громади",
+    payload: {startDate: "2026-09-12T18:00:00+02:00"},
+  });
+  const repeatedSource = (id, title, startDate) => ({
+    collection: "events",
+    id,
+    data: {
+      title,
+      startDate,
+      externalAction: {url: "https://example.org/story"},
+      moderationStatus: "approved",
+    },
+  });
+  const result = classifyPlanningHistoryDraft(eventDraft, [
+    repeatedSource("event-1", "Інша подія", "2026-09-12T18:00:00+02:00"),
+    repeatedSource("event-2", "Зустріч громади", "2026-09-12T18:00:00+02:00"),
+    repeatedSource("event-3", "Зустріч громади", "2026-09-13T18:00:00+02:00"),
+  ]);
+  assert.equal(result.status, "matched");
+  assert.equal(result.content.id, "event-2");
+});
+
+test("keeps repeated event source URLs ambiguous when identity is still duplicated", () => {
+  const eventDraft = draft({
+    kind: "event",
+    title: "Зустріч громади",
+    payload: {startDate: "2026-09-12T18:00:00+02:00"},
+  });
+  const candidate = (id) => ({
+    collection: "events",
+    id,
+    data: {
+      title: "Зустріч громади",
+      startDate: "2026-09-12T18:00:00+02:00",
+      externalAction: {url: "https://example.org/story"},
+      moderationStatus: "approved",
+    },
+  });
+  const result = classifyPlanningHistoryDraft(eventDraft, [candidate("event-1"), candidate("event-2")]);
+  assert.equal(result.status, "ambiguous");
+  assert.equal(result.reason, "multiple-exact-url-identity-matches");
+});
+
+test("requires fresh explicit expectations before applying a history backfill", () => {
+  const dryRun = parseContentPlanningHistoryBackfillOptions([
+    "--project=example-project",
+  ]);
+  assert.equal(dryRun.apply, false);
+  assert.equal(dryRun.expectedMatched, undefined);
+
+  assert.throws(
+    () => parseContentPlanningHistoryBackfillOptions([
+      "--project=example-project",
+      "--apply",
+      "--confirm-project=example-project",
+    ]),
+    /explicit expectations from a fresh dry-run/
+  );
+  assert.throws(
+    () => parseContentPlanningHistoryBackfillOptions([
+      "--project=example-project",
+      "--expect-matched=92",
+    ]),
+    /Provide --expect-matched/
+  );
+
+  const apply = parseContentPlanningHistoryBackfillOptions([
+    "--project=example-project",
+    "--apply",
+    "--confirm-project=example-project",
+    "--expect-matched=92",
+    "--expect-unresolved=2",
+    "--expect-ambiguous=0",
+  ]);
+  assert.equal(apply.apply, true);
+  assert.equal(apply.expectedMatched, 92);
+  assert.equal(apply.expectedUnresolved, 2);
+  assert.equal(apply.expectedAmbiguous, 0);
 });
 
 test("derives receipt outcomes only from persisted moderation state", () => {

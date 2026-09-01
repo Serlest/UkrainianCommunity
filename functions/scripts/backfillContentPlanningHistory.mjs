@@ -3,11 +3,12 @@ import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
 
 import {
   classifyPlanningHistoryDraft,
+  parseContentPlanningHistoryBackfillOptions,
   publicationOutcomeForContent,
   summarizeHistoryClassifications,
 } from "./contentPlanningHistoryBackfillCore.mjs";
 
-const options = parseOptions(process.argv.slice(2));
+const options = parseContentPlanningHistoryBackfillOptions(process.argv.slice(2));
 const app = initializeApp(
   {credential: applicationDefault(), projectId: options.projectId},
   `content-planning-history-${Date.now()}`
@@ -126,6 +127,11 @@ async function verifyReadBack(classifications) {
 }
 
 function assertExpectedSummary(summary, options) {
+  if (options.expectedMatched === undefined ||
+      options.expectedUnresolved === undefined ||
+      options.expectedAmbiguous === undefined) {
+    return;
+  }
   if (summary.safeResolved !== options.expectedMatched ||
       summary.totalUnresolved !== options.expectedUnresolved ||
       summary.ambiguous !== options.expectedAmbiguous ||
@@ -137,48 +143,6 @@ function assertExpectedSummary(summary, options) {
       `invalid=${summary.invalid}. No writes were made.`
     );
   }
-}
-
-function parseOptions(argumentsList) {
-  const values = new Map();
-  let apply = false;
-  for (const argument of argumentsList) {
-    if (argument === "--apply") apply = true;
-    else if (argument.startsWith("--") && argument.includes("=")) {
-      const separator = argument.indexOf("=");
-      values.set(argument.slice(2, separator), argument.slice(separator + 1));
-    } else {
-      throw new Error(`Unsupported argument: ${argument}`);
-    }
-  }
-  const projectId = required(values.get("project"), "--project");
-  if (apply && values.get("confirm-project") !== projectId) {
-    throw new Error("--apply requires --confirm-project to exactly match --project.");
-  }
-  return {
-    projectId,
-    apply,
-    expectedMatched: positiveInteger(values.get("expect-matched") ?? "91", "--expect-matched"),
-    expectedUnresolved: nonNegativeInteger(values.get("expect-unresolved") ?? "3", "--expect-unresolved"),
-    expectedAmbiguous: nonNegativeInteger(values.get("expect-ambiguous") ?? "0", "--expect-ambiguous"),
-  };
-}
-
-function required(value, flag) {
-  if (typeof value !== "string" || !value.trim()) throw new Error(`${flag} is required.`);
-  return value.trim();
-}
-
-function positiveInteger(value, flag) {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`${flag} must be a positive integer.`);
-  return parsed;
-}
-
-function nonNegativeInteger(value, flag) {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error(`${flag} must be a non-negative integer.`);
-  return parsed;
 }
 
 function chunks(values, size) {

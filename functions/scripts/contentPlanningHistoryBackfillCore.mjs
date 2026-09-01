@@ -52,6 +52,21 @@ export function classifyPlanningHistoryDraft(draft, liveContent) {
     return [...sourceURLs].some((url) => candidateURLs.has(url));
   });
   if (strongMatches.length > 1) {
+    if (kind === "event") {
+      const identityMatches = strongMatches.filter((item) =>
+        hasExactEventIdentity(draft.data, item.data)
+      );
+      if (identityMatches.length === 1) {
+        return {status: "matched", content: identityMatches[0]};
+      }
+      if (identityMatches.length > 1) {
+        return {
+          status: "ambiguous",
+          reason: "multiple-exact-url-identity-matches",
+          matches: identityMatches,
+        };
+      }
+    }
     return {status: "ambiguous", reason: "multiple-exact-url-matches", matches: strongMatches};
   }
   if (strongMatches.length === 1) return {status: "matched", content: strongMatches[0]};
@@ -101,6 +116,55 @@ export function summarizeHistoryClassifications(classifications) {
   summary.safeResolved = summary.matched + summary.alreadyLinked;
   summary.totalUnresolved = summary.unresolved + summary.alreadyUnresolved;
   return summary;
+}
+
+export function parseContentPlanningHistoryBackfillOptions(argumentsList) {
+  const values = new Map();
+  let apply = false;
+  for (const argument of argumentsList) {
+    if (argument === "--apply") apply = true;
+    else if (argument.startsWith("--") && argument.includes("=")) {
+      const separator = argument.indexOf("=");
+      values.set(argument.slice(2, separator), argument.slice(separator + 1));
+    } else {
+      throw new Error(`Unsupported argument: ${argument}`);
+    }
+  }
+
+  const projectId = requiredOption(values.get("project"), "--project");
+  if (apply && values.get("confirm-project") !== projectId) {
+    throw new Error("--apply requires --confirm-project to exactly match --project.");
+  }
+
+  const expectationKeys = ["expect-matched", "expect-unresolved", "expect-ambiguous"];
+  const providedExpectationKeys = expectationKeys.filter((key) => values.has(key));
+  if (providedExpectationKeys.length !== 0 &&
+      providedExpectationKeys.length !== expectationKeys.length) {
+    throw new Error(
+      "Provide --expect-matched, --expect-unresolved and --expect-ambiguous together."
+    );
+  }
+  if (apply && providedExpectationKeys.length !== expectationKeys.length) {
+    throw new Error(
+      "--apply requires explicit expectations from a fresh dry-run: " +
+      "--expect-matched, --expect-unresolved and --expect-ambiguous."
+    );
+  }
+
+  const hasExpectations = providedExpectationKeys.length === expectationKeys.length;
+  return {
+    projectId,
+    apply,
+    expectedMatched: hasExpectations
+      ? nonNegativeOption(values.get("expect-matched"), "--expect-matched")
+      : undefined,
+    expectedUnresolved: hasExpectations
+      ? nonNegativeOption(values.get("expect-unresolved"), "--expect-unresolved")
+      : undefined,
+    expectedAmbiguous: hasExpectations
+      ? nonNegativeOption(values.get("expect-ambiguous"), "--expect-ambiguous")
+      : undefined,
+  };
 }
 
 function unresolvedResult(data, reason) {
@@ -156,4 +220,17 @@ function timestampMilliseconds(value) {
 
 function nonEmptyString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function requiredOption(value, flag) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${flag} is required.`);
+  return value.trim();
+}
+
+function nonNegativeOption(value, flag) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`${flag} must be a non-negative integer.`);
+  }
+  return parsed;
 }
