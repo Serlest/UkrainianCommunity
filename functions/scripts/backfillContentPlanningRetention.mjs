@@ -1,96 +1,107 @@
-import {applicationDefault, deleteApp, initializeApp} from "firebase-admin/app";
-import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
-
 import {
   assertContentPlanningRetentionExpectations,
   classifyContentPlanningRetentionDraft,
   parseContentPlanningRetentionBackfillOptions,
   summarizeContentPlanningRetention,
 } from "./contentPlanningRetentionBackfillCore.mjs";
+import {firebaseCliCredential} from "./firebaseCliCredential.mjs";
+import {
+  buildContentPlanningRetentionWrite,
+  decodeFirestoreDocument,
+  verifyContentPlanningRetentionReadBack,
+} from "./contentPlanningRetentionRest.mjs";
 
 const options = parseContentPlanningRetentionBackfillOptions(process.argv.slice(2));
-const app = initializeApp(
-  {credential: applicationDefault(), projectId: options.projectId},
-  `content-planning-retention-${Date.now()}`
-);
+const credential = await firebaseCliCredential();
+const firestoreBase = `https://firestore.googleapis.com/v1/projects/${options.projectId}` +
+  "/databases/(default)";
 
-try {
-  const database = getFirestore(app);
-  const snapshot = await database.collectionGroup("contentPlanningDrafts").get();
-  const classifications = snapshot.docs.map((document) => ({
-    reference: document.ref,
-    draft: {id: document.id, path: document.ref.path, data: document.data()},
-    result: classifyContentPlanningRetentionDraft({
-      id: document.id,
-      path: document.ref.path,
-      data: document.data(),
-    }),
-  }));
-  const summary = summarizeContentPlanningRetention(classifications);
-  assertContentPlanningRetentionExpectations(summary, options.expectations);
+const documents = await listContentPlanningDrafts();
+const classifications = documents.map((draft) => ({
+  draft,
+  result: classifyContentPlanningRetentionDraft({
+    path: draft.path,
+    data: draft.data,
+  }),
+}));
+const summary = summarizeContentPlanningRetention(classifications);
+assertContentPlanningRetentionExpectations(summary, options.expectations);
 
-  if (options.apply) {
-    await applyRetentionBackfill(database, classifications);
-    await verifyReadBack(database, classifications);
-  }
-
-  console.log(JSON.stringify({
-    projectId: options.projectId,
-    mode: options.apply ? "apply" : "dry-run",
-    summary,
-    records: classifications.map(({draft, result}) => ({
-      path: draft.path,
-      status: result.status,
-      category: result.category,
-      reason: result.reason,
-      retentionExpiresAt: result.retentionExpiresAtMilliseconds === undefined
-        ? undefined
-        : new Date(result.retentionExpiresAtMilliseconds).toISOString(),
-      mediaCleanupStatus: result.mediaCleanupStatus,
-    })),
-  }, null, 2));
-} finally {
-  await deleteApp(app);
+if (options.apply) {
+  await applyRetentionBackfill(classifications);
+  await verifyReadBack(classifications);
 }
 
-async function applyRetentionBackfill(database, classifications) {
+console.log(JSON.stringify({
+  projectId: options.projectId,
+  mode: options.apply ? "apply" : "dry-run",
+  summary,
+  records: classifications.map(({draft, result}) => ({
+    path: draft.path,
+    status: result.status,
+    category: result.category,
+    reason: result.reason,
+    retentionExpiresAt: result.retentionExpiresAtMilliseconds === undefined
+      ? undefined
+      : new Date(result.retentionExpiresAtMilliseconds).toISOString(),
+    mediaCleanupStatus: result.mediaCleanupStatus,
+  })),
+}, null, 2));
+
+async function listContentPlanningDrafts() {
+  const rows = await firestoreRequest("/documents:runQuery", {
+    method: "POST",
+    body: JSON.stringify({structuredQuery: {
+      from: [{collectionId: "contentPlanningDrafts", allDescendants: true}],
+    }}),
+  });
+  return rows.flatMap((row) => row.document
+    ? [decodeFirestoreDocument(row.document)]
+    : []);
+}
+
+async function applyRetentionBackfill(classifications) {
   const updates = classifications.filter((item) => item.result.status === "update");
   for (const group of chunks(updates, 400)) {
-    const batch = database.batch();
-    for (const item of group) {
-      const patch = {
-        retentionExpiresAt: Timestamp.fromMillis(item.result.retentionExpiresAtMilliseconds),
-        retentionPolicy: "contentPlanningReceipt6Months",
-      };
-      if (!nonEmptyString(item.draft.data.draftMediaCleanupStatus)) {
-        patch.draftMediaCleanupStatus = item.result.mediaCleanupStatus;
-        if (item.result.requestsMediaCleanup) {
-          patch.draftMediaCleanupRequestedAt = FieldValue.serverTimestamp();
-        }
-      }
-      batch.update(item.reference, patch);
-    }
-    await batch.commit();
+    await firestoreRequest("/documents:commit", {
+      method: "POST",
+      body: JSON.stringify({writes: group.map(buildContentPlanningRetentionWrite)}),
+    });
   }
 }
 
-async function verifyReadBack(database, classifications) {
+async function verifyReadBack(classifications) {
   const updates = classifications.filter((item) => item.result.status === "update");
-  for (const group of chunks(updates, 100)) {
-    const snapshots = await database.getAll(...group.map((item) => item.reference));
-    for (let index = 0; index < snapshots.length; index += 1) {
-      const snapshot = snapshots[index];
-      const expected = group[index].result;
-      const retentionExpiresAt = snapshot.get("retentionExpiresAt");
-      const cleanupStatus = nonEmptyString(snapshot.get("draftMediaCleanupStatus"));
-      if (!snapshot.exists || !(retentionExpiresAt instanceof Timestamp) ||
-          retentionExpiresAt.toMillis() !== expected.retentionExpiresAtMilliseconds ||
-          snapshot.get("retentionPolicy") !== "contentPlanningReceipt6Months" ||
-          !cleanupStatus) {
+  for (const group of chunks(updates, 20)) {
+    const documents = await Promise.all(group.map((item) => firestoreRequest(
+      documentRestPath(item.draft.name)
+    )));
+    for (let index = 0; index < documents.length; index += 1) {
+      if (!verifyContentPlanningRetentionReadBack(documents[index], group[index].result)) {
         throw new Error(`Retention read-back failed for ${group[index].draft.path}.`);
       }
     }
   }
+}
+
+async function firestoreRequest(path, settings = {}) {
+  const token = await credential.getAccessToken();
+  const headers = new Headers(settings.headers ?? {});
+  headers.set("Authorization", `Bearer ${token.access_token}`);
+  if (settings.body) headers.set("Content-Type", "application/json");
+  const response = await fetch(`${firestoreBase}${path}`, {...settings, headers});
+  if (!response.ok) {
+    throw new Error(`Firestore request failed (${response.status}): ${await response.text()}`);
+  }
+  return response.json();
+}
+
+function documentRestPath(documentName) {
+  const expectedPrefix = `projects/${options.projectId}/databases/(default)/documents/`;
+  if (typeof documentName !== "string" || !documentName.startsWith(expectedPrefix)) {
+    throw new Error("Firestore returned a document outside the confirmed project.");
+  }
+  return `/documents/${documentName.slice(expectedPrefix.length)}`;
 }
 
 function chunks(values, size) {
@@ -99,10 +110,4 @@ function chunks(values, size) {
     result.push(values.slice(index, index + size));
   }
   return result;
-}
-
-function nonEmptyString(value) {
-  if (typeof value !== "string") return undefined;
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : undefined;
 }
