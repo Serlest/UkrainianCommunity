@@ -79,19 +79,29 @@ protocol NotificationPushTokenRepository {
 }
 
 protocol OwnerContentDraftRepository {
-    func fetchDrafts(userID: String, limit: Int) async throws -> [OwnerContentDraft]
-    func listenDrafts(
+    func fetchDraftPage(
         userID: String,
+        section: OwnerContentPlanningSection,
         limit: Int,
-        onChange: @escaping @MainActor ([OwnerContentDraft]) -> Void,
-        onError: @escaping @MainActor (AppError) -> Void
-    ) -> AppRealtimeListener
-    func markScheduled(
+        after cursor: OwnerContentDraftPageCursor?
+    ) async throws -> OwnerContentDraftPage
+    func fetchDraft(userID: String, draftID: String) async throws -> OwnerContentDraft
+    func beginPublication(
+        userID: String,
+        draftID: String,
+        attemptID: String
+    ) async throws -> OwnerContentPublicationLease
+    func finalizePublication(
         userID: String,
         draftID: String,
         publication: ContentPlanningPublicationResult
     ) async throws
-    func markCompleted(userID: String, draftID: String) async throws
+    func failPublication(
+        userID: String,
+        draftID: String,
+        leaseID: String,
+        message: String
+    ) async throws
     func archive(userID: String, draftID: String) async throws
     func delete(userID: String, draftID: String) async throws
 }
@@ -269,6 +279,7 @@ protocol NewsRepository {
     func fetchOrganizationNewsCount(organizationID: String) async throws -> Int
     func createNews(_ news: NewsPost) async throws
     func updateNews(_ news: NewsPost) async throws
+    func updateExistingPlanningNews(_ news: NewsPost) async throws
     func updateNewsImageURL(id: String, imageURL: String?) async throws
     func deleteNews(id: String) async throws
     func likeNews(id: String, actionCapture: AnalyticsActionCapture?) async throws
@@ -300,6 +311,7 @@ protocol EventRepository: EventRegistrationMutating {
     func fetchOrganizationEventCount(organizationID: String) async throws -> Int
     func createEvent(_ event: Event) async throws
     func updateEvent(_ event: Event) async throws
+    func updateExistingPlanningEvent(_ event: Event) async throws
     func updateEventImageURL(id: String, imageURL: String?) async throws
     func deleteEvent(id: String) async throws
     func likeEvent(id: String) async throws
@@ -313,6 +325,18 @@ protocol EventRepository: EventRegistrationMutating {
     func bookmarkEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unbookmarkEvent(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
+}
+
+extension NewsRepository {
+    func updateExistingPlanningNews(_ news: NewsPost) async throws {
+        try await updateNews(news)
+    }
+}
+
+extension EventRepository {
+    func updateExistingPlanningEvent(_ event: Event) async throws {
+        try await updateEvent(event)
+    }
 }
 
 protocol OrganizationRepository {

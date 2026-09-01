@@ -6,109 +6,236 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
     private let database = Firestore.firestore()
     private let functions = Functions.functions(region: "europe-west3")
 
-    func fetchDrafts(userID: String, limit: Int) async throws -> [OwnerContentDraft] {
-        let snapshot = try await collection(userID: userID)
-            .order(by: "updatedAt", descending: true)
-            .limit(to: max(1, limit))
-            .getDocuments()
-        return snapshot.documents.compactMap(makeDraft).filter(\.isVisibleInPlanning)
-    }
-
-    func listenDrafts(
+    func fetchDraftPage(
         userID: String,
+        section: OwnerContentPlanningSection,
         limit: Int,
-        onChange: @escaping @MainActor ([OwnerContentDraft]) -> Void,
-        onError: @escaping @MainActor (AppError) -> Void
-    ) -> AppRealtimeListener {
-        let registration = collection(userID: userID)
-            .order(by: "updatedAt", descending: true)
-            .limit(to: max(1, limit))
-            .addSnapshotListener { snapshot, error in
-                if let error {
-                    Task { @MainActor in onError(Self.appError(from: error)) }
-                    return
-                }
-                let drafts = snapshot?.documents.compactMap(makeDraft).filter(\.isVisibleInPlanning) ?? []
-                Task { @MainActor in onChange(drafts) }
+        after cursor: OwnerContentDraftPageCursor?
+    ) async throws -> OwnerContentDraftPage {
+        let pageSize = max(1, limit)
+        let sortField = section.usesAscendingScheduleOrder ? "scheduledAt" : "updatedAt"
+        let isDescending = !section.usesAscendingScheduleOrder
+        var query: Query = collection(userID: userID)
+
+        if section.states.count == 1, let state = section.states.first {
+            query = query.whereField("state", isEqualTo: state.rawValue)
+        } else {
+            query = query.whereField("state", in: section.states.map(\.rawValue))
+        }
+
+        query = query
+            .order(by: sortField, descending: isDescending)
+            .order(by: FieldPath.documentID(), descending: isDescending)
+            .limit(to: pageSize + 1)
+
+        if let cursor {
+            query = query.start(after: [Timestamp(date: cursor.sortDate), cursor.documentID])
+        }
+
+        do {
+            let snapshot = try await query.getDocuments()
+            let documents = Array(snapshot.documents.prefix(pageSize))
+            let items = documents.compactMap(makeDraft)
+            guard items.count == documents.count else {
+                throw AppError.validationFailed
             }
-        return FirebaseRealtimeListener(registration)
+            return OwnerContentDraftPage(
+                items: items,
+                nextCursor: documents.last.flatMap { document in
+                    guard let sortDate = date(document.data()[sortField]) else { return nil }
+                    return OwnerContentDraftPageCursor(sortDate: sortDate, documentID: document.documentID)
+                },
+                hasMore: snapshot.documents.count > pageSize
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw Self.appError(from: error)
+        }
     }
 
-    func markCompleted(userID: String, draftID: String) async throws {
-        try await collection(userID: userID).document(draftID).updateData([
-            "state": OwnerContentDraftState.completed.rawValue,
-            "completedAt": FieldValue.serverTimestamp(),
-            "updatedAt": FieldValue.serverTimestamp()
-        ])
+    func fetchDraft(userID: String, draftID: String) async throws -> OwnerContentDraft {
+        do {
+            let snapshot = try await collection(userID: userID).document(draftID).getDocument()
+            guard snapshot.exists else { throw AppError.notFound }
+            guard let draft = makeDraft(from: snapshot) else { throw AppError.validationFailed }
+            return draft
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw Self.appError(from: error)
+        }
     }
 
-    func markScheduled(
+    func beginPublication(
+        userID: String,
+        draftID: String,
+        attemptID: String
+    ) async throws -> OwnerContentPublicationLease {
+        struct Request: Encodable {
+            let draftId: String
+            let attemptId: String
+        }
+        struct Response: Decodable {
+            let draftId: String
+            let kind: String
+            let contentId: String
+            let leaseId: String
+            let expiresAt: String
+            let contentAlreadyExists: Bool
+            let existingModerationStatus: String?
+            let existingScheduledAt: String?
+        }
+
+        do {
+            let callable: Callable<Request, Response> = functions.httpsCallable("beginOwnerContentDraftPublication")
+            let response = try await callable.call(Request(draftId: draftID, attemptId: attemptID))
+            guard let kind = OwnerContentDraftKind(rawValue: response.kind),
+                  let expiresAt = ISO8601DateFormatter().date(from: response.expiresAt),
+                  response.existingModerationStatus == nil ||
+                    ModerationStatus(rawValue: response.existingModerationStatus ?? "") != nil else {
+                throw AppError.validationFailed
+            }
+            let existingScheduledAt = response.existingScheduledAt.flatMap {
+                ISO8601DateFormatter().date(from: $0)
+            }
+            if response.existingScheduledAt != nil, existingScheduledAt == nil {
+                throw AppError.validationFailed
+            }
+            let moderationStatus = response.existingModerationStatus.flatMap(ModerationStatus.init(rawValue:))
+            guard response.contentAlreadyExists == (moderationStatus != nil),
+                  moderationStatus == .draft || existingScheduledAt == nil else {
+                throw AppError.validationFailed
+            }
+            return OwnerContentPublicationLease(
+                draftID: response.draftId,
+                kind: kind,
+                contentID: response.contentId,
+                leaseID: response.leaseId,
+                expiresAt: expiresAt,
+                contentAlreadyExists: response.contentAlreadyExists,
+                existingModerationStatus: moderationStatus,
+                existingScheduledAt: existingScheduledAt
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw Self.appError(from: error)
+        }
+    }
+
+    func finalizePublication(
         userID: String,
         draftID: String,
         publication: ContentPlanningPublicationResult
     ) async throws {
-        guard let scheduledAt = publication.scheduledAt else {
+        guard let leaseID = publication.publicationLeaseID else {
             throw AppError.validationFailed
         }
         struct Request: Encodable {
             let draftId: String
+            let leaseId: String
             let contentId: String
             let kind: String
-            let scheduledAt: String
         }
-        struct Response: Decodable { let scheduled: Bool }
+        struct Response: Decodable { let finalized: Bool }
 
-        let callable: Callable<Request, Response> = functions.httpsCallable("scheduleOwnerContentDraft")
-        _ = try await callable.call(Request(
-            draftId: draftID,
-            contentId: publication.contentID,
-            kind: publication.kind.rawValue,
-            scheduledAt: ISO8601DateFormatter().string(from: scheduledAt)
-        ))
+        do {
+            let callable: Callable<Request, Response> = functions.httpsCallable("finalizeOwnerContentDraftPublication")
+            let response = try await callable.call(Request(
+                draftId: draftID,
+                leaseId: leaseID,
+                contentId: publication.contentID,
+                kind: publication.kind.rawValue
+            ))
+            guard response.finalized else { throw AppError.unknown }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw Self.appError(from: error)
+        }
+    }
+
+    func failPublication(
+        userID: String,
+        draftID: String,
+        leaseID: String,
+        message: String
+    ) async throws {
+        struct Request: Encodable {
+            let draftId: String
+            let leaseId: String
+            let message: String
+        }
+        struct Response: Decodable { let failed: Bool }
+
+        do {
+            let callable: Callable<Request, Response> = functions.httpsCallable("failOwnerContentDraftPublication")
+            _ = try await callable.call(Request(
+                draftId: draftID,
+                leaseId: leaseID,
+                message: String(message.prefix(500))
+            ))
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw Self.appError(from: error)
+        }
     }
 
     func archive(userID: String, draftID: String) async throws {
-        try await collection(userID: userID).document(draftID).updateData([
-            "state": OwnerContentDraftState.archived.rawValue,
-            "updatedAt": FieldValue.serverTimestamp()
-        ])
+        struct Request: Encodable { let draftId: String }
+        struct Response: Decodable { let archived: Bool }
+
+        do {
+            let callable: Callable<Request, Response> = functions.httpsCallable("archiveOwnerContentDraft")
+            _ = try await callable.call(Request(draftId: draftID))
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw Self.appError(from: error)
+        }
     }
 
     func delete(userID: String, draftID: String) async throws {
         struct Request: Encodable { let draftId: String }
         struct Response: Decodable { let deleted: Bool }
 
-        let callable: Callable<Request, Response> = functions.httpsCallable("deleteOwnerContentDraft")
-        _ = try await callable.call(Request(draftId: draftID))
+        do {
+            let callable: Callable<Request, Response> = functions.httpsCallable("deleteOwnerContentDraft")
+            _ = try await callable.call(Request(draftId: draftID))
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw Self.appError(from: error)
+        }
     }
 
     private func collection(userID: String) -> CollectionReference {
         database.collection("users").document(userID).collection("contentPlanningDrafts")
     }
 
-    private func makeDraft(from document: QueryDocumentSnapshot) -> OwnerContentDraft? {
-        let data = document.data()
+    private func makeDraft(from document: DocumentSnapshot) -> OwnerContentDraft? {
+        guard let data = document.data() else { return nil }
         guard let kindRaw = data["kind"] as? String,
               let kind = OwnerContentDraftKind(rawValue: kindRaw),
               let stateRaw = data["state"] as? String,
-              let state = OwnerContentDraftState(rawValue: stateRaw),
-              let payload = data["payload"] as? [String: Any] else {
+              let state = OwnerContentDraftState(rawValue: stateRaw) else {
             return nil
         }
+        let payload = data["payload"] as? [String: Any] ?? [:]
 
         let ownerUserID = document.reference.parent.parent?.documentID ?? string(data["ownerUserId"])
         let sources = (data["sources"] as? [[String: Any]] ?? []).compactMap(makeSource)
         let newsDraft = kind == .news ? makeNewsDraft(payload, updatedAt: date(data["updatedAt"]) ?? .now) : nil
         let eventDraft = kind == .event ? makeEventDraft(payload, updatedAt: date(data["updatedAt"]) ?? .now) : nil
-        guard newsDraft != nil || eventDraft != nil else { return nil }
-
         return OwnerContentDraft(
             id: document.documentID,
             schemaVersion: integer(data["schemaVersion"]) ?? 1,
             ownerUserID: ownerUserID,
             kind: kind,
             state: state,
-            title: string(data["title"]),
+            title: optionalString(data["title"]) ?? string(payload["title"]),
             sourceReferences: sources,
             verificationNotes: stringArray(data["verificationNotes"]),
             missingFields: stringArray(data["missingFields"]),
@@ -118,8 +245,15 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             updatedAt: date(data["updatedAt"]) ?? .now,
             scheduledAt: date(data["scheduledAt"]),
             completedAt: date(data["completedAt"]),
+            archivedAt: date(data["archivedAt"]),
             failureMessage: optionalString(data["failureMessage"]),
-            generatedImage: makeGeneratedImage(data["generatedImage"])
+            publicationLeaseExpiresAt: date(data["publicationLeaseExpiresAt"]),
+            generatedImage: makeGeneratedImage(data["generatedImage"]),
+            publishedContentID: optionalString(data["publishedContentId"]),
+            publishedContentKind: optionalString(data["publishedContentKind"]).flatMap(OwnerContentDraftKind.init(rawValue:)),
+            publishedOrganizationID: optionalString(data["publishedOrganizationId"]),
+            publishedOrganizationName: optionalString(data["publishedOrganizationName"]),
+            publicationOutcome: optionalString(data["publicationOutcome"]).flatMap(OwnerContentPublicationOutcome.init(rawValue:))
         )
     }
 
@@ -253,7 +387,24 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
     }
 
     private static func appError(from error: Error) -> AppError {
+        if error is CancellationError { return .unknown }
+        if let appError = error as? AppError { return appError }
         let nsError = error as NSError
+        if nsError.domain == FunctionsErrorDomain,
+           let code = FunctionsErrorCode(rawValue: nsError.code) {
+            switch code {
+            case .unauthenticated, .permissionDenied:
+                return .permissionDenied
+            case .notFound:
+                return .notFound
+            case .invalidArgument, .failedPrecondition, .alreadyExists, .aborted:
+                return .validationFailed
+            case .cancelled, .deadlineExceeded, .resourceExhausted, .unavailable:
+                return .network
+            default:
+                return .unknown
+            }
+        }
         switch nsError.code {
         case FirestoreErrorCode.permissionDenied.rawValue: return .permissionDenied
         case FirestoreErrorCode.notFound.rawValue: return .notFound

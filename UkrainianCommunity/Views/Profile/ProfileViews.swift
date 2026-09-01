@@ -18,7 +18,9 @@ enum ProfileNavigationRoute: Hashable {
     case moderationTools
     case userManagement
     case featuredBannerManagement
-    case contentPlanning
+    case contentPlanning(draftID: String?)
+    case contentPlanningNews(id: String)
+    case contentPlanningEvent(id: String)
     case legalDocumentManagement
     case legalEvidence
     case ownerAnalytics
@@ -645,22 +647,47 @@ struct ProfileView: View {
                 eventRepository: eventRepository,
                 organizationRepository: organizationRepository
             )
-        case .contentPlanning:
+        case let .contentPlanning(draftID):
             if PermissionService.isAppOwner(user: permissionUser) {
                 OwnerContentPlanningView(
                     draftRepository: ownerContentDraftRepository,
                     newsRepository: newsRepository,
                     eventRepository: eventRepository,
                     organizationRepository: organizationRepository,
+                    initialDraftID: draftID,
                     onDraftOpened: { draft in
                         Task {
                             await notificationInboxViewModel.markRead(
                                 notificationID: "contentDraftReady_\(draft.id)"
                             )
                         }
+                    },
+                    onOpenPublishedContent: { kind, contentID in
+                        switch kind {
+                        case .news:
+                            navigationPath.append(.contentPlanningNews(id: contentID))
+                        case .event:
+                            navigationPath.append(.contentPlanningEvent(id: contentID))
+                        }
                     }
                 )
             }
+        case let .contentPlanningNews(id):
+            NewsDetailView(
+                viewModel: newsViewModel,
+                postID: id,
+                onNewsDeleted: { navigationPath.removeLast() },
+                organizationRepository: organizationRepository,
+                analyticsSourceScreen: "content_planning_history"
+            )
+        case let .contentPlanningEvent(id):
+            EventDetailView(
+                viewModel: eventsViewModel,
+                eventID: id,
+                onEventDeleted: { navigationPath.removeLast() },
+                organizationRepository: organizationRepository,
+                analyticsSourceScreen: "content_planning_history"
+            )
         case .legalDocumentManagement:
             LegalDocumentManagementView(repository: legalDocumentRepository)
         case .legalEvidence:
@@ -1243,7 +1270,7 @@ struct ProfileView: View {
                     }
 
                     if PermissionService.isAppOwner(user: permissionUser) {
-                        NavigationLink(value: ProfileNavigationRoute.contentPlanning) {
+                        NavigationLink(value: ProfileNavigationRoute.contentPlanning(draftID: nil)) {
                             ProfileModuleRow(
                                 title: AppStrings.ContentPlanning.title,
                                 subtitle: AppStrings.ContentPlanning.profileSubtitle,

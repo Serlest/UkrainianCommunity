@@ -1115,8 +1115,9 @@ enum AppStrings {
         static var profileSubtitle: String { text("content_planning.profile_subtitle", "Переглянути підготовлені новини та події") }
         static var filter: String { text("content_planning.filter", "Фільтр") }
         static var drafts: String { text("content_planning.drafts", "Чернетки") }
-        static var scheduled: String { text("content_planning.scheduled", "Майбутні") }
-        static var attention: String { text("content_planning.attention", "Увага") }
+        static var scheduled: String { text("content_planning.scheduled", "Заплановані") }
+        static var attention: String { text("content_planning.attention", "Потребують уваги") }
+        static var history: String { text("content_planning.history", "Історія") }
         static var attentionTitle: String { text("content_planning.attention.title", "Потрібно перевірити") }
         static var attentionEditorHint: String { text("content_planning.attention.editor_hint", "Перед публікацією перевірте саме ці поля:") }
         static var attentionReasonMissing: String { text("content_planning.attention.reason_missing", "Причину не вказано. Чернетку потрібно підготувати повторно.") }
@@ -1126,15 +1127,47 @@ enum AppStrings {
         static var moreActions: String { text("content_planning.more_actions", "Більше дій") }
         static var archive: String { text("content_planning.archive", "Архівувати") }
         static var archiveTitle: String { text("content_planning.archive.title", "Архівувати чернетку?") }
-        static var archiveMessage: String { text("content_planning.archive.message", "Чернетка зникне з планування, але опублікований контент не буде змінено.") }
+        static var archiveMessage: String { text("content_planning.archive.message", "Чернетка перейде в історію без публікації.") }
         static var delete: String { text("content_planning.delete", "Видалити") }
         static var deleteTitle: String { text("content_planning.delete.title", "Видалити чернетку?") }
-        static var deleteMessage: String { text("content_planning.delete.message", "Чернетку та створену для неї обкладинку буде видалено безповоротно. Опублікований контент не зміниться.") }
+        static var deleteMessage: String { text("content_planning.delete.message", "Неопубліковану чернетку та створену для неї обкладинку буде видалено безповоротно.") }
         static var emptyTitle: String { text("content_planning.empty.title", "Тут поки порожньо") }
         static var emptyMessage: String { text("content_planning.empty.message", "Надішліть посилання асистенту. Після перевірки матеріал з’явиться тут і залишиться приватним до вашої публікації.") }
+        static var emptyDraftsTitle: String { text("content_planning.empty.drafts.title", "Чернеток немає") }
+        static var emptyDraftsMessage: String { text("content_planning.empty.drafts.message", "Нові перевірені матеріали з’являться тут для вашого перегляду.") }
+        static var emptyScheduledTitle: String { text("content_planning.empty.scheduled.title", "Нічого не заплановано") }
+        static var emptyScheduledMessage: String { text("content_planning.empty.scheduled.message", "Матеріали з майбутньою датою публікації з’являться тут.") }
+        static var emptyAttentionTitle: String { text("content_planning.empty.attention.title", "Уточнень не потрібно") }
+        static var emptyAttentionMessage: String { text("content_planning.empty.attention.message", "Зараз немає матеріалів із помилками або полями, які потрібно перевірити.") }
+        static var emptyHistoryTitle: String { text("content_planning.empty.history.title", "Історія порожня") }
+        static var emptyHistoryMessage: String { text("content_planning.empty.history.message", "Після публікації або архівування тут залишиться квитанція з результатом.") }
         static var loadFailed: String { text("content_planning.error.load", "Не вдалося завантажити планування. Перевірте з’єднання та спробуйте ще раз.") }
         static var updateFailed: String { text("content_planning.error.update", "Не вдалося оновити чернетку. Спробуйте ще раз.") }
         static var deleteFailed: String { text("content_planning.error.delete", "Не вдалося видалити чернетку. Перевірте з’єднання та спробуйте ще раз.") }
+        static var publicationBeginFailed: String { text("content_planning.error.publication_begin", "Не вдалося безпечно розпочати публікацію. Чернетку не змінено — спробуйте ще раз.") }
+        static var publicationModeChanged: String { text("content_planning.error.publication_mode_changed", "Режим уже створеного матеріалу змінився. Виберіть режим, що відповідає його поточному статусу, і повторіть спробу.") }
+        static var loading: String { text("content_planning.loading", "Завантаження планування") }
+        static var loadingMore: String { text("content_planning.loading_more", "Завантаження наступної сторінки") }
+        static var retry: String { text("content_planning.retry", "Спробувати ще раз") }
+        static var offline: String { text("content_planning.error.offline", "Немає з’єднання. Перевірте інтернет і спробуйте ще раз.") }
+        static var accessDenied: String { text("content_planning.error.access_denied", "Цей розділ доступний лише власнику застосунку.") }
+        static var deepLinkNotFound: String { text("content_planning.error.not_found", "Цей матеріал більше не доступний або був видалений.") }
+        static var publishingInProgress: String { text("content_planning.publishing_in_progress", "Публікація вже виконується") }
+        static var viewReceipt: String { text("content_planning.history.view_receipt", "Квитанція") }
+        static var openPublished: String { text("content_planning.history.open_published", "Відкрити матеріал") }
+        static var statusPublished: String { text("content_planning.history.status.published", "Опубліковано") }
+        static var statusArchived: String { text("content_planning.history.status.archived", "Архівовано") }
+        static var receiptTitle: String { text("content_planning.history.receipt.title", "Результат обробки") }
+        static var receiptDate: String { text("content_planning.history.receipt.date", "Дата") }
+        static var receiptKind: String { text("content_planning.history.receipt.kind", "Тип матеріалу") }
+        static var receiptOrganization: String { text("content_planning.history.receipt.organization", "Організація") }
+        static var receiptOutcome: String { text("content_planning.history.receipt.outcome", "Результат") }
+        static var outcomeApproved: String { text("content_planning.history.outcome.approved", "Опубліковано") }
+        static var outcomePendingReview: String { text("content_planning.history.outcome.pending_review", "Передано на модерацію") }
+        static var outcomeScheduled: String { text("content_planning.history.outcome.scheduled", "Заплановано") }
+        static var outcomeArchived: String { text("content_planning.history.outcome.archived", "Архівовано без публікації") }
+        static var outcomeUnresolved: String { text("content_planning.history.outcome.unresolved", "Потребує звірки") }
+        static var unresolvedHistoryLink: String { text("content_planning.history.unresolved_link", "Старий запис ще не пов’язано з опублікованим матеріалом. Він збережений в історії для подальшої звірки.") }
         static func missingFields(_ count: Int) -> String {
             LocalizationStore.localizedFormat(
                 "content_planning.missing_fields",

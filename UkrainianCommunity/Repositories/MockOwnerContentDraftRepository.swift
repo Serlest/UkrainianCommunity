@@ -1,28 +1,40 @@
 import Foundation
 
-private struct MockOwnerContentDraftListener: AppRealtimeListener {
-    func cancel() {}
-}
-
 struct MockOwnerContentDraftRepository: OwnerContentDraftRepository {
-    func fetchDrafts(userID: String, limit: Int) async throws -> [OwnerContentDraft] { [] }
-
-    func listenDrafts(
+    func fetchDraftPage(
         userID: String,
+        section: OwnerContentPlanningSection,
         limit: Int,
-        onChange: @escaping @MainActor ([OwnerContentDraft]) -> Void,
-        onError: @escaping @MainActor (AppError) -> Void
-    ) -> AppRealtimeListener {
-        Task { @MainActor in onChange([]) }
-        return MockOwnerContentDraftListener()
+        after cursor: OwnerContentDraftPageCursor?
+    ) async throws -> OwnerContentDraftPage {
+        OwnerContentDraftPage(items: [], nextCursor: nil, hasMore: false)
     }
 
-    func markScheduled(
+    func fetchDraft(userID: String, draftID: String) async throws -> OwnerContentDraft {
+        throw AppError.notFound
+    }
+
+    func beginPublication(
+        userID: String,
+        draftID: String,
+        attemptID: String
+    ) async throws -> OwnerContentPublicationLease {
+        throw AppError.notFound
+    }
+
+    func finalizePublication(
         userID: String,
         draftID: String,
         publication: ContentPlanningPublicationResult
     ) async throws {}
-    func markCompleted(userID: String, draftID: String) async throws {}
+
+    func failPublication(
+        userID: String,
+        draftID: String,
+        leaseID: String,
+        message: String
+    ) async throws {}
+
     func archive(userID: String, draftID: String) async throws {}
     func delete(userID: String, draftID: String) async throws {}
 }

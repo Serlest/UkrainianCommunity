@@ -821,7 +821,7 @@ struct ContentView: View {
             }
         case .openContentPlanning:
             selectTabIfNeeded(.profile)
-            profileNavigationPath = [.contentPlanning]
+            profileNavigationPath = [.contentPlanning(draftID: notificationTargetID(notification))]
         case .openURL:
             routeToURL(notification)
         }
@@ -972,9 +972,9 @@ struct ContentView: View {
             if !profileNavigationPath.isEmpty {
                 profileNavigationPath.removeAll()
             }
-        case .openContentPlanning:
+        case let .openContentPlanning(draftId):
             selectTabIfNeeded(.profile)
-            profileNavigationPath = [.contentPlanning]
+            profileNavigationPath = [.contentPlanning(draftID: draftId)]
         case .openURL(let urlString):
             guard let url = URL(string: urlString) else {
                 showNotificationRouteUnavailable()

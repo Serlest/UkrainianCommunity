@@ -716,7 +716,13 @@ final class EventEditorViewModel: ObservableObject {
         tags.removeAll { $0.caseInsensitiveCompare(tag) == .orderedSame }
     }
 
-    func publish() async -> Bool {
+    func publish(
+        contentID: String? = nil,
+        contentAlreadyExists: Bool = false,
+        reservedModerationStatus: ModerationStatus? = nil,
+        existingScheduledAt: Date? = nil,
+        publicationLeaseID: String? = nil
+    ) async -> Bool {
         lastPublicationResult = nil
         guard !isPublishing else { return false }
 
@@ -724,6 +730,12 @@ final class EventEditorViewModel: ObservableObject {
         errorMessage = nil
 
         guard validate() else {
+            return false
+        }
+        if contentAlreadyExists,
+           let reservedModerationStatus,
+           (reservedModerationStatus == .draft) != (publicationMode == .scheduled) {
+            errorMessage = AppStrings.ContentPlanning.publicationModeChanged
             return false
         }
 
@@ -749,7 +761,7 @@ final class EventEditorViewModel: ObservableObject {
         switch mode {
         case .create:
             let context = selectedCreateContext ?? .app
-            eventID = UUID().uuidString
+            eventID = contentID ?? UUID().uuidString
             createdAt = now
             existingImageURL = nil
             existingRegisteredCount = 0
@@ -828,7 +840,9 @@ final class EventEditorViewModel: ObservableObject {
             occurrences: allOccurrences,
             createdAt: createdAt,
             updatedAt: now,
-            scheduledAt: isCreateMode && publicationMode == .scheduled ? scheduledAt : nil,
+            scheduledAt: contentAlreadyExists
+                ? (reservedModerationStatus == .draft ? scheduledAt : existingScheduledAt)
+                : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
             requiresRegistration: participationMode.usesInAppRegistration,
             participationMode: participationMode,
             externalAction: externalAction,
@@ -837,7 +851,7 @@ final class EventEditorViewModel: ObservableObject {
             capacity: existingCapacity,
             registeredCount: existingRegisteredCount,
             comments: existingComments,
-            moderationStatus: existingModerationStatus,
+            moderationStatus: reservedModerationStatus ?? existingModerationStatus,
             registrationState: existingRegistrationState,
             likeCount: existingLikeCount,
             likeState: existingLikeState,
@@ -860,7 +874,11 @@ final class EventEditorViewModel: ObservableObject {
             switch mode {
             case .create:
                 let generatedImageData = try await downloadGeneratedImageIfNeeded()
-                try await repository.createEvent(newEvent)
+                if contentAlreadyExists {
+                    try await repository.updateExistingPlanningEvent(newEvent)
+                } else {
+                    try await repository.createEvent(newEvent)
+                }
 
                 if selectedImageData != nil || generatedImageData != nil {
                     isUploadingImage = true
@@ -878,11 +896,15 @@ final class EventEditorViewModel: ObservableObject {
                         }
                     } catch let uploadError {
                         isUploadingImage = false
-                        do {
-                            try await rollbackCreatedEvent(id: newEvent.id)
+                        if contentAlreadyExists {
                             errorMessage = uploadError.localizedDescription
-                        } catch {
-                            errorMessage = "\(uploadError.localizedDescription) \(error.localizedDescription)"
+                        } else {
+                            do {
+                                try await rollbackCreatedEvent(id: newEvent.id)
+                                errorMessage = uploadError.localizedDescription
+                            } catch {
+                                errorMessage = "\(uploadError.localizedDescription) \(error.localizedDescription)"
+                            }
                         }
                         return false
                     }
@@ -916,59 +938,66 @@ final class EventEditorViewModel: ObservableObject {
             lastPublicationResult = ContentPlanningPublicationResult(
                 kind: .event,
                 contentID: newEvent.id,
-                scheduledAt: isCreateMode && publicationMode == .scheduled ? scheduledAt : nil
+                scheduledAt: contentAlreadyExists
+                    ? (reservedModerationStatus == .draft ? scheduledAt : existingScheduledAt)
+                    : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
+                publicationLeaseID: publicationLeaseID
             )
-            if isCreateMode {
-                draftAutosaveTask?.cancel()
-                try? await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)
-            }
-            hasMeaningfulCreateDraftMetadata = false
-            title = ""
-            summary = ""
-            details = ""
-            germanTitle = ""
-            germanSummary = ""
-            germanDetails = ""
-            city = ""
-            venue = ""
-            address = ""
-            locationNote = ""
-            latitude = nil
-            longitude = nil
-            eventOrganizerName = ""
-            organizerURL = ""
-            contactPhone = ""
-            contactEmail = ""
-            contactURL = ""
-            selectedImageData = nil
-            selectedProcessedImage = nil
-            startDate = now
-            endDate = now.addingTimeInterval(60 * 60)
-            hasExplicitEndDate = true
-            additionalOccurrences = []
-            selectedCategory = .meetups
-            additionalCategories = []
-            selectedAudience = .everyone
-            minimumAgeText = ""
-            maximumAgeText = ""
-            tags = []
-            tagInput = ""
-            isAllDay = false
-            requiresRegistration = true
-            participationMode = .inAppRegistration
-            externalActionTitle = ""
-            externalActionURL = ""
-            priceKind = .free
-            priceText = ""
-            maximumPriceText = ""
-            priceNote = ""
-            capacityText = ""
             return true
         } catch {
             isUploadingImage = false
             errorMessage = error.localizedDescription
             return false
         }
+    }
+
+    func completeSuccessfulPublication() async {
+        if isCreateMode {
+            draftAutosaveTask?.cancel()
+            try? await draftRecoveryService.deleteEventCreateDraft(key: createDraftStorageKey)
+        }
+        hasMeaningfulCreateDraftMetadata = false
+        let now = Date()
+        title = ""
+        summary = ""
+        details = ""
+        germanTitle = ""
+        germanSummary = ""
+        germanDetails = ""
+        city = ""
+        venue = ""
+        address = ""
+        locationNote = ""
+        latitude = nil
+        longitude = nil
+        eventOrganizerName = ""
+        organizerURL = ""
+        contactPhone = ""
+        contactEmail = ""
+        contactURL = ""
+        selectedImageData = nil
+        selectedProcessedImage = nil
+        startDate = now
+        endDate = now.addingTimeInterval(60 * 60)
+        hasExplicitEndDate = true
+        additionalOccurrences = []
+        selectedCategory = .meetups
+        additionalCategories = []
+        selectedAudience = .everyone
+        minimumAgeText = ""
+        maximumAgeText = ""
+        tags = []
+        tagInput = ""
+        isAllDay = false
+        requiresRegistration = true
+        participationMode = .inAppRegistration
+        externalActionTitle = ""
+        externalActionURL = ""
+        priceKind = .free
+        priceText = ""
+        maximumPriceText = ""
+        priceNote = ""
+        capacityText = ""
     }
 
     private func rollbackCreatedEvent(id: String) async throws {

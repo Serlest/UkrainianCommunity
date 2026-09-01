@@ -189,27 +189,54 @@ extension EventEditorView {
             PrimaryActionButton(
                 title: viewModel.primarySubmitButtonTitle,
                 loadingTitle: statusMessage,
-                isEnabled: viewModel.canPublish,
-                isLoading: viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage
+                isEnabled: viewModel.canPublish && !isPreparingPlanningPublication,
+                isLoading: isPreparingPlanningPublication || viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage
             ) {
                 submit()
             }
         }
 
         func submit() {
+            guard !isPreparingPlanningPublication else { return }
             guard hasAuthorizedOrganizerSelection else {
                 viewModel.errorMessage = AppStrings.Events.organizationRequired
                 currentStep = .basics
                 return
             }
             Task {
-                let didPublish = await viewModel.publish()
-                guard didPublish else { return }
+                isPreparingPlanningPublication = true
+                defer { isPreparingPlanningPublication = false }
+                let lease: OwnerContentPublicationLease?
+                if let planningPublicationCallbacks {
+                    lease = await planningPublicationCallbacks.begin()
+                    guard lease != nil else {
+                        viewModel.errorMessage = AppStrings.ContentPlanning.publicationBeginFailed
+                        return
+                    }
+                } else {
+                    lease = nil
+                }
+                let didPublish = await viewModel.publish(
+                    contentID: lease?.contentID,
+                    contentAlreadyExists: lease?.contentAlreadyExists ?? false,
+                    reservedModerationStatus: lease?.existingModerationStatus,
+                    existingScheduledAt: lease?.existingScheduledAt,
+                    publicationLeaseID: lease?.leaseID
+                )
+                guard didPublish else {
+                    if let planningPublicationCallbacks, lease != nil {
+                        await planningPublicationCallbacks.fail(
+                            viewModel.errorMessage ?? AppStrings.ContentPlanning.updateFailed
+                        )
+                    }
+                    return
+                }
                 guard let result = viewModel.lastPublicationResult else { return }
                 guard await onPublished(result) else {
                     viewModel.errorMessage = AppStrings.ContentPlanning.updateFailed
                     return
                 }
+                await viewModel.completeSuccessfulPublication()
                 dismiss()
             }
         }

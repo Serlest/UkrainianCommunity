@@ -1,4 +1,4 @@
-import {createHash} from "node:crypto";
+import {createHash, randomUUID} from "node:crypto";
 
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
@@ -11,6 +11,9 @@ import {writeUserNotification} from "../notifications/notificationPayloads";
 type DraftKind = "news" | "event";
 type DraftState = "readyForReview" | "needsAttention";
 type PublicationDraftKind = "news" | "event";
+type StoredDraftState = DraftState | "scheduled" | "publishing" | "failed" | "completed" | "archived";
+
+const publicationLeaseDurationMilliseconds = 10 * 60 * 1000;
 
 const newsCategories = new Set([
   "news", "event", "lawAndDocuments", "benefitsAndSupport",
@@ -141,7 +144,7 @@ export async function saveOwnerContentDraftForUser(
     created = true;
     transaction.create(reference, {
       id: draftId,
-      schemaVersion: 1,
+      schemaVersion: 3,
       ownerUserId,
       kind: parsed.kind,
       state: parsed.state,
@@ -156,8 +159,14 @@ export async function saveOwnerContentDraftForUser(
         ? parsed.payload.scheduledAt ?? null
         : null,
       completedAt: null,
+      archivedAt: null,
       failureMessage: null,
       generatedImage: parsed.generatedImage ?? null,
+      publishedContentId: null,
+      publishedContentKind: null,
+      publishedOrganizationId: null,
+      publishedOrganizationName: null,
+      publicationOutcome: null,
     });
   });
 
@@ -206,13 +215,45 @@ export async function deleteOwnerContentDraftForUser(
 ): Promise<{deleted: boolean}> {
   const draftReference = db.collection("users").doc(ownerUserId)
     .collection("contentPlanningDrafts").doc(draftId);
-  const snapshot = await draftReference.get();
-  if (!snapshot.exists) return {deleted: false};
+  const deletion = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(draftReference);
+    if (!snapshot.exists) return undefined;
+    const state = snapshot.get("state") as StoredDraftState | undefined;
+    if (!["readyForReview", "needsAttention", "failed", "archived"].includes(state ?? "")) {
+      throw new HttpsError(
+        "failed-precondition",
+        "A publishing, scheduled, or completed planning record cannot be deleted."
+      );
+    }
+    const linkedContentId = optionalString(snapshot.get("publishedContentId"), 160);
+    if (linkedContentId) {
+      const kind = enumValue(
+        snapshot.get("kind"),
+        "draft.kind",
+        new Set<PublicationDraftKind>(["news", "event"])
+      );
+      const linkedContent = await transaction.get(
+        db.collection(kind === "news" ? "news" : "events").doc(linkedContentId)
+      );
+      if (linkedContent.exists) {
+        throw new HttpsError("failed-precondition", "A planning record linked to content cannot be deleted.");
+      }
+    }
+    const generatedImage = snapshot.get("generatedImage") as Record<string, unknown> | undefined;
+    const storagePath = typeof generatedImage?.storagePath === "string"
+      ? generatedImage.storagePath
+      : undefined;
+    transaction.update(draftReference, {
+      state: "archived",
+      publicationOutcome: "archived",
+      deletionInProgress: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return {storagePath};
+  });
+  if (!deletion) return {deleted: false};
 
-  const generatedImage = snapshot.get("generatedImage") as Record<string, unknown> | undefined;
-  const storagePath = typeof generatedImage?.storagePath === "string"
-    ? generatedImage.storagePath
-    : undefined;
+  const storagePath = deletion.storagePath;
   const expectedPrefix = `users/${ownerUserId}/contentPlanningDraftImages/`;
   if (storagePath?.startsWith(expectedPrefix)) {
     await adminStorage.bucket().file(storagePath).delete({ignoreNotFound: true});
@@ -299,6 +340,9 @@ export async function scheduleOwnerContentDraftForUser(
       scheduledAt: contentScheduledAt,
       publishedContentId: input.contentId,
       publishedContentKind: input.kind,
+      publishedOrganizationId: contentSnapshot.get("organizationId") ?? null,
+      publishedOrganizationName: contentSnapshot.get("organizationName") ?? null,
+      publicationOutcome: "scheduled",
       failureMessage: null,
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -314,6 +358,374 @@ export const scheduleOwnerContentDraft = onCall(
     return scheduleOwnerContentDraftForUser(
       actor.uid,
       parseScheduledPublicationInput(request.data)
+    );
+  }
+);
+
+interface BeginPublicationInput {
+  draftId: string;
+  attemptId: string;
+}
+
+interface PublicationLeaseResult {
+  draftId: string;
+  kind: PublicationDraftKind;
+  contentId: string;
+  leaseId: string;
+  expiresAt: string;
+  contentAlreadyExists: boolean;
+  existingModerationStatus: "draft" | "pendingReview" | "approved" | null;
+  existingScheduledAt: string | null;
+}
+
+export function parseBeginPublicationInput(value: unknown): BeginPublicationInput {
+  const input = record(value, "request");
+  const attemptId = requiredString(input.attemptId, "attemptId", 80);
+  if (!/^[A-Za-z0-9_-]{16,80}$/.test(attemptId)) {
+    throw new HttpsError("invalid-argument", "attemptId is invalid.");
+  }
+  return {
+    draftId: parseOwnerContentDraftID({draftId: input.draftId}),
+    attemptId,
+  };
+}
+
+export async function beginOwnerContentDraftPublicationForUser(
+  ownerUserId: string,
+  input: BeginPublicationInput,
+  now = Timestamp.now()
+): Promise<PublicationLeaseResult> {
+  const draftReference = db.collection("users").doc(ownerUserId)
+    .collection("contentPlanningDrafts").doc(input.draftId);
+
+  return db.runTransaction(async (transaction) => {
+    const draftSnapshot = await transaction.get(draftReference);
+    if (!draftSnapshot.exists) {
+      throw new HttpsError("not-found", "Content planning draft was not found.");
+    }
+    const kind = enumValue(
+      draftSnapshot.get("kind"),
+      "draft.kind",
+      new Set<PublicationDraftKind>(["news", "event"])
+    );
+    const state = enumValue(
+      draftSnapshot.get("state"),
+      "draft.state",
+      new Set<StoredDraftState>([
+        "readyForReview", "needsAttention", "scheduled", "publishing",
+        "failed", "completed", "archived",
+      ])
+    );
+    if (state === "archived") {
+      throw new HttpsError("failed-precondition", "Draft is already in a terminal publication state.");
+    }
+
+    const existingAttemptId = optionalString(draftSnapshot.get("publicationAttemptId"), 80);
+    const existingLeaseId = optionalString(draftSnapshot.get("publicationLeaseId"), 80);
+    const existingExpiry = draftSnapshot.get("publicationLeaseExpiresAt");
+    const hasActiveLease = state === "publishing"
+      && existingLeaseId
+      && existingExpiry instanceof Timestamp
+      && existingExpiry.toMillis() > now.toMillis();
+    if (hasActiveLease && existingAttemptId !== input.attemptId) {
+      throw new HttpsError("aborted", "Another publication attempt is still active.");
+    }
+
+    const contentId = optionalString(draftSnapshot.get("publishedContentId"), 160)
+      ?? `planning-${input.draftId}`;
+    const collection = kind === "news" ? "news" : "events";
+    const contentReference = db.collection(collection).doc(contentId);
+    const contentSnapshot = await transaction.get(contentReference);
+    let existingModerationStatus: "draft" | "pendingReview" | "approved" | null = null;
+    let existingScheduledAt: string | null = null;
+    if (contentSnapshot.exists) {
+      const contentAuthorId = optionalString(contentSnapshot.get("authorId"), 128);
+      const organizationId = optionalString(contentSnapshot.get("organizationId"), 160);
+      const moderationStatus = enumValue(
+        contentSnapshot.get("moderationStatus"),
+        "content.moderationStatus",
+        new Set(["draft", "pendingReview", "approved"] as const)
+      );
+      if (contentAuthorId !== ownerUserId || !organizationId ||
+          !["draft", "pendingReview", "approved"].includes(moderationStatus)) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Reserved publication content exists but does not belong to this planning draft."
+        );
+      }
+      existingModerationStatus = moderationStatus;
+      const scheduledAt = contentSnapshot.get("scheduledAt");
+      existingScheduledAt = scheduledAt instanceof Timestamp
+        ? scheduledAt.toDate().toISOString()
+        : null;
+    }
+
+    if (["scheduled", "completed"].includes(state)) {
+      if (!contentSnapshot.exists || draftSnapshot.get("publishedContentKind") !== kind) {
+        throw new HttpsError("failed-precondition", "Terminal planning record has no valid content link.");
+      }
+      const expiresAt = Timestamp.fromMillis(now.toMillis() + publicationLeaseDurationMilliseconds);
+      return {
+        draftId: input.draftId,
+        kind,
+        contentId,
+        leaseId: randomUUID(),
+        expiresAt: expiresAt.toDate().toISOString(),
+        contentAlreadyExists: true,
+        existingModerationStatus,
+        existingScheduledAt,
+      };
+    }
+
+    const leaseId = hasActiveLease && existingLeaseId ? existingLeaseId : randomUUID();
+    const expiresAt = hasActiveLease && existingExpiry instanceof Timestamp
+      ? existingExpiry
+      : Timestamp.fromMillis(now.toMillis() + publicationLeaseDurationMilliseconds);
+    transaction.update(draftReference, {
+      state: "publishing",
+      publishedContentId: contentId,
+      publishedContentKind: kind,
+      publicationAttemptId: input.attemptId,
+      publicationLeaseId: leaseId,
+      publicationLeaseExpiresAt: expiresAt,
+      failureMessage: null,
+      updatedAt: now,
+    });
+
+    return {
+      draftId: input.draftId,
+      kind,
+      contentId,
+      leaseId,
+      expiresAt: expiresAt.toDate().toISOString(),
+      contentAlreadyExists: contentSnapshot.exists,
+      existingModerationStatus,
+      existingScheduledAt,
+    };
+  });
+}
+
+export const beginOwnerContentDraftPublication = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const actor = await requireVerifiedActiveUser(request);
+    assertOwner(actor.permissions);
+    return beginOwnerContentDraftPublicationForUser(
+      actor.uid,
+      parseBeginPublicationInput(request.data)
+    );
+  }
+);
+
+interface FinalizePublicationInput {
+  draftId: string;
+  leaseId: string;
+  contentId: string;
+  kind: PublicationDraftKind;
+}
+
+export function parseFinalizePublicationInput(value: unknown): FinalizePublicationInput {
+  const input = record(value, "request");
+  return {
+    draftId: parseOwnerContentDraftID({draftId: input.draftId}),
+    leaseId: requiredString(input.leaseId, "leaseId", 80),
+    contentId: requiredString(input.contentId, "contentId", 160),
+    kind: enumValue(input.kind, "kind", new Set<PublicationDraftKind>(["news", "event"])),
+  };
+}
+
+export async function finalizeOwnerContentDraftPublicationForUser(
+  ownerUserId: string,
+  input: FinalizePublicationInput,
+  now = Timestamp.now()
+): Promise<{finalized: boolean; state: "scheduled" | "completed"}> {
+  const draftReference = db.collection("users").doc(ownerUserId)
+    .collection("contentPlanningDrafts").doc(input.draftId);
+  const collection = input.kind === "news" ? "news" : "events";
+  const contentReference = db.collection(collection).doc(input.contentId);
+
+  return db.runTransaction(async (transaction) => {
+    const [draftSnapshot, contentSnapshot] = await Promise.all([
+      transaction.get(draftReference),
+      transaction.get(contentReference),
+    ]);
+    if (!draftSnapshot.exists) {
+      throw new HttpsError("not-found", "Content planning draft was not found.");
+    }
+    const currentState = draftSnapshot.get("state") as StoredDraftState | undefined;
+    const linkedContentId = draftSnapshot.get("publishedContentId");
+    const linkedKind = draftSnapshot.get("publishedContentKind");
+    if (["scheduled", "completed"].includes(currentState ?? "") &&
+        linkedContentId === input.contentId && linkedKind === input.kind) {
+      return {finalized: true, state: currentState as "scheduled" | "completed"};
+    }
+    if (currentState !== "publishing" ||
+        draftSnapshot.get("publicationLeaseId") !== input.leaseId ||
+        linkedContentId !== input.contentId || linkedKind !== input.kind) {
+      throw new HttpsError("failed-precondition", "Publication lease no longer owns this draft.");
+    }
+    if (!contentSnapshot.exists) {
+      throw new HttpsError("failed-precondition", "Published content was not created.");
+    }
+    const organizationId = requiredString(
+      contentSnapshot.get("organizationId"),
+      "content.organizationId",
+      160
+    );
+    if (contentSnapshot.get("authorId") !== ownerUserId) {
+      throw new HttpsError("failed-precondition", "Published content has a different author.");
+    }
+    const moderationStatus = enumValue(
+      contentSnapshot.get("moderationStatus"),
+      "content.moderationStatus",
+      new Set(["draft", "pendingReview", "approved"])
+    );
+    const scheduledAt = contentSnapshot.get("scheduledAt");
+    const isScheduled = moderationStatus === "draft";
+    if (isScheduled && !(scheduledAt instanceof Timestamp)) {
+      throw new HttpsError("failed-precondition", "Scheduled content has no valid publication time.");
+    }
+    const nextState = isScheduled ? "scheduled" : "completed";
+    const outcome = isScheduled ? "scheduled" : moderationStatus;
+    transaction.update(draftReference, {
+      state: nextState,
+      scheduledAt: isScheduled ? scheduledAt : null,
+      completedAt: isScheduled ? null : now,
+      publishedContentId: input.contentId,
+      publishedContentKind: input.kind,
+      publishedOrganizationId: organizationId,
+      publishedOrganizationName: optionalString(contentSnapshot.get("organizationName"), 200) ?? null,
+      publicationOutcome: outcome,
+      failureMessage: null,
+      publicationAttemptId: FieldValue.delete(),
+      publicationLeaseId: FieldValue.delete(),
+      publicationLeaseExpiresAt: FieldValue.delete(),
+      updatedAt: now,
+    });
+    return {finalized: true, state: nextState};
+  });
+}
+
+export const finalizeOwnerContentDraftPublication = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const actor = await requireVerifiedActiveUser(request);
+    assertOwner(actor.permissions);
+    return finalizeOwnerContentDraftPublicationForUser(
+      actor.uid,
+      parseFinalizePublicationInput(request.data)
+    );
+  }
+);
+
+interface FailPublicationInput {
+  draftId: string;
+  leaseId: string;
+  message: string;
+}
+
+export function parseFailPublicationInput(value: unknown): FailPublicationInput {
+  const input = record(value, "request");
+  return {
+    draftId: parseOwnerContentDraftID({draftId: input.draftId}),
+    leaseId: requiredString(input.leaseId, "leaseId", 80),
+    message: requiredString(input.message, "message", 500),
+  };
+}
+
+export async function failOwnerContentDraftPublicationForUser(
+  ownerUserId: string,
+  input: FailPublicationInput,
+  now = Timestamp.now()
+): Promise<{failed: boolean}> {
+  const draftReference = db.collection("users").doc(ownerUserId)
+    .collection("contentPlanningDrafts").doc(input.draftId);
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(draftReference);
+    if (!snapshot.exists) throw new HttpsError("not-found", "Content planning draft was not found.");
+    if (snapshot.get("state") !== "publishing" ||
+        snapshot.get("publicationLeaseId") !== input.leaseId) {
+      throw new HttpsError("failed-precondition", "Publication lease no longer owns this draft.");
+    }
+    transaction.update(draftReference, {
+      state: "failed",
+      failureMessage: input.message,
+      publicationAttemptId: FieldValue.delete(),
+      publicationLeaseId: FieldValue.delete(),
+      publicationLeaseExpiresAt: FieldValue.delete(),
+      updatedAt: now,
+    });
+  });
+  return {failed: true};
+}
+
+export const failOwnerContentDraftPublication = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const actor = await requireVerifiedActiveUser(request);
+    assertOwner(actor.permissions);
+    return failOwnerContentDraftPublicationForUser(
+      actor.uid,
+      parseFailPublicationInput(request.data)
+    );
+  }
+);
+
+export async function archiveOwnerContentDraftForUser(
+  ownerUserId: string,
+  draftId: string,
+  now = Timestamp.now()
+): Promise<{archived: boolean}> {
+  const reference = db.collection("users").doc(ownerUserId)
+    .collection("contentPlanningDrafts").doc(draftId);
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(reference);
+    if (!snapshot.exists) throw new HttpsError("not-found", "Content planning draft was not found.");
+    const state = snapshot.get("state") as StoredDraftState | undefined;
+    if (state === "archived") return;
+    if (!["readyForReview", "needsAttention", "failed"].includes(state ?? "")) {
+      throw new HttpsError("failed-precondition", "Only an unpublished draft can be archived.");
+    }
+    const linkedContentId = optionalString(snapshot.get("publishedContentId"), 160);
+    if (linkedContentId) {
+      const kind = enumValue(
+        snapshot.get("kind"),
+        "draft.kind",
+        new Set<PublicationDraftKind>(["news", "event"])
+      );
+      const linkedContent = await transaction.get(
+        db.collection(kind === "news" ? "news" : "events").doc(linkedContentId)
+      );
+      if (linkedContent.exists) {
+        throw new HttpsError(
+          "failed-precondition",
+          "A planning record linked to content must be resumed instead of archived."
+        );
+      }
+    }
+    transaction.update(reference, {
+      state: "archived",
+      archivedAt: now,
+      publicationOutcome: "archived",
+      publishedContentId: null,
+      publishedContentKind: null,
+      publishedOrganizationId: null,
+      publishedOrganizationName: null,
+      failureMessage: null,
+      updatedAt: now,
+    });
+  });
+  return {archived: true};
+}
+
+export const archiveOwnerContentDraft = onCall(
+  {region: "europe-west3", enforceAppCheck: false},
+  async (request) => {
+    const actor = await requireVerifiedActiveUser(request);
+    assertOwner(actor.permissions);
+    return archiveOwnerContentDraftForUser(
+      actor.uid,
+      parseOwnerContentDraftID(request.data)
     );
   }
 );

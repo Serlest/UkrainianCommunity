@@ -452,7 +452,13 @@ final class NewsEditorViewModel: ObservableObject {
         try? await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
     }
 
-    func publish() async -> Bool {
+    func publish(
+        contentID: String? = nil,
+        contentAlreadyExists: Bool = false,
+        existingModerationStatus: ModerationStatus? = nil,
+        existingScheduledAt: Date? = nil,
+        publicationLeaseID: String? = nil
+    ) async -> Bool {
         lastPublicationResult = nil
         guard !isPublishing else { return false }
 
@@ -460,6 +466,12 @@ final class NewsEditorViewModel: ObservableObject {
         errorMessage = nil
 
         guard validate() else {
+            return false
+        }
+        if contentAlreadyExists,
+           let existingModerationStatus,
+           (existingModerationStatus == .draft) != (publicationMode == .scheduled) {
+            errorMessage = AppStrings.ContentPlanning.publicationModeChanged
             return false
         }
 
@@ -484,7 +496,7 @@ final class NewsEditorViewModel: ObservableObject {
                 errorMessage = AppStrings.NewsEditor.organizationRequired
                 return false
             }
-            newsID = UUID().uuidString
+            newsID = contentID ?? UUID().uuidString
             createdAt = now
             publishedAt = now
             existingImageURL = nil
@@ -542,11 +554,13 @@ final class NewsEditorViewModel: ObservableObject {
             authorId: existingAuthorID,
             authorName: resolvedAuthorName,
             publishedAt: publishedAt,
-            scheduledAt: isCreateMode && publicationMode == .scheduled ? scheduledAt : nil,
+            scheduledAt: contentAlreadyExists
+                ? (existingModerationStatus == .draft ? scheduledAt : existingScheduledAt)
+                : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
             createdAt: createdAt,
             updatedAt: now,
             comments: existingComments,
-            moderationStatus: resolvedModerationStatus,
+            moderationStatus: existingModerationStatus ?? resolvedModerationStatus,
             likeCount: existingLikeCount,
             likeState: existingLikeState,
             viewCount: existingViewCount,
@@ -561,7 +575,11 @@ final class NewsEditorViewModel: ObservableObject {
             switch mode {
             case .create:
                 let generatedImageData = try await downloadGeneratedImageIfNeeded()
-                try await repository.createNews(news)
+                if contentAlreadyExists {
+                    try await repository.updateExistingPlanningNews(news)
+                } else {
+                    try await repository.createNews(news)
+                }
 
                 if selectedImageData != nil || generatedImageData != nil {
                     isUploadingImage = true
@@ -585,11 +603,15 @@ final class NewsEditorViewModel: ObservableObject {
                         }
                     } catch let uploadError {
                         isUploadingImage = false
-                        do {
-                            try await repository.deleteNews(id: news.id)
+                        if contentAlreadyExists {
                             errorMessage = readableUploadErrorMessage(for: uploadError)
-                        } catch {
-                            errorMessage = readableRollbackErrorMessage(uploadError: uploadError)
+                        } else {
+                            do {
+                                try await repository.deleteNews(id: news.id)
+                                errorMessage = readableUploadErrorMessage(for: uploadError)
+                            } catch {
+                                errorMessage = readableRollbackErrorMessage(uploadError: uploadError)
+                            }
                         }
                         return false
                     }
@@ -628,33 +650,40 @@ final class NewsEditorViewModel: ObservableObject {
             lastPublicationResult = ContentPlanningPublicationResult(
                 kind: .news,
                 contentID: news.id,
-                scheduledAt: isCreateMode && publicationMode == .scheduled ? scheduledAt : nil
+                scheduledAt: contentAlreadyExists
+                    ? (existingModerationStatus == .draft ? scheduledAt : existingScheduledAt)
+                    : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
+                publicationLeaseID: publicationLeaseID
             )
-            if isCreateMode {
-                try? await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
-            }
-            title = ""
-            summary = ""
-            body = ""
-            germanTitle = ""
-            germanSummary = ""
-            germanBody = ""
-            imageCaption = ""
-            imageAlternativeText = ""
-            imageCredit = ""
-            externalActionTitle = ""
-            externalActionURL = ""
-            sourceInput = ""
-            tagsInput = ""
-            selectedImageData = nil
-            selectedProcessedImage = nil
-            removesExistingImage = false
             return true
         } catch {
             isUploadingImage = false
             errorMessage = readablePublishErrorMessage(for: error)
             return false
         }
+    }
+
+    func completeSuccessfulPublication() async {
+        if isCreateMode {
+            draftAutosaveTask?.cancel()
+            try? await draftRecoveryService.deleteNewsCreateDraft(key: createDraftStorageKey)
+        }
+        title = ""
+        summary = ""
+        body = ""
+        germanTitle = ""
+        germanSummary = ""
+        germanBody = ""
+        imageCaption = ""
+        imageAlternativeText = ""
+        imageCredit = ""
+        externalActionTitle = ""
+        externalActionURL = ""
+        sourceInput = ""
+        tagsInput = ""
+        selectedImageData = nil
+        selectedProcessedImage = nil
+        removesExistingImage = false
     }
 
     private var trimmedTitle: String {

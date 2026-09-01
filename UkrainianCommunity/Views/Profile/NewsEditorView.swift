@@ -19,9 +19,11 @@ struct NewsEditorView: View {
     @State var isShowingOrganizerPicker = false
     @State var isShowingDraftRecoveryDialog = false
     @State var isShowingDraftCloseConfirmation = false
+    @State var isPreparingPlanningPublication = false
     @State var currentStep = NewsEditorStep.basics
     @FocusState var focusedField: NewsEditorFocusField?
     let onPublished: @MainActor (ContentPlanningPublicationResult) async -> Bool
+    let planningPublicationCallbacks: OwnerContentPlanningPublicationCallbacks?
     let sourceAttentionMessages: [String]
 
     let titleLimit = NewsEditorViewModel.titleLimit
@@ -48,6 +50,7 @@ struct NewsEditorView: View {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .create()))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = nil
         self.sourceAttentionMessages = []
     }
 
@@ -55,6 +58,7 @@ struct NewsEditorView: View {
         repository: NewsRepository,
         sourceDraft: OwnerContentDraft,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        planningPublicationCallbacks: OwnerContentPlanningPublicationCallbacks? = nil,
         onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(
@@ -64,6 +68,7 @@ struct NewsEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = planningPublicationCallbacks
         self.sourceAttentionMessages = sourceDraft.attentionMessages
     }
 
@@ -87,6 +92,7 @@ struct NewsEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = nil
         self.sourceAttentionMessages = []
     }
 
@@ -99,6 +105,7 @@ struct NewsEditorView: View {
         _viewModel = StateObject(wrappedValue: NewsEditorViewModel(repository: repository, mode: .edit(existing: news)))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = nil
         self.sourceAttentionMessages = []
     }
 

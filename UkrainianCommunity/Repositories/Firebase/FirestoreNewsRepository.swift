@@ -274,6 +274,22 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func updateNews(_ news: NewsPost) async throws {
+        try await updateNews(news, preservesExistingImage: false, operationName: "updateNews")
+    }
+
+    func updateExistingPlanningNews(_ news: NewsPost) async throws {
+        try await updateNews(
+            news,
+            preservesExistingImage: true,
+            operationName: "updateExistingPlanningNews"
+        )
+    }
+
+    private func updateNews(
+        _ news: NewsPost,
+        preservesExistingImage: Bool,
+        operationName: String
+    ) async throws {
         guard news.isOrganizationNews else {
             throw AppError.validationFailed
         }
@@ -300,10 +316,12 @@ struct FirestoreNewsRepository: NewsRepository {
             "updatedAt": Timestamp(date: news.updatedAt)
         ]
         data["scheduledAt"] = news.scheduledAt.map(Timestamp.init(date:)) ?? FieldValue.delete()
-        if let imageURL = news.imageURL {
-            data["imageURL"] = imageURL
-        } else {
-            data["imageURL"] = FieldValue.delete()
+        if !preservesExistingImage {
+            if let imageURL = news.imageURL {
+                data["imageURL"] = imageURL
+            } else {
+                data["imageURL"] = FieldValue.delete()
+            }
         }
         data["sourceName"] = news.sourceName ?? FieldValue.delete()
         data["sourceURL"] = news.sourceURL ?? FieldValue.delete()
@@ -316,7 +334,7 @@ struct FirestoreNewsRepository: NewsRepository {
                 error,
                 context: SystemTechnicalErrorContext(
                     moduleName: "News",
-                    operationName: "updateNews",
+                    operationName: operationName,
                     targetType: .newsPost,
                     targetId: news.id,
                     targetTitle: news.title,
@@ -330,14 +348,16 @@ struct FirestoreNewsRepository: NewsRepository {
         await SystemAuditLoggingService.shared.logSuccess(
             SystemAuditLogContext(
                 moduleName: "News",
-                operationName: "updateNews",
+                operationName: operationName,
                 eventType: .contentUpdated,
                 targetType: .newsPost,
                 targetId: news.id,
                 targetTitle: news.title,
                 organizationId: news.source.organizationId,
                 organizationName: news.source.organizationName,
-                summary: "News post updated"
+                summary: preservesExistingImage
+                    ? "Planning news post recovered"
+                    : "News post updated"
             )
         )
     }

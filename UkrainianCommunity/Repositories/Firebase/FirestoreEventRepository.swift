@@ -510,6 +510,22 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func updateEvent(_ event: Event) async throws {
+        try await updateEvent(event, preservesPlanningServerFields: false, operationName: "updateEvent")
+    }
+
+    func updateExistingPlanningEvent(_ event: Event) async throws {
+        try await updateEvent(
+            event,
+            preservesPlanningServerFields: true,
+            operationName: "updateExistingPlanningEvent"
+        )
+    }
+
+    private func updateEvent(
+        _ event: Event,
+        preservesPlanningServerFields: Bool,
+        operationName: String
+    ) async throws {
         guard event.isOrganizationEvent else {
             throw AppError.validationFailed
         }
@@ -528,7 +544,6 @@ struct FirestoreEventRepository: EventRepository {
             "organizationImageURL": event.source.organizationImageURL as Any,
             "city": event.city,
             "venue": event.venue,
-            "imageURL": event.imageURL as Any,
             "startDate": Timestamp(date: event.startDate),
             "endDate": Timestamp(date: event.endDate),
             "occurrences": FirestoreContentPublishingCoding.occurrencesData(event.occurrences),
@@ -544,6 +559,11 @@ struct FirestoreEventRepository: EventRepository {
             "visibility": "public",
             "isAllDay": event.isAllDay
         ]
+        if preservesPlanningServerFields {
+            data["moderationStatus"] = event.moderationStatus.rawValue
+        } else {
+            data["imageURL"] = event.imageURL as Any
+        }
         data["scheduledAt"] = event.scheduledAt.map(Timestamp.init(date:)) ?? FieldValue.delete()
 
         if let capacity = event.capacity {
@@ -563,16 +583,18 @@ struct FirestoreEventRepository: EventRepository {
             data["maximumAge"] = FieldValue.delete()
         }
 
-        if let authorName = event.authorName {
-            data["authorName"] = authorName
-        } else {
-            data["authorName"] = FieldValue.delete()
-        }
+        if !preservesPlanningServerFields {
+            if let authorName = event.authorName {
+                data["authorName"] = authorName
+            } else {
+                data["authorName"] = FieldValue.delete()
+            }
 
-        if let authorId = event.authorId {
-            data["authorId"] = authorId
-        } else {
-            data["authorId"] = FieldValue.delete()
+            if let authorId = event.authorId {
+                data["authorId"] = authorId
+            } else {
+                data["authorId"] = FieldValue.delete()
+            }
         }
 
         if let address = event.address {
@@ -612,7 +634,7 @@ struct FirestoreEventRepository: EventRepository {
                 error,
                 context: SystemTechnicalErrorContext(
                     moduleName: "Events",
-                    operationName: "updateEvent",
+                    operationName: operationName,
                     targetType: .event,
                     targetId: event.id,
                     targetTitle: event.title,
@@ -626,14 +648,16 @@ struct FirestoreEventRepository: EventRepository {
         await SystemAuditLoggingService.shared.logSuccess(
             SystemAuditLogContext(
                 moduleName: "Events",
-                operationName: "updateEvent",
+                operationName: operationName,
                 eventType: .contentUpdated,
                 targetType: .event,
                 targetId: event.id,
                 targetTitle: event.title,
                 organizationId: event.source.organizationId,
                 organizationName: event.source.organizationName,
-                summary: "Event updated"
+                summary: preservesPlanningServerFields
+                    ? "Planning event recovered"
+                    : "Event updated"
             )
         )
     }

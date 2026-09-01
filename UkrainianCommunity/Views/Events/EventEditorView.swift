@@ -25,9 +25,11 @@ struct EventEditorView: View {
     @State var activeDatePicker: EventEditorDatePicker?
     @State var isShowingDraftRecoveryDialog = false
     @State var isShowingDraftCloseConfirmation = false
+    @State var isPreparingPlanningPublication = false
     @State var currentStep = EventEditorStep.basics
 
     let onPublished: @MainActor (ContentPlanningPublicationResult) async -> Bool
+    let planningPublicationCallbacks: OwnerContentPlanningPublicationCallbacks?
     let sourceAttentionMessages: [String]
     let editorSectionSpacing: CGFloat = 8
     let editorCardSpacing: CGFloat = 8
@@ -48,6 +50,7 @@ struct EventEditorView: View {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .create()))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = nil
         self.sourceAttentionMessages = []
     }
 
@@ -55,6 +58,7 @@ struct EventEditorView: View {
         repository: EventRepository,
         sourceDraft: OwnerContentDraft,
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
+        planningPublicationCallbacks: OwnerContentPlanningPublicationCallbacks? = nil,
         onPublished: @escaping @MainActor (ContentPlanningPublicationResult) async -> Bool = { _ in true }
     ) {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(
@@ -64,6 +68,7 @@ struct EventEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = planningPublicationCallbacks
         self.sourceAttentionMessages = sourceDraft.attentionMessages
     }
 
@@ -87,6 +92,7 @@ struct EventEditorView: View {
         ))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = nil
         self.sourceAttentionMessages = []
     }
 
@@ -99,6 +105,7 @@ struct EventEditorView: View {
         _viewModel = StateObject(wrappedValue: EventEditorViewModel(repository: repository, mode: .edit(existing: event)))
         _organizerOrganizationsViewModel = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: organizationRepository))
         self.onPublished = onPublished
+        self.planningPublicationCallbacks = nil
         self.sourceAttentionMessages = []
     }
 

@@ -55,17 +55,17 @@ test("only the verified app owner can read private planning drafts", async () =>
   await assertFails(getDoc(doc(user, draftPath)));
 });
 
-test("owner may complete or archive but cannot mutate imported facts", async () => {
+test("even the owner cannot mutate planning records directly", async () => {
   const owner = env.authenticatedContext("owner", {email_verified: true}).firestore();
   const reference = doc(owner, draftPath);
 
-  await assertSucceeds(updateDoc(reference, {
+  await assertFails(updateDoc(reference, {
     state: "completed",
     updatedAt: Timestamp.now(),
     completedAt: Timestamp.now(),
   }));
   await assertFails(updateDoc(reference, {title: "Changed by client"}));
-  await assertFails(updateDoc(reference, {state: "readyForReview", updatedAt: Timestamp.now()}));
+  await assertFails(updateDoc(reference, {state: "archived", updatedAt: Timestamp.now()}));
 });
 
 test("clients cannot create or delete planning drafts", async () => {

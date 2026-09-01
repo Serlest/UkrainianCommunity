@@ -92,6 +92,237 @@
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Відкликати заявку?" } }
       }
     },
+    "content_planning.empty.attention.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Derzeit gibt es keine Inhalte mit Fehlern oder Feldern, die Sie prüfen müssen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Зараз немає матеріалів із помилками або полями, які потрібно перевірити." } }
+      }
+    },
+    "content_planning.empty.attention.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Prüfung erforderlich" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Уточнень не потрібно" } }
+      }
+    },
+    "content_planning.empty.drafts.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Neue geprüfte Inhalte erscheinen hier zur Durchsicht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Нові перевірені матеріали з’являться тут для вашого перегляду." } }
+      }
+    },
+    "content_planning.empty.drafts.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Entwürfe" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернеток немає" } }
+      }
+    },
+    "content_planning.empty.history.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nach der Veröffentlichung oder Archivierung bleibt hier ein Beleg mit dem Ergebnis erhalten." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Після публікації або архівування тут залишиться квитанція з результатом." } }
+      }
+    },
+    "content_planning.empty.history.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch kein Verlauf" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Історія порожня" } }
+      }
+    },
+    "content_planning.empty.scheduled.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhalte mit einem zukünftigen Veröffentlichungszeitpunkt erscheinen hier." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Матеріали з майбутньою датою публікації з’являться тут." } }
+      }
+    },
+    "content_planning.empty.scheduled.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nichts geplant" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Нічого не заплановано" } }
+      }
+    },
+    "content_planning.error.access_denied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieser Bereich ist nur für den App-Inhaber verfügbar." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Цей розділ доступний лише власнику застосунку." } }
+      }
+    },
+    "content_planning.error.not_found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieser Inhalt ist nicht mehr verfügbar oder wurde gelöscht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Цей матеріал більше не доступний або був видалений." } }
+      }
+    },
+    "content_planning.error.offline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine Verbindung. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Немає з’єднання. Перевірте інтернет і спробуйте ще раз." } }
+      }
+    },
+    "content_planning.error.publication_begin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Veröffentlichung konnte nicht sicher gestartet werden. Der Entwurf wurde nicht geändert. Versuchen Sie es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося безпечно розпочати публікацію. Чернетку не змінено — спробуйте ще раз." } }
+      }
+    },
+    "content_planning.error.publication_mode_changed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Modus des bereits erstellten Inhalts hat sich geändert. Wählen Sie den Modus passend zum aktuellen Status und versuchen Sie es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Режим уже створеного матеріалу змінився. Виберіть режим, що відповідає його поточному статусу, і повторіть спробу." } }
+      }
+    },
+    "content_planning.history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verlauf" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Історія" } }
+      }
+    },
+    "content_planning.history.open_published" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhalt öffnen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Відкрити матеріал" } }
+      }
+    },
+    "content_planning.history.outcome.approved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Veröffentlicht" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Опубліковано" } }
+      }
+    },
+    "content_planning.history.outcome.archived" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ohne Veröffentlichung archiviert" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Архівовано без публікації" } }
+      }
+    },
+    "content_planning.history.outcome.pending_review" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zur Moderation eingereicht" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Передано на модерацію" } }
+      }
+    },
+    "content_planning.history.outcome.scheduled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Geplant" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заплановано" } }
+      }
+    },
+    "content_planning.history.outcome.unresolved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abgleich erforderlich" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Потребує звірки" } }
+      }
+    },
+    "content_planning.history.receipt.date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Datum" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Дата" } }
+      }
+    },
+    "content_planning.history.receipt.kind" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhaltstyp" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Тип матеріалу" } }
+      }
+    },
+    "content_planning.history.receipt.organization" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisation" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Організація" } }
+      }
+    },
+    "content_planning.history.receipt.outcome" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ergebnis" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Результат" } }
+      }
+    },
+    "content_planning.history.receipt.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Verarbeitungsergebnis" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Результат обробки" } }
+      }
+    },
+    "content_planning.history.status.archived" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Archiviert" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Архівовано" } }
+      }
+    },
+    "content_planning.history.status.published" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Veröffentlicht" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Опубліковано" } }
+      }
+    },
+    "content_planning.history.unresolved_link" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieser ältere Eintrag ist noch nicht mit dem veröffentlichten Inhalt verknüpft. Er bleibt für einen späteren Abgleich im Verlauf erhalten." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Старий запис ще не пов’язано з опублікованим матеріалом. Він збережений в історії для подальшої звірки." } }
+      }
+    },
+    "content_planning.history.view_receipt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beleg" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Квитанція" } }
+      }
+    },
+    "content_planning.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Inhaltsplanung wird geladen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Завантаження планування" } }
+      }
+    },
+    "content_planning.loading_more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nächste Seite wird geladen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Завантаження наступної сторінки" } }
+      }
+    },
+    "content_planning.publishing_in_progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Veröffentlichung läuft bereits" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Публікація вже виконується" } }
+      }
+    },
+    "content_planning.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erneut versuchen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Спробувати ще раз" } }
+      }
+    },
     "content_planning.archive" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -102,8 +333,8 @@
     "content_planning.archive.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf verschwindet aus der Planung. Bereits veröffentlichte Inhalte werden nicht geändert." } },
-        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернетка зникне з планування, але опублікований контент не буде змінено." } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf wird ohne Veröffentlichung in den Verlauf verschoben." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернетка перейде в історію без публікації." } }
       }
     },
     "content_planning.archive.title" : {
@@ -116,8 +347,8 @@
     "content_planning.attention" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Prüfen" } },
-        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Увага" } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zu prüfen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Потребують уваги" } }
       }
     },
     "content_planning.attention.additional_fields" : {
@@ -130,7 +361,7 @@
     "content_planning.attention.editor_hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Prüfe vor der Veröffentlichung genau diese Felder:" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Prüfen Sie vor der Veröffentlichung genau diese Felder:" } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Перед публікацією перевірте саме ці поля:" } }
       }
     },
@@ -165,8 +396,8 @@
     "content_planning.delete.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf und das dafür erstellte Titelbild werden endgültig gelöscht. Bereits veröffentlichte Inhalte bleiben unverändert." } },
-        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Чернетку та створену для неї обкладинку буде видалено безповоротно. Опублікований контент не зміниться." } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der unveröffentlichte Entwurf und das dafür erstellte Titelbild werden endgültig gelöscht." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Неопубліковану чернетку та створену для неї обкладинку буде видалено безповоротно." } }
       }
     },
     "content_planning.delete.title" : {
@@ -179,7 +410,7 @@
     "content_planning.empty.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sende dem Assistenten einen Link. Nach der Prüfung erscheint der Inhalt hier und bleibt bis zu deiner Veröffentlichung privat." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Senden Sie dem Assistenten einen Link. Nach der Prüfung erscheint der Inhalt hier und bleibt bis zu Ihrer Veröffentlichung privat." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Надішліть посилання асистенту. Після перевірки матеріал з’явиться тут і залишиться приватним до вашої публікації." } }
       }
     },
@@ -193,21 +424,21 @@
     "content_planning.error.load" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Inhaltsplanung konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Inhaltsplanung konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося завантажити планування. Перевірте з’єднання та спробуйте ще раз." } }
       }
     },
     "content_planning.error.delete" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf konnte nicht gelöscht werden. Prüfe die Verbindung und versuche es erneut." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf konnte nicht gelöscht werden. Prüfen Sie die Verbindung und versuchen Sie es erneut." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося видалити чернетку. Перевірте з’єднання та спробуйте ще раз." } }
       }
     },
     "content_planning.error.update" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf konnte nicht aktualisiert werden. Versuche es erneut." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Der Entwurf konnte nicht aktualisiert werden. Versuchen Sie es erneut." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося оновити чернетку. Спробуйте ще раз." } }
       }
     },
@@ -264,13 +495,13 @@
       "extractionState" : "manual",
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Geplant" } },
-        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Майбутні" } }
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заплановані" } }
       }
     },
     "content_planning.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Private Entwürfe aus geprüften Links. Du wählst die Organisation und veröffentlichst erst nach deiner Kontrolle." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Private Entwürfe aus geprüften Links. Sie wählen die Organisation und veröffentlichen erst nach Ihrer Prüfung." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Приватні чернетки, підготовлені з перевірених посилань. Ви обираєте організацію та публікуєте лише після перегляду." } }
       }
     },

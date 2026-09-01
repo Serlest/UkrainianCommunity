@@ -415,6 +415,25 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOwnerContentPlanningExposesFourStableSections() throws {
+        let app = launchOwnerApp()
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let planning = element("profile.contentPlanning", in: app)
+        scrollToElement(planning, in: app, maxSwipes: 14)
+        XCTAssertTrue(planning.waitForExistence(timeout: 8))
+        planning.tap()
+
+        XCTAssertTrue(element("screen.contentPlanning", in: app).waitForExistence(timeout: 10))
+        for section in ["drafts", "scheduled", "attention", "history"] {
+            let control = app.buttons["contentPlanning.section.\(section)"]
+            XCTAssertTrue(control.waitForExistence(timeout: 5), "Missing planning section: \(section)")
+            XCTAssertTrue(control.isHittable)
+            control.tap()
+        }
+        attachScreenshot(named: "owner-content-planning-four-sections", from: app)
+    }
+
+    @MainActor
     func testMainFeedPullRefreshKeepsNavigationResponsive() throws {
         let app = launchAuthenticatedApp()
         for (index, filterID, cardPrefix) in [

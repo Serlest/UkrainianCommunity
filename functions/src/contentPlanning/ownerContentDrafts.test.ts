@@ -3,10 +3,39 @@ import {test} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
+  parseBeginPublicationInput,
+  parseFailPublicationInput,
+  parseFinalizePublicationInput,
   parseOwnerContentDraftID,
   parseOwnerContentDraftInput,
   parseScheduledPublicationInput,
 } from "./ownerContentDrafts";
+
+test("parses publication lease requests and rejects unsafe identifiers", () => {
+  const draftId = "a".repeat(40);
+  const begin = parseBeginPublicationInput({draftId, attemptId: "attempt_123456789"});
+  assert.equal(begin.draftId, draftId);
+  assert.equal(begin.attemptId, "attempt_123456789");
+  assert.throws(() => parseBeginPublicationInput({draftId, attemptId: "short"}));
+
+  const finalize = parseFinalizePublicationInput({
+    draftId,
+    leaseId: "lease-1",
+    contentId: `planning-${draftId}`,
+    kind: "news",
+  });
+  assert.equal(finalize.kind, "news");
+  assert.throws(() => parseFinalizePublicationInput({
+    draftId,
+    leaseId: "lease-1",
+    contentId: "content-1",
+    kind: "organization",
+  }));
+
+  const failed = parseFailPublicationInput({draftId, leaseId: "lease-1", message: "Upload failed"});
+  assert.equal(failed.message, "Upload failed");
+  assert.throws(() => parseFailPublicationInput({draftId, leaseId: "lease-1", message: ""}));
+});
 
 test("parses a verified news draft without organization assignment", () => {
   const parsed = parseOwnerContentDraftInput({
