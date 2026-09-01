@@ -117,7 +117,7 @@ struct UkrainianCommunityApp: App {
         if isUITesting {
             container = .uiTesting
         } else {
-            container = .development
+            container = .live
         }
 
         let shouldForceGuestSession = environment["UITestForceGuestSession"] == "1"

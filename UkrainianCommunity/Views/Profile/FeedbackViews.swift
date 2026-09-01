@@ -16,12 +16,18 @@ struct DsaStatementView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppTheme.sectionSpacing)
+                    .accessibilityLabel(AppStrings.Safety.dsaStatementTitle)
+                    .accessibilityIdentifier("dsa.statement.loading")
             } else if let errorMessage {
-                ContentUnavailableView(
-                    AppStrings.Safety.dsaStatementUnavailable,
+                ErrorStateCard(
                     systemImage: "exclamationmark.shield",
-                    description: Text(errorMessage)
-                )
+                    title: AppStrings.Safety.dsaStatementUnavailable,
+                    message: errorMessage,
+                    retryTitle: authState.user == nil ? nil : AppStrings.Action.retry
+                ) {
+                    Task { await loadStatement() }
+                }
+                .accessibilityIdentifier("dsa.statement.error")
             } else if let statement {
                 statementContent(statement)
             }

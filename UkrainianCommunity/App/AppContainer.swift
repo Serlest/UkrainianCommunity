@@ -20,7 +20,8 @@ struct AppContainer {
     let ownerAnalyticsRepository: OwnerAnalyticsRepository
     let analyticsService: AnalyticsTracking
 
-    static var development: AppContainer {
+    /// Production dependency graph. Preview and UI-test code must use `uiTesting`.
+    static var live: AppContainer {
         AppContainer(
             userRepository: FirestoreUserRepository(),
             feedbackRepository: FirestoreFeedbackRepository(),
